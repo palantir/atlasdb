@@ -55,7 +55,6 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -158,15 +157,15 @@ public class CassandraService implements AutoCloseable {
                 hostToRackThisRefresh.put(onlyHost, onlyEndpoint.getRack());
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    Set<CassandraServer> hostSet = new HashSet<>();
+                    ImmutableSet.Builder<CassandraServer> builder = ImmutableSet.builder();
                     for (EndpointDetails endpointDetails : tokenRange.getEndpoint_details()) {
                         CassandraServer host = getAddressForHostThrowUnchecked(endpointDetails.getHost());
-                        hostSet.add(host);
+                        servers.add(host);
                         hostToDatacentersThisRefresh.put(host, endpointDetails.getDatacenter());
                         hostToRackThisRefresh.put(host, endpointDetails.getRack());
                     }
 
-                    ImmutableSet<CassandraServer> hosts = ImmutableSet.copyOf(hostSet);
+                    ImmutableSet<CassandraServer> hosts = builder.build();
                     servers.addAll(hosts);
 
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
