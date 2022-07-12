@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
@@ -50,17 +51,17 @@ public interface WriteInfo {
                 .build();
     }
 
-    default int toShard(int numShards) {
-        return IntMath.mod(dayRotatingHash(), numShards);
+    default int toShard(CellReferenceMapper mapper, int numShards) {
+        return IntMath.mod(dayRotatingHash(mapper), numShards);
     }
 
     /**
      * The purpose of the rotating hash calculation is to redistribute shards every day to alleviate issues caused by
      * imbalanced write patterns overloading few shards.
      */
-    default int dayRotatingHash() {
+    default int dayRotatingHash(CellReferenceMapper mapper) {
         int hash = 5381;
-        hash = hash * 1439 + writeRef().cellReference().goodHash();
+        hash = hash * 1439 + mapper.map(writeRef().cellReference());
         hash = hash * 1439 + LocalDate.now(ZoneId.of("UTC")).hashCode();
         return hash;
     }

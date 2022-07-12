@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -63,7 +64,7 @@ public class WriteInfoPartitionerTest {
 
     @Before
     public void setup() {
-        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
+        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards, () -> DefaultCellReferenceMapper.INSTANCE);
         when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args -> {
             TableReference tableRef = args.getArgument(0);
             return METADATA_MAP.getOrDefault(tableRef, AtlasDbConstants.EMPTY_TABLE_METADATA);
@@ -147,7 +148,8 @@ public class WriteInfoPartitionerTest {
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
-                .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
+                .containsExactly(PartitionInfo.of(
+                        writes.get(0).toShard(DefaultCellReferenceMapper.INSTANCE, numShards), true, 1L));
         assertThat(Iterables.getOnlyElement(partitions.values())).containsExactlyElementsOf(writes);
     }
 
@@ -172,7 +174,7 @@ public class WriteInfoPartitionerTest {
         int writes = 100_000;
         Map<Integer, Long> result = IntStream.range(0, writes)
                 .mapToObj(index -> getWriteInfo(TABLE_CONS, index, index, 1L))
-                .map(writeInfo -> writeInfo.toShard(numShards))
+                .map(writeInfo -> writeInfo.toShard(DefaultCellReferenceMapper.INSTANCE, numShards))
                 .collect(Collectors.groupingBy(shard -> shard, Collectors.counting()));
 
         assertThat(result).hasSize(numShards);
@@ -187,7 +189,7 @@ public class WriteInfoPartitionerTest {
     private WriteInfo getWriteInfoWithFixedShard(TableReference tableRef, int cellIndex, int numShards) {
         return IntStream.iterate(0, i -> i + 1)
                 .mapToObj(index -> getWriteInfo(tableRef, cellIndex, index, 1L))
-                .filter(writeInfo -> writeInfo.toShard(numShards) == 0)
+                .filter(writeInfo -> writeInfo.toShard(DefaultCellReferenceMapper.INSTANCE, numShards) == 0)
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }

@@ -163,6 +163,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 kvs,
                 timelockService,
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
+                Suppliers.compose(TargetedSweepRuntimeConfig::useTokenRingAwareShardingForCassandra, runtime::get),
                 transaction,
                 follower,
                 ReadBatchingRuntimeContext.builder()

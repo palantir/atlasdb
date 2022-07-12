@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import org.junit.Test;
@@ -40,8 +41,8 @@ public class WriteInfoTest {
     @Test
     public void tombstoneStatusIsIgnoredForSharding() {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
-        assertThat(getWriteAt(ONE).toShard(SHARDS))
-                .isEqualTo(getTombstoneAt(ONE).toShard(SHARDS));
+        assertThat(getWriteAt(ONE).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS))
+                .isEqualTo(getTombstoneAt(ONE).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS));
     }
 
     @Test
@@ -49,9 +50,10 @@ public class WriteInfoTest {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getWriteAt(TWO));
         assertThat(getTombstoneAt(ONE)).isNotEqualTo(getTombstoneAt(TWO));
 
-        assertThat(getWriteAt(ONE).toShard(SHARDS)).isEqualTo(getWriteAt(TWO).toShard(SHARDS));
-        assertThat(getTombstoneAt(ONE).toShard(SHARDS))
-                .isEqualTo(getTombstoneAt(TWO).toShard(SHARDS));
+        assertThat(getWriteAt(ONE).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS))
+                .isEqualTo(getWriteAt(TWO).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS));
+        assertThat(getTombstoneAt(ONE).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS))
+                .isEqualTo(getTombstoneAt(TWO).toShard(DefaultCellReferenceMapper.INSTANCE, SHARDS));
     }
 
     @Test

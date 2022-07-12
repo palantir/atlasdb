@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * A service which stores key-value pairs.
@@ -701,5 +702,10 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Override
     default boolean isValid() {
         return true;
+    }
+
+    @DoDelegate
+    default CellReferenceMapper createCellReferenceMapperForSweep(Supplier<Integer> shards) {
+        return DefaultCellReferenceMapper.INSTANCE;
     }
 }

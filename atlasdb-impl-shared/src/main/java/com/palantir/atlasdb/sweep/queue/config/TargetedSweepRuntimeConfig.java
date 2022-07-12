@@ -51,6 +51,16 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     /**
+     * If true, and if the KVS used is a Cassandra KVS, we will map writes to shards in such a way as to minimise the
+     * disruption to sweep caused by a Cassandra node being down. Note that to optimise the effectiveness of this
+     * feature, the number of shards should be set to a perfect cube.
+     */
+    @Value.Default
+    public boolean useTokenRingAwareShardingForCassandra() {
+        return false;
+    }
+
+    /**
      * Specifies the maximum number of (fine) partitions over which targeted sweep attempts to read sweep queue
      * information before executing deletes. Only partitions which actually contain information about writes will count
      * towards this limit. Targeted sweep may, of course, read fewer partitions. Legacy behaviour prior to the

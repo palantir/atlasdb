@@ -96,6 +96,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
                 keyValueService,
                 timelockService,
                 () -> 128,
+                () -> false,
                 SweepQueueReader.DEFAULT_READ_BATCHING_RUNTIME_CONTEXT);
     }
 

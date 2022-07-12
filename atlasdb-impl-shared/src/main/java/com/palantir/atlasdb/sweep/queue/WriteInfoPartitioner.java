@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.palantir.atlasdb.keyvalue.api.CellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -40,6 +41,7 @@ public class WriteInfoPartitioner {
 
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
+    private final Supplier<CellReferenceMapper> cellReferenceMapper;
 
     private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder.newBuilder()
             .build(new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
@@ -49,9 +51,11 @@ public class WriteInfoPartitioner {
                 }
             });
 
-    public WriteInfoPartitioner(KeyValueService kvs, Supplier<Integer> numShards) {
+    public WriteInfoPartitioner(
+            KeyValueService kvs, Supplier<Integer> numShards, Supplier<CellReferenceMapper> cellReferenceMapper) {
         this.kvs = kvs;
         this.numShards = numShards;
+        this.cellReferenceMapper = cellReferenceMapper;
     }
 
     /**
@@ -77,7 +81,8 @@ public class WriteInfoPartitioner {
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
+        return PartitionInfo.of(
+                write.toShard(cellReferenceMapper.get(), shards), isConservative(write), write.timestamp());
     }
 
     private boolean isConservative(WriteInfo write) {

@@ -53,6 +53,7 @@ import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -1324,14 +1325,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         List<WriteInfo> writeInfos = new ArrayList<>();
         int counter = 0;
         while (writeInfos.stream()
-                        .filter(write -> write.toShard(DEFAULT_SHARDS) == CONS_SHARD)
+                        .filter(write ->
+                                write.toShard(DefaultCellReferenceMapper.INSTANCE, DEFAULT_SHARDS) == CONS_SHARD)
                         .count()
                 < threshold) {
             writeInfos.addAll(generateHundredWrites(counter++, startTs));
         }
         sweepQueue.enqueue(writeInfos);
         return writeInfos.stream()
-                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, Integer::sum));
+                .collect(Collectors.toMap(
+                        write -> write.toShard(DefaultCellReferenceMapper.INSTANCE, DEFAULT_SHARDS),
+                        write -> 1,
+                        Integer::sum));
     }
 
     private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {

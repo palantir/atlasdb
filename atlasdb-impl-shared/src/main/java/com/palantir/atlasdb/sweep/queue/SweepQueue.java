@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.keyvalue.api.CellReferenceMapper;
+import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -63,11 +65,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             KeyValueService kvs,
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
+            Supplier<Boolean> enableTokenRingSharding,
             TransactionService transaction,
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-        SweepQueueFactory factory =
-                SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
+        SweepQueueFactory factory = SweepQueueFactory.create(
+                metrics, kvs, timelock, shardsConfig, enableTokenRingSharding, transaction, readBatchingRuntimeContext);
         return new SweepQueue(factory, follower);
     }
 
@@ -79,8 +82,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             KeyValueService kvs,
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
+            Supplier<Boolean> enableTokenRingSharding,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-        return SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, readBatchingRuntimeContext)
+        return SweepQueueFactory.create(
+                        metrics, kvs, timelock, shardsConfig, enableTokenRingSharding, readBatchingRuntimeContext)
                 .createWriter();
     }
 
@@ -227,12 +232,20 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 KeyValueService kvs,
                 TimelockService timelock,
                 Supplier<Integer> shardsConfig,
+                Supplier<Boolean> enableTokenRingSharding,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext) {
             // It is OK that the transaction service is different from the one used by the transaction manager,
             // as transaction services must not hold any local state in them that would affect correctness.
             TransactionService transaction =
                     TransactionServices.createRaw(kvs, new TimelockTimestampServiceAdapter(timelock), false);
-            return create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
+            return create(
+                    metrics,
+                    kvs,
+                    timelock,
+                    shardsConfig,
+                    enableTokenRingSharding,
+                    transaction,
+                    readBatchingRuntimeContext);
         }
 
         static SweepQueueFactory create(
@@ -240,13 +253,16 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 KeyValueService kvs,
                 TimelockService timelock,
                 Supplier<Integer> shardsConfig,
+                Supplier<Boolean> enableTokenRingSharding,
                 TransactionService transaction,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
-            WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
+            Supplier<CellReferenceMapper> mapper = Suppliers.memoizeWithExpiration(
+                    () -> getMapper(kvs, shards, enableTokenRingSharding), 1, TimeUnit.HOURS);
+            WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards, mapper);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
             return new SweepQueueFactory(
@@ -259,6 +275,14 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     kvs,
                     timelock,
                     readBatchingRuntimeContext);
+        }
+
+        private static CellReferenceMapper getMapper(
+                KeyValueService kvs, Supplier<Integer> shards, Supplier<Boolean> enableTokenRingSharding) {
+            if (enableTokenRingSharding.get()) {
+                return kvs.createCellReferenceMapperForSweep(shards);
+            }
+            return DefaultCellReferenceMapper.INSTANCE;
         }
 
         private SweepQueueWriter createWriter() {
