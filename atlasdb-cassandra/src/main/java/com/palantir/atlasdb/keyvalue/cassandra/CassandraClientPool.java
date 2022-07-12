@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.TokenRanges;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.processors.AutoDelegate;
 import java.util.Map;
@@ -37,6 +38,8 @@ public interface CassandraClientPool {
     CassandraServer getRandomServerForKey(byte[] key);
 
     Map<CassandraServer, CassandraClientPoolingContainer> getCurrentPools();
+
+    TokenRanges computeTokenRanges();
 
     void shutdown();
 }

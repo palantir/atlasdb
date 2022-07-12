@@ -50,11 +50,13 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -2165,6 +2167,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
+    }
+
+    @Override
+    public CellReferenceMapper createCellReferenceMapperForSweep(Supplier<Integer> shards) {
+        // todo(gmaretic): use this to create the CellReferenceMapper
+        clientPool.computeTokenRanges();
+        return DefaultCellReferenceMapper.INSTANCE;
     }
 
     private static class TableCellAndValue {

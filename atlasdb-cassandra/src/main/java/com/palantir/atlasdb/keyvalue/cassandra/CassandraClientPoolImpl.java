@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifi
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.TokenRanges;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
@@ -298,6 +299,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public Map<CassandraServer, CassandraClientPoolingContainer> getCurrentPools() {
         return cassandra.getPools();
+    }
+
+    @Override
+    public TokenRanges computeTokenRanges() {
+        return cassandra.computeTokenRanges();
     }
 
     @VisibleForTesting
