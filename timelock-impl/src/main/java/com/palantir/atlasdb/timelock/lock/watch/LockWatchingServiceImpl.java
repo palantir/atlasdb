@@ -34,7 +34,6 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -106,7 +105,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public <T> ValueAndMultipleStateUpdates<T> runTask(
-            List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
+            Set<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
         return lockEventLog.runTask(lastKnownVersions, task);
     }
 

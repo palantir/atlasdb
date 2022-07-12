@@ -204,9 +204,9 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     }
 
     @Override
-    public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
+    public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
         // Sorry.
-        return conjureDelegate.runCommands(authHeader, requests);
+        return conjureDelegate.runCommands(authHeader, namespace, requests);
     }
 
     private static Optional<Long> tryParseStartTimestamp(String description) {

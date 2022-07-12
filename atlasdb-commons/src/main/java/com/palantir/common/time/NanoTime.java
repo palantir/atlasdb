@@ -27,7 +27,7 @@ import org.immutables.value.Value;
 @PackageVisibleImmutablesStyle
 public abstract class NanoTime implements Comparable<NanoTime> {
     @JsonValue
-    abstract long time();
+    public abstract long time();
 
     public static NanoTime now() {
         return create(System.nanoTime());

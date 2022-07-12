@@ -30,6 +30,7 @@ dependencies {
     implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.conjure.java:conjure-lib'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tokens:auth-tokens'

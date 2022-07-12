@@ -29,7 +29,6 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -63,7 +62,7 @@ public class LockEventLogImpl implements LockEventLog {
 
     @Override
     public synchronized <T> ValueAndMultipleStateUpdates<T> runTask(
-            List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
+            Set<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
         T t = task.get();
         boolean snapshotRequired = false;
         long oldestMatchingVersion = Long.MAX_VALUE;

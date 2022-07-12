@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -28,12 +31,22 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
+import com.palantir.atlasdb.timelock.lock.watch.ImmutableStateUpdatePair;
+import com.palantir.atlasdb.timelock.lock.watch.StateUpdatePair;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndMultipleStateUpdates;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.generated.Command;
+import com.palantir.lock.generated.Command.CommandOutput;
+import com.palantir.lock.generated.Command.CommandSet;
+import com.palantir.lock.generated.Command.Lease;
+import com.palantir.lock.generated.Command.StartTransactionsResponse;
+import com.palantir.lock.generated.Command.TokenSet;
+import com.palantir.lock.generated.Command.TransactionStartRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -53,11 +66,14 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
@@ -240,6 +256,133 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
+    public ListenableFuture<CommandOutput> runCommands(CommandSet commandSet) {
+        CommandOutput.Builder builder = CommandOutput.newBuilder();
+
+        if (commandSet.hasToRefresh()) {
+            RefreshLockResponseV2 refreshLockResponseV2 =
+                    lockService.refresh(convertToServerTokens(commandSet.getToRefresh()));
+            builder.setRefreshed(convertFromServerTokens(refreshLockResponseV2.refreshedTokens()))
+                    .setRefreshLease(convertLease(refreshLockResponseV2.getLease()))
+                    .build();
+        }
+
+        if (commandSet.hasToUnlock()) {
+            Set<LockToken> unlockedTokens = lockService.unlock(convertToServerTokens(commandSet.getToUnlock()));
+            builder.setUnlocked(convertFromServerTokens(unlockedTokens));
+        }
+
+        if (commandSet.getNeedLeaderTime()) {
+            // TODO (jkong): Copy-penne/arrabbiata/fusilli
+            LeaderTime leaderTime = lockService.leaderTime();
+            builder.setLeaderTime(Command.LeaderTime.newBuilder()
+                    .setLeaderId(ByteString.copyFrom(
+                            ValueType.UUID.convertFromJava(leaderTime.id().id())))
+                    .setTime(leaderTime.currentTime().time())
+                    .build());
+        }
+
+        if (commandSet.hasTimestampsToRetrieve()) {
+            int num = commandSet.getTimestampsToRetrieve();
+            if (num == 1) {
+                builder.setSingularTimestamp(timestampService.getFreshTimestamp());
+            } else {
+                TimestampRange timestamps = timestampService.getFreshTimestamps(num);
+                builder.setTimestamps(Command.TimestampRange.newBuilder()
+                        .setStartInclusive(timestamps.getLowerBound())
+                        .setNumGiven(timestamps.getUpperBound() - timestamps.getLowerBound() + 1)
+                        .build());
+            }
+        }
+
+        Map<UUID, Leased<LockImmutableTimestampResponse>> leasedLocks = new HashMap<>();
+        if (commandSet.getTransactionStartRequestsCount() > 0) {
+            // TODO (jkong): Copy-linguini/orecchiette/conchiglioni
+            for (TransactionStartRequest startRequest : commandSet.getTransactionStartRequestsList()) {
+                UUID requestId = (UUID)
+                        ValueType.UUID.convertToJava(startRequest.getRequestId().toByteArray(), 0);
+                leasedLocks.put(requestId, lockImmutableTimestampWithLease(requestId));
+            }
+        }
+
+        // This can be for getCommitTimestamp OR startTransaction BUT must happen AFTER the transactions were taken
+        // out...
+        Set<Optional<LockWatchVersion>> lockWatchVersionHistoryRequired =
+                commandSet.getVersionsNeedingChecksList().stream()
+                        .map(lwv -> LockWatchVersion.of(
+                                (UUID) ValueType.UUID.convertToJava(
+                                        lwv.getLeaderId().toByteArray(), 0),
+                                lwv.getVersion()))
+                        .map(Optional::of)
+                        .collect(Collectors.toSet());
+        if (commandSet.getNeedGenericLockWatchUpdate()) {
+            lockWatchVersionHistoryRequired.add(Optional.empty());
+        }
+
+        ValueAndMultipleStateUpdates<Map<UUID, PartitionedTimestamps>> valueAndMultipleStateUpdates = lockService
+                .getLockWatchingService()
+                .runTask(lockWatchVersionHistoryRequired, () -> {
+                    Map<UUID, PartitionedTimestamps> requestToPartitionedTimestamps = new HashMap<>();
+                    for (TransactionStartRequest startRequest : commandSet.getTransactionStartRequestsList()) {
+                        UUID request = (UUID) ValueType.UUID.convertToJava(
+                                startRequest.getRequestId().toByteArray(), 0);
+                        UUID requestor = (UUID) ValueType.UUID.convertToJava(
+                                startRequest.getRequestorId().toByteArray(), 0);
+                        requestToPartitionedTimestamps.put(
+                                request,
+                                timestampService.getFreshTimestampsForClient(
+                                        requestor, startRequest.getTransactionsToStart()));
+                    }
+                    return requestToPartitionedTimestamps;
+                });
+
+        Map<UUID, PartitionedTimestamps> map = valueAndMultipleStateUpdates.value();
+        for (Map.Entry<UUID, PartitionedTimestamps> entry : map.entrySet()) {
+            LockImmutableTimestampResponse value =
+                    leasedLocks.get(entry.getKey()).value();
+            builder.addStartedTransactions(StartTransactionsResponse.newBuilder()
+                    .setLease(convertLease(leasedLocks.get(entry.getKey()).lease()))
+                    .setPartitionedTimestamps(Command.PartitionedTimestamps.newBuilder()
+                            .setStart(entry.getValue().start())
+                            .setCount(entry.getValue().count())
+                            .setInterval(entry.getValue().interval())
+                            .build())
+                    .setRequestId(ByteString.copyFrom(ValueType.UUID.convertFromJava(entry.getKey())))
+                    .setLockImmutableTimestampResponse(Command.LockImmutableTimestampResponse.newBuilder()
+                            .setTimestamp(value.getImmutableTimestamp())
+                            .setTokenId(ByteString.copyFrom(ValueType.UUID.convertFromJava(
+                                    value.getLock().getRequestId())))
+                            .build())
+                    .build());
+        }
+
+        StateUpdatePair stateUpdatePair = ImmutableStateUpdatePair.builder()
+                .oldestSuccess(valueAndMultipleStateUpdates.oldestSuccess())
+                .snapshot(valueAndMultipleStateUpdates.snapshot())
+                .build();
+
+        try {
+            builder.setValueAndMultipleStateUpdates(ByteString.copyFrom(
+                    ObjectMappers.newSmileServerObjectMapper().writeValueAsBytes(stateUpdatePair)));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        return Futures.immediateFuture(builder.build());
+    }
+
+    private Lease convertLease(com.palantir.lock.v2.Lease serverLease) {
+        return Lease.newBuilder()
+                .setLeaderTime(Command.LeaderTime.newBuilder()
+                        .setLeaderId(ByteString.copyFrom(ValueType.UUID.convertFromJava(
+                                serverLease.leaderTime().id().id())))
+                        .setTime(serverLease.leaderTime().currentTime().time())
+                        .build())
+                .setValidityNanos(serverLease.validity().toNanos())
+                .build();
+    }
+
+    @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
     }
@@ -277,7 +420,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public <T> ValueAndMultipleStateUpdates<T> runTask(
-            List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
+            Set<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
         throw new UnsupportedOperationException("Das würde ich für Sie nicht machen.");
     }
 
@@ -289,6 +432,22 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public void registerUnlock(Set<LockDescriptor> locksUnlocked) {
         lockService.getLockWatchingService().registerUnlock(locksUnlocked);
+    }
+
+    private Set<LockToken> convertToServerTokens(TokenSet tokenSet) {
+        return tokenSet.getTokenIdList().stream()
+                .map(byteString -> (UUID) ValueType.UUID.convertToJava(byteString.toByteArray(), 0))
+                .map(LockToken::of)
+                .collect(Collectors.toSet());
+    }
+
+    private TokenSet convertFromServerTokens(Set<LockToken> lockTokens) {
+        List<ByteString> byteStrings = lockTokens.stream()
+                .map(LockToken::getRequestId)
+                .map(ValueType.UUID::convertFromJava)
+                .map(ByteString::copyFrom)
+                .collect(Collectors.toList());
+        return TokenSet.newBuilder().addAllTokenId(byteStrings).build();
     }
 
     private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {

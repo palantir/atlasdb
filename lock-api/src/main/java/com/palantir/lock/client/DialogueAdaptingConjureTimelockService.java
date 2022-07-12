@@ -146,8 +146,8 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
-    public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
-        return dialogueDelegate.runCommands(authHeader, BinaryRequestBody.of(requests))::transferTo;
+    public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
+        return dialogueDelegate.runCommands(authHeader, namespace, BinaryRequestBody.of(requests))::transferTo;
     }
 
     private <T> T executeInstrumented(

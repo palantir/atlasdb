@@ -11,6 +11,7 @@ libsDirName = file('build/artifacts')
 dependencies {
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-api-objects')
+    api project(":lock-api-protobufs")
     api project(':timelock-api:timelock-api-dialogue')
     api project(':timelock-api:timelock-api-jersey')
     api project(":timestamp-api")

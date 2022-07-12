@@ -138,8 +138,8 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     }
 
     @Override
-    public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
+    public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
         // The locking endpoints can't be batched in runCommands anyway
-        return shortTimeoutProxy.runCommands(authHeader, requests);
+        return shortTimeoutProxy.runCommands(authHeader, namespace, requests);
     }
 }

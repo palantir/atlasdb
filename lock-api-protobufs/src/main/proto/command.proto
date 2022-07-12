@@ -1,0 +1,77 @@
+package com.palantir.lock.generated;
+
+message TokenSet {
+    repeated bytes tokenId = 1;
+}
+
+message LockWatchVersion {
+    optional bytes leaderId = 1;
+    optional uint64 version = 2;
+}
+
+message TransactionStartRequest {
+    optional bytes requestId = 1;
+    optional bytes requestorId = 2;
+    optional uint32 transactionsToStart = 3;
+}
+
+message CommandSet {
+    optional TokenSet toRefresh = 1;
+    optional TokenSet toUnlock = 2;
+    optional bool needLeaderTime = 3;
+    optional uint32 timestampsToRetrieve = 4;
+    repeated TransactionStartRequest transactionStartRequests = 5;
+    repeated LockWatchVersion versionsNeedingChecks = 6; // from getCommitTimestamp
+    optional bool needGenericLockWatchUpdate = 7;
+}
+
+message LeaderTime {
+    optional bytes leaderId = 1;
+    optional uint64 time = 2;
+}
+
+message TimestampRange {
+    optional uint64 startInclusive = 1;
+    optional uint64 numGiven = 2;
+}
+
+message LockImmutableTimestampResponse {
+    optional bytes tokenId = 1;
+    optional uint64 timestamp = 2;
+}
+
+message PartitionedTimestamps {
+    optional uint64 start = 1;
+    optional uint32 interval = 2;
+    optional uint32 count = 3;
+}
+
+message Lease {
+    optional LeaderTime leaderTime = 1;
+    optional uint64 validityNanos = 2;
+}
+
+message StartTransactionsResponse {
+    optional PartitionedTimestamps partitionedTimestamps = 1;
+    optional LockImmutableTimestampResponse lockImmutableTimestampResponse = 2;
+    optional Lease lease = 3;
+    optional bytes requestId = 4;
+    // Lock watch state updates are handled in a batched form
+}
+
+message CommandOutput {
+    optional TokenSet refreshed = 1;
+    optional Lease refreshLease = 8; // womp womp
+    optional TokenSet unlocked = 2;
+    optional LeaderTime leaderTime = 3;
+
+    // Timestamps
+    optional uint64 singularTimestamp = 4 [default = 0];
+    optional TimestampRange timestamps = 5;
+
+    repeated StartTransactionsResponse startedTransactions = 6;
+
+    // Lock Watches
+    // TODO (jkong): Can't be bothered to convert this into protobuf for maximum efficiency!
+    optional bytes valueAndMultipleStateUpdates = 7;
+}

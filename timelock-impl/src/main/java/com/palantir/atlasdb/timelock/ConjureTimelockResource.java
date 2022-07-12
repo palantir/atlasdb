@@ -62,6 +62,8 @@ import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
+import com.palantir.lock.generated.Command.CommandOutput;
+import com.palantir.lock.generated.Command.CommandSet;
 import com.palantir.lock.v2.ImmutableWaitForLocksRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockResponseV2;
@@ -72,6 +74,7 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
@@ -327,10 +330,22 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     @Override
-    public ListenableFuture<BinaryResponseBody> runCommands(AuthHeader authHeader, InputStream requests) {
+    public ListenableFuture<BinaryResponseBody> runCommands(
+            AuthHeader authHeader, String namespace, InputStream requests) {
         return handleExceptions(() -> {
-            throw new UnsupportedOperationException("Not implemented yet");
+            CommandSet commandSet = tryParse(requests);
+            AsyncTimelockService asyncTimelockService = forNamespace(namespace);
+            ListenableFuture<CommandOutput> commandOutput = asyncTimelockService.runCommands(commandSet);
+            return Futures.transform(commandOutput, output -> output::writeTo, MoreExecutors.directExecutor());
         });
+    }
+
+    private CommandSet tryParse(InputStream requests) {
+        try {
+            return CommandSet.parseFrom(requests);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private AsyncTimelockService forNamespace(String namespace) {
@@ -428,8 +443,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         }
 
         @Override
-        public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
-            return output -> unwrap(resource.runCommands(authHeader, requests)).write(output);
+        public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
+            return unwrap(resource.runCommands(authHeader, namespace, requests))::write;
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

@@ -30,7 +30,7 @@ public abstract class Lease {
     public abstract LeaderTime leaderTime();
 
     @Value.Parameter
-    abstract Duration validity();
+    public abstract Duration validity();
 
     public boolean isValid(LeaderTime currentLeaderTime) {
         return leaderTime().isComparableWith(currentLeaderTime)

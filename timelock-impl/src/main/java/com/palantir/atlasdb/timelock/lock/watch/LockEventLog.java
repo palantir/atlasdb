@@ -20,7 +20,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -30,7 +29,7 @@ public interface LockEventLog {
 
     <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task);
 
-    <T> ValueAndMultipleStateUpdates<T> runTask(List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task);
+    <T> ValueAndMultipleStateUpdates<T> runTask(Set<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task);
 
     void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken);
 

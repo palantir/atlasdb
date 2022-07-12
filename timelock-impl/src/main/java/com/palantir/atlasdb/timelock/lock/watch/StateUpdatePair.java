@@ -22,29 +22,13 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-/**
- * Return type for operations on a {@link LockWatchingService} that may feature multiple starting versions.
- * At least one of {@link #snapshot()} and {@link #oldestSuccess()} should be present.
- */
+@JsonSerialize(as = ImmutableStateUpdatePair.class)
+@JsonDeserialize(as = ImmutableStateUpdatePair.class)
 @Value.Immutable
-@JsonSerialize(as = ImmutableValueAndMultipleStateUpdates.class)
-@JsonDeserialize(as = ImmutableValueAndMultipleStateUpdates.class)
-public interface ValueAndMultipleStateUpdates<T> {
+public interface StateUpdatePair {
     @Value.Parameter
     Optional<LockWatchStateUpdate> snapshot();
 
     @Value.Parameter
     Optional<LockWatchStateUpdate> oldestSuccess();
-
-    @Value.Parameter
-    T value();
-
-    static <R> ValueAndMultipleStateUpdates<R> of(
-            Optional<LockWatchStateUpdate> maybeSnapshot, Optional<LockWatchStateUpdate> maybeOldestSuccess, R result) {
-        return ImmutableValueAndMultipleStateUpdates.of(maybeSnapshot, maybeOldestSuccess, result);
-    }
-
-    static <R> ImmutableValueAndMultipleStateUpdates.Builder<R> builder() {
-        return ImmutableValueAndMultipleStateUpdates.builder();
-    }
 }
