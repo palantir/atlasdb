@@ -44,6 +44,10 @@ types:
   definitions:
     default-package: com.palantir.atlasdb.timelock.api
     objects:
+      TimeLockCommands:
+        alias: binary
+      TimeLockCommandOutput:
+        alias: binary
       ConjureIdentifiedVersion:
         fields:
           id: uuid
@@ -353,6 +357,13 @@ services:
         returns: GetOneCommitTimestampResponse
         docs: |
           More efficient endpoint in terms of data usage when not many transactions are concluding.
+      runCommands:
+        http: POST /r
+        args:
+          requests: TimeLockCommands
+        returns: TimeLockCommandOutput
+        docs: |
+          Danger, Will Robinson. Here be dragons. One does not simply use this endpoint. Etc.
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -416,3 +427,10 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of ConjureTimelockService#unlockV2 supporting multiple namespaces.
+      runCommands:
+        http: POST /r
+        args:
+          requests: map<Namespace, TimeLockCommands>
+        returns: TimeLockCommandOutput
+        docs: |
+          Danger, Will Robinson. Here be dragons. One does not simply use this endpoint. Etc.

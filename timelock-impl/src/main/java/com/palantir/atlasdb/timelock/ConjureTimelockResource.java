@@ -56,6 +56,7 @@ import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponseV2;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
+import com.palantir.conjure.java.undertow.lib.BinaryResponseBody;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ByteArrayLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -71,9 +72,11 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.ws.rs.core.StreamingOutput;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
@@ -323,6 +326,13 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         });
     }
 
+    @Override
+    public ListenableFuture<BinaryResponseBody> runCommands(AuthHeader authHeader, InputStream requests) {
+        return handleExceptions(() -> {
+            throw new UnsupportedOperationException("Not implemented yet");
+        });
+    }
+
     private AsyncTimelockService forNamespace(String namespace) {
         return timelockServices.apply(namespace);
     }
@@ -415,6 +425,11 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         public GetOneCommitTimestampResponse getOneCommitTimestamp(
                 AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
             return unwrap(resource.getOneCommitTimestamp(authHeader, namespace, request));
+        }
+
+        @Override
+        public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
+            return output -> unwrap(resource.runCommands(authHeader, requests)).write(output);
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

@@ -48,8 +48,10 @@ import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.stream.LongStream;
+import javax.ws.rs.core.StreamingOutput;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -199,6 +201,12 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     public GetOneCommitTimestampResponse getOneCommitTimestamp(
             AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
         return conjureDelegate.getOneCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
+        // Sorry.
+        return conjureDelegate.runCommands(authHeader, requests);
     }
 
     private static Optional<Long> tryParseStartTimestamp(String description) {

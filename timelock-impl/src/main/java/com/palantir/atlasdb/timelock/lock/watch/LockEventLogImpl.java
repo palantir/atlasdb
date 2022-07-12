@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.atlasdb.timelock.lock.watch.ImmutableValueAndMultipleStateUpdates.Builder;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -28,6 +29,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +59,36 @@ public class LockEventLogImpl implements LockEventLog {
         T t = task.get();
         LockWatchStateUpdate logDiff = getLogDiff(lastKnownVersion);
         return ValueAndLockWatchStateUpdate.of(logDiff, t);
+    }
+
+    @Override
+    public synchronized <T> ValueAndMultipleStateUpdates<T> runTask(
+            List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
+        T t = task.get();
+        boolean snapshotRequired = false;
+        long oldestMatchingVersion = Long.MAX_VALUE;
+        for (Optional<LockWatchVersion> maybeVersion : lastKnownVersions) {
+            if (maybeVersion.isEmpty()) {
+                snapshotRequired = true;
+                continue;
+            }
+            LockWatchVersion version = maybeVersion.get();
+            if (!version.id().equals(logId) || slidingWindow.versionTooOld(version.version())) {
+                snapshotRequired = true;
+            } else {
+                oldestMatchingVersion = Math.min(oldestMatchingVersion, version.version());
+            }
+        }
+
+        Builder<T> builder = ValueAndMultipleStateUpdates.builder();
+        if (snapshotRequired) {
+            builder.snapshot(calculateSnapshot());
+        }
+        if (oldestMatchingVersion != Long.MAX_VALUE) {
+            builder.oldestSuccess(tryGetNextEvents(Optional.of(LockWatchVersion.of(logId, oldestMatchingVersion))));
+        }
+        builder.value(t);
+        return builder.build();
     }
 
     @Override

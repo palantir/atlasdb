@@ -69,7 +69,7 @@ public class ArrayLockEventSlidingWindow {
         return version > lastVersion();
     }
 
-    private boolean versionTooOld(long version) {
+    boolean versionTooOld(long version) {
         return lastVersion() - version > maxSize;
     }
 }

@@ -42,6 +42,8 @@ import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.InputStream;
+import javax.ws.rs.core.StreamingOutput;
 
 /**
  * Given two proxies to the same set of underlying TimeLock servers, one configured to expect longer-running operations
@@ -133,5 +135,11 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     public GetOneCommitTimestampResponse getOneCommitTimestamp(
             AuthHeader authHeader, String namespace, GetOneCommitTimestampRequest request) {
         return shortTimeoutProxy.getOneCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public StreamingOutput runCommands(AuthHeader authHeader, InputStream requests) {
+        // The locking endpoints can't be batched in runCommands anyway
+        return shortTimeoutProxy.runCommands(authHeader, requests);
     }
 }

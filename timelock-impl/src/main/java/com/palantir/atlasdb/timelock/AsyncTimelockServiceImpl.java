@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
+import com.palantir.atlasdb.timelock.lock.watch.ValueAndMultipleStateUpdates;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -52,6 +53,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -271,6 +273,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task) {
         throw new UnsupportedOperationException("Exposing this method is too dangerous.");
+    }
+
+    @Override
+    public <T> ValueAndMultipleStateUpdates<T> runTask(
+            List<Optional<LockWatchVersion>> lastKnownVersions, Supplier<T> task) {
+        throw new UnsupportedOperationException("Das würde ich für Sie nicht machen.");
     }
 
     @Override
