@@ -36,6 +36,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
+import com.palantir.atlasdb.timelock.api.TimeLockCommands;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -147,6 +149,12 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 r -> r.getTimestamps().start()
                         + ((r.getTimestamps().count() - 1L) * r.getTimestamps().interval()),
                 OperationType.TRANSACTION);
+    }
+
+    @Override
+    public TimeLockCommandOutput runCommands(TimeLockCommands commands) {
+        // TODO (jkong): Sorry!
+        return delegate.runCommands(commands);
     }
 
     private <T> T checkAndUpdateLowerBound(

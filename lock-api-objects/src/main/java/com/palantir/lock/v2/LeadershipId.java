@@ -30,7 +30,7 @@ public abstract class LeadershipId {
     public abstract UUID id();
 
     @JsonCreator
-    static LeadershipId create(UUID uuid) {
+    public static LeadershipId create(UUID uuid) {
         return ImmutableLeadershipId.builder().id(uuid).build();
     }
 

@@ -38,6 +38,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
+import com.palantir.atlasdb.timelock.api.TimeLockCommands;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.lock.v2.LeaderTime;
@@ -148,6 +150,12 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return runTimed(() -> delegate.startTransactions(request), response -> response.getLockWatchUpdate()
                 .logId());
+    }
+
+    @Override
+    public TimeLockCommandOutput runCommands(TimeLockCommands commands) {
+        // Not perfect
+        return delegate.runCommands(commands);
     }
 
     public LeaderElectionStatistics getStatistics() {

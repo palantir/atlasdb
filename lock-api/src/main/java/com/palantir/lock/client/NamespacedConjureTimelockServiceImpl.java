@@ -39,9 +39,15 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
+import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
+import com.palantir.atlasdb.timelock.api.TimeLockCommands;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import javax.ws.rs.core.StreamingOutput;
 
 public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTimelockService {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
@@ -78,6 +84,21 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
                     .build();
         }
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public TimeLockCommandOutput runCommands(TimeLockCommands commands) {
+
+        StreamingOutput streamingOutput = conjureTimelockService.runCommands(
+                AUTH_HEADER, namespace, commands.get().getInputStream());
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try {
+            // It's not actually that large, so ok to dump into memory
+            streamingOutput.write(bytes);
+            return TimeLockCommandOutput.of(Bytes.from(bytes.toByteArray()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

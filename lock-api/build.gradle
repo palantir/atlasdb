@@ -28,8 +28,10 @@ dependencies {
     implementation group: 'one.util', name: 'streamex'
 
     implementation 'com.google.guava:guava'
+    implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'org.slf4j:slf4j-api'

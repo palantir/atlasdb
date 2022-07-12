@@ -34,6 +34,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
+import com.palantir.atlasdb.timelock.api.TimeLockCommands;
 import com.palantir.lock.v2.LeaderTime;
 
 public interface NamespacedConjureTimelockService {
@@ -70,4 +72,6 @@ public interface NamespacedConjureTimelockService {
     ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request);
 
     ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request);
+
+    TimeLockCommandOutput runCommands(TimeLockCommands commands);
 }
