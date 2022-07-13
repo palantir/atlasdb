@@ -392,7 +392,9 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                 delegate.runCommands(TimeLockCommands.of(Bytes.from(commandSet.toByteArray())));
         CommandOutput commandOutput = tryParseCommandOutput(timeLockCommandOutput);
 
-        TimestampRange rangeToGiveOut = commandOutput.getTimestamps();
+        TimestampRange rangeToGiveOut = commandOutput.hasSingularTimestamp() ?
+                TimestampRange.newBuilder().setStartInclusive(commandOutput.getSingularTimestamp()).setNumGiven(1).build() :
+                commandOutput.getTimestamps();
         long offset = 0;
         Set<UUID> allRefreshedTokens = commandOutput.getRefreshed().getTokenIdList().stream()
                 .map(ByteString::toByteArray)

@@ -285,7 +285,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             int num = commandSet.getTimestampsToRetrieve();
             if (num == 1) {
                 builder.setSingularTimestamp(timestampService.getFreshTimestamp());
-            } else {
+            } else if (num > 1) {
                 TimestampRange timestamps = timestampService.getFreshTimestamps(num);
                 builder.setTimestamps(Command.TimestampRange.newBuilder()
                         .setStartInclusive(timestamps.getLowerBound())
