@@ -300,6 +300,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
         throw new SafeIllegalStateException("Don't run commands on me!");
     }
 
+    @SuppressWarnings("MethodLengthCheck") // HackWeek
     private static void processBatch(
             NamespacedConjureTimelockService delegate, List<BatchElement<TimeLockOperation, Object>> elements) {
         // STEP 1: Parse the batch elements and assemble a request.
