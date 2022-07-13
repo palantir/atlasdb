@@ -32,6 +32,7 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.AutobatchingNamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LockLeaseService;
@@ -85,7 +86,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private TimeLockHelperServices helperServices;
 
     private LockLeaseService lockLeaseService;
-    private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
+    private AutobatchingNamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
     InMemoryTimelockServices(TemporaryFolder tempFolder) {
         this.tempFolder = tempFolder;
@@ -163,7 +164,9 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService conjureTimelockService =
                 ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
-        namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+        namespacedConjureTimelockService = new
+                AutobatchingNamespacedConjureTimelockServiceImpl(
+                        new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client));
         lockLeaseService = LockLeaseService.create(
                 namespacedConjureTimelockService, new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
     }

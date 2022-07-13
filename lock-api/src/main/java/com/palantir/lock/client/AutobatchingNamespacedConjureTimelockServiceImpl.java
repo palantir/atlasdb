@@ -16,8 +16,6 @@
 
 package com.palantir.lock.client;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -74,6 +72,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import com.palantir.lock.watch.LockWatchStateUpdate.Visitor;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -109,7 +108,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
         ListenableFuture<Object> unlockFuture = autobatcher.apply(ImmutableTimeLockOperation.builder()
                 .type(Type.UNLOCK_V1)
                 .arguments(
-                        request.getTokens().stream().map(t -> t.getRequestId()).collect(Collectors.toSet()))
+                        request.getTokens().stream().map(ConjureLockToken::getRequestId).collect(Collectors.toSet()))
                 .build());
         try {
             Object returned = unlockFuture.get();
@@ -214,7 +213,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
     @Override
     public LeaderTime leaderTime() {
         ListenableFuture<Object> refreshFuture = autobatcher.apply(
-                ImmutableTimeLockOperation.builder().type(Type.LEADER_TIME).build());
+                ImmutableTimeLockOperation.builder().type(Type.LEADER_TIME).arguments().build());
         try {
             Object returned = refreshFuture.get();
             Preconditions.checkState(returned instanceof LeaderTime, "Illegal return type");
@@ -407,7 +406,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                 ? Optional.of(checkedDeserialize(
                         commandOutput.getValueAndMultipleStateUpdates().toByteArray()))
                 : Optional.empty();
-        Map<UUID, ConjureStartTransactionsResponse> startTransactionsResponseMap = Maps.newHashMap();
+        Map<UUID, ConjureStartTransactionsResponse> startTransactionsResponseMap = new HashMap<>();
 
         for (StartTransactionsResponse startTransactionsResponse : commandOutput.getStartedTransactionsList()) {
             UUID key = toUuid(startTransactionsResponse.getRequestId().toByteArray());

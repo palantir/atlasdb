@@ -46,6 +46,7 @@ import com.palantir.atlasdb.timelock.api.GetOneCommitTimestampResponse;
 import com.palantir.dialogue.BinaryRequestBody;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
 import javax.ws.rs.core.StreamingOutput;
@@ -147,7 +148,11 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
-        return dialogueDelegate.runCommands(authHeader, namespace, BinaryRequestBody.of(requests))::transferTo;
+        try (InputStream is = dialogueDelegate.runCommands(authHeader, namespace, BinaryRequestBody.of(requests))) {
+            return is::transferTo;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private <T> T executeInstrumented(

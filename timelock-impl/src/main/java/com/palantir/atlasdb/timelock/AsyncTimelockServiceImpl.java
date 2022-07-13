@@ -31,7 +31,6 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
-import com.palantir.atlasdb.timelock.lock.watch.ImmutableStateUpdatePair;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndMultipleStateUpdates;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
@@ -39,6 +38,7 @@ import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClie
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.client.ImmutableStateUpdatePair;
 import com.palantir.lock.client.StateUpdatePair;
 import com.palantir.lock.generated.Command;
 import com.palantir.lock.generated.Command.CommandOutput;
@@ -263,8 +263,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             RefreshLockResponseV2 refreshLockResponseV2 =
                     lockService.refresh(convertToServerTokens(commandSet.getToRefresh()));
             builder.setRefreshed(convertFromServerTokens(refreshLockResponseV2.refreshedTokens()))
-                    .setRefreshLease(convertLease(refreshLockResponseV2.getLease()))
-                    .build();
+                    .setRefreshLease(convertLease(refreshLockResponseV2.getLease()));
         }
 
         if (commandSet.hasToUnlock()) {

@@ -278,6 +278,115 @@ public class AutobatchingNamespacedConjureTimelockServiceImplTest {
         });
     }
 
+    @Test
+    public void canHandleMultipleRequestsOfDifferentTypes()
+            throws InvalidProtocolBufferException, JsonProcessingException {
+        // TODO (jkong): Update me
+        UUID requestId = UUID.randomUUID();
+        UUID requestorId = UUID.randomUUID();
+        UUID lockToken = UUID.randomUUID();
+        UUID anotherLockToken = UUID.randomUUID();
+        UUID leaderId = UUID.randomUUID();
+
+        ObjectMapper objectMapper = ObjectMappers.newSmileServerObjectMapper();
+        Snapshot snapshot = LockWatchStateUpdate.snapshot(
+                leaderId,
+                57,
+                ImmutableSet.of(StringLockDescriptor.of("tomato")),
+                ImmutableSet.of(LockWatchReferences.entireTable("tom")));
+        LockWatchEvent lockEvent = LockEvent.builder(
+                        ImmutableSet.of(StringLockDescriptor.of("tomorrow")), LockToken.of(anotherLockToken))
+                .build(55);
+        LockWatchEvent unlockEvent = UnlockEvent.builder(ImmutableSet.of(StringLockDescriptor.of("tomorrow")))
+                .build(56);
+        LockWatchEvent createEvent = LockWatchCreatedEvent.builder(
+                        ImmutableSet.of(LockWatchReferences.entireTable("tom")), ImmutableSet.of())
+                .build(57);
+        Success success =
+                LockWatchStateUpdate.success(leaderId, 54, ImmutableList.of(lockEvent, unlockEvent, createEvent));
+        byte[] lockWatchState = objectMapper.writeValueAsBytes(ImmutableStateUpdatePair.builder()
+                .snapshot(snapshot)
+                .oldestSuccess(success)
+                .build());
+
+        when(namespacedConjureTimelockService.runCommands(any()))
+                .thenReturn(TimeLockCommandOutput.of(Bytes.from(CommandOutput.newBuilder()
+                        .addStartedTransactions(StartTransactionsResponse.newBuilder()
+                                .setRequestId(ByteString.copyFrom(toBytes(requestId)))
+                                .setPartitionedTimestamps(PartitionedTimestamps.newBuilder()
+                                        .setStart(20)
+                                        .setCount(10)
+                                        .setInterval(16)
+                                        .build())
+                                .setLockImmutableTimestampResponse(LockImmutableTimestampResponse.newBuilder()
+                                        .setTokenId(ByteString.copyFrom(toBytes(lockToken)))
+                                        .setTimestamp(19)
+                                        .build())
+                                .setLease(Lease.newBuilder()
+                                        .setLeaderTime(LeaderTime.newBuilder()
+                                                .setLeaderId(ByteString.copyFrom(toBytes(leaderId)))
+                                                .setTime(888888888)
+                                                .build())
+                                        .setValidityNanos(123456789)
+                                        .build())
+                                .build())
+                        .setValueAndMultipleStateUpdates(ByteString.copyFrom(lockWatchState))
+                        .build()
+                        .toByteArray())));
+        ConjureStartTransactionsResponse response =
+                autobatchingNamespacedConjureTimelockService.startTransactions(ConjureStartTransactionsRequest.builder()
+                        .requestId(requestId)
+                        .requestorId(requestorId)
+                        .numTransactions(10)
+                        .lastKnownVersion(Optional.of(ConjureIdentifiedVersion.of(leaderId, 55L)))
+                        .build());
+        assertThat(response.getTimestamps()).satisfies(partitionedTimestamps -> {
+            assertThat(partitionedTimestamps.start()).isEqualTo(20L);
+            assertThat(partitionedTimestamps.count()).isEqualTo(10);
+            assertThat(partitionedTimestamps.interval()).isEqualTo(16);
+        });
+        assertThat(response.getImmutableTimestamp()).satisfies(lockImmutableTimestampResponse -> {
+            assertThat(lockImmutableTimestampResponse.getLock().getRequestId()).isEqualTo(lockToken);
+            assertThat(lockImmutableTimestampResponse.getImmutableTimestamp()).isEqualTo(19);
+        });
+        assertThat(response.getLease()).satisfies(lease -> {
+            assertThat(lease.leaderTime().id().id()).isEqualTo(leaderId);
+            assertThat(lease.leaderTime().currentTime().time()).isEqualTo(888888888);
+            assertThat(lease.validity().toNanos()).isEqualTo(123456789);
+        });
+        assertThat(response.getLockWatchUpdate()).satisfies(lockWatchStateUpdate -> {
+            lockWatchStateUpdate.accept(new Visitor<Void>() {
+                @Override
+                public Void visit(Success success) {
+                    assertThat(success.lastKnownVersion()).isEqualTo(55);
+                    assertThat(success.events()).hasSize(2).containsExactly(unlockEvent, createEvent);
+                    return null;
+                }
+
+                @Override
+                public Void visit(Snapshot snapshot) {
+                    throw new SafeIllegalStateException("not expecting snapshot here");
+                }
+            });
+        });
+
+        ArgumentCaptor<TimeLockCommands> captor = ArgumentCaptor.forClass(TimeLockCommands.class);
+        verify(namespacedConjureTimelockService).runCommands(captor.capture());
+        TimeLockCommands commands = captor.getValue();
+        assertThat(CommandSet.parseFrom(commands.get().asNewByteArray())).satisfies(cs -> {
+            TransactionStartRequest onlyRequest = Iterables.getOnlyElement(cs.getTransactionStartRequestsList());
+            assertThat(toUuid(onlyRequest.getRequestId().toByteArray())).isEqualTo(requestId);
+            assertThat(toUuid(onlyRequest.getRequestorId().toByteArray())).isEqualTo(requestorId);
+            assertThat(onlyRequest.getTransactionsToStart()).isEqualTo(10);
+            assertThat(cs.getVersionsNeedingChecksList())
+                    .containsExactly(LockWatchVersion.newBuilder()
+                            .setLeaderId(ByteString.copyFrom(toBytes(leaderId)))
+                            .setVersion(55)
+                            .build());
+            assertThat(cs.getNeedGenericLockWatchUpdate()).isFalse();
+        });
+    }
+
     private static UUID toUuid(byte[] bytes) {
         ByteBuffer buf = ByteBuffer.wrap(bytes, 0, 2 * Longs.BYTES).order(ByteOrder.BIG_ENDIAN);
         long mostSigBits = buf.getLong();
