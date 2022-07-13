@@ -300,7 +300,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
         throw new SafeIllegalStateException("Don't run commands on me!");
     }
 
-    @SuppressWarnings("MethodLengthCheck") // HackWeek
+    @SuppressWarnings({"MethodLengthCheck", "MethodLength"}) // HackWeek
     private static void processBatch(
             NamespacedConjureTimelockService delegate, List<BatchElement<TimeLockOperation, Object>> elements) {
         // STEP 1: Parse the batch elements and assemble a request.
@@ -573,7 +573,10 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                         < lastSuccess.accept(new Visitor<Long>() {
                             @Override
                             public Long visit(Success success) {
-                                return success.lastKnownVersion();
+                                if (success.events().isEmpty()) {
+                                    return success.lastKnownVersion();
+                                }
+                                return success.events().get(0).sequence() - 1;
                             }
 
                             @Override
@@ -584,7 +587,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
             return stateUpdatePair
                     .snapshot()
                     .orElseThrow(() -> new SafeRuntimeException(
-                            "The server should have" + " given us a snapshot given our request, but it did not!"));
+                            "The server should have given us a snapshot given our request, but it did not!"));
         }
 
         return lastSuccess.accept(new Visitor<>() {
@@ -592,7 +595,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
             public LockWatchStateUpdate visit(Success success) {
                 return LockWatchStateUpdate.success(
                         success.logId(),
-                        presentVersion.getVersion(),
+                        success.lastKnownVersion(),
                         success.events().stream()
                                 .filter(e -> e.sequence() > presentVersion.getVersion())
                                 .collect(Collectors.toList()));
