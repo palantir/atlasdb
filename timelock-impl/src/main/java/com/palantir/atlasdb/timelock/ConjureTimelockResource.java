@@ -444,7 +444,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
 
         @Override
         public StreamingOutput runCommands(AuthHeader authHeader, String namespace, InputStream requests) {
-            return output -> unwrap(resource.runCommands(authHeader, namespace, requests)).write(output);
+            return output -> unwrap(resource.runCommands(authHeader, namespace, requests))
+                    .write(output);
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
