@@ -1713,7 +1713,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(sortedColumns.next().getKey()).isEqualTo(cells.get(0));
 
         // lock lost after getting first batch
-        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        assertThat(timelockService.unlock(ImmutableSet.of(res.getLock()))).containsExactly(res.getLock());
 
         // should still be able to get all but last element of the elements for the first batch;
         // next batch is preemptively fetched when last element of curr batch is retrieved

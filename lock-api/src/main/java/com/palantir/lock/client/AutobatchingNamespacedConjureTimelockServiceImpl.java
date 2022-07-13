@@ -439,7 +439,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     Set<UUID> tokensToRefresh = (Set<UUID>) operation.arguments()[0];
                     ConjureRefreshLocksResponse refreshResponse = ConjureRefreshLocksResponse.builder()
                             .lease(toClientLease(commandOutput.getRefreshLease()))
-                            .refreshedTokens(Sets.union(tokensToRefresh, allRefreshedTokens).stream()
+                            .refreshedTokens(Sets.intersection(tokensToRefresh, allRefreshedTokens).stream()
                                     .map(ConjureLockToken::of)
                                     .collect(Collectors.toSet()))
                             .build();
@@ -449,7 +449,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     Set<UUID> tokensToRefreshV2 = (Set<UUID>) operation.arguments()[0];
                     ConjureRefreshLocksResponseV2 refreshResponseV2 = ConjureRefreshLocksResponseV2.builder()
                             .lease(toClientLease(commandOutput.getRefreshLease()))
-                            .refreshedTokens(Sets.union(tokensToRefreshV2, allRefreshedTokens).stream()
+                            .refreshedTokens(Sets.intersection(tokensToRefreshV2, allRefreshedTokens).stream()
                                     .map(ConjureLockTokenV2::of)
                                     .collect(Collectors.toSet()))
                             .build();
@@ -460,7 +460,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     // The first person to unlock something is the person who got it!
                     Set<UUID> tokensToUnlock = (Set<UUID>) operation.arguments()[0];
                     Set<UUID> thingsIRemoved =
-                            Sets.union(tokensToUnlock, allUnlockedTokens).immutableCopy();
+                            Sets.intersection(tokensToUnlock, allUnlockedTokens).immutableCopy();
                     tokensToUnlock.removeAll(thingsIRemoved);
                     batchElement.result().set(thingsIRemoved);
                     break;
