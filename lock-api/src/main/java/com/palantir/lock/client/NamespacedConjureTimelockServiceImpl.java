@@ -77,7 +77,7 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
                     .immutableTimestamp(conjureStartOneTransactionResponse.getImmutableTimestamp())
                     .timestamps(ImmutablePartitionedTimestamps.builder()
                             .start(conjureStartOneTransactionResponse.getTimestamp())
-                            .interval(16) // This doesn't really matter
+                            .interval(16) // Naughty!
                             .count(1)
                             .build())
                     .lockWatchUpdate(conjureStartOneTransactionResponse.getLockWatchUpdate())

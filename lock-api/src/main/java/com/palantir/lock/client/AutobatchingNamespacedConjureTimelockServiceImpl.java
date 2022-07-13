@@ -328,7 +328,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     freshTimestamps += 1;
                     break;
                 case FRESH_TIMESTAMPS:
-                    freshTimestamps += (long) operation.arguments()[0];
+                    freshTimestamps += (int) operation.arguments()[0];
                     break;
                 case LEADER_TIME:
                     builder.setNeedLeaderTime(true);
@@ -376,6 +376,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     } else {
                         builder.setNeedGenericLockWatchUpdate(true);
                     }
+                    break;
                 default:
                     throw new SafeIllegalStateException(
                             "Where am I? And what time is it?",
@@ -402,8 +403,10 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                 .map(ByteString::toByteArray)
                 .map(AutobatchingNamespacedConjureTimelockServiceImpl::toUuid)
                 .collect(Collectors.toSet());
-        StateUpdatePair stateUpdatePair = checkedDeserialize(
-                commandOutput.getValueAndMultipleStateUpdates().toByteArray());
+        Optional<StateUpdatePair> stateUpdatePair = commandOutput.hasValueAndMultipleStateUpdates()
+                ? Optional.of(checkedDeserialize(
+                        commandOutput.getValueAndMultipleStateUpdates().toByteArray()))
+                : Optional.empty();
         Map<UUID, ConjureStartTransactionsResponse> startTransactionsResponseMap = Maps.newHashMap();
 
         for (StartTransactionsResponse startTransactionsResponse : commandOutput.getStartedTransactionsList()) {
@@ -413,7 +416,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     key,
                     ConjureStartTransactionsResponse.builder()
                             .lockWatchUpdate(getCorrespondingLockWatchStateUpdate(
-                                    request.getLastKnownVersion(), stateUpdatePair))
+                                    request.getLastKnownVersion(), stateUpdatePair.get()))
                             .timestamps(toClientPartitionedTimestamps(startTransactionsResponse))
                             .immutableTimestamp(toClientImmutableTimestamps(startTransactionsResponse))
                             .lease(toClientLease(startTransactionsResponse.getLease()))
@@ -463,7 +466,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                     }
                     break;
                 case FRESH_TIMESTAMPS:
-                    long timestampsAskedFor = (long) operation.arguments()[0];
+                    long timestampsAskedFor = (int) operation.arguments()[0];
                     long maxTarget = rangeToGiveOut.getStartInclusive() + offset + (timestampsAskedFor - 1);
                     if (maxTarget >= rangeToGiveOut.getNumGiven() + rangeToGiveOut.getStartInclusive()) {
                         batchElement.result().setException(new SafeRuntimeException("bleh, ran out of timestamps"));
@@ -498,7 +501,8 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                                         .inclusiveLower(range.getInclusiveLower())
                                         .inclusiveUpper(range.getInclusiveUpper())
                                         .lockWatchUpdate(getCorrespondingLockWatchStateUpdate(
-                                                getCommitTimestampsRequest.getLastKnownVersion(), stateUpdatePair))
+                                                getCommitTimestampsRequest.getLastKnownVersion(),
+                                                stateUpdatePair.get()))
                                         .build());
                     }
                     break;
