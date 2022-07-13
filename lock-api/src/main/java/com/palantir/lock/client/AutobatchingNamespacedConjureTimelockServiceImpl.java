@@ -107,8 +107,9 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
     public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
         ListenableFuture<Object> unlockFuture = autobatcher.apply(ImmutableTimeLockOperation.builder()
                 .type(Type.UNLOCK_V1)
-                .arguments(
-                        request.getTokens().stream().map(ConjureLockToken::getRequestId).collect(Collectors.toSet()))
+                .arguments(request.getTokens().stream()
+                        .map(ConjureLockToken::getRequestId)
+                        .collect(Collectors.toSet()))
                 .build());
         try {
             Object returned = unlockFuture.get();
@@ -212,8 +213,10 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
 
     @Override
     public LeaderTime leaderTime() {
-        ListenableFuture<Object> refreshFuture = autobatcher.apply(
-                ImmutableTimeLockOperation.builder().type(Type.LEADER_TIME).arguments().build());
+        ListenableFuture<Object> refreshFuture = autobatcher.apply(ImmutableTimeLockOperation.builder()
+                .type(Type.LEADER_TIME)
+                .arguments()
+                .build());
         try {
             Object returned = refreshFuture.get();
             Preconditions.checkState(returned instanceof LeaderTime, "Illegal return type");
@@ -392,9 +395,12 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
                 delegate.runCommands(TimeLockCommands.of(Bytes.from(commandSet.toByteArray())));
         CommandOutput commandOutput = tryParseCommandOutput(timeLockCommandOutput);
 
-        TimestampRange rangeToGiveOut = commandOutput.hasSingularTimestamp() ?
-                TimestampRange.newBuilder().setStartInclusive(commandOutput.getSingularTimestamp()).setNumGiven(1).build() :
-                commandOutput.getTimestamps();
+        TimestampRange rangeToGiveOut = commandOutput.hasSingularTimestamp()
+                ? TimestampRange.newBuilder()
+                        .setStartInclusive(commandOutput.getSingularTimestamp())
+                        .setNumGiven(1)
+                        .build()
+                : commandOutput.getTimestamps();
         long offset = 0;
         Set<UUID> allRefreshedTokens = commandOutput.getRefreshed().getTokenIdList().stream()
                 .map(ByteString::toByteArray)

@@ -49,7 +49,8 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
         AtlasDbDialogueServiceProvider provider = TimelockUtils.createServiceProvider(metricsManager, hosts);
         return new AsyncLockClient(
                 new DefaultNamespacedTimelockRpcClient(provider.getTimelockRpcClient(), NAMESPACE),
-                new AutobatchingNamespacedConjureTimelockServiceImpl(new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), NAMESPACE)));
+                new AutobatchingNamespacedConjureTimelockServiceImpl(
+                        new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), NAMESPACE)));
     }
 
     @Override

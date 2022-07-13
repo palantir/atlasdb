@@ -86,7 +86,8 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public static LeaderElectionReportingTimelockService create(
             ConjureTimelockService conjureTimelockService, String namespace) {
         return new LeaderElectionReportingTimelockService(
-                new AutobatchingNamespacedConjureTimelockServiceImpl(new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace)),
+                new AutobatchingNamespacedConjureTimelockServiceImpl(
+                        new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace)),
                 new DefaultTaggedMetricRegistry(),
                 System::currentTimeMillis);
     }
