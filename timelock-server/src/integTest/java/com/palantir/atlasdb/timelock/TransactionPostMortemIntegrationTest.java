@@ -44,12 +44,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
+@Ignore // HackWeek, HackWeek
 @Deprecated
 public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
