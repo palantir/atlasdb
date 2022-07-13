@@ -194,7 +194,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImplTest {
                         ImmutableSet.of(LockWatchReferences.entireTable("tom")), ImmutableSet.of())
                 .build(57);
         Success success =
-                LockWatchStateUpdate.success(leaderId, 54, ImmutableList.of(lockEvent, unlockEvent, createEvent));
+                LockWatchStateUpdate.success(leaderId, 57, ImmutableList.of(lockEvent, unlockEvent, createEvent));
         byte[] lockWatchState = objectMapper.writeValueAsBytes(ImmutableStateUpdatePair.builder()
                 .snapshot(snapshot)
                 .oldestSuccess(success)
@@ -249,7 +249,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImplTest {
             lockWatchStateUpdate.accept(new Visitor<Void>() {
                 @Override
                 public Void visit(Success success) {
-                    assertThat(success.lastKnownVersion()).isEqualTo(55);
+                    assertThat(success.lastKnownVersion()).isEqualTo(57);
                     assertThat(success.events()).hasSize(2).containsExactly(unlockEvent, createEvent);
                     return null;
                 }
@@ -303,7 +303,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImplTest {
                         ImmutableSet.of(LockWatchReferences.entireTable("tom")), ImmutableSet.of())
                 .build(57);
         Success success =
-                LockWatchStateUpdate.success(leaderId, 54, ImmutableList.of(lockEvent, unlockEvent, createEvent));
+                LockWatchStateUpdate.success(leaderId, 57, ImmutableList.of(lockEvent, unlockEvent, createEvent));
         byte[] lockWatchState = objectMapper.writeValueAsBytes(ImmutableStateUpdatePair.builder()
                 .snapshot(snapshot)
                 .oldestSuccess(success)
@@ -358,7 +358,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImplTest {
             lockWatchStateUpdate.accept(new Visitor<Void>() {
                 @Override
                 public Void visit(Success success) {
-                    assertThat(success.lastKnownVersion()).isEqualTo(55);
+                    assertThat(success.lastKnownVersion()).isEqualTo(57);
                     assertThat(success.events()).hasSize(2).containsExactly(unlockEvent, createEvent);
                     return null;
                 }

@@ -301,7 +301,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
     }
 
     @SuppressWarnings({"MethodLengthCheck", "MethodLength"}) // HackWeek
-    //CHECKSTYLE:OFF
+    // CHECKSTYLE:OFF
     private static void processBatch(
             NamespacedConjureTimelockService delegate, List<BatchElement<TimeLockOperation, Object>> elements) {
         // STEP 1: Parse the batch elements and assemble a request.
@@ -530,7 +530,7 @@ public class AutobatchingNamespacedConjureTimelockServiceImpl implements Namespa
 
         // All batch elements processed! We can go sleep.
     }
-    //CHECKSTYLE:ON
+    // CHECKSTYLE:ON
 
     private static LockImmutableTimestampResponse toClientImmutableTimestamps(
             StartTransactionsResponse startTransactionsResponse) {
