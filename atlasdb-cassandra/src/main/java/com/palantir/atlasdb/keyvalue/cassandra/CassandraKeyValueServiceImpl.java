@@ -56,7 +56,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.DefaultCellReferenceMapper;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -77,7 +76,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifi
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.partitioning.CassandraTokenRangePartitioning;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.TokenRanges;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -2171,9 +2172,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public CellReferenceMapper createCellReferenceMapperForSweep(Supplier<Integer> shards) {
-        // todo(gmaretic): use this to create the CellReferenceMapper
-        clientPool.computeTokenRanges();
-        return DefaultCellReferenceMapper.INSTANCE;
+        TokenRanges tokenRanges = clientPool.computeTokenRanges();
+        CassandraTokenRangePartitioning tokenRangePartitioning =
+                new CassandraTokenRangePartitioning(shards.get(), tokenRanges.tokenMap());
+
+        return cellReference -> {
+            byte[] rowName = cellReference.cell().getRowName();
+            return tokenRangePartitioning.getShardForToken(rowName);
+        };
     }
 
     private static class TableCellAndValue {

@@ -168,6 +168,7 @@ public class CassandraService implements AutoCloseable {
                     ImmutableSet<CassandraServer> hosts = builder.build();
                     servers.addAll(hosts);
 
+                    // todo(snanda): need visibility on what the token range would actually look like.
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
