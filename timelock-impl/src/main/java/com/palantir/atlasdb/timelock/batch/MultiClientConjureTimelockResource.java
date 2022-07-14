@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -38,9 +39,14 @@ import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
+import com.palantir.atlasdb.timelock.api.TimeLockCommands;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.lock.generated.Command.CommandOutput;
+import com.palantir.lock.generated.Command.CommandSet;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -137,6 +143,33 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                     .collect(Collectors.toList());
             return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
         });
+    }
+
+    @Override
+    public ListenableFuture<Map<Namespace, TimeLockCommandOutput>> runMultipleCommands(
+            AuthHeader authHeader, Map<Namespace, TimeLockCommands> requests) {
+        return handleExceptions(() -> {
+            List<ListenableFuture<Map.Entry<Namespace, TimeLockCommandOutput>>> futures = KeyedStream.stream(requests)
+                    .map(this::runCommandsSingleNamespace)
+                    .values()
+                    .collect(Collectors.toList());
+            return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
+        });
+    }
+
+    private ListenableFuture<Map.Entry<Namespace, TimeLockCommandOutput>> runCommandsSingleNamespace(
+            Namespace namespace, TimeLockCommands commands) {
+        try {
+            ListenableFuture<CommandOutput> outputFuture = getServiceForNamespace(namespace)
+                    .runCommands(CommandSet.parseFrom(commands.get().asNewByteArray()));
+            return Futures.transform(
+                    outputFuture,
+                    output ->
+                            Maps.immutableEntry(namespace, TimeLockCommandOutput.of(Bytes.from(output.toByteArray()))),
+                    MoreExecutors.directExecutor());
+        } catch (InvalidProtocolBufferException e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private ListenableFuture<Map.Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -241,6 +274,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlockForClients(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlockForClients(authHeader, requests));
+        }
+
+        @Override
+        public Map<Namespace, TimeLockCommandOutput> runMultipleCommands(
+                AuthHeader authHeader, Map<Namespace, TimeLockCommands> requests) {
+            return unwrap(resource.runMultipleCommands(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

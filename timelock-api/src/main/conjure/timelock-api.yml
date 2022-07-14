@@ -428,3 +428,11 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of ConjureTimelockService#unlockV2 supporting multiple namespaces.
+      runMultipleCommands:
+        http: POST /r
+        args:
+          requests: map<Namespace, TimeLockCommands>
+        returns: map<Namespace, TimeLockCommandOutput>
+        docs: |
+          Danger, Will Robinson. Here be dragons. One does not simply use this endpoint. Etc.
+          Though we can probably optimize even more.

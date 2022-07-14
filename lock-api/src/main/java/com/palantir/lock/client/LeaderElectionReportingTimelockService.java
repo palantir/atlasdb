@@ -38,6 +38,7 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.TimeLockCommandOutput;
 import com.palantir.atlasdb.timelock.api.TimeLockCommands;
 import com.palantir.common.time.Clock;
@@ -84,10 +85,13 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     }
 
     public static LeaderElectionReportingTimelockService create(
-            ConjureTimelockService conjureTimelockService, String namespace) {
+            MultiClientConjureTimelockServiceBlocking multiClientConjureTimelockService,
+            ConjureTimelockService conjureTimelockService,
+            String namespace) {
         return new LeaderElectionReportingTimelockService(
-                new AutobatchingNamespacedConjureTimelockServiceImpl(
-                        new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace)),
+                AutobatchingMultiClientConjureTimelockService.get(multiClientConjureTimelockService)
+                        .getNamespacedConjureTimelockServiceFacade(
+                                namespace, new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace)),
                 new DefaultTaggedMetricRegistry(),
                 System::currentTimeMillis);
     }

@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -312,10 +313,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         components.localLockTracker()))
                 .orElse(conjureTimelockService);
 
+        MultiClientConjureTimelockServiceBlocking multiClientConjureTimelockService =
+                serviceProvider.getMultiClientConjureTimelockService();
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new DefaultNamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
-                LeaderElectionReportingTimelockService.create(withDiagnosticsConjureTimelockService, timelockNamespace);
+                LeaderElectionReportingTimelockService.create(
+                        multiClientConjureTimelockService, withDiagnosticsConjureTimelockService, timelockNamespace);
 
         timeLockFeedbackBackgroundTask.ifPresent(
                 task -> task.registerLeaderElectionStatistics(leaderElectionReportingTimelockService));
