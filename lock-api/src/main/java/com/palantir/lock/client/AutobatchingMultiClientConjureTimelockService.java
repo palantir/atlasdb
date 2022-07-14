@@ -108,7 +108,7 @@ import javax.ws.rs.core.StreamingOutput;
 public class AutobatchingMultiClientConjureTimelockService implements ConjureTimelockService {
     private static final AuthHeader BEARER_OMITTED = AuthHeader.valueOf("Bearer omitted");
 
-    private static AtomicReference<AutobatchingMultiClientConjureTimelockService> THE_INSTANCE =
+    private static final AtomicReference<AutobatchingMultiClientConjureTimelockService> THE_INSTANCE =
             new AtomicReference<>();
 
     private final DisruptorAutobatcher<NamespacedTimeLockOperation, Object> autobatcher;
