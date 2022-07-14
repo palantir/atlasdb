@@ -31,6 +31,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
@@ -65,6 +66,11 @@ public abstract class AtlasDbConfig {
      * AtlasDB will fail to start if these are contradictory.
      */
     public abstract Optional<String> namespace();
+
+    @Value.Default
+    public String timeLockKey() {
+        return UUID.randomUUID().toString();
+    }
 
     /**
      * The transaction read timeout is the maximum amount of

@@ -267,7 +267,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
                 schemas,
-                config.lockWatchCaching());
+                config.lockWatchCaching(),
+                config.timeLockKey());
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.managedTimestampService(), invalidator, config.initializeAsync());
@@ -282,6 +283,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         return ServerListConfigs.getTimeLockServersFromAtlasDbConfig(config, runtimeConfigSupplier);
     }
 
+    @SuppressWarnings("TooManyArguments") // Lol no
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Refreshable<ServerListConfig> timelockServerListConfig,
@@ -292,7 +294,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Set<Schema> schemas,
-            LockWatchCachingConfig cachingConfig) {
+            LockWatchCachingConfig cachingConfig,
+            String timeLockKey) {
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
@@ -319,7 +322,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 new DefaultNamespacedTimelockRpcClient(timelockClient, timelockNamespace);
         LeaderElectionReportingTimelockService leaderElectionReportingTimelockService =
                 LeaderElectionReportingTimelockService.create(
-                        multiClientConjureTimelockService, withDiagnosticsConjureTimelockService, timelockNamespace);
+                        multiClientConjureTimelockService, withDiagnosticsConjureTimelockService,
+                        timeLockKey, timelockNamespace);
 
         timeLockFeedbackBackgroundTask.ifPresent(
                 task -> task.registerLeaderElectionStatistics(leaderElectionReportingTimelockService));

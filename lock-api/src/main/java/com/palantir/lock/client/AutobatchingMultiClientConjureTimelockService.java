@@ -99,6 +99,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -108,8 +109,8 @@ import javax.ws.rs.core.StreamingOutput;
 public final class AutobatchingMultiClientConjureTimelockService implements ConjureTimelockService {
     private static final AuthHeader BEARER_OMITTED = AuthHeader.valueOf("Bearer omitted");
 
-    private static final AtomicReference<AutobatchingMultiClientConjureTimelockService> THE_INSTANCE =
-            new AtomicReference<>();
+    private static final Map<String, AtomicReference<AutobatchingMultiClientConjureTimelockService>> THE_INSTANCES =
+            new ConcurrentHashMap<>();
 
     private final DisruptorAutobatcher<NamespacedTimeLockOperation, Object> autobatcher;
 
@@ -120,14 +121,17 @@ public final class AutobatchingMultiClientConjureTimelockService implements Conj
                 .build();
     }
 
-    public static AutobatchingMultiClientConjureTimelockService get(MultiClientConjureTimelockServiceBlocking tribute) {
-        AutobatchingMultiClientConjureTimelockService theService = THE_INSTANCE.get();
+    public static AutobatchingMultiClientConjureTimelockService get(
+            String key, MultiClientConjureTimelockServiceBlocking tribute) {
+        THE_INSTANCES.putIfAbsent(key, new AtomicReference<>());
+        AutobatchingMultiClientConjureTimelockService theService =
+                THE_INSTANCES.get(key).get();
         if (theService == null) {
             theService = new AutobatchingMultiClientConjureTimelockService(tribute);
-            if (THE_INSTANCE.compareAndSet(null, theService)) {
+            if (THE_INSTANCES.get(key).compareAndSet(null, theService)) {
                 return theService;
             }
-            return THE_INSTANCE.get(); // someone else won, womp
+            return THE_INSTANCES.get(key).get(); // someone else won, womp
         }
         return theService;
     }

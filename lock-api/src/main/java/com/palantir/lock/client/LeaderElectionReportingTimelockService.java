@@ -87,9 +87,10 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public static LeaderElectionReportingTimelockService create(
             MultiClientConjureTimelockServiceBlocking multiClientConjureTimelockService,
             ConjureTimelockService conjureTimelockService,
+            String timeLockKey,
             String namespace) {
         return new LeaderElectionReportingTimelockService(
-                AutobatchingMultiClientConjureTimelockService.get(multiClientConjureTimelockService)
+                AutobatchingMultiClientConjureTimelockService.get(timeLockKey, multiClientConjureTimelockService)
                         .getNamespacedConjureTimelockServiceFacade(
                                 namespace, new NamespacedConjureTimelockServiceImpl(conjureTimelockService, namespace)),
                 new DefaultTaggedMetricRegistry(),
