@@ -131,6 +131,7 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {}
 
+    @SuppressWarnings("UnstableApiUsage")
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
         ImmutableSet.Builder<CassandraServer> servers = ImmutableSet.builder();
         ImmutableMap.Builder<CassandraServer, String> hostToDatacentersThisRefresh = ImmutableMap.builder();
@@ -179,6 +180,8 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = tokensInterner.intern(newTokenRing.build());
+            log.info("Token ring map", SafeArg.of("tokenRing", tokenMap.asMapOfRanges()));
+
             hostToDatacenter = hostToDatacentersThisRefresh.build();
             logHostToDatacenterMapping(hostToDatacenter);
             return servers.build();
