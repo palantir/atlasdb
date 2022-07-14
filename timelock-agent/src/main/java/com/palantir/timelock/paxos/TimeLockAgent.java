@@ -330,7 +330,8 @@ public class TimeLockAgent {
     private void createAndRegisterResources() {
         registerTimeLockCorruptionJerseyFilter();
         registerTimeLockCorruptionNotifiers();
-        registerPaxosResource();
+        RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
+        registerPaxosResource(redirectRetryTargeter);
         registerExceptionMappers();
         registerClientFeedbackService();
 
@@ -355,7 +356,6 @@ public class TimeLockAgent {
                 namespace -> namespaces.getForRestore(namespace);
 
         AuthHeaderValidator authHeaderValidator = getAuthHeaderValidator();
-        RedirectRetryTargeter redirectRetryTargeter = redirectRetryTargeter();
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(
@@ -590,8 +590,12 @@ public class TimeLockAgent {
     }
 
     // No runtime configuration at the moment.
-    private void registerPaxosResource() {
+    private void registerPaxosResource(RedirectRetryTargeter redirectRetryTargeter) {
         paxosResources.resourcesForRegistration().forEach(registrar);
+        paxosResources
+                .undertowServices()
+                .forEach(service -> undertowRegistrar.ifPresent(
+                        reg -> reg.accept(new TimelockUndertowExceptionWrapper(service, redirectRetryTargeter))));
     }
 
     private void registerExceptionMappers() {

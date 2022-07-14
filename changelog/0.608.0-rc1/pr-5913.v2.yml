@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Handle LeaderAcceptorResource using conjure-undertow
+  links:
+  - https://github.com/palantir/atlasdb/pull/5913
