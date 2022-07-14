@@ -7,15 +7,17 @@ buildscript {
     }
 
     dependencies {
+        classpath 'com.palantir.gradle.jdks:gradle-jdks:0.22.0'
+        classpath 'com.palantir.gradle.jdkslatest:gradle-jdks-latest:0.2.0'
         classpath 'com.netflix.nebula:gradle-info-plugin:11.3.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:18.4.0'
-        classpath 'com.palantir.baseline:gradle-baseline-java:4.139.0'
-        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.27.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:4.145.0'
+        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.28.0'
         classpath 'com.palantir.gradle.docker:gradle-docker:0.32.0'
         classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:1.11.0'
         classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.15.0'
         classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.24.0'
-        classpath 'com.palantir.metricschema:gradle-metric-schema:0.14.0'
+        classpath 'com.palantir.metricschema:gradle-metric-schema:0.16.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:7.13.0'
         classpath 'gradle.plugin.com.github.johnrengelman:shadow:7.1.2'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.16.1'
@@ -26,7 +28,7 @@ buildscript {
 plugins {
     id 'com.palantir.consistent-versions' version '2.11.0'
     id 'org.unbroken-dome.test-sets' version '4.0.0'
-    id 'com.google.protobuf' version '0.8.18'
+    id 'com.google.protobuf' version '0.8.19'
 }
 
 apply plugin: 'java'
@@ -40,6 +42,7 @@ javaVersions {
 }
 
 apply from: 'gradle/versions.gradle'
+apply plugin: 'com.palantir.jdks.latest'
 
 group = 'com.palantir.atlasdb'
 version = sanitizeVersion()

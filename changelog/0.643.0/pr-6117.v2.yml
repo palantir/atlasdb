@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fixed a long-standing race condition in TimeLock around the creation
+    of the persistent timestamp service. Previously, this could have caused TimeLock
+    in an HA setting to give out timestamps multiple times.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6117

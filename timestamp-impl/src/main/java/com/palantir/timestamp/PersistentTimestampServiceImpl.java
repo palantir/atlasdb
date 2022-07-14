@@ -80,8 +80,8 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     }
 
     private void tryInitialize() {
-        long latestTimestamp = store.getUpperLimit();
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
+        long latestTimestamp = upperLimit.get();
         timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
     }
 

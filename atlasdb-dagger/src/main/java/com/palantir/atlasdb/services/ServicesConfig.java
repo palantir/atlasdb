@@ -50,6 +50,7 @@ public abstract class ServicesConfig {
                 atlasDbConfig().namespace(),
                 Optional.empty(),
                 atlasDbConfig().initializeAsync(),
+                true,
                 adapter());
     }
 

@@ -19,7 +19,10 @@ import com.palantir.common.persist.Persistable.Hydrator;
 
 /**
  * {@link Persister}s are required to have a no arg constructor.
+ *
+ * @deprecated Use {@link ReusablePersister} instead.
  */
+@Deprecated
 public interface Persister<T> extends Hydrator<T> {
     byte[] persistToBytes(T objectToPersist);
 

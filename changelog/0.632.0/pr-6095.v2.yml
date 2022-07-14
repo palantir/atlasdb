@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: 'Disable transactions3 by default. This is done due to the possibility
+    high CAS contention and hence, degraded performance on transactions3. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/6095

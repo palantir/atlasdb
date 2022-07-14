@@ -68,7 +68,6 @@ dependencies {
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.hdrhistogram:HdrHistogram'
-  implementation 'org.rocksdb:rocksdbjni'
   implementation project(':atlasdb-autobatch')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')

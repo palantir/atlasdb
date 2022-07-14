@@ -41,7 +41,6 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -121,8 +120,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         ThreadNames.setThreadName(
                 Thread.currentThread(),
                 origName
-                        + " calling cassandra host " + proxy
-                        + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+                        + " calling cassandra host " + proxy.getHostString() + ':' + proxy.getPort()
+                        + " started at " + Instant.now()
                         + " - " + count.getAndIncrement());
         try {
             openRequests.getAndIncrement();

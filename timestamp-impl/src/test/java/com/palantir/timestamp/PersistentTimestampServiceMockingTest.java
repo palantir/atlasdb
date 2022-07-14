@@ -17,9 +17,11 @@ package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Test;
@@ -76,5 +78,20 @@ public class PersistentTimestampServiceMockingTest {
     public void shouldRejectFastForwardToTheSentinelValue() {
         assertThatThrownBy(() -> timestampService.fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void getsAndStoresUpperLimitExactlyOnceOnInitialisation() {
+        TimestampBoundStore timestampBoundStore = mock(TimestampBoundStore.class);
+        when(timestampBoundStore.getUpperLimit()).thenReturn(INITIAL_TIMESTAMP);
+
+        PersistentTimestampService persistentTimestampService =
+                PersistentTimestampServiceImpl.create(timestampBoundStore);
+        long freshTimestamp = persistentTimestampService.getFreshTimestamp();
+
+        assertThat(freshTimestamp).isGreaterThan(INITIAL_TIMESTAMP);
+        verify(timestampBoundStore).getUpperLimit();
+        verify(timestampBoundStore).storeUpperLimit(geq(freshTimestamp));
+        verifyNoMoreInteractions(timestampBoundStore);
     }
 }

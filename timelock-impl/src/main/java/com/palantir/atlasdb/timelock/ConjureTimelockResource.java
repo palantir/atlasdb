@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -58,7 +59,6 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -150,7 +150,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private static Set<LockDescriptor> fromConjureLockDescriptors(Set<ConjureLockDescriptor> lockDescriptors) {
-        Set<LockDescriptor> descriptors = new HashSet<>(lockDescriptors.size());
+        Set<LockDescriptor> descriptors = Sets.newHashSetWithExpectedSize(lockDescriptors.size());
         for (ConjureLockDescriptor descriptor : lockDescriptors) {
             descriptors.add(ByteArrayLockDescriptor.of(descriptor.get().asNewByteArray()));
         }
@@ -177,7 +177,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private static Set<LockToken> fromConjureLockTokens(Set<ConjureLockToken> lockTokens) {
-        Set<LockToken> tokens = new HashSet<>(lockTokens.size());
+        Set<LockToken> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
         for (ConjureLockToken token : lockTokens) {
             tokens.add(LockToken.of(token.getRequestId()));
         }
@@ -185,7 +185,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private static Set<ConjureLockToken> toConjureLockTokens(Set<LockToken> lockTokens) {
-        Set<ConjureLockToken> tokens = new HashSet<>(lockTokens.size());
+        Set<ConjureLockToken> tokens = Sets.newHashSetWithExpectedSize(lockTokens.size());
         for (LockToken token : lockTokens) {
             tokens.add(ConjureLockToken.of(token.getRequestId()));
         }

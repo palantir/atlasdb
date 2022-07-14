@@ -33,6 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -378,6 +380,17 @@ public final class ProfilingKeyValueService implements KeyValueService {
         maybeLog(
                 () -> delegate.checkAndSet(request),
                 logCellsAndSize("checkAndSet", request.table(), 1, request.newValue().length));
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        maybeLog(
+                () -> delegate.multiCheckAndSet(request),
+                logCellsAndSize(
+                        "multiCheckAndSet",
+                        request.tableRef(),
+                        request.updates().size(),
+                        byteSize(request.expected()) + byteSize(request.updates())));
     }
 
     @Override

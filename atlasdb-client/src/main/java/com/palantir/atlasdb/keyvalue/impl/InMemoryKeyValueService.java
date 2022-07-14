@@ -42,6 +42,8 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -492,6 +494,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 throwCheckAndSetException(cell, tableRef, null, oldContents);
             }
         }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        throw new UnsupportedOperationException("InMemoryKvs does not support multi-checkAndSet operation!");
     }
 
     // Returns the existing contents, if any, and null otherwise
