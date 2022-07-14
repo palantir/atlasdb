@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -36,7 +37,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -44,7 +44,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -302,7 +301,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    RangeMap<LightweightOppToken, List<CassandraServer>> getTokenMap() {
+    RangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
@@ -324,15 +323,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    void setServersInPoolTo(Set<CassandraServer> desiredServers) {
-        Set<CassandraServer> cachedServers = getCachedServers();
-        Set<CassandraServer> serversToAdd = ImmutableSet.copyOf(Sets.difference(desiredServers, cachedServers));
-        Set<CassandraServer> absentServers = ImmutableSet.copyOf(Sets.difference(cachedServers, desiredServers));
+    void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
+        ImmutableSet<CassandraServer> cachedServers = getCachedServers();
+        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, cachedServers);
+        SetView<CassandraServer> absentServers = Sets.difference(cachedServers, desiredServers);
 
         serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
-        Map<CassandraServer, CassandraClientPoolingContainer> containersForAbsentHosts =
-                KeyedStream.of(absentServers).map(cassandra::removePool).collectToMap();
-        containersForAbsentHosts.forEach(absentHostTracker::trackAbsentCassandraServer);
+        absentServers.forEach(cassandraServer -> {
+            CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
+            absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
+        });
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
@@ -359,8 +359,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
     }
 
-    private Set<CassandraServer> getCachedServers() {
-        return cassandra.getPools().keySet();
+    private ImmutableSet<CassandraServer> getCachedServers() {
+        return ImmutableSet.copyOf(cassandra.getPools().keySet());
     }
 
     @Override

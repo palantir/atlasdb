@@ -110,11 +110,9 @@ public class CassandraClientPoolTest {
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
         blacklist = new Blacklist(config, Refreshable.only(runtimeConfig.unresponsiveHostBackoffTimeSeconds()));
 
-        doAnswer(invocation -> {
-                    Set<InetSocketAddress> inetSocketAddresses =
-                            runtimeConfig.servers().accept(new ThriftHostsExtractingVisitor());
-                    return inetSocketAddresses.stream().map(CassandraServer::of).collect(Collectors.toSet());
-                })
+        doAnswer(invocation -> runtimeConfig.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
+                        .map(CassandraServer::of)
+                        .collect(ImmutableSet.toImmutableSet()))
                 .when(cassandra)
                 .getCurrentServerListFromConfig();
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
@@ -429,7 +427,7 @@ public class CassandraClientPoolTest {
 
     private void setCassandraServersTo(CassandraServer... servers) {
         when(cassandra.refreshTokenRangesAndGetServers())
-                .thenReturn(Arrays.stream(servers).collect(Collectors.toSet()));
+                .thenReturn(Arrays.stream(servers).collect(ImmutableSet.toImmutableSet()));
     }
 
     private CassandraClientPoolImpl createClientPool() {
