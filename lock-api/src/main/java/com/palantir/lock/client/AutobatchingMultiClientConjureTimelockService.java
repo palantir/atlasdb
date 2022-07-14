@@ -105,7 +105,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.StreamingOutput;
 
 // TODO (jkong): If we really wanted to do this in prod we probably want an A/B testing mechanism.
-public class AutobatchingMultiClientConjureTimelockService implements ConjureTimelockService {
+public final class AutobatchingMultiClientConjureTimelockService implements ConjureTimelockService {
     private static final AuthHeader BEARER_OMITTED = AuthHeader.valueOf("Bearer omitted");
 
     private static final AtomicReference<AutobatchingMultiClientConjureTimelockService> THE_INSTANCE =
