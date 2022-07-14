@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[Dangerous do not merge] Log token range map.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6133
