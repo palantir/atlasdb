@@ -16,27 +16,51 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.partitioning;
 
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.TokenRanges;
+import com.palantir.logsafe.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("UnstableApiUsage")
 public final class CassandraTokenRangePartitioning {
-    private final RangeMap<LightweightOppToken, Integer> proposedSpread;
+    private final RangeMap<LightweightOppToken, SweepShard> proposedSpread;
 
-    public CassandraTokenRangePartitioning(
-            int shards, RangeMap<LightweightOppToken, ? extends Set<CassandraServer>> lightweightOppTokenRangeMap) {
-        this.proposedSpread = compute(shards, lightweightOppTokenRangeMap);
+    public CassandraTokenRangePartitioning(int shards, TokenRanges tokenRanges) {
+        this.proposedSpread = compute(shards, tokenRanges);
     }
 
-    private RangeMap<LightweightOppToken, Integer> compute(
-            int shards, RangeMap<LightweightOppToken, ? extends Set<CassandraServer>> lightweightOppTokenRangeMap) {
-        // todo(snanda)
-        return null;
+    private RangeMap<LightweightOppToken, SweepShard> compute(int shards, TokenRanges tokenRanges) {
+        Set<Integer> numHostsPerAz = tokenRanges.availabilityZoneToHosts().values().stream()
+                .map(List::size)
+                .collect(Collectors.toSet());
+
+        // todo(snanda): would probably not want to throw here
+        Preconditions.checkState(numHostsPerAz.size() == 1, "Expect the same number of hosts in all AZs");
+
+        Map<TokenRangeEndpoints, SweepShard> tokenRangeSliceToShard = PartitioningAlgorithm.partitionHosts(
+                        tokenRanges.availabilityZoneToHosts(), shards)
+                .getProposedSolution();
+
+        ImmutableRangeMap.Builder<LightweightOppToken, SweepShard> spreadBuilder = ImmutableRangeMap.builder();
+
+        for (Entry<Range<LightweightOppToken>, ? extends Set<CassandraServer>> e :
+                tokenRanges.tokenMap().asMapOfRanges().entrySet()) {
+            TokenRangeEndpoints endpoints = ImmutableTokenRangeEndpointDetails.of(e.getValue());
+            spreadBuilder.put(e.getKey(), tokenRangeSliceToShard.get(endpoints));
+        }
+
+        return spreadBuilder.build();
     }
 
     public int getShardForToken(byte[] key) {
-        return proposedSpread.get(new LightweightOppToken(key));
+        return proposedSpread.get(new LightweightOppToken(key)).id();
     }
 }

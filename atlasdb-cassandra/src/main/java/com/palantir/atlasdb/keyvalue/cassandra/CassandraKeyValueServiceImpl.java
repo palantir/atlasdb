@@ -2174,7 +2174,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public CellReferenceMapper createCellReferenceMapperForSweep(Supplier<Integer> shards) {
         TokenRanges tokenRanges = clientPool.computeTokenRanges();
         CassandraTokenRangePartitioning tokenRangePartitioning =
-                new CassandraTokenRangePartitioning(shards.get(), tokenRanges.tokenMap());
+                new CassandraTokenRangePartitioning(shards.get(), tokenRanges);
 
         return cellReference -> {
             byte[] rowName = cellReference.cell().getRowName();
