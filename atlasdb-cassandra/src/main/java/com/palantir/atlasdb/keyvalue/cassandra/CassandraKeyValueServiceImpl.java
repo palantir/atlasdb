@@ -72,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.RowColumnRangeExtractor.RowColumnRangeResult;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -901,7 +902,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         try {
-            RowColumnRangeExtractor.RowColumnRangeResult firstPage =
+            RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, batchColumnRangeSelection, startTs);
 
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
@@ -955,7 +956,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(
+    private RowColumnRangeResult getRowsColumnRangeForSingleHost(
             CassandraServer host,
             TableReference tableRef,
             List<byte[]> rows,
@@ -963,12 +964,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long startTs) {
         try {
             return clientPool.runWithRetryOnServer(
-                    host,
-                    new FunctionCheckedException<
-                            CassandraClient, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
+                    host, new FunctionCheckedException<CassandraClient, RowColumnRangeResult, Exception>() {
                         @Override
-                        public RowColumnRangeExtractor.RowColumnRangeResult apply(CassandraClient client)
-                                throws Exception {
+                        public RowColumnRangeResult apply(CassandraClient client) throws Exception {
                             Range range = createColumnRange(
                                     batchColumnRangeSelection.getStartCol(),
                                     batchColumnRangeSelection.getEndCol(),
@@ -984,10 +982,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     pred,
                                     readConsistencyProvider.getConsistency(tableRef));
 
-                            RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
-                            extractor.extractResults(rows, results, startTs);
-
-                            return extractor.getRowColumnRangeResult();
+                            return RowColumnRangeExtractor.extract(rows, results, startTs, metricsManager);
                         }
 
                         @Override
@@ -1059,14 +1054,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             return SimpleTokenBackedResultsPage.create(
                                                     startCol, ImmutableList.of(), false);
                                         }
-                                        RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
-                                        extractor.extractResults(ImmutableList.of(row), results, startTs);
-                                        RowColumnRangeExtractor.RowColumnRangeResult decoded =
-                                                extractor.getRowColumnRangeResult();
 
                                         // May be empty if all results are at ts > startTs
-                                        Map<Cell, Value> ret =
-                                                decoded.getResults().getOrDefault(row, Collections.emptyMap());
+                                        Map<Cell, Value> ret = RowColumnRangeExtractor.extract(
+                                                        ImmutableList.of(row), results, startTs, metricsManager)
+                                                .getResults()
+                                                .getOrDefault(row, Collections.emptyMap());
                                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn())
                                                 .getLhSide();
