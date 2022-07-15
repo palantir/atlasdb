@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bump Rescue version in dependency to one that exists
+  links:
+  - https://github.com/palantir/atlasdb/pull/6139
