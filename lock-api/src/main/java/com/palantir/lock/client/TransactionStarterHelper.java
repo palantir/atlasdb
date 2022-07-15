@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -26,7 +27,9 @@ import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.watch.LockWatchCache;
+import java.util.AbstractSet;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,6 +37,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Many of these methods are allocation & performance sensitive, and explicitly avoid streaming and collection copies.
+ */
 final class TransactionStarterHelper {
     private TransactionStarterHelper() {
         // Do not instantiate helper class
@@ -52,7 +58,6 @@ final class TransactionStarterHelper {
             Function<Set<LockToken>, Set<LockToken>> refreshLockLeases,
             Function<Set<LockToken>, Set<LockToken>> unlock) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
-
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
 
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
@@ -71,14 +76,29 @@ final class TransactionStarterHelper {
 
     @SuppressWarnings("DangerousIdentityKey")
     static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
-        return tokens.stream()
-                .filter(TransactionStarterHelper::isLockTokenShare)
-                .map(LockTokenShare.class::cast)
-                .collect(Collectors.toSet());
+        // explicitly lazily filtering to avoid stream & copying collection
+        Set<LockToken> filtered = Sets.filter(tokens, TransactionStarterHelper::isLockTokenShare);
+        return new AbstractSet<>() {
+            @Override
+            public boolean contains(Object obj) {
+                return filtered.contains(obj);
+            }
+
+            @Override
+            public Iterator<LockTokenShare> iterator() {
+                return Iterators.transform(filtered.iterator(), LockTokenShare.class::cast);
+            }
+
+            @Override
+            public int size() {
+                return filtered.size();
+            }
+        };
     }
 
     static Set<LockToken> filterOutTokenShares(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> !isLockTokenShare(t)).collect(Collectors.toSet());
+        // explicitly lazily filtering to avoid stream & copying collection
+        return Sets.filter(tokens, t -> !isLockTokenShare(t));
     }
 
     /**
