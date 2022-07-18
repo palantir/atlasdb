@@ -33,6 +33,8 @@ public final class TransactionTables {
                 TransactionConstants.TRANSACTIONS2_TABLE,
                 TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes(),
                 TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE,
+                AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TransactionConstants.KNOWN_ABORTED_TIMESTAMPS_TABLE,
                 AtlasDbConstants.GENERIC_TABLE_METADATA));
     }
 
