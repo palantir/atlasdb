@@ -149,6 +149,15 @@ public abstract class ConnectionConfig {
         return new Properties();
     }
 
+    /**
+     * Please refer to <a href="https://github.com/brettwooldridge/HikariCP#infrequently-used">HikariCP</a>
+     * before overriding.
+     * */
+    @Value.Default
+    public long initializeFailTimeout() {
+        return 1;
+    }
+
     @JsonIgnore
     @Value.Lazy
     public HikariConfig getHikariConfig() {
@@ -168,6 +177,7 @@ public abstract class ConnectionConfig {
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
         config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
 
+        config.setInitializationFailTimeout(initializeFailTimeout());
         // Not a bug - we don't want to use connectionTimeout here, since Hikari uses a different terminology.
         // See https://github.com/brettwooldridge/HikariCP/wiki/Configuration
         //   - connectionTimeout = how long to wait for a connection to be opened.
