@@ -48,6 +48,7 @@ public final class TransactionConstants {
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
     public static final int TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 3;
+    public static final int TTS_TRANSACTIONS_SCHEMA_VERSION = 4;
     public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
             DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
             TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
