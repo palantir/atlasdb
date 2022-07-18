@@ -32,8 +32,8 @@ public class DefaultFutileTimestampStore implements FutileTimestampStore {
     public static final long PARTITIONING_QUANTUM = 50_000_000;
     public static final int ROWS_PER_QUANTUM = 31;
 
-    private static final CellEncodingStrategy ABORTED_TICKETS_ENCODING_STRATEGY = new TicketsCellEncodingStrategy(
-            PARTITIONING_QUANTUM, ROWS_PER_QUANTUM);
+    private static final CellEncodingStrategy ABORTED_TICKETS_ENCODING_STRATEGY =
+            new TicketsCellEncodingStrategy(PARTITIONING_QUANTUM, ROWS_PER_QUANTUM);
     private static final byte[] MARKER_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
     private final KeyValueService keyValueService;

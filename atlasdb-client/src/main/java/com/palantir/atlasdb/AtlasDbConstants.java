@@ -141,8 +141,7 @@ public final class AtlasDbConstants {
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
     public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
-            ImmutableSet.of(COORDINATION_TABLE,
-                    TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE);
+            ImmutableSet.of(COORDINATION_TABLE, TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE);
 
     /**
      * These tables are atomic tables, but are not intended to be read in a high-cost mode. The intention of this set
