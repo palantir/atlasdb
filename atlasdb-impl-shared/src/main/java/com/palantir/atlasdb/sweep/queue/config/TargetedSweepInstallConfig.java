@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -35,8 +35,8 @@ public class TargetedSweepInstallConfig {
      * {@link TargetedSweepRuntimeConfig#enabled()} parameter to true.
      */
     @Deprecated
-    @JsonIgnore
     @Value.Default
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public boolean enableSweepQueueWrites() {
         return true;
     }
