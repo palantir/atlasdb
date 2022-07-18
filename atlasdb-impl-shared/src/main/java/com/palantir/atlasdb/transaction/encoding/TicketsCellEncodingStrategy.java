@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -36,8 +39,27 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
     private final long rowsPerQuantum;
 
     public TicketsCellEncodingStrategy(long partitioningQuantum, long rowsPerQuantum) {
+        Preconditions.checkArgument(
+                rowsPerQuantum > 0,
+                "Number of rows per quantum must be positive",
+                SafeArg.of("rowsPerQuantum", rowsPerQuantum));
+        Preconditions.checkArgument(
+                partitioningQuantum >= rowsPerQuantum,
+                "Must have at least one cell per row after partitioning",
+                SafeArg.of("rowsPerQuantum", rowsPerQuantum),
+                SafeArg.of("partitioningQuantum", partitioningQuantum));
         this.partitioningQuantum = partitioningQuantum;
         this.rowsPerQuantum = rowsPerQuantum;
+    }
+
+    @VisibleForTesting
+    long getPartitioningQuantum() {
+        return partitioningQuantum;
+    }
+
+    @VisibleForTesting
+    long getRowsPerQuantum() {
+        return rowsPerQuantum;
     }
 
     @Override
