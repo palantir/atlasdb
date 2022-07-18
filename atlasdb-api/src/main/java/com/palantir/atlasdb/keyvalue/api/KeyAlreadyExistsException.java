@@ -15,19 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.Collection;
 
 /**
  * A {@link KeyAlreadyExistsException} is thrown if an operation that conditionally updates a {@link KeyValueService}
  * fails because some data is already present in the underlying database.
  */
-public class KeyAlreadyExistsException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
-
+public class KeyAlreadyExistsException extends AtomicWriteException {
     /**
      * The {@link Cell}s present in this list contributed to the failure of the conditional update, in that they were
      * already present when the conditional update expected them to not be present. This list may not be complete;
@@ -39,8 +34,7 @@ public class KeyAlreadyExistsException extends RuntimeException {
      * committed may be placed in this list. This list may not be complete; there may be additional cells that
      * were actually successfully committed but are not in this list.
      */
-    @SuppressWarnings("checkstyle:MutableException") // Not final for backwards compatibility in serialization.
-    private ImmutableList<Cell> knownSuccessfullyCommittedKeys;
+    private final ImmutableList<Cell> knownSuccessfullyCommittedKeys;
 
     public KeyAlreadyExistsException(String msg, Throwable ex) {
         this(msg, ex, ImmutableList.of());
@@ -73,10 +67,5 @@ public class KeyAlreadyExistsException extends RuntimeException {
 
     public Collection<Cell> getKnownSuccessfullyCommittedKeys() {
         return knownSuccessfullyCommittedKeys;
-    }
-
-    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        stream.defaultReadObject();
-        knownSuccessfullyCommittedKeys = MoreObjects.firstNonNull(knownSuccessfullyCommittedKeys, ImmutableList.of());
     }
 }

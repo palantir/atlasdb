@@ -17,9 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.List;
 
-public class CheckAndSetException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
-
+public class CheckAndSetException extends AtomicWriteException {
     private final Cell key;
     private final byte[] expectedValue;
     private final List<byte[]> actualValues;

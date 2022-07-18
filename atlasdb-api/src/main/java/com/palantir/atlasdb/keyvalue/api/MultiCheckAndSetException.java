@@ -16,24 +16,18 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;
 
-public class MultiCheckAndSetException extends RuntimeException {
+public class MultiCheckAndSetException extends AtomicWriteException {
     private final byte[] rowName;
     private final Map<Cell, byte[]> expectedValues;
     private final Map<Cell, byte[]> actualValues;
 
     public MultiCheckAndSetException(
-            Arg<String> tableReference,
-            byte[] rowName,
-            Map<Cell, byte[]> expectedValue,
-            Map<Cell, byte[]> actualValues) {
-        super(new SafeRuntimeException(
-                "Current values in the database do not match the expected values specified in multi-checkAndSet"
-                        + " request.",
-                tableReference));
+            String maybeTableName, byte[] rowName, Map<Cell, byte[]> expectedValue, Map<Cell, byte[]> actualValues) {
+        super(String.format(
+                "Current values in table %s do not match the expected values specified in multi-checkAndSet request.",
+                maybeTableName));
         this.rowName = rowName;
         this.expectedValues = expectedValue;
         this.actualValues = actualValues;
