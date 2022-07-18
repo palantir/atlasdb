@@ -46,9 +46,8 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     }
 
     public void supplement(Range<Long> timestampRangeToAdd) {
-        //todo(snanda): this is not the right api
         Optional<ValueAndBound<InternalSchemaMetadata>> lastKnownLocalValue =
-                coordinationService.getLastKnownLocalValue();
+                coordinationService.getLatestValue();
 
         Map<Range<Long>, Integer> longIntegerRangeMap = lastKnownLocalValue
                 .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))

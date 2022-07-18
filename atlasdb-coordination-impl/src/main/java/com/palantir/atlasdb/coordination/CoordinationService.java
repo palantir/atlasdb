@@ -51,6 +51,9 @@ public interface CoordinationService<T> {
     @Timed
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
+    @Timed
+    Optional<ValueAndBound<T>> getLatestValue();
+
     /**
      * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform
      * to the existing {@link ValueAndBound} that is stored in this coordination service.
