@@ -35,8 +35,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     private final KnownConcludedTransactionsStore delegate;
 
     public CoordinationAwareKnownConcludedTransactionsStore(
-            CoordinationService coordinationService,
-            KnownConcludedTransactionsStore delegate) {
+            CoordinationService coordinationService, KnownConcludedTransactionsStore delegate) {
         this.coordinationService = coordinationService;
         this.delegate = delegate;
     }
@@ -46,8 +45,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     }
 
     public void supplement(Range<Long> timestampRangeToAdd) {
-        Optional<ValueAndBound<InternalSchemaMetadata>> lastKnownLocalValue =
-                coordinationService.getLatestValue();
+        Optional<ValueAndBound<InternalSchemaMetadata>> lastKnownLocalValue = coordinationService.getLatestValue();
 
         Map<Range<Long>, Integer> longIntegerRangeMap = lastKnownLocalValue
                 .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
