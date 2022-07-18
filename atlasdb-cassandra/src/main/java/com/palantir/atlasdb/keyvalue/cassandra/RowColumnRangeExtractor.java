@@ -104,13 +104,14 @@ final class RowColumnRangeExtractor {
             rowsToRawColumnCount.put(row, columns.size());
             for (ColumnOrSuperColumn c : columns) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
-                if (pair.rhSide < startTs) {
-                    Value previous = collector
-                            .computeIfAbsent(row, _bytes -> new LinkedHashMap<>()) // explicitly maintain returned order
-                            .put(
-                                    Cell.create(row, pair.lhSide),
-                                    Value.create(c.getColumn().getValue(), pair.rhSide));
-                    if (previous != null) {
+                long ts = pair.rhSide;
+                if (ts < startTs) {
+                    Cell cell = Cell.create(row, pair.lhSide);
+                    LinkedHashMap<Cell, Value> cellToValue = collector.get(row);
+                    if (cellToValue == null) {
+                        cellToValue = collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
+                    }
+                    if (cellToValue.putIfAbsent(cell, Value.create(c.getColumn().getValue(), ts)) != null) {
                         notLatestVisibleValueCellFilterCounter.get().inc();
                     }
                 } else {
