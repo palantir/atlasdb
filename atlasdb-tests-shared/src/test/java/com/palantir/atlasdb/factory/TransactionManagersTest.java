@@ -375,12 +375,10 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void canDropTablesWhenSweepQueueWritesAreDisabled() {
+    public void canDropTables() {
         AtlasDbConfig inMemoryNoQueueWrites = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
-                        .enableSweepQueueWrites(false)
-                        .build())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
         KeyValueService kvs = TransactionManagers.builder()
                 .config(inMemoryNoQueueWrites)
