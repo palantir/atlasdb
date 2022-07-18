@@ -36,7 +36,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class SimpleCommitTimestampPutUnlessExistsTableTest {
+public class SimpleCommitTimestampAtomicTableTest {
     @Parameterized.Parameter
     public TimestampEncodingStrategy<Long> encodingStrategy;
 
@@ -45,7 +45,7 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
         return Arrays.asList(new Object[][] {{V1EncodingStrategy.INSTANCE}, {TicketsEncodingStrategy.INSTANCE}});
     }
 
-    private PutUnlessExistsTable<Long, Long> pueTable;
+    private AtomicTable<Long, Long> pueTable;
 
     @Before
     public void setup() {
@@ -54,7 +54,7 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
-        pueTable.putUnlessExists(1L, 2L);
+        pueTable.update(1L, 2L);
         assertThat(pueTable.get(1L).get()).isEqualTo(2L);
     }
 
@@ -65,19 +65,19 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void cannotPueTwice() {
-        pueTable.putUnlessExists(1L, 2L);
-        assertThatThrownBy(() -> pueTable.putUnlessExists(1L, 2L)).isInstanceOf(KeyAlreadyExistsException.class);
+        pueTable.update(1L, 2L);
+        assertThatThrownBy(() -> pueTable.update(1L, 2L)).isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test
     public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, Long> inputs = ImmutableMap.of(1L, 2L, 3L, 4L, 7L, 8L);
-        pueTable.putUnlessExistsMultiple(inputs);
+        pueTable.updateMultiple(inputs);
         assertThat(pueTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get()).containsExactlyInAnyOrderEntriesOf(inputs);
     }
 
-    private PutUnlessExistsTable<Long, Long> createPueTable() {
-        return new SimpleCommitTimestampPutUnlessExistsTable(
+    private AtomicTable<Long, Long> createPueTable() {
+        return new SimpleCommitTimestampAtomicTable(
                 new InMemoryKeyValueService(true),
                 TableReference.createFromFullyQualifiedName("test.table"),
                 encodingStrategy);

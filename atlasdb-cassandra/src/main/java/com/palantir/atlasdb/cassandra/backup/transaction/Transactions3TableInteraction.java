@@ -29,12 +29,13 @@ import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.pue.AtomicValue;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -86,9 +87,9 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        PutUnlessExistsValue<Long> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        AtomicValue<Optional<Long>> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        if (commitValue.value() == TransactionConstants.FAILED_COMMIT_TS) {
+        if (commitValue.value().get() == TransactionConstants.FAILED_COMMIT_TS) {
             return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
 

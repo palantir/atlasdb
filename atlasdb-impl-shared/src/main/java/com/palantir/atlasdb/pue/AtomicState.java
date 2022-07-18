@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.pue;
 
-public enum PutUnlessExistsState {
+public enum AtomicState {
     STAGING,
     COMMITTED;
 }

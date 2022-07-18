@@ -22,23 +22,23 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.AtomicWriteException;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * A generally persisted key value store that supports an atomic put unless exists operation.
+ * A generally persisted key value store that supports an atomic update operation.
  * @param <K> Key for the mapping
  * @param <V> Value for the mapping
  */
-public interface PutUnlessExistsTable<K, V> {
+public interface AtomicTable<K, V> {
     default void markInProgress(K key) {
         markInProgress(ImmutableSet.of(key));
     }
 
     /**
      * Declares an operation for these keys is in progress. This method must be called before any
-     * {@link #putUnlessExistsMultiple(Map)} for the key, or the latter might fail.
+     * {@link #updateMultiple(Map)} for the key, or the latter might fail.
      */
     void markInProgress(Set<K> keys);
 
@@ -47,15 +47,15 @@ public interface PutUnlessExistsTable<K, V> {
      * method throws an exception, subsequent gets may return either V or null but once V is returned subsequent calls
      * are guaranteed to return V.
      */
-    default void putUnlessExists(K key, V value) throws KeyAlreadyExistsException {
-        putUnlessExistsMultiple(ImmutableMap.of(key, value));
+    default void update(K key, V value) throws AtomicWriteException {
+        updateMultiple(ImmutableMap.of(key, value));
     }
 
     /**
-     * Similar to {@link PutUnlessExistsTable#putUnlessExists(Object, Object)}, but may be implemented to batch
+     * Similar to {@link AtomicTable#update(Object, Object)}, but may be implemented to batch
      * efficiently.
      */
-    void putUnlessExistsMultiple(Map<K, V> keyValues) throws KeyAlreadyExistsException;
+    void updateMultiple(Map<K, V> keyValues) throws AtomicWriteException;
 
     default ListenableFuture<V> get(K key) {
         return Futures.transform(get(ImmutableList.of(key)), result -> result.get(key), MoreExecutors.directExecutor());

@@ -590,7 +590,8 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue());
             putUnlessExists(checkAndSetRequest.table(), value);
         } catch (KeyAlreadyExistsException e) {
-            throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
+            throw new CheckAndSetException(
+                    checkAndSetRequest.cell(), "Value unexpectedly present when running check and set", e);
         }
     }
 

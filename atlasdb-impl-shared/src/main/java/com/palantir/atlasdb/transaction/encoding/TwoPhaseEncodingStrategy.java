@@ -19,14 +19,14 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.pue.AtomicValue;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<Long>> {
+public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<AtomicValue<Long>> {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};
@@ -46,26 +46,31 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, PutUnlessExistsValue<Long> commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<Long> commitTimestamp) {
         return EncodingUtils.add(
                 TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp.value()),
                 commitTimestamp.isCommitted() ? COMMITTED : STAGING);
     }
 
     @Override
-    public PutUnlessExistsValue<Long> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public AtomicValue<Long> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
         byte[] head = PtBytes.head(value, value.length - 1);
         byte[] tail = PtBytes.tail(value, 1);
 
         Long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(startTimestamp, head);
         if (Arrays.equals(tail, COMMITTED)) {
-            return PutUnlessExistsValue.committed(commitTimestamp);
+            return AtomicValue.committed(commitTimestamp);
         }
         if (Arrays.equals(tail, STAGING)) {
-            return PutUnlessExistsValue.staging(commitTimestamp);
+            return AtomicValue.staging(commitTimestamp);
         }
 
         throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));
+    }
+
+    @Override
+    public boolean isAbsent(byte[] value) {
+        return Arrays.equals(PtBytes.EMPTY_BYTE_ARRAY, value);
     }
 
     public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {

@@ -579,7 +579,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 assertThrows(MultiCheckAndSetException.class, () -> keyValueService.multiCheckAndSet(request));
 
         assertThat(ex.getExpectedValues()).containsExactlyEntriesOf(expected);
-        assertThat(ex.getActualValues()).isEmpty();
+        assertThat(ex.getObservedValues()).isEmpty();
     }
 
     @Test
@@ -669,7 +669,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         verifyMultiCheckAndSet(firstPut);
         assertThat(ex.getExpectedValues()).isEmpty();
-        assertThat(ex.getActualValues()).containsExactlyEntriesOf(firstPut);
+        assertThat(ex.getObservedValues()).containsExactlyEntriesOf(firstPut);
     }
 
     @Test
@@ -704,7 +704,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
                         TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))));
         assertThat(ex.getExpectedValues()).isEmpty();
-        assertThat(ex.getActualValues()).containsExactlyEntriesOf(ImmutableMap.of(nextTestCell, val(0, 1)));
+        assertThat(ex.getObservedValues()).containsExactlyEntriesOf(ImmutableMap.of(nextTestCell, val(0, 1)));
 
         verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)));
     }

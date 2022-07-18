@@ -85,6 +85,11 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
         return startTimestamp + TransactionConstants.getTimestampForValue(value);
     }
 
+    @Override
+    public boolean isAbsent(byte[] value) {
+        return false;
+    }
+
     private static byte[] encodeRowName(long startTimestamp) {
         return rowToBytes(startTimestampToRow(startTimestamp));
     }

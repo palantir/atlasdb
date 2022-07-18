@@ -42,4 +42,9 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<Long> {
     public Long decodeValueAsCommitTimestamp(long _ignoredStartTimestamp, byte[] value) {
         return TransactionConstants.getTimestampForValue(value);
     }
+
+    @Override
+    public boolean isAbsent(byte[] value) {
+        return false;
+    }
 }

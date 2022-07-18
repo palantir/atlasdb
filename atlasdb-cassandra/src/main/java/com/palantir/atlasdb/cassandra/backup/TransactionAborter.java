@@ -32,7 +32,7 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.pue.AtomicValue;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -232,6 +232,6 @@ final class TransactionAborter {
     }
 
     private static Optional<Long> getCommitValue(TransactionTableEntry entry) {
-        return TransactionTableEntries.getCommitValue(entry).map(PutUnlessExistsValue::value);
+        return TransactionTableEntries.getCommitValue(entry).map(AtomicValue::value);
     }
 }

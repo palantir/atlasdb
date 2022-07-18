@@ -19,27 +19,27 @@ package com.palantir.atlasdb.pue;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface PutUnlessExistsValue<V> {
+public interface AtomicValue<V> {
     V value();
 
-    PutUnlessExistsState state();
+    AtomicState state();
 
     @Value.Derived
     default boolean isCommitted() {
-        return state() == PutUnlessExistsState.COMMITTED;
+        return state() == AtomicState.COMMITTED;
     }
 
-    static <T> PutUnlessExistsValue<T> committed(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+    static <T> AtomicValue<T> committed(T withValue) {
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
-                .state(PutUnlessExistsState.COMMITTED)
+                .state(AtomicState.COMMITTED)
                 .build();
     }
 
-    static <T> PutUnlessExistsValue<T> staging(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+    static <T> AtomicValue<T> staging(T withValue) {
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
-                .state(PutUnlessExistsState.STAGING)
+                .state(AtomicState.STAGING)
                 .build();
     }
 }

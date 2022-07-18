@@ -30,4 +30,6 @@ public interface TimestampEncodingStrategy<V> extends CellEncodingStrategy {
     byte[] encodeCommitTimestampAsValue(long startTimestamp, V commitTimestamp);
 
     V decodeValueAsCommitTimestamp(long startTimestamp, byte[] value);
+
+    boolean isAbsent(byte[] value);
 }
