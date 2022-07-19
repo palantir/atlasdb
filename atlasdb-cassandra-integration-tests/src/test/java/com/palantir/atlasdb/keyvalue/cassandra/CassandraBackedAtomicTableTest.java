@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class CassandraBackedPueTableTest {
+public class CassandraBackedAtomicTableTest {
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
     private final ConsensusForgettingStore store =
             new PueKvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
