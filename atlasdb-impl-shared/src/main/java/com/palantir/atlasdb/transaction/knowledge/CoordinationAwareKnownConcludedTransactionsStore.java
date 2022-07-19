@@ -20,6 +20,9 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class CoordinationAwareKnownConcludedTransactionsStore {
+    private static final SafeLogger log = SafeLoggerFactory.get(CoordinationAwareKnownConcludedTransactionsStore.class);
     // todo(Snanda): to be wired in with `TransactionSchemaManager`
     private final Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter;
     private final KnownConcludedTransactionsStore delegate;
@@ -58,6 +62,11 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
         Set<Range<Long>> rangesToSupplement = rangesOnTransaction4.stream()
                 .map(closedTimestampRangeToAdd::intersection)
                 .collect(Collectors.toSet());
+
+        log.info(
+                "Attempting to supplement the set of known concluded timestamps",
+                SafeArg.of("ranges", rangesToSupplement));
+
         delegate.supplement(rangesToSupplement);
     }
 }
