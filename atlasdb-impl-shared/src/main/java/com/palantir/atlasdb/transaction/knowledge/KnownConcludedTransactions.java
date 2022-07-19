@@ -29,7 +29,7 @@ public interface KnownConcludedTransactions {
      *
      * @param startTimestamp start timestamp associated with the value we are checking for
      * @param consistency consistency level to use when answering this query
-     * @return whether the transaction that started at the provided timestamp is known to have committed.
+     * @return whether the transaction that started at the provided timestamp is known to have concluded.
      */
     boolean isKnownConcluded(long startTimestamp, Consistency consistency);
 
