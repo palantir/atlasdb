@@ -82,6 +82,21 @@ public final class CellTest {
     }
 
     @Test
+    public void testMemoizedHashCodeEquals() {
+        Cell c1 = Cell.create(bytes("row"), bytes("col"));
+        Cell c2 = Cell.create(bytes("row"), bytes("col"));
+        Cell c3 = Cell.create(bytes("col"), bytes("row"));
+        Cell c4 = Cell.create(bytes("foo"), bytes("bar"));
+        assertThat(c1).isNotSameAs(c2).isEqualTo(c2).isNotEqualTo(c3).isNotEqualTo(c4);
+        assertThat(c1)
+                .hasSameHashCodeAs(c2)
+                .describedAs("Expected hashCode collision when rowName and colName are flipped")
+                .hasSameHashCodeAs(c3)
+                .doesNotHaveSameHashCodeAs(c4);
+        assertThat(c1).isEqualTo(c2).isNotEqualTo(c3).isNotEqualTo(c4);
+    }
+
+    @Test
     public void testSizeInBytes() {
         assertThat(createCellWithByteSize(2).sizeInBytes()).isEqualTo(2);
         assertThat(createCellWithByteSize(63).sizeInBytes()).isEqualTo(63);

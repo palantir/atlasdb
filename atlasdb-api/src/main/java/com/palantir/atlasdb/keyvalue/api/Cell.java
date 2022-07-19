@@ -137,6 +137,12 @@ public final class Cell implements Serializable, Comparable<Cell>, Measurable {
             return false;
         }
         Cell other = (Cell) obj;
+        int thisHash = this.hashCode;
+        int thatHash = other.hashCode;
+        if (thisHash != 0 && thatHash != 0 && thisHash != thatHash) {
+            // memoized hash code mismatch is cheaper than comparing full rowName & columnName
+            return false;
+        }
         return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
     }
 
@@ -147,15 +153,17 @@ public final class Cell implements Serializable, Comparable<Cell>, Measurable {
          * accessed via hash collections, but computation can be expensive, and
          * allow for benign data races.
          */
-        if (hashCode == 0) {
+        int hash = hashCode;
+        if (hash == 0) {
             /*
              * This hashCode() implementation has a rather unfortunate case where it is always 0 if the row name and
              * the column name match. We did not want to change it to keep backwards compatibility.
              * See {@link CellReference#goodHash()}
              */
-            hashCode = Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
+            hash = Arrays.hashCode(rowName) ^ Arrays.hashCode(columnName);
+            hashCode = hash;
         }
-        return hashCode;
+        return hash;
     }
 
     @Override
