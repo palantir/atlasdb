@@ -75,6 +75,27 @@ public class PreStartHandlingTransactionService implements TransactionService {
         return getInternal(startTimestamps, delegate);
     }
 
+
+    @Override
+    public TransactionState safeGet(long startTimestamp) {
+        return AtlasFutures.getUnchecked(safeGetInternal(startTimestamp, synchronousAsyncTransactionService));
+    }
+
+    @Override
+    public Map<Long, TransactionState> safeGet(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(safeGetInternal(startTimestamps, synchronousAsyncTransactionService));
+    }
+
+    @Override
+    public ListenableFuture<TransactionState> safeGetAsync(long startTimestamp) {
+        return safeGetInternal(startTimestamp, synchronousAsyncTransactionService);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionState>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return safeGetInternal(startTimestamps, synchronousAsyncTransactionService);
+    }
+
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         if (!isTimestampValid(startTimestamp)) {
@@ -91,11 +112,44 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.close();
     }
 
+    private ListenableFuture<TransactionState> safeGetInternal(long startTimestamp,
+            AsyncTransactionService asyncTransactionService) {
+        // todo(snanda): why are we doing this
+        if (!isTimestampValid(startTimestamp)) {
+            return Futures.immediateFuture(TransactionStates.committed(AtlasDbConstants.STARTING_TS - 1));
+        }
+        return asyncTransactionService.safeGetAsync(startTimestamp);
+    }
+
     private ListenableFuture<Long> getInternal(long startTimestamp, AsyncTransactionService asyncTransactionService) {
         if (!isTimestampValid(startTimestamp)) {
             return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
         }
         return asyncTransactionService.getAsync(startTimestamp);
+    }
+
+    // Todo(snanda)
+    private ListenableFuture<Map<Long, TransactionState>> safeGetInternal(Iterable<Long> startTimestamps,
+            AsyncTransactionService asyncTransactionService) {
+        Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
+                .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
+
+        List<Long> validTimestamps = classifiedTimestamps.get(true);
+        Map<Long, TransactionState> result = new HashMap<>();
+        result.putAll(Maps.asMap(
+                ImmutableSet.copyOf(classifiedTimestamps.get(false)),
+                unused -> TransactionStates.committed(AtlasDbConstants.STARTING_TS - 1)));
+
+        if (!validTimestamps.isEmpty()) {
+            return Futures.transform(
+                    asyncTransactionService.getAsync(validTimestamps),
+                    timestampMap -> {
+                        result.putAll(timestampMap);
+                        return result;
+                    },
+                    MoreExecutors.directExecutor());
+        }
+        return Futures.immediateFuture(result);
     }
 
     private ListenableFuture<Map<Long, Long>> getInternal(

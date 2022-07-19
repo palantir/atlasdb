@@ -84,6 +84,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
+    public TransactionState safeGet(long startTimestamp) {
+        return null;
+    }
+
+    @Override
+    public Map<Long, TransactionState> safeGet(Iterable<Long> startTimestamps) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }
@@ -91,6 +101,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return delegate.getAsync(startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<TransactionState> safeGetAsync(long startTimestamp) {
+        return delegate.safeGetAsync(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionState>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return delegate.safeGetAsync(startTimestamps);
     }
 
     @Override

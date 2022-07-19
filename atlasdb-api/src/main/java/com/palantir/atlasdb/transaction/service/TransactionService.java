@@ -51,6 +51,12 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     @Timed
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
+    @Timed
+    TransactionState safeGet(long startTimestamp);
+
+    @Timed
+    Map<Long, TransactionState> safeGet(Iterable<Long> startTimestamps);
+
     /**
      * This operation is guaranteed to be atomic and only set the value if it hasn't already been
      * set.

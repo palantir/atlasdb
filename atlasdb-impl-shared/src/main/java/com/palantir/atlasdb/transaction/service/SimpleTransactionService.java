@@ -97,6 +97,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
+    public TransactionState safeGet(long startTimestamp) {
+        return null;
+    }
+
+    @Override
+    public Map<Long, TransactionState> safeGet(Iterable<Long> startTimestamps) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return txnTable.get(startTimestamp);
     }

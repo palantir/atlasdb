@@ -34,6 +34,7 @@ public interface AsyncTransactionService {
      */
     ListenableFuture<Long> getAsync(long startTimestamp);
 
+
     /**
      * Gets the commit timestamps associated with start timestamps given in {@code startTimestamps}, potentially
      * computing them asynchronously. Returned entries may be cached on the client-side. Entries which are missing which
@@ -48,4 +49,8 @@ public interface AsyncTransactionService {
      * timestamp, possibly missing entries if relevant transactions have not committed yet
      */
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
+
+    ListenableFuture<TransactionState> safeGetAsync(long startTimestamp);
+
+    ListenableFuture<Map<Long, TransactionState>> safeGetAsync(Iterable<Long> startTimestamps);
 }

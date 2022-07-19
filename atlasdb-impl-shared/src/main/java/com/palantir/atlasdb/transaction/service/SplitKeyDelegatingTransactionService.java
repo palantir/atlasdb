@@ -76,6 +76,16 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
+    public TransactionState safeGet(long startTimestamp) {
+        return null;
+    }
+
+    @Override
+    public Map<Long, TransactionState> safeGet(Iterable<Long> startTimestamps) {
+        return null;
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getInternal(keyedServices, startTimestamp);
     }
@@ -83,6 +93,16 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getInternal(keyedServices, startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<TransactionState> safeGetAsync(long startTimestamp) {
+        return null;
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionState>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return null;
     }
 
     @Override
