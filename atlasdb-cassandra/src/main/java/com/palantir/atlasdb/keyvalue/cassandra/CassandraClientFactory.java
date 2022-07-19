@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Weigher;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -57,21 +56,12 @@ import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.checkerframework.checker.index.qual.NonNegative;
 import org.immutables.value.Value;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
-    private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache = Caffeine.newBuilder()
-            .weigher(new Weigher<SslConfiguration, SSLSocketFactory>() {
-                @Override
-                public @NonNegative int weigh(SslConfiguration key, SSLSocketFactory value) {
-                    return value.hashCode();
-                }
-            })
-            .maximumWeight(20L)
-            .weakValues()
-            .build(SslSocketFactories::createSslSocketFactory);
+    private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache =
+            Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
 
     private final MetricsManager metricsManager;
     private final InetSocketAddress addr;
