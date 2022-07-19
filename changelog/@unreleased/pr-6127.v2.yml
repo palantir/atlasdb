@@ -1,5 +1,7 @@
 type: improvement
 improvement:
-  description: '[TTS] Force enable sweep queue writes.'
+  description: "[TTS] Force enables sweep queue writes.\nThe change is not expected
+    to impact background sweep BUT it could lead to build up of additional data in
+    the sweep shards if targeted sweep remains disabled for a long time. "
   links:
   - https://github.com/palantir/atlasdb/pull/6127
