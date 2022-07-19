@@ -21,6 +21,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.transaction.knowledge.CoordinationAwareKnownConcludedTransactionsStore;
 import java.util.Comparator;
 import java.util.Set;
@@ -77,16 +78,17 @@ public class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
     private static Set<ShardAndStrategy> getAllShardsAndStrategies(int numShards) {
         ImmutableSet.Builder<ShardAndStrategy> shardsAndStrategiesBuilder = ImmutableSet.builder();
-
-        shardsAndStrategiesBuilder.addAll(IntStream.range(0, numShards)
-                .mapToObj(ShardAndStrategy::conservative)
-                .collect(Collectors.toSet()));
-
-        shardsAndStrategiesBuilder.addAll(IntStream.range(0, numShards)
-                .mapToObj(ShardAndStrategy::thorough)
-                .collect(Collectors.toSet()));
-
+        shardsAndStrategiesBuilder.addAll(getShardAndStrategies(numShards, SweeperStrategy.CONSERVATIVE));
+        shardsAndStrategiesBuilder.addAll(getShardAndStrategies(numShards, SweeperStrategy.THOROUGH));
         return shardsAndStrategiesBuilder.build();
+    }
+
+    private static Set<ShardAndStrategy> getShardAndStrategies(
+            int numShards,
+            SweeperStrategy strategy) {
+        return IntStream.range(0, numShards)
+                .mapToObj(shard -> ShardAndStrategy.of(shard, strategy))
+                .collect(Collectors.toSet());
     }
 
     @Override
