@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  *
  * <ul>
  *     <li>if the background sweeper has been explicitly enabled or disabled, use that setting;</li>
- *     <li>otherwise if Targeted Sweep is writing to the sweep queue, disable background sweep</li>
+ *     <li>otherwise disable background sweep</li>
  * </ul>
  */
 public class ShouldRunBackgroundSweepSupplier implements BooleanSupplier {
