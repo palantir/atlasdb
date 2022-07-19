@@ -25,20 +25,18 @@ import java.util.function.Supplier;
  *
  * <ul>
  *     <li>if the background sweeper has been explicitly enabled or disabled, use that setting;</li>
- *     <li>otherwise if Targeted Sweep is writing to the sweep queue, disable background sweep</li>
+ *     <li>otherwise disable background sweep</li>
  * </ul>
  */
 public class ShouldRunBackgroundSweepSupplier implements BooleanSupplier {
     private final Supplier<SweepConfig> runtimeConfigSupplier;
-    private final boolean sweepQueueWritesEnabled;
 
-    public ShouldRunBackgroundSweepSupplier(Supplier<SweepConfig> runtimeConfig, boolean sweepQueueWritesEnabled) {
+    public ShouldRunBackgroundSweepSupplier(Supplier<SweepConfig> runtimeConfig) {
         this.runtimeConfigSupplier = runtimeConfig;
-        this.sweepQueueWritesEnabled = sweepQueueWritesEnabled;
     }
 
     @Override
     public boolean getAsBoolean() {
-        return runtimeConfigSupplier.get().enabled().orElse(!sweepQueueWritesEnabled);
+        return runtimeConfigSupplier.get().enabled().orElse(false);
     }
 }

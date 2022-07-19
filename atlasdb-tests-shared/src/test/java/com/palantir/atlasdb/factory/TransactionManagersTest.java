@@ -375,12 +375,10 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void canDropTablesWhenSweepQueueWritesAreDisabled() {
+    public void canDropTables() {
         AtlasDbConfig inMemoryNoQueueWrites = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
-                        .enableSweepQueueWrites(false)
-                        .build())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
         KeyValueService kvs = TransactionManagers.builder()
                 .config(inMemoryNoQueueWrites)
@@ -674,36 +672,21 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
+    public void kvsRecordsSweepStatsIfTargetedSweepDisabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
     }
 
     @Test
-    public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
-    }
-
-    @Test
-    public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
-    }
-
-    @Test
-    public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
+    public void kvsDoesNotRecordSweepStatsIfTargetedSweepEnabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
     }
 
-    private KeyValueService initializeKeyValueServiceWithSweepSettings(
-            boolean enableSweepQueueWrites, boolean enableTargetedSweep) {
+    private KeyValueService initializeKeyValueServiceWithSweepSettings(boolean enableTargetedSweep) {
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
-                        .enableSweepQueueWrites(enableSweepQueueWrites)
-                        .build())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
                 .build();
         AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
                 .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
