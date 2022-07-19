@@ -107,12 +107,12 @@ final class RowColumnRangeExtractor {
                 long ts = pair.rhSide;
                 if (ts < startTs) {
                     Cell cell = Cell.create(row, pair.lhSide);
-                    LinkedHashMap<Cell, Value> cellToValue = collector.get(row);
-                    if (cellToValue == null) {
-                        cellToValue = collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
-                    }
-                    if (cellToValue.putIfAbsent(cell, Value.create(c.getColumn().getValue(), ts)) != null) {
+                    LinkedHashMap<Cell, Value> cellToValue =
+                            collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
+                    if (cellToValue.containsKey(cell)) {
                         notLatestVisibleValueCellFilterCounter.get().inc();
+                    } else {
+                        cellToValue.put(cell, Value.create(c.getColumn().getValue(), ts));
                     }
                 } else {
                     notLatestVisibleValueCellFilterCounter.get().inc();
