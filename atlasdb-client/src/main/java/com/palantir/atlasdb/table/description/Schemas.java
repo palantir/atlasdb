@@ -85,6 +85,9 @@ public final class Schemas {
     }
 
     public static boolean isTableNameValid(String tableName) {
+        if (tableName.isEmpty()) {
+            return false;
+        }
         for (int i = 0; i < tableName.length(); i++) {
             char ch = tableName.charAt(i);
             if (!Character.isLetterOrDigit(ch) && ch != '_') {

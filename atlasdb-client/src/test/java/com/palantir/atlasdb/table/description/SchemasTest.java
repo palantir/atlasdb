@@ -116,6 +116,21 @@ public class SchemasTest {
         verify(kvs).getAllTableNames();
     }
 
+    @Test
+    public void testEmptyTableNameIsNotValid() {
+        assertThat(Schemas.isTableNameValid("")).isFalse();
+    }
+
+    @Test
+    public void testTableNameWithSpecialCharactersIsNotValid() {
+        assertThat(Schemas.isTableNameValid("he.llo")).isFalse();
+    }
+
+    @Test
+    public void testNonEmptyTableNameWithOnlyLettersDigitsAndUnderscoreIsValid() {
+        assertThat(Schemas.isTableNameValid("test_table_name")).isTrue();
+    }
+
     private static TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
