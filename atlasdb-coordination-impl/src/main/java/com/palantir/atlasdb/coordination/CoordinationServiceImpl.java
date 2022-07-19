@@ -49,11 +49,6 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         return Optional.of(cachedReference);
     }
 
-    @Override
-    public Optional<ValueAndBound<T>> getLatestValue() {
-        return latestValueFromStoreSupplier.get();
-    }
-
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
      * of CAS failure only if the implementation of the CoordinationStore makes such guarantees.

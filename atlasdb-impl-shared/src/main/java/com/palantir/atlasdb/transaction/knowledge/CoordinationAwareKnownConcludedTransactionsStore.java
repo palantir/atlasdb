@@ -16,27 +16,25 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class CoordinationAwareKnownConcludedTransactionsStore {
-    private final CoordinationService<InternalSchemaMetadata> coordinationService;
+    // todo(Snanda): to be wired in with `TransactionSchemaManager`
+    private final Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter;
     private final KnownConcludedTransactionsStore delegate;
 
     public CoordinationAwareKnownConcludedTransactionsStore(
-            CoordinationService coordinationService, KnownConcludedTransactionsStore delegate) {
-        this.coordinationService = coordinationService;
+            Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter,
+            KnownConcludedTransactionsStore delegate) {
+        this.internalSchemaSnapshotGetter = internalSchemaSnapshotGetter;
         this.delegate = delegate;
     }
 
@@ -44,23 +42,18 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
         return delegate.get();
     }
 
-    public void supplement(Range<Long> timestampRangeToAdd) {
-        Optional<ValueAndBound<InternalSchemaMetadata>> lastKnownLocalValue = coordinationService.getLatestValue();
+    public void supplement(Range<Long> closedTimestampRangeToAdd) {
+        long lastSweptTimestamp = closedTimestampRangeToAdd.upperEndpoint();
 
-        Map<Range<Long>, Integer> longIntegerRangeMap = lastKnownLocalValue
-                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
-                .value()
-                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
-                .timestampToTransactionsTableSchemaVersion()
-                .rangeMapView()
-                .asMapOfRanges();
+        Map<Range<Long>, Integer> timestampRanges =
+                internalSchemaSnapshotGetter.apply(lastSweptTimestamp).rangeMapView().asMapOfRanges();
 
-        Set<Range<Long>> rangesOnTTS = KeyedStream.stream(longIntegerRangeMap)
+        Set<Range<Long>> rangesOnTransaction4 = KeyedStream.stream(timestampRanges)
                 .filter(schemaVersion -> schemaVersion.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
                 .keys()
                 .collect(Collectors.toSet());
-        Preconditions.checkState(rangesOnTTS.size() == 1, "Should have exactly one range for TTS schema.");
-        Range<Long> timestampRangeOnTxn4 = timestampRangeToAdd.intersection(Iterables.getOnlyElement(rangesOnTTS));
-        delegate.supplement(timestampRangeOnTxn4);
+
+        // todo(snanda): should have a batched update api
+        rangesOnTransaction4.forEach(range -> delegate.supplement(closedTimestampRangeToAdd.intersection(range)));
     }
 }
