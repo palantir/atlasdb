@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.CheckForNull;
 
 /**
  * A {@link SplitKeyDelegatingTransactionService} delegates between multiple {@link TransactionService}s, depending
@@ -64,15 +63,14 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                 .collectToMap();
     }
 
-    @CheckForNull
     @Override
-    public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamp));
+    public TransactionStatus get(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getInternal2(keyedSyncServices, startTimestamp));
     }
 
     @Override
-    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamps));
+    public Map<Long, TransactionStatus> get(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getInternal2(keyedSyncServices, startTimestamps));
     }
 
     @Override
@@ -83,6 +81,16 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getInternal(keyedServices, startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
+        return getInternal2(keyedServices, startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return getInternal2(keyedServices, startTimestamps);
     }
 
     @Override
@@ -126,6 +134,45 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
                 .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
+                .collectToMap()
+                .values();
+
+        return Futures.whenAllSucceed(futures)
+                .call(
+                        () -> futures.stream()
+                                .map(AtlasFutures::getDone)
+                                .collect(HashMap::new, Map::putAll, Map::putAll),
+                        MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<TransactionStatus> getInternal2(
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, long startTimestamp) {
+        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
+                .map(service -> service.safeGetAsync(startTimestamp))
+                .orElseGet(() -> Futures.immediateFuture(null));
+    }
+
+    private ListenableFuture<Map<Long, TransactionStatus>> getInternal2(
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
+
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
+        if (!unknownKeys.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "A batch of timestamps produced some transaction service keys which are unknown.",
+                    SafeArg.of("timestamps", startTimestamps),
+                    SafeArg.of("unknownKeys", unknownKeys),
+                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
+        }
+
+        Collection<ListenableFuture<Map<Long, TransactionStatus>>> futures = KeyedStream.stream(queryMap.asMap())
+                .map((key, value) -> keyedTransactionServices.get(key).safeGetAsync(value))
                 .collectToMap()
                 .values();
 

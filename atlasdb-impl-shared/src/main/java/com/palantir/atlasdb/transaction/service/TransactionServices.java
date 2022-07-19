@@ -137,12 +137,12 @@ public final class TransactionServices {
     public static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
         return new AsyncTransactionService() {
             @Override
-            public ListenableFuture<Long> getAsync(long startTimestamp) {
+            public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
                 return Futures.immediateFuture(transactionService.get(startTimestamp));
             }
 
             @Override
-            public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+            public ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps) {
                 return Futures.immediateFuture(transactionService.get(startTimestamps));
             }
         };

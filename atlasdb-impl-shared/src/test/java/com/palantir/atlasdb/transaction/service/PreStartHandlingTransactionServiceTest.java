@@ -18,19 +18,21 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import org.junit.After;
@@ -43,6 +45,7 @@ public class PreStartHandlingTransactionServiceTest {
 
     private static final long START_TIMESTAMP = 44L;
     private static final long COMMIT_TIMESTAMP = 88L;
+    private static final TransactionStatus COMMITTED = TransactionStatuses.committed(COMMIT_TIMESTAMP);
     private static final long UNCOMMITTED_START_TIMESTAMP = 999L;
     private static final long ZERO_TIMESTAMP = 0L;
     private static final long NEGATIVE_TIMESTAMP = -125L;
@@ -57,11 +60,16 @@ public class PreStartHandlingTransactionServiceTest {
 
     @Before
     public void setUpMocks() {
-        when(delegate.get(START_TIMESTAMP)).thenReturn(COMMIT_TIMESTAMP);
+        when(delegate.get(START_TIMESTAMP)).thenReturn(COMMITTED);
         when(delegate.get(UNCOMMITTED_START_TIMESTAMP)).thenReturn(null);
-        when(delegate.get(eq(TWO_VALID_TIMESTAMPS))).thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMIT_TIMESTAMP));
+        when(delegate.get(eq(TWO_VALID_TIMESTAMPS)))
+                .thenReturn(ImmutableMap.of(
+                        START_TIMESTAMP,
+                        COMMITTED,
+                        UNCOMMITTED_START_TIMESTAMP,
+                        TransactionConstants.IN_PROGRESS_TRANSACTION));
         when(delegate.get(eq(ImmutableList.of(START_TIMESTAMP))))
-                .thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMIT_TIMESTAMP));
+                .thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMITTED));
     }
 
     @After
@@ -71,48 +79,60 @@ public class PreStartHandlingTransactionServiceTest {
 
     @Test
     public void passesThroughGetsOnValidCommittedTimestamp() {
-        Long timestamp = preStartHandlingService.get(START_TIMESTAMP);
-        assertThat(timestamp).isEqualTo(COMMIT_TIMESTAMP);
+        TransactionStatus status = preStartHandlingService.get(START_TIMESTAMP);
+        assertThat(TransactionStatuses.getCommitTimestamp(status)).hasValue(COMMIT_TIMESTAMP);
         verify(delegate).get(START_TIMESTAMP);
     }
 
     @Test
     public void passesThroughGetsOnValidUncommittedTimestamp() {
-        Long timestamp = preStartHandlingService.get(UNCOMMITTED_START_TIMESTAMP);
-        assertThat(timestamp).isNull();
+        TransactionStatus status = preStartHandlingService.get(UNCOMMITTED_START_TIMESTAMP);
+        assertThat(TransactionStatuses.caseOf(status).inProgress_(true).otherwise_(false))
+                .isTrue();
         verify(delegate).get(UNCOMMITTED_START_TIMESTAMP);
     }
 
     @Test
     public void returnsTimestampBeforeStartingTimestampWhenGettingInvalidTimestamps() {
-        assertThat(preStartHandlingService.get(ZERO_TIMESTAMP)).isEqualTo(BEFORE_TIME_TIMESTAMP);
-        assertThat(preStartHandlingService.get(NEGATIVE_TIMESTAMP)).isEqualTo(BEFORE_TIME_TIMESTAMP);
+        assertThat(TransactionStatuses.getCommitTimestamp(preStartHandlingService.get(ZERO_TIMESTAMP)))
+                .hasValue(BEFORE_TIME_TIMESTAMP);
+        assertThat(TransactionStatuses.getCommitTimestamp(preStartHandlingService.get(NEGATIVE_TIMESTAMP)))
+                .hasValue(BEFORE_TIME_TIMESTAMP);
     }
 
     @Test
     public void passesThroughGetsOnMultipleValidTimestamps() {
-        Map<Long, Long> result = preStartHandlingService.get(TWO_VALID_TIMESTAMPS);
-        assertThat(result).containsExactly(Maps.immutableEntry(START_TIMESTAMP, COMMIT_TIMESTAMP));
+        Map<Long, TransactionStatus> result = preStartHandlingService.get(TWO_VALID_TIMESTAMPS);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(START_TIMESTAMP)))
+                .hasValue(COMMIT_TIMESTAMP);
+        assertThat(TransactionStatuses.caseOf(result.get(UNCOMMITTED_START_TIMESTAMP))
+                        .inProgress_(true)
+                        .otherwise_(false))
+                .isTrue();
         verify(delegate).get(eq(TWO_VALID_TIMESTAMPS));
     }
 
     @Test
     public void passesThroughOnlyValidTimestampsToDelegateWhenGettingMultiple() {
-        Map<Long, Long> result = preStartHandlingService.get(ONE_VALID_ONE_INVALID_TIMESTAMP);
-        assertThat(result)
-                .containsOnly(
-                        Maps.immutableEntry(START_TIMESTAMP, COMMIT_TIMESTAMP),
-                        Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
+        Map<Long, TransactionStatus> result = preStartHandlingService.get(ONE_VALID_ONE_INVALID_TIMESTAMP);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(START_TIMESTAMP)))
+                .hasValue(COMMIT_TIMESTAMP);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(ZERO_TIMESTAMP)))
+                .hasValue(BEFORE_TIME_TIMESTAMP);
         verify(delegate).get(eq(ImmutableList.of(START_TIMESTAMP)));
     }
 
     @Test
     public void doesNotInvokeDelegateIfNoValidTimestamps() {
-        Map<Long, Long> result = preStartHandlingService.get(TWO_INVALID_TIMESTAMPS);
-        assertThat(result)
-                .containsOnly(
-                        Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP),
-                        Maps.immutableEntry(NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
+        Map<Long, TransactionStatus> result = preStartHandlingService.get(TWO_INVALID_TIMESTAMPS);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(ZERO_TIMESTAMP)))
+                .hasValue(BEFORE_TIME_TIMESTAMP);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(NEGATIVE_TIMESTAMP)))
+                .hasValue(BEFORE_TIME_TIMESTAMP);
+        verify(delegate, never()).get(anyList());
     }
 
     @Test

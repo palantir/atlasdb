@@ -34,6 +34,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.ArrayList;
@@ -149,7 +150,8 @@ public abstract class AbstractSweepQueueTest {
             txnService.putUnlessExists(ts, commitTs);
         } catch (KeyAlreadyExistsException e) {
             // this is fine if the existing key is what we wanted
-            Assertions.assertThat(txnService.get(ts)).isEqualTo(commitTs);
+            Assertions.assertThat(TransactionStatuses.getCommitTimestamp(txnService.get(ts)))
+                    .hasValue(commitTs);
         }
     }
 
@@ -175,7 +177,7 @@ public abstract class AbstractSweepQueueTest {
     }
 
     boolean isTransactionAborted(long txnTimestamp) {
-        return Objects.equals(TransactionConstants.FAILED_COMMIT_TS, txnService.get(txnTimestamp));
+        return Objects.equals(TransactionConstants.ABORTED_TRANSACTION, txnService.get(txnTimestamp));
     }
 
     long getSweepTsCons() {

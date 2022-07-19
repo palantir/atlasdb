@@ -52,6 +52,8 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -221,7 +223,7 @@ public class KeyValueServiceMigratorsTest {
         migrator.migrate();
 
         assertThat(fromServices.getTransactionService().get(uncommittedTs))
-                .isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
+                .isEqualTo(TransactionConstants.ABORTED_TRANSACTION);
         assertThat(toKvs.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
                         .get(TEST_CELL)
                         .getContents())
@@ -340,7 +342,8 @@ public class KeyValueServiceMigratorsTest {
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(spec);
         migrator.setup();
 
-        assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
+        TransactionStatus status = toSplittingServices.getTransactionService().get(100_000);
+        assertThat(TransactionStatuses.getCommitTimestamp(status)).hasValue(100_001L);
     }
 
     private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLockRule timeLock) {

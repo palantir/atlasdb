@@ -44,6 +44,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.Throwables;
@@ -394,33 +395,37 @@ public class Scrubber {
 
     private long getCommitTimestampRollBackIfNecessary(
             long startTimestamp, Multimap<TableReference, Cell> tableNameToCell) {
-        Long commitTimestamp = transactionService.get(startTimestamp);
-        if (commitTimestamp == null) {
-            // Roll back this transaction (note that rolling back arbitrary transactions
-            // can never cause correctness issues, only liveness issues)
-            try {
-                transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
-            } catch (KeyAlreadyExistsException e) {
-                String msg = "Could not roll back transaction with start timestamp " + startTimestamp + "; either"
-                        + " it was already rolled back (by a different transaction), or it committed successfully"
-                        + " before we could roll it back.";
-                log.error(
-                        "This isn't a bug but it should be very infrequent. {}",
-                        SafeArg.of("msg", msg),
-                        new TransactionFailedRetriableException(msg, e));
-            }
-            commitTimestamp = transactionService.get(startTimestamp);
-        }
-        if (commitTimestamp == null) {
-            throw new RuntimeException("expected commit timestamp to be non-null for startTs: " + startTimestamp);
-        }
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            for (TableReference table : tableNameToCell.keySet()) {
-                Map<Cell, Long> toDelete = Maps2.createConstantValueMap(tableNameToCell.get(table), startTimestamp);
-                keyValueService.delete(table, Multimaps.forMap(toDelete));
-            }
-        }
-        return commitTimestamp;
+        return TransactionStatuses.caseOf(transactionService.get(startTimestamp))
+                .inProgress(() -> {
+                    try {
+                        transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
+                    } catch (KeyAlreadyExistsException e) {
+                        String msg =
+                                "Could not roll back transaction with start timestamp " + startTimestamp + "; either "
+                                        + "it was already rolled back (by a different transaction), or it committed "
+                                        + "successfully before we could roll it back.";
+                        log.error(
+                                "This isn't a bug but it should be very infrequent. {}",
+                                SafeArg.of("msg", msg),
+                                new TransactionFailedRetriableException(msg, e));
+                    }
+                    return TransactionStatuses.getCommitTimestamp(transactionService.get(startTimestamp))
+                            .orElseThrow(() -> new RuntimeException(
+                                    "Unexpected transaction status for startTs: " + startTimestamp));
+                })
+                .committed(commitTs -> {
+                    if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
+                        for (TableReference table : tableNameToCell.keySet()) {
+                            Map<Cell, Long> toDelete =
+                                    Maps2.createConstantValueMap(tableNameToCell.get(table), startTimestamp);
+                            keyValueService.delete(table, Multimaps.forMap(toDelete));
+                        }
+                    }
+                    return commitTs;
+                })
+                .otherwise(() -> {
+                    throw new RuntimeException("Unexpected deleted entry for startTs: " + startTimestamp);
+                });
     }
 
     /**

@@ -23,6 +23,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 
 public final class TransactionConstants {
     private TransactionConstants() {
@@ -37,6 +39,8 @@ public final class TransactionConstants {
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
+    public static final TransactionStatus ABORTED_TRANSACTION = TransactionStatuses.committed(FAILED_COMMIT_TS);
+    public static final TransactionStatus IN_PROGRESS_TRANSACTION = TransactionStatuses.inProgress();
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 

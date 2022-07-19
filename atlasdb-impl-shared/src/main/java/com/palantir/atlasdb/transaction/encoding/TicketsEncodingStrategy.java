@@ -20,6 +20,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.util.Arrays;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -43,7 +45,7 @@ import java.util.stream.Stream;
  * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
  * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
-public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
+public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
     public static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
@@ -70,19 +72,23 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, Long commitTimestamp) {
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            return ABORTED_TRANSACTION_VALUE;
-        }
-        return TransactionConstants.getValueForTimestamp(commitTimestamp - startTimestamp);
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus transactionStatus) {
+        return TransactionStatuses.caseOf(transactionStatus)
+                .committed(ts -> {
+                    if (ts == TransactionConstants.FAILED_COMMIT_TS) {
+                        return ABORTED_TRANSACTION_VALUE;
+                    }
+                    return TransactionConstants.getValueForTimestamp(ts - startTimestamp);
+                })
+                .otherwise_(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     @Override
-    public Long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public TransactionStatus decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
         if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
-            return TransactionConstants.FAILED_COMMIT_TS;
+            return TransactionConstants.ABORTED_TRANSACTION;
         }
-        return startTimestamp + TransactionConstants.getTimestampForValue(value);
+        return TransactionStatuses.committed(startTimestamp + TransactionConstants.getTimestampForValue(value));
     }
 
     private static byte[] encodeRowName(long startTimestamp) {

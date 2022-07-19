@@ -24,6 +24,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
@@ -31,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.annotation.CheckForNull;
 
 /**
  * This service handles queries for timestamps before {@link AtlasDbConstants#STARTING_TS}
@@ -54,15 +55,14 @@ public class PreStartHandlingTransactionService implements TransactionService {
         this.synchronousAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
     }
 
-    @CheckForNull
     @Override
-    public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, synchronousAsyncTransactionService));
+    public TransactionStatus get(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getInternal2(startTimestamp, synchronousAsyncTransactionService));
     }
 
     @Override
-    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, synchronousAsyncTransactionService));
+    public Map<Long, TransactionStatus> get(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getInternal2(startTimestamps, synchronousAsyncTransactionService));
     }
 
     @Override
@@ -73,6 +73,16 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getInternal(startTimestamps, delegate);
+    }
+
+    @Override
+    public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
+        return getInternal2(startTimestamp, delegate);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return getInternal2(startTimestamps, delegate);
     }
 
     @Override
@@ -111,6 +121,36 @@ public class PreStartHandlingTransactionService implements TransactionService {
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
                     asyncTransactionService.getAsync(validTimestamps),
+                    timestampMap -> {
+                        result.putAll(timestampMap);
+                        return result;
+                    },
+                    MoreExecutors.directExecutor());
+        }
+        return Futures.immediateFuture(result);
+    }
+
+    private ListenableFuture<TransactionStatus> getInternal2(
+            long startTimestamp, AsyncTransactionService asyncTransactionService) {
+        if (!isTimestampValid(startTimestamp)) {
+            return Futures.immediateFuture(TransactionConstants.ABORTED_TRANSACTION);
+        }
+        return asyncTransactionService.safeGetAsync(startTimestamp);
+    }
+
+    private ListenableFuture<Map<Long, TransactionStatus>> getInternal2(
+            Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
+        Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
+                .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
+
+        List<Long> validTimestamps = classifiedTimestamps.get(true);
+        Map<Long, TransactionStatus> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
+                .map(_ignore -> TransactionConstants.ABORTED_TRANSACTION)
+                .collectTo(HashMap::new);
+
+        if (!validTimestamps.isEmpty()) {
+            return Futures.transform(
+                    asyncTransactionService.safeGetAsync(validTimestamps),
                     timestampMap -> {
                         result.putAll(timestampMap);
                         return result;

@@ -22,6 +22,9 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -57,21 +60,29 @@ public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
     @Override
     public Map<Long, Long> loadAll(Set<? extends Long> nonCachedKeys) {
         List<Long> missingKeys = ImmutableList.copyOf(nonCachedKeys);
-        Map<Long, Long> result = new HashMap<>();
+        Map<Long, TransactionStatus> result = new HashMap<>();
 
         Lists.partition(missingKeys, AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT)
                 .forEach(batch -> result.putAll(transactionService.get(batch)));
 
-        // roll back any uncommitted transactions
-        missingKeys.stream()
-                .filter(startTs -> !result.containsKey(startTs))
-                .forEach(startTs -> result.put(startTs, load(startTs)));
-
-        return result;
+        return KeyedStream.stream(result)
+                .map((startTs, status) -> TransactionStatuses.caseOf(status)
+                        .inProgress(() -> load(startTs))
+                        .committed(x -> x)
+                        .otherwise(() -> {
+                            throw new RuntimeException("Unexpected status");
+                        }))
+                .collectToMap();
     }
 
+    // todo(gmaretic) : this is actually jank
     private Optional<Long> tryGetFromTransactionService(Long startTs) {
-        return Optional.ofNullable(transactionService.get(startTs));
+        return TransactionStatuses.caseOf(transactionService.get(startTs))
+                .<Optional<Long>>inProgress(Optional::empty)
+                .committed(Optional::of)
+                .otherwise(() -> {
+                    throw new RuntimeException("Unexpected status");
+                });
     }
 
     private Optional<Long> tryToAbort(Long startTs) {

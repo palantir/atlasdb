@@ -31,16 +31,17 @@ import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
-    private final PutUnlessExistsTable<Long, Long> txnTable;
+    private final PutUnlessExistsTable<Long, TransactionStatus> txnTable;
     private final TimestampEncodingStrategy<?> encodingStrategy;
 
     private SimpleTransactionService(
-            PutUnlessExistsTable<Long, Long> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
+            PutUnlessExistsTable<Long, TransactionStatus> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
         this.encodingStrategy = encodingStrategy;
         this.txnTable = txnTable;
     }
@@ -67,8 +68,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private static SimpleTransactionService createSimple(
-            KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
-        PutUnlessExistsTable<Long, Long> pueTable =
+            KeyValueService kvs,
+            TableReference tableRef,
+            TimestampEncodingStrategy<TransactionStatus> encodingStrategy) {
+        PutUnlessExistsTable<Long, TransactionStatus> pueTable =
                 new SimpleCommitTimestampPutUnlessExistsTable(kvs, tableRef, encodingStrategy);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
@@ -81,19 +84,19 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+        PutUnlessExistsTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
     @Override
-    public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getAsync(startTimestamp));
+    public TransactionStatus get(long startTimestamp) {
+        return AtlasFutures.getUnchecked(safeGetAsync(startTimestamp));
     }
 
     @Override
-    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getAsync(startTimestamps));
+    public Map<Long, TransactionStatus> get(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(safeGetAsync(startTimestamps));
     }
 
     @Override
@@ -107,13 +110,25 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
+    public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
+        return txnTable.get(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return txnTable.get(startTimestamps);
+    }
+
+    @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
-        txnTable.putUnlessExists(startTimestamp, commitTimestamp);
+        txnTable.putUnlessExists(startTimestamp, TransactionStatuses.committed(commitTimestamp));
     }
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        txnTable.putUnlessExistsMultiple(startTimestampToCommitTimestamp);
+        txnTable.putUnlessExistsMultiple(KeyedStream.stream(startTimestampToCommitTimestamp)
+                .map(TransactionStatuses::committed)
+                .collectToMap());
     }
 
     @Override

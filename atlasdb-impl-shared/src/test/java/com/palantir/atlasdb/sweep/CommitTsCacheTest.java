@@ -32,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -51,14 +52,15 @@ public class CommitTsCacheTest {
     private final CommitTsCache loader = CommitTsCache.create(mockTransactionService);
 
     @Test
-    public void loadShouldReturnTheValidTimestamp() throws Exception {
-        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
+    public void loadShouldReturnTheValidTimestamp() {
+        when(mockTransactionService.get(VALID_START_TIMESTAMP))
+                .thenReturn(TransactionStatuses.committed(VALID_COMMIT_TIMESTAMP));
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
     }
 
     @Test
-    public void loadShouldPutRollbackIfCommitTsIsNull() throws Exception {
+    public void loadShouldPutRollbackIfCommitTsIsNull() {
         AtomicLong answerCount = new AtomicLong();
 
         doAnswer(invocation -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
@@ -78,7 +80,7 @@ public class CommitTsCacheTest {
     }
 
     @Test
-    public void loadShouldContinueIfKeyAlreadyExistsIsThrown() throws Exception {
+    public void loadShouldContinueIfKeyAlreadyExistsIsThrown() {
         AtomicLong answerCount = new AtomicLong();
 
         doAnswer(invocation -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
@@ -98,7 +100,7 @@ public class CommitTsCacheTest {
     }
 
     @Test
-    public void loadShouldThrowIfANullIsToBeReturned() throws Exception {
+    public void loadShouldThrowIfANullIsToBeReturned() {
         doAnswer(invocation -> NO_TIMESTAMP).when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
@@ -106,7 +108,7 @@ public class CommitTsCacheTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() throws Exception {
+    public void warmingCacheShouldNotPlaceUndueLoadOnTransactionService() {
         long valuesToInsert = 1_000_000;
 
         doAnswer(invocation -> {
@@ -127,7 +129,7 @@ public class CommitTsCacheTest {
     }
 
     @Test
-    public void onlyRequestNonCachedTimestamps() throws Exception {
+    public void onlyRequestNonCachedTimestamps() {
         Set<Long> initialTimestamps = LongStream.range(0L, 20L).boxed().collect(Collectors.toSet());
         doAnswer(invocation -> assertRequestedTimestampsAndMapIdentity(invocation, initialTimestamps))
                 .when(mockTransactionService)
@@ -160,15 +162,18 @@ public class CommitTsCacheTest {
 
     @Test
     public void loadIfCachedReturnsEmptyWhenNotCached() {
-        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
+        when(mockTransactionService.get(VALID_START_TIMESTAMP))
+                .thenReturn(TransactionStatuses.committed(VALID_COMMIT_TIMESTAMP));
         assertThat(loader.loadIfCached(VALID_START_TIMESTAMP)).isEmpty();
         verifyNoMoreInteractions(mockTransactionService);
     }
 
     @Test
     public void loadIfCachedReturnsWhenCached() {
-        when(mockTransactionService.get(VALID_START_TIMESTAMP)).thenReturn(VALID_COMMIT_TIMESTAMP);
-        when(mockTransactionService.get(VALID_START_TIMESTAMP + 1)).thenReturn(ROLLBACK_TIMESTAMP);
+        when(mockTransactionService.get(VALID_START_TIMESTAMP))
+                .thenReturn(TransactionStatuses.committed(VALID_COMMIT_TIMESTAMP));
+        when(mockTransactionService.get(VALID_START_TIMESTAMP + 1))
+                .thenReturn(TransactionStatuses.committed(ROLLBACK_TIMESTAMP));
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
         assertThat(loader.load(VALID_START_TIMESTAMP + 1)).isEqualTo(ROLLBACK_TIMESTAMP);
         verify(mockTransactionService, times(2)).get(anyLong());

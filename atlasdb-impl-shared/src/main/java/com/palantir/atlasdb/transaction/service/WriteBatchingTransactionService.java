@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import org.immutables.value.Value;
 
 /**
@@ -72,14 +71,13 @@ public final class WriteBatchingTransactionService implements TransactionService
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
 
-    @CheckForNull
     @Override
-    public Long get(long startTimestamp) {
+    public TransactionStatus get(long startTimestamp) {
         return delegate.get(startTimestamp);
     }
 
     @Override
-    public Map<Long, Long> get(Iterable<Long> startTimestamps) {
+    public Map<Long, TransactionStatus> get(Iterable<Long> startTimestamps) {
         return delegate.get(startTimestamps);
     }
 
@@ -91,6 +89,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return delegate.getAsync(startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
+        return delegate.safeGetAsync(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps) {
+        return delegate.safeGetAsync(startTimestamps);
     }
 
     @Override

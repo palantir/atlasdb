@@ -100,6 +100,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
@@ -153,7 +154,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -1447,7 +1447,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             Set<Long> committedStartTimestamps = KeyedStream.stream(
                             defaultTransactionService.get(cellsToQuery.values()))
-                    .filter(Objects::nonNull)
+                    .map(TransactionStatuses::getCommitTimestamp)
+                    .filter(Optional::isPresent)
                     .keys()
                     .collect(Collectors.toSet());
 

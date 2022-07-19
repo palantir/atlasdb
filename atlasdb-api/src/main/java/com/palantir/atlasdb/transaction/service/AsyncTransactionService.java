@@ -48,4 +48,8 @@ public interface AsyncTransactionService {
      * timestamp, possibly missing entries if relevant transactions have not committed yet
      */
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
+
+    ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp);
+
+    ListenableFuture<Map<Long, TransactionStatus>> safeGetAsync(Iterable<Long> startTimestamps);
 }

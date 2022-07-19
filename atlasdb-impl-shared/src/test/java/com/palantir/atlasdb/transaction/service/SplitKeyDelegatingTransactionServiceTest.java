@@ -59,17 +59,20 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void canCallGetOnDelegate() {
-        when(delegate1.get(1L)).thenReturn(2L);
-        assertThat(delegatingTransactionService.get(1L)).isEqualTo(2L);
+        when(delegate1.get(1L)).thenReturn(TransactionStatuses.committed(2L));
+        assertThat(TransactionStatuses.getCommitTimestamp(delegatingTransactionService.get(1L)))
+                .hasValue(2L);
         verify(delegate1).get(1L);
     }
 
     @Test
     public void delegatesGetBasedOnFunction() {
-        when(delegate1.get(1L)).thenReturn(2L);
-        when(delegate2.get(2L)).thenReturn(4L);
-        assertThat(delegatingTransactionService.get(1L)).isEqualTo(2L);
-        assertThat(delegatingTransactionService.get(2L)).isEqualTo(4L);
+        when(delegate1.get(1L)).thenReturn(TransactionStatuses.committed(2L));
+        when(delegate2.get(2L)).thenReturn(TransactionStatuses.committed(4L));
+        assertThat(TransactionStatuses.getCommitTimestamp(delegatingTransactionService.get(1L)))
+                .hasValue(2L);
+        assertThat(TransactionStatuses.getCommitTimestamp(delegatingTransactionService.get(2L)))
+                .hasValue(4L);
         verify(delegate1).get(1L);
         verify(delegate2).get(2L);
     }
@@ -108,25 +111,37 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void getMultipleDelegatesRequestsToGetMultipleOnDelegates() {
-        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 2L));
-        assertThat(delegatingTransactionService.get(ImmutableList.of(1L)))
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 2L));
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, TransactionStatuses.committed(2L)));
+        Map<Long, TransactionStatus> result = delegatingTransactionService.get(ImmutableList.of(1L));
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
     @Test
     public void getMultiplePartitionsRequestsAndMergesMaps() {
-        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
-        when(delegate2.get(any())).thenReturn(ImmutableMap.of(12L, 28L, 32L, 38L));
-        assertThat(delegatingTransactionService.get(ImmutableList.of(1L, 12L, 32L, 41L)))
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
+        when(delegate1.get(any()))
+                .thenReturn(ImmutableMap.of(
+                        1L, TransactionStatuses.committed(8L), 41L, TransactionStatuses.committed(48L)));
+        when(delegate2.get(any()))
+                .thenReturn(ImmutableMap.of(
+                        12L, TransactionStatuses.committed(28L), 32L, TransactionStatuses.committed(38L)));
+        Map<Long, TransactionStatus> result = delegatingTransactionService.get(ImmutableList.of(1L, 12L, 32L, 41L));
+        assertThat(result.size()).isEqualTo(4);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(8L);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(12L))).hasValue(28L);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(32L))).hasValue(38L);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(41L))).hasValue(48L);
+
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
         verifyDelegateHadMultigetCalledWith(delegate2, 12L, 32L);
     }
 
     @Test
     public void getMultipleThrowsAndDoesNotMakeRequestsIfAnyTimestampsCannotBeMapped() {
-        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+        when(delegate1.get(any()))
+                .thenReturn(ImmutableMap.of(
+                        1L, TransactionStatuses.committed(8L), 41L, TransactionStatuses.committed(48L)));
         assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("A batch of timestamps produced some transaction service keys which are unknown.");
@@ -141,10 +156,13 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void ignoreUnknownIgnoresUnknownTimestampServicesForMultipleTimestamps() {
-        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
-
-        assertThat(lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 35L, 41L)))
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1L, 8L, 41L, 48L));
+        when(delegate1.get(any()))
+                .thenReturn(ImmutableMap.of(
+                        1L, TransactionStatuses.committed(8L), 41L, TransactionStatuses.committed(48L)));
+        Map<Long, TransactionStatus> result = delegatingTransactionService.get(ImmutableList.of(1L, 5L, 35L, 41L));
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(8L);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(41L))).hasValue(48L);
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
     }
 
@@ -157,7 +175,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForMultipleTimestamps() {
-        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+        when(delegate1.get(any()))
+                .thenReturn(ImmutableMap.of(
+                        1L, TransactionStatuses.committed(8L), 41L, TransactionStatuses.committed(48L)));
         assertThatLoggableExceptionThrownBy(
                         () -> lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 7L, 41L)))
                 .isInstanceOf(SafeIllegalStateException.class)
