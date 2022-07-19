@@ -18,12 +18,12 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import java.util.Set;
 
-/**
- * Dummy interface while we are blocked.
- * */
-public interface KnownAbortedTransactions {
+public final class AbortedTimestampStore {
 
-    boolean isKnownAborted(long startTimestamp);
+    public Set<Long> getBucket(long bucket) {
+        // Todo(snanda)
+        return null;
+    }
 
-    void addAbortedTimestamps(Set<Long> abortedTimestamps);
+    public void addAbortedTimestamps(Set<Long> abortedTimestamps) {}
 }
