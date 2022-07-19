@@ -200,4 +200,7 @@ public final class AtlasDbConstants {
     public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
+
+    public static final int CONCLUDED_TRANSACTIONS_UPDATE_INITIAL_DELAY_MILLIS = 1000;
+    public static final int CONCLUDED_TRANSACTIONS_UPDATE_TASK_DELAY_MILLIS = 5000;
 }

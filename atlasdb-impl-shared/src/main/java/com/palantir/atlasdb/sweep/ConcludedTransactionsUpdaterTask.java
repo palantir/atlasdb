@@ -18,34 +18,51 @@ package com.palantir.atlasdb.sweep;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.transaction.knowledge.CoordinationAwareKnownConcludedTransactionsStore;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ConcludedTransactionsUpdaterTask {
+public class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private final Set<ShardAndStrategy> allShardsAndStrategies;
     private final ShardProgress progress;
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
+    private final ScheduledExecutorService executor;
 
     private ConcludedTransactionsUpdaterTask(
             Set<ShardAndStrategy> allShardsAndStrategies,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
-            ShardProgress progress) {
+            ShardProgress progress,
+            ScheduledExecutorService executorService) {
         this.allShardsAndStrategies = allShardsAndStrategies;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
+        this.executor = executorService;
     }
 
     public static ConcludedTransactionsUpdaterTask create(
             int numShards,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
-            ShardProgress progress) {
-        return new ConcludedTransactionsUpdaterTask(
-                getAllShardsAndStrategies(numShards), concludedTransactionsStore, progress);
+            ShardProgress progress,
+            ScheduledExecutorService executor) {
+        ConcludedTransactionsUpdaterTask task = new ConcludedTransactionsUpdaterTask(
+                getAllShardsAndStrategies(numShards), concludedTransactionsStore, progress, executor);
+        task.schedule();
+        return task;
+    }
+
+    private void schedule() {
+        executor.scheduleWithFixedDelay(
+                this::runOneIteration,
+                AtlasDbConstants.CONCLUDED_TRANSACTIONS_UPDATE_INITIAL_DELAY_MILLIS,
+                AtlasDbConstants.CONCLUDED_TRANSACTIONS_UPDATE_TASK_DELAY_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     private void runOneIteration() {
@@ -70,5 +87,10 @@ public class ConcludedTransactionsUpdaterTask {
                 .collect(Collectors.toSet()));
 
         return shardsAndStrategiesBuilder.build();
+    }
+
+    @Override
+    public void close() throws Exception {
+        executor.shutdownNow();
     }
 }
