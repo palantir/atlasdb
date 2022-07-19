@@ -16,37 +16,22 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import java.time.Duration;
-
 public class DefaultKnownCommittedTransactions implements KnownCommittedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbortedTransactions knownAbortedTransactions;
-    private final Cache<Long, Boolean> cache;
 
     public DefaultKnownCommittedTransactions(
             KnownConcludedTransactions knownConcludedTransactions, KnownAbortedTransactions knownAbortedTransactions) {
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.knownAbortedTransactions = knownAbortedTransactions;
-        this.cache = Caffeine.newBuilder()
-                .maximumSize(5000)
-                .expireAfterAccess(Duration.ofSeconds(5))
-                .build();
     }
 
     @Override
     public boolean isKnownCommitted(long startTimestamp) {
-        return cache.get(startTimestamp, this::isKnownCommittedInternal);
-    }
-
-    private boolean isKnownCommittedInternal(long startTimestamp) {
         boolean concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp);
         if (!concluded) {
             // todo(snanda): check in txn table - if there is a miss then we need to update
             //  knownConcludedTxns i.e. hit refresh on concludedTs
-            // Map<Long, Set<Long>> is the aborted cache -> bucket -> set of aborted timestamps
-
             return false;
         }
         return !knownAbortedTransactions.isKnownAborted(startTimestamp);
