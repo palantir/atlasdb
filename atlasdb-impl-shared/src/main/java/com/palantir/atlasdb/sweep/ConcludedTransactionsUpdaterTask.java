@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ConcludedTransactionsUpdaterTask implements AutoCloseable {
+public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private final Set<ShardAndStrategy> allShardsAndStrategies;
     private final ShardProgress progress;
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
