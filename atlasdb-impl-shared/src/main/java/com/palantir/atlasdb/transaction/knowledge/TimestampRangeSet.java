@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -38,15 +39,25 @@ public interface TimestampRangeSet {
     }
 
     default TimestampRangeSet copyAndAdd(Range<Long> additionalTimestampRange) {
+        return copyAndAdd(ImmutableSet.of(additionalTimestampRange));
+    }
+
+    default TimestampRangeSet copyAndAdd(Set<Range<Long>> additionalTimestampRanges) {
         return ImmutableTimestampRangeSet.builder()
-                .timestampRanges(ImmutableRangeSet.unionOf(
-                        Sets.union(timestampRanges().asRanges(), ImmutableSet.of(additionalTimestampRange))))
+                .timestampRanges(
+                        ImmutableRangeSet.unionOf(Sets.union(timestampRanges().asRanges(), additionalTimestampRanges)))
                 .build();
     }
 
     static TimestampRangeSet singleRange(Range<Long> timestampRange) {
         return ImmutableTimestampRangeSet.builder()
                 .timestampRanges(ImmutableRangeSet.of(timestampRange))
+                .build();
+    }
+
+    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRange) {
+        return ImmutableTimestampRangeSet.builder()
+                .timestampRanges(ImmutableRangeSet.unionOf(timestampRange))
                 .build();
     }
 

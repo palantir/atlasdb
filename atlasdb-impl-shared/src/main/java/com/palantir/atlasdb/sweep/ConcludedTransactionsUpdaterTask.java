@@ -83,9 +83,7 @@ public class ConcludedTransactionsUpdaterTask implements AutoCloseable {
         return shardsAndStrategiesBuilder.build();
     }
 
-    private static Set<ShardAndStrategy> getShardAndStrategies(
-            int numShards,
-            SweeperStrategy strategy) {
+    private static Set<ShardAndStrategy> getShardAndStrategies(int numShards, SweeperStrategy strategy) {
         return IntStream.range(0, numShards)
                 .mapToObj(shard -> ShardAndStrategy.of(shard, strategy))
                 .collect(Collectors.toSet());

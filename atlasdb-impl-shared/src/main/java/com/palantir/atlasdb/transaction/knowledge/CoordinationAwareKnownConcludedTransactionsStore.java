@@ -45,15 +45,19 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     public void supplement(Range<Long> closedTimestampRangeToAdd) {
         long lastSweptTimestamp = closedTimestampRangeToAdd.upperEndpoint();
 
-        Map<Range<Long>, Integer> timestampRanges =
-                internalSchemaSnapshotGetter.apply(lastSweptTimestamp).rangeMapView().asMapOfRanges();
+        Map<Range<Long>, Integer> timestampRanges = internalSchemaSnapshotGetter
+                .apply(lastSweptTimestamp)
+                .rangeMapView()
+                .asMapOfRanges();
 
         Set<Range<Long>> rangesOnTransaction4 = KeyedStream.stream(timestampRanges)
                 .filter(schemaVersion -> schemaVersion.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
                 .keys()
                 .collect(Collectors.toSet());
 
-        // todo(snanda): should have a batched update api
-        rangesOnTransaction4.forEach(range -> delegate.supplement(closedTimestampRangeToAdd.intersection(range)));
+        Set<Range<Long>> rangesToSupplement = rangesOnTransaction4.stream()
+                .map(closedTimestampRangeToAdd::intersection)
+                .collect(Collectors.toSet());
+        delegate.supplement(rangesToSupplement);
     }
 }
