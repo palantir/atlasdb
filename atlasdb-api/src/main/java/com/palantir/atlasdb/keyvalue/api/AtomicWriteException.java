@@ -16,30 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Map;
-
 public class AtomicWriteException extends RuntimeException {
-    private final Map<Cell, byte[]> expectedValues;
-    private final Map<Cell, byte[]> observedValues;
-
-    public AtomicWriteException(String msg, Map<Cell, byte[]> expectedValue, Map<Cell, byte[]> observedValues) {
+    public AtomicWriteException(String msg) {
         super(msg);
-        this.expectedValues = expectedValue;
-        this.observedValues = observedValues;
     }
 
-    public AtomicWriteException(
-            String msg, Throwable ex, Map<Cell, byte[]> expectedValue, Map<Cell, byte[]> observedValues) {
-        super(msg, ex);
-        this.expectedValues = expectedValue;
-        this.observedValues = observedValues;
-    }
-
-    public Map<Cell, byte[]> getExpectedValues() {
-        return expectedValues;
-    }
-
-    public Map<Cell, byte[]> getObservedValues() {
-        return observedValues;
+    public AtomicWriteException(String msg, Throwable cause) {
+        super(msg, cause);
     }
 }

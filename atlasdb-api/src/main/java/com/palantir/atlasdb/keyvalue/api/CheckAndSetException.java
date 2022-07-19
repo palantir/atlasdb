@@ -15,58 +15,43 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class CheckAndSetException extends AtomicWriteException {
-    private static final long serialVersionUID = 1L;
-
     private final Cell key;
+    private final byte[] expectedValue;
+    private final List<byte[]> actualValues;
 
-    public CheckAndSetException(Cell cell, String msg, Throwable ex) {
-        this(msg, ex, cell, PtBytes.EMPTY_BYTE_ARRAY, ImmutableList.of());
+    public CheckAndSetException(String msg, Throwable ex) {
+        this(msg, ex, null, null, null);
     }
 
-    @VisibleForTesting
     public CheckAndSetException(String msg) {
-        this(
-                msg,
-                Cell.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
-                PtBytes.EMPTY_BYTE_ARRAY,
-                ImmutableList.of());
+        this(msg, null, null, null);
     }
 
-    public CheckAndSetException(String msg, Throwable ex, Cell key, byte[] expected, List<byte[]> actual) {
-        super(
-                msg,
-                ex,
-                Collections.singletonMap(key, expected),
-                Collections.singletonMap(key, Iterables.getOnlyElement(actual, null)));
+    public CheckAndSetException(String msg, Throwable ex, Cell key, byte[] expectedValue, List<byte[]> actualValues) {
+        super(msg, ex);
         this.key = key;
+        this.expectedValue = expectedValue;
+        this.actualValues = actualValues;
     }
 
-    public CheckAndSetException(String msg, Cell key, byte[] expected, List<byte[]> actual) {
-        super(
-                msg,
-                Collections.singletonMap(key, expected),
-                Collections.singletonMap(key, Iterables.getOnlyElement(actual, null)));
+    public CheckAndSetException(String msg, Cell key, byte[] expectedValue, List<byte[]> actualValues) {
+        super(msg);
         this.key = key;
+        this.expectedValue = expectedValue;
+        this.actualValues = actualValues;
     }
 
     public CheckAndSetException(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        this(
-                String.format(
-                        "Unexpected value observed in table %s. "
-                                + "If this is happening repeatedly, your program may be out of sync with the database.",
-                        table),
-                key,
-                expected,
-                actual);
+        super(String.format(
+                "Unexpected value observed in table %s. "
+                        + "If this is happening repeatedly, your program may be out of sync with the database.",
+                table));
+        this.key = key;
+        this.expectedValue = expected;
+        this.actualValues = actual;
     }
 
     public Cell getKey() {
@@ -74,12 +59,10 @@ public class CheckAndSetException extends AtomicWriteException {
     }
 
     public byte[] getExpectedValue() {
-        return getExpectedValues().get(key);
+        return expectedValue;
     }
 
     public List<byte[]> getActualValues() {
-        return Optional.ofNullable(getObservedValues().get(key))
-                .map(ImmutableList::of)
-                .orElseGet(ImmutableList::of);
+        return actualValues;
     }
 }

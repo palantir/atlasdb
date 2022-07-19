@@ -20,19 +20,28 @@ import java.util.Map;
 
 public class MultiCheckAndSetException extends AtomicWriteException {
     private final byte[] rowName;
+    private final Map<Cell, byte[]> expectedValues;
+    private final Map<Cell, byte[]> actualValues;
 
     public MultiCheckAndSetException(
             String maybeTableName, byte[] rowName, Map<Cell, byte[]> expectedValue, Map<Cell, byte[]> actualValues) {
-        super(
-                String.format(
-                        "Current values in table %s do not match the expected values specified in multi-checkAndSet request.",
-                        maybeTableName),
-                expectedValue,
-                actualValues);
+        super(String.format(
+                "Current values in table %s do not match the expected values specified in multi-checkAndSet request.",
+                maybeTableName));
         this.rowName = rowName;
+        this.expectedValues = expectedValue;
+        this.actualValues = actualValues;
     }
 
     public byte[] getRowName() {
         return rowName;
+    }
+
+    public Map<Cell, byte[]> getExpectedValues() {
+        return expectedValues;
+    }
+
+    public Map<Cell, byte[]> getActualValues() {
+        return actualValues;
     }
 }
