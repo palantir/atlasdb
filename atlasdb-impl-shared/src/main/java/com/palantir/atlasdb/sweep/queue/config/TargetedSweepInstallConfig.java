@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -27,6 +28,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableTargetedSweepInstallConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepInstallConfig.class)
 @Value.Immutable
+@JsonIgnoreProperties("enableSweepQueueWrites")
 public class TargetedSweepInstallConfig {
     /**
      * @deprecated Disabling sweep queue writes is not supported anymore in order to maintain correctness while running
@@ -36,7 +38,7 @@ public class TargetedSweepInstallConfig {
      */
     @Deprecated
     @Value.Default
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @JsonIgnore
     public boolean enableSweepQueueWrites() {
         return true;
     }
