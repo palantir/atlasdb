@@ -146,11 +146,6 @@ public final class KnownConcludedTransactionsStore {
                 .build());
     }
 
-    public long lastKnownConcludedTransaction() {
-        // todo(snanda)
-        return 0;
-    }
-
     @org.immutables.value.Value.Immutable
     interface ReadResult {
         byte[] valueReadFromDatabase();

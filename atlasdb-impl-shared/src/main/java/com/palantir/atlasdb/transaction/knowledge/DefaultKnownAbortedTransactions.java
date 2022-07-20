@@ -20,18 +20,19 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
-    private final KnownConcludedTransactionsStore concludedTransactionsStore;
+    private final KnownConcludedTransactions knownConcludedTransactions;
     private final AbortedTimestampStore abortedTimestampStore;
     private final Cache<Long, Set<Long>> cache;
 
     public DefaultKnownAbortedTransactions(
-            KnownConcludedTransactionsStore concludedTransactionsStore, AbortedTimestampStore abortedTimestampStore) {
-        this.concludedTransactionsStore = concludedTransactionsStore;
+            KnownConcludedTransactions knownConcludedTransactions, AbortedTimestampStore abortedTimestampStore) {
+        this.knownConcludedTransactions = knownConcludedTransactions;
         this.abortedTimestampStore = abortedTimestampStore;
         this.cache = Caffeine.newBuilder()
                 .maximumWeight(100_000)
@@ -43,7 +44,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
      * This method should only be called for concluded transactions.
      * */
     @Override
-    public boolean isKnownAborted(long startTimestamp) {
+    public boolean isKnownAborted(long startTimestamp, Consistency consistency) {
         long bucketForTimestamp = getBucket(startTimestamp);
         Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
         if (cachedAbortedTimestamps.contains(startTimestamp)) {
@@ -51,12 +52,17 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         }
 
         // Try remote fetch if current aborted ts bucket is not immutable.
-        long latestBucket = getBucket(concludedTransactionsStore.lastKnownConcludedTransaction());
-        if (bucketForTimestamp == latestBucket) {
+        if (isBucketMutable(bucketForTimestamp, consistency)) {
             return getAbortedTransactionsRemote(bucketForTimestamp).contains(startTimestamp);
         }
 
         return false;
+    }
+
+    private boolean isBucketMutable(long bucketForTimestamp, Consistency consistency) {
+        // using approximation here
+        long maxTsInCurrentBucket = ((bucketForTimestamp + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
+        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, consistency);
     }
 
     @Override
