@@ -21,20 +21,25 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import java.util.Comparator;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final AbortedTimestampStore abortedTimestampStore;
-    private final Cache<Long, Set<Long>> cache;
+    private final Cache<Long, Set<Long>> reliableCache;
+    private final Cache<Long, Set<Long>> softCache;
 
     public DefaultKnownAbortedTransactions(
             KnownConcludedTransactions knownConcludedTransactions, AbortedTimestampStore abortedTimestampStore) {
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.abortedTimestampStore = abortedTimestampStore;
-        this.cache = Caffeine.newBuilder()
+        this.reliableCache = Caffeine.newBuilder()
+                .maximumWeight(100_000)
+                .weigher(EntryWeigher.INSTANCE)
+                .build();
+        this.softCache = Caffeine.newBuilder()
                 .maximumWeight(100_000)
                 .weigher(EntryWeigher.INSTANCE)
                 .build();
@@ -43,45 +48,48 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     @Override
     public boolean isKnownAborted(long startTimestamp) {
         long bucketForTimestamp = getBucket(startTimestamp);
-        Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
+        boolean canBeReliablyCached = bucketCanBeReliablyCached(bucketForTimestamp);
+        Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp, canBeReliablyCached);
+
         if (cachedAbortedTimestamps.contains(startTimestamp)) {
             return true;
         }
 
-        // Try remote fetch if current aborted ts bucket is not immutable.
-        if (isBucketMutable(bucketForTimestamp)) {
-            return getAbortedTransactionsRemote(bucketForTimestamp).contains(startTimestamp);
+        if (!canBeReliablyCached && shouldReloadBucket(startTimestamp, cachedAbortedTimestamps)) {
+            Set<Long> abortedTransactionsRemote = getAbortedTransactionsRemote(bucketForTimestamp);
+            softCache.put(bucketForTimestamp, abortedTransactionsRemote);
+            return abortedTransactionsRemote.contains(startTimestamp);
         }
 
         return false;
     }
 
-    private boolean isBucketMutable(long bucketForTimestamp) {
-        // using approximation here
-        long maxTsInCurrentBucket = ((bucketForTimestamp + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
-        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, Consistency.REMOTE_READ);
+    private boolean shouldReloadBucket(long startTimestamp, Set<Long> cachedAbortedTimestamps) {
+        long greatestCachedAbortedTs =
+                cachedAbortedTimestamps.stream().max(Comparator.naturalOrder()).orElse(0L);
+        return greatestCachedAbortedTs < startTimestamp;
     }
 
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        invalidateBuckets(abortedTimestamps);
         abortedTimestampStore.addAbortedTimestamps(abortedTimestamps);
     }
 
-    private void invalidateBuckets(Set<Long> abortedTimestamps) {
-        Set<Long> invalidatedBuckets =
-                abortedTimestamps.stream().map(this::getBucket).collect(Collectors.toSet());
-        cache.invalidateAll(invalidatedBuckets);
+    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket, boolean canBeReliablyCached) {
+        if (canBeReliablyCached) {
+            softCache.invalidate(bucket);
+            reliableCache.get(bucket, this::getAbortedTransactionsRemote);
+        }
+        return softCache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
-    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket) {
-        return cache.get(bucket, this::getAbortedTransactionsRemote);
+    private boolean bucketCanBeReliablyCached(long bucket) {
+        long maxTsInCurrentBucket = ((bucket + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
+        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, Consistency.REMOTE_READ);
     }
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
-        Set<Long> abortedTs = abortedTimestampStore.getBucket(bucket);
-        cache.put(bucket, abortedTs);
-        return abortedTs;
+        return abortedTimestampStore.getBucket(bucket);
     }
 
     private long getBucket(long startTimestamp) {
