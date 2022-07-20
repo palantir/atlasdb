@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -48,8 +49,8 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     @Test
     public void doesNotSupplementIfRangeNotOnTransactions4() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
-                .put(Range.closedOpen(1L, 100L), 1)
-                .put(Range.atLeast(100L), 2)
+                .put(Range.closedOpen(1L, 100L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.atLeast(100L), TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
                 .build();
         CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
@@ -59,12 +60,12 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     }
 
     @Test
-    public void supplementsWithRangeOnTransactions4() {
+    public void canSupplementsWithRangeOnTransactions4() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
-                .put(Range.closedOpen(1L, 10L), 1)
-                .put(Range.closedOpen(10L, 20L), 2)
-                .put(Range.closedOpen(20L, 30L), 3)
-                .put(Range.atLeast(30L), 4)
+                .put(Range.closedOpen(1L, 10L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(10L, 20L), TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(20L, 30L), TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.atLeast(30L), TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
                 .build();
         CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
@@ -75,12 +76,12 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     }
 
     @Test
-    public void canSupplementsWithMultipleRangesOnTransactions4() {
+    public void canSupplementWithMultipleRangesOnTransactions4() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
-                .put(Range.closedOpen(1L, 100L), 1)
-                .put(Range.closedOpen(100L, 200L), 4)
-                .put(Range.closedOpen(200L, 300L), 3)
-                .put(Range.atLeast(300L), 4)
+                .put(Range.closedOpen(1L, 100L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(100L, 200L), TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(200L, 300L), TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.atLeast(300L), TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
                 .build();
         CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
