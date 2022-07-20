@@ -44,7 +44,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
      * This method should only be called for concluded transactions.
      * */
     @Override
-    public boolean isKnownAborted(long startTimestamp, Consistency consistency) {
+    public boolean isKnownAborted(long startTimestamp) {
         long bucketForTimestamp = getBucket(startTimestamp);
         Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
         if (cachedAbortedTimestamps.contains(startTimestamp)) {
@@ -52,17 +52,17 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         }
 
         // Try remote fetch if current aborted ts bucket is not immutable.
-        if (isBucketMutable(bucketForTimestamp, consistency)) {
+        if (isBucketMutable(bucketForTimestamp)) {
             return getAbortedTransactionsRemote(bucketForTimestamp).contains(startTimestamp);
         }
 
         return false;
     }
 
-    private boolean isBucketMutable(long bucketForTimestamp, Consistency consistency) {
+    private boolean isBucketMutable(long bucketForTimestamp) {
         // using approximation here
         long maxTsInCurrentBucket = ((bucketForTimestamp + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
-        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, consistency);
+        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, Consistency.REMOTE_READ);
     }
 
     @Override

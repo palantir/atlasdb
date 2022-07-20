@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import java.util.Set;
 
 /**
@@ -24,7 +23,7 @@ import java.util.Set;
  * */
 public interface KnownAbortedTransactions {
 
-    boolean isKnownAborted(long startTimestamp, Consistency consistency);
+    boolean isKnownAborted(long startTimestamp);
 
     void addAbortedTimestamps(Set<Long> abortedTimestamps);
 }

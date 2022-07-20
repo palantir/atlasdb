@@ -17,28 +17,34 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import java.util.Optional;
 
 public class DefaultKnownCommittedTransactions implements KnownCommittedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbortedTransactions knownAbortedTransactions;
+    private final TransactionService transactionService;
 
     public DefaultKnownCommittedTransactions(
-            KnownConcludedTransactions knownConcludedTransactions, KnownAbortedTransactions knownAbortedTransactions) {
+            KnownConcludedTransactions knownConcludedTransactions,
+            KnownAbortedTransactions knownAbortedTransactions,
+            TransactionService transactionService) {
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.knownAbortedTransactions = knownAbortedTransactions;
+        this.transactionService = transactionService;
     }
 
     @Override
     public boolean isKnownCommitted(long startTimestamp) {
-        boolean concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ);
-        if (!concluded) {
-            concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
-            if (!concluded) {
-                // todo(snanda): check in txn table - if there is a miss then we need to update
-                //  knownConcludedTxns i.e. hit refresh on concludedTs
-                return false;
-            }
+        if (!isConcluded(startTimestamp)) {
+            return Optional.ofNullable(transactionService.get(startTimestamp)).isPresent();
         }
+
         return !knownAbortedTransactions.isKnownAborted(startTimestamp);
+    }
+
+    private boolean isConcluded(long startTimestamp) {
+        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ) ||
+         knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
     }
 }
