@@ -63,10 +63,12 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
                 .map(closedTimestampRangeToAdd::intersection)
                 .collect(Collectors.toSet());
 
-        log.info(
-                "Attempting to supplement the set of known concluded timestamps",
-                SafeArg.of("ranges", rangesToSupplement));
+        if (!rangesToSupplement.isEmpty()) {
+            log.info(
+                    "Attempting to supplement the set of known concluded timestamps",
+                    SafeArg.of("ranges", rangesToSupplement));
 
-        delegate.supplement(rangesToSupplement);
+            delegate.supplement(rangesToSupplement);
+        }
     }
 }
