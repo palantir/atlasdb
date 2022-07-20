@@ -37,10 +37,20 @@ public class DefaultKnownCommittedTransactions implements KnownCommittedTransact
     @Override
     public boolean isKnownCommitted(long startTimestamp) {
         if (!isConcluded(startTimestamp)) {
-            return Optional.ofNullable(transactionService.get(startTimestamp)).isPresent();
+            return getTransactionStateFromTransactionsTable(startTimestamp);
         }
 
         return !knownAbortedTransactions.isKnownAborted(startTimestamp);
+    }
+
+    private boolean getTransactionStateFromTransactionsTable(long startTimestamp) {
+        /**
+         * We have not wired in the transactionService#safeGet() api. Broad idea will be:
+         * case committed ->  return true
+         * case inProgress -> return false
+         * case deleted -> refresh knownConcluded and throw
+         * */
+        return Optional.ofNullable(transactionService.get(startTimestamp)).isPresent();
     }
 
     private boolean isConcluded(long startTimestamp) {
