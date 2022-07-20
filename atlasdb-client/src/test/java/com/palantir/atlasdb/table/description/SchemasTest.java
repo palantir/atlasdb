@@ -128,7 +128,7 @@ public class SchemasTest {
 
     @Test
     public void testNonEmptyTableNameWithOnlyLettersDigitsAndUnderscoreIsValid() {
-        assertThat(Schemas.isTableNameValid("test_table_name")).isTrue();
+        assertThat(Schemas.isTableNameValid("t3st_tabl3_4ame")).isTrue();
     }
 
     private static TableDefinition getSimpleTableDefinition(TableReference tableRef) {
