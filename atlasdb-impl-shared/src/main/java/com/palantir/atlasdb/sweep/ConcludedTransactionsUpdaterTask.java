@@ -37,7 +37,10 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_INITIAL_DELAY_MILLIS = 1000;
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_TASK_DELAY_MILLIS = 5000;
 
-    private final Supplier<Integer> shardsSupplier;
+    // This will to be ShardProgress#getNumberOfShards(). Not using the persisted value here can lead to SEVERE DATA
+    // CORRUPTION.
+    private final Supplier<Integer> persistedNumShardsSupplier;
+
     private final ShardProgress progress;
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
     private final ScheduledExecutorService executor;
@@ -47,7 +50,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executorService) {
-        this.shardsSupplier = shardsSupplier;
+        this.persistedNumShardsSupplier = shardsSupplier;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
         this.executor = executorService;
@@ -74,7 +77,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
     @VisibleForTesting
     void runOneIteration() {
-        int numShardsAtStart = shardsSupplier.get();
+        int numShardsAtStart = persistedNumShardsSupplier.get();
 
         long minLastSweptTimestamp = getAllShardsAndStrategies(numShardsAtStart).stream()
                 .map(progress::getLastSweptTimestamp)
@@ -82,9 +85,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
                 .orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
 
         if (minLastSweptTimestamp < TransactionConstants.LOWEST_POSSIBLE_START_TS
-                || numShardsAtStart != shardsSupplier.get()) {
-            // Todo(snanda): not enough for internode consistency.
-            // Shall we persist num shards?
+                || numShardsAtStart != persistedNumShardsSupplier.get()) {
             // Do not want to update knownConcludedTimestamps in case number of shards have changed to avoid
             // correctness issues. This check should be enough as we do not expect the number of shards to go down.
             return;

@@ -133,7 +133,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
     }
 
     private static Set<ShardAndStrategy> computeShardsAndStrategies() {
-        Builder<ShardAndStrategy> shardAndStrategyBuilder = ImmutableSet.builder();
+        ImmutableSet.Builder<ShardAndStrategy> shardAndStrategyBuilder = ImmutableSet.builder();
         for (int shard = 0; shard < NUM_SHARDS; shard++) {
             shardAndStrategyBuilder.add(
                     ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE),
