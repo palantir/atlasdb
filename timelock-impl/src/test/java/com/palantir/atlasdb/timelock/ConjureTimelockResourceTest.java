@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -86,7 +86,7 @@ public class ConjureTimelockResourceTest {
         TimestampRange secondRange = TimestampRange.createInclusiveRange(3L, 4L);
         TimestampRange thirdRange = TimestampRange.createInclusiveRange(5L, 5L);
 
-        when(timelockService.getFreshTimestampsAsync(any()))
+        when(timelockService.getFreshTimestampsAsync(anyInt()))
                 .thenReturn(Futures.immediateFuture(firstRange))
                 .thenReturn(Futures.immediateFuture(secondRange))
                 .thenReturn(Futures.immediateFuture(thirdRange));
