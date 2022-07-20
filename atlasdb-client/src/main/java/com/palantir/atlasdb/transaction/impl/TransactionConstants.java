@@ -37,6 +37,7 @@ public final class TransactionConstants {
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
+    public static final long LOWEST_POSSIBLE_START_TS = 1L;
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 

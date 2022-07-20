@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.transaction.knowledge.CoordinationAwareKnownConcludedTransactionsStore;
 import java.util.Comparator;
@@ -64,15 +65,12 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardProgress.getLastSweptTimestamp(any())).thenReturn(10L);
 
         ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
-                () -> NUM_SHARDS,
-                concludedTransactionsStore,
-                shardProgress,
-                executorService);
+                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
 
-        updaterTask.runOneIteration();;
+        updaterTask.runOneIteration();
+        ;
 
-        verify(shardProgress, times(NUM_SHARDS * 2))
-                .getLastSweptTimestamp(shardAndStrategyArgumentCaptor.capture());
+        verify(shardProgress, times(NUM_SHARDS * 2)).getLastSweptTimestamp(shardAndStrategyArgumentCaptor.capture());
         assertThat(shardAndStrategyArgumentCaptor.getAllValues()).hasSameElementsAs(shardsAndStrategies);
 
         updaterTask.close();
@@ -85,10 +83,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardProgress.getLastSweptTimestamp(any())).thenAnswer(_invocation -> lastSweptTs.remove(0));
 
         ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
-                () -> NUM_SHARDS,
-                concludedTransactionsStore,
-                shardProgress,
-                executorService);
+                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
 
@@ -105,10 +100,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
         ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
-                shardSupplier,
-                concludedTransactionsStore,
-                shardProgress,
-                executorService);
+                shardSupplier, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
 
@@ -117,9 +109,27 @@ public class ConcludedTransactionsUpdaterTaskTest {
         updaterTask.close();
     }
 
+    @Test
+    public void doesNotSupplementIfNothingSwept() {
+        when(shardProgress.getLastSweptTimestamp(any())).thenReturn(SweepQueueUtils.INITIAL_TIMESTAMP);
+
+        Supplier<Integer> shardSupplier = mock(Supplier.class);
+        when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
+
+        ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
+                shardSupplier, concludedTransactionsStore, shardProgress, executorService);
+
+        updaterTask.runOneIteration();
+
+        verifyNoMoreInteractions(concludedTransactionsStore);
+
+        updaterTask.close();
+    }
 
     private List<Long> generateLastSweptTs() {
-        return IntStream.range(0, shardsAndStrategies.size()).mapToObj(_idx ->  (long) (RANDOM.nextInt(100) + 1)).collect(Collectors.toList());
+        return IntStream.range(0, shardsAndStrategies.size())
+                .mapToObj(_idx -> (long) (RANDOM.nextInt(100) + 1))
+                .collect(Collectors.toList());
     }
 
     private static Set<ShardAndStrategy> computeShardsAndStrategies() {

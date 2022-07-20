@@ -64,9 +64,11 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
                 .collect(Collectors.toSet());
 
         if (!rangesToSupplement.isEmpty()) {
-            log.info(
-                    "Attempting to supplement the set of known concluded timestamps",
-                    SafeArg.of("ranges", rangesToSupplement));
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Attempting to supplement the set of known concluded timestamps",
+                        SafeArg.of("ranges", rangesToSupplement));
+            }
 
             delegate.supplement(rangesToSupplement);
         }

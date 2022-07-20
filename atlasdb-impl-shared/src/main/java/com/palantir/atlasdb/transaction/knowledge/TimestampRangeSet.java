@@ -55,9 +55,9 @@ public interface TimestampRangeSet {
                 .build();
     }
 
-    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRange) {
+    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRanges) {
         return ImmutableTimestampRangeSet.builder()
-                .timestampRanges(ImmutableRangeSet.unionOf(timestampRange))
+                .timestampRanges(ImmutableRangeSet.unionOf(timestampRanges))
                 .build();
     }
 

@@ -143,11 +143,11 @@ public final class KnownConcludedTransactionsStore {
     }
 
     private TimestampRangeSet getTargetSet(
-            Optional<TimestampRangeSet> originalSet, Set<Range<Long>> timestampRangeToAdd) {
+            Optional<TimestampRangeSet> originalSet, Set<Range<Long>> timestampRangesToAdd) {
         if (originalSet.isEmpty()) {
-            return TimestampRangeSet.initRanges(timestampRangeToAdd);
+            return TimestampRangeSet.initRanges(timestampRangesToAdd);
         }
-        return originalSet.get().copyAndAdd(timestampRangeToAdd);
+        return originalSet.get().copyAndAdd(timestampRangesToAdd);
     }
 
     private Optional<ReadResult> getInternal() {
