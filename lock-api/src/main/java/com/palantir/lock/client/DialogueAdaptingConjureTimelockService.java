@@ -19,11 +19,14 @@ package com.palantir.lock.client;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -31,6 +34,8 @@ import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
+import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
@@ -61,6 +66,21 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public ConjureGetFreshTimestampsResponse getFreshTimestamps(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequest request) {
         return dialogueDelegate.getFreshTimestamps(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
+            AuthHeader authHeader,
+            String namespace,
+            ConjureGetFreshTimestampsRequestV2 request) {
+        throw new UnsupportedOperationException("This version of the AtlasDB client should not be using this "
+                + "endpoint!");
+    }
+
+    @Override
+    public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
+        throw new UnsupportedOperationException("This version of the AtlasDB client should not be using this "
+                + "endpoint!");
     }
 
     @Override
@@ -97,6 +117,15 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampsResponse getCommitTimestamps(
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
+    }
+
+    @Override
+    public GetCommitTimestampResponse getCommitTimestamp(
+            AuthHeader authHeader,
+            String namespace,
+            GetCommitTimestampRequest request) {
+        throw new UnsupportedOperationException("This version of the AtlasDB client should not be using this "
+                + "endpoint!");
     }
 
     private <T> T executeInstrumented(

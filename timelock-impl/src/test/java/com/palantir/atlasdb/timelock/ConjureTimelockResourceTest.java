@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +27,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.conjure.java.api.errors.QosException;
@@ -33,6 +36,7 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.time.Duration;
@@ -74,6 +78,32 @@ public class ConjureTimelockResourceTest {
     public void canGetLeaderTime() {
         assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE)))
                 .isEqualTo(leaderTime);
+    }
+
+    @Test
+    public void canGetTimestampsUsingSingularAndBatchedMethods() {
+        TimestampRange firstRange = TimestampRange.createInclusiveRange(1L, 2L);
+        TimestampRange secondRange = TimestampRange.createInclusiveRange(3L, 4L);
+        TimestampRange thirdRange = TimestampRange.createInclusiveRange(5L, 5L);
+
+        when(timelockService.getFreshTimestampsAsync(any())).thenReturn(
+                Futures.immediateFuture(firstRange))
+                        .thenReturn(
+                Futures.immediateFuture(secondRange))
+                                .thenReturn(
+                Futures.immediateFuture(thirdRange));
+
+        assertThat(Futures.getUnchecked(resource.getFreshTimestamps(AUTH_HEADER, NAMESPACE,
+                ConjureGetFreshTimestampsRequest.of(2)))).satisfies(response -> {
+            assertThat(response.getInclusiveLower()).isEqualTo(firstRange.getLowerBound());
+            assertThat(response.getInclusiveUpper()).isEqualTo(firstRange.getUpperBound());
+        });
+        assertThat(Futures.getUnchecked(resource.getFreshTimestampsV2(AUTH_HEADER, NAMESPACE,
+                ConjureGetFreshTimestampsRequestV2.of(2))).get()).satisfies(range -> {
+            assertThat(range.getStart()).isEqualTo(secondRange.getLowerBound());
+            assertThat(range.getCount()).isEqualTo(secondRange.size());
+        });
+        assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE)).get()).isEqualTo(thirdRange.getLowerBound());
     }
 
     @Test
