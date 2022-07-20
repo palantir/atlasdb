@@ -18,11 +18,11 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Expiry;
+import com.github.benmanes.caffeine.cache.Weigher;
 import com.palantir.atlasdb.AtlasDbConstants;
-import java.time.Duration;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final KnownConcludedTransactionsStore concludedTransactionsStore;
@@ -30,32 +30,13 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     private final Cache<Long, Set<Long>> cache;
 
     public DefaultKnownAbortedTransactions(
-            KnownConcludedTransactionsStore concludedTransactionsStore,
-            AbortedTimestampStore abortedTimestampStore) {
+            KnownConcludedTransactionsStore concludedTransactionsStore, AbortedTimestampStore abortedTimestampStore) {
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.abortedTimestampStore = abortedTimestampStore;
         this.cache = Caffeine.newBuilder()
-            .maximumSize(100)
-            .expireAfter(new Expiry<Long, Set<Long>>() {
-                @Override
-                public long expireAfterCreate(Long key, Set<Long> value, long currentTime) {
-                    return Long.MAX_VALUE;
-                }
-
-                @Override
-                public long expireAfterUpdate(
-                        Long key, Set<Long> value, long currentTime, long currentDuration) {
-                    return Long.MAX_VALUE;
-                }
-
-                @Override
-                public long expireAfterRead(
-                        Long key, Set<Long> value, long currentTime, long currentDuration) {
-                    // todo(snanda): expiration should be weighted depending on the size of bucket
-                    return Duration.ofSeconds(value.size()).toNanos();
-                }
-            })
-            .build();
+                .maximumWeight(100_000)
+                .weigher(EntryWeigher.INSTANCE)
+                .build();
     }
 
     /**
@@ -64,11 +45,18 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     @Override
     public boolean isKnownAborted(long startTimestamp) {
         long bucketForTimestamp = getBucket(startTimestamp);
-        // todo(snanda): Only cache buckets that are older than the latest one. Though, this is another read on every
-        //  call.
+        Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
+        if (cachedAbortedTimestamps.contains(startTimestamp)) {
+            return true;
+        }
+
+        // Try remote fetch if current aborted ts bucket is not immutable.
         long latestBucket = getBucket(concludedTransactionsStore.lastKnownConcludedTransaction());
-        Set<Long> abortedTimestampsInBucket = getAbortedTimestampsInBucket(bucketForTimestamp, latestBucket);
-        return abortedTimestampsInBucket.contains(startTimestamp);
+        if (bucketForTimestamp == latestBucket) {
+            return getAbortedTransactionsRemote(bucketForTimestamp).contains(startTimestamp);
+        }
+
+        return false;
     }
 
     @Override
@@ -78,22 +66,31 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     }
 
     private void invalidateBuckets(Set<Long> abortedTimestamps) {
-        Set<Long> invalidatedBuckets = abortedTimestamps.stream().map(this::getBucket).collect(Collectors.toSet());
+        Set<Long> invalidatedBuckets =
+                abortedTimestamps.stream().map(this::getBucket).collect(Collectors.toSet());
         cache.invalidateAll(invalidatedBuckets);
     }
 
-    private Set<Long> getAbortedTimestampsInBucket(long bucket, long latestBucket) {
-        if (bucket < latestBucket) {
-            return cache.get(bucket, this::getAbortedTransactionsRemote);
-        }
-        return getAbortedTransactionsRemote(bucket);
+    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket) {
+        return cache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
-        return abortedTimestampStore.getBucket(bucket);
+        Set<Long> abortedTs = abortedTimestampStore.getBucket(bucket);
+        cache.put(bucket, abortedTs);
+        return abortedTs;
     }
 
     private long getBucket(long startTimestamp) {
         return startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
+    }
+
+    enum EntryWeigher implements Weigher<Long, Set<Long>> {
+        INSTANCE;
+
+        @Override
+        public @NonNegative int weigh(Long key, Set<Long> value) {
+            return value.size();
+        }
     }
 }

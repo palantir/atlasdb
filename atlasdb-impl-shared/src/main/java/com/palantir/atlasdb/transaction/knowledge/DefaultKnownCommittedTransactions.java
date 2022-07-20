@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+
 public class DefaultKnownCommittedTransactions implements KnownCommittedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbortedTransactions knownAbortedTransactions;
@@ -28,11 +30,14 @@ public class DefaultKnownCommittedTransactions implements KnownCommittedTransact
 
     @Override
     public boolean isKnownCommitted(long startTimestamp) {
-        boolean concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp);
+        boolean concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ);
         if (!concluded) {
-            // todo(snanda): check in txn table - if there is a miss then we need to update
-            //  knownConcludedTxns i.e. hit refresh on concludedTs
-            return false;
+            concluded = knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
+            if (!concluded) {
+                // todo(snanda): check in txn table - if there is a miss then we need to update
+                //  knownConcludedTxns i.e. hit refresh on concludedTs
+                return false;
+            }
         }
         return !knownAbortedTransactions.isKnownAborted(startTimestamp);
     }

@@ -18,10 +18,12 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import java.util.Set;
 
+/**
+ * Dummy impl since we do not have `AbortedTimestampStore` yet.
+ * */
 public final class AbortedTimestampStore {
 
     public Set<Long> getBucket(long bucket) {
-        // Todo(snanda)
         return null;
     }
 
