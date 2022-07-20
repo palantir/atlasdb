@@ -35,14 +35,8 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             KnownConcludedTransactions knownConcludedTransactions, AbortedTimestampStore abortedTimestampStore) {
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.abortedTimestampStore = abortedTimestampStore;
-        this.reliableCache = Caffeine.newBuilder()
-                .maximumWeight(100_000)
-                .weigher(EntryWeigher.INSTANCE)
-                .build();
-        this.softCache = Caffeine.newBuilder()
-                .maximumWeight(100_000)
-                .weigher(EntryWeigher.INSTANCE)
-                .build();
+        this.reliableCache = cache();
+        this.softCache = cache();
     }
 
     @Override
@@ -96,9 +90,14 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         return startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
     }
 
-    enum EntryWeigher implements Weigher<Long, Set<Long>> {
-        INSTANCE;
+    private static Cache<Long, Set<Long>> cache() {
+        return Caffeine.newBuilder()
+                .maximumWeight(100_000)
+                .weigher(new EntryWeigher())
+                .build();
+    }
 
+    private static final class EntryWeigher implements Weigher<Long, Set<Long>> {
         @Override
         public @NonNegative int weigh(Long key, Set<Long> value) {
             return value.size();
