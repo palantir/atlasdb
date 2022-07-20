@@ -66,9 +66,7 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
 
     @Override
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
-            AuthHeader authHeader,
-            String namespace,
-            ConjureGetFreshTimestampsRequestV2 request) {
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
         return shortTimeoutProxy.getFreshTimestampsV2(authHeader, namespace, request);
     }
 
@@ -112,9 +110,7 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
 
     @Override
     public GetCommitTimestampResponse getCommitTimestamp(
-            AuthHeader authHeader,
-            String namespace,
-            GetCommitTimestampRequest request) {
+            AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return shortTimeoutProxy.getCommitTimestamp(authHeader, namespace, request);
     }
 }

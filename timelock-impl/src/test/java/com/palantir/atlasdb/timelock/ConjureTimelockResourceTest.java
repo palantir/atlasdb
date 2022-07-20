@@ -86,24 +86,27 @@ public class ConjureTimelockResourceTest {
         TimestampRange secondRange = TimestampRange.createInclusiveRange(3L, 4L);
         TimestampRange thirdRange = TimestampRange.createInclusiveRange(5L, 5L);
 
-        when(timelockService.getFreshTimestampsAsync(any())).thenReturn(
-                Futures.immediateFuture(firstRange))
-                        .thenReturn(
-                Futures.immediateFuture(secondRange))
-                                .thenReturn(
-                Futures.immediateFuture(thirdRange));
+        when(timelockService.getFreshTimestampsAsync(any()))
+                .thenReturn(Futures.immediateFuture(firstRange))
+                .thenReturn(Futures.immediateFuture(secondRange))
+                .thenReturn(Futures.immediateFuture(thirdRange));
 
-        assertThat(Futures.getUnchecked(resource.getFreshTimestamps(AUTH_HEADER, NAMESPACE,
-                ConjureGetFreshTimestampsRequest.of(2)))).satisfies(response -> {
-            assertThat(response.getInclusiveLower()).isEqualTo(firstRange.getLowerBound());
-            assertThat(response.getInclusiveUpper()).isEqualTo(firstRange.getUpperBound());
-        });
-        assertThat(Futures.getUnchecked(resource.getFreshTimestampsV2(AUTH_HEADER, NAMESPACE,
-                ConjureGetFreshTimestampsRequestV2.of(2))).get()).satisfies(range -> {
-            assertThat(range.getStart()).isEqualTo(secondRange.getLowerBound());
-            assertThat(range.getCount()).isEqualTo(secondRange.size());
-        });
-        assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE)).get()).isEqualTo(thirdRange.getLowerBound());
+        assertThat(Futures.getUnchecked(
+                        resource.getFreshTimestamps(AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequest.of(2))))
+                .satisfies(response -> {
+                    assertThat(response.getInclusiveLower()).isEqualTo(firstRange.getLowerBound());
+                    assertThat(response.getInclusiveUpper()).isEqualTo(firstRange.getUpperBound());
+                });
+        assertThat(Futures.getUnchecked(resource.getFreshTimestampsV2(
+                                AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequestV2.of(2)))
+                        .get())
+                .satisfies(range -> {
+                    assertThat(range.getStart()).isEqualTo(secondRange.getLowerBound());
+                    assertThat(range.getCount()).isEqualTo(secondRange.size());
+                });
+        assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE))
+                        .get())
+                .isEqualTo(thirdRange.getLowerBound());
     }
 
     @Test

@@ -77,9 +77,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
-            AuthHeader authHeader,
-            String namespace,
-            ConjureGetFreshTimestampsRequestV2 request) {
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
         return conjureDelegate.getFreshTimestampsV2(authHeader, namespace, request);
     }
 
@@ -139,9 +137,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public GetCommitTimestampResponse getCommitTimestamp(
-            AuthHeader authHeader,
-            String namespace,
-            GetCommitTimestampRequest request) {
+            AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return conjureDelegate.getCommitTimestamp(authHeader, namespace, request);
     }
 
