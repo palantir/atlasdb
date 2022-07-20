@@ -16,10 +16,42 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-/**
- * Just adding a dummy interface here while we are blocked on merging of https://github.com/palantir/atlasdb/pull/6112/files
- * */
-public interface KnownConcludedTransactions {
+import com.google.common.collect.Range;
 
-    boolean isKnownConcluded(long startTimestamp);
+/**
+ * Represents a set of start timestamps that belong to transactions that are known to have concluded.
+ * This means that transactions with these start timestamps have either been committed, been aborted, or have not
+ * committed and will not be able to ever commit (though it is not known which of these is actually the case).
+ */
+public interface KnownConcludedTransactions {
+    /**
+     * Returns whether the transaction that started at the provided timestamp is known to have concluded.
+     *
+     * @param startTimestamp start timestamp associated with the value we are checking for
+     * @param consistency consistency level to use when answering this query
+     * @return whether the transaction that started at the provided timestamp is known to have concluded.
+     */
+    boolean isKnownConcluded(long startTimestamp, Consistency consistency);
+
+    /**
+     * Registers the fact that any transactions that had started in the provided range have concluded, including
+     * writing this to the database. This endpoint is costly, and must not be called with a high level of concurrency.
+     *
+     * @param knownConcludedInterval range of timestamps in which all transactions must have concluded
+     */
+    void addConcludedTimestamps(Range<Long> knownConcludedInterval);
+
+    enum Consistency {
+        /**
+         * Only perform a read from a local cache. This is eventually consistent and the set of known committed
+         * timestamps for a given namespace only grows, so a 'true' answer to
+         * {@link #isKnownConcluded(long, Consistency)} at this level can be trusted, but a 'false' answer might
+         * actually be knowably committed if one looks in the database.
+         */
+        LOCAL_READ,
+        /**
+         * Perform a remote read against the underlying database if necessary.
+         */
+        REMOTE_READ;
+    }
 }

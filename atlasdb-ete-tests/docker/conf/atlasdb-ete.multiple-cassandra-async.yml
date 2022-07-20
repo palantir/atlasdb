@@ -11,7 +11,7 @@ server:
 
 atlasdb:
   targetedSweep:
-    enableSweepQueueWrites: false
+    enableSweepQueueWrites: true
   keyValueService:
     type: cassandra
     ssl: false

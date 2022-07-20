@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -26,19 +28,19 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableTargetedSweepInstallConfig.class)
 @JsonSerialize(as = ImmutableTargetedSweepInstallConfig.class)
 @Value.Immutable
+@JsonIgnoreProperties("enableSweepQueueWrites")
 public class TargetedSweepInstallConfig {
     /**
-     * If true, information for targeted sweep will be persisted to the sweep queue. This is necessary to be able to
-     * run targeted sweep.
-     *
-     * Once you decide to use targeted sweep, DO NOT set this to false without consulting with the AtlasDB team. Doing
-     * so will cause targeted sweep to not be aware of any writes occurring while this is false, and you will have to
-     * use legacy sweep to sweep those writes. If you wish to pause targeted sweep, that can be done by setting the live
-     * reloadable {@link TargetedSweepRuntimeConfig#enabled()} parameter to false.
+     * @deprecated Disabling sweep queue writes is not supported anymore in order to maintain correctness while running
+     * transactions4.
+     * If you wish to pause targeted sweep, that can be done by setting the live reloadable
+     * {@link TargetedSweepRuntimeConfig#enabled()} parameter to true.
      */
+    @Deprecated
     @Value.Default
+    @JsonIgnore
     public boolean enableSweepQueueWrites() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP_QUEUE_WRITES;
+        return true;
     }
 
     /**
