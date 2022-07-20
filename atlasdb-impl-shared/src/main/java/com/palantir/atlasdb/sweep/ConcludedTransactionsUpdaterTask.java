@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -27,33 +28,34 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
-    private final Set<ShardAndStrategy> allShardsAndStrategies;
+    private final Supplier<Integer> shardsSupplier;
     private final ShardProgress progress;
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
     private final ScheduledExecutorService executor;
 
     private ConcludedTransactionsUpdaterTask(
-            Set<ShardAndStrategy> allShardsAndStrategies,
+            Supplier<Integer> shardsSupplier,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executorService) {
-        this.allShardsAndStrategies = allShardsAndStrategies;
+        this.shardsSupplier = shardsSupplier;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
         this.executor = executorService;
     }
 
     public static ConcludedTransactionsUpdaterTask create(
-            int numShards,
+            Supplier<Integer> numShards,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executor) {
         ConcludedTransactionsUpdaterTask task = new ConcludedTransactionsUpdaterTask(
-                getAllShardsAndStrategies(numShards), concludedTransactionsStore, progress, executor);
+                numShards, concludedTransactionsStore, progress, executor);
         task.schedule();
         return task;
     }
@@ -66,11 +68,22 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
                 TimeUnit.MILLISECONDS);
     }
 
-    private void runOneIteration() {
-        long minLastSweptTimestamp = allShardsAndStrategies.stream()
+    @VisibleForTesting
+    void runOneIteration() {
+        int numShardsAtStart = shardsSupplier.get();
+
+        long minLastSweptTimestamp = getAllShardsAndStrategies(numShardsAtStart).stream()
                 .map(progress::getLastSweptTimestamp)
                 .min(Comparator.naturalOrder())
                 .orElse(1L);
+
+        if (numShardsAtStart != shardsSupplier.get()) {
+            // Todo(snanda): not enough for internode consistency.
+            // Shall we persist num shards?
+            // Do not want to update knownConcludedTimestamps in case number of shards have changed to avoid
+            // correctness issues. This check should be enough as we do not expect the number of shards to go down.
+            return;
+        }
 
         Range<Long> concludedTimestamps = Range.closed(1L, minLastSweptTimestamp);
         concludedTransactionsStore.supplement(concludedTimestamps);
@@ -90,7 +103,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         executor.shutdownNow();
     }
 }
