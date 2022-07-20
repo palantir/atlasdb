@@ -44,7 +44,7 @@ public class DefaultKnownCommittedTransactions implements KnownCommittedTransact
     }
 
     private boolean isConcluded(long startTimestamp) {
-        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ) ||
-         knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
+        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ)
+                || knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
     }
 }

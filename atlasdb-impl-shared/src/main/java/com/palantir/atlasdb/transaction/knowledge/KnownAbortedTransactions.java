@@ -19,11 +19,24 @@ package com.palantir.atlasdb.transaction.knowledge;
 import java.util.Set;
 
 /**
- * Dummy interface while we are blocked.
- * */
+ * Represents a set of start timestamps that belong to transactions that are known to have aborted.
+ */
 public interface KnownAbortedTransactions {
 
+    /**
+     * Returns whether the transaction that started at the provided timestamp is known to have aborted.
+     * This method should only be called for transactions that are known to have concluded.
+     *
+     * @param startTimestamp start timestamp associated with the value we are checking for
+     * @return whether the transaction that started at the provided timestamp is known to have aborted.
+     */
     boolean isKnownAborted(long startTimestamp);
 
+    /**
+     * Registers the fact that any transactions that had startTimestamp in set of timestamps provided have been
+     * aborted. This endpoint is only meant to be called internally by a background task.
+     *
+     * @param abortedTimestamps set of timestamps for which all transactions have been aborted.
+     */
     void addAbortedTimestamps(Set<Long> abortedTimestamps);
 }

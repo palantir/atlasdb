@@ -40,9 +40,6 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
                 .build();
     }
 
-    /**
-     * This method should only be called for concluded transactions.
-     * */
     @Override
     public boolean isKnownAborted(long startTimestamp) {
         long bucketForTimestamp = getBucket(startTimestamp);
