@@ -182,7 +182,7 @@ public class ShardProgress {
                 row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
-    private static Long hydrateValue(Value val) {
+    private static long hydrateValue(Value val) {
         return SweepShardProgressTable.Value.BYTES_HYDRATOR
                 .hydrateFromBytes(val.getContents())
                 .getValue();

@@ -16,30 +16,29 @@
 
 package com.palantir.atlasdb.sweep;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
-import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.transaction.knowledge.CoordinationAwareKnownConcludedTransactionsStore;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import com.palantir.common.streams.KeyedStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConcludedTransactionsUpdaterTaskTest {
@@ -53,29 +52,29 @@ public class ConcludedTransactionsUpdaterTaskTest {
     private final ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
 
     @Captor
-    ArgumentCaptor<ShardAndStrategy> shardAndStrategyArgumentCaptor;
+    ArgumentCaptor<Set<ShardAndStrategy>> shardAndStrategyArgumentCaptor;
 
     @Test
     public void queriesAllShardsBeforeSupplementingConcludedTxnStore() {
-        when(shardProgress.getLastSweptTimestamp(any())).thenReturn(10L);
+        when(shardProgress.getLastSweptTimestamps(any())).thenReturn(generateLastSweptTs());
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
-        ;
 
-        verify(shardProgress, times(NUM_SHARDS * 2)).getLastSweptTimestamp(shardAndStrategyArgumentCaptor.capture());
-        assertThat(shardAndStrategyArgumentCaptor.getAllValues()).hasSameElementsAs(shardsAndStrategies);
+        verify(shardProgress).getLastSweptTimestamps(shardAndStrategyArgumentCaptor.capture());
+        assertThat(shardAndStrategyArgumentCaptor.getAllValues()).containsExactlyInAnyOrder(shardsAndStrategies);
 
         updaterTask.close();
     }
 
     @Test
     public void supplementsConcludedTxnStoreWithMinLastSweptTs() {
-        List<Long> lastSweptTs = generateLastSweptTs();
-        long expectedMinTs = lastSweptTs.stream().min(Comparator.naturalOrder()).get();
-        when(shardProgress.getLastSweptTimestamp(any())).thenAnswer(_invocation -> lastSweptTs.remove(0));
+        Map<ShardAndStrategy, Long> lastSweptTs = generateLastSweptTs();
+        long expectedMinTs =
+                lastSweptTs.values().stream().min(Comparator.naturalOrder()).get();
+        when(shardProgress.getLastSweptTimestamps(any())).thenReturn(lastSweptTs);
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
@@ -89,7 +88,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
 
     @Test
     public void doesNotSupplementIfNumberOfShardsChanges() {
-        when(shardProgress.getLastSweptTimestamp(any())).thenReturn(10L);
+        when(shardProgress.getLastSweptTimestamps(any())).thenReturn(generateLastSweptTs());
 
         Supplier<Integer> shardSupplier = mock(Supplier.class);
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
@@ -106,8 +105,6 @@ public class ConcludedTransactionsUpdaterTaskTest {
 
     @Test
     public void doesNotSupplementIfNothingSwept() {
-        when(shardProgress.getLastSweptTimestamp(any())).thenReturn(SweepQueueUtils.INITIAL_TIMESTAMP);
-
         Supplier<Integer> shardSupplier = mock(Supplier.class);
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
@@ -121,10 +118,10 @@ public class ConcludedTransactionsUpdaterTaskTest {
         updaterTask.close();
     }
 
-    private List<Long> generateLastSweptTs() {
-        return IntStream.range(0, shardsAndStrategies.size())
-                .mapToObj(_idx -> (long) (RANDOM.nextInt(100) + 1))
-                .collect(Collectors.toList());
+    private Map<ShardAndStrategy, Long> generateLastSweptTs() {
+        return KeyedStream.of(shardsAndStrategies)
+                .map(_idx -> (long) RANDOM.nextInt(100) + 1)
+                .collectToMap();
     }
 
     private static Set<ShardAndStrategy> computeShardsAndStrategies() {
