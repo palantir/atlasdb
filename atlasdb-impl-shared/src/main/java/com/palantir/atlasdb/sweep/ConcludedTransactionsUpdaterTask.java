@@ -45,24 +45,28 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
     private final ScheduledExecutorService executor;
 
+    private Set<ShardAndStrategy> shardsAndStrategies;
+    private int lastKnownNumShards = -1;
+
     private ConcludedTransactionsUpdaterTask(
-            Supplier<Integer> shardsSupplier,
+            Supplier<Integer> persistedNumShardsSupplier,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executorService) {
-        this.persistedNumShardsSupplier = shardsSupplier;
+        this.persistedNumShardsSupplier = persistedNumShardsSupplier;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
         this.executor = executorService;
     }
 
     public static ConcludedTransactionsUpdaterTask create(
-            Supplier<Integer> numShards,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executor) {
         ConcludedTransactionsUpdaterTask task =
-                new ConcludedTransactionsUpdaterTask(numShards, concludedTransactionsStore, progress, executor);
+                new ConcludedTransactionsUpdaterTask(progress::getNumberOfShards, concludedTransactionsStore,
+                        progress, executor);
+        // Todo(Snanda): consider just running this task on the sweep thread at the end
         task.schedule();
         return task;
     }
@@ -79,7 +83,9 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     void runOneIteration() {
         int numShardsAtStart = persistedNumShardsSupplier.get();
 
-        long minLastSweptTimestamp = getAllShardsAndStrategies(numShardsAtStart).stream()
+        maybeRefreshShardsAndStrategies(numShardsAtStart);
+
+        long minLastSweptTimestamp = shardsAndStrategies.stream()
                 .map(progress::getLastSweptTimestamp)
                 .min(Comparator.naturalOrder())
                 .orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
@@ -94,6 +100,13 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
         Range<Long> concludedTimestamps =
                 Range.closed(TransactionConstants.LOWEST_POSSIBLE_START_TS, minLastSweptTimestamp);
         concludedTransactionsStore.supplement(concludedTimestamps);
+    }
+
+    private void maybeRefreshShardsAndStrategies(int currentNumShards) {
+        if (currentNumShards != lastKnownNumShards) {
+            shardsAndStrategies = getAllShardsAndStrategies(currentNumShards);
+            lastKnownNumShards = currentNumShards;
+        }
     }
 
     private static Set<ShardAndStrategy> getAllShardsAndStrategies(int numShards) {
