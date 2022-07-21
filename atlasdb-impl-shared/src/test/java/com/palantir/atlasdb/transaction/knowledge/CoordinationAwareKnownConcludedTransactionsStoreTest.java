@@ -17,10 +17,8 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
@@ -28,6 +26,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -89,6 +88,20 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
         Range<Long> rangeToSupplement = Range.closedOpen(100L, 400L);
         coordinationAwareStore.supplement(rangeToSupplement);
         verify(delegate).supplement(ImmutableSet.of(Range.closedOpen(100L, 200L), Range.closedOpen(300L, 400L)));
+    }
+
+    @Test
+    public void throwsIfUnknownSchemaVersionFound() {
+        RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
+                .put(Range.atLeast(1L), 5)
+                .build();
+        CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
+                getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
+
+        Range<Long> rangeToSupplement = Range.closedOpen(1L, 100L);
+        assertThatThrownBy(() -> coordinationAwareStore.supplement(rangeToSupplement))
+                .isInstanceOf(SafeIllegalStateException.class);
+        verifyNoMoreInteractions(delegate);
     }
 
     private CoordinationAwareKnownConcludedTransactionsStore getDefaultCoordinationAwareStore() {
