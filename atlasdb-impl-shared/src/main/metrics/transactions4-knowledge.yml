@@ -1,0 +1,10 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.transaction.knowledge'
+
+namespaces:
+  knownConcludedTransactions:
+    docs: Metrics tracking usage and statistics for the set of known concluded transactions
+    metrics:
+      disjointCacheIntervals:
+        type: gauge
+        docs: The number of disjoint intervals of timestamps tracked in the cache.

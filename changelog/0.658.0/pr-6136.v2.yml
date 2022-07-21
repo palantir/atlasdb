@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: RowColumnRangeExtractor uses smaller presized IdentityHashMaps
+  links:
+  - https://github.com/palantir/atlasdb/pull/6136
