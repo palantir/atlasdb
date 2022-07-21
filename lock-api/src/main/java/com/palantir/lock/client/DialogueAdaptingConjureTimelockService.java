@@ -71,14 +71,12 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
-        throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+        return dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request);
     }
 
     @Override
     public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
-        throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+        return dialogueDelegate.getFreshTimestamp(authHeader, namespace);
     }
 
     @Override
@@ -120,8 +118,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
-        throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+        return dialogueDelegate.getCommitTimestamp(authHeader, namespace, request);
     }
 
     private <T> T executeInstrumented(

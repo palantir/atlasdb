@@ -16,8 +16,9 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -94,7 +95,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public long getFreshTimestamp() {
-        return getFreshTimestamps(1).getLowerBound();
+        return conjureTimelockService.getFreshTimestamp().get();
     }
 
     @Override
@@ -104,9 +105,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        ConjureGetFreshTimestampsResponse response =
-                conjureTimelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(numTimestampsRequested));
-        return TimestampRange.createInclusiveRange(response.getInclusiveLower(), response.getInclusiveUpper());
+        ConjureGetFreshTimestampsResponseV2 response =
+                conjureTimelockService.getFreshTimestampsV2(ConjureGetFreshTimestampsRequestV2.of(numTimestampsRequested));
+        ConjureTimestampRange timestampRange = response.get();
+        return TimestampRange.createRangeFromDeltaEncoding(timestampRange.getStart(), timestampRange.getCount());
     }
 
     @Override

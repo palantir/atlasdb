@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.invariants;
 
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -36,9 +35,7 @@ public class TimeLockActivityChecker {
 
     public OptionalLong getFreshTimestampFromNodeForClient(String client) {
         try {
-            return OptionalLong.of(conjureTimelockService
-                    .getFreshTimestamps(AUTH_HEADER, client, ConjureGetFreshTimestampsRequest.of(1))
-                    .getInclusiveLower());
+            return OptionalLong.of(conjureTimelockService.getFreshTimestamp(AUTH_HEADER, client).get());
         } catch (Exception e) {
             log.info(
                     "Suppressed exception when checking TimeLock activity for client {}",
