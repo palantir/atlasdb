@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -66,16 +64,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
-    public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(startTimestamp, delegate);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(startTimestamps, delegate);
-    }
-
-    @Override
     public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
         return getInternal2(startTimestamp, delegate);
     }
@@ -99,35 +87,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public void close() {
         delegate.close();
-    }
-
-    private ListenableFuture<Long> getInternal(long startTimestamp, AsyncTransactionService asyncTransactionService) {
-        if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
-        }
-        return asyncTransactionService.getAsync(startTimestamp);
-    }
-
-    private ListenableFuture<Map<Long, Long>> getInternal(
-            Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
-        Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
-                .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
-
-        List<Long> validTimestamps = classifiedTimestamps.get(true);
-        Map<Long, Long> result = new HashMap<>();
-        result.putAll(Maps.asMap(
-                ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
-
-        if (!validTimestamps.isEmpty()) {
-            return Futures.transform(
-                    asyncTransactionService.getAsync(validTimestamps),
-                    timestampMap -> {
-                        result.putAll(timestampMap);
-                        return result;
-                    },
-                    MoreExecutors.directExecutor());
-        }
-        return Futures.immediateFuture(result);
     }
 
     private ListenableFuture<TransactionStatus> getInternal2(

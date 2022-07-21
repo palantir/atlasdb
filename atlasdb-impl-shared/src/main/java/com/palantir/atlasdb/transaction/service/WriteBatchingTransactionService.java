@@ -82,16 +82,6 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
-    public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return delegate.getAsync(startTimestamp);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return delegate.getAsync(startTimestamps);
-    }
-
-    @Override
     public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
         return delegate.safeGetAsync(startTimestamp);
     }

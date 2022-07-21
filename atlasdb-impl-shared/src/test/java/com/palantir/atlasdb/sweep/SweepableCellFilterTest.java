@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.Test;
@@ -96,7 +97,7 @@ public class SweepableCellFilterTest {
                 .isLatestValueEmpty(false)
                 .build());
         when(mockTransactionService.get(anyCollection()))
-                .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.FAILED_COMMIT_TS));
+                .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionConstants.ABORTED_TRANSACTION));
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.CONSERVATIVE, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells).hasSize(1);
@@ -110,7 +111,8 @@ public class SweepableCellFilterTest {
                 .sortedTimestamps(ImmutableList.of(LOW_START_TS))
                 .isLatestValueEmpty(true)
                 .build());
-        when(mockTransactionService.get(anyCollection())).thenReturn(ImmutableMap.of(LOW_START_TS, LOW_COMMIT_TS));
+        when(mockTransactionService.get(anyCollection()))
+                .thenReturn(ImmutableMap.of(LOW_START_TS, TransactionStatuses.committed(LOW_COMMIT_TS)));
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells).hasSize(1);
@@ -173,8 +175,8 @@ public class SweepableCellFilterTest {
                 .build());
         when(mockTransactionService.get(anyCollection()))
                 .thenReturn(ImmutableMap.of(
-                        LOW_START_TS, LOW_COMMIT_TS,
-                        HIGH_START_TS, HIGH_COMMIT_TS));
+                        LOW_START_TS, TransactionStatuses.committed(LOW_COMMIT_TS),
+                        HIGH_START_TS, TransactionStatuses.committed(HIGH_COMMIT_TS)));
         return ret;
     }
 }

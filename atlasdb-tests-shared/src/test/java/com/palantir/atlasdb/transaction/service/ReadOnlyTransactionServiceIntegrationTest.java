@@ -19,11 +19,11 @@ package com.palantir.atlasdb.transaction.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -52,14 +52,16 @@ public class ReadOnlyTransactionServiceIntegrationTest {
     public void canReadAlreadyAgreedValuesEvenAfterAdditionalCoordinations() {
         writeTransactionService.putUnlessExists(1L, 8L);
 
-        assertThat(readOnlyTransactionService.get(1L)).isEqualTo(8L);
+        assertThat(TransactionStatuses.getCommitTimestamp(readOnlyTransactionService.get(1L)))
+                .hasValue(8L);
         assertThat(readOnlyTransactionService.get(8L)).isNull();
         assertThat(readOnlyTransactionService.get(COORDINATION_QUANTUM + 1L)).isNull();
 
         timestampService.fastForwardTimestamp(COORDINATION_QUANTUM);
 
         writeTransactionService.putUnlessExists(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
-        assertThat(readOnlyTransactionService.get(COORDINATION_QUANTUM + 1L)).isEqualTo(COORDINATION_QUANTUM + 5L);
+        assertThat(TransactionStatuses.getCommitTimestamp(readOnlyTransactionService.get(1L)))
+                .hasValue(COORDINATION_QUANTUM + 5L);
         assertThat(readOnlyTransactionService.get(Long.MAX_VALUE)).isNull();
     }
 
@@ -69,9 +71,11 @@ public class ReadOnlyTransactionServiceIntegrationTest {
         writeTransactionService.putUnlessExists(1L, 8L);
         writeTransactionService.putUnlessExists(COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L);
 
-        assertThat(readOnlyTransactionService.get(
-                        ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L)))
-                .containsExactlyInAnyOrderEntriesOf(
-                        ImmutableMap.of(1L, 8L, COORDINATION_QUANTUM + 1L, COORDINATION_QUANTUM + 5L));
+        Map<Long, TransactionStatus> result = readOnlyTransactionService.get(
+                ImmutableList.of(1L, COORDINATION_QUANTUM + 1L, 2 * COORDINATION_QUANTUM + 1L));
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(8L);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(COORDINATION_QUANTUM + 1L)))
+                .hasValue(COORDINATION_QUANTUM + 5L);
     }
 }

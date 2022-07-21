@@ -32,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.util.Collection;
 import java.util.Map;
@@ -112,11 +113,15 @@ public class CommitTsCacheTest {
         long valuesToInsert = 1_000_000;
 
         doAnswer(invocation -> {
-                    Collection<Long> timestamps = invocation.getArgument(0);
+                    Collection<TransactionStatus> timestamps = invocation.getArgument(0);
                     if (timestamps.size() > AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT) {
                         fail("Requested more timestamps in a batch than is reasonable!");
                     }
-                    return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
+                    return timestamps.stream()
+                            .collect(Collectors.toMap(
+                                    n -> TransactionStatuses.getCommitTimestamp(n)
+                                            .orElseThrow(() -> new RuntimeException("not committed")),
+                                    n -> n));
                 })
                 .when(mockTransactionService)
                 .get(any());
@@ -192,10 +197,15 @@ public class CommitTsCacheTest {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<Long, Long> assertRequestedTimestampsAndMapIdentity(
+    private Map<Long, TransactionStatus> assertRequestedTimestampsAndMapIdentity(
             InvocationOnMock invocation, Collection<Long> expected) {
-        Collection<Long> timestamps = invocation.getArgument(0);
-        assertThat(timestamps).containsExactlyElementsOf(expected);
-        return timestamps.stream().collect(Collectors.toMap(n -> n, n -> n));
+        Collection<TransactionStatus> timestamps = invocation.getArgument(0);
+        Map<Long, TransactionStatus> result = timestamps.stream()
+                .collect(Collectors.toMap(
+                        n -> TransactionStatuses.getCommitTimestamp(n)
+                                .orElseThrow(() -> new RuntimeException("not committed")),
+                        n -> n));
+        assertThat(result.keySet()).containsExactlyElementsOf(expected);
+        return result;
     }
 }

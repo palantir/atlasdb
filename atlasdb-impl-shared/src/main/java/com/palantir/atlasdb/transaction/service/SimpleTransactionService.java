@@ -100,16 +100,6 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return txnTable.get(startTimestamp);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return txnTable.get(startTimestamps);
-    }
-
-    @Override
     public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
         return txnTable.get(startTimestamp);
     }

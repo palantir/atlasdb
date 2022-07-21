@@ -70,9 +70,10 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void getsValuesFromUnderlying() {
-        when(mockTransactionService.get(anyLong())).thenReturn(5L);
+        when(mockTransactionService.get(anyLong())).thenReturn(TransactionStatuses.committed(5L));
 
-        assertThat(writeBatchingTransactionService.get(3L)).isEqualTo(5L);
+        assertThat(TransactionStatuses.getCommitTimestamp(writeBatchingTransactionService.get(3L)))
+                .hasValue(5L);
 
         verify(mockTransactionService).get(3L);
     }

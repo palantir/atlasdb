@@ -2498,18 +2498,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef));
     }
 
+    // todo (gmaretic) : make this better
     private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             Long singleTs = startTimestamps.iterator().next();
             return Futures.transform(
-                    asyncTransactionService.getAsync(singleTs),
-                    commitTsOrNull ->
-                            commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
+                    asyncTransactionService.safeGetAsync(singleTs),
+                    status -> TransactionStatuses.caseOf(status)
+                            .<Map<Long, Long>>inProgress(ImmutableMap::of)
+                            .committed(commitTs -> ImmutableMap.of(singleTs, commitTs))
+                            .otherwise(() -> {
+                                throw new RuntimeException("wat");
+                            }),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsync(startTimestamps);
+            return Futures.transform(
+                    asyncTransactionService.safeGetAsync(startTimestamps),
+                    statuses -> KeyedStream.stream(statuses)
+                            .map(TransactionStatuses::getCommitTimestamp)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .collectToMap(),
+                    MoreExecutors.directExecutor());
         }
     }
 

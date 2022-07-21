@@ -74,16 +74,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
-    public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(keyedServices, startTimestamp);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(keyedServices, startTimestamps);
-    }
-
-    @Override
     public ListenableFuture<TransactionStatus> safeGetAsync(long startTimestamp) {
         return getInternal2(keyedServices, startTimestamp);
     }
@@ -104,45 +94,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @Override
     public void close() {
         keyedServices.values().forEach(TransactionService::close);
-    }
-
-    private ListenableFuture<Long> getInternal(
-            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, long startTimestamp) {
-        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
-                .map(service -> service.getAsync(startTimestamp))
-                .orElseGet(() -> Futures.immediateFuture(null));
-    }
-
-    private ListenableFuture<Map<Long, Long>> getInternal(
-            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = HashMultimap.create();
-        for (Long startTimestamp : startTimestamps) {
-            T mappedValue = timestampToServiceKey.apply(startTimestamp);
-            if (mappedValue != null) {
-                queryMap.put(mappedValue, startTimestamp);
-            }
-        }
-
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
-        if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException(
-                    "A batch of timestamps produced some transaction service keys which are unknown.",
-                    SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
-        }
-
-        Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
-                .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
-                .collectToMap()
-                .values();
-
-        return Futures.whenAllSucceed(futures)
-                .call(
-                        () -> futures.stream()
-                                .map(AtlasFutures::getDone)
-                                .collect(HashMap::new, Map::putAll, Map::putAll),
-                        MoreExecutors.directExecutor());
     }
 
     private ListenableFuture<TransactionStatus> getInternal2(

@@ -29,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,11 +80,12 @@ public class SweepableCellFilterParametrizedTest {
     @Before
     @SuppressWarnings("unchecked")
     public void setup() {
-        Map<Long, Long> startTsToCommitTs = new HashMap<>();
-        COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));
-        COMMITTED_AFTER.forEach(startTs -> startTsToCommitTs.put(startTs, startTs + SWEEP_TS));
-        ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.FAILED_COMMIT_TS));
-        startTsToCommitTs.put(LAST_TS, status.commitTs);
+        Map<Long, TransactionStatus> startTsToCommitTs = new HashMap<>();
+        COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionStatuses.committed(startTs)));
+        COMMITTED_AFTER.forEach(
+                startTs -> startTsToCommitTs.put(startTs, TransactionStatuses.committed(startTs + SWEEP_TS)));
+        ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.ABORTED_TRANSACTION));
+        startTsToCommitTs.put(LAST_TS, TransactionStatuses.committed(status.commitTs));
         when(mockTransactionService.get(anyCollection())).thenReturn(startTsToCommitTs);
         candidate = ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
                 .cell(SINGLE_CELL)
