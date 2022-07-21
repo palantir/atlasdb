@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 
 public class DefaultKnownCommittedTransactions implements KnownCommittedTransactions {
@@ -36,25 +37,36 @@ public class DefaultKnownCommittedTransactions implements KnownCommittedTransact
 
     @Override
     public boolean isKnownCommitted(long startTimestamp) {
-        if (!isConcluded(startTimestamp)) {
-            return getTransactionStateFromTransactionsTable(startTimestamp);
+        if (isConcludedLocal(startTimestamp)) {
+            return true;
         }
 
-        return !knownAbortedTransactions.isKnownAborted(startTimestamp);
-    }
-
-    private boolean getTransactionStateFromTransactionsTable(long startTimestamp) {
+        Optional<Long> commitTs = Optional.ofNullable(transactionService.get(startTimestamp));
         /**
          * We have not wired in the transactionService#safeGet() api. Broad idea will be:
-         * case committed ->  return true
-         * case inProgress -> return false
-         * case deleted -> refresh knownConcluded and throw
+         * case committed ->  return true, in this case we do not really care about refreshing the concluded store as
+         * the remote call might be a waste.
+         * case inProgress -> return false.
+         * case deleted -> refresh concluded store because in order to delete the transaction would have to be
+         * first declared as concluded; if the remote call indicated that the transaction is not concluded then throw.
          * */
-        return Optional.ofNullable(transactionService.get(startTimestamp)).isPresent();
+
+        // This call also refreshed the concluded data store.
+        boolean concludedRemote = isConcludedRemote(startTimestamp);
+
+        if (!concludedRemote) {
+            throw new SafeIllegalStateException("The startTs has been deleted but somehow concludedStore has not "
+                    + "progressed. This can be indicative of SEVERE DATA CORRUPTION!");
+        }
+
+        return false;
     }
 
-    private boolean isConcluded(long startTimestamp) {
-        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ)
-                || knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
+    private boolean isConcludedLocal(long startTimestamp) {
+        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.LOCAL_READ);
+    }
+
+    private boolean isConcludedRemote(long startTimestamp) {
+        return knownConcludedTransactions.isKnownConcluded(startTimestamp, Consistency.REMOTE_READ);
     }
 }

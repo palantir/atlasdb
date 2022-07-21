@@ -22,11 +22,10 @@ import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
-import org.checkerframework.checker.index.qual.NonNegative;
-import org.immutables.value.Value;
-
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.immutables.value.Value;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
