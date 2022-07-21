@@ -18,11 +18,7 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -63,7 +59,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
     public void queriesAllShardsBeforeSupplementingConcludedTxnStore() {
         when(shardProgress.getLastSweptTimestamp(any())).thenReturn(10L);
 
-        ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
+        ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
@@ -81,7 +77,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         long expectedMinTs = lastSweptTs.stream().min(Comparator.naturalOrder()).get();
         when(shardProgress.getLastSweptTimestamp(any())).thenAnswer(_invocation -> lastSweptTs.remove(0));
 
-        ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
+        ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
@@ -98,7 +94,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         Supplier<Integer> shardSupplier = mock(Supplier.class);
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
-        ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
+        ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 shardSupplier, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();
@@ -115,7 +111,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         Supplier<Integer> shardSupplier = mock(Supplier.class);
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
-        ConcludedTransactionsUpdaterTask updaterTask = ConcludedTransactionsUpdaterTask.create(
+        ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
                 shardSupplier, concludedTransactionsStore, shardProgress, executorService);
 
         updaterTask.runOneIteration();

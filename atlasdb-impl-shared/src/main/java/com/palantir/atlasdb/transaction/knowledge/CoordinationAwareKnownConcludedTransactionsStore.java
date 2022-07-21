@@ -20,6 +20,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 
 public final class CoordinationAwareKnownConcludedTransactionsStore {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationAwareKnownConcludedTransactionsStore.class);
+
     // todo(Snanda): to be wired in with `TransactionSchemaManager`
     private final Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter;
     private final KnownConcludedTransactionsStore delegate;
@@ -47,21 +49,11 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     }
 
     public void supplement(Range<Long> closedTimestampRangeToAdd) {
-        long lastSweptTimestamp = closedTimestampRangeToAdd.upperEndpoint();
+        Map<Range<Long>, Integer> timestampRanges =
+                latestTimestampRangesSnapshot(closedTimestampRangeToAdd.upperEndpoint());
+        sanityCheckTimestampRanges(timestampRanges);
 
-        Map<Range<Long>, Integer> timestampRanges = internalSchemaSnapshotGetter
-                .apply(lastSweptTimestamp)
-                .rangeMapView()
-                .asMapOfRanges();
-
-        Set<Range<Long>> rangesOnTransaction4 = KeyedStream.stream(timestampRanges)
-                .filter(schemaVersion -> schemaVersion.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
-                .keys()
-                .collect(Collectors.toSet());
-
-        Set<Range<Long>> rangesToSupplement = rangesOnTransaction4.stream()
-                .map(closedTimestampRangeToAdd::intersection)
-                .collect(Collectors.toSet());
+        Set<Range<Long>> rangesToSupplement = getRangesToSupplement(closedTimestampRangeToAdd, timestampRanges);
 
         if (!rangesToSupplement.isEmpty()) {
             if (log.isDebugEnabled()) {
@@ -72,5 +64,30 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
 
             delegate.supplement(rangesToSupplement);
         }
+    }
+
+    private static Set<Range<Long>> getRangesToSupplement(
+            Range<Long> closedTsRangeToConclude, Map<Range<Long>, Integer> timestampRanges) {
+        return KeyedStream.stream(timestampRanges)
+                .filter(schemaVersion -> schemaVersion.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
+                .mapKeys(closedTsRangeToConclude::intersection)
+                .keys()
+                .collect(Collectors.toSet());
+    }
+
+    private static void sanityCheckTimestampRanges(Map<Range<Long>, Integer> timestampRanges) {
+        Optional<Integer> maybeUnknownSchema = timestampRanges.values().stream()
+                .filter(schemaVersion -> schemaVersion > TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .findFirst();
+        Preconditions.checkState(
+                maybeUnknownSchema.isEmpty(),
+                "Found an unknown schema version. Will block further progress of TTS to avoid completeness issues.");
+    }
+
+    private Map<Range<Long>, Integer> latestTimestampRangesSnapshot(long lastSweptTimestamp) {
+        return internalSchemaSnapshotGetter
+                .apply(lastSweptTimestamp)
+                .rangeMapView()
+                .asMapOfRanges();
     }
 }

@@ -37,7 +37,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_INITIAL_DELAY_MILLIS = 1000;
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_TASK_DELAY_MILLIS = 5000;
 
-    // This will to be ShardProgress#getNumberOfShards(). Not using the persisted value here can lead to SEVERE DATA
+    // This has to be ShardProgress#getNumberOfShards(). Not using the persisted value here can lead to SEVERE DATA
     // CORRUPTION.
     private final Supplier<Integer> persistedNumShardsSupplier;
 
@@ -48,7 +48,8 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private Set<ShardAndStrategy> shardsAndStrategies;
     private int lastKnownNumShards = -1;
 
-    private ConcludedTransactionsUpdaterTask(
+    @VisibleForTesting
+    ConcludedTransactionsUpdaterTask(
             Supplier<Integer> persistedNumShardsSupplier,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
@@ -63,9 +64,8 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executor) {
-        ConcludedTransactionsUpdaterTask task =
-                new ConcludedTransactionsUpdaterTask(progress::getNumberOfShards, concludedTransactionsStore,
-                        progress, executor);
+        ConcludedTransactionsUpdaterTask task = new ConcludedTransactionsUpdaterTask(
+                progress::getNumberOfShards, concludedTransactionsStore, progress, executor);
         // Todo(Snanda): consider just running this task on the sweep thread at the end
         task.schedule();
         return task;
@@ -85,8 +85,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
         maybeRefreshShardsAndStrategies(numShardsAtStart);
 
-        long minLastSweptTimestamp = shardsAndStrategies.stream()
-                .map(progress::getLastSweptTimestamp)
+        long minLastSweptTimestamp = progress.getLastSweptTimestamps(shardsAndStrategies).values().stream()
                 .min(Comparator.naturalOrder())
                 .orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
 
