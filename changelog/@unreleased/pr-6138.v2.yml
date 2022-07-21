@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AbstractKVS.internalTableName avoids expensive regex matcher
+  links:
+  - https://github.com/palantir/atlasdb/pull/6138
