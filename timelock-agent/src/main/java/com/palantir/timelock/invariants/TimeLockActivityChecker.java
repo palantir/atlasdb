@@ -35,7 +35,9 @@ public class TimeLockActivityChecker {
 
     public OptionalLong getFreshTimestampFromNodeForClient(String client) {
         try {
-            return OptionalLong.of(conjureTimelockService.getFreshTimestamp(AUTH_HEADER, client).get());
+            return OptionalLong.of(conjureTimelockService
+                    .getFreshTimestamp(AUTH_HEADER, client)
+                    .get());
         } catch (Exception e) {
             log.info(
                     "Suppressed exception when checking TimeLock activity for client {}",

@@ -105,8 +105,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        ConjureGetFreshTimestampsResponseV2 response =
-                conjureTimelockService.getFreshTimestampsV2(ConjureGetFreshTimestampsRequestV2.of(numTimestampsRequested));
+        ConjureGetFreshTimestampsResponseV2 response = conjureTimelockService.getFreshTimestampsV2(
+                ConjureGetFreshTimestampsRequestV2.of(numTimestampsRequested));
         ConjureTimestampRange timestampRange = response.get();
         return TimestampRange.createRangeFromDeltaEncoding(timestampRange.getStart(), timestampRange.getCount());
     }
