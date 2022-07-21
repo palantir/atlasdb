@@ -22,10 +22,11 @@ import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.immutables.value.Value;
+
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
@@ -70,10 +71,16 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             return cache.abortedTransactions();
         }
 
+        long bucketForStartTs = getBucket(startTimestamp);
         // this will be the highest timestamp seen so far, no matter what bucket startTs points to.
         long newLastKnownConcluded = knownConcludedTransactions.lastKnownConcludedTimestamp();
+
+        // we check once again if this bucket can be reliably cached
+        if (bucketForStartTs < getBucket(newLastKnownConcluded)) {
+            return getCachedAbortedTimestampsInBucket(bucketForStartTs);
+        }
+
         Set<Long> abortedTransactions;
-        long bucketForStartTs = getBucket(startTimestamp);
 
         // different buckets but startTs is the new bucket
         // getBucket(lastKnownConcludedCached) can be cached then
