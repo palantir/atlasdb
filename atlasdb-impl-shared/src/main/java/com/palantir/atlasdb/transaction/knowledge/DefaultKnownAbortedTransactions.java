@@ -19,49 +19,97 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
-import java.util.Comparator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.checkerframework.checker.index.qual.NonNegative;
+import org.immutables.value.Value;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final AbortedTimestampStore abortedTimestampStore;
     private final Cache<Long, Set<Long>> reliableCache;
-    private final Cache<Long, Set<Long>> softCache;
+    private final AtomicReference<SoftCache> softCacheRef;
 
     public DefaultKnownAbortedTransactions(
             KnownConcludedTransactions knownConcludedTransactions, AbortedTimestampStore abortedTimestampStore) {
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.abortedTimestampStore = abortedTimestampStore;
         this.reliableCache = cache();
-        this.softCache = cache();
+        this.softCacheRef = new AtomicReference<>();
     }
 
     @Override
     public boolean isKnownAborted(long startTimestamp) {
         long bucketForTimestamp = getBucket(startTimestamp);
+
+        // taking snapshot of the soft cache - this makes it easier to reason about rest of the logic in this class
+        SoftCache cache = softCacheRef.get();
+
         boolean canBeReliablyCached = bucketCanBeReliablyCached(bucketForTimestamp);
-        Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp, canBeReliablyCached);
-
-        if (cachedAbortedTimestamps.contains(startTimestamp)) {
-            return true;
+        if (canBeReliablyCached) {
+            Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
+            return cachedAbortedTimestamps.contains(startTimestamp);
         }
 
-        if (!canBeReliablyCached && shouldReloadBucket(startTimestamp, cachedAbortedTimestamps)) {
-            Set<Long> abortedTransactionsRemote = getAbortedTransactionsRemote(bucketForTimestamp);
-            softCache.put(bucketForTimestamp, abortedTransactionsRemote);
-            return abortedTransactionsRemote.contains(startTimestamp);
-        }
-
-        return false;
+        Set<Long> softCachedAbortedTransactions = mayReloadAndGetSoftCache(startTimestamp, cache);
+        return softCachedAbortedTransactions.contains(startTimestamp);
     }
 
-    private boolean shouldReloadBucket(long startTimestamp, Set<Long> cachedAbortedTimestamps) {
-        long greatestCachedAbortedTs =
-                cachedAbortedTimestamps.stream().max(Comparator.naturalOrder()).orElse(0L);
-        return greatestCachedAbortedTs < startTimestamp;
+    // Bucket rollover logic
+    private Set<Long> mayReloadAndGetSoftCache(long startTimestamp, SoftCache cache) {
+        long lastKnownConcludedCached = cache.lastKnownConcludedTimestamp();
+
+        // Flushing of data from soft cache will only happen when a bucket is reliable
+        // since the snapshot was taken before doing the bucket cache reliability check, the soft cache should
+        // contain data of the non-reliable bucket. If then, the lastKnownConcludedCached in the funny bucket is
+        // greater that startTimestamp do not actually need to load from remote.
+        if (lastKnownConcludedCached > startTimestamp) {
+            return cache.abortedTransactions();
+        }
+
+        // this will be the highest timestamp seen so far, no matter what bucket startTs points to.
+        long newLastKnownConcluded = knownConcludedTransactions.lastKnownConcludedTimestamp();
+        Set<Long> abortedTransactions;
+        long bucketForStartTs = getBucket(startTimestamp);
+
+        // different buckets but startTs is the new bucket
+        // getBucket(lastKnownConcludedCached) can be cached then
+        if (getBucket(lastKnownConcludedCached) < bucketForStartTs) {
+            // should load the entire newest bucket and discard the soft cache (since the soft cache
+            // might not be up-to-date)
+            abortedTransactions = abortedTimestampStore.getBucket(bucketForStartTs);
+
+            // we are limiting newLastKnownConcluded due to the api above
+            newLastKnownConcluded = Math.min(newLastKnownConcluded, getMaxTsInCurrentBucket(bucketForStartTs));
+        } else {
+            // equal bucket but startTs is greater
+            // can to range get and append
+            Set<Long> newAbortedTransactions = abortedTimestampStore.getAbortedTransactionsInRange(
+                    lastKnownConcludedCached, newLastKnownConcluded);
+
+            abortedTransactions = ImmutableSet.<Long>builder()
+                    .addAll(cache.abortedTransactions())
+                    .addAll(newAbortedTransactions)
+                    .build();
+        }
+
+        tryUpdateSoftCache(ImmutableSoftCache.of(newLastKnownConcluded, abortedTransactions));
+
+        return abortedTransactions;
+    }
+
+    private void tryUpdateSoftCache(SoftCache newSoftCacheValue) {
+        // we try to update the cache iff the already cached last known concluded is less that of newSoftCacheValue
+        SoftCache currentCache = softCacheRef.get();
+
+        if (currentCache.lastKnownConcludedTimestamp() > newSoftCacheValue.lastKnownConcludedTimestamp()) {
+            return;
+        }
+
+        softCacheRef.compareAndSet(currentCache, newSoftCacheValue);
     }
 
     @Override
@@ -69,17 +117,17 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         abortedTimestampStore.addAbortedTimestamps(abortedTimestamps);
     }
 
-    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket, boolean canBeReliablyCached) {
-        if (canBeReliablyCached) {
-            softCache.invalidate(bucket);
-            reliableCache.get(bucket, this::getAbortedTransactionsRemote);
-        }
-        return softCache.get(bucket, this::getAbortedTransactionsRemote);
+    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket) {
+        return reliableCache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
     private boolean bucketCanBeReliablyCached(long bucket) {
-        long maxTsInCurrentBucket = ((bucket + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
-        return !knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, Consistency.REMOTE_READ);
+        long maxTsInCurrentBucket = getMaxTsInCurrentBucket(bucket);
+        return knownConcludedTransactions.isKnownConcluded(maxTsInCurrentBucket, Consistency.REMOTE_READ);
+    }
+
+    private long getMaxTsInCurrentBucket(long bucket) {
+        return ((bucket + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
     }
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
@@ -93,14 +141,23 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     private static Cache<Long, Set<Long>> cache() {
         return Caffeine.newBuilder()
                 .maximumWeight(100_000)
-                .weigher(new EntryWeigher())
+                .weigher(new AbortedTransactionBucketWeigher())
                 .build();
     }
 
-    private static final class EntryWeigher implements Weigher<Long, Set<Long>> {
+    private static final class AbortedTransactionBucketWeigher implements Weigher<Long, Set<Long>> {
         @Override
         public @NonNegative int weigh(Long key, Set<Long> value) {
             return value.size();
         }
+    }
+
+    @Value.Immutable
+    interface SoftCache {
+        @Value.Parameter
+        long lastKnownConcludedTimestamp();
+
+        @Value.Parameter
+        Set<Long> abortedTransactions();
     }
 }

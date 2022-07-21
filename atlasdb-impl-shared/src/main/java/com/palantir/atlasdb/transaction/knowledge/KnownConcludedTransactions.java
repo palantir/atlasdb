@@ -41,6 +41,8 @@ public interface KnownConcludedTransactions {
      */
     void addConcludedTimestamps(Range<Long> knownConcludedInterval);
 
+    long lastKnownConcludedTimestamp();
+
     enum Consistency {
         /**
          * Only perform a read from a local cache. This is eventually consistent and the set of known committed

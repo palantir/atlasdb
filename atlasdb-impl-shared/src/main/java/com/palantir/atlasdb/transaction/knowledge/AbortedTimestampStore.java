@@ -28,4 +28,8 @@ public final class AbortedTimestampStore {
     }
 
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {}
+
+    public Set<Long> getAbortedTransactionsInRange(long startInclusive, long endInclusive) {
+        return null;
+    }
 }
