@@ -185,8 +185,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             return tableName;
         }
         int periodIndex = tableName.indexOf('.');
-        if (periodIndex > -1 && periodIndex != tableName.length() - 1) {
-            return tableName.substring(0, periodIndex) + "__" + tableName.substring(periodIndex + 1);
+        if (periodIndex > -1) {
+            return tableName.substring(0, periodIndex) + "__"
+                    + (periodIndex + 1 != tableName.length() ? tableName.substring(periodIndex + 1) : "");
         }
         return tableName;
     }

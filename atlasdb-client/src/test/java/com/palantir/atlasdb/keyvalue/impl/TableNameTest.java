@@ -17,30 +17,74 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.table.description.Schemas;
+import java.util.regex.Pattern;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class TableNameTest {
-    @Test
-    public void internalTableName() {
-        checkInternalTableNameRoundTrip(Namespace.DEFAULT_NAMESPACE, "_hidden", "default___hidden");
-        checkInternalTableNameRoundTrip(Namespace.DEFAULT_NAMESPACE, "foo.bar", "default__foo.bar");
-        checkInternalTableNameRoundTrip(Namespace.DEFAULT_NAMESPACE, "test", "default__test");
-        checkInternalTableNameRoundTrip(Namespace.EMPTY_NAMESPACE, "_hidden", "_hidden");
-        checkInternalTableNameRoundTrip(Namespace.EMPTY_NAMESPACE, "test", "test");
-        checkInternalTableNameRoundTrip(Namespace.create("ns"), "_hidden", "ns___hidden");
-        checkInternalTableNameRoundTrip(Namespace.create("ns"), "foo.bar", "ns__foo.bar");
-        checkInternalTableNameRoundTrip(Namespace.create("ns"), "test", "ns__test");
+    private static final Pattern PERIOD_REGEX = Pattern.compile("\\.");
+
+    private final Namespace namespace;
+    private final String tableName;
+    private final String internalTableName;
+
+    @Parameterized.Parameters(name = "namespace={0}, tableName={1} = internalTableName={2}")
+    public static Object[] data() {
+        return new Object[] {
+            new Object[] {Namespace.DEFAULT_NAMESPACE, "_hidden", "default___hidden"},
+            new Object[] {Namespace.DEFAULT_NAMESPACE, "foo_bar", "default__foo_bar"},
+            new Object[] {Namespace.DEFAULT_NAMESPACE, "test", "default__test"},
+            new Object[] {Namespace.DEFAULT_NAMESPACE, "", "default__"},
+            new Object[] {Namespace.EMPTY_NAMESPACE, "_hidden", "_hidden"},
+            new Object[] {Namespace.EMPTY_NAMESPACE, "test", "test"},
+            new Object[] {Namespace.EMPTY_NAMESPACE, "foo_bar", "foo_bar"},
+            new Object[] {Namespace.EMPTY_NAMESPACE, "", ""},
+            new Object[] {Namespace.create("ns"), "_hidden", "ns___hidden"},
+            new Object[] {Namespace.create("ns"), "foo_bar", "ns__foo_bar"},
+            new Object[] {Namespace.create("ns"), "test", "ns__test"},
+            new Object[] {Namespace.create("ns"), "", "ns__"},
+        };
     }
 
-    private static void checkInternalTableNameRoundTrip(
-            Namespace namespace, String tableName, String internalTableName) {
+    public TableNameTest(Namespace namespace, String tableName, String internalTableName) {
+        this.namespace = namespace;
+        this.tableName = tableName;
+        this.internalTableName = internalTableName;
+    }
+
+    @Test
+    public void roundTrip() {
+        assumeTrue("Table name must be valid: '" + tableName + "'", Schemas.isTableNameValid(tableName));
+        checkValidTableName(tableName);
         TableReference tableRef = TableReference.create(namespace, tableName);
-        assertThat(AbstractKeyValueService.internalTableName(tableRef)).isEqualTo(internalTableName);
+        assertThat(AbstractKeyValueService.internalTableName(tableRef))
+                .isEqualTo(internalTableName)
+                .isEqualTo(inefficientLegacyInternalTableName(tableRef));
         TableReference fromInternalTableName = TableReference.fromInternalTableName(internalTableName);
         assertThat(fromInternalTableName.getNamespace()).isEqualTo(namespace);
-        assertThat(fromInternalTableName.getTableName()).isEqualTo(tableName);
+        assertThat(fromInternalTableName.getTableName())
+                .isEqualTo(tableName)
+                .satisfies(TableNameTest::checkValidTableName);
+    }
+
+    private static void checkValidTableName(String tableName) {
+        assertThat(Schemas.isTableNameValid(tableName))
+                .describedAs("Invalid table name '%s'", tableName)
+                .isTrue();
+    }
+
+    private static String inefficientLegacyInternalTableName(TableReference tableRef) {
+        String tableName = tableRef.getQualifiedName();
+        if (tableName.startsWith("_")) {
+            return tableName;
+        }
+        return PERIOD_REGEX.matcher(tableName).replaceFirst("__");
     }
 }
