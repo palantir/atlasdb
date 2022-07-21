@@ -19,6 +19,7 @@ package com.palantir.atlasdb.persistent.api;
 import com.google.protobuf.ByteString;
 import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.UniqueIds;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +38,7 @@ public interface PersistentStore extends AutoCloseable {
         UUID id();
 
         static Handle newHandle() {
-            return ImmutableHandle.builder().id(UUID.randomUUID()).build();
+            return ImmutableHandle.builder().id(UniqueIds.uuid()).build();
         }
     }
 

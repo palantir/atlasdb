@@ -33,6 +33,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.util.UniqueIds;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
     public static MultiClientTransactionStarter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
-                Autobatchers.independent(consumer(delegate, UUID.randomUUID()))
+                Autobatchers.independent(consumer(delegate, UniqueIds.uuid()))
                         .safeLoggablePurpose("multi-client-transaction-starter")
                         .timeoutHandler(exception -> new StartTransactionFailedException(
                                 "Timed out while attempting to start transactions", exception))
@@ -168,7 +169,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
     private static ConjureStartTransactionsRequest getConjureRequest(RequestParams requestParams, UUID requestorId) {
         return ConjureStartTransactionsRequest.builder()
                 .requestorId(requestorId)
-                .requestId(UUID.randomUUID())
+                .requestId(UniqueIds.uuid())
                 .numTransactions(requestParams.numTransactions())
                 .lastKnownVersion(
                         toConjure(requestParams.cache().getEventCache().lastKnownVersion()))

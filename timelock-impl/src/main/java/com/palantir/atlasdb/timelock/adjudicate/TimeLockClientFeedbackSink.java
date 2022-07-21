@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
+import com.palantir.util.UniqueIds;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,7 +47,7 @@ public final class TimeLockClientFeedbackSink {
     }
 
     public void registerFeedback(ConjureTimeLockClientFeedback feedback) {
-        trackedFeedbackReports.put(UUID.randomUUID(), feedback);
+        trackedFeedbackReports.put(UniqueIds.uuid(), feedback);
     }
 
     public List<ConjureTimeLockClientFeedback> getTrackedFeedbackReports() {

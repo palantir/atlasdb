@@ -32,6 +32,7 @@ import com.palantir.timelock.feedback.EndpointStatistics;
 import com.palantir.timelock.feedback.LeaderElectionStatistics;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.UniqueIds;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -51,7 +52,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private static final ScheduledExecutorService executor =
             PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory(TIMELOCK_FEEDBACK_THREAD_PREFIX, true));
 
-    private final UUID nodeId = UUID.randomUUID();
+    private final UUID nodeId = UniqueIds.uuid();
     private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
     private final Supplier<String> versionSupplier;
     private final String serviceName;

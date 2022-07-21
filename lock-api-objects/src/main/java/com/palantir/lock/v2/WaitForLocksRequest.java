@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.util.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -45,13 +46,13 @@ public interface WaitForLocksRequest {
     Optional<String> getClientDescription();
 
     static WaitForLocksRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableWaitForLocksRequest.of(UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
+        return ImmutableWaitForLocksRequest.of(UniqueIds.uuid(), lockDescriptors, acquireTimeoutMs, Optional.empty());
     }
 
     static WaitForLocksRequest of(
             Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, @Nullable String clientDescription) {
         return ImmutableWaitForLocksRequest.of(
-                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.ofNullable(clientDescription));
+                UniqueIds.uuid(), lockDescriptors, acquireTimeoutMs, Optional.ofNullable(clientDescription));
     }
 
     @Value.Check

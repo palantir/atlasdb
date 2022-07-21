@@ -37,6 +37,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.util.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -67,7 +68,7 @@ public class LockLeaseService implements AutoCloseable {
             NamespacedConjureTimelockService conjureTimelock,
             LeaderTimeGetter leaderTimeGetter,
             LockTokenUnlocker unlocker) {
-        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter, unlocker);
+        return new LockLeaseService(conjureTimelock, UniqueIds.uuid(), leaderTimeGetter, unlocker);
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
@@ -77,7 +78,7 @@ public class LockLeaseService implements AutoCloseable {
     StartTransactionResponseV4 startTransactions(int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
-                .requestId(UUID.randomUUID())
+                .requestId(UniqueIds.uuid())
                 .numTransactions(batchSize)
                 .lastKnownVersion(Optional.empty())
                 .build();
@@ -99,7 +100,7 @@ public class LockLeaseService implements AutoCloseable {
             Optional<LockWatchVersion> maybeVersion, int batchSize) {
         ConjureStartTransactionsRequest request = ConjureStartTransactionsRequest.builder()
                 .requestorId(clientId)
-                .requestId(UUID.randomUUID())
+                .requestId(UniqueIds.uuid())
                 .numTransactions(batchSize)
                 .lastKnownVersion(ConjureLockRequests.toConjure(maybeVersion))
                 .build();

@@ -22,9 +22,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.util.UniqueIds;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.UUID;
 
 public final class KvsWriteBenchmark extends AbstractBenchmark {
 
@@ -45,7 +45,7 @@ public final class KvsWriteBenchmark extends AbstractBenchmark {
 
     @Override
     protected void performOneCall() {
-        byte[] data = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
+        byte[] data = UniqueIds.uuid().toString().getBytes(StandardCharsets.UTF_8);
         keyValueService.put(TABLE, ImmutableMap.of(Cell.create(data, data), data), 101L);
     }
 }

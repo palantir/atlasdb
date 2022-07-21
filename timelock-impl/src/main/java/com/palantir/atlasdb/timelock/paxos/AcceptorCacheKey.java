@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.util.UniqueIds;
 import java.util.UUID;
 import org.immutables.value.Value;
 
@@ -42,7 +43,7 @@ public abstract class AcceptorCacheKey {
     }
 
     public static AcceptorCacheKey newCacheKey() {
-        return ImmutableAcceptorCacheKey.of(UUID.randomUUID());
+        return ImmutableAcceptorCacheKey.of(UniqueIds.uuid());
     }
 
     @Override
