@@ -26,6 +26,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.immutables.value.Value;
+
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
@@ -39,7 +42,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
      * Concurrency: All updates go through {@link #ensureRangesCached(RangeSet)}} and perform CASes to atomically
      * evolve the value here. Copy on write should be acceptable given these range-sets are not expected to be large.
      */
-    private final AtomicReference<ImmutableRangeSet<Long>> cachedConcludedTimestamps;
+    private final AtomicReference<Cache> cachedConcludedTimestampsRef;
 
     private final KnownConcludedTransactionsMetrics knownConcludedTransactionsMetrics;
 
@@ -55,10 +58,10 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
             KnownConcludedTransactionsStore knownConcludedTransactionsStore,
             KnownConcludedTransactionsMetrics metrics) {
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
-        this.cachedConcludedTimestamps = new AtomicReference<>(ImmutableRangeSet.of());
+        this.cachedConcludedTimestampsRef = new AtomicReference<>(ImmutableCache.of(ImmutableRangeSet.of()));
         this.knownConcludedTransactionsMetrics = metrics;
         metrics.disjointCacheIntervals(
-                () -> cachedConcludedTimestamps.get().asRanges().size());
+                () -> cachedConcludedTimestampsRef.get().ranges().asRanges().size());
     }
 
     public static KnownConcludedTransactions create(
@@ -71,7 +74,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
 
     @Override
     public boolean isKnownConcluded(long startTimestamp, Consistency consistency) {
-        if (cachedConcludedTimestamps.get().contains(startTimestamp)) {
+        if (cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp)) {
             return true;
         }
         if (consistency == Consistency.REMOTE_READ) {
@@ -86,9 +89,14 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
         ensureRangesCached(ImmutableRangeSet.of(knownConcludedInterval));
     }
 
+    @Override
+    public long lastKnownConcludedTimestamp() {
+        return cachedConcludedTimestampsRef.get().lastKnownConcludedTs();
+    }
+
     private boolean performRemoteReadAndCheckConcluded(long startTimestamp) {
         cacheUpdater.get();
-        return cachedConcludedTimestamps.get().contains(startTimestamp);
+        return cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp);
     }
 
     private void updateCacheFromRemote() {
@@ -100,13 +108,16 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
 
     private void ensureRangesCached(RangeSet<Long> timestampRanges) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-            ImmutableRangeSet<Long> cache = cachedConcludedTimestamps.get();
-            if (cache.enclosesAll(timestampRanges)) {
+
+            Cache cachedConcludedTimestamps = cachedConcludedTimestampsRef.get();
+            ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.ranges();
+
+            if (cachedRanges.enclosesAll(timestampRanges)) {
                 return;
             }
-            ImmutableRangeSet<Long> targetCacheValue =
-                    ImmutableRangeSet.unionOf(Sets.union(cache.asRanges(), timestampRanges.asRanges()));
-            if (cachedConcludedTimestamps.compareAndSet(cache, targetCacheValue)) {
+            Cache targetCacheValue = ImmutableCache.of(
+                    ImmutableRangeSet.unionOf(Sets.union(cachedRanges.asRanges(), timestampRanges.asRanges())));
+            if (cachedConcludedTimestampsRef.compareAndSet(cachedConcludedTimestamps, targetCacheValue)) {
                 return;
             }
             // Concurrent update; can try again.
@@ -115,5 +126,20 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
                 "Unable to ensure ranges of known concluded transactions were cached.",
                 SafeArg.of("numAttempts", MAX_ATTEMPTS));
         throw new SafeIllegalStateException("Unable to ensure ranges of known concluded transactions were cached.");
+    }
+
+    @Value.Immutable
+    interface Cache {
+        @Value.Parameter
+        ImmutableRangeSet<Long> ranges();
+
+        @Value.Lazy
+        default long lastKnownConcludedTs() {
+            return ranges().asRanges().stream()
+                    .filter(Range::hasUpperBound)
+                    .map(Range::upperEndpoint)
+                    .max(Comparator.naturalOrder())
+                    .orElse(0L);
+        }
     }
 }
