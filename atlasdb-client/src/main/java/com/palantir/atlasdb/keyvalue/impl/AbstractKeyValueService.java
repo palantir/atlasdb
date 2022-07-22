@@ -45,12 +45,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.regex.Pattern;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
-    private static final Pattern PERIOD_REGEX = Pattern.compile("\\.");
-
     protected ExecutorService executor;
 
     /**
@@ -187,7 +184,12 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         if (tableName.startsWith("_")) {
             return tableName;
         }
-        return PERIOD_REGEX.matcher(tableName).replaceFirst("__");
+        int periodIndex = tableName.indexOf('.');
+        if (periodIndex > -1) {
+            return tableName.substring(0, periodIndex) + "__"
+                    + (periodIndex + 1 != tableName.length() ? tableName.substring(periodIndex + 1) : "");
+        }
+        return tableName;
     }
 
     @Override
