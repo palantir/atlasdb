@@ -75,9 +75,9 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         long newLastKnownConcluded = knownConcludedTransactions.lastKnownConcludedTimestamp();
 
         // we check once again if this bucket can be reliably cached
-        if (bucketForStartTs < getBucket(newLastKnownConcluded)) {
-            return getCachedAbortedTimestampsInBucket(bucketForStartTs);
-        }
+//        if (bucketForStartTs < getBucket(newLastKnownConcluded)) {
+//            return getCachedAbortedTimestampsInBucket(bucketForStartTs);
+//        }
 
         Set<Long> abortedTransactions;
 
@@ -94,7 +94,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             // equal bucket but startTs is greater
             // can to range get and append
             Set<Long> newAbortedTransactions = abortedTimestampStore.getAbortedTransactionsInRange(
-                    lastKnownConcludedCached, newLastKnownConcluded);
+                    lastKnownConcludedCached, startTimestamp + 1);
 
             abortedTransactions = ImmutableSet.<Long>builder()
                     .addAll(cache.abortedTransactions())
@@ -115,7 +115,8 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             return;
         }
 
-        softCacheRef.compareAndSet(currentCache, newSoftCacheValue);
+        // can just pass in the lambda to update if bucket / lastConcluded is > prev value
+        softCacheRef.getAndUpdate(currentCache, newSoftCacheValue);
     }
 
     @Override
@@ -163,6 +164,9 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         @Value.Parameter
         long lastKnownConcludedTimestamp();
 
+        // make this mutable
+        // also add lazy bucket value
+        // maybe also max txn in that bucket
         @Value.Parameter
         Set<Long> abortedTransactions();
     }

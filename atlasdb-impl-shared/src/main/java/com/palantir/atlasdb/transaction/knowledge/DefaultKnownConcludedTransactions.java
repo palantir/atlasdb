@@ -110,6 +110,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
 
             Cache cachedConcludedTimestamps = cachedConcludedTimestampsRef.get();
+
             ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.ranges();
 
             if (cachedRanges.enclosesAll(timestampRanges)) {
