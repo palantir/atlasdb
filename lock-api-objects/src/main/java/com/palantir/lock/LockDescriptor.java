@@ -19,10 +19,10 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.locks.ReadWriteLock;
 import javax.annotation.concurrent.Immutable;
@@ -40,15 +40,16 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
 
     private final byte[] bytes;
 
+    private transient int hashCode;
+
     @JsonCreator
     LockDescriptor(@JsonProperty("bytes") byte[] bytes) {
         this.bytes = bytes;
     }
 
     @JsonIgnore
-    @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public String getLockIdAsString() {
-        return new String(bytes, Charsets.UTF_8);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     @Override
@@ -74,10 +75,10 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + Arrays.hashCode(bytes);
-        return result;
+        if (hashCode == 0) {
+            hashCode = 31 + Arrays.hashCode(bytes);
+        }
+        return hashCode;
     }
 
     @Override
@@ -92,6 +93,6 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
             return false;
         }
         LockDescriptor other = (LockDescriptor) obj;
-        return Arrays.equals(bytes, other.bytes);
+        return this.hashCode() == other.hashCode() && Arrays.equals(bytes, other.bytes);
     }
 }
