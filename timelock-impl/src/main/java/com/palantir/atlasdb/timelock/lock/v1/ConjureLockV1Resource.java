@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock.v1;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -81,10 +82,11 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
         return exceptionHandler.handleExceptions(() -> {
             ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(lockServices
                     .apply(namespace)
-                    .refreshLockRefreshTokens(ConjureLockV1Tokens.getLegacyTokens(request)));
+                    .refreshLockRefreshTokens(Collections2.transform(
+                            request, token -> new LockRefreshToken(token.getTokenId(), token.getExpirationDateMs()))));
             return Futures.transform(
                     serviceTokens,
-                    tokens -> ImmutableSet.copyOf(ConjureLockV1Tokens.getConjureTokens(tokens)),
+                    tokens -> ImmutableSet.copyOf(Collections2.transform(tokens, ConjureLockV1Tokens::getConjureToken)),
                     MoreExecutors.directExecutor());
         });
     }
