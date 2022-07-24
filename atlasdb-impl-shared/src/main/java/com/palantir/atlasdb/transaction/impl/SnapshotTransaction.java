@@ -1808,18 +1808,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void checkConstraints() {
-        List<String> violations = new ArrayList<>();
-        for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
-            SortedMap<Cell, byte[]> sortedMap = writesByTable.get(entry.getKey());
-            if (sortedMap != null) {
-                violations.addAll(entry.getValue().findConstraintFailures(sortedMap, this, constraintCheckingMode));
-            }
+        if (constraintsByTableName.isEmpty() || writesByTable.isEmpty()) {
+            // avoid work in cases where constraints do not apply (e.g. read only transactions)
+            return;
         }
+
+        List<String> violations = constraintsByTableName.entrySet().stream()
+                .flatMap(e -> {
+                    NavigableMap<Cell, byte[]> writes = writesByTable.get(e.getKey());
+                    return writes == null
+                            ? Stream.empty()
+                            : e.getValue().findConstraintFailures(writes, this, constraintCheckingMode).stream();
+                })
+                .collect(toList());
+
         if (!violations.isEmpty()) {
+            AtlasDbConstraintException error = new AtlasDbConstraintException(violations);
             if (constraintCheckingMode.shouldThrowException()) {
-                throw new AtlasDbConstraintException(violations);
+                throw error;
             } else {
-                constraintLogger.error("Constraint failure on commit.", new AtlasDbConstraintException(violations));
+                constraintLogger.error("Constraint failure on commit.", error);
             }
         }
     }
