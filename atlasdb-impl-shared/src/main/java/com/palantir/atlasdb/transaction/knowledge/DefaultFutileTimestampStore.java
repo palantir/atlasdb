@@ -21,9 +21,10 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class DefaultFutileTimestampStore implements FutileTimestampStore {
     // DO NOT change the following without a migration of the known aborted timestamps table!
@@ -32,7 +33,8 @@ public class DefaultFutileTimestampStore implements FutileTimestampStore {
     public static final long PARTITIONING_QUANTUM = 50_000_000;
     public static final int ROWS_PER_QUANTUM = 31;
 
-    private static final CellEncodingStrategy ABORTED_TICKETS_ENCODING_STRATEGY =
+    // Depending on concrete type, because we need getRowSetCoveringTimestampRange, and we control this object
+    private static final TicketsCellEncodingStrategy ABORTED_TICKETS_ENCODING_STRATEGY =
             new TicketsCellEncodingStrategy(PARTITIONING_QUANTUM, ROWS_PER_QUANTUM);
     private static final byte[] MARKER_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
@@ -43,11 +45,10 @@ public class DefaultFutileTimestampStore implements FutileTimestampStore {
     }
 
     @Override
-    public boolean isTimestampKnownFutile(long timestamp) {
-        Cell targetCell = getTargetCell(timestamp);
-        return !keyValueService
-                .get(TransactionConstants.KNOWN_ABORTED_TIMESTAMPS_TABLE, ImmutableMap.of(targetCell, Long.MAX_VALUE))
-                .isEmpty();
+    public Set<Long> getFutileTimestampsInRange(long startInclusive, long endInclusive) {
+        Stream<byte[]> rows =
+                ABORTED_TICKETS_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(startInclusive, endInclusive);
+        return null;
     }
 
     @Override

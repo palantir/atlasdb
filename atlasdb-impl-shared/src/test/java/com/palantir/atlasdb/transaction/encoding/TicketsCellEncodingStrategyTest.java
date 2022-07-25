@@ -24,8 +24,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy.CellRangeQuery;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -121,5 +126,51 @@ public class TicketsCellEncodingStrategyTest {
                                 18 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum())
                         .boxed()
                         .collect(Collectors.toList()));
+    }
+
+    @Test
+    public void getRangeQueryForSingleBoundedPartitionWithCompleteRange() {
+        assertThat(SMALL_QUANTUM_STRATEGY
+                        .getRangeQueryCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4 - 1)
+                        .rowsToBeLoaded())
+                .satisfies(map -> {
+                    Map<Long, ColumnRangeSelection> columnToRangeSelection = KeyedStream.stream(map)
+                            .mapKeys(rowKey -> (long) ValueType.VAR_LONG.convertToJava(rowKey, 0))
+                            .collectToMap();
+
+                    List<Long> expectedRows = LongStream.range(3 * SMALL_NUMBER_OF_ROWS, 4 * SMALL_NUMBER_OF_ROWS)
+                            .boxed()
+                            .collect(Collectors.toList());
+                    assertThat(columnToRangeSelection.keySet()).hasSameElementsAs(expectedRows);
+                    expectedRows.forEach(expectedRow -> assertThat(columnToRangeSelection.get(expectedRow)).satisfies(rangeSelection -> {
+                        assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getStartCol(), 0))
+                                .isEqualTo(0L);
+                        assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getEndCol(), 0))
+                                .isEqualTo(SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS);
+                    }));
+                });
+    }
+
+    @Test
+    public void getRangeQueryForSingleBoundedPartitionWithWrapAroundRange() {
+        CellRangeQuery cellRangeQueryNoCompleteLoop = SMALL_QUANTUM_STRATEGY.getRangeQueryCoveringTimestampRange(9, 11);
+        assertThat(cellRangeQueryNoCompleteLoop.rowsToBeLoaded()).satisfies(map -> {
+            Map<Long, ColumnRangeSelection> columnToRangeSelection = KeyedStream.stream(map)
+                    .mapKeys(rowKey -> (long) ValueType.VAR_LONG.convertToJava(rowKey, 0))
+                    .collectToMap();
+            ColumnRangeSelection offsetFourSelection = columnToRangeSelection.get(4L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getStartCol(), 0)).isEqualTo(1L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getEndCol(), 0)).isEqualTo(1L);
+
+            ColumnRangeSelection offsetZeroSelection = columnToRangeSelection.get(0L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getStartCol(), 0)).isEqualTo(2L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getEndCol(), 0)).isEqualTo(2L);
+
+            ColumnRangeSelection offsetOneSelection = columnToRangeSelection.get(1L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getStartCol(), 0)).isEqualTo(2L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getEndCol(), 0)).isEqualTo(2L);
+
+            assertThat(columnToRangeSelection.keySet()).containsExactly(0L, 1L, 4L);
+        });
     }
 }

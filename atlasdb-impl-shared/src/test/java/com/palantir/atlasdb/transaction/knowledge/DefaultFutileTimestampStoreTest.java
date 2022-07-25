@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -37,24 +36,8 @@ public class DefaultFutileTimestampStoreTest {
     }
 
     @Test
-    public void timestampsAreByDefaultNotFutile() {
-        assertThat(futileTimestampStore.isTimestampKnownFutile(TIMESTAMP)).isFalse();
-        assertThat(futileTimestampStore.isTimestampKnownFutile(33L)).isFalse();
-        assertThat(futileTimestampStore.isTimestampKnownFutile(979L)).isFalse();
-    }
-
-    @Test
-    public void timestampIsKnownFutileOnceMarkedAsSuch() {
-        assertThat(futileTimestampStore.isTimestampKnownFutile(TIMESTAMP)).isFalse();
-        futileTimestampStore.markFutile(TIMESTAMP);
-        assertThat(futileTimestampStore.isTimestampKnownFutile(TIMESTAMP)).isTrue();
-        assertThat(futileTimestampStore.isTimestampKnownFutile(TIMESTAMP + 1)).isFalse();
-    }
-
-    @Test
     public void markingTimestampsFutileIsIdempotent() {
         futileTimestampStore.markFutile(TIMESTAMP);
-        assertThat(futileTimestampStore.isTimestampKnownFutile(TIMESTAMP)).isTrue();
         assertThatCode(() -> futileTimestampStore.markFutile(TIMESTAMP)).doesNotThrowAnyException();
     }
 }

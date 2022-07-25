@@ -19,11 +19,15 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+import org.immutables.value.Value;
 
 /**
  * We divide the first PARTITIONING_QUANTUM timestamps among the first ROW_PER_QUANTUM rows.
@@ -110,5 +114,58 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
         long endRow = startTimestampToRow(
                 toInclusive + rowsPerQuantum - ((toInclusive % partitioningQuantum) % rowsPerQuantum) - 1);
         return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsCellEncodingStrategy::rowToBytes);
+    }
+
+    public CellRangeQuery getRangeQueryCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        long startPartition = getPartition(fromInclusive);
+        long endPartition = getPartition(fromInclusive);
+        if (startPartition == endPartition) {
+            return getQueryForSingleDoublyBoundedPartition(startPartition, fromInclusive, toInclusive);
+        }
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private CellRangeQuery getQueryForSingleDoublyBoundedPartition(
+            long partitionNumber, long fromInclusive, long toInclusive) {
+        ImmutableCellRangeQuery.Builder builder = ImmutableCellRangeQuery.builder();
+        for (int rowOffset = 0; rowOffset < rowsPerQuantum; rowOffset++) {
+            long firstColumnInPartition = getPartitionOffsetRow(fromInclusive) <= rowOffset
+                    ? getColumnIndex(fromInclusive)
+                    : getColumnIndex(fromInclusive) + 1;
+            long lastColumnInPartition = getPartitionOffsetRow(toInclusive) >= rowOffset
+                    ? getColumnIndex(toInclusive)
+                    : getColumnIndex(toInclusive) - 1;
+            if (firstColumnInPartition <= lastColumnInPartition) {
+                builder.putRowsToBeLoaded(
+                        ValueType.VAR_LONG.convertFromJava(partitionNumber * rowsPerQuantum + rowOffset),
+                        new ColumnRangeSelection(
+                                ValueType.VAR_LONG.convertFromJava(firstColumnInPartition),
+                                ValueType.VAR_LONG.convertFromJava(lastColumnInPartition + 1)));
+            }
+        }
+        return builder.build();
+    }
+
+    private long getPartition(long timestamp) {
+        return timestamp / partitioningQuantum;
+    }
+
+    private long getColumnIndex(long timestamp) {
+        return (timestamp % partitioningQuantum) / rowsPerQuantum;
+    }
+
+    private long getPartitionOffsetRow(long timestamp) {
+        return (timestamp % partitioningQuantum) % rowsPerQuantum;
+    }
+
+    @Value.Immutable
+    interface CellRangeQuery {
+        Map<byte[], ColumnRangeSelection> rowsToBeLoaded();
+
+        static CellRangeQuery merge(List<CellRangeQuery> queries) {
+            ImmutableCellRangeQuery.Builder builder = ImmutableCellRangeQuery.builder();
+            queries.forEach(query -> builder.putAllRowsToBeLoaded(query.rowsToBeLoaded()));
+            return builder.build();
+        }
     }
 }
