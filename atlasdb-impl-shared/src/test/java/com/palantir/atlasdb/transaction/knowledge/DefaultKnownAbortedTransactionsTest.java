@@ -69,11 +69,9 @@ public final class DefaultKnownAbortedTransactionsTest {
         when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
                 .thenReturn(abortedTimestamps);
 
-        Range<Long> rangeForBucket = Utils.getInclusiveRangeForBucket(bucket);
-
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp)).isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
+                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
 
         // a second call will load state from the cache
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp + 1))
@@ -97,18 +95,16 @@ public final class DefaultKnownAbortedTransactionsTest {
                 .thenReturn(ImmutableSet.of(abortedTimestampBucket2));
 
         // First call for bucket1 loads from remote
-        Range<Long> rangeForBucket1 = Utils.getInclusiveRangeForBucket(bucket1);
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1))
                 .isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(rangeForBucket1.lowerEndpoint(), rangeForBucket1.upperEndpoint());
+                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket1), Utils.getMaxTsInCurrentBucket(bucket1));
 
         // First call for bucket2 loads from remote
-        Range<Long> rangeForBucket2 = Utils.getInclusiveRangeForBucket(bucket2);
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket2))
                 .isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(rangeForBucket2.lowerEndpoint(), rangeForBucket2.upperEndpoint());
+                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket2), Utils.getMaxTsInCurrentBucket(bucket2));
 
         // a second call will load state from the cache
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1 + 1))
@@ -134,7 +130,8 @@ public final class DefaultKnownAbortedTransactionsTest {
                 });
 
         long bucket = 1;
-        Range<Long> rangeForBucket = Utils.getInclusiveRangeForBucket(bucket);
+        Range<Long> rangeForBucket =
+                Range.closed(Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
 
         // First query for bucket 1 goes to the store
         knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
@@ -146,9 +143,8 @@ public final class DefaultKnownAbortedTransactionsTest {
         verifyNoMoreInteractions(futileTimestampStore);
 
         long bucket2 = 2;
-        Range<Long> rangeForBucket2 = Utils.getInclusiveRangeForBucket(bucket2);
         // caching a second bucket will cross the threshold weight of cache, marking first bucket for eviction
-        knownAbortedTransactions.isKnownAborted(rangeForBucket2.lowerEndpoint());
+        knownAbortedTransactions.isKnownAborted(Utils.getMinTsInBucket(bucket2));
 
         knownAbortedTransactions.cleanup();
 

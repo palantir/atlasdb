@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import static com.palantir.atlasdb.transaction.knowledge.Utils.getMaxTsInCurrentBucket;
 
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -49,11 +48,10 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
             FutileTimestampStore futileTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
         this.futileTimestampStore = futileTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
-        // todo(snanda): lazy populate
         this.patchyCacheRef = new AtomicReference<>();
         this.autobatcher = Autobatchers.independent(consumer())
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
-                .batchFunctionTimeout(Duration.ofSeconds(30))
+                .batchFunctionTimeout(Duration.ofSeconds(3000))
                 .build();
     }
 
@@ -70,6 +68,7 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
 
             PatchyCache refreshedPatchyCache =
                     refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
+
             for (BatchElement<Long, TransactionSoftCacheStatus> elem : batch) {
                 long startTimestamp = elem.argument();
                 long requestedBucket = Utils.getBucket(startTimestamp);
@@ -92,6 +91,12 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
             latestTsSeenSoFar = Math.max(latestTsSeenSoFar, maybeSnapshot.get().lastKnownConcludedTimestamp);
         }
 
+        long latestBucket = Utils.getBucket(latestTsSeenSoFar);
+        // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
+        // Do not remove this line without considering perf implications.
+        knownConcludedTransactions.isKnownConcluded(latestBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
+
+        latestTsSeenSoFar = Math.max(latestTsSeenSoFar, knownConcludedTransactions.lastKnownConcludedTimestamp());
         return latestTsSeenSoFar;
     }
 
@@ -100,7 +105,7 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
         PatchyCache refreshedPatchyCache;
 
         if (maybeSnapshot.isEmpty() || maybeSnapshot.get().bucket < latestBucketSeenSoFar) {
-            refreshedPatchyCache = loadPatchyBucket(latestBucketSeenSoFar);
+            refreshedPatchyCache = loadPatchyBucket(latestTsSeenSoFar, latestBucketSeenSoFar);
         } else {
             // need to load a range of timestamps
             refreshedPatchyCache = extendPatch(maybeSnapshot.get(), latestTsSeenSoFar);
@@ -129,21 +134,13 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
         return snapshot;
     }
 
-    private PatchyCache loadPatchyBucket(long latestBucketSeenSoFar) {
+    private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, long latestBucketSeenSoFar) {
         long maxTsInCurrentBucket = getMaxTsInCurrentBucket(latestBucketSeenSoFar);
 
-        // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
-        // Do not remove this line without considering perf implications.
-        knownConcludedTransactions.isKnownConcluded(
-                maxTsInCurrentBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
-
-        long lastKnownConcludedTimestamp = knownConcludedTransactions.lastKnownConcludedTimestamp();
-
-        Range<Long> rangeForBucket = Utils.getInclusiveRangeForBucket(latestBucketSeenSoFar);
         Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
-                rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
+                Utils.getMinTsInBucket(latestBucketSeenSoFar), Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar));
 
-        return new PatchyCache(Math.min(lastKnownConcludedTimestamp, maxTsInCurrentBucket), futileTimestamps);
+        return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), futileTimestamps);
     }
 
     private Optional<PatchyCache> getSnapshot() {
