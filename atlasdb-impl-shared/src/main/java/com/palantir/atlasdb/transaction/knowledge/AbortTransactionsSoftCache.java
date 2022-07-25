@@ -116,9 +116,15 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
     }
 
     private PatchyCache extendPatch(PatchyCache snapshot, long latestTs) {
+        long currentLastKnownConcluded = snapshot.lastKnownConcludedTimestamp;
+
+        // It is possible that cache was update by the time we reach here and refresh is not required any more.
+        if (latestTs <= currentLastKnownConcluded) {
+            return snapshot;
+        }
 
         Set<Long> newAbortedTransactions =
-                futileTimestampStore.getAbortedTransactionsInRange(snapshot.lastKnownConcludedTimestamp, latestTs);
+                futileTimestampStore.getAbortedTransactionsInRange(currentLastKnownConcluded, latestTs);
         snapshot.extend(latestTs, newAbortedTransactions);
         return snapshot;
     }
@@ -144,8 +150,8 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
         return Optional.ofNullable(patchyCacheRef.get());
     }
 
-    private PatchyCache tryUpdate(PatchyCache update) {
-        return patchyCacheRef.getAndAccumulate(update, AbortTransactionsSoftCache::getLatest);
+    private void tryUpdate(PatchyCache update) {
+        patchyCacheRef.getAndAccumulate(update, AbortTransactionsSoftCache::getLatest);
     }
 
     private TransactionSoftCacheStatus getStatus(long startTimestamp, Set<Long> abortedTransactions) {
@@ -157,6 +163,10 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
     static PatchyCache getLatest(PatchyCache current, PatchyCache update) {
         if (current == null) {
             return update;
+        }
+
+        if (current == update) {
+            return current;
         }
 
         if (current.bucket == update.bucket) {
@@ -184,7 +194,7 @@ public final class AbortTransactionsSoftCache implements AutoCloseable {
             Preconditions.checkState(
                     Utils.getBucket(latestConcluded) == bucket, "Can only extend within the same bucket.");
             abortedTransactions.addAll(newAbortedTransactions);
-            lastKnownConcludedTimestamp = latestConcluded;
+            lastKnownConcludedTimestamp = Math.max(lastKnownConcludedTimestamp, latestConcluded);
         }
     }
 }
