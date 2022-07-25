@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.knowledge.cache;
 
 import static com.palantir.atlasdb.transaction.knowledge.Utils.getMaxTsInCurrentBucket;
 
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.knowledge.FutileTimestampStore;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.Utils;
@@ -90,7 +91,10 @@ public class AbortTransactionsSoftCache {
                 maxTsInCurrentBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
 
         long lastKnownConcludedTimestamp = knownConcludedTransactions.lastKnownConcludedTimestamp();
-        Set<Long> futileTimestamps = futileTimestampStore.getFutileTimestampsForBucket(bucketForStartTs);
+
+        Range<Long> rangeForBucket = Utils.getInclusiveRangeForBucket(bucketForStartTs);
+        Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
+                rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
 
         return ImmutablePatchyCache.of(Math.min(lastKnownConcludedTimestamp, maxTsInCurrentBucket), futileTimestamps);
     }

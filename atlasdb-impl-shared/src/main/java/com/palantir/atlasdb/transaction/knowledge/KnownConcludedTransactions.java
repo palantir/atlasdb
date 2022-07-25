@@ -42,8 +42,6 @@ public interface KnownConcludedTransactions {
     void addConcludedTimestamps(Range<Long> knownConcludedInterval);
 
     /**
-     * Returns the greatest known concluded timestamp for which transaction is known to have concluded.
-     *
      * @return the greatest known concluded timestamp for which transaction is known to have concluded.
      */
     long lastKnownConcludedTimestamp();

@@ -19,9 +19,6 @@ package com.palantir.atlasdb.transaction.knowledge;
 import java.util.Set;
 
 public interface FutileTimestampStore {
-
-    Set<Long> getFutileTimestampsForBucket(long bucket);
-
     void addAbortedTimestamps(Set<Long> abortedTimestamps);
 
     Set<Long> getAbortedTransactionsInRange(long startInclusive, long endInclusive);

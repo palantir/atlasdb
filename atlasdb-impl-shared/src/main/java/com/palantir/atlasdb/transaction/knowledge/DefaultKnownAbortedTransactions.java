@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache;
 import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache.TransactionSoftCacheStatus;
 import java.util.Set;
@@ -70,7 +71,9 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     }
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
-        return futileTimestampStore.getFutileTimestampsForBucket(bucket);
+        Range<Long> timestampRangeClosed = Utils.getInclusiveRangeForBucket(bucket);
+        return futileTimestampStore.getAbortedTransactionsInRange(
+                timestampRangeClosed.lowerEndpoint(), timestampRangeClosed.upperEndpoint());
     }
 
     private static final class AbortedTransactionBucketWeigher implements Weigher<Long, Set<Long>> {

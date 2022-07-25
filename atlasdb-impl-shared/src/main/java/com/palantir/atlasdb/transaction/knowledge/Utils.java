@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 
 public final class Utils {
@@ -27,5 +28,9 @@ public final class Utils {
 
     public static long getBucket(long startTimestamp) {
         return startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
+    }
+
+    public static Range<Long> getInclusiveRangeForBucket(long bucket) {
+        return Range.closed(bucket * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, getMaxTsInCurrentBucket(bucket));
     }
 }
