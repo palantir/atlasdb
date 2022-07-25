@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.batch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
@@ -36,17 +37,14 @@ import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * This implementation of multi-client batched TimeLock endpoints does not support multi-leader mode on TimeLock.
@@ -75,14 +73,10 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<LeaderTimes> leaderTimes(AuthHeader authHeader, Set<Namespace> namespaces) {
-        return handleExceptions(() -> {
-            List<ListenableFuture<Map.Entry<Namespace, LeaderTime>>> futures =
-                    namespaces.stream().map(this::getNamespacedLeaderTimes).collect(Collectors.toList());
-            return Futures.transform(
-                    Futures.allAsList(futures),
-                    entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
-                    MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(Collections2.transform(namespaces, this::getNamespacedLeaderTimes)),
+                entryList -> LeaderTimes.of(ImmutableMap.copyOf(entryList)),
+                MoreExecutors.directExecutor()));
     }
 
     @Override
@@ -100,27 +94,21 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactionsForClients(
             AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests) {
-        return handleExceptions(() -> {
-            List<ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>> futures = KeyedStream.stream(
-                            requests)
-                    .map(this::startTransactionsForSingleNamespace)
-                    .values()
-                    .collect(Collectors.toList());
-            return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(Collections2.transform(
+                        requests.entrySet(), e -> startTransactionsForSingleNamespace(e.getKey(), e.getValue()))),
+                ImmutableMap::copyOf,
+                MoreExecutors.directExecutor()));
     }
 
     @Override
     public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForClients(
             AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
-        return handleExceptions(() -> {
-            List<ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>>> futures = KeyedStream.stream(
-                            requests)
-                    .map(this::getCommitTimestampsForSingleNamespace)
-                    .values()
-                    .collect(Collectors.toList());
-            return Futures.transform(Futures.allAsList(futures), ImmutableMap::copyOf, MoreExecutors.directExecutor());
-        });
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(Collections2.transform(
+                        requests.entrySet(), e -> getCommitTimestampsForSingleNamespace(e.getKey(), e.getValue()))),
+                ImmutableMap::copyOf,
+                MoreExecutors.directExecutor()));
     }
 
     private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(

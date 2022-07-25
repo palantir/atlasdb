@@ -151,7 +151,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         return extraTagsTimerCache.computeIfAbsent(methodWithExtraTags, onSuccessTimerMappingFunctionExtraTags);
     }
 
-    @Value.Immutable
+    @Value.Immutable(lazyhash = true)
     interface MethodWithExtraTags {
         @Value.Parameter
         Method method();

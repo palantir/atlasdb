@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
@@ -154,9 +153,10 @@ public final class LockResponse implements Serializable {
         if (!(obj instanceof LockResponse)) {
             return false;
         }
-        return token.equals(((LockResponse) obj).token)
-                && lockHolders.equals(((LockResponse) obj).getLockHolders())
-                && isBlockAndRelease == ((LockResponse) obj).isBlockAndRelease();
+        LockResponse that = (LockResponse) obj;
+        return Objects.equals(token, that.token)
+                && lockHolders.equals(that.getLockHolders())
+                && isBlockAndRelease == that.isBlockAndRelease();
     }
 
     @Override
@@ -165,11 +165,11 @@ public final class LockResponse implements Serializable {
     }
 
     public String toString(long currentTimeMillis) {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("token", token.toString(currentTimeMillis))
-                .add("lockHolders", lockHolders)
-                .add("isBlockAndRelease", isBlockAndRelease)
-                .toString();
+        return "LockResponse{" //
+                + "token=" + ((token == null) ? "null" : token.toString(currentTimeMillis)) //
+                + ", lockHolders=" + lockHolders //
+                + ", isBlockAndRelease=" + isBlockAndRelease //
+                + "'}";
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
