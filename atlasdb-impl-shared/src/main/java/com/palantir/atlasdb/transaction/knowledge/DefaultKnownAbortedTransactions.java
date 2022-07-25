@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache;
 import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache.TransactionSoftCacheStatus;
@@ -34,14 +35,20 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     private final AbortTransactionsSoftCache softCache;
 
-    public DefaultKnownAbortedTransactions(
-            KnownConcludedTransactions knownConcludedTransactions, FutileTimestampStore futileTimestampStore) {
+    @VisibleForTesting
+    DefaultKnownAbortedTransactions(FutileTimestampStore futileTimestampStore, AbortTransactionsSoftCache softCache) {
         this.futileTimestampStore = futileTimestampStore;
         this.reliableCache = Caffeine.newBuilder()
                 .maximumWeight(100_000)
                 .weigher(new AbortedTransactionBucketWeigher())
                 .build();
-        this.softCache = new AbortTransactionsSoftCache(futileTimestampStore, knownConcludedTransactions);
+        this.softCache = softCache;
+    }
+
+    public static DefaultKnownAbortedTransactions create(
+            KnownConcludedTransactions knownConcludedTransactions, FutileTimestampStore futileTimestampStore) {
+        AbortTransactionsSoftCache softCache = new AbortTransactionsSoftCache(futileTimestampStore, knownConcludedTransactions);
+        return new DefaultKnownAbortedTransactions(futileTimestampStore, softCache);
     }
 
     @Override

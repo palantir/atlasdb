@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
-public class AbortTransactionsSoftCache {
+public final class AbortTransactionsSoftCache {
     public enum TransactionSoftCacheStatus {
         PENDING_LOAD_FROM_RELIABLE,
         IS_ABORTED,
