@@ -17,11 +17,17 @@ namespaces:
       startTransactionErrors:
         type: meter
         docs: error rate for startTransaction api in timelock
+  topology:
+    docs: Metrics for measuring client side view of timelock topology
+    metrics:
+      observedTimelockNodeCount:
+        type: gauge
+        docs: number of timelock nodes. Should be statically 3 in most cases.
   leaderElection:
     docs: Metrics for measuring client side impact of timelock leader elections.
     metrics:
       observedDuration:
-        type: timer
+        type: meter
         docs: observed call duration during leader election
 
 

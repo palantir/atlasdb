@@ -16,12 +16,14 @@
 
 package com.palantir.lock.client.metrics;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
+import com.palantir.lock.client.TopologyMetrics;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -33,6 +35,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -55,6 +58,7 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
     private final String serviceName;
     private final String namespace;
     private final Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices;
+
     private volatile Optional<LeaderElectionReportingTimelockService> leaderElectionReporter = Optional.empty();
 
     private ScheduledFuture<?> task;
@@ -77,10 +81,16 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             Supplier<String> versionSupplier,
             String serviceName,
             Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices,
+            Refreshable<Set<String>> serverListSupplier,
             String namespace) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(
                 taggedMetricRegistry, versionSupplier, serviceName, timeLockClientFeedbackServices, namespace);
         task.scheduleWithFixedDelay();
+
+        TopologyMetrics topologyMetrics = TopologyMetrics.of(taggedMetricRegistry);
+        topologyMetrics.observedTimelockNodeCount(
+                (Gauge<Integer>) () -> serverListSupplier.get().size());
+
         return task;
     }
 
