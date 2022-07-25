@@ -27,7 +27,7 @@ namespaces:
     docs: Metrics for measuring client side impact of timelock leader elections.
     metrics:
       observedDuration:
-        type: meter
+        type: timer
         docs: observed call duration during leader election
 
 
