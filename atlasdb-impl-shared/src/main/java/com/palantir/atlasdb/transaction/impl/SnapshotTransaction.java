@@ -1948,7 +1948,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean hasWrites() {
-        return writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
+        return !writesByTable.isEmpty()
+                && writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
