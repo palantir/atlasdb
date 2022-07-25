@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Added a metric for observed timelock servers count. The count should
+    be at least 3, unless an unsafe topology is being used.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6157
