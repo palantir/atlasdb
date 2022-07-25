@@ -28,6 +28,9 @@ import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final FutileTimestampStore futileTimestampStore;
+
+    @VisibleForTesting
+    static final int MAXIMUM_CACHE_WEIGHT = 100_000;
     /**
      * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
      */
@@ -39,7 +42,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     DefaultKnownAbortedTransactions(FutileTimestampStore futileTimestampStore, AbortTransactionsSoftCache softCache) {
         this.futileTimestampStore = futileTimestampStore;
         this.reliableCache = Caffeine.newBuilder()
-                .maximumWeight(100_000)
+                .maximumWeight(MAXIMUM_CACHE_WEIGHT)
                 .weigher(new AbortedTransactionBucketWeigher())
                 .build();
         this.softCache = softCache;
@@ -47,7 +50,8 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     public static DefaultKnownAbortedTransactions create(
             KnownConcludedTransactions knownConcludedTransactions, FutileTimestampStore futileTimestampStore) {
-        AbortTransactionsSoftCache softCache = new AbortTransactionsSoftCache(futileTimestampStore, knownConcludedTransactions);
+        AbortTransactionsSoftCache softCache =
+                new AbortTransactionsSoftCache(futileTimestampStore, knownConcludedTransactions);
         return new DefaultKnownAbortedTransactions(futileTimestampStore, softCache);
     }
 
@@ -71,6 +75,11 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
         futileTimestampStore.addAbortedTimestamps(abortedTimestamps);
+    }
+
+    @VisibleForTesting
+    void cleanup() {
+        reliableCache.cleanUp();
     }
 
     private Set<Long> getCachedAbortedTimestampsInBucket(long bucket) {
