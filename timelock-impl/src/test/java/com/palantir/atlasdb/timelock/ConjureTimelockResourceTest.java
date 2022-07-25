@@ -18,10 +18,14 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,17 +33,26 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,6 +120,33 @@ public class ConjureTimelockResourceTest {
         assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE))
                         .get())
                 .isEqualTo(thirdRange.getLowerBound());
+    }
+
+    @Test
+    public void canUnlockUsingV1AndV2Endpoints() {
+        UUID tokenOne = UUID.randomUUID();
+        UUID tokenTwo = UUID.randomUUID();
+        UUID tokenThree = UUID.randomUUID();
+
+        Set<ConjureLockToken> requestOne = ImmutableSet.of(ConjureLockToken.of(tokenOne));
+
+        Set<LockToken> setOne = ImmutableSet.of(LockToken.of(tokenTwo));
+        Set<LockToken> setTwo = ImmutableSet.of(LockToken.of(tokenThree));
+
+        when(timelockService.unlock(any()))
+                .thenReturn(Futures.immediateFuture(setOne))
+                .thenReturn(Futures.immediateFuture(setTwo));
+
+        ConjureUnlockResponse unlockResponse =
+                Futures.getUnchecked(resource.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(requestOne)));
+        assertThat(unlockResponse.getTokens()).containsExactly(ConjureLockToken.of(tokenTwo));
+        verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenOne))));
+
+        ConjureUnlockResponseV2 secondResponse = Futures.getUnchecked(resource.unlockV2(
+                AUTH_HEADER, NAMESPACE, ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
+
+        assertThat(secondResponse.getTokens()).containsExactly(ConjureLockTokenV2.of(tokenThree));
+        verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenThree))));
     }
 
     @Test
