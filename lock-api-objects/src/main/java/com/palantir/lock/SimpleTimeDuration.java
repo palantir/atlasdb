@@ -17,7 +17,6 @@ package com.palantir.lock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.MoreObjects;
 import com.google.common.primitives.Longs;
 import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
@@ -145,9 +144,7 @@ public final class SimpleTimeDuration implements TimeDuration, Serializable {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .addValue(time + " " + unit.toString().toLowerCase())
-                .toString();
+        return "SimpleTimeDuration{" + time + ' ' + unit.toString() + '}';
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {

@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -28,6 +27,7 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -176,16 +176,17 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
     }
 
     public String toString(long currentTimeMillis) {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("tokenId", tokenId.toString(Character.MAX_RADIX))
-                .add("client", client)
-                .add("createdAt", SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS))
-                .add("expiresIn", SimpleTimeDuration.of(expirationDateMs - currentTimeMillis, TimeUnit.MILLISECONDS))
-                .add("lockCount", lockMap.size())
-                .add("firstLock", lockMap.entries().iterator().next())
-                .add("versionId", versionId)
-                .add("requestingThread", requestingThread)
-                .toString();
+        return "HeldLocksToken{" //
+                + "tokenId=" + tokenId //
+                + ", client=" + client //
+                + ", createdAt=" + SimpleTimeDuration.of(creationDateMs, TimeUnit.MILLISECONDS) //
+                + ", expiresIn=" + SimpleTimeDuration.of(expirationDateMs, TimeUnit.MILLISECONDS) //
+                + ", lockCount=" + lockMap.size() //
+                + ", firstLock=" + Iterables.getFirst(lockMap.entries(), "") //
+                + ", lockTimeout=" + lockTimeout //
+                + ", versionId=" + versionId //
+                + ", now=" + Instant.ofEpochMilli(currentTimeMillis) //
+                + '}';
     }
 
     /**

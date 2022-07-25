@@ -220,16 +220,16 @@ public final class LockRequest implements Serializable {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .omitNullValues()
-                .add("lockCount", lockMap.size())
-                .add("firstLock", lockMap.entries().iterator().next())
-                .add("lockTimeout", lockTimeout)
-                .add("lockGroupBehavior", lockGroupBehavior)
-                .add("blockingMode", blockingMode)
-                .add("blockingDuration", blockingDuration)
-                .add("versionId", versionId)
-                .toString();
+        return "LockRequest{" //
+                + "lockCount=" + lockMap.size() //
+                + ", firstLock=" + Iterables.getFirst(lockMap.entries(), "") //
+                + ", lockTimeout=" + lockTimeout //
+                + ", lockGroupBehavior=" + lockGroupBehavior //
+                + ", blockingMode=" + blockingMode //
+                + ", blockingDuration=" + blockingDuration //
+                + ", versionId=" + versionId //
+                + ", creatingThreadName='" + creatingThreadName //
+                + "'}";
     }
 
     private void readObject(@SuppressWarnings("unused") ObjectInputStream in) throws InvalidObjectException {
@@ -421,14 +421,16 @@ public final class LockRequest implements Serializable {
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("lockTimeout", lockTimeout)
-                    .add("lockGroupBehavior", lockGroupBehavior)
-                    .add("blockingMode", blockingMode)
-                    .add("blockingDuration", blockingDuration)
-                    .add("versionId", versionId)
-                    .add("lockMap", lockMap)
-                    .toString();
+            return getClass().getSimpleName() + "{" //
+                    + "lockTimeout=" + lockTimeout //
+                    + ", lockGroupBehavior=" + lockGroupBehavior //
+                    + ", blockingMode=" + blockingMode //
+                    + ", blockingDuration=" + blockingDuration //
+                    + ", versionId=" + versionId //
+                    + ", lockGroupBehavior=" + lockGroupBehavior //
+                    + ", lockCount=" + lockMap.size() //
+                    + ", firstLock=" + Iterables.getFirst(lockMap.entries(), "") //
+                    + '}';
         }
     }
 
