@@ -35,7 +35,6 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -81,15 +80,14 @@ public final class TimeLockFeedbackBackgroundTask implements AutoCloseable {
             Supplier<String> versionSupplier,
             String serviceName,
             Refreshable<List<TimeLockClientFeedbackService>> timeLockClientFeedbackServices,
-            Refreshable<Set<String>> serverListSupplier,
+            Refreshable<Integer> observedTimeLockNodeCountSupplier,
             String namespace) {
         TimeLockFeedbackBackgroundTask task = new TimeLockFeedbackBackgroundTask(
                 taggedMetricRegistry, versionSupplier, serviceName, timeLockClientFeedbackServices, namespace);
         task.scheduleWithFixedDelay();
 
         TopologyMetrics topologyMetrics = TopologyMetrics.of(taggedMetricRegistry);
-        topologyMetrics.observedTimelockNodeCount(
-                (Gauge<Integer>) () -> serverListSupplier.get().size());
+        topologyMetrics.observedTimelockNodeCount((Gauge<Integer>) observedTimeLockNodeCountSupplier::get);
 
         return task;
     }

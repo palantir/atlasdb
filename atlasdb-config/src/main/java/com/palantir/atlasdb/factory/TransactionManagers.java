@@ -568,9 +568,10 @@ public abstract class TransactionManagers {
         if (isUsingTimeLock(config, runtimeConfig.current()) && shouldGiveFeedbackToServer(config)) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
                     getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
-            Refreshable<Set<String>> serverListSupplier =
+            Refreshable<Integer> timelockNodeCountSupplier =
                     DefaultLockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig)
-                            .map(ServerListConfig::servers);
+                            .map(ServerListConfig::servers)
+                            .map(Set::size);
 
             return Optional.of(initializeCloseable(
                     () -> TimeLockFeedbackBackgroundTask.create(
@@ -578,7 +579,7 @@ public abstract class TransactionManagers {
                             AtlasDbVersion::readVersion,
                             serviceName(),
                             refreshableTimeLockClientFeedbackServices,
-                            serverListSupplier,
+                            timelockNodeCountSupplier,
                             namespace()),
                     closeables));
         }
