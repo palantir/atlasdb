@@ -47,10 +47,11 @@ public class AbortTransactionsSoftCache {
     public TransactionSoftCacheStatus getSoftCacheTransactionStatus(long startTimestamp) {
         PatchyCache snapshot = getSnapshot();
         long bucketForStartTs = Utils.getBucket(startTimestamp);
+
         PatchyCache refreshedPatchyCache;
 
         if (bucketForStartTs < snapshot.bucket()) {
-            // startTs is in previous bucket and thus, can be reliably loaded
+            // startTs is in an immutable bucket and thus, can be reliably loaded
             return TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE;
         } else if (bucketForStartTs == snapshot.bucket()) {
             if (startTimestamp <= snapshot.lastKnownConcludedTimestamp()) {
@@ -65,6 +66,9 @@ public class AbortTransactionsSoftCache {
         }
 
         tryUpdate(refreshedPatchyCache);
+
+        // It does not matter if the soft cache ref is updated or not. The `refreshedPatchyCache` contains the correct
+        // view to answer the query for startTimestamp.
         return getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions());
     }
 
@@ -72,16 +76,19 @@ public class AbortTransactionsSoftCache {
         Set<Long> newAbortedTransactions = futileTimestampStore.getAbortedTransactionsInRange(
                 snapshot.lastKnownConcludedTimestamp(), startTimestamp);
 
-        Set<Long> currentAbortedTransactions = snapshot.abortedTransactions();
-        currentAbortedTransactions.addAll(newAbortedTransactions);
-        return ImmutablePatchyCache.of(startTimestamp, currentAbortedTransactions);
+        Set<Long> abortedTransactionsSoFar = snapshot.abortedTransactions();
+        abortedTransactionsSoFar.addAll(newAbortedTransactions);
+        return ImmutablePatchyCache.of(startTimestamp, abortedTransactionsSoFar);
     }
 
     private PatchyCache loadPatchyBucket(long bucketForStartTs) {
         long maxTsInCurrentBucket = getMaxTsInCurrentBucket(bucketForStartTs);
 
-        // we probably want the latest guy here i.e. remote query as we are making a db query anyway + this will save a
-        // few future calls
+        // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
+        // Do not remove this line without considering perf implications.
+        knownConcludedTransactions.isKnownConcluded(
+                maxTsInCurrentBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
+
         long lastKnownConcludedTimestamp = knownConcludedTransactions.lastKnownConcludedTimestamp();
         Set<Long> futileTimestamps = futileTimestampStore.getFutileTimestampsForBucket(bucketForStartTs);
 
@@ -103,7 +110,7 @@ public class AbortTransactionsSoftCache {
     }
 
     @Value.Immutable
-    public interface PatchyCache {
+    interface PatchyCache {
         @Value.Parameter
         long lastKnownConcludedTimestamp();
 

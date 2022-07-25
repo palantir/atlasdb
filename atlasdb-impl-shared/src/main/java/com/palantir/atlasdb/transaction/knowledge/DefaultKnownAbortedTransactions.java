@@ -26,13 +26,20 @@ import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
     private final FutileTimestampStore futileTimestampStore;
+    /**
+     * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
+     */
     private final Cache<Long, Set<Long>> reliableCache;
+
     private final AbortTransactionsSoftCache softCache;
 
     public DefaultKnownAbortedTransactions(
             KnownConcludedTransactions knownConcludedTransactions, FutileTimestampStore futileTimestampStore) {
         this.futileTimestampStore = futileTimestampStore;
-        this.reliableCache = cache();
+        this.reliableCache = Caffeine.newBuilder()
+                .maximumWeight(100_000)
+                .weigher(new AbortedTransactionBucketWeigher())
+                .build();
         this.softCache = new AbortTransactionsSoftCache(futileTimestampStore, knownConcludedTransactions);
     }
 
@@ -41,12 +48,16 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         long bucketForTimestamp = Utils.getBucket(startTimestamp);
         TransactionSoftCacheStatus softCacheTransactionStatus = softCache.getSoftCacheTransactionStatus(startTimestamp);
 
-        if (softCacheTransactionStatus.equals(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE)) {
-            Set<Long> cachedAbortedTimestamps = getCachedAbortedTimestampsInBucket(bucketForTimestamp);
-            return cachedAbortedTimestamps.contains(startTimestamp);
+        switch (softCacheTransactionStatus) {
+            case IS_ABORTED:
+                return true;
+            case IS_NOT_ABORTED:
+                return false;
+            case PENDING_LOAD_FROM_RELIABLE:
+                return getCachedAbortedTimestampsInBucket(bucketForTimestamp).contains(startTimestamp);
+            default:
+                throw new IllegalStateException("Unrecognized transaction status returned from soft cache.");
         }
-
-        return softCacheTransactionStatus.equals(TransactionSoftCacheStatus.IS_ABORTED);
     }
 
     @Override
@@ -60,13 +71,6 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
         return futileTimestampStore.getFutileTimestampsForBucket(bucket);
-    }
-
-    private static Cache<Long, Set<Long>> cache() {
-        return Caffeine.newBuilder()
-                .maximumWeight(100_000)
-                .weigher(new AbortedTransactionBucketWeigher())
-                .build();
     }
 
     private static final class AbortedTransactionBucketWeigher implements Weigher<Long, Set<Long>> {
