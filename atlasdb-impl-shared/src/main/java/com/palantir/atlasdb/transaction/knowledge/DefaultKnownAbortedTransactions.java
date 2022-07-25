@@ -21,8 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache;
-import com.palantir.atlasdb.transaction.knowledge.cache.AbortTransactionsSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.AbortTransactionsSoftCache.TransactionSoftCacheStatus;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
