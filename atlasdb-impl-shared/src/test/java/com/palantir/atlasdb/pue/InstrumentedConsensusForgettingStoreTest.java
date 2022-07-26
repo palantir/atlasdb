@@ -66,8 +66,8 @@ public class InstrumentedConsensusForgettingStoreTest {
 
     @Test
     public void forwardsSimpleCallsToDelegate() throws ExecutionException, InterruptedException {
-        consensusForgettingStore.putUnlessExists(CELL, VALUE);
-        verify(delegate).putUnlessExists(CELL, VALUE);
+        consensusForgettingStore.atomicUpdate(CELL, VALUE);
+        verify(delegate).atomicUpdate(CELL, VALUE);
 
         when(delegate.get(CELL)).thenReturn(Futures.immediateFuture(Optional.of(VALUE)));
         assertThat(consensusForgettingStore.get(CELL).get()).contains(VALUE);

@@ -26,18 +26,18 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
-public class KvsConsensusForgettingStoreTest {
+public class PueKvsConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
     private static final byte[] HAPPY = PtBytes.toBytes("happy");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("a"), PtBytes.toBytes("b"));
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
     private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
-    ConsensusForgettingStore store = new KvsConsensusForgettingStore(kvs, TABLE);
+    ConsensusForgettingStore store = new PueKvsConsensusForgettingStore(kvs, TABLE);
 
     @Test
     public void putOverwritesPutUnlessExists() throws ExecutionException, InterruptedException {
-        store.putUnlessExists(CELL, SAD);
+        store.atomicUpdate(CELL, SAD);
         store.put(CELL, HAPPY);
         assertThat(store.get(CELL).get().get()).containsExactly(HAPPY);
         assertThat(kvs.getAllTimestamps(TABLE, ImmutableSet.of(CELL), Long.MAX_VALUE)

@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+public class SimpleCommitTimestampPutUnlessExistsTable implements AtomicTable<Long, Long> {
     private final KeyValueService kvs;
     private final TableReference tableRef;
     private final TimestampEncodingStrategy<Long> encodingStrategy;
@@ -44,7 +44,7 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
+    public void updateMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(
                 tableRef,
                 KeyedStream.stream(values)

@@ -48,7 +48,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
-    private final PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+    private final AtomicTable<Long, Long> pueTable = new ResilientCommitTimestampAtomicTable(
             forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
@@ -87,7 +87,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
                         Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
-                pueTable.putUnlessExists(startTimestamp, startTimestamp + writerIndex);
+                pueTable.update(startTimestamp, startTimestamp + writerIndex);
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.
             }
@@ -138,11 +138,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
-        private final PutUnlessExistsTable<Long, Long> pueTable;
+        private final AtomicTable<Long, Long> pueTable;
         private final List<Optional<Long>> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
-        private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, Long> pueTable) {
+        private TimestampReader(long startTimestamp, AtomicTable<Long, Long> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
             this.timestampReads = new ArrayList<>();

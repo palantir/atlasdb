@@ -72,6 +72,16 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         this.probabilityOfFailure = probabilityOfFailure;
     }
 
+    @Override
+    public void markInProgress(Cell cell) {
+        // do nothing
+    }
+
+    @Override
+    public void markInProgress(Set<Cell> cells) {
+        // do nothing
+    }
+
     /**
      * Atomically performs a read (potentially propagating newest read value) and if there is no value present on any of
      * the nodes in a quorum, writes the value to those nodes. If there is a value present, throws a
@@ -81,7 +91,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
      * changed between the read and the write.
      */
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
@@ -93,10 +103,10 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::putUnlessExists);
+                .forEach(this::atomicUpdate);
     }
 
     /**

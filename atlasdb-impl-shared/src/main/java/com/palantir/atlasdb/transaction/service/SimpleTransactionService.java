@@ -19,12 +19,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.pue.ConsensusForgettingStore;
-import com.palantir.atlasdb.pue.InstrumentedConsensusForgettingStore;
-import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
-import com.palantir.atlasdb.pue.PutUnlessExistsTable;
-import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
-import com.palantir.atlasdb.pue.SimpleCommitTimestampPutUnlessExistsTable;
+import com.palantir.atlasdb.pue.*;
+import com.palantir.atlasdb.pue.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
@@ -36,11 +32,10 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
-    private final PutUnlessExistsTable<Long, Long> txnTable;
+    private final AtomicTable<Long, Long> txnTable;
     private final TimestampEncodingStrategy<?> encodingStrategy;
 
-    private SimpleTransactionService(
-            PutUnlessExistsTable<Long, Long> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
+    private SimpleTransactionService(AtomicTable<Long, Long> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
         this.encodingStrategy = encodingStrategy;
         this.txnTable = txnTable;
     }
@@ -68,7 +63,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     private static SimpleTransactionService createSimple(
             KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
-        PutUnlessExistsTable<Long, Long> pueTable =
+        AtomicTable<Long, Long> pueTable =
                 new SimpleCommitTimestampPutUnlessExistsTable(kvs, tableRef, encodingStrategy);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
@@ -80,8 +75,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
-                new KvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+                new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
+        AtomicTable<Long, Long> pueTable = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
@@ -108,12 +103,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
-        txnTable.putUnlessExists(startTimestamp, commitTimestamp);
+        txnTable.update(startTimestamp, commitTimestamp);
     }
 
     @Override
     public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        txnTable.putUnlessExistsMultiple(startTimestampToCommitTimestamp);
+        txnTable.updateMultiple(startTimestampToCommitTimestamp);
     }
 
     @Override

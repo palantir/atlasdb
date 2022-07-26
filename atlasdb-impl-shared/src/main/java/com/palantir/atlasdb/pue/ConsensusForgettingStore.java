@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -33,15 +34,21 @@ import java.util.Optional;
  *   value until a put occurs.
  */
 public interface ConsensusForgettingStore {
+
+    // Todo(snanda): exceptions
+    void markInProgress(Cell cell);
+
+    void markInProgress(Set<Cell> cells);
+
     /**
      * An atomic put unless exists operation. If this method throws an exception, there are no consistency guarantees:
      *   1. A subsequent PUE may succeed or fail non-deterministically
      *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
      *   another PUE has failed in the past non-deterministically
      */
-    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+    void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
 
-    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

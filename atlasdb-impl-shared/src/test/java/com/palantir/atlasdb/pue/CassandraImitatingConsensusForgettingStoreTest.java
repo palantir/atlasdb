@@ -44,7 +44,7 @@ public class CassandraImitatingConsensusForgettingStoreTest {
 
     @Test
     public void canGetAfterPue() throws ExecutionException, InterruptedException {
-        neverThrowing.putUnlessExists(CELL, VALUE);
+        neverThrowing.atomicUpdate(CELL, VALUE);
         assertThat(neverThrowing.get(CELL).get()).contains(VALUE);
     }
 
@@ -56,15 +56,15 @@ public class CassandraImitatingConsensusForgettingStoreTest {
 
     @Test
     public void putOverwritesPue() throws ExecutionException, InterruptedException {
-        neverThrowing.putUnlessExists(CELL, VALUE);
+        neverThrowing.atomicUpdate(CELL, VALUE);
         neverThrowing.put(CELL, VALUE_2);
         assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE_2);
     }
 
     @Test
     public void cannotPueTwice() {
-        neverThrowing.putUnlessExists(CELL, VALUE);
-        assertThatThrownBy(() -> neverThrowing.putUnlessExists(CELL, VALUE))
+        neverThrowing.atomicUpdate(CELL, VALUE);
+        assertThatThrownBy(() -> neverThrowing.atomicUpdate(CELL, VALUE))
                 .isInstanceOf(KeyAlreadyExistsException.class)
                 .satisfies(exception -> assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
                         .containsExactly(CELL));
@@ -72,7 +72,7 @@ public class CassandraImitatingConsensusForgettingStoreTest {
 
     @Test
     public void canTouchAfterPue() throws ExecutionException, InterruptedException {
-        neverThrowing.putUnlessExists(CELL, VALUE);
+        neverThrowing.atomicUpdate(CELL, VALUE);
         neverThrowing.checkAndTouch(CELL, VALUE);
         assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
     }
@@ -84,7 +84,7 @@ public class CassandraImitatingConsensusForgettingStoreTest {
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
                         .isEmpty());
 
-        neverThrowing.putUnlessExists(CELL, VALUE);
+        neverThrowing.atomicUpdate(CELL, VALUE);
         assertThatThrownBy(() -> neverThrowing.checkAndTouch(CELL, VALUE_2))
                 .isInstanceOf(CheckAndSetException.class)
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
@@ -99,7 +99,7 @@ public class CassandraImitatingConsensusForgettingStoreTest {
         for (int i = 0; i < 100; i++) {
             Cell cell = Cell.create(PtBytes.toBytes(i), PtBytes.toBytes(i));
             try {
-                sometimesThrowing.putUnlessExists(cell, VALUE);
+                sometimesThrowing.atomicUpdate(cell, VALUE);
                 numberOfSuccessfulPue++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);
                 assertThat(sometimesThrowing.get(cell).get()).hasValue(VALUE);

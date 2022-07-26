@@ -43,6 +43,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -51,9 +52,9 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
-public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
-    private static final RateLimitedLogger log = new RateLimitedLogger(
-            SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class), 1.0 / 3600);
+public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Long> {
+    private static final RateLimitedLogger log =
+            new RateLimitedLogger(SafeLoggerFactory.get(ResilientCommitTimestampAtomicTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
@@ -91,14 +92,14 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
     private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
-    public ResilientCommitTimestampPutUnlessExistsTable(
+    public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
-    public ResilientCommitTimestampPutUnlessExistsTable(
+    public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
@@ -107,7 +108,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @VisibleForTesting
-    ResilientCommitTimestampPutUnlessExistsTable(
+    ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
@@ -122,14 +123,24 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
+    public void markInProgress(Long key) {
+        // todo(snanda)
+    }
+
+    @Override
+    public void markInProgress(Set<Long> keys) {
+        // todo(snanda)
+    }
+
+    @Override
+    public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
                 .map(startTs -> encodingStrategy.encodeCommitTimestampAsValue(
-                        startTs, PutUnlessExistsValue.staging(keyValues.get(startTs))))
+                        startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
-        store.putUnlessExists(stagingValues);
+        store.atomicUpdate(stagingValues);
         store.put(KeyedStream.stream(stagingValues)
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());
@@ -157,12 +168,12 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            AtomicValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
             Long commitTs = currentValue.value();
-            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+            AtomicValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                    kvsValue.equals(AtomicValue.committed(commitTs)),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),
@@ -182,7 +193,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
             Long startTs = startTsAndCell.getKey();
             byte[] actual = maybeActual.get();
-            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            AtomicValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
             Long commitTs = currentValue.value();
             if (currentValue.isCommitted()) {
