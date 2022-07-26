@@ -141,7 +141,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
-        return conjureDelegate.refreshLocksV2(authHeader, namespace, request);
+        return conjureDelegate.unlockV2(authHeader, namespace, request);
     }
 
     @Override
