@@ -42,6 +42,9 @@ public interface KnownConcludedTransactions {
     void addConcludedTimestamps(Range<Long> knownConcludedInterval);
 
     /**
+     * Returns the greatest known concluded timestamp for which transaction is known to have concluded. This call
+     * relies on local cache. Hence, it is possible for the view to be out of date.
+     *
      * @return the greatest known concluded timestamp for which transaction is known to have concluded.
      */
     long lastKnownConcludedTimestamp();

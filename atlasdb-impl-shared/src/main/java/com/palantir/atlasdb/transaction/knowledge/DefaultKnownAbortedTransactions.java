@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
@@ -66,7 +67,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             case PENDING_LOAD_FROM_RELIABLE:
                 return getCachedAbortedTimestampsInBucket(bucketForTimestamp).contains(startTimestamp);
             default:
-                throw new IllegalStateException("Unrecognized transaction status returned from soft cache.");
+                throw new SafeIllegalStateException("Unrecognized transaction status returned from soft cache.");
         }
     }
 
