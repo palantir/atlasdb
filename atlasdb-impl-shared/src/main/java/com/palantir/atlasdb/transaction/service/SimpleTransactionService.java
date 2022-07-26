@@ -16,11 +16,10 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.atomic.*;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.pue.*;
-import com.palantir.atlasdb.pue.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;

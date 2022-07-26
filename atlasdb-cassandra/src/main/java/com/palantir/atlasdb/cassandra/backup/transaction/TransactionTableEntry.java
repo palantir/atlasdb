@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import com.palantir.atlasdb.pue.AtomicValue;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import org.derive4j.Data;
 
 @Data

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
-import com.palantir.atlasdb.pue.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;

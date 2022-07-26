@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.pue.AtomicValue;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;

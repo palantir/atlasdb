@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import org.immutables.value.Value;
 
@@ -30,14 +30,14 @@ public interface AtomicValue<V> {
     }
 
     static <T> AtomicValue<T> committed(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
                 .state(AtomicState.COMMITTED)
                 .build();
     }
 
     static <T> AtomicValue<T> staging(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
                 .state(AtomicState.STAGING)
                 .build();

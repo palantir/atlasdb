@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static org.assertj.core.api.Assertions.fail;
 
-import com.palantir.atlasdb.pue.AtomicValue;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 

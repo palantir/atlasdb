@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
