@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDB schemas can no longer be declared for the empty table name
+  links:
+  - https://github.com/palantir/atlasdb/pull/6146

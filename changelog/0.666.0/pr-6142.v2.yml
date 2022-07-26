@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '[TTS] | Add a background task that polls sweep shards and updates
+    `KnownConcludedTransactions`.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6142
