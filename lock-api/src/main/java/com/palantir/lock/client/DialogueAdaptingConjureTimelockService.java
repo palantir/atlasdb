@@ -113,8 +113,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureRefreshLocksResponseV2 refreshLocksV2(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
-        throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this endpoint!");
+        return dialogueDelegate.refreshLocksV2(authHeader, namespace, request);
     }
 
     @Override
@@ -124,8 +123,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
-        throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this endpoint!");
+        return dialogueDelegate.unlockV2(authHeader, namespace, request);
     }
 
     @Override

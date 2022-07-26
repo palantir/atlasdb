@@ -21,12 +21,16 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
@@ -79,7 +83,17 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
     }
 
     @Override
+    public ConjureRefreshLocksResponseV2 refreshLocksV2(ConjureRefreshLocksRequestV2 request) {
+        return conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
     public ConjureUnlockResponse unlock(ConjureUnlockRequest request) {
         return conjureTimelockService.unlock(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponseV2 unlockV2(ConjureUnlockRequestV2 request) {
+        return conjureTimelockService.unlockV2(AUTH_HEADER, namespace, request);
     }
 }
