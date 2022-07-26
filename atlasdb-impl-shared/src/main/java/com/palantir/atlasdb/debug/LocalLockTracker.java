@@ -24,11 +24,8 @@ import com.google.common.collect.Queues;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
-import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
@@ -97,28 +94,10 @@ public final class LocalLockTracker {
         eventBuffer.add(event);
     }
 
-    public void logRefreshV2Response(Set<ConjureLockTokenV2> tokens, ConjureRefreshLocksResponseV2 response) {
-        TrackedLockEvent event = getTimestampedLockEventBuilder()
-                .eventType(EventType.REFRESH_LOCKS)
-                .eventDescription("Using the v2 endpoint, attempted to refresh " + tokens + "; succeeded refreshing "
-                        + response.getRefreshedTokens())
-                .build();
-        eventBuffer.add(event);
-    }
-
     void logUnlockResponse(Set<ConjureLockToken> tokens, ConjureUnlockResponse response) {
         TrackedLockEvent event = getTimestampedLockEventBuilder()
                 .eventType(EventType.UNLOCK)
                 .eventDescription("Attempted to unlock " + tokens + "; succeeded unlocking " + response.getTokens())
-                .build();
-        eventBuffer.add(event);
-    }
-
-    void logUnlockV2Response(Set<ConjureLockTokenV2> tokens, ConjureUnlockResponseV2 response) {
-        TrackedLockEvent event = getTimestampedLockEventBuilder()
-                .eventType(EventType.UNLOCK)
-                .eventDescription("Using the v2 endpoint, attempted to unlock " + tokens + "; succeeded unlocking "
-                        + response.getTokens())
                 .build();
         eventBuffer.add(event);
     }

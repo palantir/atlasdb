@@ -76,13 +76,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
         throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+                "This version of the AtlasDB client should not be using this endpoint!");
     }
 
     @Override
     public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
         throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+                "This version of the AtlasDB client should not be using this endpoint!");
     }
 
     @Override
@@ -114,7 +114,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public ConjureRefreshLocksResponseV2 refreshLocksV2(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
         throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+                "This version of the AtlasDB client should not be using this endpoint!");
     }
 
     @Override
@@ -125,7 +125,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
         throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+                "This version of the AtlasDB client should not be using this endpoint!");
     }
 
     @Override
@@ -138,7 +138,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         throw new UnsupportedOperationException(
-                "This version of the AtlasDB client should not be using this " + "endpoint!");
+                "This version of the AtlasDB client should not be using this endpoint!");
     }
 
     private <T> T executeInstrumented(
