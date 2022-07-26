@@ -22,7 +22,7 @@ public final class Utils {
     private Utils() {}
 
     public static long getMaxTsInCurrentBucket(long bucket) {
-        return (getMinTsInBucket(bucket + 1)) - 1;
+        return getMinTsInBucket(bucket + 1) - 1;
     }
 
     public static long getBucket(long startTimestamp) {
