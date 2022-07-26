@@ -53,13 +53,13 @@ public class AbortedTransactionSoftCacheTest {
 
         when(knownConcludedTransactions.lastKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
 
-        AbortedTransactionSoftCache AbortedTransactionSoftCache =
+        AbortedTransactionSoftCache abortedTransactionSoftCache =
                 new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
         // no remote calls upon init
         verify(futileTimestampStore, times(0)).getAbortedTransactionsInRange(anyLong(), anyLong());
 
         // init happens only on query
-        assertThat(AbortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
         verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
     }
