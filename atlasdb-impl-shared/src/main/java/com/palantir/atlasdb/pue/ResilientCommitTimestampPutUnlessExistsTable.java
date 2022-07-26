@@ -29,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
@@ -51,7 +53,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
-public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, TransactionStatus> {
     private static final RateLimitedLogger log = new RateLimitedLogger(
             SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
@@ -65,12 +67,12 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
     private final AtomicLong fallbacks = new AtomicLong(0);
 
-    private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
+    private final LoadingCache<CellInfo, TransactionStatus> touchCache = Caffeine.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
                 @Nonnull
-                public Long load(@Nonnull CellInfo cellInfo) {
+                public TransactionStatus load(@Nonnull CellInfo cellInfo) {
                     metrics.touchCacheLoad().time(() -> {
                         FollowUpAction followUpAction = FollowUpAction.PUT;
                         if (shouldTouch()) {
@@ -85,7 +87,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                                     cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
                         }
                     });
-                    return cellInfo.commitTs();
+                    return TransactionStatuses.committed(cellInfo.commitTs());
                 }
             });
 
@@ -122,7 +124,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
+    public void putUnlessExistsMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
@@ -136,7 +138,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @Override
-    public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
+    public ListenableFuture<Map<Long, TransactionStatus>> get(Iterable<Long> cells) {
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
                 .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
         ListenableFuture<Map<Cell, byte[]>> asyncReads = store.getMultiple(startTsToCell.values());
@@ -157,9 +159,10 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-            Long commitTs = currentValue.value();
-            PutUnlessExistsValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+            PutUnlessExistsValue<TransactionStatus> currentValue =
+                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            TransactionStatus commitTs = currentValue.value();
+            PutUnlessExistsValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
                     kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
@@ -171,8 +174,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         }
     }
 
-    private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
+    private Map<Long, TransactionStatus> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
+        ImmutableMap.Builder<Long, TransactionStatus> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
             Optional<byte[]> maybeActual = Optional.ofNullable(reads.get(cell));
@@ -182,16 +185,26 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
             Long startTs = startTsAndCell.getKey();
             byte[] actual = maybeActual.get();
-            PutUnlessExistsValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            PutUnlessExistsValue<TransactionStatus> currentValue =
+                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
-            Long commitTs = currentValue.value();
+            TransactionStatus commitTs = currentValue.value();
             if (currentValue.isCommitted()) {
                 resultBuilder.put(startTs, commitTs);
                 continue;
             }
             try {
                 Instant startTime = clock.instant();
-                resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
+                resultBuilder.put(
+                        startTs,
+                        // todo (gmaretic): fix this mess
+                        touchCache.get(ImmutableCellInfo.of(
+                                cell,
+                                startTs,
+                                TransactionStatuses.caseOf(commitTs)
+                                        .committed(x -> x)
+                                        .otherwise_(-1L),
+                                actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
                     acceptStagingUntil = clock.instant().plusSeconds(60);
