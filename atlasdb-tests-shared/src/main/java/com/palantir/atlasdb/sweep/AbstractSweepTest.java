@@ -499,7 +499,7 @@ public abstract class AbstractSweepTest {
     }
 
     private void putTimestampIntoTransactionTable(long ts) {
-        txService.putUnlessExists(ts, ts);
+        txService.update(ts, ts);
     }
 
     protected void putUncommitted(final String row, final String val, final long ts) {

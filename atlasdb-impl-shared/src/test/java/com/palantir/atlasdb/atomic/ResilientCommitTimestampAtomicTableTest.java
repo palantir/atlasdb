@@ -66,7 +66,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class ResilientCommitTimestampPutUnlessExistsTableTest {
+public class ResilientCommitTimestampAtomicTableTest {
     private static final String VALIDATING_STAGING_VALUES = "validating staging values";
     private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
@@ -80,7 +80,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     private final AtomicLong clockLong = new AtomicLong(1000);
     private final Clock clock = clockLong::get;
 
-    public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
+    public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
         atomicTable = new ResilientCommitTimestampAtomicTable(
                 spiedStore,

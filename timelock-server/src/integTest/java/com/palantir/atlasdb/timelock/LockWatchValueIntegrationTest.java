@@ -604,14 +604,12 @@ public final class LockWatchValueIntegrationTest {
                 createUnlockSuccessUpdate(lastKnownVersion));
 
         txnManager.getKeyValueService().put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_4), theirCommitTimestamp - 1);
-        txnManager.getTransactionService().putUnlessExists(theirCommitTimestamp - 1, theirCommitTimestamp + 1);
+        txnManager.getTransactionService().update(theirCommitTimestamp - 1, theirCommitTimestamp + 1);
     }
 
     private void overwriteValueViaKvs(Transaction transaction, Map<Cell, byte[]> values) {
         txnManager.getKeyValueService().put(TABLE_REF, values, transaction.getTimestamp() - 2);
-        txnManager
-                .getTransactionService()
-                .putUnlessExists(transaction.getTimestamp() - 2, transaction.getTimestamp() - 1);
+        txnManager.getTransactionService().update(transaction.getTimestamp() - 2, transaction.getTimestamp() - 1);
     }
 
     private void readValueAndAssertLoadedFromRemote() {

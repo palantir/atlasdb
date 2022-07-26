@@ -56,7 +56,7 @@ public final class DbKvsTestUtils {
             for (int ts = 10 * col; ts < 11 * col; ++ts) {
                 kvs.put(tableName, toPut, ts);
                 if (txService != null) {
-                    txService.putUnlessExists(ts, ts);
+                    txService.update(ts, ts);
                 }
             }
         }

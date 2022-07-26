@@ -62,8 +62,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     private static SimpleTransactionService createSimple(
             KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
-        AtomicTable<Long, Long> pueTable =
-                new SimpleCommitTimestampPutUnlessExistsTable(kvs, tableRef, encodingStrategy);
+        AtomicTable<Long, Long> pueTable = new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
@@ -101,12 +100,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public void putUnlessExists(long startTimestamp, long commitTimestamp) {
+    public void update(long startTimestamp, long commitTimestamp) {
         txnTable.update(startTimestamp, commitTimestamp);
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    public void updateMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         txnTable.updateMultiple(startTimestampToCommitTimestamp);
     }
 

@@ -36,7 +36,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class SimpleCommitTimestampPutUnlessExistsTableTest {
+public class SimpleCommitTimestampAtomicTableTest {
     @Parameterized.Parameter
     public TimestampEncodingStrategy<Long> encodingStrategy;
 
@@ -77,7 +77,7 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
     }
 
     private AtomicTable<Long, Long> createPueTable() {
-        return new SimpleCommitTimestampPutUnlessExistsTable(
+        return new SimpleCommitTimestampAtomicTable(
                 new InMemoryKeyValueService(true),
                 TableReference.createFromFullyQualifiedName("test.table"),
                 encodingStrategy);

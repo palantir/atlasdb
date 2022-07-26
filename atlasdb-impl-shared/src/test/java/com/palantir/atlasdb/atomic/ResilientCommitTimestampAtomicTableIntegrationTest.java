@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
-public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
+public class ResilientCommitTimestampAtomicTableIntegrationTest {
     private static final double WRITE_FAILURE_PROBABILITY = 0.5;
     private static final long MAXIMUM_EVALUATED_TIMESTAMP = 100;
 
@@ -73,8 +73,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         timestampReaders.forEach((_startTimestamp, reader) -> reader.close());
         timestampReaders.forEach(
-                ResilientCommitTimestampPutUnlessExistsTableIntegrationTest
-                        ::validateIndividualReaderHadRepeatableReads);
+                ResilientCommitTimestampAtomicTableIntegrationTest::validateIndividualReaderHadRepeatableReads);
         timestampReaders
                 .asMap()
                 .forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));

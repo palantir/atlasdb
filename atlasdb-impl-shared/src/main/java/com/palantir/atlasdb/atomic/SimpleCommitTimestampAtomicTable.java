@@ -31,12 +31,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class SimpleCommitTimestampPutUnlessExistsTable implements AtomicTable<Long, Long> {
+public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long> {
     private final KeyValueService kvs;
     private final TableReference tableRef;
     private final TimestampEncodingStrategy<Long> encodingStrategy;
 
-    public SimpleCommitTimestampPutUnlessExistsTable(
+    public SimpleCommitTimestampAtomicTable(
             KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
         this.kvs = kvs;
         this.tableRef = tableRef;
