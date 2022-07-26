@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -75,6 +76,22 @@ public final class CacheMetrics {
 
     public void registerMisses(long number) {
         misses.inc(number);
+    }
+
+    public void registerHits(TableReference table, long number) {
+        metricsManager
+                .registerOrGetTaggedCounter(
+                        CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_HITS, metricsManager.getTableNameTagFor(table))
+                .inc(number);
+    }
+
+    public void registerMisses(TableReference table, long number) {
+        metricsManager
+                .registerOrGetTaggedCounter(
+                        CacheMetrics.class,
+                        AtlasDbMetricNames.LW_CACHE_MISSES,
+                        metricsManager.getTableNameTagFor(table))
+                .inc(number);
     }
 
     public void increaseCacheSize(long added) {

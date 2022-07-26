@@ -33,13 +33,7 @@ import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
@@ -230,6 +224,8 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         Set<Cell> uncachedCells = Sets.difference(cells, cachedValues.keySet());
         metrics.registerHits(cachedValues.size());
         metrics.registerMisses(uncachedCells.size());
+        metrics.registerHits(table, cachedValues.size());
+        metrics.registerMisses(table, uncachedCells.size());
         return CacheLookupResult.of(cachedValues, uncachedCells);
     }
 
