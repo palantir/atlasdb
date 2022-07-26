@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -63,16 +62,6 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
         AtomicInteger concurrentCheckAndTouchOperationTracker = new AtomicInteger(0);
         metrics.concurrentCheckAndTouches(concurrentCheckAndTouchOperationTracker::get);
         return new InstrumentedConsensusForgettingStore(delegate, metrics, concurrentCheckAndTouchOperationTracker);
-    }
-
-    @Override
-    public void markInProgress(Cell cell) {
-        // do nothing
-    }
-
-    @Override
-    public void markInProgress(Set<Cell> cells) {
-        // do nothing
     }
 
     @Override

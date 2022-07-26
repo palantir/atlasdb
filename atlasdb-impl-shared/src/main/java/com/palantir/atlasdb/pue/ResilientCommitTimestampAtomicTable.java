@@ -43,7 +43,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -120,16 +119,6 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
         this.clock = clock;
         this.metrics = PutUnlessExistsTableMetrics.of(metricRegistry);
         metrics.acceptStagingTriggered(fallbacks::get);
-    }
-
-    @Override
-    public void markInProgress(Long key) {
-        // todo(snanda)
-    }
-
-    @Override
-    public void markInProgress(Set<Long> keys) {
-        // todo(snanda)
     }
 
     @Override

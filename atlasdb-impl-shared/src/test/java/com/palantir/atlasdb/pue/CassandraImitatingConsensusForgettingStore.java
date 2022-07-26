@@ -72,16 +72,6 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         this.probabilityOfFailure = probabilityOfFailure;
     }
 
-    @Override
-    public void markInProgress(Cell cell) {
-        // do nothing
-    }
-
-    @Override
-    public void markInProgress(Set<Cell> cells) {
-        // do nothing
-    }
-
     /**
      * Atomically performs a read (potentially propagating newest read value) and if there is no value present on any of
      * the nodes in a quorum, writes the value to those nodes. If there is a value present, throws a

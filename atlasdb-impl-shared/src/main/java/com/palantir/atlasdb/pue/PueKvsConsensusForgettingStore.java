@@ -32,7 +32,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -44,16 +43,6 @@ public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore 
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.kvs = kvs;
         this.tableRef = tableRef;
-    }
-
-    @Override
-    public void markInProgress(Cell cell) {
-        // do nothing
-    }
-
-    @Override
-    public void markInProgress(Set<Cell> cells) {
-        // do nothing
     }
 
     @Override
