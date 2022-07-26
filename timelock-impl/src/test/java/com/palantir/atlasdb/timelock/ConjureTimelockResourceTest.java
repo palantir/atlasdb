@@ -153,7 +153,7 @@ public class ConjureTimelockResourceTest {
         ConjureUnlockResponseV2 secondResponse = Futures.getUnchecked(resource.unlockV2(
                 AUTH_HEADER, NAMESPACE, ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
 
-        assertThat(secondResponse.getTokens()).containsExactly(ConjureLockTokenV2.of(tokenThree));
+        assertThat(secondResponse.get()).containsExactly(ConjureLockTokenV2.of(tokenThree));
         verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenThree))));
     }
 

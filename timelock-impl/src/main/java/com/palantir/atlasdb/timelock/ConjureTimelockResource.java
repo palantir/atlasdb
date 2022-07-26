@@ -205,7 +205,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
         return refreshLocksInternal(
                 namespace,
-                fromConjureLockV2Tokens(request.getTokens()),
+                fromConjureLockV2Tokens(request.get()),
                 refreshed -> ConjureRefreshLocksResponseV2.of(
                         toConjureLockV2Tokens(refreshed.refreshedTokens()), refreshed.getLease()));
     }
@@ -232,7 +232,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
         return unlockInternal(
                 namespace,
-                fromConjureLockV2Tokens(request.getTokens()),
+                fromConjureLockV2Tokens(request.get()),
                 unlocked -> ConjureUnlockResponseV2.of(toConjureLockV2Tokens(unlocked)));
     }
 
