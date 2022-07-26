@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Register LW hits and misses by table
+  links:
+  - https://github.com/palantir/atlasdb/pull/6165
