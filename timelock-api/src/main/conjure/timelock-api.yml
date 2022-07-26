@@ -93,6 +93,8 @@ types:
       ConjureLockToken:
         fields:
           requestId: uuid
+      ConjureLockTokenV2:
+        alias: uuid
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
@@ -119,6 +121,16 @@ types:
       ConjureUnlockResponse:
         fields:
           tokens: set<ConjureLockToken>
+      ConjureRefreshLocksRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureRefreshLocksResponseV2:
+        fields:
+          refreshedTokens: set<ConjureLockTokenV2>
+          lease: Lease
+      ConjureUnlockRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureUnlockResponseV2:
+        alias: set<ConjureLockTokenV2>
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -286,12 +298,24 @@ services:
           namespace: string
           request: ConjureRefreshLocksRequest
         returns: ConjureRefreshLocksResponse
+      refreshLocksV2:
+        http: POST /rl2/{namespace}
+        args:
+          namespace: string
+          request: ConjureRefreshLocksRequestV2
+        returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
         args:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
+      unlockV2:
+        http: POST /ul2/{namespace}
+        args:
+          namespace: string
+          request: ConjureUnlockRequestV2
+        returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:

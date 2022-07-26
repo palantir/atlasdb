@@ -18,10 +18,14 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -29,17 +33,34 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.util.TimelockTestUtils;
+import com.palantir.common.time.NanoTime;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,6 +128,69 @@ public class ConjureTimelockResourceTest {
         assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE))
                         .get())
                 .isEqualTo(thirdRange.getLowerBound());
+    }
+
+    @Test
+    public void canUnlockUsingV1AndV2Endpoints() {
+        UUID tokenOne = UUID.randomUUID();
+        UUID tokenTwo = UUID.randomUUID();
+        UUID tokenThree = UUID.randomUUID();
+
+        Set<ConjureLockToken> requestOne = ImmutableSet.of(ConjureLockToken.of(tokenOne));
+
+        Set<LockToken> setOne = ImmutableSet.of(LockToken.of(tokenTwo));
+        Set<LockToken> setTwo = ImmutableSet.of(LockToken.of(tokenThree));
+
+        when(timelockService.unlock(any()))
+                .thenReturn(Futures.immediateFuture(setOne))
+                .thenReturn(Futures.immediateFuture(setTwo));
+
+        ConjureUnlockResponse unlockResponse =
+                Futures.getUnchecked(resource.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(requestOne)));
+        assertThat(unlockResponse.getTokens()).containsExactly(ConjureLockToken.of(tokenTwo));
+        verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenOne))));
+
+        ConjureUnlockResponseV2 secondResponse = Futures.getUnchecked(resource.unlockV2(
+                AUTH_HEADER, NAMESPACE, ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
+
+        assertThat(secondResponse.get()).containsExactly(ConjureLockTokenV2.of(tokenThree));
+        verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenThree))));
+    }
+
+    @Test
+    public void canRefreshUsingV1AndV2Endpoints() {
+        UUID tokenOne = UUID.randomUUID();
+        UUID tokenTwo = UUID.randomUUID();
+        UUID tokenThree = UUID.randomUUID();
+
+        Set<ConjureLockToken> requestOne = ImmutableSet.of(ConjureLockToken.of(tokenOne));
+
+        Set<LockToken> setOne = ImmutableSet.of(LockToken.of(tokenTwo));
+        Set<LockToken> setTwo = ImmutableSet.of(LockToken.of(tokenThree));
+
+        Lease leaseOne =
+                Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1234L)), Duration.ofDays(2000));
+        Lease leaseTwo =
+                Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(2345L)), Duration.ofDays(3333));
+
+        when(timelockService.refreshLockLeases(any()))
+                .thenReturn(Futures.immediateFuture(RefreshLockResponseV2.of(setOne, leaseOne)))
+                .thenReturn(Futures.immediateFuture(RefreshLockResponseV2.of(setTwo, leaseTwo)));
+
+        ConjureRefreshLocksResponse refreshResponse = Futures.getUnchecked(
+                resource.refreshLocks(AUTH_HEADER, NAMESPACE, ConjureRefreshLocksRequest.of(requestOne)));
+        assertThat(refreshResponse.getRefreshedTokens()).containsExactly(ConjureLockToken.of(tokenTwo));
+        assertThat(refreshResponse.getLease()).isEqualTo(leaseOne);
+        verify(timelockService).refreshLockLeases(eq(ImmutableSet.of(LockToken.of(tokenOne))));
+
+        ConjureRefreshLocksResponseV2 secondResponse = Futures.getUnchecked(resource.refreshLocksV2(
+                AUTH_HEADER,
+                NAMESPACE,
+                ConjureRefreshLocksRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
+
+        assertThat(secondResponse.getRefreshedTokens()).containsExactly(ConjureLockTokenV2.of(tokenThree));
+        assertThat(secondResponse.getLease()).isEqualTo(leaseTwo);
+        verify(timelockService).refreshLockLeases(eq(ImmutableSet.of(LockToken.of(tokenThree))));
     }
 
     @Test
