@@ -84,6 +84,7 @@ import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,8 +109,6 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
@@ -1266,9 +1265,8 @@ public final class LockServiceImpl
 
     private static String updateThreadName(LockRequest request) {
         String currentThreadName = Thread.currentThread().getName();
-        tryRenameThread(currentThreadName + "\n\twaiting to lock() " + request + " starting at "
-                + ISODateTimeFormat.dateTime().print(DateTime.now()) + "\n\tfor requesting thread\n\t\t"
-                + request.getCreatingThreadName() + "\n");
+        tryRenameThread(
+                currentThreadName + "\n\twaiting to lock() " + request + " starting at " + Instant.now() + "\n");
         return currentThreadName;
     }
 
