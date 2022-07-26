@@ -41,13 +41,13 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private static final String NOT_FOUND_MESSAGE =
             "Could not find a transaction service for the given timestamp (serviceKey not found).";
 
-    private final TransactionService delegate1 = mock(TransactionService.class);
-    private final TransactionService delegate2 = mock(TransactionService.class);
-    private final TransactionService delegate3 = mock(TransactionService.class);
+    private final InternalTransactionService delegate1 = mock(InternalTransactionService.class);
+    private final InternalTransactionService delegate2 = mock(InternalTransactionService.class);
+    private final InternalTransactionService delegate3 = mock(InternalTransactionService.class);
 
-    private final Map<Long, TransactionService> transactionServiceMap =
+    private final Map<Long, InternalTransactionService> transactionServiceMap =
             ImmutableMap.of(1L, delegate1, 2L, delegate2, 3L, delegate3);
-    private final TransactionService delegatingTransactionService =
+    private final InternalTransactionService delegatingTransactionService =
             new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService =
             new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);

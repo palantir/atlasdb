@@ -134,7 +134,7 @@ public final class TransactionServices {
      * @param transactionService on which to call synchronous requests
      * @return {@link AsyncTransactionService} which delegates to synchronous methods
      */
-    public static InternalAsyncTransactionService synchronousAsAsyncTransactionService(
+    public static InternalAsyncTransactionService synchronousAsInternalAsyncTransactionService(
             InternalTransactionService transactionService) {
         return new InternalAsyncTransactionService() {
             @Override
@@ -155,6 +155,20 @@ public final class TransactionServices {
             @Override
             public ListenableFuture<Map<Long, TransactionStatus>> getInternalAsync(Iterable<Long> startTimestamps) {
                 return Futures.immediateFuture(transactionService.getInternal(startTimestamps));
+            }
+        };
+    }
+
+    public static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
+        return new AsyncTransactionService() {
+            @Override
+            public ListenableFuture<Long> getAsync(long startTimestamp) {
+                return Futures.immediateFuture(transactionService.get(startTimestamp));
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
+                return Futures.immediateFuture(transactionService.get(startTimestamps));
             }
         };
     }

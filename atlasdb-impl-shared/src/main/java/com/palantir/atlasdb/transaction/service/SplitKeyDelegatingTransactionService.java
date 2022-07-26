@@ -61,7 +61,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements InternalTr
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
         this.keyedSyncServices = KeyedStream.stream(keyedServices)
-                .map(TransactionServices::synchronousAsAsyncTransactionService)
+                .map(TransactionServices::synchronousAsInternalAsyncTransactionService)
                 .collectToMap();
     }
 

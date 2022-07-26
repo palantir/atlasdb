@@ -52,7 +52,8 @@ public class PreStartHandlingTransactionService implements InternalTransactionSe
 
     PreStartHandlingTransactionService(InternalTransactionService delegate) {
         this.delegate = delegate;
-        this.synchronousAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
+        this.synchronousAsyncTransactionService =
+                TransactionServices.synchronousAsInternalAsyncTransactionService(delegate);
     }
 
     @CheckForNull
