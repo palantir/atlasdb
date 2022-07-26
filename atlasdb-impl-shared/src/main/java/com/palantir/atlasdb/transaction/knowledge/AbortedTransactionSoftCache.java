@@ -21,7 +21,6 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.logsafe.Preconditions;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -29,8 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
-import static com.palantir.atlasdb.transaction.knowledge.Utils.getMaxTsInCurrentBucket;
 
 public final class AbortedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
@@ -136,7 +133,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     }
 
     private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, long latestBucketSeenSoFar) {
-        long maxTsInCurrentBucket = getMaxTsInCurrentBucket(latestBucketSeenSoFar);
+        long maxTsInCurrentBucket = Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar);
 
         Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
                 Utils.getMinTsInBucket(latestBucketSeenSoFar), Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar));
