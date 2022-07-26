@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public final class AbortedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
@@ -47,9 +46,9 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         this.futileTimestampStore = futileTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.patchyCacheRef = new AtomicReference<>();
-        this.autobatcher = Autobatchers.independent(consumer())
+        this.autobatcher = Autobatchers.independent(this::consumer)
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
-                .batchFunctionTimeout(Duration.ofSeconds(3000))
+                .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
     }
 
@@ -57,27 +56,24 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         return AtlasFutures.getUnchecked(autobatcher.apply(startTimestamp));
     }
 
-    private Consumer<List<BatchElement<Long, TransactionSoftCacheStatus>>> consumer() {
-        return batch -> {
-            Optional<PatchyCache> maybeSnapshot = getSnapshot();
+    private void consumer(List<BatchElement<Long, TransactionSoftCacheStatus>> batch) {
+        Optional<PatchyCache> maybeSnapshot = getSnapshot();
 
-            long latestTsSeenSoFar = getLatestTsSeenSoFar(batch, maybeSnapshot);
-            long latestBucketSeenSoFar = Utils.getBucket(latestTsSeenSoFar);
+        long latestTsSeenSoFar = getLatestTsSeenSoFar(batch, maybeSnapshot);
+        long latestBucketSeenSoFar = Utils.getBucket(latestTsSeenSoFar);
 
-            PatchyCache refreshedPatchyCache =
-                    refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
+        PatchyCache refreshedPatchyCache = refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
 
-            for (BatchElement<Long, TransactionSoftCacheStatus> elem : batch) {
-                long startTimestamp = elem.argument();
-                long requestedBucket = Utils.getBucket(startTimestamp);
+        for (BatchElement<Long, TransactionSoftCacheStatus> elem : batch) {
+            long startTimestamp = elem.argument();
+            long requestedBucket = Utils.getBucket(startTimestamp);
 
-                if (requestedBucket < latestBucketSeenSoFar) {
-                    elem.result().set(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
-                } else {
-                    elem.result().set(getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions));
-                }
+            if (requestedBucket < latestBucketSeenSoFar) {
+                elem.result().set(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+            } else {
+                elem.result().set(getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions));
             }
-        };
+        }
     }
 
     private long getLatestTsSeenSoFar(
@@ -171,7 +167,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         return current.bucket > update.bucket ? current : update;
     }
 
-    class PatchyCache {
+    static class PatchyCache {
         private final long bucket;
         private final Set<Long> abortedTransactions;
         private long lastKnownConcludedTimestamp;

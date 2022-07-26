@@ -87,7 +87,7 @@ public final class TransactionServices {
                 WriteBatchingTransactionService.create(SimpleTransactionService.createV2(keyValueService)));
     }
 
-    private static TransactionService createV3TransactionService(
+    private static TransactionService   createV3TransactionService(
             KeyValueService keyValueService,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
