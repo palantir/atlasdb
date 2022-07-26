@@ -167,7 +167,7 @@ public abstract class ConnectionConfig {
 
         config.setPoolName(getConnectionPoolName());
         config.setRegisterMbeans(true);
-        config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
+        config.setMetricRegistry(SharedMetricRegistries.tryGetDefault());
 
         config.setMinimumIdle(getMinConnections());
         config.setMaximumPoolSize(getMaxConnections());
