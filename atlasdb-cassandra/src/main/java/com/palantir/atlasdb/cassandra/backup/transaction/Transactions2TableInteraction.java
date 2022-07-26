@@ -31,6 +31,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -85,12 +89,15 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        long commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        TransactionStatus commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            return TransactionTableEntries.explicitlyAborted(startTimestamp);
-        }
-        return TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
+        return TransactionStatuses.caseOf(commitTimestamp)
+                .committed(ts -> TransactionTableEntries.committedLegacy(startTimestamp, ts))
+                .aborted(() -> TransactionTableEntries.explicitlyAborted(startTimestamp))
+                .otherwise(() -> {
+                    throw new SafeIllegalStateException(
+                            "Illegal transaction status", SafeArg.of("status", commitTimestamp));
+                });
     }
 
     @Override
