@@ -74,15 +74,15 @@ public final class CacheMetrics {
         hits.inc(number);
     }
 
-    public void registerMisses(long number) {
-        misses.inc(number);
-    }
-
     public void registerHits(TableReference table, long number) {
         metricsManager
                 .registerOrGetTaggedCounter(
                         CacheMetrics.class, AtlasDbMetricNames.LW_CACHE_HITS, metricsManager.getTableNameTagFor(table))
                 .inc(number);
+    }
+
+    public void registerMisses(long number) {
+        misses.inc(number);
     }
 
     public void registerMisses(TableReference table, long number) {
