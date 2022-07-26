@@ -154,7 +154,7 @@ public class LockLeaseService implements AutoCloseable {
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
         Set<ConjureLockTokenV2> unlocked = delegate.unlockV2(ConjureUnlockRequestV2.of(serverTokens(leasedLockTokens)))
-                .getTokens();
+                .get();
         return leasedLockTokens.stream()
                 .filter(leasedLockToken ->
                         unlocked.contains(LockLeaseService.convertV1Token(leasedLockToken.serverToken())))
