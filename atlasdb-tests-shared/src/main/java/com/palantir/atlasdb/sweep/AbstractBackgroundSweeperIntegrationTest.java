@@ -215,7 +215,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             }
         }
         kvs.put(tableRef, cells, startTs);
-        txService.update(startTs, commitTs);
+        txService.commit(startTs, commitTs);
     }
 
     private static long getTimestamp() {

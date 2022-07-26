@@ -86,11 +86,11 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
-    public void update(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
+    public void commit(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
                 .orElseThrow(() ->
                         new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
-        service.update(startTimestamp, commitTimestamp);
+        service.commit(startTimestamp, commitTimestamp);
     }
 
     @Override

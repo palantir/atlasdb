@@ -94,7 +94,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
-    public void update(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
+    public void commit(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         AtlasFutures.getUnchecked(autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)));
     }
 
@@ -107,7 +107,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     /**
      * Semantics for batch processing:
      *
-     * - If there are multiple requests to {@link TransactionService#update(long, long)} with the same
+     * - If there are multiple requests to {@link TransactionService#commit(long, long)} with the same
      *   start timestamp, we will actually call the KVS with only one request from the batch for that start timestamp.
      *   There are no guarantees as to which request we use. If that element was successfully put (if the whole
      *   operation succeeded, or if the {@link KeyAlreadyExistsException} has partial successes), we return
@@ -138,7 +138,7 @@ public final class WriteBatchingTransactionService implements TransactionService
             Map<Long, BatchElement<TimestampPair, Void>> batch =
                     extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
-                delegate.updateMultiple(KeyedStream.stream(batch)
+                delegate.commitMultiple(KeyedStream.stream(batch)
                         .map(batchElement -> batchElement.argument().commitTimestamp())
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);

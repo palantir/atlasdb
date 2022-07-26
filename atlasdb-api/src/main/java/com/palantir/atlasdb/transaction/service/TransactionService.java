@@ -52,19 +52,19 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**
-     * This operation is guaranteed to be atomic and only set the value if it hasn't already been
-     * set.
-     * @throws KeyAlreadyExistsException If this value was already set, but {@link #get(long)} should
-     * be called to check what the value was set to.  This may throw spuriously due to retry.
+     * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
+     * committed.
+     * @throws KeyAlreadyExistsException If this transaction was already committed, but {@link #get(long)} should
+     * be called to check what the value was set to. This may throw spuriously due to retry.
      * @throws RuntimeException If a runtime exception is thrown, this operation may or may
      * not have ran.
      */
     @Timed
-    void update(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
+    void commit(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
 
     /**
      * This operation seeks to commit multiple transactions; implementations may override it if this can be
-     * done more efficiently than performing individual {@link TransactionService#update(long, long)}
+     * done more efficiently than performing individual {@link TransactionService#commit(long, long)}
      * operations.
      *
      * This operation is NOT atomic. On success, it is guaranteed that all start/commit timestamp pairs have been
@@ -76,8 +76,8 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
      * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
-    default void updateMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        startTimestampToCommitTimestamp.forEach(this::update);
+    default void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+        startTimestampToCommitTimestamp.forEach(this::commit);
     }
 
     /**

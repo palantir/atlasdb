@@ -117,22 +117,22 @@ public class PreStartHandlingTransactionServiceTest {
 
     @Test
     public void putUnlessExistsValidTimestampCallsDelegate() {
-        preStartHandlingService.update(START_TIMESTAMP, COMMIT_TIMESTAMP);
-        verify(delegate).update(START_TIMESTAMP, COMMIT_TIMESTAMP);
+        preStartHandlingService.commit(START_TIMESTAMP, COMMIT_TIMESTAMP);
+        verify(delegate).commit(START_TIMESTAMP, COMMIT_TIMESTAMP);
     }
 
     @Test
     public void propagatesPutUnlessExistsExceptions() {
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException("no");
-        doThrow(exception).when(delegate).update(anyLong(), anyLong());
-        assertThatThrownBy(() -> preStartHandlingService.update(START_TIMESTAMP, COMMIT_TIMESTAMP))
+        doThrow(exception).when(delegate).commit(anyLong(), anyLong());
+        assertThatThrownBy(() -> preStartHandlingService.commit(START_TIMESTAMP, COMMIT_TIMESTAMP))
                 .isEqualTo(exception);
-        verify(delegate).update(START_TIMESTAMP, COMMIT_TIMESTAMP);
+        verify(delegate).commit(START_TIMESTAMP, COMMIT_TIMESTAMP);
     }
 
     @Test
     public void throwsIfTryingToPutUnlessExistsInvalidTimestamp() {
-        assertThatThrownBy(() -> preStartHandlingService.update(NEGATIVE_TIMESTAMP, COMMIT_TIMESTAMP))
+        assertThatThrownBy(() -> preStartHandlingService.commit(NEGATIVE_TIMESTAMP, COMMIT_TIMESTAMP))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Attempted to putUnlessExists")
                 .hasMessageContaining("is disallowed");

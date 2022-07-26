@@ -2242,7 +2242,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      */
     private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
         try {
-            transactionService.update(startTs, TransactionConstants.FAILED_COMMIT_TS);
+            transactionService.commit(startTs, TransactionConstants.FAILED_COMMIT_TS);
             transactionOutcomeMetrics.markRollbackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
@@ -2522,7 +2522,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throws TransactionFailedException {
         Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
-            transactionService.update(getStartTimestamp(), commitTimestamp);
+            transactionService.commit(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {
             handleKeyAlreadyExistsException(commitTimestamp, e, locksToken);
         } catch (Exception e) {

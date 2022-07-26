@@ -126,11 +126,11 @@ public class ScrubberTest {
                         .put(cell2, Value.create(new byte[] {6}, 50))
                         .put(cell3, Value.create(new byte[] {7}, 60))
                         .build());
-        transactions.update(10, 15);
-        transactions.update(20, 25);
-        transactions.update(30, 35);
-        transactions.update(50, 55);
-        transactions.update(60, 65);
+        transactions.commit(10, 15);
+        transactions.commit(20, 25);
+        transactions.commit(30, 35);
+        transactions.commit(50, 55);
+        transactions.commit(60, 65);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 10, 100);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 20, 100);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell2, tableRef), 40, 100);

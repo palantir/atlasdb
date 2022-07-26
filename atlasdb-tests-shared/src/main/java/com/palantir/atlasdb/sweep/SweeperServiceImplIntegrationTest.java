@@ -90,9 +90,9 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .map(PtBytes::toBytes)
                 .collectToMap();
         kvs.put(TABLE_1, writes, 100L);
-        txService.update(100L, 101L);
+        txService.commit(100L, 101L);
         kvs.put(TABLE_1, writes, 103L);
-        txService.update(103L, 104L);
+        txService.commit(103L, 104L);
         Map<Cell, Long> readMap =
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
 
@@ -148,9 +148,9 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                 .map(count -> count < 500 ? PtBytes.toBytes(count) : PtBytes.EMPTY_BYTE_ARRAY)
                 .collectToMap();
         kvs.put(TABLE_1, writes, 100L);
-        txService.update(100L, 101L);
+        txService.commit(100L, 101L);
         kvs.put(TABLE_1, writes, 103L);
-        txService.update(103L, 104L);
+        txService.commit(103L, 104L);
 
         Map<Cell, Long> readMap =
                 KeyedStream.stream(writes).map(_ignore -> 102L).collectToMap();
@@ -197,7 +197,7 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
                             ThreadLocalRandom.current().nextBoolean() ? cell.getRowName() : PtBytes.EMPTY_BYTE_ARRAY)
                     .collectToMap();
             kvs.put(TABLE_1, writes, 100L + 2L * i);
-            txService.update(100L + 2L * i, 101L + 2L * i);
+            txService.commit(100L + 2L * i, 101L + 2L * i);
         }
 
         Map<Cell, Long> readMap = KeyedStream.of(cells).map(_ignore -> 102L).collectToMap();

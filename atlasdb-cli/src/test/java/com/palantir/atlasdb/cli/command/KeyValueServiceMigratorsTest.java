@@ -124,7 +124,7 @@ public class KeyValueServiceMigratorsTest {
         ArgumentCaptor<Long> startTimestampCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> commitTimestampCaptor = ArgumentCaptor.forClass(Long.class);
         verify(toServices.getTransactionService())
-                .update(startTimestampCaptor.capture(), commitTimestampCaptor.capture());
+                .commit(startTimestampCaptor.capture(), commitTimestampCaptor.capture());
         assertThat(startTimestampCaptor.getValue()).isLessThan(commitTimestampCaptor.getValue());
         assertThat(commitTimestampCaptor.getValue())
                 .isLessThan(toServices.getManagedTimestampService().getFreshTimestamp());
@@ -335,7 +335,7 @@ public class KeyValueServiceMigratorsTest {
                 .toServices(toSplittingServices)
                 .build();
 
-        fromServices.getTransactionService().update(100_000, 100_001);
+        fromServices.getTransactionService().commit(100_000, 100_001);
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(spec);
         migrator.setup();

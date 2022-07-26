@@ -95,13 +95,13 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void putUnlessExistsDelegateDecidedByStartTimestamp() {
-        delegatingTransactionService.update(3L, 12L);
-        verify(delegate3).update(3L, 12L);
+        delegatingTransactionService.commit(3L, 12L);
+        verify(delegate3).commit(3L, 12L);
     }
 
     @Test
     public void putUnlessExistsThrowsIfFunctionReturnsUnmappedValue() {
-        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.update(4L, 12L))
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.commit(4L, 12L))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage(NOT_FOUND_MESSAGE);
     }

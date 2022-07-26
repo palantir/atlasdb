@@ -70,11 +70,11 @@ public class CommitTsCacheTest {
                     return null;
                 })
                 .when(mockTransactionService)
-                .update(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+                .commit(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
 
-        verify(mockTransactionService).update(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        verify(mockTransactionService).commit(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
     }
 
     @Test
@@ -90,11 +90,11 @@ public class CommitTsCacheTest {
                     throw new KeyAlreadyExistsException("Already exists");
                 })
                 .when(mockTransactionService)
-                .update(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+                .commit(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
 
-        verify(mockTransactionService).update(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        verify(mockTransactionService).commit(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
     }
 
     @Test

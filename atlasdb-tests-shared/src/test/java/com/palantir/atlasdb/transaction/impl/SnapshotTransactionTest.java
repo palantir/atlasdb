@@ -1221,7 +1221,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction snapshot = getSnapshotTransactionWith(timelockService, () -> transactionTs, res, condition);
 
         // simulate roll back at commit time
-        transactionService.update(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
+        transactionService.commit(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
 
@@ -1247,7 +1247,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP);
 
         // forcing to try to commit a transaction that is already committed
-        transactionService.update(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
+        transactionService.commit(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
 
@@ -1272,7 +1272,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         doReturn(transactionTs + 1).when(spiedTimeLockService).getCommitTimestamp(anyLong(), any());
 
         // forcing to try to commit a transaction that is already committed
-        transactionService.update(transactionTs, spiedTimeLockService.getFreshTimestamp());
+        transactionService.commit(transactionTs, spiedTimeLockService.getFreshTimestamp());
 
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
         snapshot.commit();

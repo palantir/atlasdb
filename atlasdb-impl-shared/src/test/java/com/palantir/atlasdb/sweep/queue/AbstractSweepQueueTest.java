@@ -146,7 +146,7 @@ public abstract class AbstractSweepQueueTest {
 
     void putTimestampIntoTransactionTable(long ts, long commitTs) {
         try {
-            txnService.update(ts, commitTs);
+            txnService.commit(ts, commitTs);
         } catch (KeyAlreadyExistsException e) {
             // this is fine if the existing key is what we wanted
             Assertions.assertThat(txnService.get(ts)).isEqualTo(commitTs);
