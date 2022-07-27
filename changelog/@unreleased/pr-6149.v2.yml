@@ -1,9 +1,0 @@
-type: improvement
-improvement:
-  description: |-
-    TimeLock exposes three new endpoints:
-    - getFreshTimestamp, returns one fresh timestamp which is just a number, i.e. `1234567890`.
-    - getFreshTimestampsV2, returns a range of timestamps in a more efficient encoding: ``{"start": 1234567890, "count": 5}`.
-    - getCommitTimestamp, returns just a timestamp as opposed to a start/inclusive pair along with the lock watch state update, if relevant.
-  links:
-  - https://github.com/palantir/atlasdb/pull/6149
