@@ -150,7 +150,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     private static Set<ConjureLockTokenV2> fromServerLockTokens(Set<LockToken> lockTokens) {
         ImmutableSet.Builder<ConjureLockTokenV2> result = ImmutableSet.builder();
         for (LockToken serverToken : lockTokens) {
-            result.add(ConjureLockTokenV2.of((serverToken.getRequestId())));
+            result.add(ConjureLockTokenV2.of(serverToken.getRequestId()));
         }
         return result.build();
     }
