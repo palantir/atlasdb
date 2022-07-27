@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: 'Clients will now request timestamps more efficiently from TimeLock:
+    singular endpoints will go to `getFreshTimestamp` and range requests will go to
+    `getFreshTimestampsV2` which has a more efficient encoding.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6151
