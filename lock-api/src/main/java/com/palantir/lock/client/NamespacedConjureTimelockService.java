@@ -16,14 +16,15 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
@@ -52,7 +53,9 @@ public interface NamespacedConjureTimelockService {
 
     GetCommitTimestampsResponse getCommitTimestamps(GetCommitTimestampsRequest request);
 
-    ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request);
+    ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(ConjureGetFreshTimestampsRequestV2 request);
+
+    ConjureSingleTimestamp getFreshTimestamp();
 
     ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request);
 }

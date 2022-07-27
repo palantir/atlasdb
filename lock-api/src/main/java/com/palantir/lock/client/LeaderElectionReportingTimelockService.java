@@ -19,14 +19,15 @@ package com.palantir.lock.client;
 import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
@@ -134,8 +135,13 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     }
 
     @Override
-    public ConjureGetFreshTimestampsResponse getFreshTimestamps(ConjureGetFreshTimestampsRequest request) {
-        return delegate.getFreshTimestamps(request);
+    public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(ConjureGetFreshTimestampsRequestV2 request) {
+        return delegate.getFreshTimestampsV2(request);
+    }
+
+    @Override
+    public ConjureSingleTimestamp getFreshTimestamp() {
+        return delegate.getFreshTimestamp();
     }
 
     @Override

@@ -22,8 +22,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import org.junit.Test;
 
@@ -35,8 +34,7 @@ public class TimeLockActivityCheckerTest {
 
     @Test
     public void ifGetFreshTimestampReturnsTheValueIsPropagated() {
-        when(timelockRpcClient.getFreshTimestamps(any(), eq(CLIENT), eq(ConjureGetFreshTimestampsRequest.of(1))))
-                .thenReturn(ConjureGetFreshTimestampsResponse.of(8L, 8L));
+        when(timelockRpcClient.getFreshTimestamp(any(), eq(CLIENT))).thenReturn(ConjureSingleTimestamp.of(8L));
         assertThat(timeLockActivityChecker.getFreshTimestampFromNodeForClient(CLIENT))
                 .hasValue(8L);
     }
