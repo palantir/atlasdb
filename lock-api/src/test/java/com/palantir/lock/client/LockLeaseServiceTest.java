@@ -28,13 +28,11 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
-import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.common.time.NanoTime;
@@ -90,9 +88,9 @@ public class LockLeaseServiceTest {
     public void before() {
         when(lockRequest.getAcquireTimeoutMs()).thenReturn(10L);
         when(timelock.leaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
-        when(timelock.unlockV2(any())).thenAnswer(inv -> {
-            ConjureUnlockRequestV2 request = inv.getArgument(0);
-            return ConjureUnlockResponseV2.of(request.get());
+        when(timelock.unlock(any())).thenAnswer(inv -> {
+            ConjureUnlockRequest request = inv.getArgument(0);
+            return ConjureUnlockResponse.of(request.getTokens());
         });
         lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, new LegacyLeaderTimeGetter(timelock));
     }
@@ -183,8 +181,7 @@ public class LockLeaseServiceTest {
         assertValid(token);
         lockLeaseService.unlock(ImmutableSet.of(token));
 
-        verify(timelock).unlockV2(ConjureUnlockRequestV2.of(ImmutableSet.of(
-                ConjureLockTokenV2.of(token.serverToken().getRequestId()))));
+        verify(timelock).unlock(ConjureUnlockRequest.of(ImmutableSet.of(token.serverToken())));
     }
 
     @Test
@@ -195,8 +192,7 @@ public class LockLeaseServiceTest {
         assertInvalid(token);
 
         lockLeaseService.unlock(ImmutableSet.of(token));
-        verify(timelock).unlockV2(ConjureUnlockRequestV2.of(ImmutableSet.of(
-                ConjureLockTokenV2.of(token.serverToken().getRequestId()))));
+        verify(timelock).unlock(ConjureUnlockRequest.of(ImmutableSet.of(token.serverToken())));
     }
 
     @Test
@@ -221,9 +217,8 @@ public class LockLeaseServiceTest {
         LeasedLockToken leasedLockToken = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
         assertInvalid(leasedLockToken);
 
-        ConjureLockTokenV2 v2Token = ConjureLockTokenV2.of(LOCK_TOKEN.getRequestId());
-        when(timelock.refreshLocksV2(ConjureRefreshLocksRequestV2.of(ImmutableSet.of(v2Token))))
-                .thenReturn(ConjureRefreshLocksResponseV2.of(ImmutableSet.of(v2Token), getLease()));
+        when(timelock.refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(LOCK_TOKEN))))
+                .thenReturn(ConjureRefreshLocksResponse.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(ImmutableSet.of(leasedLockToken));
         verify(timelock).refreshLocks(ConjureRefreshLocksRequest.of(ImmutableSet.of(leasedLockToken.serverToken())));
