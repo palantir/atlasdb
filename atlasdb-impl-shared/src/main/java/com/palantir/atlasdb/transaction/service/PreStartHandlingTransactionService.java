@@ -22,14 +22,12 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.CheckForNull;
@@ -47,13 +45,12 @@ import javax.annotation.CheckForNull;
  * Queries for legitimate timestamps are routed to the delegate.
  */
 public class PreStartHandlingTransactionService implements TransactionService {
-    private final InternalTransactionService delegate;
-    private final InternalAsyncTransactionService synchronousAsyncTransactionService;
+    private final TransactionService delegate;
+    private final AsyncTransactionService synchronousAsyncTransactionService;
 
-    PreStartHandlingTransactionService(InternalTransactionService delegate) {
+    PreStartHandlingTransactionService(TransactionService delegate) {
         this.delegate = delegate;
-        this.synchronousAsyncTransactionService =
-                TransactionServices.synchronousAsInternalAsyncTransactionService(delegate);
+        this.synchronousAsyncTransactionService = TransactionServices.synchronousAsAsyncTransactionService(delegate);
     }
 
     @CheckForNull
@@ -95,49 +92,25 @@ public class PreStartHandlingTransactionService implements TransactionService {
 
     private ListenableFuture<Long> getFromDelegate(
             long startTimestamp, AsyncTransactionService asyncTransactionService) {
-        return handlePreStart(startTimestamp, AtlasDbConstants.STARTING_TS - 1, asyncTransactionService::getAsync);
+        if (!isTimestampValid(startTimestamp)) {
+            return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
+        }
+        return asyncTransactionService.getAsync(startTimestamp);
     }
 
     private ListenableFuture<Map<Long, Long>> getFromDelegate(
             Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
-        return handlePreStart(startTimestamps, AtlasDbConstants.STARTING_TS - 1, asyncTransactionService::getAsync);
-    }
-
-    private ListenableFuture<TransactionStatus> getInternalFromDelegate(
-            long startTimestamp, InternalAsyncTransactionService asyncTransactionService) {
-        return handlePreStart(
-                startTimestamp, TransactionConstants.PRE_START_COMMITTED, asyncTransactionService::getInternalAsync);
-    }
-
-    private ListenableFuture<Map<Long, TransactionStatus>> getInternalFromDelegate(
-            Iterable<Long> startTimestamps, InternalAsyncTransactionService asyncTransactionService) {
-        return handlePreStart(
-                startTimestamps, TransactionConstants.PRE_START_COMMITTED, asyncTransactionService::getInternalAsync);
-    }
-
-    private <T> ListenableFuture<T> handlePreStart(
-            long startTimestamp, T preStartCommit, Function<Long, ListenableFuture<T>> delegateCall) {
-        if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(preStartCommit);
-        }
-        return delegateCall.apply(startTimestamp);
-    }
-
-    private <T> ListenableFuture<Map<Long, T>> handlePreStart(
-            Iterable<Long> startTimestamps,
-            T preStartCommit,
-            Function<Iterable<Long>, ListenableFuture<Map<Long, T>>> delegateCall) {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
         List<Long> validTimestamps = classifiedTimestamps.get(true);
-        Map<Long, T> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
-                .map(_ignore -> preStartCommit)
+        Map<Long, Long> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
+                .map(_ignore -> AtlasDbConstants.STARTING_TS - 1)
                 .collectTo(HashMap::new);
 
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
-                    delegateCall.apply(validTimestamps),
+                    asyncTransactionService.getAsync(validTimestamps),
                     timestampMap -> {
                         result.putAll(timestampMap);
                         return result;

@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.CheckForNull;
 
@@ -51,17 +50,17 @@ import javax.annotation.CheckForNull;
  *
  * Service keys are expected to be safe for logging.
  */
-public final class SplitKeyDelegatingTransactionService<T> implements InternalTransactionService {
+public final class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
-    private final Map<T, InternalTransactionService> keyedServices;
-    private final Map<T, InternalAsyncTransactionService> keyedSyncServices;
+    private final Map<T, TransactionService> keyedServices;
+    private final Map<T, AsyncTransactionService> keyedSyncServices;
 
     SplitKeyDelegatingTransactionService(
-            Function<Long, T> timestampToServiceKey, Map<T, InternalTransactionService> keyedServices) {
+            Function<Long, T> timestampToServiceKey, Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
         this.keyedSyncServices = KeyedStream.stream(keyedServices)
-                .map(TransactionServices::synchronousAsInternalAsyncTransactionService)
+                .map(TransactionServices::synchronousAsAsyncTransactionService)
                 .collectToMap();
     }
 
@@ -87,26 +86,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements InternalTr
     }
 
     @Override
-    public TransactionStatus getInternal(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternalFromDelegate(keyedSyncServices, startTimestamp));
-    }
-
-    @Override
-    public Map<Long, TransactionStatus> getInternal(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternalFromDelegate(keyedSyncServices, startTimestamps));
-    }
-
-    @Override
-    public ListenableFuture<TransactionStatus> getInternalAsync(long startTimestamp) {
-        return getInternalFromDelegate(keyedServices, startTimestamp);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, TransactionStatus>> getInternalAsync(Iterable<Long> startTimestamps) {
-        return getInternalFromDelegate(keyedServices, startTimestamps);
-    }
-
-    @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
                 .orElseThrow(() ->
@@ -120,37 +99,14 @@ public final class SplitKeyDelegatingTransactionService<T> implements InternalTr
     }
 
     private ListenableFuture<Long> getFromDelegate(
-            Map<T, ? extends InternalAsyncTransactionService> keyedTransactionServices, long startTimestamp) {
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> service.getAsync(startTimestamp))
                 .orElseGet(() -> Futures.immediateFuture(null));
     }
 
     private ListenableFuture<Map<Long, Long>> getFromDelegate(
-            Map<T, ? extends InternalAsyncTransactionService> keyedTransactionServices,
-            Iterable<Long> startTimestamps) {
-        return getBasedOnKeys(keyedTransactionServices, startTimestamps, AsyncTransactionService::getAsync);
-    }
-
-    private ListenableFuture<TransactionStatus> getInternalFromDelegate(
-            Map<T, ? extends InternalAsyncTransactionService> keyedTransactionServices, long startTimestamp) {
-        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
-                .map(service -> service.getInternalAsync(startTimestamp))
-                .orElseGet(() -> Futures.immediateFuture(null));
-    }
-
-    private ListenableFuture<Map<Long, TransactionStatus>> getInternalFromDelegate(
-            Map<T, ? extends InternalAsyncTransactionService> keyedTransactionServices,
-            Iterable<Long> startTimestamps) {
-        return getBasedOnKeys(
-                keyedTransactionServices, startTimestamps, InternalAsyncTransactionService::getInternalAsync);
-    }
-
-    private <V> ListenableFuture<Map<Long, V>> getBasedOnKeys(
-            Map<T, ? extends InternalAsyncTransactionService> keyedTransactionServices,
-            Iterable<Long> startTimestamps,
-            BiFunction<InternalAsyncTransactionService, Iterable<Long>, ListenableFuture<Map<Long, V>>>
-                    delegateMethod) {
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
@@ -168,8 +124,8 @@ public final class SplitKeyDelegatingTransactionService<T> implements InternalTr
                     SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
         }
 
-        Collection<ListenableFuture<Map<Long, V>>> futures = KeyedStream.stream(queryMap.asMap())
-                .map((key, value) -> delegateMethod.apply(keyedTransactionServices.get(key), value))
+        Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
+                .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
                 .collectToMap()
                 .values();
 

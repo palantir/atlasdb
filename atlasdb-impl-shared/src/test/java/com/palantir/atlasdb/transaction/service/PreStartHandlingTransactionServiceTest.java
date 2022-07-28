@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class PreStartHandlingTransactionServiceTest {
-    private final InternalTransactionService delegate = mock(InternalTransactionService.class);
+    private final TransactionService delegate = mock(TransactionService.class);
     private final TransactionService preStartHandlingService = new PreStartHandlingTransactionService(delegate);
 
     private static final long START_TIMESTAMP = 44L;
