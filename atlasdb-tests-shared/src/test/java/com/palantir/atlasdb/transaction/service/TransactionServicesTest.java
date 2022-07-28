@@ -76,7 +76,7 @@ public class TransactionServicesTest {
     @Test
     public void valuesPutMayBeSubsequentlyRetrievedV1() {
         initializeTimestamps();
-        transactionService.commit(startTs, commitTs);
+        transactionService.putUnlessExists(startTs, commitTs);
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
@@ -84,7 +84,7 @@ public class TransactionServicesTest {
     public void valuesPutMayBeSubsequentlyRetrievedV2() {
         forceInstallV2();
         initializeTimestamps();
-        transactionService.commit(startTs, commitTs);
+        transactionService.putUnlessExists(startTs, commitTs);
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
@@ -102,8 +102,8 @@ public class TransactionServicesTest {
     }
 
     private void assertCannotPutValuesTwice() {
-        transactionService.commit(startTs, commitTs);
-        assertThatThrownBy(() -> transactionService.commit(startTs, commitTs))
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
                 .isInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining("already have a value for this timestamp");
         assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
@@ -112,7 +112,7 @@ public class TransactionServicesTest {
     @Test
     public void commitsV1TransactionByDefault() {
         initializeTimestamps();
-        transactionService.commit(startTs, commitTs);
+        transactionService.putUnlessExists(startTs, commitTs);
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTION_TABLE);
         assertExpectedArgument(actualArgument, V1EncodingStrategy.INSTANCE);
@@ -124,7 +124,7 @@ public class TransactionServicesTest {
     public void canCommitV2Transaction() {
         forceInstallV2();
         initializeTimestamps();
-        transactionService.commit(startTs, commitTs);
+        transactionService.putUnlessExists(startTs, commitTs);
 
         Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
         assertExpectedArgument(actualArgument, TicketsEncodingStrategy.INSTANCE);

@@ -94,7 +94,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
-    public void commit(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         AtlasFutures.getUnchecked(autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)));
     }
 
@@ -107,7 +107,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     /**
      * Semantics for batch processing:
      *
-     * - If there are multiple requests to {@link TransactionService#commit(long, long)} with the same
+     * - If there are multiple requests to {@link TransactionService#putUnlessExists(long, long)} with the same
      *   start timestamp, we will actually call the KVS with only one request from the batch for that start timestamp.
      *   There are no guarantees as to which request we use. If that element was successfully put (if the whole
      *   operation succeeded, or if the {@link KeyAlreadyExistsException} has partial successes), we return

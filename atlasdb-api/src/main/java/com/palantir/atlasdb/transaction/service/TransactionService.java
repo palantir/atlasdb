@@ -53,18 +53,19 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
 
     /**
      * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
-     * committed.
+     * committed. The naming is not accurate as this operation can differ in implementation.
+     *
      * @throws KeyAlreadyExistsException If this transaction was already committed, but {@link #get(long)} should
      * be called to check what the value was set to. This may throw spuriously due to retry.
      * @throws RuntimeException If a runtime exception is thrown, this operation may or may
      * not have ran.
      */
     @Timed
-    void commit(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
+    void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException;
 
     /**
      * This operation seeks to commit multiple transactions; implementations may override it if this can be
-     * done more efficiently than performing individual {@link TransactionService#commit(long, long)}
+     * done more efficiently than performing individual {@link TransactionService#putUnlessExists(long, long)}
      * operations.
      *
      * This operation is NOT atomic. On success, it is guaranteed that all start/commit timestamp pairs have been
@@ -77,7 +78,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
     default void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
-        startTimestampToCommitTimestamp.forEach(this::commit);
+        startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
     }
 
     /**

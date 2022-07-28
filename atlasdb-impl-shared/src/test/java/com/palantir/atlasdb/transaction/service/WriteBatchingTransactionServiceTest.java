@@ -79,7 +79,7 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void putsUnlessExistsToUnderlyingViaBatch() {
-        writeBatchingTransactionService.commit(7, 66);
+        writeBatchingTransactionService.putUnlessExists(7, 66);
 
         verify(mockTransactionService).commitMultiple(ImmutableMap.of(7L, 66L));
     }

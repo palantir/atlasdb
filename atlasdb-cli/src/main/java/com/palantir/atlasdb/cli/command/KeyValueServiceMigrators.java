@@ -47,7 +47,7 @@ public final class KeyValueServiceMigrators {
                 fromServices.getManagedTimestampService().getFreshTimestamp() + 1);
         long migrationStartTimestamp = toServices.getManagedTimestampService().getFreshTimestamp();
         long migrationCommitTimestamp = toServices.getManagedTimestampService().getFreshTimestamp();
-        toServices.getTransactionService().commit(migrationStartTimestamp, migrationCommitTimestamp);
+        toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
 
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,

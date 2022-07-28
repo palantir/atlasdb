@@ -399,7 +399,7 @@ public class Scrubber {
             // Roll back this transaction (note that rolling back arbitrary transactions
             // can never cause correctness issues, only liveness issues)
             try {
-                transactionService.commit(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
+                transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
             } catch (KeyAlreadyExistsException e) {
                 String msg = "Could not roll back transaction with start timestamp " + startTimestamp + "; either"
                         + " it was already rolled back (by a different transaction), or it committed successfully"

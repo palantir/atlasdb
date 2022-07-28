@@ -76,7 +76,7 @@ public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
 
     private Optional<Long> tryToAbort(Long startTs) {
         try {
-            transactionService.commit(startTs, TransactionConstants.FAILED_COMMIT_TS);
+            transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             return Optional.of(TransactionConstants.FAILED_COMMIT_TS);
         } catch (KeyAlreadyExistsException e) {
             log.info(

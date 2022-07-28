@@ -139,7 +139,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     private void tryPutTimestampPermittingExceptions(TransactionService transactionService, long timestamp) {
         try {
-            transactionService.commit(timestamp, timestamp + 1);
+            transactionService.putUnlessExists(timestamp, timestamp + 1);
         } catch (KeyAlreadyExistsException ex) {
             // OK
         }

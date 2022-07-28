@@ -33,8 +33,8 @@ public interface AtomicTable<K, V> {
 
     /**
      * Atomic update. If the method does not throw, any subsequent get is guaranteed to return V. If the
-     * method throws an exception, subsequent gets may return either V or null but once V is returned subsequent calls
-     * are guaranteed to return V.
+     * method throws an exception, subsequent gets may return either V or previous value but once V is returned
+     * subsequent calls are guaranteed to return V.
      */
     default void update(K key, V value) throws KeyAlreadyExistsException {
         updateMultiple(ImmutableMap.of(key, value));

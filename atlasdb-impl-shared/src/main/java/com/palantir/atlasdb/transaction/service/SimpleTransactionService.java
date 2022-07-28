@@ -16,7 +16,12 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.atomic.*;
+import com.palantir.atlasdb.atomic.AtomicTable;
+import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.InstrumentedConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
+import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -100,7 +105,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public void commit(long startTimestamp, long commitTimestamp) {
+    public void putUnlessExists(long startTimestamp, long commitTimestamp) {
         txnTable.update(startTimestamp, commitTimestamp);
     }
 
