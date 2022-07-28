@@ -15,17 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class PostgresConfigLoadingTest {
     @Test
@@ -43,6 +44,13 @@ public class PostgresConfigLoadingTest {
     public void testHikariConnectTimeout() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         verifyHikariProperty(connectionConfig, "connectTimeout", connectionConfig.getConnectionTimeoutSeconds());
+    }
+
+    @Test
+    public void testInitFailTimeout() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        assertThat(connectionConfig.initializeFailTimeoutMillis())
+                .hasValue(10L);
     }
 
     @Test
