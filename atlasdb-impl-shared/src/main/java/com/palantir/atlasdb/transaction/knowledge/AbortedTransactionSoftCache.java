@@ -17,16 +17,13 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.autobatch.Autobatchers;
-import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 public final class AbortedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
@@ -37,7 +34,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
 
     private final DisruptorAutobatcher<Long, TransactionSoftCacheStatus> autobatcher;
 
-    private final AtomicReference<PatchyCache> patchyCacheRef;
+    private volatile PatchyCache patchyCache = null;
     private final FutileTimestampStore futileTimestampStore;
     private final KnownConcludedTransactions knownConcludedTransactions;
 
@@ -45,8 +42,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
             FutileTimestampStore futileTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
         this.futileTimestampStore = futileTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
-        this.patchyCacheRef = new AtomicReference<>();
-        this.autobatcher = Autobatchers.independent(this::consumer)
+        this.autobatcher = Autobatchers.coalescing(this::processBatch)
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
@@ -56,30 +52,29 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         return AtlasFutures.getUnchecked(autobatcher.apply(startTimestamp));
     }
 
-    private void consumer(List<BatchElement<Long, TransactionSoftCacheStatus>> batch) {
+    private Map<Long, TransactionSoftCacheStatus> processBatch(Set<Long> request) {
         Optional<PatchyCache> maybeSnapshot = getSnapshot();
 
-        long latestTsSeenSoFar = getLatestTsSeenSoFar(batch, maybeSnapshot);
+        long latestTsSeenSoFar = getLatestTsSeenSoFar(request, maybeSnapshot);
         long latestBucketSeenSoFar = Utils.getBucket(latestTsSeenSoFar);
 
         PatchyCache refreshedPatchyCache = refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
 
-        for (BatchElement<Long, TransactionSoftCacheStatus> elem : batch) {
-            long startTimestamp = elem.argument();
-            long requestedBucket = Utils.getBucket(startTimestamp);
+        return KeyedStream.of(request)
+                .map(startTimestamp -> {
+                    long requestedBucket = Utils.getBucket(startTimestamp);
 
-            if (requestedBucket < latestBucketSeenSoFar) {
-                elem.result().set(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
-            } else {
-                elem.result().set(getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions));
-            }
-        }
+                    if (requestedBucket < latestBucketSeenSoFar) {
+                        return TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE;
+                    } else {
+                        return getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions);
+                    }
+                })
+                .collectToMap();
     }
 
-    private long getLatestTsSeenSoFar(
-            List<BatchElement<Long, TransactionSoftCacheStatus>> batch, Optional<PatchyCache> maybeSnapshot) {
-        long latestTsSeenSoFar =
-                batch.stream().mapToLong(BatchElement::argument).max().orElse(0L);
+    private long getLatestTsSeenSoFar(Set<Long> batch, Optional<PatchyCache> maybeSnapshot) {
+        long latestTsSeenSoFar = batch.stream().max(Comparator.naturalOrder()).orElse(0L);
 
         if (maybeSnapshot.isPresent()) {
             latestTsSeenSoFar = Math.max(latestTsSeenSoFar, maybeSnapshot.get().lastKnownConcludedTimestamp);
@@ -102,10 +97,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
             refreshedPatchyCache = loadPatchyBucket(latestTsSeenSoFar, latestBucketSeenSoFar);
         } else {
             // need to load a range of timestamps
-            refreshedPatchyCache = extendPatch(maybeSnapshot.get(), latestTsSeenSoFar);
+            refreshedPatchyCache = extendPatchIfNeeded(maybeSnapshot.get(), latestTsSeenSoFar);
         }
 
-        tryUpdate(refreshedPatchyCache);
+        patchyCache = refreshedPatchyCache;
         return refreshedPatchyCache;
     }
 
@@ -114,10 +109,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         autobatcher.close();
     }
 
-    private PatchyCache extendPatch(PatchyCache snapshot, long latestTs) {
+    private PatchyCache extendPatchIfNeeded(PatchyCache snapshot, long latestTs) {
         long currentLastKnownConcluded = snapshot.lastKnownConcludedTimestamp;
 
-        // It is possible that cache was update by the time we reach here and refresh is not required any more.
+        // It is possible that cache was updated by the time we reach here and refresh is not required any more.
         if (latestTs <= currentLastKnownConcluded) {
             return snapshot;
         }
@@ -138,33 +133,13 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     }
 
     private Optional<PatchyCache> getSnapshot() {
-        return Optional.ofNullable(patchyCacheRef.get());
-    }
-
-    private void tryUpdate(PatchyCache update) {
-        patchyCacheRef.getAndAccumulate(update, AbortedTransactionSoftCache::getLatest);
+        return Optional.ofNullable(patchyCache);
     }
 
     private TransactionSoftCacheStatus getStatus(long startTimestamp, Set<Long> abortedTransactions) {
         return abortedTransactions.contains(startTimestamp)
                 ? TransactionSoftCacheStatus.IS_ABORTED
                 : TransactionSoftCacheStatus.IS_NOT_ABORTED;
-    }
-
-    static PatchyCache getLatest(PatchyCache current, PatchyCache update) {
-        if (current == null) {
-            return update;
-        }
-
-        if (current == update) {
-            return current;
-        }
-
-        if (current.bucket == update.bucket) {
-            return current.lastKnownConcludedTimestamp >= update.lastKnownConcludedTimestamp ? current : update;
-        }
-
-        return current.bucket > update.bucket ? current : update;
     }
 
     static class PatchyCache {

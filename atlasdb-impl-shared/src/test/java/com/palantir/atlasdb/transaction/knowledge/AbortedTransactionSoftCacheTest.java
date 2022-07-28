@@ -112,13 +112,19 @@ public class AbortedTransactionSoftCacheTest {
 
         // first query will init the cache for bucket until firstQueryTimestamp + 1
         abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp);
+        verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
 
         long maxConcluded = Utils.getMaxTsInCurrentBucket(Utils.getBucket(firstQueryTimestamp));
+
         when(knownConcludedTransactions.lastKnownConcludedTimestamp()).thenReturn(maxConcluded);
 
         // second query will extend the cache
         abortedTransactionSoftCache.getSoftCacheTransactionStatus(secondQueryTimestamp);
         verify(futileTimestampStore).getAbortedTransactionsInRange(firstIterLastConcluded, maxConcluded);
+
+        // queries until maxConcluded will be served from cache
+        abortedTransactionSoftCache.getSoftCacheTransactionStatus(maxConcluded);
+        verifyNoMoreInteractions(futileTimestampStore);
     }
 
     @Test
