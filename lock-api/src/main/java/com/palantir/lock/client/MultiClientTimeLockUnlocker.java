@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -76,7 +77,8 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
             for (BatchElement<NamespacedLockSet, Set<LockToken>> batchElement : requests) {
                 NamespacedLockSet lockSet = batchElement.argument();
                 lockTokens.addAll(lockSet.lockSet().stream()
-                        .map(c -> ConjureLockTokenV2.of(c.getRequestId())).collect(Collectors.toSet()));
+                        .map(c -> ConjureLockTokenV2.of(c.getRequestId()))
+                        .collect(Collectors.toSet()));
             }
             return ConjureUnlockRequestV2.of(lockTokens);
         }
@@ -86,15 +88,16 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
                     .map(conjureToken -> LockToken.of(conjureToken.get()))
                     .collect(Collectors.toCollection(HashSet::new));
             for (BatchElement<NamespacedLockSet, Set<LockToken>> batchElement : requests) {
-                Set<LockToken> plausibleUnlocks =
-                        ImmutableSet.copyOf(Sets.intersection(batchElement.argument().lockSet(), unlockedTokens));
+                Set<LockToken> plausibleUnlocks = ImmutableSet.copyOf(
+                        Sets.intersection(batchElement.argument().lockSet(), unlockedTokens));
                 batchElement.result().set(plausibleUnlocks);
                 unlockedTokens.removeAll(plausibleUnlocks);
             }
         }
     }
 
-    private static class UnlockConsumer implements Consumer<List<BatchElement<NamespacedLockSet, Set<LockToken>>>> {
+    @VisibleForTesting
+    static class UnlockConsumer implements Consumer<List<BatchElement<NamespacedLockSet, Set<LockToken>>>> {
         private final InternalMultiClientConjureTimelockService timelockService;
 
         public UnlockConsumer(InternalMultiClientConjureTimelockService timelockService) {
@@ -106,8 +109,9 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
             Map<Namespace, SingleClientBatchManager> batchManagers = Maps.newHashMap();
             for (BatchElement<NamespacedLockSet, Set<LockToken>> batchElement : batchElements) {
                 NamespacedLockSet namespacedLockSet = batchElement.argument();
-                batchManagers.computeIfAbsent(namespacedLockSet.namespace(),
-                        unused -> new SingleClientBatchManager()).addBatchElement(batchElement);
+                batchManagers
+                        .computeIfAbsent(namespacedLockSet.namespace(), unused -> new SingleClientBatchManager())
+                        .addBatchElement(batchElement);
             }
 
             Map<Namespace, ConjureUnlockResponseV2> responses = timelockService.unlock(KeyedStream.stream(batchManagers)
