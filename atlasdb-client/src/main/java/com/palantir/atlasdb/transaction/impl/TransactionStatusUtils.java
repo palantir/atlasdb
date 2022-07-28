@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 
-public class TransactionStatusUtils {
+public final class TransactionStatusUtils {
     private TransactionStatusUtils() {
         // no
     }
