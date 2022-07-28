@@ -17,7 +17,6 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker.UnlockConsumer;
@@ -57,7 +57,8 @@ public class MultiClientTimeLockUnlockerTest {
 
     @Test
     public void canUnlockOneUserRequest() {
-        when(conjureTimelockService.unlock(anyMap()))
+        when(conjureTimelockService.unlock(
+                        ImmutableMap.of(NAMESPACE_1, ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1)))))
                 .thenReturn(ImmutableMap.of(NAMESPACE_1, ConjureUnlockResponseV2.of(ImmutableSet.of(CONJURE_TOKEN_1))))
                 .thenReturn(ImmutableMap.of(NAMESPACE_1, ConjureUnlockResponseV2.of(ImmutableSet.of())));
         assertThat(unlocker.unlock(NAMESPACE_1, ImmutableSet.of(TOKEN_1))).containsExactly(TOKEN_1);
@@ -69,7 +70,11 @@ public class MultiClientTimeLockUnlockerTest {
         DisruptorFuture<Set<LockToken>> firstResultFuture = new DisruptorFuture<>("test");
         DisruptorFuture<Set<LockToken>> secondResultFuture = new DisruptorFuture<>("test2");
         DisruptorFuture<Set<LockToken>> thirdResultFuture = new DisruptorFuture<>("test3");
-        when(conjureTimelockService.unlock(anyMap()))
+        when(conjureTimelockService.unlock(ImmutableMap.of(
+                        NAMESPACE_1,
+                        ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
+                        NAMESPACE_2,
+                        ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
                 .thenReturn(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockResponseV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
@@ -95,7 +100,9 @@ public class MultiClientTimeLockUnlockerTest {
         DisruptorFuture<Set<LockToken>> firstResultFuture = new DisruptorFuture<>("test");
         DisruptorFuture<Set<LockToken>> secondResultFuture = new DisruptorFuture<>("test2");
         DisruptorFuture<Set<LockToken>> thirdResultFuture = new DisruptorFuture<>("test3");
-        when(conjureTimelockService.unlock(anyMap()))
+        when(conjureTimelockService.unlock(ImmutableMap.of(
+                        NAMESPACE_1,
+                        ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
                 .thenReturn(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockResponseV2.of(
