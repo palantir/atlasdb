@@ -61,7 +61,7 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
         batcher.close();
     }
 
-    private static class SingleClientBatchManager {
+    private static final class SingleClientBatchManager {
         private final List<BatchElement<NamespacedLockSet, Set<LockToken>>> requests;
 
         private SingleClientBatchManager() {
@@ -73,7 +73,7 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
         }
 
         private ConjureUnlockRequestV2 getCombinedRequest() {
-            Set<ConjureLockTokenV2> lockTokens = Sets.newHashSet();
+            Set<ConjureLockTokenV2> lockTokens = new HashSet<>();
             for (BatchElement<NamespacedLockSet, Set<LockToken>> batchElement : requests) {
                 NamespacedLockSet lockSet = batchElement.argument();
                 lockTokens.addAll(lockSet.lockSet().stream()
