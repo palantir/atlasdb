@@ -32,6 +32,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -47,7 +49,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
 
     private static final byte[] DUMMY = new byte[] {1};
     private static final byte[] ABORT_COMMIT_TS_ENCODED =
-            V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, TransactionConstants.FAILED_COMMIT_TS);
+            V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, TransactionConstants.ABORTED);
     static final ByteBuffer COLUMN_NAME_BB = ByteBuffer.wrap(TransactionConstants.COMMIT_TS_COLUMN);
 
     @Override
@@ -85,10 +87,9 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
-        long commitTimestamp = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return commitTimestamp == TransactionConstants.FAILED_COMMIT_TS
-                ? TransactionTableEntries.explicitlyAborted(startTimestamp)
-                : TransactionTableEntries.committedLegacy(startTimestamp, commitTimestamp);
+        TransactionStatus commitStatus = V1EncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+                0, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        return TransactionTableEntryUtils.fromStatus(startTimestamp, commitStatus);
     }
 
     @Override
@@ -146,10 +147,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     static ByteBuffer encodeCommitTimestamp(long timestamp) {
-        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, timestamp));
-    }
-
-    private long decodeCommitTs(byte[] value) {
-        return V1EncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(0, value);
+        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                0, TransactionStatusUtils.fromTimestamp(timestamp)));
     }
 }

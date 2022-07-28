@@ -45,6 +45,9 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
 
     @Override
     public TransactionStatus decodeValueAsCommitTimestamp(long _ignoredStartTimestamp, byte[] value) {
+        if (value == null) {
+            return TransactionConstants.IN_PROGRESS;
+        }
         return TransactionStatuses.committed(TransactionConstants.getTimestampForValue(value));
     }
 }

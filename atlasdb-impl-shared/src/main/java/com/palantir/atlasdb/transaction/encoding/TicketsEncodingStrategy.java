@@ -73,6 +73,9 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
 
     @Override
     public TransactionStatus decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        if (value == null) {
+            return TransactionConstants.IN_PROGRESS;
+        }
         if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
             return TransactionConstants.ABORTED;
         }

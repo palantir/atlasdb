@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -37,6 +38,7 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
@@ -87,7 +89,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                                     cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
                         }
                     });
-                    return TransactionStatuses.committed(cellInfo.commitTs());
+                    return TransactionStatusUtils.fromTimestamp(cellInfo.commitTs());
                 }
             });
 
@@ -161,11 +163,11 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             long startTs = cellAndValue.startTs();
             PutUnlessExistsValue<TransactionStatus> currentValue =
                     encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-            TransactionStatus commitTs = currentValue.value();
+            TransactionStatus commitStatus = currentValue.value();
             PutUnlessExistsValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    kvsValue.equals(PutUnlessExistsValue.committed(commitTs)),
+                    kvsValue.equals(PutUnlessExistsValue.committed(commitStatus)),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),
@@ -188,23 +190,22 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             PutUnlessExistsValue<TransactionStatus> currentValue =
                     encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
-            TransactionStatus commitTs = currentValue.value();
+            TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {
-                resultBuilder.put(startTs, commitTs);
+                resultBuilder.put(startTs, commitStatus);
                 continue;
             }
             try {
                 Instant startTime = clock.instant();
-                resultBuilder.put(
-                        startTs,
-                        // todo (gmaretic): fix this mess
-                        touchCache.get(ImmutableCellInfo.of(
-                                cell,
-                                startTs,
-                                TransactionStatuses.caseOf(commitTs)
-                                        .committed(x -> x)
-                                        .otherwise_(-1L),
-                                actual)));
+                long commitTs = TransactionStatuses.caseOf(commitStatus)
+                        .committed(x -> x)
+                        .aborted_(-1L)
+                        .otherwise(() -> {
+                            throw new SafeIllegalStateException(
+                                    "Found an illegal transaction status in " + "a staging value",
+                                    SafeArg.of("commitStatus", commitStatus));
+                        });
+                resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
                     acceptStagingUntil = clock.instant().plusSeconds(60);
@@ -212,7 +213,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                             "Committing a staging value for the transactions table took too long. "
                                     + "Treating staging values as committed for 60 seconds to ensure liveness.",
                             SafeArg.of("startTs", startTs),
-                            SafeArg.of("commitTs", commitTs),
+                            SafeArg.of("commitStatus", commitStatus),
                             SafeArg.of("timeTaken", timeTaken)));
                     fallbacks.incrementAndGet();
                 }
@@ -225,7 +226,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
                         "Encountered exception attempting to commit a staging value for the transactions table. "
                                 + "Treating staging values as committed for 60 seconds to ensure liveness.",
                         SafeArg.of("startTs", startTs),
-                        SafeArg.of("commitTs", commitTs),
+                        SafeArg.of("commitStatus", commitStatus),
                         e));
                 fallbacks.incrementAndGet();
                 throw e;

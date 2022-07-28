@@ -46,7 +46,7 @@ import javax.annotation.CheckForNull;
  *
  * Queries for legitimate timestamps are routed to the delegate.
  */
-public class PreStartHandlingTransactionService implements InternalTransactionService {
+public class PreStartHandlingTransactionService implements TransactionService {
     private final InternalTransactionService delegate;
     private final InternalAsyncTransactionService synchronousAsyncTransactionService;
 
@@ -75,26 +75,6 @@ public class PreStartHandlingTransactionService implements InternalTransactionSe
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getFromDelegate(startTimestamps, delegate);
-    }
-
-    @Override
-    public TransactionStatus getInternal(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternalFromDelegate(startTimestamp, synchronousAsyncTransactionService));
-    }
-
-    @Override
-    public Map<Long, TransactionStatus> getInternal(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternalFromDelegate(startTimestamps, synchronousAsyncTransactionService));
-    }
-
-    @Override
-    public ListenableFuture<TransactionStatus> getInternalAsync(long startTimestamp) {
-        return getInternalFromDelegate(startTimestamp, delegate);
-    }
-
-    @Override
-    public ListenableFuture<Map<Long, TransactionStatus>> getInternalAsync(Iterable<Long> startTimestamps) {
-        return getInternalFromDelegate(startTimestamps, delegate);
     }
 
     @Override

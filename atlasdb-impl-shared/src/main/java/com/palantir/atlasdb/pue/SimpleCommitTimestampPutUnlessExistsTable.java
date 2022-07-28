@@ -28,7 +28,6 @@ import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -68,8 +67,7 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
                 result,
                 presentValues -> KeyedStream.stream(startTsToCell)
                         .map(presentValues::get)
-                        .filter(Objects::nonNull)
-                        .map(Value::getContents)
+                        .map(value -> value == null ? null : value.getContents())
                         .map(encodingStrategy::decodeValueAsCommitTimestamp)
                         .collectToMap(),
                 MoreExecutors.directExecutor());

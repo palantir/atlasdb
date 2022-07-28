@@ -20,6 +20,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -35,6 +36,8 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE, COMMITTED);
+    private static final PutUnlessExistsValue<TransactionStatus> IN_PROGRESS =
+            PutUnlessExistsValue.committed(TransactionConstants.IN_PROGRESS);
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -56,16 +59,20 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
 
     @Override
     public PutUnlessExistsValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        if (value == null) {
+            return IN_PROGRESS;
+        }
+
         byte[] head = PtBytes.head(value, value.length - 1);
         byte[] tail = PtBytes.tail(value, 1);
 
-        TransactionStatus commitTimestamp =
+        TransactionStatus commitStatus =
                 TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(startTimestamp, head);
         if (Arrays.equals(tail, COMMITTED)) {
-            return PutUnlessExistsValue.committed(commitTimestamp);
+            return PutUnlessExistsValue.committed(commitStatus);
         }
         if (Arrays.equals(tail, STAGING)) {
-            return PutUnlessExistsValue.staging(commitTimestamp);
+            return PutUnlessExistsValue.staging(commitStatus);
         }
 
         throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));

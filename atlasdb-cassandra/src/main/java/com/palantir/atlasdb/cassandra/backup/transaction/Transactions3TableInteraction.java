@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -86,9 +87,11 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        PutUnlessExistsValue<Long> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
-                startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        if (commitValue.value() == TransactionConstants.FAILED_COMMIT_TS) {
+        PutUnlessExistsValue<TransactionStatus> commitValue =
+                TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+                        startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+
+        if (commitValue.value() == TransactionConstants.ABORTED) {
             return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
 

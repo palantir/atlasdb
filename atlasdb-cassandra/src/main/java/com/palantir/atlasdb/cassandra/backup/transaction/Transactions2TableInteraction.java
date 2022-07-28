@@ -31,10 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -89,15 +87,9 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        TransactionStatus commitTimestamp = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        TransactionStatus commitStatus = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        return TransactionStatuses.caseOf(commitTimestamp)
-                .committed(ts -> TransactionTableEntries.committedLegacy(startTimestamp, ts))
-                .aborted(() -> TransactionTableEntries.explicitlyAborted(startTimestamp))
-                .otherwise(() -> {
-                    throw new SafeIllegalStateException(
-                            "Illegal transaction status", SafeArg.of("status", commitTimestamp));
-                });
+        return TransactionTableEntryUtils.fromStatus(startTimestamp, commitStatus);
     }
 
     @Override
@@ -120,8 +112,8 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        ByteBuffer valueBb =
-                ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs));
+        ByteBuffer valueBb = ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                startTs, TransactionStatusUtils.fromTimestamp(commitTs)));
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)
                 .setSerialConsistencyLevel(ConsistencyLevel.SERIAL)

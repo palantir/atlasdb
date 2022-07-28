@@ -24,6 +24,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
@@ -48,8 +51,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
-    private final PutUnlessExistsTable<Long, Long> pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
-            forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
+    private final PutUnlessExistsTable<Long, TransactionStatus> pueTable =
+            new ResilientCommitTimestampPutUnlessExistsTable(
+                    forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
     public void repeatableReads() throws InterruptedException {
@@ -87,7 +91,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
                         Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
-                pueTable.putUnlessExists(startTimestamp, startTimestamp + writerIndex);
+                pueTable.putUnlessExists(startTimestamp, TransactionStatuses.committed(startTimestamp + writerIndex));
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.
             }
@@ -96,17 +100,18 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     }
 
     private static void validateIndividualReaderHadRepeatableReads(Long startTimestamp, TimestampReader reader) {
-        List<Optional<Long>> reads = reader.getTimestampReads();
-        Set<Optional<Long>> readSet = new HashSet<>(reads);
+        List<TransactionStatus> reads = reader.getTimestampReads();
+        Set<TransactionStatus> readSet = new HashSet<>(reads);
         assertThat(readSet)
                 .as("can only read at most 2 distinct values: empty and a single fixed value")
                 .hasSizeLessThanOrEqualTo(2);
         if (readSet.size() == 2) {
-            Set<Optional<Long>> valuesRead =
-                    readSet.stream().filter(Optional::isPresent).collect(Collectors.toSet());
+            Set<TransactionStatus> valuesRead = readSet.stream()
+                    .filter(status -> !status.equals(TransactionConstants.IN_PROGRESS))
+                    .collect(Collectors.toSet());
             assertThat(valuesRead).as("can only read at most 1 fixed value").hasSize(1);
 
-            Optional<Long> concreteValue = Iterables.getOnlyElement(valuesRead);
+            TransactionStatus concreteValue = Iterables.getOnlyElement(valuesRead);
             assertThat(reads.subList(reads.indexOf(concreteValue), reads.size()))
                     .as("must always read the concrete value once it has been read")
                     .containsOnly(concreteValue);
@@ -129,6 +134,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
         Set<Long> concreteValuesAgreedByReaders = readers.stream()
                 .map(TimestampReader::getTimestampReads)
                 .flatMap(List::stream)
+                .map(TransactionStatuses::getCommitTimestamp)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         assertThat(concreteValuesAgreedByReaders)
@@ -138,18 +144,18 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
-        private final PutUnlessExistsTable<Long, Long> pueTable;
-        private final List<Optional<Long>> timestampReads;
+        private final PutUnlessExistsTable<Long, TransactionStatus> pueTable;
+        private final List<TransactionStatus> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
-        private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, Long> pueTable) {
+        private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, TransactionStatus> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
             this.timestampReads = new ArrayList<>();
             this.scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
         }
 
-        public List<Optional<Long>> getTimestampReads() {
+        public List<TransactionStatus> getTimestampReads() {
             return ImmutableList.copyOf(timestampReads);
         }
 
@@ -159,8 +165,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         public void readOneIteration() {
             try {
-                timestampReads.add(
-                        Optional.ofNullable(pueTable.get(startTimestamp).get()));
+                timestampReads.add(pueTable.get(startTimestamp).get());
             } catch (Exception e) {
                 // Expected - some failures will happen as part of our test.
             }
