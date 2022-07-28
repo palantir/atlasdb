@@ -18,7 +18,6 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -32,6 +31,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +106,7 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
 
         @Override
         public void accept(List<BatchElement<NamespacedLockSet, Set<LockToken>>> batchElements) {
-            Map<Namespace, SingleClientBatchManager> batchManagers = Maps.newHashMap();
+            Map<Namespace, SingleClientBatchManager> batchManagers = new HashMap<>();
             for (BatchElement<NamespacedLockSet, Set<LockToken>> batchElement : batchElements) {
                 NamespacedLockSet namespacedLockSet = batchElement.argument();
                 batchManagers
