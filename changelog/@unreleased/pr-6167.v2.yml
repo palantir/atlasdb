@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS Refactor] Rename PUE to generic atomic update'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6167
