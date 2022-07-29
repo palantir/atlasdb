@@ -26,13 +26,12 @@ import com.palantir.nexus.db.pool.InterceptorDataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.SQLExceptionOverride;
 import com.zaxxer.hikari.util.DriverDataSource;
-import org.immutables.value.Value;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
