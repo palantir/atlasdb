@@ -69,13 +69,15 @@ public class AbortedTransactionSoftCacheTest {
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
 
         // first query will init the cache for bucket
+        when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
+                .thenReturn(ImmutableSet.of(timestamp));
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
+                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
         verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
 
         // relies on soft cache to server request
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
+                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
         verifyNoMoreInteractions(futileTimestampStore);
     }
 
@@ -84,6 +86,7 @@ public class AbortedTransactionSoftCacheTest {
         long firstQueryTimestamp = 25L;
         long firstIterLastConcluded = firstQueryTimestamp + 1;
         long secondQueryTimestamp = firstQueryTimestamp + 2;
+        long bucket = AbortedTimestampUtils.getBucket(secondQueryTimestamp);
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(firstIterLastConcluded);
 
@@ -97,6 +100,21 @@ public class AbortedTransactionSoftCacheTest {
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(secondQueryTimestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
         verify(futileTimestampStore).getAbortedTransactionsInRange(firstIterLastConcluded, secondQueryTimestamp);
+    }
+
+    @Test
+    public void callsKnownConcludedStoreWithRemoteConsistency() {
+        long firstQueryTimestamp = 25L;
+        long firstIterLastConcluded = firstQueryTimestamp + 1;
+        long bucket = AbortedTimestampUtils.getBucket(firstQueryTimestamp);
+
+        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(firstIterLastConcluded);
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp))
+                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
+        verify(knownConcludedTransactions)
+                .isKnownConcluded(
+                        AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket),
+                        KnownConcludedTransactions.Consistency.REMOTE_READ);
     }
 
     @Test
