@@ -35,13 +35,18 @@ import java.util.Optional;
 public interface ConsensusForgettingStore {
 
     /**
-     * An atomic put unless exists operation. If this method throws an exception, there are no consistency guarantees:
-     *   1. A subsequent PUE may succeed or fail non-deterministically
+     * An atomic update operation. If this method throws an exception, there are no consistency guarantees:
+     *   1. A subsequent update may succeed or fail non-deterministically
      *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
-     *   another PUE has failed in the past non-deterministically
+     *   another update operation has failed in the past non-deterministically
+     *   3. The semantics of the update operation depend on the underlying implementation.
      */
     void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
 
+    /**
+     * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
+     * depending on the underlying implementation.
+     */
     void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
