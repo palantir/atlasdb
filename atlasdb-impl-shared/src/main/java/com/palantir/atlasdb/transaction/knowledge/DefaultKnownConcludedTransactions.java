@@ -16,7 +16,11 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.*;
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
