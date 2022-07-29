@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 
-public final class Utils {
-    private Utils() {}
+public final class AbortedTimestampUtils {
+    private AbortedTimestampUtils() {}
 
     public static long getMaxTsInCurrentBucket(long bucket) {
         return getMinTsInBucket(bucket + 1) - 1;

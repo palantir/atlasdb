@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.palantir.common.concurrent.CoalescingSupplier;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -84,12 +82,23 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
 
     @Override
     public void addConcludedTimestamps(Range<Long> knownConcludedInterval) {
+        Preconditions.checkState(
+                sanityCheckConcludedRange(knownConcludedInterval),
+                "KnownConcludedInterval is expected to have closed lower and upper bounds.",
+                SafeArg.of("knownConcludedInterval", knownConcludedInterval));
         knownConcludedTransactionsStore.supplement(knownConcludedInterval);
         ensureRangesCached(ImmutableRangeSet.of(knownConcludedInterval));
     }
 
+    private boolean sanityCheckConcludedRange(Range<Long> range) {
+        return range.hasLowerBound()
+                && range.hasUpperBound()
+                && range.lowerBoundType().equals(BoundType.CLOSED)
+                && range.upperBoundType().equals(BoundType.CLOSED);
+    }
+
     @Override
-    public long lastKnownConcludedTimestamp() {
+    public long lastLocallyKnownConcludedTimestamp() {
         return cachedConcludedTimestampsRef.get().lastKnownConcludedTs();
     }
 

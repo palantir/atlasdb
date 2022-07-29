@@ -22,7 +22,10 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class AbortedTransactionSoftCache implements AutoCloseable {
@@ -56,13 +59,13 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         Optional<PatchyCache> maybeSnapshot = getSnapshot();
 
         long latestTsSeenSoFar = getLatestTsSeenSoFar(request, maybeSnapshot);
-        long latestBucketSeenSoFar = Utils.getBucket(latestTsSeenSoFar);
+        long latestBucketSeenSoFar = AbortedTimestampUtils.getBucket(latestTsSeenSoFar);
 
         PatchyCache refreshedPatchyCache = refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
 
         return KeyedStream.of(request)
                 .map(startTimestamp -> {
-                    long requestedBucket = Utils.getBucket(startTimestamp);
+                    long requestedBucket = AbortedTimestampUtils.getBucket(startTimestamp);
 
                     if (requestedBucket < latestBucketSeenSoFar) {
                         return TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE;
@@ -80,12 +83,15 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
             latestTsSeenSoFar = Math.max(latestTsSeenSoFar, maybeSnapshot.get().lastKnownConcludedTimestamp);
         }
 
-        long latestBucket = Utils.getBucket(latestTsSeenSoFar);
+        long latestBucket = AbortedTimestampUtils.getBucket(latestTsSeenSoFar);
         // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
         // Do not remove this line without considering perf implications.
-        knownConcludedTransactions.isKnownConcluded(latestBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
+        knownConcludedTransactions.isKnownConcluded(
+                AbortedTimestampUtils.getMaxTsInCurrentBucket(latestBucket),
+                KnownConcludedTransactions.Consistency.REMOTE_READ);
 
-        latestTsSeenSoFar = Math.max(latestTsSeenSoFar, knownConcludedTransactions.lastKnownConcludedTimestamp());
+        latestTsSeenSoFar =
+                Math.max(latestTsSeenSoFar, knownConcludedTransactions.lastLocallyKnownConcludedTimestamp());
         return latestTsSeenSoFar;
     }
 
@@ -124,10 +130,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     }
 
     private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, long latestBucketSeenSoFar) {
-        long maxTsInCurrentBucket = Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar);
+        long maxTsInCurrentBucket = AbortedTimestampUtils.getMaxTsInCurrentBucket(latestBucketSeenSoFar);
 
         Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
-                Utils.getMinTsInBucket(latestBucketSeenSoFar), Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar));
+                AbortedTimestampUtils.getMinTsInBucket(latestBucketSeenSoFar), maxTsInCurrentBucket);
 
         return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), futileTimestamps);
     }
@@ -153,12 +159,13 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
 
             this.lastKnownConcludedTimestamp = lastKnownConcludedTimestamp;
             this.abortedTransactions = mutableAbortedTimestamps;
-            this.bucket = Utils.getBucket(lastKnownConcludedTimestamp);
+            this.bucket = AbortedTimestampUtils.getBucket(lastKnownConcludedTimestamp);
         }
 
         public void extend(long latestConcluded, Set<Long> newAbortedTransactions) {
             Preconditions.checkState(
-                    Utils.getBucket(latestConcluded) == bucket, "Can only extend within the same bucket.");
+                    AbortedTimestampUtils.getBucket(latestConcluded) == bucket,
+                    "Can only extend within the same bucket.");
             abortedTransactions.addAll(newAbortedTransactions);
             lastKnownConcludedTimestamp = Math.max(lastKnownConcludedTimestamp, latestConcluded);
         }
