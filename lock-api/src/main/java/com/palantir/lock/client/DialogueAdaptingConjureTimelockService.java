@@ -55,8 +55,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
-    private static final int NOT_FOUND = 404;
-
     private final ConjureTimelockServiceBlocking dialogueDelegate;
     private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
 
@@ -195,17 +193,12 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     private static class ServerApiVersionGuesser {
+        private static final int NOT_FOUND = 404;
+
         private final AtomicBoolean suspectOldVersion;
 
         private ServerApiVersionGuesser() {
             this.suspectOldVersion = new AtomicBoolean();
-        }
-
-        private boolean shouldUseNewEndpoint() {
-            if (suspectOldVersion.get()) {
-                return ThreadLocalRandom.current().nextDouble() < 0.01;
-            }
-            return true;
         }
 
         public <T> T runUnderSuspicion(Supplier<T> newFunction, Supplier<T> legacyFunction) {
@@ -213,6 +206,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
                 return runNewFunctionFirst(newFunction, legacyFunction);
             }
             return legacyFunction.get();
+        }
+
+        private boolean shouldUseNewEndpoint() {
+            if (suspectOldVersion.get()) {
+                return ThreadLocalRandom.current().nextDouble() < 0.01;
+            }
+            return true;
         }
 
         private <T> T runNewFunctionFirst(Supplier<T> newFunction, Supplier<T> legacyFunction) {
