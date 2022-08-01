@@ -1813,16 +1813,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        List<String> violations = constraintsByTableName.entrySet().stream()
-                .map(e -> {
-                    Map<Cell, byte[]> writes = writesByTable.get(e.getKey());
-                    return (writes == null)
-                            ? Collections.<String>emptyList()
-                            : e.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
-                })
-                .filter(constraintFailures -> !constraintFailures.isEmpty())
-                .flatMap(Collection::stream)
-                .collect(toList());
+        List<String> violations = new ArrayList<>();
+        for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
+            Map<Cell, byte[]> writes = writesByTable.get(entry.getKey());
+            if (writes != null) {
+                violations.addAll(entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode));
+            }
+        }
 
         if (!violations.isEmpty()) {
             AtlasDbConstraintException error = new AtlasDbConstraintException(violations);
