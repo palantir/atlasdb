@@ -28,6 +28,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Aborted transactions timestamps are not expected to be contiguous. The caching for aborted transactions is bucketed
+ * i.e. each bucket is a range of timestamps we cache the set of aborted timestamps in that bucket.
+ * A bucket becomes immutable when lastKnownConcludedTs exceeds the upper bound for that bucket.
+ * At any point in time, there will be exactly one bucket which will be mutable.
+ *
+ * This class provides a caching mechanism for the mutable bucket. The queries are expected to be highly concurrent and
+ * are batched to reduce request volume to remote server. Since the queries are batched with exactly one consumer,
+ * this class has been designed for serial execution to improve performance.
+ *
+ * Queries to this class must only be made for a transaction timestamp that is known to have been concluded.
+ * */
 public final class AbortedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
         PENDING_LOAD_FROM_RELIABLE,
@@ -148,6 +160,12 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
                 : TransactionSoftCacheStatus.IS_NOT_ABORTED;
     }
 
+    /**
+     * Maintains the cache for the mutable bucket. The cache is incomplete and can reliably serve query in
+     * range [minTsForBucket(bucket), lastKnownConcludedTs].
+     * For performance, we maintain a mutable instance of PatchyCache that can be extended if we have a query beyond
+     * lastKnownConcludedTs.
+     * */
     static class PatchyCache {
         private final long bucket;
         private final Set<Long> abortedTransactions;
