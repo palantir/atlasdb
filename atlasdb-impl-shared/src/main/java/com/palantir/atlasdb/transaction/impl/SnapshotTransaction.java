@@ -1808,18 +1808,20 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void checkConstraints() {
-        if (constraintsByTableName.isEmpty() || writesByTable.isEmpty()) {
+        if (writesByTable.isEmpty()) {
             // avoid work in cases where constraints do not apply (e.g. read only transactions)
             return;
         }
 
         List<String> violations = constraintsByTableName.entrySet().stream()
-                .flatMap(e -> {
-                    NavigableMap<Cell, byte[]> writes = writesByTable.get(e.getKey());
-                    return writes == null
-                            ? Stream.empty()
-                            : e.getValue().findConstraintFailures(writes, this, constraintCheckingMode).stream();
+                .map(e -> {
+                    Map<Cell, byte[]> writes = writesByTable.get(e.getKey());
+                    return (writes == null)
+                            ? Collections.<String>emptyList()
+                            : e.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
                 })
+                .filter(constraintFailures -> !constraintFailures.isEmpty())
+                .flatMap(Collection::stream)
                 .collect(toList());
 
         if (!violations.isEmpty()) {
