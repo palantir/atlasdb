@@ -21,7 +21,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
@@ -36,22 +38,34 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     private final Cache<Long, Set<Long>> reliableCache;
 
     private final AbortedTransactionSoftCache softCache;
+    private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
-    DefaultKnownAbortedTransactions(FutileTimestampStore futileTimestampStore, AbortedTransactionSoftCache softCache) {
+    DefaultKnownAbortedTransactions(
+            FutileTimestampStore futileTimestampStore,
+            AbortedTransactionSoftCache softCache,
+            TaggedMetricRegistry registry) {
         this.futileTimestampStore = futileTimestampStore;
+        this.softCache = softCache;
+        this.metrics = AbortedTransctionsCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
                 .maximumWeight(MAXIMUM_CACHE_WEIGHT)
                 .weigher(new AbortedTransactionBucketWeigher())
+                .evictionListener((k, v, cause) -> {
+                    if (cause.wasEvicted()) {
+                        metrics.reliableBucketEvictions().mark();
+                    }
+                })
                 .build();
-        this.softCache = softCache;
     }
 
     public static DefaultKnownAbortedTransactions create(
-            KnownConcludedTransactions knownConcludedTransactions, FutileTimestampStore futileTimestampStore) {
+            KnownConcludedTransactions knownConcludedTransactions,
+            FutileTimestampStore futileTimestampStore,
+            TaggedMetricRegistry registry) {
         AbortedTransactionSoftCache softCache =
                 new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
-        return new DefaultKnownAbortedTransactions(futileTimestampStore, softCache);
+        return new DefaultKnownAbortedTransactions(futileTimestampStore, softCache, registry);
     }
 
     @Override
@@ -67,7 +81,9 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
             case PENDING_LOAD_FROM_RELIABLE:
                 return getCachedAbortedTimestampsInBucket(bucketForTimestamp).contains(startTimestamp);
             default:
-                throw new SafeIllegalStateException("Unrecognized transaction status returned from soft cache.");
+                throw new SafeIllegalStateException(
+                        "Unrecognized transaction status returned from soft cache.",
+                        SafeArg.of("status", softCacheTransactionStatus));
         }
     }
 
@@ -86,6 +102,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     }
 
     private Set<Long> getAbortedTransactionsRemote(long bucket) {
+        metrics.abortedTxnCacheMiss().mark();
         return futileTimestampStore.getAbortedTransactionsInRange(
                 Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
     }

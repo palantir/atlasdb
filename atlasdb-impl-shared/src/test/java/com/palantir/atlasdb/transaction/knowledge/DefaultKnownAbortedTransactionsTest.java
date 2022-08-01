@@ -18,16 +18,13 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -37,7 +34,7 @@ public final class DefaultKnownAbortedTransactionsTest {
     private final FutileTimestampStore futileTimestampStore = mock(FutileTimestampStore.class);
     private final AbortedTransactionSoftCache softCache = mock(AbortedTransactionSoftCache.class);
     private final DefaultKnownAbortedTransactions knownAbortedTransactions =
-            new DefaultKnownAbortedTransactions(futileTimestampStore, softCache);
+            new DefaultKnownAbortedTransactions(futileTimestampStore, softCache, new DefaultTaggedMetricRegistry());
 
     @Test
     public void testIsKnownAbortedReturnsTrueIfAbortedInSoftCache() {
