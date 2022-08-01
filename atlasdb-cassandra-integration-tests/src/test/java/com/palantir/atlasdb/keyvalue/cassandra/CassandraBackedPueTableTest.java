@@ -32,6 +32,7 @@ import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
@@ -82,7 +83,7 @@ public class CassandraBackedPueTableTest {
         Iterable<List<Long>> partitionedStartTimestamps = Lists.partition(timestamps, 20);
         for (List<Long> singlePartition : partitionedStartTimestamps) {
             singlePartition.forEach(timestamp -> writeExecutor.execute(
-                    () -> pueTable.putUnlessExists(timestamp, TransactionStatuses.committed(timestamp))));
+                    () -> pueTable.putUnlessExists(timestamp, TransactionStatusUtils.fromTimestamp(timestamp))));
 
             List<ListenableFuture<Map<Long, TransactionStatus>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {

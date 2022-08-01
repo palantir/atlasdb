@@ -19,9 +19,7 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.PARTITIONING_QUANTUM;
 import static com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy.ROWS_PER_QUANTUM;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
@@ -35,6 +33,8 @@ import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -140,10 +140,10 @@ public class Transactions3TableInteractionTest {
     }
 
     private static Row createRow(long start, long commit) {
-        return createRow(start, PutUnlessExistsValue.committed(commit));
+        return createRow(start, PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(commit)));
     }
 
-    private static Row createRow(long start, PutUnlessExistsValue<Long> commit) {
+    private static Row createRow(long start, PutUnlessExistsValue<TransactionStatus> commit) {
         Row row = mock(Row.class);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(start);
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));

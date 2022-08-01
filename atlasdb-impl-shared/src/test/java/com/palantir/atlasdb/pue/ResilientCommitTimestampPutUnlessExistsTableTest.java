@@ -16,28 +16,16 @@
 
 package com.palantir.atlasdb.pue;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
@@ -46,17 +34,8 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.time.Clock;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -114,6 +93,15 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
         assertThat(TransactionStatuses.caseOf(pueTable.get(3L).get())
                         .inProgress_(true)
+                        .otherwise_(false))
+                .isTrue();
+    }
+
+    @Test
+    public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
+        pueTable.putUnlessExists(1L, TransactionStatuses.aborted());
+        assertThat(TransactionStatuses.caseOf(pueTable.get(1L).get())
+                        .aborted_(true)
                         .otherwise_(false))
                 .isTrue();
     }
@@ -236,7 +224,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         spiedStore.stopFailingPuts();
         for (long i = 0; i < 100; i++) {
-            assertThat(pueTable.get(0L).get()).isEqualTo(0L);
+            assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+                    .hasValue(0L);
         }
 
         if (validating) {
@@ -335,7 +324,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         setupStagingValues(1);
         spiedStore.enableCommittingUnderUs();
 
-        assertThat(pueTable.get(0L).get()).isEqualTo(0L);
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+                .hasValue(0L);
         verify(spiedKvs, times(1)).checkAndSet(any());
         // only the put from the original PUE was registered
         verify(spiedStore, times(1)).put(anyMap());
@@ -348,15 +338,18 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.stopFailingPuts();
         spiedStore.startSlowPue();
 
-        assertThat(pueTable.get(0L).get()).isEqualTo(TransactionStatuses.committed(0L));
-        assertThat(pueTable.get(1L).get()).isEqualTo(TransactionStatuses.committed(1L));
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+                .hasValue(0L);
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+                .hasValue(1L);
 
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(pueTable.get(2L).get()).isEqualTo(TransactionStatuses.committed(2L));
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(2L).get()))
+                .hasValue(2L);
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }
@@ -372,13 +365,15 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                 .hasCauseInstanceOf(RetryLimitReachedException.class);
         spiedStore.stopFailingPuts();
 
-        assertThat(pueTable.get(1L).get()).isEqualTo(TransactionStatuses.committed(1L));
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+                .hasValue(1L);
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(pueTable.get(2L).get()).isEqualTo(TransactionStatuses.committed(2L));
+        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(2L).get()))
+                .hasValue(2L);
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }

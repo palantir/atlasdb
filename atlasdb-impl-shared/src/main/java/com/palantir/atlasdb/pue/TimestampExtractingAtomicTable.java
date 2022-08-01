@@ -20,12 +20,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class TimestampExtractingAtomicTable implements PutUnlessExistsTable<Long, Long> {
     private final PutUnlessExistsTable<Long, TransactionStatus> delegate;
@@ -46,7 +48,10 @@ public class TimestampExtractingAtomicTable implements PutUnlessExistsTable<Long
         return Futures.transform(
                 delegate.get(keys),
                 statuses -> KeyedStream.stream(statuses)
-                        .map(TransactionStatuses::getCommitTimestamp)
+                        .map(status -> TransactionStatuses.caseOf(status)
+                                .committed(Function.identity())
+                                .aborted_(TransactionConstants.FAILED_COMMIT_TS)
+                                .otherwiseEmpty())
                         .flatMap(Optional::stream)
                         .collectToMap(),
                 MoreExecutors.directExecutor());

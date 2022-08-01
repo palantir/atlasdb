@@ -169,7 +169,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             PutUnlessExistsValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    kvsValue.equals(PutUnlessExistsValue.committed(commitStatus)),
+                    TransactionStatuses.getCommitTimestamp(kvsValue.value())
+                            .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),
@@ -186,6 +187,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             Long startTs = startTsAndCell.getKey();
 
             if (maybeActual.isEmpty()) {
+                // put in_progress if there is no value in the kvs
                 resultBuilder.put(
                         startTs,
                         encodingStrategy
@@ -200,11 +202,14 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
             TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {
+                // if there is a committed value, it will be committed or aborted
+                // put and move on
                 resultBuilder.put(startTs, commitStatus);
                 continue;
             }
             try {
                 Instant startTime = clock.instant();
+                // todo(snanda): refactor this out
                 long commitTs = TransactionStatuses.caseOf(commitStatus)
                         .committed(Function.identity())
                         .aborted_(TransactionConstants.FAILED_COMMIT_TS)

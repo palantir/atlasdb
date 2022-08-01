@@ -18,30 +18,18 @@ package com.palantir.atlasdb.pue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -100,18 +88,17 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
     }
 
     private static void validateIndividualReaderHadRepeatableReads(Long startTimestamp, TimestampReader reader) {
-        List<TransactionStatus> reads = reader.getTimestampReads();
-        Set<TransactionStatus> readSet = new HashSet<>(reads);
+        List<Optional<Long>> reads = reader.getTimestampReads();
+        Set<Optional<Long>> readSet = new HashSet<>(reads);
         assertThat(readSet)
                 .as("can only read at most 2 distinct values: empty and a single fixed value")
                 .hasSizeLessThanOrEqualTo(2);
         if (readSet.size() == 2) {
-            Set<TransactionStatus> valuesRead = readSet.stream()
-                    .filter(status -> !status.equals(TransactionConstants.IN_PROGRESS))
-                    .collect(Collectors.toSet());
+            Set<Optional<Long>> valuesRead =
+                    readSet.stream().filter(Optional::isPresent).collect(Collectors.toSet());
             assertThat(valuesRead).as("can only read at most 1 fixed value").hasSize(1);
 
-            TransactionStatus concreteValue = Iterables.getOnlyElement(valuesRead);
+            Optional<Long> concreteValue = Iterables.getOnlyElement(valuesRead);
             assertThat(reads.subList(reads.indexOf(concreteValue), reads.size()))
                     .as("must always read the concrete value once it has been read")
                     .containsOnly(concreteValue);
@@ -134,7 +121,6 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
         Set<Long> concreteValuesAgreedByReaders = readers.stream()
                 .map(TimestampReader::getTimestampReads)
                 .flatMap(List::stream)
-                .map(TransactionStatuses::getCommitTimestamp)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         assertThat(concreteValuesAgreedByReaders)
@@ -155,8 +141,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
             this.scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
         }
 
-        public List<TransactionStatus> getTimestampReads() {
-            return ImmutableList.copyOf(timestampReads);
+        public List<Optional<Long>> getTimestampReads() {
+            return timestampReads.stream()
+                    .map(TransactionStatuses::getCommitTimestamp)
+                    .collect(Collectors.toList());
         }
 
         public void start() {

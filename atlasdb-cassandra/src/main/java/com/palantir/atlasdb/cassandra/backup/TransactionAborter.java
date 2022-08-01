@@ -16,12 +16,7 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.*;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.StopStrategies;
@@ -34,6 +29,7 @@ import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -232,6 +228,8 @@ final class TransactionAborter {
     }
 
     private static Optional<Long> getCommitValue(TransactionTableEntry entry) {
-        return TransactionTableEntries.getCommitValue(entry).map(PutUnlessExistsValue::value);
+        return TransactionTableEntries.getCommitValue(entry)
+                .map(PutUnlessExistsValue::value)
+                .flatMap(TransactionStatuses::getCommitTimestamp);
     }
 }

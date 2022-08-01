@@ -90,8 +90,27 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
         assertThat(result.size()).isEqualTo(4);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
-        assertThat(result.get(5L)).isEqualTo(TransactionConstants.IN_PROGRESS);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(7L))).hasValue(8L);
+    }
+
+    @Test
+    public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.aborted());
+        pueTable.putUnlessExistsMultiple(inputs);
+        Map<Long, TransactionStatus> result = pueTable.get(ImmutableList.of(1L)).get();
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(1L)).isEqualTo(TransactionConstants.ABORTED);
+    }
+
+    @Test
+    public void getsAllTimestamps() throws ExecutionException, InterruptedException {
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.committed(2L));
+        pueTable.putUnlessExistsMultiple(inputs);
+        Map<Long, TransactionStatus> result =
+                pueTable.get(ImmutableList.of(1L, 3L)).get();
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
+        assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
     private PutUnlessExistsTable<Long, TransactionStatus> createPueTable() {

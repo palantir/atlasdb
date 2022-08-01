@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
@@ -26,6 +26,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
     INSTANCE;
+
+    private static final byte[] ENCODED_ABORTED_TRANSACTION_TIMESTAMP =
+            TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS);
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -42,7 +45,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
     public byte[] encodeCommitTimestampAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
         return TransactionStatuses.caseOf(commitStatus)
                 .committed(TransactionConstants::getValueForTimestamp)
-                .aborted_(PtBytes.EMPTY_BYTE_ARRAY)
+                .aborted_(ENCODED_ABORTED_TRANSACTION_TIMESTAMP)
                 .otherwise(() -> {
                     throw new SafeIllegalStateException(
                             "Illegal transaction status", SafeArg.of("status", commitStatus));
@@ -54,6 +57,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
         if (value == null) {
             return TransactionConstants.IN_PROGRESS;
         }
-        return TransactionStatuses.committed(TransactionConstants.getTimestampForValue(value));
+
+        return TransactionStatusUtils.fromTimestamp(TransactionConstants.getTimestampForValue(value));
     }
 }
