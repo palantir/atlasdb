@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.Optional;
@@ -65,13 +66,13 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        delegate.putUnlessExists(cell, value);
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+        delegate.atomicUpdate(cell, value);
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.putUnlessExists(values);
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        delegate.atomicUpdate(values);
     }
 
     @Override

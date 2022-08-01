@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,12 +31,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, Long> {
+public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long> {
     private final KeyValueService kvs;
     private final TableReference tableRef;
     private final TimestampEncodingStrategy<Long> encodingStrategy;
 
-    public SimpleCommitTimestampPutUnlessExistsTable(
+    public SimpleCommitTimestampAtomicTable(
             KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
         this.kvs = kvs;
         this.tableRef = tableRef;
@@ -44,7 +44,7 @@ public class SimpleCommitTimestampPutUnlessExistsTable implements PutUnlessExist
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
+    public void updateMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(
                 tableRef,
                 KeyedStream.stream(values)

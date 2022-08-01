@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -66,8 +67,8 @@ public class InstrumentedConsensusForgettingStoreTest {
 
     @Test
     public void forwardsSimpleCallsToDelegate() throws ExecutionException, InterruptedException {
-        consensusForgettingStore.putUnlessExists(CELL, VALUE);
-        verify(delegate).putUnlessExists(CELL, VALUE);
+        consensusForgettingStore.atomicUpdate(CELL, VALUE);
+        verify(delegate).atomicUpdate(CELL, VALUE);
 
         when(delegate.get(CELL)).thenReturn(Futures.immediateFuture(Optional.of(VALUE)));
         assertThat(consensusForgettingStore.get(CELL).get()).contains(VALUE);
