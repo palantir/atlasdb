@@ -87,8 +87,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
         long startTimestamp = decodeStartTs(Bytes.getArray(row.getBytes(CassandraConstants.ROW)));
-        TransactionStatus commitStatus = V1EncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
-                0, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        TransactionStatus commitStatus = decodeCommitTs(Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
         return TransactionTableEntryUtils.fromStatus(startTimestamp, commitStatus);
     }
 
@@ -149,5 +148,9 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     static ByteBuffer encodeCommitTimestamp(long timestamp) {
         return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
                 0, TransactionStatusUtils.fromTimestamp(timestamp)));
+    }
+
+    private TransactionStatus decodeCommitTs(byte[] value) {
+        return V1EncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(0, value);
     }
 }

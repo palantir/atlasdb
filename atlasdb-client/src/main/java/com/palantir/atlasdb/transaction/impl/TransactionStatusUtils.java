@@ -20,9 +20,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 
 public final class TransactionStatusUtils {
-    private TransactionStatusUtils() {
-        // no
-    }
+    private TransactionStatusUtils() {}
 
     public static TransactionStatus fromTimestamp(long timestamp) {
         if (timestamp == TransactionConstants.FAILED_COMMIT_TS) {

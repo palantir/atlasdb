@@ -103,11 +103,11 @@ public class PreStartHandlingTransactionService implements TransactionService {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
-        List<Long> validTimestamps = classifiedTimestamps.get(true);
         Map<Long, Long> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
                 .map(_ignore -> AtlasDbConstants.STARTING_TS - 1)
                 .collectTo(HashMap::new);
 
+        List<Long> validTimestamps = classifiedTimestamps.get(true);
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
                     asyncTransactionService.getAsync(validTimestamps),

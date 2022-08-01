@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -181,11 +183,17 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
             Optional<byte[]> maybeActual = Optional.ofNullable(reads.get(cell));
+            Long startTs = startTsAndCell.getKey();
+
             if (maybeActual.isEmpty()) {
+                resultBuilder.put(
+                        startTs,
+                        encodingStrategy
+                                .decodeValueAsCommitTimestamp(startTs, null)
+                                .value());
                 continue;
             }
 
-            Long startTs = startTsAndCell.getKey();
             byte[] actual = maybeActual.get();
             PutUnlessExistsValue<TransactionStatus> currentValue =
                     encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
@@ -198,8 +206,8 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             try {
                 Instant startTime = clock.instant();
                 long commitTs = TransactionStatuses.caseOf(commitStatus)
-                        .committed(x -> x)
-                        .aborted_(-1L)
+                        .committed(Function.identity())
+                        .aborted_(TransactionConstants.FAILED_COMMIT_TS)
                         .otherwise(() -> {
                             throw new SafeIllegalStateException(
                                     "Found an illegal transaction status in " + "a staging value",

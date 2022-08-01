@@ -61,13 +61,13 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus commitTimestamp) {
-        return TransactionStatuses.caseOf(commitTimestamp)
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus commit) {
+        return TransactionStatuses.caseOf(commit)
                 .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
                 .aborted(() -> ABORTED_TRANSACTION_VALUE)
                 .otherwise(() -> {
                     throw new SafeIllegalArgumentException(
-                            "Unexpected transaction status", SafeArg.of("status", commitTimestamp));
+                            "Unexpected transaction status", SafeArg.of("status", commit));
                 });
     }
 

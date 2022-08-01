@@ -47,8 +47,7 @@ public class TimestampExtractingAtomicTable implements PutUnlessExistsTable<Long
                 delegate.get(keys),
                 statuses -> KeyedStream.stream(statuses)
                         .map(TransactionStatuses::getCommitTimestamp)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
+                        .flatMap(Optional::stream)
                         .collectToMap(),
                 MoreExecutors.directExecutor());
     }
