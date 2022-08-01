@@ -57,49 +57,8 @@ public class AbortedTransactionSoftCacheTest {
         // init happens only on query
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
-        verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
-    }
-
-    @Test
-    public void servesRequestFromCacheIfAlreadyLoaded() {
-        long timestamp = 25L;
-        long maxTsInCurrentBucket =
-                AbortedTimestampUtils.getMaxTsInCurrentBucket(AbortedTimestampUtils.getBucket(timestamp));
-
-        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
-
-        // first query will init the cache for bucket
-        when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
-                .thenReturn(ImmutableSet.of(timestamp));
-        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
-        verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
-
-        // relies on soft cache to server request
-        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
-        verifyNoMoreInteractions(futileTimestampStore);
-    }
-
-    @Test
-    public void extendsCacheIfBucketInCacheIsIncomplete() {
-        long firstQueryTimestamp = 25L;
-        long firstIterLastConcluded = firstQueryTimestamp + 1;
-        long secondQueryTimestamp = firstQueryTimestamp + 2;
-        long bucket = AbortedTimestampUtils.getBucket(secondQueryTimestamp);
-
-        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(firstIterLastConcluded);
-
-        // first query will init the cache for bucket until firstQueryTimestamp + 1
-        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
-        verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
-
-        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(secondQueryTimestamp);
-        // second query will extend the cache
-        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(secondQueryTimestamp))
-                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
-        verify(futileTimestampStore).getAbortedTransactionsInRange(firstIterLastConcluded, secondQueryTimestamp);
+        verify(futileTimestampStore)
+                .getAbortedTransactionsInRange(AbortedTimestampUtils.getMinTsInBucket(bucket), maxTsInCurrentBucket);
     }
 
     @Test
@@ -115,6 +74,48 @@ public class AbortedTransactionSoftCacheTest {
                 .isKnownConcluded(
                         AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket),
                         KnownConcludedTransactions.Consistency.REMOTE_READ);
+    }
+
+    @Test
+    public void servesRequestFromCacheIfAlreadyLoaded() {
+        long timestamp = 25L;
+        long bucket = AbortedTimestampUtils.getBucket(timestamp);
+        long maxTsInCurrentBucket = AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket);
+
+        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
+
+        // first query will init the cache for bucket
+        when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
+                .thenReturn(ImmutableSet.of(timestamp));
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
+                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
+        verify(futileTimestampStore)
+                .getAbortedTransactionsInRange(AbortedTimestampUtils.getMinTsInBucket(bucket), maxTsInCurrentBucket);
+
+        // relies on soft cache to server request
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
+                .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
+        verifyNoMoreInteractions(futileTimestampStore);
+    }
+
+    @Test
+    public void extendsCacheIfBucketInCacheIsIncomplete() {
+        long firstQueryTimestamp = 25L;
+        long firstIterLastConcluded = firstQueryTimestamp + 1;
+        long secondQueryTimestamp = firstQueryTimestamp + 2;
+
+        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(firstIterLastConcluded);
+
+        // first query will init the cache for bucket until firstQueryTimestamp + 1
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp))
+                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
+        verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
+
+        when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(secondQueryTimestamp);
+        // second query will extend the cache
+        assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(secondQueryTimestamp))
+                .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
+        verify(futileTimestampStore).getAbortedTransactionsInRange(firstIterLastConcluded, secondQueryTimestamp);
     }
 
     @Test
