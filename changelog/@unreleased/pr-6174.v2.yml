@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Makes the `initializeFailTimeoutMillis` method a configurable property
+    of `ConnectionConfig` i.e. `initializeFailTimeoutMillis` can be overridden in
+    `ConnectionConfig`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6174
