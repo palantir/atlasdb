@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,6 +81,16 @@ public class AbortedTransactionSoftCacheTest {
         verify(knownConcludedTransactions)
                 .isKnownConcluded(
                         Bucket.getMaxTsInCurrentBucket(bucket), KnownConcludedTransactions.Consistency.REMOTE_READ);
+    }
+
+    @Test
+    public void throwsForRequestWithInconcludedTransaction() {
+        long firstQueryTimestamp = 25L;
+
+        when(knownConcludedTransactions.isKnownConcluded(eq(firstQueryTimestamp), eq(Consistency.LOCAL_READ)))
+                .thenReturn(false);
+        assertThatThrownBy(() -> abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp))
+                .isInstanceOf(SafeIllegalStateException.class);
     }
 
     @Test
