@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Optimize SnapshotTransaction.checkConstraints for read-only transactions
+
+    When performing read-only transactions, we can avoid allocating and
+    accessing the constraints and writes tracking collections.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6155

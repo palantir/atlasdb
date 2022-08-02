@@ -392,7 +392,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
             }
@@ -782,10 +782,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             byte[] row,
             ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
-        Iterator<Map.Entry<Cell, byte[]>> it =
-                writes.tailMap(lowCell).entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Cell, byte[]> entry = it.next();
+        for (Map.Entry<Cell, byte[]> entry : writes.tailMap(lowCell).entrySet()) {
             Cell cell = entry.getKey();
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
@@ -833,11 +830,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = new HashMap<>();
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        Map<Cell, byte[]> writes = writesByTable.get(tableRef);
+        if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
-                if (writes.containsKey(cell)) {
-                    result.put(cell, writes.get(cell));
+                byte[] value = writes.get(cell);
+                if (value != null) {
+                    result.put(cell, value);
                 }
             }
         }
@@ -1808,18 +1806,28 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private void checkConstraints() {
+        if (writesByTable.isEmpty()) {
+            // avoid work in cases where constraints do not apply (e.g. read only transactions)
+            return;
+        }
+
         List<String> violations = new ArrayList<>();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
-            SortedMap<Cell, byte[]> sortedMap = writesByTable.get(entry.getKey());
-            if (sortedMap != null) {
-                violations.addAll(entry.getValue().findConstraintFailures(sortedMap, this, constraintCheckingMode));
+            Map<Cell, byte[]> writes = writesByTable.get(entry.getKey());
+            if (writes != null && !writes.isEmpty()) {
+                List<String> failures = entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
+                if (!failures.isEmpty()) {
+                    violations.addAll(failures);
+                }
             }
         }
+
         if (!violations.isEmpty()) {
+            AtlasDbConstraintException error = new AtlasDbConstraintException(violations);
             if (constraintCheckingMode.shouldThrowException()) {
-                throw new AtlasDbConstraintException(violations);
+                throw error;
             } else {
-                constraintLogger.error("Constraint failure on commit.", new AtlasDbConstraintException(violations));
+                constraintLogger.error("Constraint failure on commit.", error);
             }
         }
     }
@@ -1940,7 +1948,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean hasWrites() {
-        return writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
+        return !writesByTable.isEmpty()
+                && writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
