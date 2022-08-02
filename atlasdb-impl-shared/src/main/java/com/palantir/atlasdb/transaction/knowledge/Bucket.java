@@ -17,19 +17,26 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import org.immutables.value.Value;
 
-public final class AbortedTimestampUtils {
-    private AbortedTimestampUtils() {}
+@Value.Immutable
+public interface Bucket {
+    @Value.Parameter
+    long value();
 
-    public static long getMaxTsInCurrentBucket(long bucket) {
-        return getMinTsInBucket(bucket + 1) - 1;
+    static Bucket of(long value) {
+        return ImmutableBucket.of(value);
     }
 
-    public static long getBucket(long startTimestamp) {
-        return startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
+    static long getMaxTsInCurrentBucket(Bucket bucket) {
+        return ((bucket.value() + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
     }
 
-    public static long getMinTsInBucket(long bucket) {
-        return bucket * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
+    static Bucket forTimestamp(long startTimestamp) {
+        return of(startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE);
+    }
+
+    static long getMinTsInBucket(Bucket bucket) {
+        return bucket.value() * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
     }
 }

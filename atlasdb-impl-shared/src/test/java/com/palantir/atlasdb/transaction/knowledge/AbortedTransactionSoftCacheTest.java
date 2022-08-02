@@ -19,7 +19,11 @@ package com.palantir.atlasdb.transaction.knowledge;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -44,8 +48,8 @@ public class AbortedTransactionSoftCacheTest {
     @Test
     public void initializesCacheLazily() {
         long timestamp = 25L;
-        long bucket = AbortedTimestampUtils.getBucket(timestamp);
-        long maxTsInCurrentBucket = AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket);
+        Bucket bucket = Bucket.forTimestamp(timestamp);
+        long maxTsInCurrentBucket = Bucket.getMaxTsInCurrentBucket(bucket);
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
 
@@ -58,29 +62,28 @@ public class AbortedTransactionSoftCacheTest {
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(AbortedTimestampUtils.getMinTsInBucket(bucket), maxTsInCurrentBucket);
+                .getAbortedTransactionsInRange(Bucket.getMinTsInBucket(bucket), maxTsInCurrentBucket);
     }
 
     @Test
     public void callsKnownConcludedStoreWithRemoteConsistency() {
         long firstQueryTimestamp = 25L;
         long firstIterLastConcluded = firstQueryTimestamp + 1;
-        long bucket = AbortedTimestampUtils.getBucket(firstQueryTimestamp);
+        Bucket bucket = Bucket.forTimestamp(firstQueryTimestamp);
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(firstIterLastConcluded);
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_NOT_ABORTED);
         verify(knownConcludedTransactions)
                 .isKnownConcluded(
-                        AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket),
-                        KnownConcludedTransactions.Consistency.REMOTE_READ);
+                        Bucket.getMaxTsInCurrentBucket(bucket), KnownConcludedTransactions.Consistency.REMOTE_READ);
     }
 
     @Test
     public void servesRequestFromCacheIfAlreadyLoaded() {
         long timestamp = 25L;
-        long bucket = AbortedTimestampUtils.getBucket(timestamp);
-        long maxTsInCurrentBucket = AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket);
+        Bucket bucket = Bucket.forTimestamp(timestamp);
+        long maxTsInCurrentBucket = Bucket.getMaxTsInCurrentBucket(bucket);
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
 
@@ -90,7 +93,7 @@ public class AbortedTransactionSoftCacheTest {
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
                 .isEqualTo(TransactionSoftCacheStatus.IS_ABORTED);
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(AbortedTimestampUtils.getMinTsInBucket(bucket), maxTsInCurrentBucket);
+                .getAbortedTransactionsInRange(Bucket.getMinTsInBucket(bucket), maxTsInCurrentBucket);
 
         // relies on soft cache to server request
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(timestamp))
@@ -130,8 +133,7 @@ public class AbortedTransactionSoftCacheTest {
         abortedTransactionSoftCache.getSoftCacheTransactionStatus(firstQueryTimestamp);
         verify(futileTimestampStore).getAbortedTransactionsInRange(anyLong(), anyLong());
 
-        long maxConcluded =
-                AbortedTimestampUtils.getMaxTsInCurrentBucket(AbortedTimestampUtils.getBucket(firstQueryTimestamp));
+        long maxConcluded = Bucket.getMaxTsInCurrentBucket(Bucket.forTimestamp(firstQueryTimestamp));
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxConcluded);
 
@@ -146,10 +148,10 @@ public class AbortedTransactionSoftCacheTest {
 
     @Test
     public void loadsLatestBucketIfBucketInCacheIsOld() {
-        long bucket1 = 0;
-        long bucket2 = 1;
-        long tsInBucket1 = getTsInBucket(bucket1);
-        long tsInBucket2 = getTsInBucket(bucket2);
+        Bucket bucket1 = Bucket.of(0);
+        Bucket bucket2 = Bucket.of(1);
+        long tsInBucket1 = getNotSoRandomTsInBucket(bucket1);
+        long tsInBucket2 = getNotSoRandomTsInBucket(bucket2);
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(tsInBucket1);
 
@@ -157,18 +159,16 @@ public class AbortedTransactionSoftCacheTest {
         abortedTransactionSoftCache.getSoftCacheTransactionStatus(tsInBucket1);
         verify(futileTimestampStore)
                 .getAbortedTransactionsInRange(
-                        AbortedTimestampUtils.getMinTsInBucket(bucket1),
-                        AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket1));
+                        Bucket.getMinTsInBucket(bucket1), Bucket.getMaxTsInCurrentBucket(bucket1));
 
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp())
-                .thenReturn(AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket1));
+                .thenReturn(Bucket.getMaxTsInCurrentBucket(bucket1));
 
         // second query will load the cache for new bucket
         abortedTransactionSoftCache.getSoftCacheTransactionStatus(tsInBucket2);
         verify(futileTimestampStore)
                 .getAbortedTransactionsInRange(
-                        AbortedTimestampUtils.getMinTsInBucket(bucket2),
-                        AbortedTimestampUtils.getMaxTsInCurrentBucket(bucket2));
+                        Bucket.getMinTsInBucket(bucket2), Bucket.getMaxTsInCurrentBucket(bucket2));
 
         // subsequent requests can be served by cache
         assertThat(abortedTransactionSoftCache.getSoftCacheTransactionStatus(tsInBucket2))
@@ -189,7 +189,7 @@ public class AbortedTransactionSoftCacheTest {
                 .isEqualTo(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
     }
 
-    private long getTsInBucket(long bucket) {
-        return AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE * bucket + 25L;
+    private long getNotSoRandomTsInBucket(Bucket bucket) {
+        return AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE * bucket.value() + 25L;
     }
 }
