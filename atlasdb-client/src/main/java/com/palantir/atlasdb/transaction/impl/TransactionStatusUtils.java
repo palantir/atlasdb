@@ -18,6 +18,10 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Optional;
+import java.util.function.Function;
 
 public final class TransactionStatusUtils {
     private TransactionStatusUtils() {}
@@ -27,5 +31,21 @@ public final class TransactionStatusUtils {
             return TransactionConstants.ABORTED;
         }
         return TransactionStatuses.committed(timestamp);
+    }
+
+    public static long getCommitTimestampOrThrow(TransactionStatus status) {
+        return TransactionStatuses.caseOf(status)
+                .committed(Function.identity())
+                .aborted_(TransactionConstants.FAILED_COMMIT_TS)
+                .otherwise(() -> {
+                    throw new SafeIllegalStateException("Illegal transaction status", SafeArg.of("status", status));
+                });
+    }
+
+    public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
+        return TransactionStatuses.caseOf(status)
+                .committed(Function.identity())
+                .aborted_(TransactionConstants.FAILED_COMMIT_TS)
+                .otherwiseEmpty();
     }
 }

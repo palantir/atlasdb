@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import static org.assertj.core.api.Assertions.*;
+
 import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -23,8 +25,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +33,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-
-import static org.assertj.core.api.Assertions.*;
+import org.junit.Test;
 
 public class TicketsEncodingStrategyTest {
     private static final TicketsEncodingStrategy STRATEGY = TicketsEncodingStrategy.INSTANCE;

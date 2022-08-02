@@ -41,8 +41,6 @@ import java.util.stream.Stream;
 public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
-    public static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
-
     // DO NOT change the following without a transactions table migration!
     public static final long PARTITIONING_QUANTUM = 25_000_000;
     public static final int ROWS_PER_QUANTUM = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
@@ -64,7 +62,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
     public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus commit) {
         return TransactionStatuses.caseOf(commit)
                 .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
-                .aborted(() -> ABORTED_TRANSACTION_VALUE)
+                .aborted_(TransactionConstants.ABORTED_TRANSACTION_VALUE)
                 .otherwise(() -> {
                     throw new SafeIllegalArgumentException(
                             "Unexpected transaction status", SafeArg.of("status", commit));
@@ -76,7 +74,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
         if (value == null) {
             return TransactionConstants.IN_PROGRESS;
         }
-        if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
+        if (Arrays.equals(value, TransactionConstants.ABORTED_TRANSACTION_VALUE)) {
             return TransactionConstants.ABORTED;
         }
         return TransactionStatuses.committed(startTimestamp + TransactionConstants.getTimestampForValue(value));

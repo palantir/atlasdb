@@ -27,9 +27,6 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
-    private static final byte[] ENCODED_ABORTED_TRANSACTION_TIMESTAMP =
-            TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS);
-
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return Cell.create(
@@ -45,7 +42,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
     public byte[] encodeCommitTimestampAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
         return TransactionStatuses.caseOf(commitStatus)
                 .committed(TransactionConstants::getValueForTimestamp)
-                .aborted_(ENCODED_ABORTED_TRANSACTION_TIMESTAMP)
+                .aborted_(TransactionConstants.ABORTED_TRANSACTION_VALUE)
                 .otherwise(() -> {
                     throw new SafeIllegalStateException(
                             "Illegal transaction status", SafeArg.of("status", commitStatus));

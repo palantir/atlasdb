@@ -35,7 +35,7 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
     private static final byte[] COMMITTED = new byte[] {1};
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
-            EncodingUtils.add(TicketsEncodingStrategy.ABORTED_TRANSACTION_VALUE, COMMITTED);
+            EncodingUtils.add(TransactionConstants.ABORTED_TRANSACTION_VALUE, COMMITTED);
     private static final PutUnlessExistsValue<TransactionStatus> IN_PROGRESS =
             PutUnlessExistsValue.committed(TransactionConstants.IN_PROGRESS);
 

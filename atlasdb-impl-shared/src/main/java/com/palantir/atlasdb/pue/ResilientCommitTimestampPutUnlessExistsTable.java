@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -39,7 +38,6 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
@@ -50,7 +48,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -209,15 +206,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             }
             try {
                 Instant startTime = clock.instant();
-                // todo(snanda): refactor this out
-                long commitTs = TransactionStatuses.caseOf(commitStatus)
-                        .committed(Function.identity())
-                        .aborted_(TransactionConstants.FAILED_COMMIT_TS)
-                        .otherwise(() -> {
-                            throw new SafeIllegalStateException(
-                                    "Found an illegal transaction status in " + "a staging value",
-                                    SafeArg.of("commitStatus", commitStatus));
-                        });
+                long commitTs = TransactionStatusUtils.getCommitTimestampOrThrow(commitStatus);
                 resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
