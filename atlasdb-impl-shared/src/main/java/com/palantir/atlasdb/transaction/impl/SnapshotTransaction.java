@@ -782,10 +782,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             byte[] row,
             ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
-        Iterator<Map.Entry<Cell, byte[]>> it =
-                writes.tailMap(lowCell).entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Cell, byte[]> entry = it.next();
+        for (Map.Entry<Cell, byte[]> entry : writes.tailMap(lowCell).entrySet()) {
             Cell cell = entry.getKey();
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
@@ -836,8 +833,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
-                if (writes.containsKey(cell)) {
-                    result.put(cell, writes.get(cell));
+                byte[] value = writes.get(cell);
+                if (value != null) {
+                    result.put(cell, value);
                 }
             }
         }
