@@ -31,8 +31,6 @@ dependencies {
   implementation project(':commons-executors')
   implementation project(':timestamp-api')
 
-  runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
-
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   testImplementation 'com.palantir.safe-logging:safe-logging'
