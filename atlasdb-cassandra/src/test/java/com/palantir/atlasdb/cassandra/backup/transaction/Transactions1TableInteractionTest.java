@@ -18,7 +18,9 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;

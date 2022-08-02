@@ -16,7 +16,8 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
