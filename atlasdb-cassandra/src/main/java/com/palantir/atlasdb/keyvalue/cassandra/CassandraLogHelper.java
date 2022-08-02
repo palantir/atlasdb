@@ -19,6 +19,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -80,7 +81,9 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    @Value.Immutable
+    // Weakly intern instances as there should be a relatively small, generally fixed number of Cassandra servers.
+    @Value.Immutable(lazyhash = true, intern = true, builder = false)
+    @WeakInterningImmutablesStyle
     interface HostAndIpAddress {
         @Value.Parameter
         String host();

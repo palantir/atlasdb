@@ -17,12 +17,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
 import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@Value.Immutable(lazyhash = true)
+// Weakly intern instances as there should be a relatively small, generally fixed number of Cassandra servers.
+// This provides cheaper hashCode and equals checks when CassandraServer is used in collections.
+@Value.Immutable(prehash = true, intern = true, builder = false)
+@WeakInterningImmutablesStyle
 public interface CassandraServer {
     @Value.Parameter
     String cassandraHostName();
@@ -59,9 +63,5 @@ public interface CassandraServer {
 
     static CassandraServer of(String hostName, Set<InetSocketAddress> reachableProxies) {
         return ImmutableCassandraServer.of(hostName, reachableProxies);
-    }
-
-    static ImmutableCassandraServer.Builder builder() {
-        return ImmutableCassandraServer.builder();
     }
 }
