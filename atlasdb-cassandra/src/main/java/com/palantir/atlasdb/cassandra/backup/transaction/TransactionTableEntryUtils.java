@@ -21,10 +21,8 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class TransactionTableEntryUtils {
-    private TransactionTableEntryUtils() {
-        // no
-    }
+public final class TransactionTableEntryUtils {
+    private TransactionTableEntryUtils() {}
 
     public static TransactionTableEntry fromStatus(long startTimestamp, TransactionStatus commitStatus) {
         return TransactionStatuses.caseOf(commitStatus)
