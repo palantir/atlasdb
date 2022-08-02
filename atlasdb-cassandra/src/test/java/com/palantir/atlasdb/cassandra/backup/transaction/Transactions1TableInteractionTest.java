@@ -18,9 +18,7 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction.COLUMN_NAME_BB;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import org.apache.commons.codec.binary.Hex;
@@ -54,9 +53,9 @@ public class Transactions1TableInteractionTest {
 
     @Test
     public void valueEncodingTest() {
-        byte[] actualValue = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(111L, 222L);
-        byte[] abort =
-                V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(1L, TransactionConstants.FAILED_COMMIT_TS);
+        byte[] actualValue = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                111L, TransactionStatusUtils.fromTimestamp(222L));
+        byte[] abort = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(1L, TransactionConstants.ABORTED);
 
         assertThat(Transactions1TableInteraction.encodeCommitTimestamp(222L)).isEqualTo(ByteBuffer.wrap(actualValue));
         assertThat(Transactions1TableInteraction.encodeCommitTimestamp(TransactionConstants.FAILED_COMMIT_TS))

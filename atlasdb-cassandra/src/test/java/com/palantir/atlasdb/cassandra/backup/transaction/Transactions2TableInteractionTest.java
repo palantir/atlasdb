@@ -135,7 +135,7 @@ public class Transactions2TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(TransactionConstants.ABORTED_TRANSACTION_VALUE));
+                .thenReturn(ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE));
         return row;
     }
 

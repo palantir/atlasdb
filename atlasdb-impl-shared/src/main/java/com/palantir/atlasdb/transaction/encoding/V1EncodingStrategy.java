@@ -42,7 +42,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
     public byte[] encodeCommitTimestampAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
         return TransactionStatuses.caseOf(commitStatus)
                 .committed(TransactionConstants::getValueForTimestamp)
-                .aborted_(TransactionConstants.ABORTED_TRANSACTION_VALUE)
+                .aborted_(TransactionConstants.DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE)
                 .otherwise(() -> {
                     throw new SafeIllegalStateException(
                             "Illegal transaction status", SafeArg.of("status", commitStatus));

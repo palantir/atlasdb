@@ -60,7 +60,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
 
     @Override
     public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session) {
-        ByteBuffer abortCommitTsBb = ByteBuffer.wrap(TransactionConstants.ABORTED_TRANSACTION_VALUE);
+        ByteBuffer abortCommitTsBb = ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE);
 
         Statement abortStatement = QueryBuilder.update(transactionsTable)
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))

@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -62,17 +63,21 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
+            assertThat(commitValue.isCommitted()).isTrue();
+            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
+                    .hasValue(200L);
         });
     }
 
     @Test
     public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry entry =
-                interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
+        TransactionTableEntry entry = interaction.extractTimestamps(
+                createRow(150L, PutUnlessExistsValue.staging(TransactionStatusUtils.fromTimestamp(200L))));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
+            assertThat(commitValue.isCommitted()).isFalse();
+            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
+                    .hasValue(200L);
         });
     }
 
@@ -85,8 +90,10 @@ public class Transactions3TableInteractionTest {
 
     @Test
     public void extractStagingAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(
-                createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
+        TransactionTableEntry entry = interaction.extractTimestamps(createRow(
+                150L,
+                PutUnlessExistsValue.staging(
+                        TransactionStatusUtils.fromTimestamp(TransactionConstants.FAILED_COMMIT_TS))));
         TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
