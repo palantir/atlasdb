@@ -54,9 +54,8 @@ public class CassandraBackedPueTableTest {
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
     private final ConsensusForgettingStore store =
             new PueKvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
-    private final AtomicTable<Long, TransactionStatus> pueTable =
-            new ResilientCommitTimestampAtomicTable(
-                    store, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
+    private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
+            store, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
     private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
     private final ListeningExecutorService readExecutors =
             MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(10));

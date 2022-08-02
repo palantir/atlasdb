@@ -236,6 +236,5 @@ final class TransactionAborter {
         return TransactionTableEntries.getCommitValue(entry)
                 .map(AtomicValue::value)
                 .flatMap(TransactionStatuses::getCommitTimestamp);
-
     }
 }

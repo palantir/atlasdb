@@ -97,7 +97,8 @@ public class SimpleCommitTimestampAtomicTableTest {
     public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.aborted());
         atomicTable.updateMultiple(inputs);
-        Map<Long, TransactionStatus> result = atomicTable.get(ImmutableList.of(1L)).get();
+        Map<Long, TransactionStatus> result =
+                atomicTable.get(ImmutableList.of(1L)).get();
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.get(1L)).isEqualTo(TransactionConstants.ABORTED);
     }

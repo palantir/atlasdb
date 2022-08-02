@@ -49,9 +49,8 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
-    private final AtomicTable<Long, TransactionStatus> pueTable =
-            new ResilientCommitTimestampAtomicTable(
-                    forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
+    private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
+            forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
     public void repeatableReads() throws InterruptedException {

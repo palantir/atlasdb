@@ -56,8 +56,8 @@ import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
-    private static final RateLimitedLogger log = new RateLimitedLogger(
-            SafeLoggerFactory.get(ResilientCommitTimestampAtomicTable.class), 1.0 / 3600);
+    private static final RateLimitedLogger log =
+            new RateLimitedLogger(SafeLoggerFactory.get(ResilientCommitTimestampAtomicTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 

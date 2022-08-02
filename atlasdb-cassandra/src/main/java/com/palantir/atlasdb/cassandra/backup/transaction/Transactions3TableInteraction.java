@@ -87,9 +87,8 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        AtomicValue<TransactionStatus> commitValue =
-                TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
-                        startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
+        AtomicValue<TransactionStatus> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+                startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
 
         if (commitValue.value() == TransactionConstants.ABORTED) {
             return TransactionTableEntries.explicitlyAborted(startTimestamp);

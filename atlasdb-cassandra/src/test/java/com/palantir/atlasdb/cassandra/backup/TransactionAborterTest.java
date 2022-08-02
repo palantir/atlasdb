@@ -232,8 +232,7 @@ public class TransactionAborterTest {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(endOfRange + 1, endOfRange + 2),
                 TransactionTableEntries.committedTwoPhase(
-                        endOfRange + 3,
-                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 4))));
+                        endOfRange + 3, AtomicValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 4))));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort =

@@ -175,8 +175,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
         Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
-        byte[] stagingValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
+        byte[] stagingValue = strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
         byte[] committedValue =
                 strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.committed(commitStatus));
         spiedStore.atomicUpdate(timestampAsCell, stagingValue);
@@ -194,11 +193,10 @@ public class ResilientCommitTimestampAtomicTableTest {
 
     @Test
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
-        AtomicTable<Long, TransactionStatus> putUnlessExistsTable =
-                new ResilientCommitTimestampAtomicTable(
-                        new CassandraImitatingConsensusForgettingStore(0.5d),
-                        TwoPhaseEncodingStrategy.INSTANCE,
-                        new DefaultTaggedMetricRegistry());
+        AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
+                new CassandraImitatingConsensusForgettingStore(0.5d),
+                TwoPhaseEncodingStrategy.INSTANCE,
+                new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
             long ts = startTs;
@@ -246,7 +244,8 @@ public class ResilientCommitTimestampAtomicTableTest {
 
         spiedStore.stopFailingPuts();
         for (long i = 0; i < 100; i++) {
-            assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
+            assertThat(TransactionStatuses.getCommitTimestamp(
+                            atomicTable.get(0L).get()))
                     .hasValue(0L);
         }
 
@@ -420,8 +419,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
     }
 
-    private static TransactionStatus firstSuccessfulRead(
-            AtomicTable<Long, TransactionStatus> atomicTable, long ts) {
+    private static TransactionStatus firstSuccessfulRead(AtomicTable<Long, TransactionStatus> atomicTable, long ts) {
         while (true) {
             try {
                 return atomicTable.get(ts).get();

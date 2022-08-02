@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
-import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -28,7 +27,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
-
 
 public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<AtomicValue<TransactionStatus>> {
     INSTANCE;
@@ -52,8 +50,7 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<Atomic
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(
-            long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return EncodingUtils.add(
                 TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp.value()),
                 commitTimestamp.isCommitted() ? COMMITTED : STAGING);

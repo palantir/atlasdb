@@ -94,8 +94,7 @@ public class Transactions3TableInteractionTest {
     public void extractStagingAbortedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(
                 150L,
-                AtomicValue.staging(
-                        TransactionStatusUtils.fromTimestamp(TransactionConstants.FAILED_COMMIT_TS))));
+                AtomicValue.staging(TransactionStatusUtils.fromTimestamp(TransactionConstants.FAILED_COMMIT_TS))));
         TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
