@@ -19,27 +19,18 @@ package com.palantir.lock.client;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
-import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
@@ -73,17 +64,6 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
-    public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
-            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
-        return dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request);
-    }
-
-    @Override
-    public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
-        return dialogueDelegate.getFreshTimestamp(authHeader, namespace);
-    }
-
-    @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return executeInstrumented(
                 () -> dialogueDelegate.leaderTime(authHeader, namespace),
@@ -109,31 +89,14 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
-    public ConjureRefreshLocksResponseV2 refreshLocksV2(
-            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
-        return dialogueDelegate.refreshLocksV2(authHeader, namespace, request);
-    }
-
-    @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
         return dialogueDelegate.unlock(authHeader, namespace, request);
-    }
-
-    @Override
-    public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
-        return dialogueDelegate.unlockV2(authHeader, namespace, request);
     }
 
     @Override
     public GetCommitTimestampsResponse getCommitTimestamps(
             AuthHeader authHeader, String namespace, GetCommitTimestampsRequest request) {
         return dialogueDelegate.getCommitTimestamps(authHeader, namespace, request);
-    }
-
-    @Override
-    public GetCommitTimestampResponse getCommitTimestamp(
-            AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
-        return dialogueDelegate.getCommitTimestamp(authHeader, namespace, request);
     }
 
     private <T> T executeInstrumented(
