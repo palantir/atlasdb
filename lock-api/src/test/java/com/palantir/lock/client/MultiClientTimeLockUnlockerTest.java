@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,13 +83,10 @@ public class MultiClientTimeLockUnlockerTest {
                         ConjureUnlockResponseV2.of(ImmutableSet.of(CONJURE_TOKEN_3))));
         UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
         unlockConsumer.accept(ImmutableList.of(
+                BatchElement.of(ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1)), firstResultFuture),
+                BatchElement.of(ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2)), secondResultFuture),
                 BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1)), firstResultFuture),
-                BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2)), secondResultFuture),
-                BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_2, ImmutableSet.of(TOKEN_2, TOKEN_3)),
-                        thirdResultFuture)));
+                        ImmutableUnlockRequest.of(NAMESPACE_2, ImmutableSet.of(TOKEN_2, TOKEN_3)), thirdResultFuture)));
 
         assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(TOKEN_1);
         assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(TOKEN_2);
@@ -110,17 +108,33 @@ public class MultiClientTimeLockUnlockerTest {
         UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
         unlockConsumer.accept(ImmutableList.of(
                 BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_2)),
-                        firstResultFuture),
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_2)), firstResultFuture),
                 BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2, TOKEN_3)),
-                        secondResultFuture),
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2, TOKEN_3)), secondResultFuture),
                 BatchElement.of(
-                        ImmutableNamespacedLockSet.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_3)),
-                        thirdResultFuture)));
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_3)), thirdResultFuture)));
 
         assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(TOKEN_1, TOKEN_2);
         assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(TOKEN_3);
         assertThat(Futures.getUnchecked(thirdResultFuture)).isEmpty();
+    }
+
+    @Test
+    public void passesThroughFailureOnExceptions() {
+        RuntimeException runtimeException = new RuntimeException("I am a RuntimeException, short and stout");
+        when(conjureTimelockService.unlock(ImmutableMap.of(
+                        NAMESPACE_1,
+                        ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
+                .thenThrow(runtimeException);
+        UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
+        assertThatThrownBy(() -> unlockConsumer.accept(ImmutableList.of(
+                        BatchElement.of(
+                                ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_2)),
+                                new DisruptorFuture<>("test")),
+                        BatchElement.of(
+                                ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2, TOKEN_3)),
+                                new DisruptorFuture<>("test2")))))
+                .isEqualTo(runtimeException);
+        // Ensuring the futures have failed is the responsibility of IndependentBatchingEventHandler, not the function.
     }
 }
