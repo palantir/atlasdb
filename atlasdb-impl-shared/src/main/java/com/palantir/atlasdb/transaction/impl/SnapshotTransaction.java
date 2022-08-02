@@ -392,7 +392,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
             }
@@ -833,8 +833,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = new HashMap<>();
-        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes != null) {
+        Map<Cell, byte[]> writes = writesByTable.get(tableRef);
+        if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 if (writes.containsKey(cell)) {
                     result.put(cell, writes.get(cell));
@@ -1816,8 +1816,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         List<String> violations = new ArrayList<>();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
             Map<Cell, byte[]> writes = writesByTable.get(entry.getKey());
-            if (writes != null) {
-                violations.addAll(entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode));
+            if (writes != null && !writes.isEmpty()) {
+                List<String> failures = entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
+                if (!failures.isEmpty()) {
+                    violations.addAll(failures);
+                }
             }
         }
 
