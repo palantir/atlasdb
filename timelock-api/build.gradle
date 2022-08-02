@@ -14,7 +14,7 @@ dependencies {
 
     compileOnly 'com.fasterxml.jackson.core:jackson-databind'
     compileOnly 'org.immutables:value::annotations'
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
 }
 
 subprojects {

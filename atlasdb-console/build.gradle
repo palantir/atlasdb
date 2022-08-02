@@ -5,16 +5,15 @@ dependencies {
     api project(':atlasdb-api')
     api project(':atlasdb-client')
     api project(':atlasdb-service')
-    api group: 'commons-cli', name:'commons-cli'
+    api 'commons-cli:commons-cli'
 
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
 
-    implementation 'jline:jline:2.12'
-    implementation group: 'org.codehaus.groovy', name: 'groovy'
-    implementation group: 'org.codehaus.groovy', name: 'groovy-groovysh'
-    implementation group: 'org.codehaus.groovy', name: 'groovy-json'
+    implementation 'org.codehaus.groovy:groovy'
+    implementation 'org.codehaus.groovy:groovy-groovysh'
+    implementation 'org.codehaus.groovy:groovy-json'
 
     implementation 'com.palantir.dialogue:dialogue-clients'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -30,11 +29,11 @@ dependencies {
     testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation project(':atlasdb-client')
 
-    testImplementation(group: 'org.jmock', name: 'jmock-legacy') {
+    testImplementation('org.jmock:jmock-legacy') {
         exclude group: 'org.hamcrest'
     }
-    testImplementation(group: 'org.jmock', name: 'jmock') {
+    testImplementation('org.jmock:jmock') {
       exclude group: 'org.hamcrest'
     }
-    testImplementation 'org.gmock:gmock:0.8.3'
+    testImplementation 'org.gmock:gmock'
 }

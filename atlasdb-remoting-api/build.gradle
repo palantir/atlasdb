@@ -3,11 +3,11 @@ apply from: '../gradle/shared.gradle'
 dependencies {
   implementation project(':commons-executors')
 
-  implementation group: 'com.palantir.refreshable', name: 'refreshable'
-  implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'keystores'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
-  implementation group: 'com.palantir.common', name: 'streams'
+  implementation 'com.palantir.refreshable:refreshable'
+  implementation 'com.palantir.conjure.java.api:service-config'
+  implementation 'com.palantir.conjure.java.runtime:keystores'
+  implementation 'com.palantir.conjure.java.runtime:refresh-utils'
+  implementation 'com.palantir.common:streams'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -17,13 +17,13 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'org.mockito:mockito-core'
 }

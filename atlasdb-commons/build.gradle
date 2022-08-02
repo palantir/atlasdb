@@ -5,12 +5,12 @@ dependencies {
     implementation project(":commons-annotations")
     implementation project(":commons-executors")
 
-    implementation (group: 'io.dropwizard.metrics', name: 'metrics-core') {
+    implementation ('io.dropwizard.metrics:metrics-core') {
         exclude (module: 'slf4j-api')
     }
-    implementation group: 'net.jpountz.lz4', name: 'lz4'
-    implementation group: 'com.palantir.common', name: 'streams'
-    implementation group: 'com.palantir.safe-logging', name: 'preconditions'
+    implementation 'net.jpountz.lz4:lz4'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.safe-logging:preconditions'
     api 'com.palantir.safe-logging:logger', {
         because 'API dependency due to AssertUtils.assertAndLog(SafeLogger...'
     }
@@ -26,17 +26,17 @@ dependencies {
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation group: 'junit', name: 'junit'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation(group: 'org.jmock', name: 'jmock') {
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation('org.jmock:jmock') {
       exclude group: 'org.hamcrest'
     }
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'org.awaitility', name: 'awaitility'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.awaitility:awaitility'
 }
