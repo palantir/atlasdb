@@ -75,12 +75,12 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
-        return null;
+        return dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request);
     }
 
     @Override
     public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
-        return null;
+        return dialogueDelegate.getFreshTimestamp(authHeader, namespace);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureRefreshLocksResponseV2 refreshLocksV2(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
-        return null;
+        return dialogueDelegate.refreshLocksV2(authHeader, namespace, request);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
-        return null;
+        return dialogueDelegate.unlockV2(authHeader, namespace, request);
     }
 
     @Override
@@ -133,7 +133,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
-        return null;
+        return dialogueDelegate.getCommitTimestamp(authHeader, namespace, request);
     }
 
     private <T> T executeInstrumented(
