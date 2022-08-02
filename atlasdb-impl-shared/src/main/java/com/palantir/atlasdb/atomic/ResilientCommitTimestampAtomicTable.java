@@ -167,8 +167,9 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    TransactionStatuses.getCommitTimestamp(kvsValue.value())
-                            .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
+                    kvsValue.isCommitted()
+                            && TransactionStatuses.getCommitTimestamp(kvsValue.value())
+                                    .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),
