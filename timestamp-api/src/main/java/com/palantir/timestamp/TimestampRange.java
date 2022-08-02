@@ -56,6 +56,15 @@ public class TimestampRange implements Serializable {
     }
 
     /**
+     * Constructs a TimestampRange from a delta encoding: the first parameter is the start of the range and the
+     * second is the number of timestamps present in the range. In practice, this should be equal to [lowerBound,
+     * lowerBound + count).
+     */
+    public static TimestampRange createRangeFromDeltaEncoding(long lowerBound, long count) {
+        return new TimestampRange(lowerBound, lowerBound + count - 1);
+    }
+
+    /**
      * Returns the lower bound of this TimestampRange (inclusive).
      *
      * @return the lower bound of the TimestampRange

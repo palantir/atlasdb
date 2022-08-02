@@ -23,12 +23,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.atomic.AtomicTable;
+import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.pue.ConsensusForgettingStore;
-import com.palantir.atlasdb.pue.KvsConsensusForgettingStore;
-import com.palantir.atlasdb.pue.PutUnlessExistsTable;
-import com.palantir.atlasdb.pue.ResilientCommitTimestampPutUnlessExistsTable;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -53,9 +53,9 @@ import org.junit.Test;
 public class CassandraBackedPueTableTest {
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
     private final ConsensusForgettingStore store =
-            new KvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
-    private final PutUnlessExistsTable<Long, TransactionStatus> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(
+            new PueKvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
+    private final AtomicTable<Long, TransactionStatus> pueTable =
+            new ResilientCommitTimestampAtomicTable(
                     store, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
     private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
     private final ListeningExecutorService readExecutors =
@@ -83,7 +83,7 @@ public class CassandraBackedPueTableTest {
         Iterable<List<Long>> partitionedStartTimestamps = Lists.partition(timestamps, 20);
         for (List<Long> singlePartition : partitionedStartTimestamps) {
             singlePartition.forEach(timestamp -> writeExecutor.execute(
-                    () -> pueTable.putUnlessExists(timestamp, TransactionStatusUtils.fromTimestamp(timestamp))));
+                    () -> pueTable.update(timestamp, TransactionStatusUtils.fromTimestamp(timestamp))));
 
             List<ListenableFuture<Map<Long, TransactionStatus>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {

@@ -37,10 +37,10 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
@@ -134,7 +134,7 @@ public class TransactionAborterTest {
         ImmutableList<TransactionTableEntry> rows = ImmutableList.of(
                 TransactionTableEntries.committedLegacy(10L, 20L),
                 TransactionTableEntries.committedTwoPhase(
-                        20L, PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(30L))),
+                        20L, AtomicValue.committed(TransactionStatusUtils.fromTimestamp(30L))),
                 TransactionTableEntries.committedLegacy(30L, BACKUP_TIMESTAMP - 1));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
@@ -149,7 +149,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 10, BACKUP_TIMESTAMP + 12),
                 TransactionTableEntries.committedTwoPhase(
                         BACKUP_TIMESTAMP + 12,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 13))),
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 13))),
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 14, BACKUP_TIMESTAMP + 15));
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(BACKUP_TIMESTAMP + 16, 1000L)));
 
@@ -175,7 +175,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2),
                 TransactionTableEntries.committedTwoPhase(
                         BACKUP_TIMESTAMP + 3,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 4))));
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 4))));
         setupAbortTimestampTask(rows, FullyBoundedTimestampRange.of(Range.closed(25L, 1000L)));
 
         Stream<TransactionTableEntry> transactionsToAbort =
@@ -189,7 +189,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, BACKUP_TIMESTAMP + 2),
                 TransactionTableEntries.committedTwoPhase(
                         BACKUP_TIMESTAMP + 3,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 4))));
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 4))));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort =
@@ -203,7 +203,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP - 2, BACKUP_TIMESTAMP + 1),
                 TransactionTableEntries.committedTwoPhase(
                         BACKUP_TIMESTAMP - 1,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 2))));
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(BACKUP_TIMESTAMP + 2))));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort =
@@ -218,7 +218,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(BACKUP_TIMESTAMP + 1, endOfRange + 1),
                 TransactionTableEntries.committedTwoPhase(
                         BACKUP_TIMESTAMP + 2,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 2))));
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 2))));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort =
@@ -233,7 +233,7 @@ public class TransactionAborterTest {
                 TransactionTableEntries.committedLegacy(endOfRange + 1, endOfRange + 2),
                 TransactionTableEntries.committedTwoPhase(
                         endOfRange + 3,
-                        PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 4))));
+                        AtomicValue.committed(TransactionStatusUtils.fromTimestamp(endOfRange + 4))));
         setupAbortTimestampTask(rows, TIMESTAMP_RANGE);
 
         Stream<TransactionTableEntry> transactionsToAbort =

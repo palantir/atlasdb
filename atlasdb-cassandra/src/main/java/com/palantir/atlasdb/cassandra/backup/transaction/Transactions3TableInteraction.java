@@ -25,11 +25,11 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -87,7 +87,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        PutUnlessExistsValue<TransactionStatus> commitValue =
+        AtomicValue<TransactionStatus> commitValue =
                 TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
                         startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
 

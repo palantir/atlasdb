@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -68,22 +68,23 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class ResilientCommitTimestampPutUnlessExistsTableTest {
+public class ResilientCommitTimestampAtomicTableTest {
     private static final String VALIDATING_STAGING_VALUES = "validating staging values";
     private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
-    private final UnreliableKvsConsensusForgettingStore spiedStore = spy(new UnreliableKvsConsensusForgettingStore(
-            spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
+    private final UnreliablePueKvsConsensusForgettingStore spiedStore =
+            spy(new UnreliablePueKvsConsensusForgettingStore(
+                    spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final boolean validating;
-    private final PutUnlessExistsTable<Long, TransactionStatus> pueTable;
+    private final AtomicTable<Long, TransactionStatus> atomicTable;
     private final AtomicLong clockLong = new AtomicLong(1000);
     private final Clock clock = clockLong::get;
 
-    public ResilientCommitTimestampPutUnlessExistsTableTest(String name, Object parameter) {
+    public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
-        pueTable = new ResilientCommitTimestampPutUnlessExistsTable(
+        atomicTable = new ResilientCommitTimestampAtomicTable(
                 spiedStore,
                 TwoPhaseEncodingStrategy.INSTANCE,
                 () -> !validating,
@@ -102,17 +103,17 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
-        pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L));
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+        atomicTable.update(1L, TransactionStatuses.committed(2L));
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(2L);
-        verify(spiedStore).putUnlessExists(anyMap());
+        verify(spiedStore).atomicUpdate(anyMap());
         verify(spiedStore, atLeastOnce()).put(anyMap());
         verify(spiedStore).getMultiple(any());
     }
 
     @Test
     public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
-        assertThat(TransactionStatuses.caseOf(pueTable.get(3L).get())
+        assertThat(TransactionStatuses.caseOf(atomicTable.get(3L).get())
                         .inProgress_(true)
                         .otherwise_(false))
                 .isTrue();
@@ -120,8 +121,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
-        pueTable.putUnlessExists(1L, TransactionStatuses.aborted());
-        assertThat(TransactionStatuses.caseOf(pueTable.get(1L).get())
+        atomicTable.update(1L, TransactionStatuses.aborted());
+        assertThat(TransactionStatuses.caseOf(atomicTable.get(1L).get())
                         .aborted_(true)
                         .otherwise_(false))
                 .isTrue();
@@ -129,8 +130,8 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
     @Test
     public void cannotPueTwice() {
-        pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L));
-        assertThatThrownBy(() -> pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L)))
+        atomicTable.update(1L, TransactionStatuses.committed(2L));
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
@@ -143,9 +144,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                 TransactionStatuses.committed(4L),
                 7L,
                 TransactionStatuses.committed(8L));
-        pueTable.putUnlessExistsMultiple(inputs);
+        atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
-                pueTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
+                atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
         assertThat(result.size()).isEqualTo(4);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
@@ -157,11 +158,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     @Test
     public void pueThatThrowsIsCorrectedOnGet() throws ExecutionException, InterruptedException {
         spiedStore.startFailingPuts();
-        assertThatThrownBy(() -> pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L)))
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
                 .isInstanceOf(RuntimeException.class);
         spiedStore.stopFailingPuts();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(2L);
         verify(spiedStore, times(2)).put(anyMap());
     }
@@ -175,10 +176,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
         Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
         byte[] stagingValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, PutUnlessExistsValue.staging(commitStatus));
+                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
         byte[] committedValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, PutUnlessExistsValue.committed(commitStatus));
-        spiedStore.putUnlessExists(timestampAsCell, stagingValue);
+                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.committed(commitStatus));
+        spiedStore.atomicUpdate(timestampAsCell, stagingValue);
 
         List<byte[]> actualValues = ImmutableList.of(committedValue);
 
@@ -187,14 +188,14 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
                 .checkAndTouch(timestampAsCell, stagingValue);
 
         assertThat(TransactionStatuses.getCommitTimestamp(
-                        pueTable.get(startTimestamp).get()))
+                        atomicTable.get(startTimestamp).get()))
                 .isEqualTo(TransactionStatuses.getCommitTimestamp(commitStatus));
     }
 
     @Test
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
-        PutUnlessExistsTable<Long, TransactionStatus> putUnlessExistsTable =
-                new ResilientCommitTimestampPutUnlessExistsTable(
+        AtomicTable<Long, TransactionStatus> putUnlessExistsTable =
+                new ResilientCommitTimestampAtomicTable(
                         new CassandraImitatingConsensusForgettingStore(0.5d),
                         TwoPhaseEncodingStrategy.INSTANCE,
                         new DefaultTaggedMetricRegistry());
@@ -230,7 +231,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         int numberOfReads = 100;
         for (int i = 0; i < numberOfReads; i++) {
-            assertThatThrownBy(() -> pueTable.get(0L).get())
+            assertThatThrownBy(() -> atomicTable.get(0L).get())
                     .isInstanceOf(ExecutionException.class)
                     .hasCauseInstanceOf(RuntimeException.class)
                     .hasMessageContaining("Failed to set value");
@@ -245,7 +246,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         spiedStore.stopFailingPuts();
         for (long i = 0; i < 100; i++) {
-            assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+            assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
                     .hasValue(0L);
         }
 
@@ -267,7 +268,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         List<Future<ListenableFuture<?>>> results = new ArrayList<>();
         int numberOfReads = 20_000;
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(writers.submit(() -> pueTable.get(random.nextLong(50L))));
+            results.add(writers.submit(() -> atomicTable.get(random.nextLong(50L))));
         }
         results.forEach(future -> assertThatCode(() -> future.get().get()).doesNotThrowAnyException());
         writers.shutdownNow();
@@ -292,7 +293,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         int numberOfReads = parallelism * 100;
         for (int i = 0; i < numberOfReads; i++) {
             // all timestamps go into the same row
-            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum), writers));
+            results.add(Futures.submitAsync(() -> atomicTable.get(random.nextLong(10) * rowsPerQuantum), writers));
         }
         results.forEach(future -> assertThatThrownBy(future::get)
                 .isInstanceOf(ExecutionException.class)
@@ -300,7 +301,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.stopFailingPuts();
         results.clear();
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(10) * rowsPerQuantum), writers));
+            results.add(Futures.submitAsync(() -> atomicTable.get(random.nextLong(10) * rowsPerQuantum), writers));
         }
         results.forEach(future -> assertThatCode(future::get).doesNotThrowAnyException());
         writers.shutdownNow();
@@ -318,7 +319,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         List<ListenableFuture<?>> results = new ArrayList<>();
         int numberOfReads = maximumParallelism * 100;
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(maximumParallelism * 2)), writers));
+            results.add(Futures.submitAsync(() -> atomicTable.get(random.nextLong(maximumParallelism * 2)), writers));
         }
         results.forEach(future -> assertThatThrownBy(future::get)
                 .isInstanceOf(ExecutionException.class)
@@ -326,7 +327,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.stopFailingPuts();
         results.clear();
         for (int i = 0; i < numberOfReads; i++) {
-            results.add(Futures.submitAsync(() -> pueTable.get(random.nextLong(maximumParallelism * 2)), writers));
+            results.add(Futures.submitAsync(() -> atomicTable.get(random.nextLong(maximumParallelism * 2)), writers));
         }
         results.forEach(future -> assertThatCode(future::get).doesNotThrowAnyException());
         writers.shutdownNow();
@@ -345,7 +346,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         setupStagingValues(1);
         spiedStore.enableCommittingUnderUs();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
                 .hasValue(0L);
         verify(spiedKvs, times(1)).checkAndSet(any());
         // only the put from the original PUE was registered
@@ -359,9 +360,9 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.stopFailingPuts();
         spiedStore.startSlowPue();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(0L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
                 .hasValue(0L);
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(1L);
 
         verify(spiedKvs, times(1)).checkAndSet(any());
@@ -369,7 +370,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(2L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(2L).get()))
                 .hasValue(2L);
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
@@ -381,19 +382,19 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         setupStagingValues(5);
         spiedStore.failPutsWithAtlasdbDependencyException();
 
-        assertThatThrownBy(() -> pueTable.get(0L).get())
+        assertThatThrownBy(() -> atomicTable.get(0L).get())
                 .isInstanceOf(ExecutionException.class)
                 .hasCauseInstanceOf(RetryLimitReachedException.class);
         spiedStore.stopFailingPuts();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(1L);
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(2L).get()))
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(2L).get()))
                 .hasValue(2L);
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
@@ -403,15 +404,15 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         spiedStore.startFailingPuts();
         Map<Long, TransactionStatus> initialWrites =
                 LongStream.range(0, num).boxed().collect(Collectors.toMap(x -> x, TransactionStatuses::committed));
-        assertThatThrownBy(() -> pueTable.putUnlessExistsMultiple(initialWrites))
+        assertThatThrownBy(() -> atomicTable.updateMultiple(initialWrites))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to set value");
     }
 
     private static Optional<Long> tryPue(
-            PutUnlessExistsTable<Long, TransactionStatus> putUnlessExistsTable, long startTs, long commitTs) {
+            AtomicTable<Long, TransactionStatus> atomicTable, long startTs, long commitTs) {
         try {
-            putUnlessExistsTable.putUnlessExists(startTs, TransactionStatuses.committed(commitTs));
+            atomicTable.update(startTs, TransactionStatuses.committed(commitTs));
             return Optional.of(commitTs);
         } catch (Exception e) {
             // this is ok, we may have failed because it already exists or randomly. Either way, continue.
@@ -420,10 +421,10 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
     }
 
     private static TransactionStatus firstSuccessfulRead(
-            PutUnlessExistsTable<Long, TransactionStatus> putUnlessExistsTable, long ts) {
+            AtomicTable<Long, TransactionStatus> atomicTable, long ts) {
         while (true) {
             try {
-                return putUnlessExistsTable.get(ts).get();
+                return atomicTable.get(ts).get();
             } catch (Exception e) {
                 // this is ok, when we try to read we may end up doing a write, which can throw -- we will retry
             }
@@ -435,17 +436,17 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
      * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
      *
      * WARNING: the usefulness of this store is coupled with the implementation of
-     * {@link KvsConsensusForgettingStore} and {@link ResilientCommitTimestampPutUnlessExistsTable}. If implementation
+     * {@link PueKvsConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private class UnreliableKvsConsensusForgettingStore extends KvsConsensusForgettingStore {
+    private class UnreliablePueKvsConsensusForgettingStore extends PueKvsConsensusForgettingStore {
         private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private volatile boolean commitUnderUs = false;
         private volatile long millisForPue = 0;
 
-        public UnreliableKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+        public UnreliablePueKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
         }
 
@@ -458,7 +459,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableTest {
         }
 
         /**
-         * We rely on the fact that {@link KvsConsensusForgettingStore} uses the default
+         * We rely on the fact that {@link PueKvsConsensusForgettingStore} uses the default
          * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
          */
         @Override

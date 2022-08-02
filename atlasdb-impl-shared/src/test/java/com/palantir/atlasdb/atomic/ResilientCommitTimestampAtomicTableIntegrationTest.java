@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,14 +43,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
-public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
+public class ResilientCommitTimestampAtomicTableIntegrationTest {
     private static final double WRITE_FAILURE_PROBABILITY = 0.5;
     private static final long MAXIMUM_EVALUATED_TIMESTAMP = 100;
 
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
-    private final PutUnlessExistsTable<Long, TransactionStatus> pueTable =
-            new ResilientCommitTimestampPutUnlessExistsTable(
+    private final AtomicTable<Long, TransactionStatus> pueTable =
+            new ResilientCommitTimestampAtomicTable(
                     forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
@@ -75,8 +75,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
         timestampReaders.forEach((_startTimestamp, reader) -> reader.close());
         timestampReaders.forEach(
-                ResilientCommitTimestampPutUnlessExistsTableIntegrationTest
-                        ::validateIndividualReaderHadRepeatableReads);
+                ResilientCommitTimestampAtomicTableIntegrationTest::validateIndividualReaderHadRepeatableReads);
         timestampReaders
                 .asMap()
                 .forEach((_startTimestamp, readers) -> validateConsistencyObservedAcrossReaders(readers));
@@ -89,7 +88,7 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
                         Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
-                pueTable.putUnlessExists(startTimestamp, TransactionStatuses.committed(startTimestamp + writerIndex));
+                pueTable.update(startTimestamp, TransactionStatuses.committed(startTimestamp + writerIndex));
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.
             }
@@ -140,11 +139,11 @@ public class ResilientCommitTimestampPutUnlessExistsTableIntegrationTest {
 
     private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
-        private final PutUnlessExistsTable<Long, TransactionStatus> pueTable;
+        private final AtomicTable<Long, TransactionStatus> pueTable;
         private final List<TransactionStatus> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
-        private TimestampReader(long startTimestamp, PutUnlessExistsTable<Long, TransactionStatus> pueTable) {
+        private TimestampReader(long startTimestamp, AtomicTable<Long, TransactionStatus> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
             this.timestampReads = new ArrayList<>();

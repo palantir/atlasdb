@@ -46,6 +46,7 @@ public final class TransactionConstants {
     public static final TransactionStatus ABORTED = TransactionStatuses.aborted();
     public static final TransactionStatus IN_PROGRESS = TransactionStatuses.inProgress();
     public static final TransactionStatus UNKNOWN = TransactionStatuses.unknown();
+    public static final long LOWEST_POSSIBLE_START_TS = 1L;
     public static final TransactionStatus PRE_START_COMMITTED =
             TransactionStatuses.committed(AtlasDbConstants.STARTING_TS - 1);
 
@@ -59,6 +60,7 @@ public final class TransactionConstants {
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
     public static final int TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 3;
+    public static final int TTS_TRANSACTIONS_SCHEMA_VERSION = 4;
     public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
             DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
             TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,

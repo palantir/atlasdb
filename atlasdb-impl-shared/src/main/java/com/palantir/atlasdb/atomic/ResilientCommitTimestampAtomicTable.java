@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -54,9 +55,9 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
-public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessExistsTable<Long, TransactionStatus> {
+public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
     private static final RateLimitedLogger log = new RateLimitedLogger(
-            SafeLoggerFactory.get(ResilientCommitTimestampPutUnlessExistsTable.class), 1.0 / 3600);
+            SafeLoggerFactory.get(ResilientCommitTimestampAtomicTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
@@ -94,14 +95,14 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
 
     private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
-    public ResilientCommitTimestampPutUnlessExistsTable(
+    public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
-    public ResilientCommitTimestampPutUnlessExistsTable(
+    public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
@@ -110,7 +111,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @VisibleForTesting
-    ResilientCommitTimestampPutUnlessExistsTable(
+    ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
             TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
@@ -125,14 +126,14 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
+    public void updateMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
                 .map(startTs -> encodingStrategy.encodeCommitTimestampAsValue(
-                        startTs, PutUnlessExistsValue.staging(keyValues.get(startTs))))
+                        startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
-        store.putUnlessExists(stagingValues);
+        store.atomicUpdate(stagingValues);
         store.put(KeyedStream.stream(stagingValues)
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());
@@ -160,10 +161,10 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            PutUnlessExistsValue<TransactionStatus> currentValue =
+            AtomicValue<TransactionStatus> currentValue =
                     encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
             TransactionStatus commitStatus = currentValue.value();
-            PutUnlessExistsValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
                     TransactionStatuses.getCommitTimestamp(kvsValue.value())
@@ -194,7 +195,7 @@ public class ResilientCommitTimestampPutUnlessExistsTable implements PutUnlessEx
             }
 
             byte[] actual = maybeActual.get();
-            PutUnlessExistsValue<TransactionStatus> currentValue =
+            AtomicValue<TransactionStatus> currentValue =
                     encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
             TransactionStatus commitStatus = currentValue.value();

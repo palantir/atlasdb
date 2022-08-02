@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,7 +40,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class SimpleCommitTimestampPutUnlessExistsTableTest {
+public class SimpleCommitTimestampAtomicTableTest {
     @Parameterized.Parameter
     public TimestampEncodingStrategy<TransactionStatus> encodingStrategy;
 
@@ -49,29 +49,29 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
         return Arrays.asList(new Object[][] {{V1EncodingStrategy.INSTANCE}, {TicketsEncodingStrategy.INSTANCE}});
     }
 
-    private PutUnlessExistsTable<Long, TransactionStatus> pueTable;
+    private AtomicTable<Long, TransactionStatus> atomicTable;
 
     @Before
     public void setup() {
-        pueTable = createPueTable();
+        atomicTable = createPueTable();
     }
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
-        pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L));
-        assertThat(TransactionStatuses.getCommitTimestamp(pueTable.get(1L).get()))
+        atomicTable.update(1L, TransactionStatuses.committed(2L));
+        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(2L);
     }
 
     @Test
     public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
-        assertThat(pueTable.get(3L).get()).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
     @Test
     public void cannotPueTwice() {
-        pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L));
-        assertThatThrownBy(() -> pueTable.putUnlessExists(1L, TransactionStatuses.committed(2L)))
+        atomicTable.update(1L, TransactionStatuses.committed(2L));
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
@@ -84,9 +84,9 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
                 TransactionStatuses.committed(4L),
                 7L,
                 TransactionStatuses.committed(8L));
-        pueTable.putUnlessExistsMultiple(inputs);
+        atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
-                pueTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
+                atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
         assertThat(result.size()).isEqualTo(4);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
@@ -96,8 +96,8 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
     @Test
     public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.aborted());
-        pueTable.putUnlessExistsMultiple(inputs);
-        Map<Long, TransactionStatus> result = pueTable.get(ImmutableList.of(1L)).get();
+        atomicTable.updateMultiple(inputs);
+        Map<Long, TransactionStatus> result = atomicTable.get(ImmutableList.of(1L)).get();
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.get(1L)).isEqualTo(TransactionConstants.ABORTED);
     }
@@ -105,16 +105,16 @@ public class SimpleCommitTimestampPutUnlessExistsTableTest {
     @Test
     public void getsAllTimestamps() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.committed(2L));
-        pueTable.putUnlessExistsMultiple(inputs);
+        atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
-                pueTable.get(ImmutableList.of(1L, 3L)).get();
+                atomicTable.get(ImmutableList.of(1L, 3L)).get();
         assertThat(result.size()).isEqualTo(2);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
-    private PutUnlessExistsTable<Long, TransactionStatus> createPueTable() {
-        return new SimpleCommitTimestampPutUnlessExistsTable(
+    private AtomicTable<Long, TransactionStatus> createPueTable() {
+        return new SimpleCommitTimestampAtomicTable(
                 new InMemoryKeyValueService(true),
                 TableReference.createFromFullyQualifiedName("test.table"),
                 encodingStrategy);

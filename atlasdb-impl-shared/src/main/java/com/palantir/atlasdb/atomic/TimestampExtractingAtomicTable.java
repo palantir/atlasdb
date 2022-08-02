@@ -19,6 +19,7 @@ package com.palantir.atlasdb.pue;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -26,16 +27,16 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 
-public class TimestampExtractingAtomicTable implements PutUnlessExistsTable<Long, Long> {
-    private final PutUnlessExistsTable<Long, TransactionStatus> delegate;
+public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
+    private final AtomicTable<Long, TransactionStatus> delegate;
 
-    public TimestampExtractingAtomicTable(PutUnlessExistsTable<Long, TransactionStatus> delegate) {
+    public TimestampExtractingAtomicTable(AtomicTable<Long, TransactionStatus> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public void putUnlessExistsMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
-        delegate.putUnlessExistsMultiple(KeyedStream.stream(keyValues)
+    public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
+        delegate.updateMultiple(KeyedStream.stream(keyValues)
                 .map(TransactionStatusUtils::fromTimestamp)
                 .collectToMap());
     }

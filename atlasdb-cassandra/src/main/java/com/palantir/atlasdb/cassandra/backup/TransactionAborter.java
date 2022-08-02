@@ -29,10 +29,10 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Streams;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
@@ -234,7 +234,8 @@ final class TransactionAborter {
 
     private static Optional<Long> getCommitValue(TransactionTableEntry entry) {
         return TransactionTableEntries.getCommitValue(entry)
-                .map(PutUnlessExistsValue::value)
+                .map(AtomicValue::value)
                 .flatMap(TransactionStatuses::getCommitTimestamp);
+
     }
 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -35,23 +35,23 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class KvsConsensusForgettingStore implements ConsensusForgettingStore {
+public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore {
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
-    public KvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+    public PueKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.kvs = kvs;
         this.tableRef = tableRef;
     }
 
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        putUnlessExists(ImmutableMap.of(cell, value));
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+        atomicUpdate(ImmutableMap.of(cell, value));
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(tableRef, values);
     }
 

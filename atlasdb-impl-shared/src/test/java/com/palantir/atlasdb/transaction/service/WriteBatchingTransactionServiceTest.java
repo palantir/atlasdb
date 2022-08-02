@@ -81,7 +81,7 @@ public class WriteBatchingTransactionServiceTest {
     public void putsUnlessExistsToUnderlyingViaBatch() {
         writeBatchingTransactionService.putUnlessExists(7, 66);
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(7L, 66L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(7L, 66L));
     }
 
     @Test
@@ -93,7 +93,7 @@ public class WriteBatchingTransactionServiceTest {
                         TestTransactionBatchElement.of(2L, 200L),
                         TestTransactionBatchElement.of(3L, 300L)));
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(1L, 100L, 2L, 200L, 3L, 300L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(1L, 100L, 2L, 200L, 3L, 300L));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class WriteBatchingTransactionServiceTest {
         doThrow(keyAlreadyExistsException)
                 .doNothing()
                 .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+                .commitMultiple(anyMap());
 
         TestTransactionBatchElement elementAlreadyExisting = TestTransactionBatchElement.of(2L, 200L);
         TestTransactionBatchElement elementNotExisting = TestTransactionBatchElement.of(3L, 300L);
@@ -114,8 +114,8 @@ public class WriteBatchingTransactionServiceTest {
         assertThatThrownBy(() -> elementAlreadyExisting.result().get()).hasCause(keyAlreadyExistsException);
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L));
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(3L, 300L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(2L, 200L, 3L, 300L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(3L, 300L));
         verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
     }
 
@@ -125,7 +125,7 @@ public class WriteBatchingTransactionServiceTest {
         doThrow(keyAlreadyExistsException)
                 .doNothing()
                 .when(mockTransactionService)
-                .putUnlessExistsMultiple(anyMap());
+                .commitMultiple(anyMap());
 
         assertThatThrownBy(() -> WriteBatchingTransactionService.processBatch(
                         mockTransactionService,
@@ -134,7 +134,7 @@ public class WriteBatchingTransactionServiceTest {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("claimed no keys already existed");
 
-        verify(mockTransactionService, times(1)).putUnlessExistsMultiple(ImmutableMap.of(1L, 100L, 2L, 200L));
+        verify(mockTransactionService, times(1)).commitMultiple(ImmutableMap.of(1L, 100L, 2L, 200L));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class WriteBatchingTransactionServiceTest {
 
         KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", failed, succeeded);
 
-        doThrow(originalException).doNothing().when(mockTransactionService).putUnlessExistsMultiple(anyMap());
+        doThrow(originalException).doNothing().when(mockTransactionService).commitMultiple(anyMap());
 
         TestTransactionBatchElement elementNotExisting = TestTransactionBatchElement.of(2L, 200L);
         TestTransactionBatchElement elementAlreadyExisting = TestTransactionBatchElement.of(3L, 300L);
@@ -153,8 +153,8 @@ public class WriteBatchingTransactionServiceTest {
         WriteBatchingTransactionService.processBatch(
                 mockTransactionService, ImmutableList.of(elementNotExisting, elementAlreadyExisting, elementToRetry));
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L, 4L, 400L));
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(4L, 400L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(2L, 200L, 3L, 300L, 4L, 400L));
+        verify(mockTransactionService).commitMultiple(ImmutableMap.of(4L, 400L));
 
         assertThatThrownBy(() -> elementAlreadyExisting.result().get()).hasCause(originalException);
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
@@ -167,7 +167,7 @@ public class WriteBatchingTransactionServiceTest {
     public void repeatedProcessBatchOnlyMakesOneCallWithDuplicatesIfSuccessful() {
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
                 "boo", ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
-        doNothing().doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
+        doNothing().doThrow(exception).when(mockTransactionService).commitMultiple(anyMap());
 
         int numRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
@@ -180,7 +180,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger successCount = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
-        verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
+        verify(mockTransactionService, times(1)).commitMultiple(anyMap());
         verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.
@@ -192,7 +192,7 @@ public class WriteBatchingTransactionServiceTest {
     public void repeatedProcessBatchOnlyMakesOneCallWithDuplicatesIfFailedAndKnownFailed() {
         KeyAlreadyExistsException exception = new KeyAlreadyExistsException(
                 "boo", ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)));
-        doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
+        doThrow(exception).when(mockTransactionService).commitMultiple(anyMap());
 
         int numRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
@@ -205,7 +205,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger successCount = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
-        verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
+        verify(mockTransactionService, times(1)).commitMultiple(anyMap());
         verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.
@@ -219,7 +219,7 @@ public class WriteBatchingTransactionServiceTest {
                 "boo",
                 ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(5L)),
                 ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(6L)));
-        doThrow(exception).when(mockTransactionService).putUnlessExistsMultiple(anyMap());
+        doThrow(exception).when(mockTransactionService).commitMultiple(anyMap());
 
         int numFailingRequests = 100;
         List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest = IntStream.range(
@@ -233,7 +233,7 @@ public class WriteBatchingTransactionServiceTest {
         AtomicInteger successCount = new AtomicInteger();
         AtomicInteger failureCount = new AtomicInteger();
         getResultsTrackingOutcomes(batchedRequest, successCount, failureCount);
-        verify(mockTransactionService, times(1)).putUnlessExistsMultiple(anyMap());
+        verify(mockTransactionService, times(1)).commitMultiple(anyMap());
         verify(mockTransactionService, atLeastOnce()).getCellEncodingStrategy();
 
         // XXX Technically invalid, but valid for a mock transaction service.

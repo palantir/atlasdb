@@ -29,9 +29,9 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -74,7 +74,7 @@ public class Transactions3TableInteractionTest {
     @Test
     public void extractStagingCommitTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(
-                createRow(150L, PutUnlessExistsValue.staging(TransactionStatusUtils.fromTimestamp(200L))));
+                createRow(150L, AtomicValue.staging(TransactionStatusUtils.fromTimestamp(200L))));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
             assertThat(commitValue.isCommitted()).isFalse();
@@ -94,7 +94,7 @@ public class Transactions3TableInteractionTest {
     public void extractStagingAbortedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(
                 150L,
-                PutUnlessExistsValue.staging(
+                AtomicValue.staging(
                         TransactionStatusUtils.fromTimestamp(TransactionConstants.FAILED_COMMIT_TS))));
         TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
@@ -149,10 +149,10 @@ public class Transactions3TableInteractionTest {
     }
 
     private static Row createRow(long start, long commit) {
-        return createRow(start, PutUnlessExistsValue.committed(TransactionStatusUtils.fromTimestamp(commit)));
+        return createRow(start, AtomicValue.committed(TransactionStatusUtils.fromTimestamp(commit)));
     }
 
-    private static Row createRow(long start, PutUnlessExistsValue<TransactionStatus> commit) {
+    private static Row createRow(long start, AtomicValue<TransactionStatus> commit) {
         Row row = mock(Row.class);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(start);
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));

@@ -16,10 +16,11 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import com.palantir.atlasdb.atomic.AtomicTable;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.logsafe.Preconditions;
@@ -28,7 +29,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnlessExistsValue<TransactionStatus>> {
+
+public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<AtomicValue<TransactionStatus>> {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};
@@ -36,8 +38,8 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
-    private static final PutUnlessExistsValue<TransactionStatus> IN_PROGRESS =
-            PutUnlessExistsValue.committed(TransactionConstants.IN_PROGRESS);
+    private static final AtomicValue<TransactionStatus> IN_PROGRESS =
+            AtomicValue.committed(TransactionConstants.IN_PROGRESS);
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -51,14 +53,14 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
 
     @Override
     public byte[] encodeCommitTimestampAsValue(
-            long startTimestamp, PutUnlessExistsValue<TransactionStatus> commitTimestamp) {
+            long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return EncodingUtils.add(
                 TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp.value()),
                 commitTimestamp.isCommitted() ? COMMITTED : STAGING);
     }
 
     @Override
-    public PutUnlessExistsValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public AtomicValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
         if (value == null) {
             return IN_PROGRESS;
         }
@@ -69,10 +71,10 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<PutUnl
         TransactionStatus commitStatus =
                 TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(startTimestamp, head);
         if (Arrays.equals(tail, COMMITTED)) {
-            return PutUnlessExistsValue.committed(commitStatus);
+            return AtomicValue.committed(commitStatus);
         }
         if (Arrays.equals(tail, STAGING)) {
-            return PutUnlessExistsValue.staging(commitStatus);
+            return AtomicValue.staging(commitStatus);
         }
 
         throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));
