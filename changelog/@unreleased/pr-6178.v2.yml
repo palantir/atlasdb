@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: 'TTS | Introduce `markInProgress` endpoint in `TransactionService`
+    for transaction schema version 4. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/6178
