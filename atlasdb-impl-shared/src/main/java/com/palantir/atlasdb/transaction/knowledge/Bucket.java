@@ -24,19 +24,19 @@ public interface Bucket {
     @Value.Parameter
     long value();
 
-    static Bucket of(long value) {
+    static Bucket ofIndex(long value) {
         return ImmutableBucket.of(value);
     }
 
-    static long getMaxTsInCurrentBucket(Bucket bucket) {
-        return ((bucket.value() + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
+    default long getMaxTsInCurrentBucket() {
+        return ((value() + 1) * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE) - 1;
     }
 
     static Bucket forTimestamp(long startTimestamp) {
-        return of(startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE);
+        return ofIndex(startTimestamp / AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE);
     }
 
-    static long getMinTsInBucket(Bucket bucket) {
-        return bucket.value() * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
+    default long getMinTsInBucket() {
+        return value() * AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE;
     }
 }

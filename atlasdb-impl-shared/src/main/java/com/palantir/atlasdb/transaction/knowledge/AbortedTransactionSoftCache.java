@@ -102,7 +102,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
         // Do not remove this line without considering perf implications.
         knownConcludedTransactions.isKnownConcluded(
-                Bucket.getMaxTsInCurrentBucket(latestBucket), KnownConcludedTransactions.Consistency.REMOTE_READ);
+                latestBucket.getMaxTsInCurrentBucket(), KnownConcludedTransactions.Consistency.REMOTE_READ);
 
         Preconditions.checkState(
                 knownConcludedTransactions.isKnownConcluded(latestTsRequested, Consistency.LOCAL_READ),
@@ -149,10 +149,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     }
 
     private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, Bucket latestBucketSeenSoFar) {
-        long maxTsInCurrentBucket = Bucket.getMaxTsInCurrentBucket(latestBucketSeenSoFar);
+        long maxTsInCurrentBucket = latestBucketSeenSoFar.getMaxTsInCurrentBucket();
 
         Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
-                Bucket.getMinTsInBucket(latestBucketSeenSoFar), maxTsInCurrentBucket);
+                latestBucketSeenSoFar.getMinTsInBucket(), maxTsInCurrentBucket);
 
         return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), futileTimestamps);
     }
