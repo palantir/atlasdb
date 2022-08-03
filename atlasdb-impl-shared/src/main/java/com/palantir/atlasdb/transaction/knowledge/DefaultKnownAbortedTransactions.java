@@ -20,18 +20,21 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
 public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
+
+    public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
+
     private final FutileTimestampStore futileTimestampStore;
 
-    @VisibleForTesting
-    static final int MAXIMUM_CACHE_WEIGHT = 100_000;
     /**
      * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
      */
@@ -44,12 +47,13 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     DefaultKnownAbortedTransactions(
             FutileTimestampStore futileTimestampStore,
             AbortedTransactionSoftCache softCache,
-            TaggedMetricRegistry registry) {
+            TaggedMetricRegistry registry,
+            int maxCacheWeight) {
         this.futileTimestampStore = futileTimestampStore;
         this.softCache = softCache;
         this.metrics = AbortedTransctionsCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
-                .maximumWeight(MAXIMUM_CACHE_WEIGHT)
+                .maximumWeight(maxCacheWeight)
                 .weigher(new AbortedTransactionBucketWeigher())
                 .evictionListener((k, v, cause) -> {
                     if (cause.wasEvicted()) {
@@ -62,10 +66,16 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     public static DefaultKnownAbortedTransactions create(
             KnownConcludedTransactions knownConcludedTransactions,
             FutileTimestampStore futileTimestampStore,
-            TaggedMetricRegistry registry) {
+            TaggedMetricRegistry registry,
+            Optional<InternalSchemaInstallConfig> config) {
         AbortedTransactionSoftCache softCache =
                 new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
-        return new DefaultKnownAbortedTransactions(futileTimestampStore, softCache, registry);
+        return new DefaultKnownAbortedTransactions(
+                futileTimestampStore,
+                softCache,
+                registry,
+                config.map(InternalSchemaInstallConfig::versionFourAbortedTransactionsCacheSize)
+                        .orElse(MAXIMUM_CACHE_WEIGHT));
     }
 
     @Override
