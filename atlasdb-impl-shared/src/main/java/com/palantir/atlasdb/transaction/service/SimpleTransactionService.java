@@ -79,9 +79,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> pueTable = new ResilientCommitTimestampAtomicTable(
+        AtomicTable<Long, Long> atomicTable = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
-        return new SimpleTransactionService(pueTable, encodingStrategy);
+        return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 
     @Override

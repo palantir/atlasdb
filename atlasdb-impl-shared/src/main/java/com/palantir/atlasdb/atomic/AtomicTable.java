@@ -38,7 +38,6 @@ public interface AtomicTable<K, V> {
     /**
      * Declares an operation for these keys is in progress. This method must be called before any
      * {@link #updateMultiple(Map)} for the key, or the latter might fail.
-     * @param keys
      */
     void markInProgress(Iterable<K> keys);
 
