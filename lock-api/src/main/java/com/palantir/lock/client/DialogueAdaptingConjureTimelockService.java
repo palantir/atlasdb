@@ -195,6 +195,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     private static final class ServerApiVersionGuesser {
         private static final int NOT_FOUND = 404;
+        private static final double ATTEMPT_NEW_PROBABILITY_WHEN_SUSPECTING_OLD = 0.001;
 
         private final AtomicBoolean suspectOldVersion;
 
@@ -211,7 +212,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
         private boolean shouldUseNewEndpoint() {
             if (suspectOldVersion.get()) {
-                return ThreadLocalRandom.current().nextDouble() < 0.01;
+                return ThreadLocalRandom.current().nextDouble() < ATTEMPT_NEW_PROBABILITY_WHEN_SUSPECTING_OLD;
             }
             return true;
         }
@@ -219,7 +220,9 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         private <T> T runNewFunctionFirst(Supplier<T> newFunction, Supplier<T> legacyFunction) {
             try {
                 T candidateOutput = newFunction.get();
-                suspectOldVersion.set(false);
+                if (suspectOldVersion.get()) {
+                    suspectOldVersion.set(false);
+                }
                 return candidateOutput;
             } catch (RemoteException remoteException) {
                 if (remoteException.getStatus() != NOT_FOUND) {
