@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
@@ -122,6 +124,23 @@ public class DefaultKnownConcludedTransactionsTest {
     }
 
     @Test
+    public void addConcludedTimestampsThrowsIfRangeNotClosed() {
+        assertThatThrownBy(() -> defaultKnownConcludedTransactions.addConcludedTimestamps(Range.atLeast(1L)))
+                .isInstanceOf(SafeIllegalStateException.class);
+
+        assertThatThrownBy(() -> defaultKnownConcludedTransactions.addConcludedTimestamps(Range.atMost(100L)))
+                .isInstanceOf(SafeIllegalStateException.class);
+
+        assertThatThrownBy(() -> defaultKnownConcludedTransactions.addConcludedTimestamps(Range.openClosed(1L, 100L)))
+                .isInstanceOf(SafeIllegalStateException.class);
+
+        assertThatThrownBy(() -> defaultKnownConcludedTransactions.addConcludedTimestamps(Range.closedOpen(1L, 100L)))
+                .isInstanceOf(SafeIllegalStateException.class);
+
+        verifyNoMoreInteractions(knownConcludedTransactionsStore);
+    }
+
+    @Test
     public void metricPublishesNumberOfDisjointCachedRanges() {
         when(knownConcludedTransactionsStore.get())
                 .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
@@ -147,6 +166,20 @@ public class DefaultKnownConcludedTransactionsTest {
                         DEFAULT_RANGE.upperEndpoint() + 1, Consistency.REMOTE_READ))
                 .isTrue();
         verify(knownConcludedTransactionsStore, never()).get();
+    }
+
+    @Test
+    public void lastLocallyKnownConcludedTimestampRequestDoesNotHitRemote() {
+        assertThat(defaultKnownConcludedTransactions.lastLocallyKnownConcludedTimestamp())
+                .isEqualTo(0);
+        verify(knownConcludedTransactionsStore, never()).get();
+    }
+
+    @Test
+    public void canGetLastLocallyKnownConcludedTimestamp() {
+        defaultKnownConcludedTransactions.addConcludedTimestamps(ADDITIONAL_RANGE);
+        assertThat(defaultKnownConcludedTransactions.lastLocallyKnownConcludedTimestamp())
+                .isEqualTo(ADDITIONAL_RANGE.upperEndpoint());
     }
 
     @Test
