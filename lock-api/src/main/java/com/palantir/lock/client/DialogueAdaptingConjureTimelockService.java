@@ -233,7 +233,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
                 if (unknownRemoteException.getStatus() != NOT_FOUND) {
                     throw unknownRemoteException;
                 }
-                return suspectOldVersionAndCallLegacy(legacyFunction)
+                return suspectOldVersionAndCallLegacy(legacyFunction);
             }
         }
 
