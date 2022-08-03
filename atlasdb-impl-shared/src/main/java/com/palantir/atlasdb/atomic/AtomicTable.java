@@ -24,7 +24,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A generally persisted key value store that supports an atomic update operation.
@@ -39,8 +38,9 @@ public interface AtomicTable<K, V> {
     /**
      * Declares an operation for these keys is in progress. This method must be called before any
      * {@link #updateMultiple(Map)} for the key, or the latter might fail.
+     * @param keys
      */
-    void markInProgress(Set<K> keys);
+    void markInProgress(Iterable<K> keys);
 
     /**
      * Atomic update. If the method does not throw, any subsequent get is guaranteed to return V. If the

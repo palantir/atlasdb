@@ -78,30 +78,14 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @Override
     public void markInProgress(long startTimestamp) {
         TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
-                .orElseThrow(() ->
-                        new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
         service.markInProgress(startTimestamp);
     }
 
     @Override
     public void markInProgress(Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = HashMultimap.create();
-        for (Long startTimestamp : startTimestamps) {
-            T mappedValue = timestampToServiceKey.apply(startTimestamp);
-            if (mappedValue != null) {
-                queryMap.put(mappedValue, startTimestamp);
-            }
-        }
-
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException(
-                    "A batch of timestamps produced some transaction service keys which are unknown.",
-                    SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
-        }
-
+        Multimap<T, Long> queryMap = sanityCheckRequestAndGetQueryMap(startTimestamps, keyedServices);
         KeyedStream.stream(queryMap.asMap())
                 .forEach((key, value) -> keyedServices.get(key).markInProgress(value));
     }
@@ -138,22 +122,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
     private ListenableFuture<Map<Long, Long>> getInternal(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = HashMultimap.create();
-        for (Long startTimestamp : startTimestamps) {
-            T mappedValue = timestampToServiceKey.apply(startTimestamp);
-            if (mappedValue != null) {
-                queryMap.put(mappedValue, startTimestamp);
-            }
-        }
-
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
-        if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException(
-                    "A batch of timestamps produced some transaction service keys which are unknown.",
-                    SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
-        }
+        Multimap<T, Long> queryMap = sanityCheckRequestAndGetQueryMap(startTimestamps, keyedTransactionServices);
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
                 .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
@@ -166,6 +135,27 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                                 .map(AtlasFutures::getDone)
                                 .collect(HashMap::new, Map::putAll, Map::putAll),
                         MoreExecutors.directExecutor());
+    }
+
+    private Multimap<T, Long> sanityCheckRequestAndGetQueryMap(
+            Iterable<Long> startTimestamps, Map<T, ? extends AsyncTransactionService> keyedServices) {
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
+
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
+        if (!unknownKeys.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "A batch of timestamps produced some transaction service keys which are unknown.",
+                    SafeArg.of("timestamps", startTimestamps),
+                    SafeArg.of("unknownKeys", unknownKeys),
+                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
+        }
+        return queryMap;
     }
 
     private <R> Optional<R> getServiceForTimestamp(Map<T, R> servicesMap, long startTimestamp) {

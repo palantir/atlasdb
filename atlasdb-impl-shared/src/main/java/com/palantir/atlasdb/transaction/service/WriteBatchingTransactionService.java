@@ -84,6 +84,18 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
+    public void markInProgress(long startTimestamp) {
+        // todo(snanda): batching
+        delegate.markInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markInProgress(Iterable<Long> startTimestamps) {
+        // todo(snanda): batching
+        delegate.markInProgress(startTimestamps);
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }
