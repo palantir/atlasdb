@@ -47,7 +47,7 @@ public interface KnownConcludedTransactions {
      *
      * @return the greatest known concluded timestamp for which transaction is known to have concluded.
      */
-    long lastKnownConcludedTimestamp();
+    long lastLocallyKnownConcludedTimestamp();
 
     enum Consistency {
         /**

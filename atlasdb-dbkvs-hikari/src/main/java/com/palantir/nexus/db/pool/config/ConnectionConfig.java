@@ -153,9 +153,7 @@ public abstract class ConnectionConfig {
      * Please refer to <a href="https://github.com/brettwooldridge/HikariCP#infrequently-used">HikariCP</a>
      * before overriding.
      * */
-    public Optional<Long> initializeFailTimeoutMillis() {
-        return Optional.empty();
-    }
+    public abstract Optional<Long> initializeFailTimeoutMillis();
 
     @JsonIgnore
     @Value.Lazy
@@ -167,7 +165,7 @@ public abstract class ConnectionConfig {
 
         config.setPoolName(getConnectionPoolName());
         config.setRegisterMbeans(true);
-        config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
+        config.setMetricRegistry(SharedMetricRegistries.tryGetDefault());
 
         config.setMinimumIdle(getMinConnections());
         config.setMaximumPoolSize(getMaxConnections());

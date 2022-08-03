@@ -107,7 +107,7 @@ dependencies {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
-    testImplementation(group: 'org.jmock', name: 'jmock') {
+    testImplementation('org.jmock:jmock') {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }

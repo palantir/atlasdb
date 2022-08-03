@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -33,6 +35,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.PersistableBoolean;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class ShardProgress {
     private static final SafeLogger log = SafeLoggerFactory.get(ShardProgress.class);
@@ -81,6 +84,18 @@ public class ShardProgress {
      */
     public long getLastSweptTimestamp(ShardAndStrategy shardAndStrategy) {
         return maybeGet(shardAndStrategy).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
+    }
+
+    /**
+     * Returns the last swept timestamps for the given set of shard and strategy.
+     */
+    public Map<ShardAndStrategy, Long> getLastSweptTimestamps(Set<ShardAndStrategy> shardAndStrategies) {
+        Map<Cell, Value> lastSweptEntries = getEntries(shardAndStrategies);
+        return KeyedStream.of(shardAndStrategies)
+                .map(shardAndStrategy -> Optional.ofNullable(lastSweptEntries.get(cellForShard(shardAndStrategy)))
+                        .map(ShardProgress::hydrateValue)
+                        .orElse(SweepQueueUtils.INITIAL_TIMESTAMP))
+                .collectToMap();
     }
 
     /**
@@ -149,11 +164,19 @@ public class ShardProgress {
         if (result.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(getValue(result));
+        return Optional.of(hydrateValue(result));
     }
 
     private Map<Cell, Value> getEntry(ShardAndStrategy shardAndStrategy) {
-        return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS));
+        return getEntries(ImmutableSet.of(shardAndStrategy));
+    }
+
+    private Map<Cell, Value> getEntries(Set<ShardAndStrategy> shardAndStrategies) {
+        Map<Cell, Long> queryMap = KeyedStream.of(shardAndStrategies)
+                .mapEntries((shardAndStrategy, _unused) ->
+                        Maps.immutableEntry(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS))
+                .collectToMap();
+        return kvs.get(TABLE_REF, queryMap);
     }
 
     private static Cell cellForShard(ShardAndStrategy shardAndStrategy) {
@@ -164,10 +187,14 @@ public class ShardProgress {
                 row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
-    private static long getValue(Map<Cell, Value> entry) {
-        SweepShardProgressTable.Value value = SweepShardProgressTable.Value.BYTES_HYDRATOR.hydrateFromBytes(
-                Iterables.getOnlyElement(entry.values()).getContents());
-        return value.getValue();
+    private static long hydrateValue(Value val) {
+        return SweepShardProgressTable.Value.BYTES_HYDRATOR
+                .hydrateFromBytes(val.getContents())
+                .getValue();
+    }
+
+    private static long hydrateValue(Map<Cell, Value> entry) {
+        return hydrateValue(Iterables.getOnlyElement(entry.values()));
     }
 
     private long increaseValueFromToAtLeast(ShardAndStrategy shardAndStrategy, long oldVal, long newVal) {
@@ -223,7 +250,7 @@ public class ShardProgress {
     }
 
     private long rethrowIfUnchanged(ShardAndStrategy shardStrategy, long oldVal, CheckAndSetException ex) {
-        long updatedOldVal = getValue(getEntry(shardStrategy));
+        long updatedOldVal = hydrateValue(getEntry(shardStrategy));
         if (updatedOldVal == oldVal) {
             throw ex;
         }

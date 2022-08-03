@@ -27,12 +27,12 @@ check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 dependencies {
     implementation project(':atlasdb-config')
 
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'org.clojure', name: 'clojure'
-    implementation group: 'org.slf4j', name: 'slf4j-api'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    implementation 'com.google.guava:guava'
+    implementation 'org.clojure:clojure'
+    implementation 'org.slf4j:slf4j-api'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
@@ -57,16 +57,16 @@ dependencies {
     testImplementation project(':lock-api')
     testImplementation project(':lock-api-objects')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 }
 
 shadowJar {
     dependencies {
-        exclude(dependency(group: 'org.clojure', name: 'clojure'))
+        exclude(dependency('org.clojure:clojure'))
     }
 }
 

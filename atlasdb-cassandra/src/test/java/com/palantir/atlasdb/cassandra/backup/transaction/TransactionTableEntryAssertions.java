@@ -18,7 +18,7 @@ package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import static org.assertj.core.api.Assertions.fail;
 
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -45,8 +45,7 @@ public final class TransactionTableEntryAssertions {
                 .otherwise(() -> fail("UnexpectedEntryType"));
     }
 
-    public static void assertTwoPhase(
-            TransactionTableEntry entry, BiConsumer<Long, PutUnlessExistsValue<Long>> assertions) {
+    public static void assertTwoPhase(TransactionTableEntry entry, BiConsumer<Long, AtomicValue<Long>> assertions) {
         TransactionTableEntries.caseOf(entry)
                 .committedTwoPhase((startTs, commitTs) -> {
                     assertions.accept(startTs, commitTs);

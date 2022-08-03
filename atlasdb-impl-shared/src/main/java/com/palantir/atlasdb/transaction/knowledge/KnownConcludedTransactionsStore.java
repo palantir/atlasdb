@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -37,6 +38,8 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -81,14 +84,23 @@ public final class KnownConcludedTransactionsStore {
      * {@link TimestampRangeSet} that has been persisted in the database.
      */
     public void supplement(Range<Long> timestampRangeToAdd) {
+        supplement(ImmutableSet.of(timestampRangeToAdd));
+    }
+
+    public void supplement(Set<Range<Long>> timestampRangesToAdd) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             Optional<ReadResult> readResult = getInternal();
 
-            if (isRangeContained(readResult, timestampRangeToAdd)) {
+            Optional<TimestampRangeSet> timestampRangesRead = readResult.map(ReadResult::timestampRangeSet);
+            Set<Range<Long>> rangesToSupplement = timestampRangesToAdd.stream()
+                    .filter(range -> !isRangeContained(timestampRangesRead, range))
+                    .collect(Collectors.toSet());
+
+            if (rangesToSupplement.isEmpty()) {
                 return;
             }
 
-            CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, timestampRangeToAdd);
+            CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, rangesToSupplement);
             try {
                 keyValueService.checkAndSet(checkAndSetRequest);
                 return;
@@ -105,16 +117,14 @@ public final class KnownConcludedTransactionsStore {
         throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
     }
 
-    private boolean isRangeContained(Optional<ReadResult> containingRanges, Range<Long> timestampRangeToTest) {
-        return containingRanges
-                .map(ReadResult::timestampRangeSet)
-                .map(ranges -> ranges.encloses(timestampRangeToTest))
-                .orElse(false);
+    private boolean isRangeContained(Optional<TimestampRangeSet> timestampRangesRead, Range<Long> range) {
+        return timestampRangesRead.map(ranges -> ranges.encloses(range)).orElse(false);
     }
 
-    private CheckAndSetRequest getCheckAndSetRequest(Optional<ReadResult> oldValue, Range<Long> timestampRangeToAdd) {
+    private CheckAndSetRequest getCheckAndSetRequest(
+            Optional<ReadResult> oldValue, Set<Range<Long>> timestampRangesToAdd) {
         byte[] serializedTargetSet = serializeTimestampRangeSet(
-                getTargetSet(oldValue.map(ReadResult::timestampRangeSet), timestampRangeToAdd));
+                getTargetSet(oldValue.map(ReadResult::timestampRangeSet), timestampRangesToAdd));
 
         if (oldValue.isEmpty()) {
             return CheckAndSetRequest.newCell(tableReference, valueCell, serializedTargetSet);
@@ -132,11 +142,12 @@ public final class KnownConcludedTransactionsStore {
         }
     }
 
-    private TimestampRangeSet getTargetSet(Optional<TimestampRangeSet> originalSet, Range<Long> timestampRangeToAdd) {
+    private TimestampRangeSet getTargetSet(
+            Optional<TimestampRangeSet> originalSet, Set<Range<Long>> timestampRangesToAdd) {
         if (originalSet.isEmpty()) {
-            return TimestampRangeSet.singleRange(timestampRangeToAdd);
+            return TimestampRangeSet.initRanges(timestampRangesToAdd);
         }
-        return originalSet.get().copyAndAdd(timestampRangeToAdd);
+        return originalSet.get().copyAndAdd(timestampRangesToAdd);
     }
 
     private Optional<ReadResult> getInternal() {

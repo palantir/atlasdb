@@ -31,10 +31,10 @@ dependencies {
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.safe-logging:safe-logging'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
 }

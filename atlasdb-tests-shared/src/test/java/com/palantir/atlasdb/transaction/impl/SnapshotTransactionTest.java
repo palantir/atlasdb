@@ -30,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
@@ -72,11 +73,14 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -127,6 +131,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -1999,6 +2004,79 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         .orElseThrow(() -> new SafeIllegalStateException("expected at least one visitable!")));
         assertThatThrownBy(() -> BatchingVisitables.copyToList(leakedVisitable))
                 .isInstanceOf(CommittedTransactionException.class);
+    }
+
+    @Test
+    public void testConstraintsNotCheckedOnReadOnlyTransaction() {
+        ConstraintCheckable mockConstraint = mock(ConstraintCheckable.class);
+        when(mockConstraint.findConstraintFailures(any(), any(), any())).thenReturn(ImmutableList.of());
+
+        writeCells(TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), "val".getBytes(StandardCharsets.UTF_8)));
+
+        Transaction transaction = txManager.createNewTransaction();
+        transaction.useTable(TABLE, mockConstraint);
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        NavigableMap<byte[], RowResult<byte[]>> rows =
+                transaction.getRows(TABLE, ImmutableSet.of(ROW_FOO), ColumnSelection.all());
+        transaction.commit();
+
+        verify(callback, times(1)).run();
+        verifyNoInteractions(mockConstraint);
+
+        RowResult<byte[]> result = rows.get(ROW_FOO);
+        assertThat(result.getCellSet()).hasSize(1);
+        assertThat(result.getOnlyColumnValue()).asString(StandardCharsets.UTF_8).isEqualTo("val");
+    }
+
+    @Test
+    public void testConstraintsCheckedOnSuccessfulTransaction() {
+        ImmutableMap<Cell, byte[]> writes =
+                ImmutableMap.of(Cell.create(ROW_FOO, COL_A), "val".getBytes(StandardCharsets.UTF_8));
+
+        ConstraintCheckable mockConstraint = mock(ConstraintCheckable.class);
+        when(mockConstraint.findConstraintFailures(any(), any(), any())).thenReturn(ImmutableList.of());
+
+        Transaction transaction = txManager.createNewTransaction();
+        transaction.useTable(TABLE, mockConstraint);
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        transaction.put(TABLE, writes);
+        transaction.commit();
+
+        verify(callback, times(1)).run();
+        verify(mockConstraint, times(1))
+                .findConstraintFailures(
+                        eq(writes),
+                        any(ConstraintCheckingTransaction.class),
+                        eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
+    }
+
+    @Test
+    public void testConstraintsViolated() {
+        Map<Cell, byte[]> writes = ImmutableMap.of(Cell.create(ROW_FOO, COL_A), "val".getBytes(StandardCharsets.UTF_8));
+
+        String constraintViolated = "test constraint violated";
+        ConstraintCheckable mockConstraint = mock(ConstraintCheckable.class);
+        when(mockConstraint.findConstraintFailures(any(), any(), any()))
+                .thenReturn(ImmutableList.of(constraintViolated));
+
+        Transaction transaction = txManager.createNewTransaction();
+        transaction.useTable(TABLE, mockConstraint);
+        Runnable callback = mock(Runnable.class);
+        transaction.onSuccess(callback);
+        transaction.put(TABLE, writes);
+
+        assertThatThrownBy(transaction::commit)
+                .isInstanceOf(AtlasDbConstraintException.class)
+                .hasMessageContaining(constraintViolated);
+
+        verifyNoInteractions(callback);
+        verify(mockConstraint, times(1))
+                .findConstraintFailures(
+                        eq(writes),
+                        any(ConstraintCheckingTransaction.class),
+                        eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
     }
 
     private void verifyPrefetchValidations(

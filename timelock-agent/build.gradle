@@ -7,8 +7,8 @@ dependencies {
     implementation project(":timelock-impl")
     implementation project(":timelock-corruption-detection")
 
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'com.palantir.conjure.java.api', name: 'service-config'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.conjure.java.api:service-config'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -63,15 +63,15 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
     testImplementation 'org.awaitility:awaitility'
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation (group: 'org.mockito', name: 'mockito-core') {
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation ('org.mockito:mockito-core') {
         // Mockito version doesn't agree with our JUnit version
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
 
-    testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 }

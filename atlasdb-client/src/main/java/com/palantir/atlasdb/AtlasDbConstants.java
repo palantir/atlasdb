@@ -136,7 +136,7 @@ public final class AtlasDbConstants {
      *
      * Where applicable, tables in this set should ideally not be read frequently. Implementers are encouraged to
      * provide alternative solutions in cases where the tables are read frequently and/or read performance is
-     * critical. See ResilientCommitTimestampPutUnlessExistsTable for an example of how to work around such
+     * critical. See ResilientCommitTimestampAtomicTable for an example of how to work around such
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
     public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -25,25 +25,26 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 
 /**
- * A generally persisted key value store that supports an atomic put unless exists operation.
+ * A generally persisted key value store that supports an atomic update operation.
  * @param <K> Key for the mapping
  * @param <V> Value for the mapping
  */
-public interface PutUnlessExistsTable<K, V> {
+public interface AtomicTable<K, V> {
+
     /**
-     * Atomic put unless exists. If the method does not throw, any subsequent get is guaranteed to return V. If the
-     * method throws an exception, subsequent gets may return either V or null but once V is returned subsequent calls
-     * are guaranteed to return V.
+     * Atomic update. If the method does not throw, any subsequent get is guaranteed to return V. If the
+     * method throws an exception, subsequent gets may return either V or previous value but once V is returned
+     * subsequent calls are guaranteed to return V.
      */
-    default void putUnlessExists(K key, V value) throws KeyAlreadyExistsException {
-        putUnlessExistsMultiple(ImmutableMap.of(key, value));
+    default void update(K key, V value) throws KeyAlreadyExistsException {
+        updateMultiple(ImmutableMap.of(key, value));
     }
 
     /**
-     * Similar to {@link PutUnlessExistsTable#putUnlessExists(Object, Object)}, but may be implemented to batch
+     * Similar to {@link AtomicTable#update(Object, Object)}, but may be implemented to batch
      * efficiently.
      */
-    void putUnlessExistsMultiple(Map<K, V> keyValues) throws KeyAlreadyExistsException;
+    void updateMultiple(Map<K, V> keyValues) throws KeyAlreadyExistsException;
 
     default ListenableFuture<V> get(K key) {
         return Futures.transform(get(ImmutableList.of(key)), result -> result.get(key), MoreExecutors.directExecutor());

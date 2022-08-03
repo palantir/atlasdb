@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import org.derive4j.Data;
 
 @Data
@@ -26,7 +26,7 @@ public abstract class TransactionTableEntry {
 
         R committedLegacy(long startTimestamp, long commitTimestamp);
 
-        R committedTwoPhase(long startTimestamp, PutUnlessExistsValue<Long> commitValue);
+        R committedTwoPhase(long startTimestamp, AtomicValue<Long> commitValue);
     }
 
     public abstract <R> R match(Cases<R> cases);

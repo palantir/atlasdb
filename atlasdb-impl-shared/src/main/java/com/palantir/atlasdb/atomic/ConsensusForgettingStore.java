@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,15 +33,21 @@ import java.util.Optional;
  *   value until a put occurs.
  */
 public interface ConsensusForgettingStore {
-    /**
-     * An atomic put unless exists operation. If this method throws an exception, there are no consistency guarantees:
-     *   1. A subsequent PUE may succeed or fail non-deterministically
-     *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
-     *   another PUE has failed in the past non-deterministically
-     */
-    void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException;
 
-    void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    /**
+     * An atomic update operation. If this method throws an exception, there are no consistency guarantees:
+     *   1. A subsequent update may succeed or fail non-deterministically
+     *   2. A subsequent get may return Optional.of(value), Optional.empty(), or even Optional.of(other_value) if
+     *   another update operation has failed in the past non-deterministically
+     *   3. The semantics of the update operation depend on the underlying implementation.
+     */
+    void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+
+    /**
+     * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
+     * depending on the underlying implementation.
+     */
+    void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

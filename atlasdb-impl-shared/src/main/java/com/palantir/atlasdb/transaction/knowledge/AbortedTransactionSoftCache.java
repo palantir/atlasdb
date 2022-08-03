@@ -17,17 +17,31 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.autobatch.Autobatchers;
-import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
-import java.util.List;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Aborted transactions timestamps are not expected to be contiguous. The caching for aborted transactions is bucketed
+ * i.e. each bucket is a range of timestamps we cache the set of aborted timestamps in that bucket.
+ * A bucket becomes immutable when lastKnownConcludedTs exceeds the upper bound for that bucket.
+ * At any point in time, there will be exactly one bucket which will be mutable.
+ *
+ * This class provides a caching mechanism for the mutable bucket. The queries are expected to be highly concurrent and
+ * are batched to reduce request volume to remote server. Since the queries are batched with exactly one consumer,
+ * this class has been designed for serial execution to improve performance.
+ *
+ * Queries to this class must only be made for a transaction timestamp that is known to have been concluded.
+ * */
 public final class AbortedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
         PENDING_LOAD_FROM_RELIABLE,
@@ -37,7 +51,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
 
     private final DisruptorAutobatcher<Long, TransactionSoftCacheStatus> autobatcher;
 
-    private final AtomicReference<PatchyCache> patchyCacheRef;
+    private volatile PatchyCache patchyCache = null;
     private final FutileTimestampStore futileTimestampStore;
     private final KnownConcludedTransactions knownConcludedTransactions;
 
@@ -45,8 +59,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
             FutileTimestampStore futileTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
         this.futileTimestampStore = futileTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
-        this.patchyCacheRef = new AtomicReference<>();
-        this.autobatcher = Autobatchers.independent(this::consumer)
+        this.autobatcher = Autobatchers.coalescing(this::processBatch)
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
@@ -56,56 +69,63 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         return AtlasFutures.getUnchecked(autobatcher.apply(startTimestamp));
     }
 
-    private void consumer(List<BatchElement<Long, TransactionSoftCacheStatus>> batch) {
-        Optional<PatchyCache> maybeSnapshot = getSnapshot();
+    private Map<Long, TransactionSoftCacheStatus> processBatch(Set<Long> request) {
+        Optional<PatchyCache> maybeSnapshot = getExtendableSnapshotForBucket();
 
-        long latestTsSeenSoFar = getLatestTsSeenSoFar(batch, maybeSnapshot);
-        long latestBucketSeenSoFar = Utils.getBucket(latestTsSeenSoFar);
+        long latestTsSeenSoFar = getLatestTsSeenSoFar(request, maybeSnapshot);
+        Bucket latestBucketSeenSoFar = Bucket.forTimestamp(latestTsSeenSoFar);
 
         PatchyCache refreshedPatchyCache = refreshPatchyCache(maybeSnapshot, latestTsSeenSoFar, latestBucketSeenSoFar);
 
-        for (BatchElement<Long, TransactionSoftCacheStatus> elem : batch) {
-            long startTimestamp = elem.argument();
-            long requestedBucket = Utils.getBucket(startTimestamp);
+        return KeyedStream.of(request)
+                .map(startTimestamp -> {
+                    Bucket requestedBucket = Bucket.forTimestamp(startTimestamp);
 
-            if (requestedBucket < latestBucketSeenSoFar) {
-                elem.result().set(TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
-            } else {
-                elem.result().set(getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions));
-            }
-        }
+                    if (requestedBucket.value() < latestBucketSeenSoFar.value()) {
+                        return TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE;
+                    } else {
+                        return getStatus(startTimestamp, refreshedPatchyCache.abortedTransactions);
+                    }
+                })
+                .collectToMap();
     }
 
-    private long getLatestTsSeenSoFar(
-            List<BatchElement<Long, TransactionSoftCacheStatus>> batch, Optional<PatchyCache> maybeSnapshot) {
-        long latestTsSeenSoFar =
-                batch.stream().mapToLong(BatchElement::argument).max().orElse(0L);
+    private long getLatestTsSeenSoFar(Set<Long> batch, Optional<PatchyCache> maybeSnapshot) {
+        long latestTsRequested = batch.stream().max(Comparator.naturalOrder()).orElse(0L);
+        long latestTsSeenSoFar = latestTsRequested;
 
         if (maybeSnapshot.isPresent()) {
             latestTsSeenSoFar = Math.max(latestTsSeenSoFar, maybeSnapshot.get().lastKnownConcludedTimestamp);
         }
 
-        long latestBucket = Utils.getBucket(latestTsSeenSoFar);
+        Bucket latestBucket = Bucket.forTimestamp(latestTsSeenSoFar);
         // The purpose of this call is to refresh the knownConcluded store for current bucket if it is not up-to-date.
         // Do not remove this line without considering perf implications.
-        knownConcludedTransactions.isKnownConcluded(latestBucket, KnownConcludedTransactions.Consistency.REMOTE_READ);
+        knownConcludedTransactions.isKnownConcluded(
+                latestBucket.getMaxTsInCurrentBucket(), KnownConcludedTransactions.Consistency.REMOTE_READ);
 
-        latestTsSeenSoFar = Math.max(latestTsSeenSoFar, knownConcludedTransactions.lastKnownConcludedTimestamp());
+        Preconditions.checkState(
+                knownConcludedTransactions.isKnownConcluded(latestTsRequested, Consistency.LOCAL_READ),
+                "Received request for transactions that has NOT been concluded.",
+                SafeArg.of("latestTsRequested", latestTsRequested));
+
+        latestTsSeenSoFar =
+                Math.max(latestTsSeenSoFar, knownConcludedTransactions.lastLocallyKnownConcludedTimestamp());
         return latestTsSeenSoFar;
     }
 
     private PatchyCache refreshPatchyCache(
-            Optional<PatchyCache> maybeSnapshot, long latestTsSeenSoFar, long latestBucketSeenSoFar) {
+            Optional<PatchyCache> maybeSnapshot, long latestTsSeenSoFar, Bucket latestBucketSeenSoFar) {
         PatchyCache refreshedPatchyCache;
 
-        if (maybeSnapshot.isEmpty() || maybeSnapshot.get().bucket < latestBucketSeenSoFar) {
+        if (maybeSnapshot.isEmpty() || maybeSnapshot.get().bucket.value() < latestBucketSeenSoFar.value()) {
             refreshedPatchyCache = loadPatchyBucket(latestTsSeenSoFar, latestBucketSeenSoFar);
         } else {
             // need to load a range of timestamps
-            refreshedPatchyCache = extendPatch(maybeSnapshot.get(), latestTsSeenSoFar);
+            refreshedPatchyCache = extendPatchIfNeeded(maybeSnapshot.get(), latestTsSeenSoFar);
         }
 
-        tryUpdate(refreshedPatchyCache);
+        patchyCache = refreshedPatchyCache;
         return refreshedPatchyCache;
     }
 
@@ -114,10 +134,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         autobatcher.close();
     }
 
-    private PatchyCache extendPatch(PatchyCache snapshot, long latestTs) {
+    private PatchyCache extendPatchIfNeeded(PatchyCache snapshot, long latestTs) {
         long currentLastKnownConcluded = snapshot.lastKnownConcludedTimestamp;
 
-        // It is possible that cache was update by the time we reach here and refresh is not required any more.
+        // It is possible that cache was updated by the time we reach here and refresh is not required any more.
         if (latestTs <= currentLastKnownConcluded) {
             return snapshot;
         }
@@ -128,21 +148,18 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         return snapshot;
     }
 
-    private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, long latestBucketSeenSoFar) {
-        long maxTsInCurrentBucket = Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar);
+    private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, Bucket latestBucketSeenSoFar) {
+        long maxTsInCurrentBucket = latestBucketSeenSoFar.getMaxTsInCurrentBucket();
 
         Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
-                Utils.getMinTsInBucket(latestBucketSeenSoFar), Utils.getMaxTsInCurrentBucket(latestBucketSeenSoFar));
+                latestBucketSeenSoFar.getMinTsInBucket(), maxTsInCurrentBucket);
 
         return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), futileTimestamps);
     }
 
-    private Optional<PatchyCache> getSnapshot() {
-        return Optional.ofNullable(patchyCacheRef.get());
-    }
-
-    private void tryUpdate(PatchyCache update) {
-        patchyCacheRef.getAndAccumulate(update, AbortedTransactionSoftCache::getLatest);
+    // This is a mutable snapshot, but it is guaranteed that the snapshot will not extend beyond its bucket
+    private Optional<PatchyCache> getExtendableSnapshotForBucket() {
+        return Optional.ofNullable(patchyCache);
     }
 
     private TransactionSoftCacheStatus getStatus(long startTimestamp, Set<Long> abortedTransactions) {
@@ -151,24 +168,15 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
                 : TransactionSoftCacheStatus.IS_NOT_ABORTED;
     }
 
-    static PatchyCache getLatest(PatchyCache current, PatchyCache update) {
-        if (current == null) {
-            return update;
-        }
-
-        if (current == update) {
-            return current;
-        }
-
-        if (current.bucket == update.bucket) {
-            return current.lastKnownConcludedTimestamp >= update.lastKnownConcludedTimestamp ? current : update;
-        }
-
-        return current.bucket > update.bucket ? current : update;
-    }
-
+    /**
+     * Maintains the cache for the mutable bucket. The cache is incomplete and can reliably serve query in
+     * range [minTsForBucket(bucket), lastKnownConcludedTs].
+     * For performance, we maintain a mutable instance of PatchyCache that can be extended if we have a query beyond
+     * lastKnownConcludedTs.
+     * Note that an instance of PatchyCache does not extend beyond its bucket.
+     * */
     static class PatchyCache {
-        private final long bucket;
+        private final Bucket bucket;
         private final Set<Long> abortedTransactions;
         private long lastKnownConcludedTimestamp;
 
@@ -178,12 +186,13 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
 
             this.lastKnownConcludedTimestamp = lastKnownConcludedTimestamp;
             this.abortedTransactions = mutableAbortedTimestamps;
-            this.bucket = Utils.getBucket(lastKnownConcludedTimestamp);
+            this.bucket = Bucket.forTimestamp(lastKnownConcludedTimestamp);
         }
 
         public void extend(long latestConcluded, Set<Long> newAbortedTransactions) {
             Preconditions.checkState(
-                    Utils.getBucket(latestConcluded) == bucket, "Can only extend within the same bucket.");
+                    Bucket.forTimestamp(latestConcluded).value() == bucket.value(),
+                    "Can only extend within the same bucket.");
             abortedTransactions.addAll(newAbortedTransactions);
             lastKnownConcludedTimestamp = Math.max(lastKnownConcludedTimestamp, latestConcluded);
         }
