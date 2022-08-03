@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
@@ -85,13 +86,12 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @Override
     public void markInProgress(long startTimestamp) {
-        // todo(snanda): batching
-        delegate.markInProgress(startTimestamp);
+        delegate.markInProgress(ImmutableSet.of(startTimestamp));
     }
 
     @Override
     public void markInProgress(Iterable<Long> startTimestamps) {
-        // todo(snanda): batching
+        // Batching will live at a lower layer, most likely it will be done at the level of Atomic table.
         delegate.markInProgress(startTimestamps);
     }
 
