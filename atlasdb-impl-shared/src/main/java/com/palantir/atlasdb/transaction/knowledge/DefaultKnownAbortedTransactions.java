@@ -38,7 +38,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     /**
      * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
      */
-    private final Cache<Long, Set<Long>> reliableCache;
+    private final Cache<Bucket, Set<Long>> reliableCache;
 
     private final AbortedTransactionSoftCache softCache;
     private final AbortedTransctionsCacheMetrics metrics;
@@ -80,7 +80,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     @Override
     public boolean isKnownAborted(long startTimestamp) {
-        long bucketForTimestamp = Utils.getBucket(startTimestamp);
+        Bucket bucketForTimestamp = Bucket.forTimestamp(startTimestamp);
         TransactionSoftCacheStatus softCacheTransactionStatus = softCache.getSoftCacheTransactionStatus(startTimestamp);
 
         switch (softCacheTransactionStatus) {
@@ -107,19 +107,19 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
         reliableCache.cleanUp();
     }
 
-    private Set<Long> getCachedAbortedTimestampsInBucket(long bucket) {
+    private Set<Long> getCachedAbortedTimestampsInBucket(Bucket bucket) {
         return reliableCache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
-    private Set<Long> getAbortedTransactionsRemote(long bucket) {
+    private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
         metrics.abortedTxnCacheMiss().mark();
         return futileTimestampStore.getAbortedTransactionsInRange(
-                Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
+                bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }
 
-    private static final class AbortedTransactionBucketWeigher implements Weigher<Long, Set<Long>> {
+    private static final class AbortedTransactionBucketWeigher implements Weigher<Bucket, Set<Long>> {
         @Override
-        public @NonNegative int weigh(Long key, Set<Long> value) {
+        public @NonNegative int weigh(Bucket key, Set<Long> value) {
             return value.size();
         }
     }

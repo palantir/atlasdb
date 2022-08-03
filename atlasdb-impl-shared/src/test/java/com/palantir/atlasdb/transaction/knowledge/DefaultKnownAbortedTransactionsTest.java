@@ -69,7 +69,7 @@ public final class DefaultKnownAbortedTransactionsTest {
                 .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestamp = 27L;
-        long bucket = Utils.getBucket(abortedTimestamp);
+        Bucket bucket = Bucket.forTimestamp(abortedTimestamp);
         Set<Long> abortedTimestamps = ImmutableSet.of(abortedTimestamp);
 
         when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
@@ -77,7 +77,7 @@ public final class DefaultKnownAbortedTransactionsTest {
 
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp)).isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
+                .getAbortedTransactionsInRange(bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
 
         // a second call will load state from the cache
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp + 1))
@@ -91,10 +91,10 @@ public final class DefaultKnownAbortedTransactionsTest {
                 .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestampBucket1 = 27L;
-        long bucket1 = Utils.getBucket(abortedTimestampBucket1);
+        Bucket bucket1 = Bucket.forTimestamp(abortedTimestampBucket1);
 
         long abortedTimestampBucket2 = AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE + 27L;
-        long bucket2 = Utils.getBucket(abortedTimestampBucket2);
+        Bucket bucket2 = Bucket.forTimestamp(abortedTimestampBucket2);
 
         when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
                 .thenReturn(ImmutableSet.of(abortedTimestampBucket1))
@@ -104,13 +104,13 @@ public final class DefaultKnownAbortedTransactionsTest {
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1))
                 .isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket1), Utils.getMaxTsInCurrentBucket(bucket1));
+                .getAbortedTransactionsInRange(bucket1.getMinTsInBucket(), bucket1.getMaxTsInCurrentBucket());
 
         // First call for bucket2 loads from remote
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket2))
                 .isTrue();
         verify(futileTimestampStore)
-                .getAbortedTransactionsInRange(Utils.getMinTsInBucket(bucket2), Utils.getMaxTsInCurrentBucket(bucket2));
+                .getAbortedTransactionsInRange(bucket2.getMinTsInBucket(), bucket2.getMaxTsInCurrentBucket());
 
         // a second call will load state from the cache
         assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1 + 1))
@@ -135,9 +135,8 @@ public final class DefaultKnownAbortedTransactionsTest {
                             .collect(Collectors.toSet());
                 });
 
-        long bucket = 1;
-        Range<Long> rangeForBucket =
-                Range.closed(Utils.getMinTsInBucket(bucket), Utils.getMaxTsInCurrentBucket(bucket));
+        Bucket bucket = Bucket.ofIndex(1);
+        Range<Long> rangeForBucket = Range.closed(bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
 
         // First query for bucket 1 goes to the store
         knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
@@ -148,9 +147,9 @@ public final class DefaultKnownAbortedTransactionsTest {
         knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
         verifyNoMoreInteractions(futileTimestampStore);
 
-        long bucket2 = 2;
+        Bucket bucket2 = Bucket.ofIndex(2);
         // caching a second bucket will cross the threshold weight of cache, marking first bucket for eviction
-        knownAbortedTransactions.isKnownAborted(Utils.getMinTsInBucket(bucket2));
+        knownAbortedTransactions.isKnownAborted(bucket2.getMinTsInBucket());
 
         knownAbortedTransactions.cleanup();
 
