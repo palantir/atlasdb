@@ -24,6 +24,8 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
@@ -42,19 +45,28 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class DialogueAdaptingConjureTimelockService implements ConjureTimelockService {
     private final ConjureTimelockServiceBlocking dialogueDelegate;
     private final ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics;
+
+    private final ServerApiVersionGuesser serverApiVersionGuesser;
 
     public DialogueAdaptingConjureTimelockService(
             ConjureTimelockServiceBlocking dialogueDelegate,
             ConjureTimelockServiceBlockingMetrics conjureTimelockServiceBlockingMetrics) {
         this.dialogueDelegate = dialogueDelegate;
         this.conjureTimelockServiceBlockingMetrics = conjureTimelockServiceBlockingMetrics;
+        this.serverApiVersionGuesser = new ServerApiVersionGuesser();
     }
 
     @Override
@@ -75,12 +87,24 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
             AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
-        return dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request);
+        return serverApiVersionGuesser.runUnderSuspicion(
+                () -> dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request), () -> {
+                    ConjureGetFreshTimestampsResponse response = dialogueDelegate.getFreshTimestamps(
+                            authHeader, namespace, ConjureGetFreshTimestampsRequest.of(request.get()));
+                    return ConjureGetFreshTimestampsResponseV2.of(ConjureTimestampRange.of(
+                            response.getInclusiveLower(),
+                            response.getInclusiveUpper() - response.getInclusiveLower() + 1));
+                });
     }
 
     @Override
     public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
-        return dialogueDelegate.getFreshTimestamp(authHeader, namespace);
+        return serverApiVersionGuesser.runUnderSuspicion(
+                () -> dialogueDelegate.getFreshTimestamp(authHeader, namespace), () -> {
+                    ConjureGetFreshTimestampsResponse response = dialogueDelegate.getFreshTimestamps(
+                            authHeader, namespace, ConjureGetFreshTimestampsRequest.of(1));
+                    return ConjureSingleTimestamp.of(response.getInclusiveLower());
+                });
     }
 
     @Override
@@ -111,7 +135,14 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     @Override
     public ConjureRefreshLocksResponseV2 refreshLocksV2(
             AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
-        return dialogueDelegate.refreshLocksV2(authHeader, namespace, request);
+        return serverApiVersionGuesser.runUnderSuspicion(
+                () -> dialogueDelegate.refreshLocksV2(authHeader, namespace, request), () -> {
+                    ConjureRefreshLocksRequest v1Request = ConjureRefreshLocksRequest.of(fromV2Tokens(request.get()));
+                    ConjureRefreshLocksResponse lockResponse =
+                            dialogueDelegate.refreshLocks(authHeader, namespace, v1Request);
+                    return ConjureRefreshLocksResponseV2.of(
+                            toV2Tokens(lockResponse.getRefreshedTokens()), lockResponse.getLease());
+                });
     }
 
     @Override
@@ -121,7 +152,13 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
 
     @Override
     public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
-        return dialogueDelegate.unlockV2(authHeader, namespace, request);
+        return serverApiVersionGuesser.runUnderSuspicion(
+                () -> dialogueDelegate.unlockV2(authHeader, namespace, request), () -> {
+                    ConjureUnlockRequest v1Request = ConjureUnlockRequest.of(fromV2Tokens(request.get()));
+                    return ConjureUnlockResponseV2.of(toV2Tokens(dialogueDelegate
+                            .unlock(authHeader, namespace, v1Request)
+                            .getTokens()));
+                });
     }
 
     @Override
@@ -143,6 +180,66 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         } catch (RuntimeException e) {
             meterSupplier.get().mark();
             throw e;
+        }
+    }
+
+    private Set<ConjureLockTokenV2> toV2Tokens(Set<ConjureLockToken> v1Tokens) {
+        return v1Tokens.stream()
+                .map(token -> ConjureLockTokenV2.of(token.getRequestId()))
+                .collect(Collectors.toSet());
+    }
+
+    private Set<ConjureLockToken> fromV2Tokens(Set<ConjureLockTokenV2> v2Tokens) {
+        return v2Tokens.stream().map(token -> ConjureLockToken.of(token.get())).collect(Collectors.toSet());
+    }
+
+    private static final class ServerApiVersionGuesser {
+        private static final int NOT_FOUND = 404;
+        private static final double ATTEMPT_NEW_PROBABILITY_WHEN_SUSPECTING_OLD = 0.001;
+
+        private final AtomicBoolean suspectOldVersion;
+
+        private ServerApiVersionGuesser() {
+            this.suspectOldVersion = new AtomicBoolean();
+        }
+
+        public <T> T runUnderSuspicion(Supplier<T> newFunction, Supplier<T> legacyFunction) {
+            if (shouldUseNewEndpoint()) {
+                return runNewFunctionFirst(newFunction, legacyFunction);
+            }
+            return legacyFunction.get();
+        }
+
+        private boolean shouldUseNewEndpoint() {
+            if (suspectOldVersion.get()) {
+                return ThreadLocalRandom.current().nextDouble() < ATTEMPT_NEW_PROBABILITY_WHEN_SUSPECTING_OLD;
+            }
+            return true;
+        }
+
+        private <T> T runNewFunctionFirst(Supplier<T> newFunction, Supplier<T> legacyFunction) {
+            try {
+                T candidateOutput = newFunction.get();
+                if (suspectOldVersion.get()) {
+                    suspectOldVersion.set(false);
+                }
+                return candidateOutput;
+            } catch (RemoteException remoteException) {
+                if (remoteException.getStatus() != NOT_FOUND) {
+                    throw remoteException;
+                }
+                return suspectOldVersionAndCallLegacy(legacyFunction);
+            } catch (UnknownRemoteException unknownRemoteException) {
+                if (unknownRemoteException.getStatus() != NOT_FOUND) {
+                    throw unknownRemoteException;
+                }
+                return suspectOldVersionAndCallLegacy(legacyFunction);
+            }
+        }
+
+        private <T> T suspectOldVersionAndCallLegacy(Supplier<T> legacyFunction) {
+            suspectOldVersion.set(true);
+            return legacyFunction.get();
         }
     }
 }
