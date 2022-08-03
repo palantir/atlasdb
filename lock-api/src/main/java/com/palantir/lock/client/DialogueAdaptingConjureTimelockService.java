@@ -45,6 +45,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
@@ -220,13 +221,22 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
                 T candidateOutput = newFunction.get();
                 suspectOldVersion.set(false);
                 return candidateOutput;
-            } catch (UnknownRemoteException exception) {
-                if (exception.getStatus() != NOT_FOUND) {
-                    throw exception;
+            } catch (RemoteException remoteException) {
+                if (remoteException.getStatus() != NOT_FOUND) {
+                    throw remoteException;
                 }
-                suspectOldVersion.set(true);
-                return legacyFunction.get();
+                return suspectOldVersionAndCallLegacy(legacyFunction);
+            } catch (UnknownRemoteException unknownRemoteException) {
+                if (unknownRemoteException.getStatus() != NOT_FOUND) {
+                    throw unknownRemoteException;
+                }
+                return suspectOldVersionAndCallLegacy(legacyFunction)
             }
+        }
+
+        private <T> T suspectOldVersionAndCallLegacy(Supplier<T> legacyFunction) {
+            suspectOldVersion.set(true);
+            return legacyFunction.get();
         }
     }
 }
