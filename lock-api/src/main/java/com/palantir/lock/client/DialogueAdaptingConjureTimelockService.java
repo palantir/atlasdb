@@ -192,7 +192,7 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
         return v2Tokens.stream().map(token -> ConjureLockToken.of(token.get())).collect(Collectors.toSet());
     }
 
-    private static class ServerApiVersionGuesser {
+    private static final class ServerApiVersionGuesser {
         private static final int NOT_FOUND = 404;
 
         private final AtomicBoolean suspectOldVersion;
