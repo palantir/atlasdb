@@ -52,6 +52,18 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**
+     * This method MUST be called for each start timestamp before {@link #putUnlessExists(long, long) is ever called}.
+     * In practice, this means that a transaction must call this method before any information about its start timestamp
+     * is persisted into the KVS; i.e. KVS writes, writing to the sweep queue, etc.
+     *
+     * For safety, it is advisable that implementations of this method result in a no-op if this method is called after
+     * a successful call of {@link #putUnlessExists(long, long)} for the same startTimestamp.
+     */
+    void markInProgress(long startTimestamp);
+
+    void markInProgress(Iterable<Long> startTimestamps);
+
+    /**
      * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
      * committed. The naming is not accurate as this operation can differ in implementation.
      *

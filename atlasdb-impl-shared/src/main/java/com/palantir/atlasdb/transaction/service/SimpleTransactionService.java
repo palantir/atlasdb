@@ -95,6 +95,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
+    public void markInProgress(long startTimestamp) {
+        txnTable.markInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markInProgress(Iterable<Long> startTimestamps) {
+        txnTable.markInProgress(startTimestamps);
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return txnTable.get(startTimestamp);
     }

@@ -76,6 +76,37 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
+    public void markInProgress(long startTimestamp) {
+        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
+                .orElseThrow(() ->
+                        new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
+        service.markInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markInProgress(Iterable<Long> startTimestamps) {
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
+
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
+        if (!unknownKeys.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "A batch of timestamps produced some transaction service keys which are unknown.",
+                    SafeArg.of("timestamps", startTimestamps),
+                    SafeArg.of("unknownKeys", unknownKeys),
+                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
+        }
+
+        KeyedStream.stream(queryMap.asMap())
+                .forEach((key, value) -> keyedServices.get(key).markInProgress(value));
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getInternal(keyedServices, startTimestamp);
     }
