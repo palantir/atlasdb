@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.compact.CompactorConfig;
-import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaConfig;
-import com.palantir.atlasdb.internalschema.InternalSchemaConfig;
+import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaRuntimeConfig;
+import com.palantir.atlasdb.internalschema.InternalSchemaRuntimeConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
@@ -70,8 +70,8 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     @Value.Default
-    public InternalSchemaConfig internalSchema() {
-        return ImmutableInternalSchemaConfig.builder().build();
+    public InternalSchemaRuntimeConfig internalSchema() {
+        return ImmutableInternalSchemaRuntimeConfig.builder().build();
     }
 
     /**

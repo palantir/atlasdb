@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
+import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -313,6 +315,11 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public boolean collectThreadDumpOnTimestampServiceInit() {
         return true;
+    }
+
+    @Value.Default
+    public InternalSchemaInstallConfig internalSchema() {
+        return ImmutableInternalSchemaInstallConfig.builder().build();
     }
 
     @Value.Check
