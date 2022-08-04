@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions1TableInteraction;
 import com.palantir.atlasdb.cassandra.backup.transaction.Transactions2TableInteraction;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +94,7 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void immutablePresentThenStartAtImmutable() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(AtlasDbConstants.STARTING_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 100L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 
@@ -113,7 +113,7 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void coordServiceBoundLessThanFfStopsAtBound() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(AtlasDbConstants.STARTING_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP - 10L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 
@@ -132,7 +132,7 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void coordServiceBoundGreaterThanFfStopsAtFf() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(AtlasDbConstants.STARTING_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 1000L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 
@@ -153,7 +153,7 @@ public final class CoordinationServiceUtilitiesTest {
     public void cleanMultipleRangesWithSchemasWithinBounds() {
         final long migrateToTxns2 = IMMUTABLE_TIMESTAMP + FASTFORWARD_TIMESTAMP / 2;
         Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(
-                Range.closedOpen(AtlasDbConstants.STARTING_TS, migrateToTxns2), 1,
+                Range.closedOpen(TransactionConstants.LOWEST_POSSIBLE_START_TS, migrateToTxns2), 1,
                 Range.atLeast(migrateToTxns2), 2);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 1000L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
@@ -183,9 +183,9 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void skipRangesWithSchemasOutsideOfBounds() {
-        final long migrateToTxns2 = AtlasDbConstants.STARTING_TS + IMMUTABLE_TIMESTAMP / 2;
+        final long migrateToTxns2 = TransactionConstants.LOWEST_POSSIBLE_START_TS + IMMUTABLE_TIMESTAMP / 2;
         Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(
-                Range.closedOpen(AtlasDbConstants.STARTING_TS, migrateToTxns2), 1,
+                Range.closedOpen(TransactionConstants.LOWEST_POSSIBLE_START_TS, migrateToTxns2), 1,
                 Range.atLeast(migrateToTxns2), 2);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 1000L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);

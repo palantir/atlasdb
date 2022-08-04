@@ -19,9 +19,9 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -80,7 +80,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void throwsIfTryingToGetAnImpossibleTimestamp() {
-        assertThatThrownBy(() -> manager.getTransactionsSchemaVersion(AtlasDbConstants.STARTING_TS - 3141592))
+        assertThatThrownBy(() -> manager.getTransactionsSchemaVersion(TransactionConstants.LOWEST_POSSIBLE_START_TS - 3141592))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("was never given out by the timestamp service");
     }

@@ -36,12 +36,12 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
@@ -58,7 +58,7 @@ public class TransactionAborterTest {
     private static final long BACKUP_TIMESTAMP = 123;
 
     private static final FullyBoundedTimestampRange TIMESTAMP_RANGE =
-            FullyBoundedTimestampRange.of(Range.closed(AtlasDbConstants.STARTING_TS, 200L));
+            FullyBoundedTimestampRange.of(Range.closed(TransactionConstants.LOWEST_POSSIBLE_START_TS, 200L));
 
     private static final String TXN_TABLE_NAME = "txn_table";
     private static final Namespace NAMESPACE = Namespace.of("keyspace");

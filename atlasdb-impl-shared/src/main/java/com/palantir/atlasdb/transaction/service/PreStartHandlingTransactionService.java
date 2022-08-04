@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -93,7 +94,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
     private ListenableFuture<Long> getFromDelegate(
             long startTimestamp, AsyncTransactionService asyncTransactionService) {
         if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
+            return Futures.immediateFuture(TransactionConstants.LOWEST_POSSIBLE_START_TS - 1);
         }
         return asyncTransactionService.getAsync(startTimestamp);
     }
@@ -104,7 +105,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
         Map<Long, Long> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
-                .map(_ignore -> AtlasDbConstants.STARTING_TS - 1)
+                .map(_ignore -> TransactionConstants.LOWEST_POSSIBLE_START_TS - 1)
                 .collectTo(HashMap::new);
 
         List<Long> validTimestamps = classifiedTimestamps.get(true);
@@ -121,6 +122,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     private static boolean isTimestampValid(Long startTimestamp) {
-        return startTimestamp >= AtlasDbConstants.STARTING_TS;
+        return startTimestamp >= TransactionConstants.LOWEST_POSSIBLE_START_TS;
     }
 }

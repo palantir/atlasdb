@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -264,7 +265,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         spiedStore.stopFailingPuts();
         ExecutorService writers = Executors.newFixedThreadPool(100);
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<Future<ListenableFuture<?>>> results = new ArrayList<>();
+        List<Future<ListenableFuture<TransactionStatus>>> results = new ArrayList<>();
         int numberOfReads = 20_000;
         for (int i = 0; i < numberOfReads; i++) {
             results.add(writers.submit(() -> atomicTable.get(random.nextLong(50L))));

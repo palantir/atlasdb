@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -48,7 +47,7 @@ public final class TransactionConstants {
     public static final TransactionStatus UNKNOWN = TransactionStatuses.unknown();
     public static final long LOWEST_POSSIBLE_START_TS = 1L;
     public static final TransactionStatus PRE_START_COMMITTED =
-            TransactionStatuses.committed(AtlasDbConstants.STARTING_TS - 1);
+            TransactionStatuses.committed(LOWEST_POSSIBLE_START_TS - 1);
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 
