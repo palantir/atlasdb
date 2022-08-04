@@ -120,7 +120,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    public void putUnlessExists(Map<Long, Long> startTimestampToCommitTimestamp) {
         txnTable.updateMultiple(startTimestampToCommitTimestamp);
     }
 

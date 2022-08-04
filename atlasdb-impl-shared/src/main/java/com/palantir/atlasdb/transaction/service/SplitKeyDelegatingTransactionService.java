@@ -84,13 +84,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
-    public void markInProgress(Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = sanityCheckRequestAndGetQueryMap(startTimestamps, keyedServices);
-        KeyedStream.stream(queryMap.asMap())
-                .forEach((key, value) -> keyedServices.get(key).markInProgress(value));
-    }
-
-    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getInternal(keyedServices, startTimestamp);
     }
@@ -122,7 +115,23 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
     private ListenableFuture<Map<Long, Long>> getInternal(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap = sanityCheckRequestAndGetQueryMap(startTimestamps, keyedTransactionServices);
+        Multimap<T, Long> queryMap1 = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap1.put(mappedValue, startTimestamp);
+            }
+        }
+
+        Set<T> unknownKeys = Sets.difference(queryMap1.keySet(), keyedTransactionServices.keySet());
+        if (!unknownKeys.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "A batch of timestamps produced some transaction service keys which are unknown.",
+                    SafeArg.of("timestamps", startTimestamps),
+                    SafeArg.of("unknownKeys", unknownKeys),
+                    SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
+        }
+        Multimap<T, Long> queryMap = queryMap1;
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
                 .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))
@@ -135,27 +144,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                                 .map(AtlasFutures::getDone)
                                 .collect(HashMap::new, Map::putAll, Map::putAll),
                         MoreExecutors.directExecutor());
-    }
-
-    private Multimap<T, Long> sanityCheckRequestAndGetQueryMap(
-            Iterable<Long> startTimestamps, Map<T, ? extends AsyncTransactionService> keyedServices) {
-        Multimap<T, Long> queryMap = HashMultimap.create();
-        for (Long startTimestamp : startTimestamps) {
-            T mappedValue = timestampToServiceKey.apply(startTimestamp);
-            if (mappedValue != null) {
-                queryMap.put(mappedValue, startTimestamp);
-            }
-        }
-
-        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!unknownKeys.isEmpty()) {
-            throw new SafeIllegalStateException(
-                    "A batch of timestamps produced some transaction service keys which are unknown.",
-                    SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("unknownKeys", unknownKeys),
-                    SafeArg.of("knownServiceKeys", keyedServices.keySet()));
-        }
-        return queryMap;
     }
 
     private <R> Optional<R> getServiceForTimestamp(Map<T, R> servicesMap, long startTimestamp) {

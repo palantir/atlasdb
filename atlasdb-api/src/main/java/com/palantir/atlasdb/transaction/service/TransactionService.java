@@ -61,7 +61,9 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      */
     void markInProgress(long startTimestamp);
 
-    void markInProgress(Iterable<Long> startTimestamps);
+    default void markInProgress(Iterable<Long> startTimestamps) {
+        startTimestamps.forEach(this::markInProgress);
+    }
 
     /**
      * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
@@ -89,7 +91,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
      * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
-    default void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    default void putUnlessExists(Map<Long, Long> startTimestampToCommitTimestamp) {
         startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
     }
 

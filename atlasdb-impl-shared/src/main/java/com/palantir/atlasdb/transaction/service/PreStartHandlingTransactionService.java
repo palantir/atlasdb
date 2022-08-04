@@ -71,11 +71,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
-    public void markInProgress(Iterable<Long> startTimestamps) {
-        delegate.markInProgress(startTimestamps);
-    }
-
-    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getInternal(startTimestamp, delegate);
     }

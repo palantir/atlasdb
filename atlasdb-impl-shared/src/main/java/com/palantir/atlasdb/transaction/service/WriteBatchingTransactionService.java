@@ -90,12 +90,6 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
-    public void markInProgress(Iterable<Long> startTimestamps) {
-        // Batching will live at a lower layer, most likely it will be done at the level of Atomic table.
-        delegate.markInProgress(startTimestamps);
-    }
-
-    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }
@@ -150,7 +144,7 @@ public final class WriteBatchingTransactionService implements TransactionService
             Map<Long, BatchElement<TimestampPair, Void>> batch =
                     extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
-                delegate.commitMultiple(KeyedStream.stream(batch)
+                delegate.putUnlessExists(KeyedStream.stream(batch)
                         .map(batchElement -> batchElement.argument().commitTimestamp())
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);
