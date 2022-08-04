@@ -115,15 +115,15 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
     private ListenableFuture<Map<Long, Long>> getInternal(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
-        Multimap<T, Long> queryMap1 = HashMultimap.create();
+        Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
             if (mappedValue != null) {
-                queryMap1.put(mappedValue, startTimestamp);
+                queryMap.put(mappedValue, startTimestamp);
             }
         }
 
-        Set<T> unknownKeys = Sets.difference(queryMap1.keySet(), keyedTransactionServices.keySet());
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedTransactionServices.keySet());
         if (!unknownKeys.isEmpty()) {
             throw new SafeIllegalStateException(
                     "A batch of timestamps produced some transaction service keys which are unknown.",
@@ -131,7 +131,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                     SafeArg.of("unknownKeys", unknownKeys),
                     SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
         }
-        Multimap<T, Long> queryMap = queryMap1;
 
         Collection<ListenableFuture<Map<Long, Long>>> futures = KeyedStream.stream(queryMap.asMap())
                 .map((key, value) -> keyedTransactionServices.get(key).getAsync(value))

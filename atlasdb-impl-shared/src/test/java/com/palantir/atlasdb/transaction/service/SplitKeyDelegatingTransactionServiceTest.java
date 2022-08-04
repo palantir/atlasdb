@@ -201,7 +201,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     }
 
     @Test
-    public void canMarkInProgressMultipleNotAtomic() {
+    public void markInProgressMultipleNotAtomic() {
         assertThatLoggableExceptionThrownBy(
                         () -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(ImmutableList.of(1L, 7L)))
                 .isInstanceOf(SafeIllegalStateException.class)
