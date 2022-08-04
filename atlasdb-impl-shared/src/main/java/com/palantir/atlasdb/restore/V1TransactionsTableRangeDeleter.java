@@ -48,8 +48,8 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
 
     @Override
     public void deleteRange(TimestampRange commitTimestampRange) {
-        byte[] startBytes =
-                TransactionConstants.getValueForTimestamp(startTimestamp.orElse(TransactionConstants.LOWEST_POSSIBLE_START_TS));
+        byte[] startBytes = TransactionConstants.getValueForTimestamp(
+                startTimestamp.orElse(TransactionConstants.LOWEST_POSSIBLE_START_TS));
         byte[] timestampBytes = TransactionConstants.getValueForTimestamp(commitTimestampRange.getLowerBound());
 
         if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {

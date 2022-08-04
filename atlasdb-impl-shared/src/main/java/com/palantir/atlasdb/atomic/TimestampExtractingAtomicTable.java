@@ -26,6 +26,11 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * A layer on top of {@code AtomicTable<Long, TransactionStatus>} that transforms a TransactionStatus to {@code Long}
+ * if the transaction is committed/aborted.
+ * This layer is only meant to be used for transactions on schema version < 4.
+ * */
 public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
     private final AtomicTable<Long, TransactionStatus> delegate;
 
@@ -40,6 +45,12 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
                 .collectToMap());
     }
 
+    /**
+     * Returns a map of commit timestamp against the list of start timestamps supplied as arg.
+     * For transactions that are successfully committed, returns the respective commit timestamps.
+     * For transactions that are aborted, returns -1.
+     * Start timestamps for transactions that are neither committed nor aborted are not included in the result.
+     * */
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
         return Futures.transform(

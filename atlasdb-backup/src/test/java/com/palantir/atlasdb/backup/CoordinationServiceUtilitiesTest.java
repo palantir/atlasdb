@@ -94,7 +94,8 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void immutablePresentThenStartAtImmutable() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas =
+                ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 100L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 
@@ -113,7 +114,8 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void coordServiceBoundLessThanFfStopsAtBound() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas =
+                ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP - 10L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 
@@ -132,7 +134,8 @@ public final class CoordinationServiceUtilitiesTest {
 
     @Test
     public void coordServiceBoundGreaterThanFfStopsAtFf() {
-        Map<Range<Long>, Integer> rangesWithSchemas = ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
+        Map<Range<Long>, Integer> rangesWithSchemas =
+                ImmutableMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
         final long coordServiceBound = FASTFORWARD_TIMESTAMP + 1000L;
         Optional<InternalSchemaMetadataState> coordService = createCoordService(rangesWithSchemas, coordServiceBound);
 

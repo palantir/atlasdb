@@ -80,7 +80,8 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void throwsIfTryingToGetAnImpossibleTimestamp() {
-        assertThatThrownBy(() -> manager.getTransactionsSchemaVersion(TransactionConstants.LOWEST_POSSIBLE_START_TS - 3141592))
+        assertThatThrownBy(() ->
+                        manager.getTransactionsSchemaVersion(TransactionConstants.LOWEST_POSSIBLE_START_TS - 3141592))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("was never given out by the timestamp service");
     }

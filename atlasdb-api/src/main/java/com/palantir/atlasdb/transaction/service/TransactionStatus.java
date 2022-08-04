@@ -21,12 +21,24 @@ import org.derive4j.Data;
 @Data
 public interface TransactionStatus {
     interface Cases<R> {
+        /**
+         * For transactions on schema version >= 4, an inProgress state has been introduced. The state will be set in
+         * the transactions table against the start timestamp. The state will be written before writing to the kvs.
+         *
+         * Previously, absence of any state for a transaction would indicate that it is in progress.
+         * */
         R inProgress();
 
         R committed(long commitTimestamp);
 
         R aborted();
 
+        /**
+         * From transaction schema version 4, we have added the ability to truncate the transactions table i.e. it
+         * would be possible that the transactions table is not the source of truth for state of a transaction.
+         *
+         * Note that this state is not expected for transaction schema versions < 4.
+         * */
         R unknown();
     }
 
