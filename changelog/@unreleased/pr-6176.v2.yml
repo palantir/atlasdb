@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Intern CassandraServer instances
+
+    Weakly intern instances as there should be a relatively small, generally fixed number of Cassandra servers.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6176
