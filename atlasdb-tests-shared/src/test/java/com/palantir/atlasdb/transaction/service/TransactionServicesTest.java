@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
@@ -154,9 +155,10 @@ public class TransactionServicesTest {
         return argument.getValue();
     }
 
-    private void assertExpectedArgument(Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy<Long> strategy) {
+    private void assertExpectedArgument(
+            Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy<TransactionStatus> strategy) {
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
-        byte[] value = strategy.encodeCommitTimestampAsValue(startTs, commitTs);
+        byte[] value = strategy.encodeCommitTimestampAsValue(startTs, TransactionStatusUtils.fromTimestamp(commitTs));
 
         assertThat(actualArgument.keySet()).containsExactly(cell);
         assertThat(actualArgument.get(cell)).containsExactly(value);

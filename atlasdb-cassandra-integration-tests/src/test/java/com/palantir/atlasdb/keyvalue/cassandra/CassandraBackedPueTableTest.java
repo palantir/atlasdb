@@ -32,6 +32,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.ArrayList;
@@ -51,7 +54,7 @@ public class CassandraBackedPueTableTest {
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
     private final ConsensusForgettingStore store =
             new PueKvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
-    private final AtomicTable<Long, Long> pueTable = new ResilientCommitTimestampAtomicTable(
+    private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
             store, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
     private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
     private final ListeningExecutorService readExecutors =
@@ -78,9 +81,10 @@ public class CassandraBackedPueTableTest {
         List<Long> timestamps = LongStream.range(0, 500).mapToObj(x -> x * 100).collect(Collectors.toList());
         Iterable<List<Long>> partitionedStartTimestamps = Lists.partition(timestamps, 20);
         for (List<Long> singlePartition : partitionedStartTimestamps) {
-            singlePartition.forEach(timestamp -> writeExecutor.execute(() -> pueTable.update(timestamp, timestamp)));
+            singlePartition.forEach(timestamp -> writeExecutor.execute(
+                    () -> pueTable.update(timestamp, TransactionStatusUtils.fromTimestamp(timestamp))));
 
-            List<ListenableFuture<Map<Long, Long>>> reads = new ArrayList<>();
+            List<ListenableFuture<Map<Long, TransactionStatus>>> reads = new ArrayList<>();
             for (int i = 0; i < singlePartition.size(); i++) {
                 reads.add(Futures.submitAsync(() -> pueTable.get(singlePartition), readExecutors));
             }
@@ -92,7 +96,10 @@ public class CassandraBackedPueTableTest {
         }
     }
 
-    private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(Map<Long, Long> result, long ts) {
-        Optional.ofNullable(result.get(ts)).ifPresent(commitTs -> assertThat(ts).isEqualTo(commitTs));
+    private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(
+            Map<Long, TransactionStatus> result, long ts) {
+        Optional.ofNullable(result.get(ts))
+                .flatMap(TransactionStatuses::getCommitTimestamp)
+                .ifPresent(commitTs -> assertThat(ts).isEqualTo(commitTs));
     }
 }

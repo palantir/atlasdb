@@ -30,6 +30,9 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
@@ -52,7 +55,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.immutables.value.Value;
 
-public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Long> {
+public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
     private static final RateLimitedLogger log =
             new RateLimitedLogger(SafeLoggerFactory.get(ResilientCommitTimestampAtomicTable.class), 1.0 / 3600);
     private static final int TOUCH_CACHE_SIZE = 1000;
@@ -66,12 +69,12 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
     private final Map<ByteBuffer, Object> rowLocks = new ConcurrentHashMap<>();
     private final AtomicLong fallbacks = new AtomicLong(0);
 
-    private final LoadingCache<CellInfo, Long> touchCache = Caffeine.newBuilder()
+    private final LoadingCache<CellInfo, TransactionStatus> touchCache = Caffeine.newBuilder()
             .maximumSize(TOUCH_CACHE_SIZE)
             .build(new CacheLoader<>() {
                 @Override
                 @Nonnull
-                public Long load(@Nonnull CellInfo cellInfo) {
+                public TransactionStatus load(@Nonnull CellInfo cellInfo) {
                     metrics.touchCacheLoad().time(() -> {
                         FollowUpAction followUpAction = FollowUpAction.PUT;
                         if (shouldTouch()) {
@@ -86,7 +89,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
                                     cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
                         }
                     });
-                    return cellInfo.commitTs();
+                    return TransactionStatusUtils.fromTimestamp(cellInfo.commitTs());
                 }
             });
 
@@ -123,7 +126,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
     }
 
     @Override
-    public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
+    public void updateMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
@@ -137,7 +140,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
     }
 
     @Override
-    public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
+    public ListenableFuture<Map<Long, TransactionStatus>> get(Iterable<Long> cells) {
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
                 .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
         ListenableFuture<Map<Cell, byte[]>> asyncReads = store.getMultiple(startTsToCell.values());
@@ -158,12 +161,15 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            AtomicValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
-            Long commitTs = currentValue.value();
-            AtomicValue<Long> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+            AtomicValue<TransactionStatus> currentValue =
+                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            TransactionStatus commitStatus = currentValue.value();
+            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    kvsValue.equals(AtomicValue.committed(commitTs)),
+                    kvsValue.isCommitted()
+                            && TransactionStatuses.getCommitTimestamp(kvsValue.value())
+                                    .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),
@@ -172,26 +178,37 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
         }
     }
 
-    private Map<Long, Long> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
-        ImmutableMap.Builder<Long, Long> resultBuilder = ImmutableMap.builder();
+    private Map<Long, TransactionStatus> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
+        ImmutableMap.Builder<Long, TransactionStatus> resultBuilder = ImmutableMap.builder();
         for (Map.Entry<Long, Cell> startTsAndCell : startTsToCell.entrySet()) {
             Cell cell = startTsAndCell.getValue();
             Optional<byte[]> maybeActual = Optional.ofNullable(reads.get(cell));
+            Long startTs = startTsAndCell.getKey();
+
             if (maybeActual.isEmpty()) {
+                // put in_progress if there is no value in the kvs
+                resultBuilder.put(
+                        startTs,
+                        encodingStrategy
+                                .decodeValueAsCommitTimestamp(startTs, null)
+                                .value());
                 continue;
             }
 
-            Long startTs = startTsAndCell.getKey();
             byte[] actual = maybeActual.get();
-            AtomicValue<Long> currentValue = encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            AtomicValue<TransactionStatus> currentValue =
+                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
 
-            Long commitTs = currentValue.value();
+            TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {
-                resultBuilder.put(startTs, commitTs);
+                // if there is a committed value, it will be committed or aborted
+                // put and move on
+                resultBuilder.put(startTs, commitStatus);
                 continue;
             }
             try {
                 Instant startTime = clock.instant();
+                long commitTs = TransactionStatusUtils.getCommitTimestampOrThrow(commitStatus);
                 resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
@@ -200,7 +217,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
                             "Committing a staging value for the transactions table took too long. "
                                     + "Treating staging values as committed for 60 seconds to ensure liveness.",
                             SafeArg.of("startTs", startTs),
-                            SafeArg.of("commitTs", commitTs),
+                            SafeArg.of("commitStatus", commitStatus),
                             SafeArg.of("timeTaken", timeTaken)));
                     fallbacks.incrementAndGet();
                 }
@@ -213,7 +230,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Lo
                         "Encountered exception attempting to commit a staging value for the transactions table. "
                                 + "Treating staging values as committed for 60 seconds to ensure liveness.",
                         SafeArg.of("startTs", startTs),
-                        SafeArg.of("commitTs", commitTs),
+                        SafeArg.of("commitStatus", commitStatus),
                         e));
                 fallbacks.incrementAndGet();
                 throw e;
