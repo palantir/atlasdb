@@ -28,8 +28,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
@@ -45,6 +48,7 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
@@ -154,6 +158,21 @@ public class MultiClientConjureTimelockResourceTest {
                 .containsExactlyInAnyOrderEntriesOf(getGetCommitTimestampsResponseMap(namespaces));
     }
 
+    @Test
+    public void canUnlockForMultipleClients() {
+        Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        Map<Namespace, ConjureUnlockRequestV2> requests = getUnlockRequests(namespaces);
+        Map<Namespace, ConjureUnlockResponseV2> responses =
+                Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests));
+        for (Map.Entry<Namespace, ConjureUnlockRequestV2> request : requests.entrySet()) {
+            assertThat(responses.get(request.getKey()).get())
+                    .isEqualTo(request.getValue().get());
+        }
+        assertThat(responses.values())
+                .hasSize(namespaces.size())
+                .allMatch(response -> response.get().size() == 1);
+    }
+
     private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {
         return KeyedStream.of(namespaces)
                 .mapKeys(Namespace::of)
@@ -181,6 +200,13 @@ public class MultiClientConjureTimelockResourceTest {
                 .collectToMap();
     }
 
+    private Map<Namespace, ConjureUnlockRequestV2> getUnlockRequests(Set<String> namespaces) {
+        return KeyedStream.of(namespaces)
+                .map(namespace -> ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(UUID.randomUUID()))))
+                .mapKeys(Namespace::of)
+                .collectToMap();
+    }
+
     private AsyncTimelockService getServiceForClient(String client) {
         return namespaces.computeIfAbsent(client, this::createAsyncTimeLockServiceForClient);
     }
@@ -199,6 +225,8 @@ public class MultiClientConjureTimelockResourceTest {
                         .build()));
         when(timelockService.getCommitTimestamps(anyInt(), any()))
                 .thenReturn(Futures.immediateFuture(getCommitTimestampResponse(client)));
+        when(timelockService.unlock(any()))
+                .thenAnswer(invocation -> Futures.immediateFuture(invocation.<Set<LockToken>>getArgument(0)));
         return timelockService;
     }
 

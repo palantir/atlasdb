@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.batch;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -28,8 +29,11 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
@@ -39,9 +43,11 @@ import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -109,6 +115,44 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         requests.entrySet(), e -> getCommitTimestampsForSingleNamespace(e.getKey(), e.getValue()))),
                 ImmutableMap::copyOf,
                 MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<Map<Namespace, ConjureUnlockResponseV2>> unlock(
+            AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
+        return handleExceptions(() -> Futures.transform(
+                Futures.allAsList(Collections2.transform(
+                        requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue()))),
+                ImmutableMap::copyOf,
+                MoreExecutors.directExecutor()));
+    }
+
+    private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
+            Namespace namespace, ConjureUnlockRequestV2 request) {
+        ListenableFuture<ConjureUnlockResponseV2> unlockResponseFuture = Futures.transform(
+                getServiceForNamespace(namespace).unlock(toServerLockTokens(request.get())),
+                response -> ConjureUnlockResponseV2.of(fromServerLockTokens(response)),
+                MoreExecutors.directExecutor());
+        return Futures.transform(
+                unlockResponseFuture,
+                response -> Maps.immutableEntry(namespace, response),
+                MoreExecutors.directExecutor());
+    }
+
+    private static Set<LockToken> toServerLockTokens(Set<ConjureLockTokenV2> conjureLockTokenV2s) {
+        ImmutableSet.Builder<LockToken> result = ImmutableSet.builder();
+        for (ConjureLockTokenV2 originalLockToken : conjureLockTokenV2s) {
+            result.add(LockToken.of(originalLockToken.get()));
+        }
+        return result.build();
+    }
+
+    private static Set<ConjureLockTokenV2> fromServerLockTokens(Set<LockToken> lockTokens) {
+        ImmutableSet.Builder<ConjureLockTokenV2> result = ImmutableSet.builder();
+        for (LockToken serverToken : lockTokens) {
+            result.add(ConjureLockTokenV2.of(serverToken.getRequestId()));
+        }
+        return result.build();
     }
 
     private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(
@@ -191,6 +235,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, GetCommitTimestampsResponse> getCommitTimestampsForClients(
                 AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests) {
             return unwrap(resource.getCommitTimestampsForClients(authHeader, requests));
+        }
+
+        @Override
+        public Map<Namespace, ConjureUnlockResponseV2> unlock(
+                AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
+            return unwrap(resource.unlock(authHeader, requests));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
