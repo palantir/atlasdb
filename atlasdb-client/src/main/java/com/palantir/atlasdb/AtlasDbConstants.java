@@ -136,7 +136,7 @@ public final class AtlasDbConstants {
      *
      * Where applicable, tables in this set should ideally not be read frequently. Implementers are encouraged to
      * provide alternative solutions in cases where the tables are read frequently and/or read performance is
-     * critical. See ResilientCommitTimestampPutUnlessExistsTable for an example of how to work around such
+     * critical. See ResilientCommitTimestampAtomicTable for an example of how to work around such
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
     public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
@@ -199,4 +199,6 @@ public final class AtlasDbConstants {
     public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
+
+    public static final long ABORTED_TIMESTAMPS_BUCKET_SIZE = 1_000_000;
 }

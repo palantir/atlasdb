@@ -25,12 +25,12 @@ dependencies {
     testImplementation project(":atlasdb-ete-test-utils")
     testImplementation project(":timelock-impl")
 
-    testImplementation('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
+    testImplementation('com.palantir.cassandra:cassandra-all') {
         exclude module: 'junit'
 
       exclude group: 'org.apache.httpcomponents'
   }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  testImplementation ('com.palantir.cassandra:cassandra-thrift') {
     exclude module: 'junit'
 
     exclude group: 'org.apache.httpcomponents'
@@ -38,12 +38,12 @@ dependencies {
 
     testImplementation project(':flake-rule')
 
-    testImplementation('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+    testImplementation('com.datastax.cassandra:cassandra-driver-core') {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
     }
 
-    testImplementation group: 'org.mockito', name: 'mockito-core'
-    testImplementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
 }
 
 task memorySensitiveTest(type: Test) {

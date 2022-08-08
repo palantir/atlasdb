@@ -46,6 +46,12 @@ public class PostgresConfigLoadingTest {
     }
 
     @Test
+    public void testInitFailTimeout() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        assertThat(connectionConfig.initializeFailTimeoutMillis()).hasValue(10L);
+    }
+
+    @Test
     public void testHikariConnectionTimeout() throws IOException {
         // Hikari uses "connectionTimeout" for how long the client will wait for a connection from the pool.
         // In our parlance, this is checkoutTimeout

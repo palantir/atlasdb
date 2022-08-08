@@ -29,9 +29,9 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -62,17 +62,16 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
+            assertThat(commitValue).isEqualTo(AtomicValue.committed(200L));
         });
     }
 
     @Test
     public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry entry =
-                interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
+        TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, AtomicValue.staging(200L)));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
+            assertThat(commitValue).isEqualTo(AtomicValue.staging(200L));
         });
     }
 
@@ -86,7 +85,7 @@ public class Transactions3TableInteractionTest {
     @Test
     public void extractStagingAbortedTimestampTest() {
         TransactionTableEntry entry = interaction.extractTimestamps(
-                createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
+                createRow(150L, AtomicValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
         TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
@@ -140,10 +139,10 @@ public class Transactions3TableInteractionTest {
     }
 
     private static Row createRow(long start, long commit) {
-        return createRow(start, PutUnlessExistsValue.committed(commit));
+        return createRow(start, AtomicValue.committed(commit));
     }
 
-    private static Row createRow(long start, PutUnlessExistsValue<Long> commit) {
+    private static Row createRow(long start, AtomicValue<Long> commit) {
         Row row = mock(Row.class);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(start);
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));

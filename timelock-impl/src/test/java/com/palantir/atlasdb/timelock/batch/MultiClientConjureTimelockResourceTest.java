@@ -161,11 +161,13 @@ public class MultiClientConjureTimelockResourceTest {
     @Test
     public void canUnlockForMultipleClients() {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
+        Map<Namespace, ConjureUnlockRequestV2> requests = getUnlockRequests(namespaces);
         Map<Namespace, ConjureUnlockResponseV2> responses =
-                Futures.getUnchecked(resource.unlock(AUTH_HEADER, getUnlockRequests(namespaces)));
-        assertThat(responses.values())
-                .hasSize(namespaces.size())
-                .allMatch(response -> response.get().size() == 1);
+                Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests));
+        for (Map.Entry<Namespace, ConjureUnlockRequestV2> request : requests.entrySet()) {
+            assertThat(responses.get(request.getKey()).get())
+                    .isEqualTo(request.getValue().get());
+        }
     }
 
     private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {
@@ -221,7 +223,7 @@ public class MultiClientConjureTimelockResourceTest {
         when(timelockService.getCommitTimestamps(anyInt(), any()))
                 .thenReturn(Futures.immediateFuture(getCommitTimestampResponse(client)));
         when(timelockService.unlock(any()))
-                .thenReturn(Futures.immediateFuture(ImmutableSet.of(LockToken.of(UUID.randomUUID()))));
+                .thenAnswer(invocation -> Futures.immediateFuture(invocation.<Set<LockToken>>getArgument(0)));
         return timelockService;
     }
 

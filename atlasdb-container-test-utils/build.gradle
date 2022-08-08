@@ -7,13 +7,13 @@ dependencies {
     implementation project(':atlasdb-tests-shared')
     implementation project(":flake-rule")
 
-    implementation group: 'com.google.guava', name: 'guava'
-    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
-    implementation group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4'
-    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-core'
-    implementation group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule-junit4'
-    implementation group: 'org.awaitility', name: 'awaitility'
-    implementation group: 'io.netty', name: 'netty-handler-proxy'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    implementation 'com.palantir.docker.proxy:docker-proxy-rule-core'
+    implementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
+    implementation 'org.awaitility:awaitility'
+    implementation 'io.netty:netty-handler-proxy'
 
     implementation 'com.datastax.cassandra:cassandra-driver-core'
     implementation 'com.palantir.refreshable:refreshable'
@@ -27,10 +27,10 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation 'com.github.stefanbirkner:system-rules'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 }

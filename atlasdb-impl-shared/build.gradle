@@ -5,6 +5,7 @@ apply plugin: 'com.palantir.metric-schema'
 libsDirName = file('build/artifacts')
 
 license {
+  exclude '**/AbortedTransctionsCacheMetrics.java'
   exclude '**/ConsensusForgettingStoreMetrics.java'
   exclude '**/KnownConcludedTransactionsMetrics.java'
   exclude '**/PutUnlessExistsTableMetrics.java'
@@ -22,12 +23,12 @@ dependencies {
   implementation project(":lock-impl")
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
-  implementation group: 'com.palantir.common', name: 'streams'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server'
-  implementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-  implementation group: 'com.palantir.safe-logging', name: 'preconditions'
-  implementation group: "com.google.protobuf", name: "protobuf-java"
+  implementation 'com.palantir.common:streams'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.google.protobuf:protobuf-java'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -88,7 +89,7 @@ dependencies {
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
   compileOnly 'com.google.auto.service:auto-service'
@@ -99,23 +100,23 @@ dependencies {
   implementation 'io.vavr:vavr'
 
 
-  testAnnotationProcessor group: 'org.immutables', name: 'value'
+  testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testImplementation group: 'com.palantir.conjure.java.runtime', name: 'client-config'
-  testImplementation group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  testImplementation group: 'com.palantir.conjure.java.runtime', name: 'keystores'
-  testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-  testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation 'com.palantir.conjure.java.runtime:client-config'
+  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+  testImplementation 'com.palantir.conjure.java.runtime:keystores'
+  testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+  testImplementation 'io.dropwizard:dropwizard-testing'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
 
-  testRuntimeOnly group: 'ch.qos.logback', name: 'logback-classic'
+  testRuntimeOnly 'ch.qos.logback:logback-classic'
 }
 
 configurations.testImplementation {

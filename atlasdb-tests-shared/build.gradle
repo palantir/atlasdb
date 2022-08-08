@@ -7,13 +7,13 @@ dependencies {
 
   testImplementation project(":commons-api")
 
-  implementation group: 'com.palantir.tracing', name: 'tracing'
-  implementation group: 'com.palantir.tritium', name: 'tritium-lib'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'com.palantir.tritium:tritium-lib'
 
-  implementation group: 'junit', name: 'junit'
-  implementation group: 'org.assertj', name: 'assertj-core'
-  implementation group: 'org.mockito', name: 'mockito-core'
-  implementation group: "org.awaitility", name: "awaitility"
+  implementation 'junit:junit'
+  implementation 'org.assertj:assertj-core'
+  implementation 'org.mockito:mockito-core'
+  implementation 'org.awaitility:awaitility'
 
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.google.guava:guava'
@@ -70,7 +70,7 @@ dependencies {
   testCompileOnly 'org.immutables:value::annotations'
 
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
 }

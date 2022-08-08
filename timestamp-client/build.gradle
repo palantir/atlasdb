@@ -6,8 +6,8 @@ dependencies {
   implementation project(":atlasdb-commons")
   implementation project(":atlasdb-autobatch")
 
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
@@ -16,14 +16,14 @@ dependencies {
   testImplementation 'com.google.errorprone:error_prone_annotations'
   testImplementation 'com.google.guava:guava'
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 
-  testAnnotationProcessor group: 'org.immutables', name: 'value'
+  testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
 
-  testImplementation group: 'com.palantir.tracing', name: 'tracing'
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'com.palantir.tracing:tracing'
+  testImplementation 'junit:junit'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
 }

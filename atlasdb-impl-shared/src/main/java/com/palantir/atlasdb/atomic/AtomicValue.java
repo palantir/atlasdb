@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,32 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface PutUnlessExistsValue<V> {
+public interface AtomicValue<V> {
     V value();
 
-    PutUnlessExistsState state();
+    AtomicState state();
 
     @Value.Derived
     default boolean isCommitted() {
-        return state() == PutUnlessExistsState.COMMITTED;
+        return state() == AtomicState.COMMITTED;
     }
 
-    static <T> PutUnlessExistsValue<T> committed(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+    static <T> AtomicValue<T> committed(T withValue) {
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
-                .state(PutUnlessExistsState.COMMITTED)
+                .state(AtomicState.COMMITTED)
                 .build();
     }
 
-    static <T> PutUnlessExistsValue<T> staging(T withValue) {
-        return ImmutablePutUnlessExistsValue.<T>builder()
+    static <T> AtomicValue<T> staging(T withValue) {
+        return ImmutableAtomicValue.<T>builder()
                 .value(withValue)
-                .state(PutUnlessExistsState.STAGING)
+                .state(AtomicState.STAGING)
                 .build();
     }
 }

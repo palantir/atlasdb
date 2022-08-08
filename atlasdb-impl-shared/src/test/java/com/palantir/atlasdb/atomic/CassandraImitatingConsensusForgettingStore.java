@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.pue;
+package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
@@ -81,7 +81,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
      * changed between the read and the write.
      */
     @Override
-    public void putUnlessExists(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
@@ -93,10 +93,10 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     }
 
     @Override
-    public void putUnlessExists(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::putUnlessExists);
+                .forEach(this::atomicUpdate);
     }
 
     /**

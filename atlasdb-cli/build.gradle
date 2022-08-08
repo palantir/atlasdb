@@ -44,10 +44,10 @@ dependencies {
     testImplementation project(':timelock-impl')
     testImplementation project(':timestamp-api')
 
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 }

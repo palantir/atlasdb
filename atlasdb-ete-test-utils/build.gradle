@@ -8,8 +8,8 @@ dependencies {
     api project(':atlasdb-api')
     implementation project(':atlasdb-client')
 
-    implementation group: 'junit', name: 'junit'
-    implementation group: 'commons-io', name: 'commons-io'
+    implementation 'junit:junit'
+    implementation 'commons-io:commons-io'
     implementation 'jakarta.annotation:jakarta.annotation-api'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'

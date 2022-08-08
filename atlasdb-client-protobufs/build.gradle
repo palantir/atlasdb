@@ -1,18 +1,2 @@
 apply from: "../gradle/shared.gradle"
-
-apply plugin: 'com.google.protobuf'
-
-// The protoc version atlasdb uses does not yet support Apple M1 aarch64
-// (see https://github.com/protocolbuffers/protobuf/issues/8062), so use x86_64.
-def protocArch = 'osx-aarch_64'.equals(osdetector.classifier) ? 'osx-x86_64' : osdetector.classifier
-protobuf {
-  protoc {
-    artifact = "com.google.protobuf:protoc:${libVersions.protoc}:${protocArch}"
-  }
-}
-
-dependencies {
-  api group: "com.google.protobuf", name: "protobuf-java"
-}
-
-project.tasks.idea.dependsOn('generateProto')
+apply from: "../gradle/protobuf.gradle"

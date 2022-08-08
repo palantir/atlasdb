@@ -5,8 +5,6 @@ apply plugin: 'checkstyle'
 apply plugin: 'com.github.hierynomus.license'
 apply plugin: 'com.palantir.external-publish-jar'
 
-apply from: "${rootDir}/gradle/versions.gradle"
-
 
 version = rootProject.version
 group = rootProject.group
@@ -28,13 +26,13 @@ task testJarForPublishing(type: Jar) {
 libsDirName = file('build/artifacts')
 
 dependencies {
-    implementation group: 'com.google.code.findbugs', name: 'jsr305'
-    implementation group: 'com.google.code.findbugs', name: 'findbugs-annotations'
+    implementation 'com.google.code.findbugs:jsr305'
+    implementation 'com.google.code.findbugs:findbugs-annotations'
 
     implementation 'com.palantir.safe-logging:logger'
 
-    testImplementation group: 'junit', name: 'junit'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc

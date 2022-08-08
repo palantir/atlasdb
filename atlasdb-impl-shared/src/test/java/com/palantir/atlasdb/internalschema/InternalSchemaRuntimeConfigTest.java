@@ -24,11 +24,11 @@ import org.junit.Test;
 
 // In these tests we confirm if config is buildable, so we're interested in exceptions (or lack thereof).
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class InternalSchemaConfigTest {
+public class InternalSchemaRuntimeConfigTest {
     @Test
     public void canCreateConfigWithRecognisedSchemaVersions() {
         for (int version : TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS) {
-            assertThatCode(() -> ImmutableInternalSchemaConfig.builder()
+            assertThatCode(() -> ImmutableInternalSchemaRuntimeConfig.builder()
                             .targetTransactionsSchemaVersion(version)
                             .build())
                     .doesNotThrowAnyException();
@@ -37,7 +37,7 @@ public class InternalSchemaConfigTest {
 
     @Test
     public void throwsIfCreatingConfigWithUnrecognizedSchemaVersions() {
-        assertThatThrownBy(() -> ImmutableInternalSchemaConfig.builder()
+        assertThatThrownBy(() -> ImmutableInternalSchemaRuntimeConfig.builder()
                         .targetTransactionsSchemaVersion(Integer.MIN_VALUE)
                         .build())
                 .isInstanceOf(IllegalStateException.class)

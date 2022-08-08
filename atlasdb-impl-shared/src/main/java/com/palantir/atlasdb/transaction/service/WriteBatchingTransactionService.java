@@ -138,7 +138,7 @@ public final class WriteBatchingTransactionService implements TransactionService
             Map<Long, BatchElement<TimestampPair, Void>> batch =
                     extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
-                delegate.putUnlessExistsMultiple(KeyedStream.stream(batch)
+                delegate.commitMultiple(KeyedStream.stream(batch)
                         .map(batchElement -> batchElement.argument().commitTimestamp())
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);
