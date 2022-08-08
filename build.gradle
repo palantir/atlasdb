@@ -9,7 +9,7 @@ buildscript {
     dependencies {
         classpath 'com.netflix.nebula:gradle-info-plugin:11.3.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:18.4.0'
-        classpath 'com.palantir.baseline:gradle-baseline-java:4.152.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:4.153.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:5.30.0'
         classpath 'com.palantir.gradle.consistentversions:gradle-consistent-versions:2.11.0'
         classpath 'com.palantir.gradle.docker:gradle-docker:0.32.0'
