@@ -364,6 +364,10 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                         results.put(cell, oldValue);
                     }
                 } else {
+                    // Note: the bytes read for overflow values are tracked when fetching the actual value, this
+                    // just pulls a pointer out of the DB (two longs)
+                    TraceStatistics.incBytesRead(2 * 8);
+
                     OverflowValue ov = ImmutableOverflowValue.of(row.getLong(TIMESTAMP), overflowId);
                     OverflowValue oldOv = overflowResults.put(cell, ov);
                     if (oldOv != null && oldOv.ts() > ov.ts()) {
@@ -1099,6 +1103,10 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             Cell cell = entry.getKey();
             OverflowValue ov = entry.getValue();
             byte[] val = resolvedOverflowValues.get(ov.id());
+
+            // Track the loading of the overflow values (used e.g. by Oracle for large values)
+            TraceStatistics.incBytesRead(val.length);
+
             com.google.common.base.Preconditions.checkNotNull(
                     val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
             values.put(cell, Value.create(val, ov.ts()));
