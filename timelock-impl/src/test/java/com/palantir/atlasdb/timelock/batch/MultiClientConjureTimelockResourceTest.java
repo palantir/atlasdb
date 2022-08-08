@@ -168,9 +168,6 @@ public class MultiClientConjureTimelockResourceTest {
             assertThat(responses.get(request.getKey()).get())
                     .isEqualTo(request.getValue().get());
         }
-        assertThat(responses.values())
-                .hasSize(namespaces.size())
-                .allMatch(response -> response.get().size() == 1);
     }
 
     private Map<Namespace, GetCommitTimestampsResponse> getGetCommitTimestampsResponseMap(Set<String> namespaces) {
