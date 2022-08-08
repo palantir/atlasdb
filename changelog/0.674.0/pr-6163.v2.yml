@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] | Introduces `KnownAbortedTransactions` component. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/6163

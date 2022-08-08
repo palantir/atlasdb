@@ -198,4 +198,6 @@ public final class AtlasDbConstants {
     public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
+
+    public static final long ABORTED_TIMESTAMPS_BUCKET_SIZE = 1_000_000;
 }
