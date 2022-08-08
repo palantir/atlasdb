@@ -99,7 +99,7 @@ public class CassandraBackedPueTableTest {
     private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(
             Map<Long, TransactionStatus> result, long ts) {
         Optional.ofNullable(result.get(ts))
-                .ifPresent(commitStatus -> assertThat(TransactionStatuses.getCommitTimestamp(commitStatus))
-                        .hasValue(ts));
+                .flatMap(TransactionStatuses::getCommitTimestamp)
+                .ifPresent(commitTs -> assertThat(ts).isEqualTo(commitTs));
     }
 }
