@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.SpanType;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -297,6 +298,26 @@ public class TracingKeyValueServiceTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(expectedResult);
         checkSpan("atlasdb-kvs.getRows", ImmutableMap.of("table", "{table}", "rows", "1", "ts", "2"));
         verify(delegate).getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
+        verifyNoMoreInteractions(delegate);
+    }
+
+    @Test
+    @SuppressWarnings("MustBeClosed")
+    public void getRange() throws Exception {
+        ClosableIterator<RowResult<Value>> expectedResult = mock(ClosableIterator.class);
+        RangeRequest rangeRequest = RangeRequest.all();
+        when(delegate.getRange(TABLE_REF, rangeRequest, TIMESTAMP)).thenReturn(expectedResult);
+
+        ClosableIterator<RowResult<Value>> result = kvs.getRange(TABLE_REF, rangeRequest, TIMESTAMP);
+
+        // Trace-logging should be async
+        assertThat(observer.spans()).isEmpty();
+
+        // Close to trigger span logging
+        result.close();
+
+        checkSpan("atlasdb-kvs.getRange", ImmutableMap.of("table", "{table}"));
+        verify(delegate).getRange(TABLE_REF, rangeRequest, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
 
