@@ -44,8 +44,6 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
-import org.immutables.value.Value;
-
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
@@ -57,6 +55,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import org.immutables.value.Value;
 
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class TargetedSweepMetrics {
