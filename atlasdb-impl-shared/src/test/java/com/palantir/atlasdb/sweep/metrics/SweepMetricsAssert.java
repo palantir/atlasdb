@@ -25,12 +25,13 @@ import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
-import java.util.Map;
-import javax.annotation.CheckReturnValue;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.data.Offset;
 import org.assertj.core.internal.Doubles;
 import org.assertj.core.internal.LongArrays;
+
+import javax.annotation.CheckReturnValue;
+import java.util.Map;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
@@ -264,6 +265,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 .safeTags(tag)
                 .putSafeTags("libraryName", "atlasdb")
                 .putSafeTags("libraryVersion", "unknown")
+                .putSafeTags("javaVersion", "11.0.5")
                 .build();
 
         return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
