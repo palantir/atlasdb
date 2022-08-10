@@ -215,9 +215,6 @@ public class TargetedSweepMetrics {
                     .map(operationName -> MetricName.builder()
                             .safeName("targetedSweepProgress." + operationName)
                             .putSafeTags("strategy", strategy)
-                            .putSafeTags("javaVersion", "11.0.15")
-                            .putSafeTags("libraryName", "atlasdb")
-                            .putSafeTags("libraryVersion", "unknown")
                             .build())
                     .forEach(metricName -> manager.addMetricFilter(metricName, filter));
 
@@ -226,9 +223,6 @@ public class TargetedSweepMetrics {
                     .forEach(shard -> manager.addMetricFilter(
                             getProgressMetricNameBuilder(strategy)
                                     .putSafeTags("shard", shard)
-                                    .putSafeTags("javaVersion", "11.0.15")
-                                    .putSafeTags("libraryName", "atlasdb")
-                                    .putSafeTags("libraryVersion", "unknown")
                                     .build(),
                             filter));
 
