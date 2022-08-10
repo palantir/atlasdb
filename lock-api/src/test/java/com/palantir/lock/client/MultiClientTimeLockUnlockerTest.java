@@ -84,7 +84,7 @@ public class MultiClientTimeLockUnlockerTest {
                 BatchElement.of(
                         ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2)), secondResultFuture),
                 BatchElement.of(
-                        ImmutableUnlockRequest.of(NAMESPACE_2, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_3)),
+                        ImmutableUnlockRequest.of(NAMESPACE_2, ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)),
                         thirdResultFuture)));
 
         assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(CONJURE_TOKEN_1);
