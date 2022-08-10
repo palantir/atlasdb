@@ -605,7 +605,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * value could be stored.
      *
      * @param tableRef the name of the table to retrieve timestamps from.
-     * @param cells set containg cells to retrieve timestamps for.
+     * @param cells set containing cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell
      */
