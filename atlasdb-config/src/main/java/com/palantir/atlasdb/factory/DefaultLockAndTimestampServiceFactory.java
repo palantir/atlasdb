@@ -61,6 +61,7 @@ import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.LockTokenUnlocker;
+import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
@@ -95,6 +96,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.ws.rs.ClientErrorException;
 
@@ -370,6 +372,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .build();
     }
 
+    // Note: There is some duplication in the following two methods, but extracting a common method requires a fairly
+    // large amount of nontrivial state. Consider extracting a common method if this needs to be implemented again.
     private static LockTokenUnlocker getTimeLockUnlocker(
             String timelockNamespace,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
@@ -378,9 +382,10 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         if (timelockRequestBatcherProviders.isEmpty()) {
             return new LegacyLockTokenUnlocker(namespacedConjureTimelockService);
         }
-        return new NamespacedLockTokenUnlocker(
-                timelockNamespace,
-                timelockRequestBatcherProviders.get().unlock().getBatcher(multiClientTimelockServiceSupplier));
+        ReferenceTrackingWrapper<MultiClientTimeLockUnlocker> batcher =
+                timelockRequestBatcherProviders.get().unlock().getBatcher(multiClientTimelockServiceSupplier);
+        batcher.recordReference();
+        return new NamespacedLockTokenUnlocker(timelockNamespace, batcher);
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(
