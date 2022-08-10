@@ -24,7 +24,6 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
@@ -48,19 +47,27 @@ public class LockLeaseService implements AutoCloseable {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
+    private final LockTokenUnlocker unlocker;
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
-    LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId, LeaderTimeGetter leaderTimeGetter) {
+    LockLeaseService(
+            NamespacedConjureTimelockService delegate,
+            UUID clientId,
+            LeaderTimeGetter leaderTimeGetter,
+            LockTokenUnlocker unlocker) {
         this.delegate = delegate;
         this.clientId = clientId;
         this.leaderTimeGetter = leaderTimeGetter;
         this.lockService = BlockEnforcingLockService.create(delegate);
+        this.unlocker = unlocker;
     }
 
     public static LockLeaseService create(
-            NamespacedConjureTimelockService conjureTimelock, LeaderTimeGetter leaderTimeGetter) {
-        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
+            NamespacedConjureTimelockService conjureTimelock,
+            LeaderTimeGetter leaderTimeGetter,
+            LockTokenUnlocker unlocker) {
+        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter, unlocker);
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
@@ -153,8 +160,7 @@ public class LockLeaseService implements AutoCloseable {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        Set<ConjureLockTokenV2> unlocked = delegate.unlockV2(ConjureUnlockRequestV2.of(serverTokens(leasedLockTokens)))
-                .get();
+        Set<ConjureLockTokenV2> unlocked = unlocker.unlock(serverTokens(leasedLockTokens));
         return leasedLockTokens.stream()
                 .filter(leasedLockToken ->
                         unlocked.contains(LockLeaseService.convertV1Token(leasedLockToken.serverToken())))

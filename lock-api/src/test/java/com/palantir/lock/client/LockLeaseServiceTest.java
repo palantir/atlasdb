@@ -93,7 +93,7 @@ public class LockLeaseServiceTest {
             ConjureUnlockRequestV2 request = inv.getArgument(0);
             return ConjureUnlockResponseV2.of(request.get());
         });
-        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, new LegacyLeaderTimeGetter(timelock));
+        lockLeaseService = new LockLeaseService(timelock, SERVICE_ID, new LegacyLeaderTimeGetter(timelock), unlocker);
     }
 
     @Test

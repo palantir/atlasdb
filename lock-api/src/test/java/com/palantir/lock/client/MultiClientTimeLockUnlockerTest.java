@@ -32,7 +32,6 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker.UnlockConsumer;
-import com.palantir.lock.v2.LockToken;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
@@ -41,15 +40,10 @@ import org.junit.Test;
 public class MultiClientTimeLockUnlockerTest {
     private static final Namespace NAMESPACE_1 = Namespace.of("namespace");
     private static final Namespace NAMESPACE_2 = Namespace.of("Namensbereich");
-    private static final Namespace NAMESPACE_3 = Namespace.of("名称空间");
 
-    private static final LockToken TOKEN_1 = LockToken.of(UUID.randomUUID());
-    private static final LockToken TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final LockToken TOKEN_3 = LockToken.of(UUID.randomUUID());
-
-    private static final ConjureLockTokenV2 CONJURE_TOKEN_1 = ConjureLockTokenV2.of(TOKEN_1.getRequestId());
-    private static final ConjureLockTokenV2 CONJURE_TOKEN_2 = ConjureLockTokenV2.of(TOKEN_2.getRequestId());
-    private static final ConjureLockTokenV2 CONJURE_TOKEN_3 = ConjureLockTokenV2.of(TOKEN_3.getRequestId());
+    private static final ConjureLockTokenV2 CONJURE_TOKEN_1 = ConjureLockTokenV2.of(UUID.randomUUID());
+    private static final ConjureLockTokenV2 CONJURE_TOKEN_2 = ConjureLockTokenV2.of(UUID.randomUUID());
+    private static final ConjureLockTokenV2 CONJURE_TOKEN_3 = ConjureLockTokenV2.of(UUID.randomUUID());
 
     private final InternalMultiClientConjureTimelockService conjureTimelockService =
             mock(InternalMultiClientConjureTimelockService.class);
@@ -62,15 +56,17 @@ public class MultiClientTimeLockUnlockerTest {
                         ImmutableMap.of(NAMESPACE_1, ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1)))))
                 .thenReturn(ImmutableMap.of(NAMESPACE_1, ConjureUnlockResponseV2.of(ImmutableSet.of(CONJURE_TOKEN_1))))
                 .thenReturn(ImmutableMap.of(NAMESPACE_1, ConjureUnlockResponseV2.of(ImmutableSet.of())));
-        assertThat(unlocker.unlock(NAMESPACE_1, ImmutableSet.of(TOKEN_1))).containsExactly(TOKEN_1);
-        assertThat(unlocker.unlock(NAMESPACE_1, ImmutableSet.of(TOKEN_1))).isEmpty();
+        assertThat(unlocker.unlock(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1)))
+                .containsExactly(CONJURE_TOKEN_1);
+        assertThat(unlocker.unlock(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1)))
+                .isEmpty();
     }
 
     @Test
     public void delegatesMultipleTokensCorrectly() {
-        DisruptorFuture<Set<LockToken>> firstResultFuture = new DisruptorFuture<>("test");
-        DisruptorFuture<Set<LockToken>> secondResultFuture = new DisruptorFuture<>("test2");
-        DisruptorFuture<Set<LockToken>> thirdResultFuture = new DisruptorFuture<>("test3");
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>("test");
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>("test2");
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>("test3");
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
@@ -83,21 +79,24 @@ public class MultiClientTimeLockUnlockerTest {
                         ConjureUnlockResponseV2.of(ImmutableSet.of(CONJURE_TOKEN_3))));
         UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
         unlockConsumer.accept(ImmutableList.of(
-                BatchElement.of(ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1)), firstResultFuture),
-                BatchElement.of(ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2)), secondResultFuture),
                 BatchElement.of(
-                        ImmutableUnlockRequest.of(NAMESPACE_2, ImmutableSet.of(TOKEN_2, TOKEN_3)), thirdResultFuture)));
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1)), firstResultFuture),
+                BatchElement.of(
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2)), secondResultFuture),
+                BatchElement.of(
+                        ImmutableUnlockRequest.of(NAMESPACE_2, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_3)),
+                        thirdResultFuture)));
 
-        assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(TOKEN_1);
-        assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(TOKEN_2);
-        assertThat(Futures.getUnchecked(thirdResultFuture)).containsExactly(TOKEN_3);
+        assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(CONJURE_TOKEN_1);
+        assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(CONJURE_TOKEN_2);
+        assertThat(Futures.getUnchecked(thirdResultFuture)).containsExactly(CONJURE_TOKEN_3);
     }
 
     @Test
     public void individualTokenIsOnlySuccessfullyUnlockedOnce() {
-        DisruptorFuture<Set<LockToken>> firstResultFuture = new DisruptorFuture<>("test");
-        DisruptorFuture<Set<LockToken>> secondResultFuture = new DisruptorFuture<>("test2");
-        DisruptorFuture<Set<LockToken>> thirdResultFuture = new DisruptorFuture<>("test3");
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>("test");
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>("test2");
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>("test3");
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
@@ -108,14 +107,17 @@ public class MultiClientTimeLockUnlockerTest {
         UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
         unlockConsumer.accept(ImmutableList.of(
                 BatchElement.of(
-                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_2)), firstResultFuture),
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
+                        firstResultFuture),
                 BatchElement.of(
-                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2, TOKEN_3)), secondResultFuture),
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)),
+                        secondResultFuture),
                 BatchElement.of(
-                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_3)), thirdResultFuture)));
+                        ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_3)),
+                        thirdResultFuture)));
 
-        assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(TOKEN_1, TOKEN_2);
-        assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(TOKEN_3);
+        assertThat(Futures.getUnchecked(firstResultFuture)).containsExactly(CONJURE_TOKEN_1, CONJURE_TOKEN_2);
+        assertThat(Futures.getUnchecked(secondResultFuture)).containsExactly(CONJURE_TOKEN_3);
         assertThat(Futures.getUnchecked(thirdResultFuture)).isEmpty();
     }
 
@@ -129,10 +131,12 @@ public class MultiClientTimeLockUnlockerTest {
         UnlockConsumer unlockConsumer = new UnlockConsumer(conjureTimelockService);
         assertThatThrownBy(() -> unlockConsumer.accept(ImmutableList.of(
                         BatchElement.of(
-                                ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_1, TOKEN_2)),
+                                ImmutableUnlockRequest.of(
+                                        NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
                                 new DisruptorFuture<>("test")),
                         BatchElement.of(
-                                ImmutableUnlockRequest.of(NAMESPACE_1, ImmutableSet.of(TOKEN_2, TOKEN_3)),
+                                ImmutableUnlockRequest.of(
+                                        NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)),
                                 new DisruptorFuture<>("test2")))))
                 .isEqualTo(runtimeException);
         // Ensuring the futures have failed is the responsibility of IndependentBatchingEventHandler, not the function.
