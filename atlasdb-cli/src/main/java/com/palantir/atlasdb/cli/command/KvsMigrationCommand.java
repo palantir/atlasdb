@@ -251,15 +251,15 @@ public class KvsMigrationCommand implements Callable<Integer> {
     private static <K> Optional<K> loadFromFileOrInline(
             @Nullable File configFile, String fileConfigRoot, @Nullable String inline, Class<K> clazz) {
         return loadFromFile(configFile, fileConfigRoot, clazz).or(() -> Optional.ofNullable(inline)
-                .map(uncheckedIoException(config -> AtlasDbConfigs.loadFromString(config, null, clazz))));
+                .map(rethrowIoExceptionAsUnchecked(config -> AtlasDbConfigs.loadFromString(config, null, clazz))));
     }
 
     private static <K> Optional<K> loadFromFile(@Nullable File configFile, String fileConfigRoot, Class<K> clazz) {
         return Optional.ofNullable(configFile)
-                .map(uncheckedIoException(file -> AtlasDbConfigs.load(file, fileConfigRoot, clazz)));
+                .map(rethrowIoExceptionAsUnchecked(file -> AtlasDbConfigs.load(file, fileConfigRoot, clazz)));
     }
 
-    private static <F, T, K extends IOException> Function<F, T> uncheckedIoException(
+    private static <F, T, K extends IOException> Function<F, T> rethrowIoExceptionAsUnchecked(
             FunctionCheckedException<F, T, K> function) {
         return f -> {
             try {
