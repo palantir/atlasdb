@@ -267,18 +267,18 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 .build();
 
         return (Gauge<N>) KeyedStream.stream(metrics.getTaggedRegistry().getMetrics())
-                .filterKeys(metric -> areMetricsApproximatelyEqual(metricName, metric))
+                .filterKeys(metric -> isApproxMetricEffectivelyEqualToOriginalMetric(metricName, metric))
                 .values()
                 .findFirst()
                 .orElse(null);
     }
 
-    private boolean areMetricsApproximatelyEqual(MetricName approxMetric, MetricName metric) {
-        if (!metric.safeName().equals(approxMetric.safeName())) {
+    private boolean isApproxMetricEffectivelyEqualToOriginalMetric(MetricName approxMetric, MetricName originalMetric) {
+        if (!originalMetric.safeName().equals(approxMetric.safeName())) {
             return false;
         }
 
-        SortedMap<String, String> metricTags = metric.safeTags();
+        SortedMap<String, String> metricTags = originalMetric.safeTags();
         for (Map.Entry<String, String> tag : approxMetric.safeTags().entrySet()) {
             if (!metricTags.containsKey(tag.getKey())
                     || !metricTags.get(tag.getKey()).equals(tag.getValue())) {

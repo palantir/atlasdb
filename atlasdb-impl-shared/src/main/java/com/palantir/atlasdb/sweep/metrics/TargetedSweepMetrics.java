@@ -211,6 +211,7 @@ public class TargetedSweepMetrics {
         }
 
         private void registerProgressMetricsFilter(String strategy, TargetedSweepMetricPublicationFilter filter) {
+            // This is kind of against the point of metrics-filter, but is needed for our filtering
             TargetedSweepProgressMetrics progressMetrics = TargetedSweepProgressMetrics.of(manager.getTaggedRegistry());
 
             manager.addMetricFilter(
