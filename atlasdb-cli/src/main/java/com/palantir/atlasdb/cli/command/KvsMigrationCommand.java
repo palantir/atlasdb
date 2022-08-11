@@ -200,11 +200,10 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public AtlasDbServices connectFromServices() {
         AtlasDbConfig fromConfig = overrideTransactionTimeoutMillis(
-                loadFromFileOrInline(fromConfigFile, configRoot, null, AtlasDbConfig.class)
-                        .orElseThrow()); // fromConfig is a required parameter.
+                loadFromFile(fromConfigFile, configRoot, AtlasDbConfig.class).orElseThrow());
 
-        AtlasDbRuntimeConfig fromRuntimeConfig = loadFromFileOrInline(
-                        fromRuntimeConfigFile, runtimeConfigRoot, null, AtlasDbRuntimeConfig.class)
+        AtlasDbRuntimeConfig fromRuntimeConfig = loadFromFile(
+                        fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
                 .map(this::disableSweep)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
 
@@ -213,11 +212,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public AtlasDbServices connectToServices() {
-        AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(
-                loadFromFileOrInline(toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
-                        .orElseThrow(() -> new SafeRuntimeException(
-                                "At least one of -mc / --inline-config is required"))); // tested for existence in
-        // call, but providing a sane error message in case this is called directly.
+        AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(loadFromFileOrInline(
+                        toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
+                .orElseThrow(() -> new SafeRuntimeException("At least one of -mc / --inline-config is required")));
 
         AtlasDbRuntimeConfig toRuntimeConfig = loadFromFileOrInline(
                         toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
@@ -253,12 +250,13 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     private static <K> Optional<K> loadFromFileOrInline(
             @Nullable File configFile, String fileConfigRoot, @Nullable String inline, Class<K> clazz) {
-        Optional<File> maybeFile = Optional.ofNullable(configFile);
-        Optional<String> maybeInline = Optional.ofNullable(inline);
-        return maybeFile
-                .map(uncheckedIoException(file -> AtlasDbConfigs.load(file, fileConfigRoot, clazz)))
-                .or(() -> maybeInline.map(
-                        uncheckedIoException(config -> AtlasDbConfigs.loadFromString(config, null, clazz))));
+        return loadFromFile(configFile, fileConfigRoot, clazz).or(() -> Optional.ofNullable(inline)
+                .map(uncheckedIoException(config -> AtlasDbConfigs.loadFromString(config, null, clazz))));
+    }
+
+    private static <K> Optional<K> loadFromFile(@Nullable File configFile, String fileConfigRoot, Class<K> clazz) {
+        return Optional.ofNullable(configFile)
+                .map(uncheckedIoException(file -> AtlasDbConfigs.load(file, fileConfigRoot, clazz)));
     }
 
     private static <F, T, K extends IOException> Function<F, T> uncheckedIoException(
