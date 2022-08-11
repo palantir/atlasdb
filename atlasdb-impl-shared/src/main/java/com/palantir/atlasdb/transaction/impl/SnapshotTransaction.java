@@ -177,6 +177,13 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.factory.primitive.LongLongMaps;
+import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
+import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -1422,8 +1429,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
         // if committed value seen, stop: the sentinel is not orphaned
         // if we get back -1, the sentinel is orphaned
-        Map<Cell, Long> timestampCandidates = new HashMap<>(
-                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
+        Map<Cell, Long> timestampCandidates =
+                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
         Set<Cell> actualOrphanedSentinels = new HashSet<>();
 
         while (!timestampCandidates.isEmpty()) {
@@ -1502,7 +1509,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
-        Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
+        LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
@@ -1524,7 +1531,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Function<Value, T> transformer,
             AsyncKeyValueService asyncKeyValueService,
             Set<Cell> orphanedSentinels,
-            Map<Long, Long> commitTimestamps) {
+            LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -2143,7 +2150,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Output Set<CellConflict> dominatingWrites,
             TransactionService transactionService) {
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
-        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
+        LongLongMap commitTimestamps =
+                getCommitTimestampsSync(tableRef, LongSets.immutable.ofAll(rawResults.values()), false);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         conflictTracer.collect(getStartTimestamp(), keysToLoad, rawResults, commitTimestamps);
@@ -2193,16 +2201,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private boolean rollbackFailedTransactions(
             TableReference tableRef,
             Map<Cell, Long> keysToDelete,
-            Map<Long, Long> commitTimestamps,
+            LongLongMap commitTimestamps,
             TransactionService transactionService) {
         for (long startTs : new HashSet<>(keysToDelete.values())) {
-            if (commitTimestamps.get(startTs) == null) {
+            long commitTimestamp = commitTimestamps.get(startTs);
+            if (commitTimestamp == 0) {
                 log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
                 if (!rollbackOtherTransaction(startTs, transactionService)) {
                     return false;
                 }
             } else {
-                Preconditions.checkArgument(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
+                Preconditions.checkArgument(commitTimestamp == TransactionConstants.FAILED_COMMIT_TS);
             }
         }
 
@@ -2348,17 +2357,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * We will block here until the passed transactions have released their lock.  This means that the committing
      * transaction is either complete or it has failed and we are allowed to roll it back.
      */
-    private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
+    private void waitForCommitToComplete(LongIterable startTimestamps) {
         Set<LockDescriptor> lockDescriptors = new HashSet<>();
-        for (long start : startTimestamps) {
+        startTimestamps.forEach(start -> {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
-                continue;
+                return;
             }
             lockDescriptors.add(AtlasRowLockDescriptor.of(
                     TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                     TransactionConstants.getValueForTimestamp(start)));
-        }
+        });
 
         if (lockDescriptors.isEmpty()) {
             return;
@@ -2404,16 +2413,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     /// Commit timestamp management
     ///////////////////////////////////////////////////////////////////////////
 
-    private Set<Long> getStartTimestampsForValues(Iterable<Value> values) {
-        Set<Long> results = new HashSet<>();
+    private LongSet getStartTimestampsForValues(Iterable<Value> values) {
+        MutableLongSet results = LongSets.mutable.of();
         for (Value v : values) {
             results.add(v.getTimestamp());
         }
         return results;
     }
 
-    private Map<Long, Long> getCommitTimestampsSync(
-            @Nullable TableReference tableRef, Iterable<Long> startTimestamps, boolean waitForCommitterToComplete) {
+    private LongLongMap getCommitTimestampsSync(
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
         return AtlasFutures.getUnchecked(getCommitTimestamps(
                 tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
     }
@@ -2422,24 +2431,24 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't committed, then it will be
      * missing from the map.  This method will block until the transactions for these start timestamps are complete.
      */
-    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+    protected ListenableFuture<LongLongMap> getCommitTimestamps(
             @Nullable TableReference tableRef,
-            Iterable<Long> startTimestamps,
+            LongIterable startTimestamps,
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
-        if (Iterables.isEmpty(startTimestamps)) {
-            return Futures.immediateFuture(ImmutableMap.of());
+        if (startTimestamps.isEmpty()) {
+            return Futures.immediateFuture(LongLongMaps.immutable.of());
         }
-        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
-        Set<Long> gets = new HashSet<>();
-        for (Long startTs : startTimestamps) {
+        MutableLongLongMap startToCommitTimestamps = LongLongMaps.mutable.of();
+        MutableLongSet gets = LongSets.mutable.of();
+        startTimestamps.forEach(startTs -> {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
                 startToCommitTimestamps.put(startTs, cached);
             } else {
                 gets.add(startTs);
             }
-        }
+        });
 
         if (gets.isEmpty()) {
             return Futures.immediateFuture(startToCommitTimestamps);
@@ -2472,7 +2481,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 MoreExecutors.directExecutor());
     }
 
-    private void waitForCommitterToComplete(@Nullable TableReference tableRef, Iterable<Long> startTimestamps) {
+    private void waitForCommitterToComplete(@Nullable TableReference tableRef, LongIterable startTimestamps) {
         Timer.Context timer = getTimer("waitForCommitTsMillis").time();
         waitForCommitToComplete(startTimestamps);
         long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
@@ -2487,7 +2496,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
     }
 
-    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
+    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, LongSet gets) {
         if (tableRef != null) {
             log.trace(
                     "Getting commit timestamps for a read while reading table.",
@@ -2499,7 +2508,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
     }
 
-    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
+    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, LongSet gets) {
         log.info(
                 "Looking up a large number of transactions.",
                 SafeArg.of("numberOfTransactionIds", gets.size()),
@@ -2507,17 +2516,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
-            AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
+            AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
-            Long singleTs = startTimestamps.iterator().next();
+            Long singleTs = startTimestamps.longIterator().next();
             return Futures.transform(
                     asyncTransactionService.getAsync(singleTs),
                     commitTsOrNull ->
                             commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsync(startTimestamps);
+            return asyncTransactionService.getAsync(startTimestamps.asLazy().collect(Long::valueOf));
         }
     }
 
@@ -2585,8 +2594,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean wasCommitSuccessful(long commitTs) {
-        Map<Long, Long> commitTimestamps =
-                getCommitTimestampsSync(null, Collections.singleton(getStartTimestamp()), false);
+        LongLongMap commitTimestamps = getCommitTimestampsSync(null, LongSets.immutable.of(getStartTimestamp()), false);
         long storedCommit = commitTimestamps.get(getStartTimestamp());
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
             Validate.isTrue(false, "Commit value is wrong. startTs %s  commitTs: %s", getStartTimestamp(), commitTs);

@@ -33,7 +33,7 @@ public interface TimestampCache {
      * @param commitTimestamp transaction commit timestamp
      */
     @Timed
-    void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp);
+    void putAlreadyCommittedTransaction(long startTimestamp, Long commitTimestamp);
     /**
      * Returns null if not present.
      *
@@ -42,5 +42,5 @@ public interface TimestampCache {
      */
     @Nullable
     @Timed
-    Long getCommitTimestampIfPresent(Long startTimestamp);
+    Long getCommitTimestampIfPresent(long startTimestamp);
 }

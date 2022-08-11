@@ -47,6 +47,8 @@ dependencies {
   implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.checkerframework:checker-qual'
+  implementation 'org.eclipse.collections:eclipse-collections'
+  implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
 
   implementation project(':atlasdb-api')

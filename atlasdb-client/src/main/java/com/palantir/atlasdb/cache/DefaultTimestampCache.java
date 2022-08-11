@@ -23,15 +23,21 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import java.util.function.LongSupplier;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.mutable.MutableLong;
 
 public final class DefaultTimestampCache implements TimestampCache {
+
+    // A thread local key is used to avoid boxing when reading
+    private static final ThreadLocal<MutableLong> THREAD_LOCAL_GET_CACHE_KEY =
+            ThreadLocal.withInitial(MutableLong::new);
+
     private final LongSupplier size;
 
-    private final Cache<Long, Long> startToCommitTimestampCache;
-    private final Policy.Eviction<Long, Long> evictionPolicy;
+    private final Cache<MutableLong, Long> startToCommitTimestampCache;
+    private final Policy.Eviction<MutableLong, Long> evictionPolicy;
 
     @VisibleForTesting
-    static Cache<Long, Long> createCache(long size) {
+    static Cache<MutableLong, Long> createCache(long size) {
         return Caffeine.newBuilder().maximumSize(size).recordStats().build();
     }
 
@@ -47,9 +53,13 @@ public final class DefaultTimestampCache implements TimestampCache {
 
     @Override
     @Nullable
-    public Long getCommitTimestampIfPresent(Long startTimestamp) {
+    public Long getCommitTimestampIfPresent(long startTimestamp) {
         resizeIfNecessary();
-        return startToCommitTimestampCache.getIfPresent(startTimestamp);
+
+        MutableLong key = THREAD_LOCAL_GET_CACHE_KEY.get();
+        key.setValue(startTimestamp);
+
+        return startToCommitTimestampCache.getIfPresent(key);
     }
 
     private void resizeIfNecessary() {
@@ -59,8 +69,8 @@ public final class DefaultTimestampCache implements TimestampCache {
     }
 
     @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        startToCommitTimestampCache.put(startTimestamp, commitTimestamp);
+    public void putAlreadyCommittedTransaction(long startTimestamp, Long commitTimestamp) {
+        startToCommitTimestampCache.put(new MutableLong(startTimestamp), commitTimestamp);
     }
 
     @Override

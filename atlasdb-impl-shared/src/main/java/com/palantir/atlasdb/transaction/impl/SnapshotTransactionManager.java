@@ -205,11 +205,11 @@ import javax.validation.constraints.NotNull;
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
                                         response.immutableTimestamp().getLock();
-                                Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                                        response.startTimestampAndPartition().timestamp());
+                                long startTimestamp =
+                                        response.startTimestampAndPartition().timestamp();
 
                                 Transaction transaction = createTransaction(
-                                        immutableTs, startTimestampSupplier, immutableTsLock, condition);
+                                        immutableTs, () -> startTimestamp, immutableTsLock, condition);
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
                                 return new OpenTransactionImpl(transaction, immutableTsLock);

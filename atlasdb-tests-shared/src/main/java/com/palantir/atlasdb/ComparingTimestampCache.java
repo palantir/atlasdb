@@ -55,14 +55,14 @@ public final class ComparingTimestampCache implements TimestampCache {
     }
 
     @Override
-    public synchronized void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
+    public synchronized void putAlreadyCommittedTransaction(long startTimestamp, Long commitTimestamp) {
         first.putAlreadyCommittedTransaction(startTimestamp, commitTimestamp);
         second.putAlreadyCommittedTransaction(startTimestamp, commitTimestamp);
     }
 
     @Nullable
     @Override
-    public synchronized Long getCommitTimestampIfPresent(Long startTimestamp) {
+    public synchronized Long getCommitTimestampIfPresent(long startTimestamp) {
         Long firstCommitTimestamp = first.getCommitTimestampIfPresent(startTimestamp);
         Long secondCommitTimestamp = second.getCommitTimestampIfPresent(startTimestamp);
         if (firstCommitTimestamp == null || secondCommitTimestamp == null) {

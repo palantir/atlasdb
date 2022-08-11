@@ -43,13 +43,13 @@ public final class OffHeapTimestampCache implements TimestampCache {
     }
 
     @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
+    public void putAlreadyCommittedTransaction(long startTimestamp, Long commitTimestamp) {
         offHeapCache.put(startTimestamp, commitTimestamp);
     }
 
     @Nullable
     @Override
-    public Long getCommitTimestampIfPresent(Long startTimestamp) {
+    public Long getCommitTimestampIfPresent(long startTimestamp) {
         return offHeapCache.get(startTimestamp).orElse(null);
     }
 }

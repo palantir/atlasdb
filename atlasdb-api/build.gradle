@@ -4,6 +4,7 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   api project(":lock-api")
   api project(":timestamp-api")
+  api 'org.eclipse.collections:eclipse-collections-api'
   implementation project(":atlasdb-commons")
 
   implementation 'org.apache.commons:commons-lang3'
@@ -29,6 +30,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':commons-annotations')
   implementation project(':lock-api-objects')
