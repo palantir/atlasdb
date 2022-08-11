@@ -24,8 +24,10 @@ import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
+import java.util.SortedMap;
 import javax.annotation.CheckReturnValue;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.data.Offset;
@@ -262,11 +264,29 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         MetricName metricName = MetricName.builder()
                 .safeName(metricNamespace + "." + name)
                 .safeTags(tag)
-                .putSafeTags("libraryName", "atlasdb")
-                .putSafeTags("libraryVersion", "unknown")
                 .build();
 
-        return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
+        return (Gauge<N>) KeyedStream.stream(metrics.getTaggedRegistry().getMetrics())
+                .filterKeys(metric -> isApproxMetricEffectivelyEqualToOriginalMetric(metricName, metric))
+                .values()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isApproxMetricEffectivelyEqualToOriginalMetric(MetricName approxMetric, MetricName originalMetric) {
+        if (!originalMetric.safeName().equals(approxMetric.safeName())) {
+            return false;
+        }
+
+        SortedMap<String, String> metricTags = originalMetric.safeTags();
+        for (Map.Entry<String, String> tag : approxMetric.safeTags().entrySet()) {
+            if (!metricTags.containsKey(tag.getKey())
+                    || !metricTags.get(tag.getKey()).equals(tag.getValue())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private <T> MetricName getMetricName(Class<T> metricClass, String name, Map<String, String> tag) {
