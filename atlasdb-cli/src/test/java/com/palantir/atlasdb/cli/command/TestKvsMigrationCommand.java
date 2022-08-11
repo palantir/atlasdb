@@ -52,6 +52,7 @@ public class TestKvsMigrationCommand {
             + "  servers:\n"
             + "    - 127.0.0.1:1337\n"
             + "  replicationFactor: 21";
+
     private AtlasDbServices fromServices;
     private AtlasDbServices toServices;
 
@@ -74,7 +75,7 @@ public class TestKvsMigrationCommand {
         String[] commandArgs = new String[] {"-frc", runtimeFilePath, "-mrc", runtimeFilePath};
         KvsMigrationCommand command = getCommand(commandArgs, EMPTY_ARGS);
 
-        AtlasDbRuntimeConfig expected = disableSweep(loadFromFile());
+        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromFile());
 
         assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
         assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
@@ -85,7 +86,7 @@ public class TestKvsMigrationCommand {
         String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
         KvsMigrationCommand command = getCommand(EMPTY_ARGS, globalArgs);
 
-        AtlasDbRuntimeConfig expected = disableSweep(loadFromString());
+        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromString());
 
         assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
     }
@@ -97,7 +98,7 @@ public class TestKvsMigrationCommand {
         String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
         KvsMigrationCommand command = getCommand(commandArgs, globalArgs);
 
-        AtlasDbRuntimeConfig expected = disableSweep(loadFromFile());
+        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromFile());
 
         assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
     }
@@ -211,7 +212,7 @@ public class TestKvsMigrationCommand {
         return AtlasDbConfigs.loadFromString(RUNTIME_CONFIG, null, AtlasDbRuntimeConfig.class);
     }
 
-    private static AtlasDbRuntimeConfig disableSweep(AtlasDbRuntimeConfig config) {
+    private static AtlasDbRuntimeConfig withDisabledSweep(AtlasDbRuntimeConfig config) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .from(config)
                 .sweep(SweepConfig.disabled())
