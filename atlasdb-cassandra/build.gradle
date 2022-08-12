@@ -47,6 +47,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-metrics'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'
