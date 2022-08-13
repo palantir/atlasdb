@@ -661,7 +661,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
             throws Exception {
 
-        ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = ArrayListMultimap.create();
+        ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = ArrayListMultimap.create(rows.size(), 1);
 
         List<KeyPredicate> query = rows.stream()
                 .map(row -> keyPredicate(
