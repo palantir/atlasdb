@@ -206,7 +206,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
                         () -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(ImmutableList.of(1L, 7L)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Could not find a transaction service for the given timestamp");
-        ;
 
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(delegate1).markInProgress(captor.capture());
