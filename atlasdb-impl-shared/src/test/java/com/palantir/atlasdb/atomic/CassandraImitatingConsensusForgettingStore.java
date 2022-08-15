@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.ArrayList;
@@ -56,7 +55,7 @@ import org.immutables.value.Value;
  * 5. We assume that replication equals the whole cluster. In practice there are issues around range movements but the
  *    consensus forgetting store doesn't handle that case.
  */
-public class CassandraImitatingConsensusForgettingStore implements ConsensusForgettingStore {
+abstract class CassandraImitatingConsensusForgettingStore implements ConsensusForgettingStore {
     private static final int NUM_NODES = 5;
     private static final int QUORUM = NUM_NODES / 2 + 1;
 
@@ -70,43 +69,6 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
 
     public CassandraImitatingConsensusForgettingStore(double probabilityOfFailure) {
         this.probabilityOfFailure = probabilityOfFailure;
-    }
-
-    /**
-     * Atomically performs a read (potentially propagating newest read value) and if there is no value present on any of
-     * the nodes in a quorum, writes the value to those nodes. If there is a value present, throws a
-     * {@link KeyAlreadyExistsException} with detail.
-     *
-     * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
-     * changed between the read and the write.
-     */
-    @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
-            Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult.isPresent()) {
-                throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
-            }
-            writeToQuorum(cell, quorumNodes, value);
-        });
-    }
-
-    @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        // sort by cells to avoid deadlock
-        KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::atomicUpdate);
-    }
-
-    @Override
-    public void mark(Cell cell) {
-        // todo(snanda)
-    }
-
-    @Override
-    public void mark(Set<Cell> cells) {
-        // todo(snanda)
     }
 
     /**
@@ -206,7 +168,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         }
     }
 
-    private void writeToQuorum(Cell cell, Set<Node> quorumNodes, byte[] value) {
+    void writeToQuorum(Cell cell, Set<Node> quorumNodes, byte[] value) {
         BytesAndTimestamp tsValue = ImmutableBytesAndTimestamp.of(value, timestamps.getAndIncrement());
         runTaskOnNodesMaybeFail(quorumNodes, node -> {
             node.put(cell, tsValue);
@@ -214,14 +176,14 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
     }
 
     @SuppressWarnings("DangerousIdentityKey")
-    private Set<Node> getQuorumNodes() {
+    Set<Node> getQuorumNodes() {
         return nodes.stream().collect(Collectors.collectingAndThen(Collectors.toCollection(ArrayList::new), list -> {
             Collections.shuffle(list);
             return ImmutableSet.copyOf(list.subList(0, QUORUM));
         }));
     }
 
-    private void runAtomically(Cell cell, Runnable task) {
+    void runAtomically(Cell cell, Runnable task) {
         ReentrantReadWriteLock.WriteLock lock =
                 getReentrantReadWriteLockForCell(cell).writeLock();
         lock.lock();
@@ -271,7 +233,7 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
         }
     }
 
-    private static final class Node {
+    static final class Node {
         private final Map<Cell, BytesAndTimestamp> data = new ConcurrentHashMap<>();
 
         private BytesAndTimestamp get(Cell cell) {
