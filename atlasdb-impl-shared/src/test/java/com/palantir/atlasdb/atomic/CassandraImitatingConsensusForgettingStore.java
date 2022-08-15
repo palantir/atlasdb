@@ -99,6 +99,16 @@ public class CassandraImitatingConsensusForgettingStore implements ConsensusForg
                 .forEach(this::atomicUpdate);
     }
 
+    @Override
+    public void mark(Cell cell) {
+        // todo(snanda)
+    }
+
+    @Override
+    public void mark(Set<Cell> cells) {
+        // todo(snanda)
+    }
+
     /**
      * Atomically performs a read (potentially propagating newest read value) and if the latest value present on a
      * quorum of nodes matches the supplied value, writes the value back to those nodes (resetting the timestamp). If
