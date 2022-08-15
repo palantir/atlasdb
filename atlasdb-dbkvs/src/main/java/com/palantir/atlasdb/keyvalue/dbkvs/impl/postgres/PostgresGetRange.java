@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -209,8 +210,14 @@ public class PostgresGetRange implements DbKvsGetRange {
                             flushCurrentRow(results);
                             currentRowName = rowName;
                         }
-                        Value value = Value.create(sqlRow.getBytes("val"), sqlRow.getLong("ts"));
+                        byte[] rawVal = sqlRow.getBytes("val");
+                        Value value = Value.create(rawVal, sqlRow.getLong("ts"));
                         currentRowCells.put(colName, value);
+
+                        // Track the bytes read from the DB (ignoring overheads)
+                        TraceStatistics.incBytesRead(rowName.length);
+                        TraceStatistics.incBytesRead(colName.length);
+                        TraceStatistics.incBytesRead(rawVal.length);
                     }
                     if (numSqlRows < maxCellsPerPage || colName == null) {
                         getCurrentRowResult().ifPresent(results::add);

@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.exception.TableMappingNotFoundException;
@@ -339,15 +340,22 @@ public class OracleGetRange implements DbKvsGetRange {
         ImmutableSortedMap.Builder<byte[], Value> currentRowCells = null;
         byte[] currentRowName = null;
         for (RawSqlRow sqlRow : sqlRows) {
-            if (currentRowName == null || !Arrays.equals(sqlRow.cell.getRowName(), currentRowName)) {
+            byte[] rowName = sqlRow.cell.getRowName();
+            if (currentRowName == null || !Arrays.equals(rowName, currentRowName)) {
                 if (currentRowName != null) {
                     rowResults.add(RowResult.create(currentRowName, currentRowCells.build()));
                 }
                 currentRowCells = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
-                currentRowName = sqlRow.cell.getRowName();
+                currentRowName = rowName;
             }
+            byte[] colName = sqlRow.cell.getColumnName();
             byte[] value = getValue(sqlRow, overflowValues);
-            currentRowCells.put(sqlRow.cell.getColumnName(), Value.create(value, sqlRow.ts));
+            currentRowCells.put(colName, Value.create(value, sqlRow.ts));
+
+            // Track the bytes read from the DB (ignoring overheads)
+            TraceStatistics.incBytesRead(rowName.length);
+            TraceStatistics.incBytesRead(colName.length);
+            TraceStatistics.incBytesRead(value.length);
         }
         if (currentRowName != null) {
             rowResults.add(RowResult.create(currentRowName, currentRowCells.build()));
