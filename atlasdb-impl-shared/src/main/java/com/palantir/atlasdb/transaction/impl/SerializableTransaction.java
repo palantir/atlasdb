@@ -20,12 +20,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -685,7 +685,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             Map<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> columnRangeEnds =
                     tableAndColumnRangeEnds.getValue();
 
-            Multimap<BatchColumnRangeSelection, byte[]> rangesToRows = LinkedListMultimap.create();
+            Multimap<BatchColumnRangeSelection, byte[]> rangesToRows = ArrayListMultimap.create();
             for (Map.Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey().array();
