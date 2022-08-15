@@ -22,23 +22,29 @@ public final class TraceStatistic {
     private static final TraceStatistic NOT_OBSERVED_TRACE = empty();
 
     private final AtomicLong emptyReads;
+    private final AtomicLong skippedValues;
     private final AtomicLong bytesReadFromDb;
 
-    private TraceStatistic(long emptyReads, long bytesReadFromDb) {
+    private TraceStatistic(long emptyReads, long skippedValues, long bytesReadFromDb) {
         this.emptyReads = new AtomicLong(emptyReads);
+        this.skippedValues = new AtomicLong(skippedValues);
         this.bytesReadFromDb = new AtomicLong(bytesReadFromDb);
     }
 
     boolean isEmpty() {
-        return emptyReads.get() == 0 && bytesReadFromDb.get() == 0;
+        return bytesReadFromDb.get() == 0 && skippedValues.get() == 0 && emptyReads.get() == 0;
     }
 
     TraceStatistic copy() {
-        return of(emptyReads.get(), bytesReadFromDb.get());
+        return of(emptyReads.get(), skippedValues.get(), bytesReadFromDb.get());
     }
 
     public long emptyReads() {
         return emptyReads.get();
+    }
+
+    public long skippedValues() {
+        return skippedValues.get();
     }
 
     public long bytesReadFromDb() {
@@ -49,19 +55,23 @@ public final class TraceStatistic {
         emptyReads.addAndGet(count);
     }
 
+    void incSkippedValues(long count) {
+        skippedValues.addAndGet(count);
+    }
+
     void incBytesReadFromDb(long bytes) {
         bytesReadFromDb.addAndGet(bytes);
     }
 
     static TraceStatistic empty() {
-        return of(0L, 0L);
+        return of(0L, 0L, 0L);
     }
 
     static TraceStatistic notObserved() {
         return NOT_OBSERVED_TRACE;
     }
 
-    static TraceStatistic of(long emptyReads, long bytesReadFromDb) {
-        return new TraceStatistic(emptyReads, bytesReadFromDb);
+    static TraceStatistic of(long emptyReads, long skippedValues, long bytesReadFromDb) {
+        return new TraceStatistic(emptyReads, skippedValues, bytesReadFromDb);
     }
 }

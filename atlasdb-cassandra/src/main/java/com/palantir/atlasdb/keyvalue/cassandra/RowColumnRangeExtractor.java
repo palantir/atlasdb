@@ -122,13 +122,13 @@ final class RowColumnRangeExtractor {
                     LinkedHashMap<Cell, Value> cellToValue =
                             collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
                     if (cellToValue.containsKey(cell)) {
-                        TraceStatistics.incEmptyValues(1);
+                        TraceStatistics.incSkippedValues(1L);
                         notLatestVisibleValueCellFilterCounter.get().inc();
                     } else {
                         cellToValue.put(cell, Value.create(c.getColumn().getValue(), ts));
                     }
                 } else {
-                    TraceStatistics.incEmptyValues(1);
+                    TraceStatistics.incSkippedValues(1L);
                     notLatestVisibleValueCellFilterCounter.get().inc();
                 }
             }

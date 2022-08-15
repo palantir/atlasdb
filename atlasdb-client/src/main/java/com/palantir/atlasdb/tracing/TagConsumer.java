@@ -68,6 +68,11 @@ public interface TagConsumer extends BiConsumer<String, String> {
             longValue("atlasdb.emptyReads", emptyReads);
         }
 
+        long skippedValues = statistics.skippedValues();
+        if (skippedValues != 0) {
+            longValue("atlasdb.skippedValues", skippedValues);
+        }
+
         long bytesReadFromDb = statistics.bytesReadFromDb();
         if (bytesReadFromDb != 0) {
             longValue("atlasdb.bytesRead", bytesReadFromDb);

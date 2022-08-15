@@ -83,6 +83,17 @@ public final class TraceStatistics {
     }
 
     /**
+     * Increment the number of empty values that have been read.
+     */
+    public static void incSkippedValues(long skippedValues) {
+        if (!isTraceObservable()) {
+            return;
+        }
+
+        traceStatistic.get().incSkippedValues(skippedValues);
+    }
+
+    /**
      * Increment the number of bytes that have been read from the underlying database.
      */
     public static void incBytesRead(long bytes) {
