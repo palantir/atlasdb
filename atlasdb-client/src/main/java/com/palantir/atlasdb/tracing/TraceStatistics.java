@@ -37,12 +37,20 @@ public final class TraceStatistics {
             };
 
     /**
+     * Check whether the current trace is observable; only necessary if actual work will be done to increment metrics
+     * (e.g. loops).
+     */
+    public static boolean isTraceObservable() {
+        return Tracer.isTraceObservable();
+    }
+
+    /**
      * Get the current trace statistic instance and clear it. This resets the statistics for the current thread.
      *
      * Use `getCopyAndRestoreOriginal` to restore the instance returned by this method.
      */
     public static TraceStatistic getCurrentAndClear() {
-        if (!Tracer.isTraceObservable()) {
+        if (!isTraceObservable()) {
             return TraceStatistic.notObserved();
         }
 
@@ -56,7 +64,7 @@ public final class TraceStatistics {
      * the span finishes. Prefer using {@link TraceStatistics}.getCopyAndRestoreOriginal().
      */
     public static TraceStatistic getReferenceToCurrent() {
-        if (!Tracer.isTraceObservable()) {
+        if (!isTraceObservable()) {
             return TraceStatistic.notObserved();
         }
 
@@ -67,7 +75,7 @@ public final class TraceStatistics {
      * Increment the number of empty values that have been read.
      */
     public static void incEmptyValues(long emptyValues) {
-        if (!Tracer.isTraceObservable()) {
+        if (!isTraceObservable()) {
             return;
         }
 
@@ -78,7 +86,7 @@ public final class TraceStatistics {
      * Increment the number of bytes that have been read from the underlying database.
      */
     public static void incBytesRead(long bytes) {
-        if (!Tracer.isTraceObservable()) {
+        if (!isTraceObservable()) {
             return;
         }
 
@@ -89,7 +97,7 @@ public final class TraceStatistics {
      * Get a copy of the current statistics and restore the original statistics. A companion to `getCurrentAndClear`.
      */
     public static TraceStatistic getCopyAndRestoreOriginal(TraceStatistic original) {
-        if (!Tracer.isTraceObservable()) {
+        if (!isTraceObservable()) {
             return TraceStatistic.notObserved();
         }
 
