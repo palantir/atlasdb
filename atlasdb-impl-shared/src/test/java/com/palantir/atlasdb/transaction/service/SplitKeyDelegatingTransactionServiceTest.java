@@ -16,18 +16,6 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.math.LongMath;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import org.junit.After;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-
-import java.util.Map;
-import java.util.function.Function;
-
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -36,6 +24,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.math.LongMath;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Map;
+import java.util.function.Function;
+import org.junit.After;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked") // Mocking
 public class SplitKeyDelegatingTransactionServiceTest {

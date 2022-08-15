@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -48,6 +49,18 @@ public interface ConsensusForgettingStore {
      * depending on the underlying implementation.
      */
     void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+
+    /**
+     * Operation to put a marker value against a cell. The semantics of the mark operation depend on the
+     * underlying implementation.
+     */
+    void mark(Cell cell);
+
+    /**
+     * Operation to put a marker value on multiple cell. This call may or may not guarantee atomicity across cells
+     * depending on the underlying implementation.
+     */
+    void mark(Set<Cell> cells);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

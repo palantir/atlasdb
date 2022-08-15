@@ -32,6 +32,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -53,6 +54,16 @@ public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore 
     @Override
     public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public void mark(Cell cell) {
+        // no op
+    }
+
+    @Override
+    public void mark(Set<Cell> cells) {
+        // no op
     }
 
     @Override

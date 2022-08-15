@@ -15,9 +15,11 @@
  */
 
 package com.palantir.atlasdb.atomic;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -49,13 +51,14 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
         this.kvs = kvs;
         this.tableRef = tableRef;
     }
+
     @Override
-    public void markInProgress(Cell cell) {
-        markInProgress(ImmutableSet.of(cell));
+    public void mark(Cell cell) {
+        mark(ImmutableSet.of(cell));
     }
 
     @Override
-    public void markInProgress(Set<Cell> cells) {
+    public void mark(Set<Cell> cells) {
         kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }
 
@@ -67,7 +70,7 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        byte[] row = values.keySet().iterator().next().getRowName();
+        byte[] row = getRowName(values);
         Map<Cell, byte[]> expected =
                 values.keySet().stream().collect(Collectors.toMap(cell -> cell, _ignore -> inProgressMarker));
         MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, expected, values);
@@ -82,7 +85,7 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void checkAndTouch(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
-        byte[] row = values.keySet().iterator().next().getRowName();
+        byte[] row = getRowName(values);
         MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, values, values);
         kvs.multiCheckAndSet(request);
     }
@@ -114,5 +117,11 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
     @Override
     public void put(Map<Cell, byte[]> values) {
         kvs.setOnce(tableRef, values);
+    }
+
+    private byte[] getRowName(Map<Cell, byte[]> values) {
+        Set<byte[]> rows = values.keySet().stream().map(Cell::getRowName).collect(Collectors.toSet());
+        Preconditions.checkState(rows.size() == 1, "Only allowed to make batch cells across one row.");
+        return Iterables.getOnlyElement(rows);
     }
 }
