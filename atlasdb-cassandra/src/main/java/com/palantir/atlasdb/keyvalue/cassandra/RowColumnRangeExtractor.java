@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
@@ -88,10 +89,16 @@ final class RowColumnRangeExtractor {
                 Suppliers.memoize(() -> metricsManager.registerOrGetCounter(
                         RowColumnRangeExtractor.class, CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE));
 
+        if (TraceStatistics.isTraceObservable()) {
+            canonicalRows.forEach(row -> TraceStatistics.incBytesRead(row.length));
+        }
+
         // Make sure returned maps are keyed by the given rows
         Map<ByteBuffer, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, ByteBuffer::wrap);
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] rawRow = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
+            TraceStatistics.incBytesRead(rawRow.length);
+
             byte[] row = canonicalRowsByHash.get(ByteBuffer.wrap(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
 
@@ -104,17 +111,24 @@ final class RowColumnRangeExtractor {
             rowsToRawColumnCount.put(row, columns.size());
             for (ColumnOrSuperColumn c : columns) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                // Column name
+                TraceStatistics.incBytesRead(pair.lhSide.length);
+                // Column value
+                TraceStatistics.incBytesRead(c.getColumn().getValue().length);
+
                 long ts = pair.rhSide;
                 if (ts < startTs) {
                     Cell cell = Cell.create(row, pair.lhSide);
                     LinkedHashMap<Cell, Value> cellToValue =
                             collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
                     if (cellToValue.containsKey(cell)) {
+                        TraceStatistics.incEmptyValues(1);
                         notLatestVisibleValueCellFilterCounter.get().inc();
                     } else {
                         cellToValue.put(cell, Value.create(c.getColumn().getValue(), ts));
                     }
                 } else {
+                    TraceStatistics.incEmptyValues(1);
                     notLatestVisibleValueCellFilterCounter.get().inc();
                 }
             }
