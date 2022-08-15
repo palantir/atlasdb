@@ -16,18 +16,19 @@
 
 package com.palantir.atlasdb.atomic;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
-public class PueCassandraImitatingConsensusForgettingStoreTest {
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+public class PueCassImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
     private static final byte[] VALUE = PtBytes.toBytes("VAL");
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");

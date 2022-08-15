@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
@@ -34,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -63,13 +63,13 @@ public class CasConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, inProgressMarker, value);
         kvs.checkAndSet(request);
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
         byte[] row = getRowName(values);
         Map<Cell, byte[]> expected =
                 values.keySet().stream().collect(Collectors.toMap(cell -> cell, _ignore -> inProgressMarker));
