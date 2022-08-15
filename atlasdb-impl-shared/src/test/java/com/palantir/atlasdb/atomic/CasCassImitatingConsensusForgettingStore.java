@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class CasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
-    private static final byte[] IN_PROGRESS_MARKER = new byte[1];
+    static final byte[] IN_PROGRESS_MARKER = new byte[1];
 
     public CasCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
         super(probabilityOfFailure);
