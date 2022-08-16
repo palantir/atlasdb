@@ -39,6 +39,11 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
     }
 
     @Override
+    public void markInProgress(Iterable<Long> keys) {
+        delegate.markInProgress(keys);
+    }
+
+    @Override
     public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
         delegate.updateMultiple(KeyedStream.stream(keyValues)
                 .map(TransactionStatusUtils::fromTimestamp)

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.service;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -164,6 +165,49 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 .hasMessageContaining("A batch of timestamps produced some transaction service keys which are unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
+    }
+
+    @Test
+    public void canMarkInProgress() {
+        assertThatCode(() -> delegatingTransactionService.markInProgress(1L)).doesNotThrowAnyException();
+
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+        verify(delegate1).markInProgress(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(1L);
+    }
+
+    @Test
+    public void canMarkInProgressMultiple() {
+        assertThatCode(() -> delegatingTransactionService.markInProgress(ImmutableList.of(1L, 2L)))
+                .doesNotThrowAnyException();
+
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+
+        verify(delegate1).markInProgress(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(1L);
+
+        verify(delegate2).markInProgress(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(2L);
+    }
+
+    @Test
+    public void failsIfSeeingATimestampServiceItDoesNotRecognizeForMarkInProgress() {
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.markInProgress(7L))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for the given timestamp");
+
+        Mockito.verifyNoMoreInteractions(delegate1);
+    }
+
+    @Test
+    public void markInProgressMultipleNotAtomic() {
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.markInProgress(ImmutableList.of(1L, 7L)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for the given timestamp");
+
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+        verify(delegate1).markInProgress(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(1L);
     }
 
     private void verifyDelegateHadMultigetCalledWith(TransactionService delegate, Long... startTimestamps) {

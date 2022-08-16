@@ -83,9 +83,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
-                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
-        return new SimpleTransactionService(pueTable, encodingStrategy);
+        AtomicTable<Long, Long> atomicTable =
+                new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
+                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
+        return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 
     @Override
@@ -96,6 +97,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getAsync(startTimestamps));
+    }
+
+    @Override
+    public void markInProgress(long startTimestamp) {
+        txnTable.markInProgress(startTimestamp);
+    }
+
+    @Override
+    public void markInProgress(Iterable<Long> startTimestamps) {
+        txnTable.markInProgress(startTimestamps);
     }
 
     @Override
@@ -114,7 +125,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
-    public void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    public void putUnlessExists(Map<Long, Long> startTimestampToCommitTimestamp) {
         txnTable.updateMultiple(startTimestampToCommitTimestamp);
     }
 

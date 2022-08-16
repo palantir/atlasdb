@@ -18,6 +18,7 @@ package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,6 +31,15 @@ import java.util.Map;
  * @param <V> Value for the mapping
  */
 public interface AtomicTable<K, V> {
+    default void markInProgress(K key) {
+        markInProgress(ImmutableSet.of(key));
+    }
+
+    /**
+     * Declares an operation for these keys is in progress. This method must be called before any
+     * {@link #updateMultiple(Map)} for the key, or the latter might fail.
+     */
+    void markInProgress(Iterable<K> keys);
 
     /**
      * Atomic update. If the method does not throw, any subsequent get is guaranteed to return V. If the

@@ -126,6 +126,11 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     }
 
     @Override
+    public void markInProgress(Iterable<Long> keys) {
+        // no op
+    }
+
+    @Override
     public void updateMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));

@@ -47,6 +47,11 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
     }
 
     @Override
+    public void markInProgress(Iterable<Long> keys) {
+        // no op
+    }
+
+    @Override
     public void updateMultiple(Map<Long, TransactionStatus> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(
                 tableRef,

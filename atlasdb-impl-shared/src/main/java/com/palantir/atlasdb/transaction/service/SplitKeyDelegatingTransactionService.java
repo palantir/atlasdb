@@ -76,6 +76,14 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
+    public void markInProgress(long startTimestamp) {
+        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
+        service.markInProgress(startTimestamp);
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getFromDelegate(keyedServices, startTimestamp);
     }

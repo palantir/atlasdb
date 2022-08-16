@@ -52,6 +52,17 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**
+     * In practice, a transaction on schema version >= 4 must call this method before any information about its start
+     * timestamp is persisted into the KVS; i.e. KVS writes, writing to the sweep queue, etc. i.e.
+     * this method MUST be called for each start timestamp before {@link #putUnlessExists(long, long) is ever called}.
+     */
+    void markInProgress(long startTimestamp);
+
+    default void markInProgress(Iterable<Long> startTimestamps) {
+        startTimestamps.forEach(this::markInProgress);
+    }
+
+    /**
      * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
      * committed. The naming is not accurate as this operation can differ in implementation.
      *
@@ -77,7 +88,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
      * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
-    default void commitMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    default void putUnlessExists(Map<Long, Long> startTimestampToCommitTimestamp) {
         startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
     }
 
