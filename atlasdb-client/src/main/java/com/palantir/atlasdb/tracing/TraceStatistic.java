@@ -16,51 +16,60 @@
 
 package com.palantir.atlasdb.tracing;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 public final class TraceStatistic {
     private static final TraceStatistic NOT_OBSERVED_TRACE = empty();
 
-    private final AtomicLong emptyReads;
-    private final AtomicLong skippedValues;
-    private final AtomicLong bytesReadFromDb;
+    private final LongAdder emptyReads;
+    private final LongAdder skippedValues;
+    private final LongAdder bytesReadFromDb;
 
     private TraceStatistic(long emptyReads, long skippedValues, long bytesReadFromDb) {
-        this.emptyReads = new AtomicLong(emptyReads);
-        this.skippedValues = new AtomicLong(skippedValues);
-        this.bytesReadFromDb = new AtomicLong(bytesReadFromDb);
+        this.emptyReads = new LongAdder();
+        if (emptyReads > 0) {
+            this.emptyReads.add(emptyReads);
+        }
+        this.skippedValues = new LongAdder();
+        if (skippedValues > 0) {
+            this.skippedValues.add(skippedValues);
+        }
+        this.bytesReadFromDb = new LongAdder();
+        if (bytesReadFromDb > 0) {
+            this.bytesReadFromDb.add(bytesReadFromDb);
+        }
     }
 
     boolean isEmpty() {
-        return bytesReadFromDb.get() == 0 && skippedValues.get() == 0 && emptyReads.get() == 0;
+        return bytesReadFromDb.sum() == 0 && skippedValues.sum() == 0 && emptyReads.sum() == 0;
     }
 
     TraceStatistic copy() {
-        return of(emptyReads.get(), skippedValues.get(), bytesReadFromDb.get());
+        return of(emptyReads.sum(), skippedValues.sum(), bytesReadFromDb.sum());
     }
 
     public long emptyReads() {
-        return emptyReads.get();
+        return emptyReads.sum();
     }
 
     public long skippedValues() {
-        return skippedValues.get();
+        return skippedValues.sum();
     }
 
     public long bytesReadFromDb() {
-        return bytesReadFromDb.get();
+        return bytesReadFromDb.sum();
     }
 
     void incEmptyReads(long count) {
-        emptyReads.addAndGet(count);
+        emptyReads.add(count);
     }
 
     void incSkippedValues(long count) {
-        skippedValues.addAndGet(count);
+        skippedValues.add(count);
     }
 
     void incBytesReadFromDb(long bytes) {
-        bytesReadFromDb.addAndGet(bytes);
+        bytesReadFromDb.add(bytes);
     }
 
     static TraceStatistic empty() {
