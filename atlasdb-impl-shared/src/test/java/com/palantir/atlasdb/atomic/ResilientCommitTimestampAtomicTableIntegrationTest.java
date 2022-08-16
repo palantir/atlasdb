@@ -18,12 +18,13 @@ package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
@@ -48,7 +49,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
 
     private final ConsensusForgettingStore forgettingStore =
             new CassImitatingConsensusForgettingStoreV3(WRITE_FAILURE_PROBABILITY);
-    private final AtomicTable<Long, Long> pueTable = new ResilientCommitTimestampAtomicTable(
+    private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
             forgettingStore, TwoPhaseEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
@@ -86,7 +87,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
                         Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
-                pueTable.update(startTimestamp, startTimestamp + writerIndex);
+                pueTable.update(startTimestamp, TransactionStatuses.committed(startTimestamp + writerIndex));
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.
             }
@@ -137,11 +138,11 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
 
     private static final class TimestampReader implements AutoCloseable {
         private final long startTimestamp;
-        private final AtomicTable<Long, Long> pueTable;
-        private final List<Optional<Long>> timestampReads;
+        private final AtomicTable<Long, TransactionStatus> pueTable;
+        private final List<TransactionStatus> timestampReads;
         private final ScheduledExecutorService scheduledExecutorService;
 
-        private TimestampReader(long startTimestamp, AtomicTable<Long, Long> pueTable) {
+        private TimestampReader(long startTimestamp, AtomicTable<Long, TransactionStatus> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
             this.timestampReads = new ArrayList<>();
@@ -149,7 +150,9 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
         }
 
         public List<Optional<Long>> getTimestampReads() {
-            return ImmutableList.copyOf(timestampReads);
+            return timestampReads.stream()
+                    .map(TransactionStatuses::getCommitTimestamp)
+                    .collect(Collectors.toList());
         }
 
         public void start() {
@@ -158,8 +161,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
 
         public void readOneIteration() {
             try {
-                timestampReads.add(
-                        Optional.ofNullable(pueTable.get(startTimestamp).get()));
+                timestampReads.add(pueTable.get(startTimestamp).get());
             } catch (Exception e) {
                 // Expected - some failures will happen as part of our test.
             }

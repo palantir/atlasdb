@@ -19,11 +19,11 @@ package com.palantir.atlasdb.backup;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadataState;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.Map;
@@ -33,7 +33,7 @@ import java.util.Optional;
 public final class CoordinationServiceUtilities {
     // before the coordination service all transactions were schema 1, i.e. in _transactions
     private static final ImmutableRangeMap<Long, Integer> PRE_COORDINATION_TRANSACTIONS_MAP =
-            ImmutableRangeMap.of(Range.atLeast(AtlasDbConstants.STARTING_TS), 1);
+            ImmutableRangeMap.of(Range.atLeast(TransactionConstants.LOWEST_POSSIBLE_START_TS), 1);
 
     private CoordinationServiceUtilities() {}
 

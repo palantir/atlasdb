@@ -40,7 +40,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
@@ -205,32 +204,45 @@ public class TargetedSweepMetrics {
             sweepDelayMetric = new CurrentValueMetric<>();
 
             TargetedSweepMetricPublicationFilter filter = createMetricPublicationFilter();
+
+            registerProgressMetricsFilter(strategy, filter);
             registerProgressMetrics(strategy, filter);
             outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag, filter);
         }
 
-        private void registerProgressMetrics(String strategy, TargetedSweepMetricPublicationFilter filter) {
+        private void registerProgressMetricsFilter(String strategy, TargetedSweepMetricPublicationFilter filter) {
             // This is kind of against the point of metrics-filter, but is needed for our filtering
-            AtlasDbMetricNames.TARGETED_SWEEP_PROGRESS_METRIC_NAMES.stream()
-                    .map(operationName -> MetricName.builder()
-                            .safeName("targetedSweepProgress." + operationName)
-                            .putSafeTags("strategy", strategy)
-                            .putSafeTags("libraryName", "atlasdb")
-                            .putSafeTags("libraryVersion", "unknown")
-                            .build())
-                    .forEach(metricName -> manager.addMetricFilter(metricName, filter));
-
-            millisSinceLastSwept
-                    .keySet()
-                    .forEach(shard -> manager.addMetricFilter(
-                            getProgressMetricNameBuilder(strategy)
-                                    .putSafeTags("shard", shard)
-                                    .putSafeTags("libraryName", "atlasdb")
-                                    .putSafeTags("libraryVersion", "unknown")
-                                    .build(),
-                            filter));
-
             TargetedSweepProgressMetrics progressMetrics = TargetedSweepProgressMetrics.of(manager.getTaggedRegistry());
+
+            manager.addMetricFilter(
+                    progressMetrics.enqueuedWrites().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.entriesRead().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.tombstonesPut().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.abortedWritesDeleted().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.sweepTimestamp().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.lastSweptTimestamp().strategy(strategy).buildMetricName(), filter);
+            millisSinceLastSwept.forEach((shard, gauge) -> manager.addMetricFilter(
+                    progressMetrics
+                            .millisSinceLastSweptTs()
+                            .strategy(strategy)
+                            .shard(shard)
+                            .buildMetricName(),
+                    filter));
+
+            manager.addMetricFilter(
+                    progressMetrics.batchSizeMean().strategy(strategy).buildMetricName(), filter);
+            manager.addMetricFilter(
+                    progressMetrics.sweepDelay().strategy(strategy).buildMetricName(), filter);
+        }
+
+        private void registerProgressMetrics(String strategy, TargetedSweepMetricPublicationFilter filter) {
+            TargetedSweepProgressMetrics progressMetrics = TargetedSweepProgressMetrics.of(manager.getTaggedRegistry());
+
             progressMetrics.enqueuedWrites().strategy(strategy).build(enqueuedWrites);
             progressMetrics.entriesRead().strategy(strategy).build(entriesRead);
             progressMetrics.tombstonesPut().strategy(strategy).build(tombstonesPut);
@@ -244,12 +256,6 @@ public class TargetedSweepMetrics {
                     .build(gauge));
             progressMetrics.batchSizeMean().strategy(strategy).build(batchSizeMean);
             progressMetrics.sweepDelay().strategy(strategy).build(sweepDelayMetric);
-        }
-
-        private static MetricName.Builder getProgressMetricNameBuilder(String strategy) {
-            return MetricName.builder()
-                    .safeName("targetedSweepProgress." + AtlasDbMetricNames.LAG_MILLIS)
-                    .putSafeTags("strategy", strategy);
         }
 
         private TargetedSweepMetricPublicationFilter createMetricPublicationFilter() {

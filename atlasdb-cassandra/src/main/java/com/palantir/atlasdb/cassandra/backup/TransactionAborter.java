@@ -34,6 +34,7 @@ import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntries
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionTableEntry;
 import com.palantir.atlasdb.cassandra.backup.transaction.TransactionsTableInteraction;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -232,6 +233,8 @@ final class TransactionAborter {
     }
 
     private static Optional<Long> getCommitValue(TransactionTableEntry entry) {
-        return TransactionTableEntries.getCommitValue(entry).map(AtomicValue::value);
+        return TransactionTableEntries.getCommitValue(entry)
+                .map(AtomicValue::value)
+                .flatMap(TransactionStatuses::getCommitTimestamp);
     }
 }

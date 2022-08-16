@@ -149,7 +149,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -1349,9 +1348,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
 
-        // LinkedList is chosen for fast append operation since we just add to this collection.
-        @SuppressWarnings("JdkObsolete")
-        Collection<Map.Entry<Cell, T>> resultsAccumulator = new LinkedList<>();
+        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");

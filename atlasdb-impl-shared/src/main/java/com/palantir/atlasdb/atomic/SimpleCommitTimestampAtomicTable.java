@@ -25,19 +25,22 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long> {
+public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
+
     private final KeyValueService kvs;
     private final TableReference tableRef;
-    private final TimestampEncodingStrategy<Long> encodingStrategy;
+    private final TimestampEncodingStrategy<TransactionStatus> encodingStrategy;
 
     public SimpleCommitTimestampAtomicTable(
-            KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
+            KeyValueService kvs,
+            TableReference tableRef,
+            TimestampEncodingStrategy<TransactionStatus> encodingStrategy) {
         this.kvs = kvs;
         this.tableRef = tableRef;
         this.encodingStrategy = encodingStrategy;
@@ -49,7 +52,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long>
     }
 
     @Override
-    public void updateMultiple(Map<Long, Long> values) throws KeyAlreadyExistsException {
+    public void updateMultiple(Map<Long, TransactionStatus> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(
                 tableRef,
                 KeyedStream.stream(values)
@@ -60,7 +63,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long>
     }
 
     @Override
-    public ListenableFuture<Map<Long, Long>> get(Iterable<Long> cells) {
+    public ListenableFuture<Map<Long, TransactionStatus>> get(Iterable<Long> cells) {
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
                 .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
 
@@ -70,8 +73,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Long>
                 result,
                 presentValues -> KeyedStream.stream(startTsToCell)
                         .map(presentValues::get)
-                        .filter(Objects::nonNull)
-                        .map(Value::getContents)
+                        .map(value -> value == null ? null : value.getContents())
                         .map(encodingStrategy::decodeValueAsCommitTimestamp)
                         .collectToMap(),
                 MoreExecutors.directExecutor());

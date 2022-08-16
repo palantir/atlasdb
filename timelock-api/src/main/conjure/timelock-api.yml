@@ -387,3 +387,10 @@ services:
         returns: map<Namespace, GetCommitTimestampsResponse>
         docs: |
           Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
+      unlock:
+        http: POST /ul
+        args:
+          requests: map<Namespace, ConjureUnlockRequestV2>
+        returns: map<Namespace, ConjureUnlockResponseV2>
+        docs: |
+          Version of unlockV2 to unlock locks across multiple namespaces.

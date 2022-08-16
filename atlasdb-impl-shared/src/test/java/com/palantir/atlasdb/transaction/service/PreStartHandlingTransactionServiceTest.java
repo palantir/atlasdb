@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import org.junit.After;
@@ -46,7 +46,7 @@ public class PreStartHandlingTransactionServiceTest {
     private static final long UNCOMMITTED_START_TIMESTAMP = 999L;
     private static final long ZERO_TIMESTAMP = 0L;
     private static final long NEGATIVE_TIMESTAMP = -125L;
-    private static final long BEFORE_TIME_TIMESTAMP = AtlasDbConstants.STARTING_TS - 1;
+    private static final long BEFORE_TIME_TIMESTAMP = TransactionConstants.LOWEST_POSSIBLE_START_TS - 1;
 
     private static final ImmutableList<Long> TWO_VALID_TIMESTAMPS =
             ImmutableList.of(START_TIMESTAMP, UNCOMMITTED_START_TIMESTAMP);

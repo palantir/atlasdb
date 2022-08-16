@@ -67,12 +67,20 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamp));
+        return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(keyedSyncServices, startTimestamps));
+        return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, startTimestamps));
+    }
+
+    @Override
+    public void markInProgress(long startTimestamp) {
+        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
+        service.markInProgress(startTimestamp);
     }
 
     @Override
@@ -85,12 +93,12 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
     @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(keyedServices, startTimestamp);
+        return getFromDelegate(keyedServices, startTimestamp);
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(keyedServices, startTimestamps);
+        return getFromDelegate(keyedServices, startTimestamps);
     }
 
     @Override
@@ -106,14 +114,14 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private ListenableFuture<Long> getInternal(
+    private ListenableFuture<Long> getFromDelegate(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> service.getAsync(startTimestamp))
                 .orElseGet(() -> Futures.immediateFuture(null));
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(
+    private ListenableFuture<Map<Long, Long>> getFromDelegate(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices, Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {

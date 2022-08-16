@@ -19,13 +19,13 @@ import com.datastax.driver.core.exceptions.DriverInternalError;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -135,6 +135,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import one.util.streamex.EntryStream;
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -660,7 +661,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
             throws Exception {
 
-        final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
+        ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = ArrayListMultimap.create(rows.size(), 1);
 
         List<KeyPredicate> query = rows.stream()
                 .map(row -> keyPredicate(
@@ -669,17 +670,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
-            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(
-                            getForKeyPredicates(host, tableRef, query, startTs))
-                    .filter(cells -> !cells.isEmpty())
-                    .flatMap(Collection::stream)
-                    .collectToMultimap(LinkedListMultimap::create);
-
-            result.putAll(partialResult);
-
-            query = KeyedStream.stream(Multimaps.asMap(partialResult))
-                    .map((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
-                    .values()
+            query = EntryStream.of(getForKeyPredicates(host, tableRef, query, startTs))
+                    .filterValues(cells -> !cells.isEmpty())
+                    .peekKeyValue(result::putAll)
+                    .mapKeyValue((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
                     .collect(Collectors.toList());
         }
 
