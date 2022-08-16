@@ -169,8 +169,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void canMarkInProgress() {
-        assertThatCode(() -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(1L))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> delegatingTransactionService.markInProgress(1L)).doesNotThrowAnyException();
 
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(delegate1).markInProgress(captor.capture());
@@ -179,7 +178,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void canMarkInProgressMultiple() {
-        assertThatCode(() -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(ImmutableList.of(1L, 2L)))
+        assertThatCode(() -> delegatingTransactionService.markInProgress(ImmutableList.of(1L, 2L)))
                 .doesNotThrowAnyException();
 
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
@@ -193,7 +192,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void failsIfSeeingATimestampServiceItDoesNotRecognizeForMarkInProgress() {
-        assertThatLoggableExceptionThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(7L))
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.markInProgress(7L))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Could not find a transaction service for the given timestamp");
 
@@ -202,8 +201,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void markInProgressMultipleNotAtomic() {
-        assertThatLoggableExceptionThrownBy(
-                        () -> lastDigitFiveImpliesUnknownTransactionService.markInProgress(ImmutableList.of(1L, 7L)))
+        assertThatLoggableExceptionThrownBy(() -> delegatingTransactionService.markInProgress(ImmutableList.of(1L, 7L)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Could not find a transaction service for the given timestamp");
 
