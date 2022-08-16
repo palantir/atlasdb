@@ -26,12 +26,13 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
+import javax.annotation.CheckForNull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.annotation.CheckForNull;
 
 /**
  * This service handles queries for timestamps before {@link AtlasDbConstants#STARTING_TS}
@@ -63,11 +64,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getFromDelegate(startTimestamps, synchronousAsyncTransactionService));
-    }
-
-    @Override
-    public void markInProgress(long startTimestamp) {
-        delegate.markInProgress(startTimestamp);
     }
 
     @Override

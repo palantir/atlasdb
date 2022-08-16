@@ -27,13 +27,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+
+import javax.annotation.CheckForNull;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.CheckForNull;
 
 /**
  * A {@link SplitKeyDelegatingTransactionService} delegates between multiple {@link TransactionService}s, depending
@@ -73,14 +74,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, startTimestamps));
-    }
-
-    @Override
-    public void markInProgress(long startTimestamp) {
-        TransactionService service = getServiceForTimestamp(keyedServices, startTimestamp)
-                .orElseThrow(
-                        () -> new UnsupportedOperationException("markInProgress shouldn't be used with null services"));
-        service.markInProgress(startTimestamp);
     }
 
     @Override

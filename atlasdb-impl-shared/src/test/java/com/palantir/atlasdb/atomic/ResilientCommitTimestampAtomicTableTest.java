@@ -16,18 +16,6 @@
 
 package com.palantir.atlasdb.atomic;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
@@ -45,6 +33,11 @@ import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.time.Clock;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,10 +55,18 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @RunWith(Parameterized.class)
 public class ResilientCommitTimestampAtomicTableTest {
@@ -434,10 +435,10 @@ public class ResilientCommitTimestampAtomicTableTest {
      * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
      *
      * WARNING: the usefulness of this store is coupled with the implementation of
-     * {@link PueKvsConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
+     * {@link ConsensusForgettingStoreV3} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private class UnreliablePueKvsConsensusForgettingStore extends PueKvsConsensusForgettingStore {
+    private class UnreliablePueKvsConsensusForgettingStore extends ConsensusForgettingStoreV3 {
         private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
@@ -457,7 +458,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
 
         /**
-         * We rely on the fact that {@link PueKvsConsensusForgettingStore} uses the default
+         * We rely on the fact that {@link ConsensusForgettingStoreV3} uses the default
          * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
          */
         @Override
