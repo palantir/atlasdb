@@ -16,13 +16,10 @@
 
 package com.palantir.atlasdb.atomic;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -30,26 +27,25 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class ConsensusForgettingStoreV4 implements ConsensusForgettingStore {
     private final byte[] inProgressMarker;
     private final KeyValueService kvs;
     private final TableReference tableRef;
+    private final ConsensusForgettingStoreReader reader;
 
     public ConsensusForgettingStoreV4(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
         this.tableRef = tableRef;
+        this.reader = new ConsensusForgettingStoreReaderImpl(kvs, tableRef);
     }
 
     /**
@@ -102,21 +98,12 @@ public class ConsensusForgettingStoreV4 implements ConsensusForgettingStore {
 
     @Override
     public ListenableFuture<Optional<byte[]>> get(Cell cell) {
-        return Futures.transform(
-                getMultiple(ImmutableList.of(cell)),
-                result -> Optional.ofNullable(result.get(cell)),
-                MoreExecutors.directExecutor());
+        return reader.get(cell);
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells) {
-        return Futures.transform(
-                kvs.getAsync(
-                        tableRef,
-                        StreamSupport.stream(cells.spliterator(), false)
-                                .collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE))),
-                result -> KeyedStream.stream(result).map(Value::getContents).collectToMap(),
-                MoreExecutors.directExecutor());
+        return reader.getMultiple(cells);
     }
 
     @Override

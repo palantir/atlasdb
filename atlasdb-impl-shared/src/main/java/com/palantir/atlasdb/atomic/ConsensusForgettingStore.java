@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.atomic;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -32,7 +30,7 @@ import java.util.Optional;
  *   3. Once (1) or (2) is successful, get will never return an Optional.empty() and will always return a consistent
  *   value until a put occurs.
  */
-public interface ConsensusForgettingStore {
+public interface ConsensusForgettingStore extends ConsensusForgettingStoreReader {
 
     /**
      * An atomic update operation. If this method throws an exception, there are no consistency guarantees:
@@ -59,10 +57,6 @@ public interface ConsensusForgettingStore {
     default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         values.forEach(this::checkAndTouch);
     }
-
-    ListenableFuture<Optional<byte[]>> get(Cell cell);
-
-    ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells);
 
     /**
      * A put operation that offers no consistency guarantees when an exception is thrown. Multiple puts into the same
