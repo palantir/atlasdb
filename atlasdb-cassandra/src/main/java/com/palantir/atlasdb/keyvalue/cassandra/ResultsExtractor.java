@@ -50,7 +50,7 @@ public abstract class ResultsExtractor<T> {
         byte[] maxRow = null;
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
-            TraceStatistics.incBytesRead(row.length);
+            TraceStatistics.incBytesRead(row);
 
             maxRow = updatedMaxRow(maxRow, row);
 
@@ -59,8 +59,8 @@ public abstract class ResultsExtractor<T> {
                 byte[] value = c.getColumn().getValue();
 
                 // Read the value & the column name size; we're not currently trying to model all the overheads
-                TraceStatistics.incBytesRead(pair.lhSide.length);
-                TraceStatistics.incBytesRead(value.length);
+                TraceStatistics.incBytesRead(pair.lhSide);
+                TraceStatistics.incBytesRead(value);
 
                 internalExtractResult(startTs, selection, row, pair.lhSide, value, pair.rhSide);
             }

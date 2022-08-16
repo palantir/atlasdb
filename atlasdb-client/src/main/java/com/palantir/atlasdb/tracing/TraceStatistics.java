@@ -105,6 +105,17 @@ public final class TraceStatistics {
     }
 
     /**
+     * Increment the number of bytes that have been read from the underlying database.
+     */
+    public static void incBytesRead(byte[] bytes) {
+        if (!isTraceObservable() || bytes == null) {
+            return;
+        }
+
+        traceStatistic.get().incBytesReadFromDb(bytes.length);
+    }
+
+    /**
      * Get a copy of the current statistics and restore the original statistics. A companion to `getCurrentAndClear`.
      */
     public static TraceStatistic getCopyAndRestoreOriginal(TraceStatistic original) {

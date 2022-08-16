@@ -215,9 +215,9 @@ public class PostgresGetRange implements DbKvsGetRange {
                         currentRowCells.put(colName, value);
 
                         // Track the bytes read from the DB (ignoring overheads)
-                        TraceStatistics.incBytesRead(rowName.length);
-                        TraceStatistics.incBytesRead(colName.length);
-                        TraceStatistics.incBytesRead(rawVal.length);
+                        TraceStatistics.incBytesRead(rowName);
+                        TraceStatistics.incBytesRead(colName);
+                        TraceStatistics.incBytesRead(rawVal);
                     }
                     if (numSqlRows < maxCellsPerPage || colName == null) {
                         getCurrentRowResult().ifPresent(results::add);

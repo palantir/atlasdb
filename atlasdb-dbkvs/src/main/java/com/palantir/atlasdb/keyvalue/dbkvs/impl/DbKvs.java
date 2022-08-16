@@ -1105,7 +1105,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             byte[] val = resolvedOverflowValues.get(ov.id());
 
             // Track the loading of the overflow values (used e.g. by Oracle for large values)
-            TraceStatistics.incBytesRead(val.length);
+            TraceStatistics.incBytesRead(val);
 
             com.google.common.base.Preconditions.checkNotNull(
                     val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());

@@ -97,7 +97,7 @@ final class RowColumnRangeExtractor {
         Map<ByteBuffer, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, ByteBuffer::wrap);
         for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] rawRow = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
-            TraceStatistics.incBytesRead(rawRow.length);
+            TraceStatistics.incBytesRead(rawRow);
 
             byte[] row = canonicalRowsByHash.get(ByteBuffer.wrap(rawRow));
             List<ColumnOrSuperColumn> columns = colEntry.getValue();
@@ -112,7 +112,7 @@ final class RowColumnRangeExtractor {
             for (ColumnOrSuperColumn c : columns) {
                 Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
                 // Column name
-                TraceStatistics.incBytesRead(pair.lhSide.length);
+                TraceStatistics.incBytesRead(pair.lhSide);
                 // Column value
                 TraceStatistics.incBytesRead(c.getColumn().getValue().length);
 

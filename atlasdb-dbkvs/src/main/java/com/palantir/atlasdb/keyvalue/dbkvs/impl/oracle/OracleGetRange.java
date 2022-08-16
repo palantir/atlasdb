@@ -353,9 +353,9 @@ public class OracleGetRange implements DbKvsGetRange {
             currentRowCells.put(colName, Value.create(value, sqlRow.ts));
 
             // Track the bytes read from the DB (ignoring overheads)
-            TraceStatistics.incBytesRead(rowName.length);
-            TraceStatistics.incBytesRead(colName.length);
-            TraceStatistics.incBytesRead(value.length);
+            TraceStatistics.incBytesRead(rowName);
+            TraceStatistics.incBytesRead(colName);
+            TraceStatistics.incBytesRead(value);
         }
         if (currentRowName != null) {
             rowResults.add(RowResult.create(currentRowName, currentRowCells.build()));
