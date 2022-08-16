@@ -42,9 +42,9 @@ import org.apache.cassandra.thrift.Mutation;
 public class CellValuePutter {
     /**
      * This value has been chosen so that, in case of internal KVS inconsistency, the value stored with
-     * {@link com.palantir.atlasdb.atomic.ConsensusForgettingStoreV3#put(Cell, byte[])} is always considered as the latest value. It is the
-     * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
-     * which it is and must remain so for the Cassandra KVS.
+     * {@link com.palantir.atlasdb.atomic.ConsensusForgettingStoreV3#put(Cell, byte[])} is always considered as
+     * the latest value. It is the responsibility of the user of this class to verify that this is true for the
+     * particular KVS implementation, which it is and must remain so for the Cassandra KVS.
      */
     public static final long SET_TIMESTAMP = Long.MAX_VALUE - 10;
 
