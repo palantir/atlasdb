@@ -85,7 +85,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 new ConsensusForgettingStoreV3(kvs, tableRef), metricRegistry);
         AtomicTable<Long, Long> atomicTable =
                 new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
-                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
+                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
         return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 
