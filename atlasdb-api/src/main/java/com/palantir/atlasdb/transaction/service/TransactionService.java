@@ -17,9 +17,8 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.metrics.Timed;
-
-import javax.annotation.CheckForNull;
 import java.util.Map;
+import javax.annotation.CheckForNull;
 
 /**
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
