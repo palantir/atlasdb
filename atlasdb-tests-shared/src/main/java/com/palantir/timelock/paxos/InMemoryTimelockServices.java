@@ -34,6 +34,7 @@ import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -165,7 +166,9 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
         namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         lockLeaseService = LockLeaseService.create(
-                namespacedConjureTimelockService, new LegacyLeaderTimeGetter(namespacedConjureTimelockService));
+                namespacedConjureTimelockService,
+                new LegacyLeaderTimeGetter(namespacedConjureTimelockService),
+                new LegacyLockTokenUnlocker(namespacedConjureTimelockService));
     }
 
     @Override
