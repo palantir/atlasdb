@@ -22,6 +22,7 @@ import com.palantir.atlasdb.atomic.InstrumentedConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
+import com.palantir.atlasdb.atomic.TimestampExtractingAtomicTable;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -66,8 +67,11 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     private static SimpleTransactionService createSimple(
-            KeyValueService kvs, TableReference tableRef, TimestampEncodingStrategy<Long> encodingStrategy) {
-        AtomicTable<Long, Long> pueTable = new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy);
+            KeyValueService kvs,
+            TableReference tableRef,
+            TimestampEncodingStrategy<TransactionStatus> encodingStrategy) {
+        AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(
+                new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy));
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
@@ -79,9 +83,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> atomicTable = new ResilientCommitTimestampAtomicTable(
-                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
-        return new SimpleTransactionService(atomicTable, encodingStrategy);
+        AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
+        return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
     @Override

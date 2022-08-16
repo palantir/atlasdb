@@ -26,13 +26,13 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
- * An {@link InternalSchemaConfig} contains information that can be used for controlling how the internal schema
+ * An {@link InternalSchemaRuntimeConfig} contains information that can be used for controlling how the internal schema
  * of an AtlasDB installation operates.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableInternalSchemaConfig.class)
-@JsonDeserialize(as = ImmutableInternalSchemaConfig.class)
-public abstract class InternalSchemaConfig {
+@JsonSerialize(as = ImmutableInternalSchemaRuntimeConfig.class)
+@JsonDeserialize(as = ImmutableInternalSchemaRuntimeConfig.class)
+public abstract class InternalSchemaRuntimeConfig {
     /**
      * If specified, attempts to install the provided transactions schema version to this AtlasDB installation.
      * This is expected to be supported by the version of AtlasDB deployed on this service node.

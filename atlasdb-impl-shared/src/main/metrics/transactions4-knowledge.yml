@@ -8,3 +8,12 @@ namespaces:
       disjointCacheIntervals:
         type: gauge
         docs: The number of disjoint intervals of timestamps tracked in the cache.
+  abortedTransctionsCache:
+    docs: Metrics tracking aborted transactions cache usage.
+    metrics:
+      abortedTxnCacheMiss:
+        type: meter
+        docs: The number of times aborted transactions bucket was loaded from remote.
+      reliableBucketEvictions:
+        type: meter
+        docs: The number of times a reliable bucket was evicted from cache.

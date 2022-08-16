@@ -93,7 +93,6 @@ public final class AtlasDbConstants {
 
     public static final int DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS = 10;
 
-    public static final long STARTING_TS = 1L;
     public static final long TRANSACTION_TS = 0L;
     public static final long MAX_TS = Long.MAX_VALUE;
 

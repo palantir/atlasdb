@@ -19,6 +19,10 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -34,10 +38,8 @@ import java.util.stream.Stream;
  * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
  * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
-public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
+public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
     INSTANCE;
-
-    public static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
     // DO NOT change the following without a transactions table migration!
     public static final long PARTITIONING_QUANTUM = 25_000_000;
@@ -57,19 +59,25 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Long> {
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, Long commitTimestamp) {
-        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            return ABORTED_TRANSACTION_VALUE;
-        }
-        return TransactionConstants.getValueForTimestamp(commitTimestamp - startTimestamp);
+    public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus commit) {
+        return TransactionStatuses.caseOf(commit)
+                .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
+                .aborted_(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)
+                .otherwise(() -> {
+                    throw new SafeIllegalArgumentException(
+                            "Unexpected transaction status", SafeArg.of("status", commit));
+                });
     }
 
     @Override
-    public Long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
-        if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
-            return TransactionConstants.FAILED_COMMIT_TS;
+    public TransactionStatus decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        if (value == null) {
+            return TransactionConstants.IN_PROGRESS;
         }
-        return startTimestamp + TransactionConstants.getTimestampForValue(value);
+        if (Arrays.equals(value, TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)) {
+            return TransactionConstants.ABORTED;
+        }
+        return TransactionStatuses.committed(startTimestamp + TransactionConstants.getTimestampForValue(value));
     }
 
     public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
