@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class PueCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
+public class CassImitatingConsensusForgettingStoreV3 extends CassandraImitatingConsensusForgettingStore {
 
-    public PueCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
+    public CassImitatingConsensusForgettingStoreV3(double probabilityOfFailure) {
         super(probabilityOfFailure);
     }
 
@@ -55,15 +55,5 @@ public class PueCassImitatingConsensusForgettingStore extends CassandraImitating
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
                 .forEach(this::atomicUpdate);
-    }
-
-    @Override
-    public void mark(Cell cell) {
-        // no op
-    }
-
-    @Override
-    public void mark(Set<Cell> cells) {
-        // no op
     }
 }

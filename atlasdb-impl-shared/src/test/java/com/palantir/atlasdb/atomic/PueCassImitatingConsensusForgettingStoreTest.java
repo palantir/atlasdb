@@ -16,17 +16,16 @@
 
 package com.palantir.atlasdb.atomic;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import org.junit.Test;
-
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.Test;
 
 public class PueCassImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
@@ -34,9 +33,9 @@ public class PueCassImitatingConsensusForgettingStoreTest {
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    ConsensusForgettingStore neverThrowing = new PueCassImitatingConsensusForgettingStore(0.0);
+    ConsensusForgettingStore neverThrowing = new CassImitatingConsensusForgettingStoreV3(0.0);
     CassandraImitatingConsensusForgettingStore sometimesThrowing =
-            new PueCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
+            new CassImitatingConsensusForgettingStoreV3(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
     public void trivialGet() throws ExecutionException, InterruptedException {

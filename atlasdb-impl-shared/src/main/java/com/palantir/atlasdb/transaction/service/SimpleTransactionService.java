@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.service;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ConsensusForgettingStoreV3;
 import com.palantir.atlasdb.atomic.InstrumentedConsensusForgettingStore;
-import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -78,7 +78,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
-                new PueKvsConsensusForgettingStore(kvs, tableRef), metricRegistry);
+                new ConsensusForgettingStoreV3(kvs, tableRef), metricRegistry);
         AtomicTable<Long, Long> atomicTable = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
         return new SimpleTransactionService(atomicTable, encodingStrategy);

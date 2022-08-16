@@ -16,55 +16,55 @@
 
 package com.palantir.atlasdb.atomic;
 
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import org.junit.Test;
-
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class CasCassImitatingConsensusForgettingStoreTest {
+import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import java.util.Optional;
+import org.junit.Test;
+
+public class CassImitatingConsensusForgettingStoreV4Test {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
     private static final byte[] VALUE = PtBytes.toBytes("VAL");
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    ConsensusForgettingStore neverThrowing = new CasCassImitatingConsensusForgettingStore(0.0);
-    CassandraImitatingConsensusForgettingStore sometimesThrowing =
-            new CasCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
+    CassImitatingConsensusForgettingStoreV4 neverThrowing = new CassImitatingConsensusForgettingStoreV4(0.0);
+    CassImitatingConsensusForgettingStoreV4 sometimesThrowing =
+            new CassImitatingConsensusForgettingStoreV4(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
-    public void trivialGet() throws ExecutionException, InterruptedException {
-        assertThat(neverThrowing.get(CELL).get()).isEmpty();
+    public void trivialGet() {
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).isEmpty();
     }
 
     @Test
-    public void canGetAfterMark() throws ExecutionException, InterruptedException {
+    public void canGetAfterMark() {
         neverThrowing.mark(CELL);
-        assertThat(neverThrowing.get(CELL).get()).contains(CasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL)))
+                .contains(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
     }
 
     @Test
-    public void canGetAfterUpdate() throws ExecutionException, InterruptedException {
+    public void canGetAfterUpdate() {
         atomicUpdate(neverThrowing, CELL);
-        assertThat(neverThrowing.get(CELL).get()).contains(VALUE);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).contains(VALUE);
     }
 
     @Test
-    public void canGetAfterPut() throws ExecutionException, InterruptedException {
+    public void canGetAfterPut() {
         neverThrowing.put(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).hasValue(VALUE);
     }
 
     @Test
-    public void putOverwritesUpdate() throws ExecutionException, InterruptedException {
+    public void putOverwritesUpdate() {
         atomicUpdate(neverThrowing, CELL);
         neverThrowing.put(CELL, VALUE_2);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE_2);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).hasValue(VALUE_2);
     }
 
     @Test
@@ -85,23 +85,23 @@ public class CasCassImitatingConsensusForgettingStoreTest {
     }
 
     @Test
-    public void cannotAtomicUpdateAfterMark() throws ExecutionException, InterruptedException {
+    public void cannotAtomicUpdateIfNotMarked() {
         assertThatThrownBy(() -> neverThrowing.atomicUpdate(CELL, VALUE)).isInstanceOf(CheckAndSetException.class);
-        assertThat(neverThrowing.get(CELL).get()).isEmpty();
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).isEmpty();
     }
 
     @Test
-    public void canAtomicUpdateAfterMark() throws ExecutionException, InterruptedException {
+    public void canAtomicUpdateAfterMark() {
         neverThrowing.mark(CELL);
         neverThrowing.atomicUpdate(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).hasValue(VALUE);
     }
 
     @Test
-    public void canTouchAfterAtomicUpdate() throws ExecutionException, InterruptedException {
+    public void canTouchAfterAtomicUpdate() {
         atomicUpdate(neverThrowing, CELL);
         neverThrowing.checkAndTouch(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
+        assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).hasValue(VALUE);
     }
 
     @Test
@@ -119,7 +119,7 @@ public class CasCassImitatingConsensusForgettingStoreTest {
     }
 
     @Test
-    public void testPartialFailuresInMarking() throws ExecutionException, InterruptedException {
+    public void testPartialFailuresInMarking() {
         int numberOfSuccessfulUpdates = 0;
         int numberOfNothingPresent = 0;
         int numberOfValuePresentAfterFailure = 0;
@@ -129,15 +129,16 @@ public class CasCassImitatingConsensusForgettingStoreTest {
                 sometimesThrowing.mark(cell);
                 numberOfSuccessfulUpdates++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);
-                assertThat(sometimesThrowing.get(cell).get()).hasValue(CasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+                assertThat(Futures.getUnchecked(sometimesThrowing.get(cell)))
+                        .hasValue(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
             } catch (RuntimeException e) {
                 sometimesThrowing.setProbabilityOfFailure(0.0);
-                Optional<byte[]> actualValue = sometimesThrowing.get(cell).get();
+                Optional<byte[]> actualValue = Futures.getUnchecked(sometimesThrowing.get(cell));
                 if (actualValue.isEmpty()) {
                     numberOfNothingPresent++;
                 } else {
-                    assertThat(actualValue).hasValue(CasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+                    assertThat(actualValue).hasValue(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
                     numberOfValuePresentAfterFailure++;
                 }
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
@@ -150,7 +151,7 @@ public class CasCassImitatingConsensusForgettingStoreTest {
         assertThat(numberOfValuePresentAfterFailure).isBetween(10, 55);
     }
 
-    private void atomicUpdate(ConsensusForgettingStore store, Cell cell) {
+    private void atomicUpdate(CassImitatingConsensusForgettingStoreV4 store, Cell cell) {
         store.mark(cell);
         store.atomicUpdate(cell, VALUE);
     }

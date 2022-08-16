@@ -20,17 +20,16 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public final class CasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
+public final class CassImitatingConsensusForgettingStoreV4 extends CassandraImitatingConsensusForgettingStore {
     static final byte[] IN_PROGRESS_MARKER = new byte[1];
 
-    public CasCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
+    public CassImitatingConsensusForgettingStoreV4(double probabilityOfFailure) {
         super(probabilityOfFailure);
     }
 
@@ -47,7 +46,8 @@ public final class CasCassImitatingConsensusForgettingStore extends CassandraImi
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult.map(BytesAndTimestamp::bytes).stream().noneMatch(read -> Arrays.equals(read, IN_PROGRESS_MARKER))) {
+            if (readResult.map(BytesAndTimestamp::bytes).stream()
+                    .noneMatch(read -> Arrays.equals(read, IN_PROGRESS_MARKER))) {
                 throw new CheckAndSetException(
                         "Did not find the expected value",
                         cell,
@@ -65,7 +65,6 @@ public final class CasCassImitatingConsensusForgettingStore extends CassandraImi
                 .forEach(this::atomicUpdate);
     }
 
-    @Override
     public void mark(Cell cell) {
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
@@ -73,9 +72,7 @@ public final class CasCassImitatingConsensusForgettingStore extends CassandraImi
         });
     }
 
-    @Override
     public void mark(Set<Cell> cells) {
         cells.stream().sorted().forEach(this::mark);
     }
 }
-
