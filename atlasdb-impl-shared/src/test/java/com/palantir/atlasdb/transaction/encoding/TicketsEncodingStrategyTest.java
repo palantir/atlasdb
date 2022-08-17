@@ -86,8 +86,8 @@ public class TicketsEncodingStrategyTest {
         fuzzOneThousandTrials(() -> {
             long startTimestamp = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE - 1);
             long commitTimestamp = ThreadLocalRandom.current().nextLong(startTimestamp, Long.MAX_VALUE);
-            byte[] encoded = STRATEGY.encodeCommitStatusAsValue(
-                    startTimestamp, TransactionStatuses.committed(commitTimestamp));
+            byte[] encoded =
+                    STRATEGY.encodeCommitStatusAsValue(startTimestamp, TransactionStatuses.committed(commitTimestamp));
             assertThat(TransactionStatuses.getCommitTimestamp(
                             STRATEGY.decodeValueAsCommitStatus(startTimestamp, encoded)))
                     .hasValue(commitTimestamp);
@@ -180,8 +180,7 @@ public class TicketsEncodingStrategyTest {
     @Test
     public void canDecodeNullAsInProgressTransaction() {
         assertThat(STRATEGY.decodeValueAsCommitStatus(1, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
-        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, null))
-                .isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
     @Test

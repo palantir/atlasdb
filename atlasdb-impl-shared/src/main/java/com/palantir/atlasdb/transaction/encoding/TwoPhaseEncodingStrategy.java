@@ -36,7 +36,8 @@ public enum TwoPhaseEncodingStrategy {
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
-    static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED = AtomicValue.committed(TransactionConstants.IN_PROGRESS);
+    static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED =
+            AtomicValue.committed(TransactionConstants.IN_PROGRESS);
 
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);

@@ -166,11 +166,10 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
+            AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
             TransactionStatus commitStatus = currentValue.value();
-            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitStatus(
-                    startTs, Iterables.getOnlyElement(e.getActualValues()));
+            AtomicValue<TransactionStatus> kvsValue =
+                    encodingStrategy.decodeValueAsCommitStatus(startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
                     kvsValue.isCommitted()
                             && TransactionStatuses.getCommitTimestamp(kvsValue.value())
@@ -201,8 +200,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             }
 
             byte[] actual = maybeActual.get();
-            AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
+            AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
 
             TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {

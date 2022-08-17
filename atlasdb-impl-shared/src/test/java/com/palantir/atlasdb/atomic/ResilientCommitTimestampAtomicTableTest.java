@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.time.Clock;
@@ -172,8 +173,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
         Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
         byte[] stagingValue = strategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.staging(commitStatus));
-        byte[] committedValue =
-                strategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.committed(commitStatus));
+        byte[] committedValue = strategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.committed(commitStatus));
         spiedStore.atomicUpdate(timestampAsCell, stagingValue);
 
         List<byte[]> actualValues = ImmutableList.of(committedValue);
@@ -459,7 +459,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         @Override
         public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
             if (commitUnderUs) {
-                super.put(ImmutableMap.of(cell, EncodingStrategyV3.INSTANCE.transformStagingToCommitted(value)));
+                super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
             }
             int current = concurrentTouches.incrementAndGet();
             if (current > maximumConcurrentTouches.get()) {
