@@ -27,9 +27,9 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -61,7 +61,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return createResilient(
                 kvs,
                 TransactionConstants.TRANSACTIONS2_TABLE,
-                TwoPhaseEncodingStrategy.INSTANCE,
+                EncodingStrategyV3.INSTANCE,
                 metricRegistry,
                 acceptStagingReadsAsCommitted);
     }
@@ -78,7 +78,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     private static SimpleTransactionService createResilient(
             KeyValueService kvs,
             TableReference tableRef,
-            TwoPhaseEncodingStrategy encodingStrategy,
+            EncodingStrategyV3 encodingStrategy,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(

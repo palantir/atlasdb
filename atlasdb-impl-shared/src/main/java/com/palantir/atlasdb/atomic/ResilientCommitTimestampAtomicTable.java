@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
-import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -62,7 +62,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
     private final ConsensusForgettingStore store;
-    private final TwoPhaseEncodingStrategy encodingStrategy;
+    private final EncodingStrategyV3 encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
     private final Clock clock;
     private final PutUnlessExistsTableMetrics metrics;
@@ -96,15 +96,13 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
     public ResilientCommitTimestampAtomicTable(
-            ConsensusForgettingStore store,
-            TwoPhaseEncodingStrategy encodingStrategy,
-            TaggedMetricRegistry metricRegistry) {
+            ConsensusForgettingStore store, EncodingStrategyV3 encodingStrategy, TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
     public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
-            TwoPhaseEncodingStrategy encodingStrategy,
+            EncodingStrategyV3 encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock(), metricRegistry);
@@ -113,7 +111,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     @VisibleForTesting
     ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
-            TwoPhaseEncodingStrategy encodingStrategy,
+            EncodingStrategyV3 encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Clock clock,
             TaggedMetricRegistry metricRegistry) {

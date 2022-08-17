@@ -39,8 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.time.Clock;
@@ -85,11 +85,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
         atomicTable = new ResilientCommitTimestampAtomicTable(
-                spiedStore,
-                TwoPhaseEncodingStrategy.INSTANCE,
-                () -> !validating,
-                clock,
-                new DefaultTaggedMetricRegistry());
+                spiedStore, EncodingStrategyV3.INSTANCE, () -> !validating, clock, new DefaultTaggedMetricRegistry());
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -170,7 +166,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     @Test
     public void getReturnsStagingValuesThatWereCommittedBySomeoneElse()
             throws ExecutionException, InterruptedException {
-        TwoPhaseEncodingStrategy strategy = TwoPhaseEncodingStrategy.INSTANCE;
+        EncodingStrategyV3 strategy = EncodingStrategyV3.INSTANCE;
 
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
@@ -195,7 +191,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
                 new CassandraImitatingConsensusForgettingStore(0.5d),
-                TwoPhaseEncodingStrategy.INSTANCE,
+                EncodingStrategyV3.INSTANCE,
                 new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
@@ -463,7 +459,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         @Override
         public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
             if (commitUnderUs) {
-                super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
+                super.put(ImmutableMap.of(cell, EncodingStrategyV3.INSTANCE.transformStagingToCommitted(value)));
             }
             int current = concurrentTouches.incrementAndGet();
             if (current > maximumConcurrentTouches.get()) {

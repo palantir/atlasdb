@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<AtomicValue<TransactionStatus>> {
+public enum TwoPhaseEncodingStrategy {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};
@@ -36,32 +36,23 @@ public enum TwoPhaseEncodingStrategy implements TimestampEncodingStrategy<Atomic
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
-    private static final AtomicValue<TransactionStatus> IN_PROGRESS =
-            AtomicValue.committed(TransactionConstants.IN_PROGRESS);
+    static final AtomicValue<TransactionStatus> IN_PROGRESS = AtomicValue.committed(TransactionConstants.IN_PROGRESS);
 
-    @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);
     }
 
-    @Override
     public long decodeCellAsStartTimestamp(Cell cell) {
         return TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(cell);
     }
 
-    @Override
     public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return EncodingUtils.add(
                 TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp.value()),
                 commitTimestamp.isCommitted() ? COMMITTED : STAGING);
     }
 
-    @Override
-    public AtomicValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
-        if (value == null) {
-            return IN_PROGRESS;
-        }
-
+    public AtomicValue<TransactionStatus> decodeValueAsTransactionStatus(long startTimestamp, byte[] value) {
         byte[] head = PtBytes.head(value, value.length - 1);
         byte[] tail = PtBytes.tail(value, 1);
 
