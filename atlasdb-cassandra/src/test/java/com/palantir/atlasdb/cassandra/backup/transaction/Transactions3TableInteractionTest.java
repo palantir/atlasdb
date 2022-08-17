@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -157,7 +158,7 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(EncodingStrategyV3.INSTANCE.encodeCommitTimestampAsValue(start, commit)));
+                .thenReturn(ByteBuffer.wrap(EncodingStrategyV3.INSTANCE.encodeCommitStatusAsValue(start, commit)));
         return row;
     }
 
@@ -167,7 +168,7 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(EncodingStrategyV3.ABORTED_TRANSACTION_COMMITTED_VALUE));
+                .thenReturn(ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE));
         return row;
     }
 

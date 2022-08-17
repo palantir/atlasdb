@@ -18,12 +18,13 @@ package com.palantir.atlasdb.transaction.encoding;
 
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import java.util.Arrays;
 
 public enum EncodingStrategyV4 implements TimestampEncodingStrategy<AtomicValue<TransactionStatus>> {
     INSTANCE;
+
+    private static final byte[] TTS_IN_PROGRESS_TRANSACTION_VALUE = new byte[] {0};
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -36,14 +37,14 @@ public enum EncodingStrategyV4 implements TimestampEncodingStrategy<AtomicValue<
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
     }
 
     @Override
-    public AtomicValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
-        return Arrays.equals(value, TransactionConstants.TTS_IN_PROGRESS_TRANSACTION_VALUE)
-                ? TwoPhaseEncodingStrategy.IN_PROGRESS
+    public AtomicValue<TransactionStatus> decodeValueAsCommitStatus(long startTimestamp, byte[] value) {
+        return Arrays.equals(value, TTS_IN_PROGRESS_TRANSACTION_VALUE)
+                ? TwoPhaseEncodingStrategy.IN_PROGRESS_COMMITTED
                 : TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsTransactionStatus(startTimestamp, value);
     }
 }

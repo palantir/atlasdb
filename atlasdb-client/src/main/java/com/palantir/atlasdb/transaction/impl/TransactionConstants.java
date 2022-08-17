@@ -41,7 +41,6 @@ public final class TransactionConstants {
     public static final long FAILED_COMMIT_TS = -1L;
     public static final byte[] DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE = getValueForTimestamp(FAILED_COMMIT_TS);
     public static final byte[] TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
-    public static final byte[] TTS_IN_PROGRESS_TRANSACTION_VALUE = new byte[] {0};
 
     public static final TransactionStatus ABORTED = TransactionStatuses.aborted();
     public static final TransactionStatus IN_PROGRESS = TransactionStatuses.inProgress();

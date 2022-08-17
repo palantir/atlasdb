@@ -59,7 +59,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, TransactionStatus commit) {
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, TransactionStatus commit) {
         return TransactionStatuses.caseOf(commit)
                 .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
                 .aborted_(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)
@@ -70,7 +70,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
     }
 
     @Override
-    public TransactionStatus decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public TransactionStatus decodeValueAsCommitStatus(long startTimestamp, byte[] value) {
         if (value == null) {
             return TransactionConstants.IN_PROGRESS;
         }

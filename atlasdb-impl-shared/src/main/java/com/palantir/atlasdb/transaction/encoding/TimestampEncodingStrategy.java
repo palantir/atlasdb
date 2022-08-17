@@ -27,7 +27,7 @@ package com.palantir.atlasdb.transaction.encoding;
  *
  */
 public interface TimestampEncodingStrategy<V> extends CellEncodingStrategy {
-    byte[] encodeCommitTimestampAsValue(long startTimestamp, V commitTimestamp);
+    byte[] encodeCommitStatusAsValue(long startTimestamp, V commitTimestamp);
 
-    V decodeValueAsCommitTimestamp(long startTimestamp, byte[] value);
+    V decodeValueAsCommitStatus(long startTimestamp, byte[] value);
 }

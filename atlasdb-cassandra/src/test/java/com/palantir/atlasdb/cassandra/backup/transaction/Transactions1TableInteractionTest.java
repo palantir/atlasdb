@@ -55,9 +55,9 @@ public class Transactions1TableInteractionTest {
 
     @Test
     public void valueEncodingTest() {
-        byte[] actualValue = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+        byte[] actualValue = V1EncodingStrategy.INSTANCE.encodeCommitStatusAsValue(
                 111L, TransactionStatusUtils.fromTimestamp(222L));
-        byte[] abort = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(1L, TransactionConstants.ABORTED);
+        byte[] abort = V1EncodingStrategy.INSTANCE.encodeCommitStatusAsValue(1L, TransactionConstants.ABORTED);
 
         assertThat(Transactions1TableInteraction.encodeCommitTimestamp(222L)).isEqualTo(ByteBuffer.wrap(actualValue));
         assertThat(Transactions1TableInteraction.encodeCommitTimestamp(TransactionConstants.FAILED_COMMIT_TS))

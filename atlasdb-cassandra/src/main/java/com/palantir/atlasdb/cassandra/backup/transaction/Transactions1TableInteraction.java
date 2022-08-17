@@ -49,7 +49,7 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
 
     private static final byte[] DUMMY = new byte[] {1};
     private static final byte[] ABORT_COMMIT_TS_ENCODED =
-            V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(0, TransactionConstants.ABORTED);
+            V1EncodingStrategy.INSTANCE.encodeCommitStatusAsValue(0, TransactionConstants.ABORTED);
     static final ByteBuffer COLUMN_NAME_BB = ByteBuffer.wrap(TransactionConstants.COMMIT_TS_COLUMN);
 
     @Override
@@ -146,11 +146,11 @@ public class Transactions1TableInteraction implements TransactionsTableInteracti
     }
 
     static ByteBuffer encodeCommitTimestamp(long timestamp) {
-        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+        return ByteBuffer.wrap(V1EncodingStrategy.INSTANCE.encodeCommitStatusAsValue(
                 0, TransactionStatusUtils.fromTimestamp(timestamp)));
     }
 
     private TransactionStatus decodeCommitTs(byte[] value) {
-        return V1EncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(0, value);
+        return V1EncodingStrategy.INSTANCE.decodeValueAsCommitStatus(0, value);
     }
 }

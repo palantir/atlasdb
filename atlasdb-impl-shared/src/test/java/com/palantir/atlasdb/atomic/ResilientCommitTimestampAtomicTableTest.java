@@ -171,9 +171,9 @@ public class ResilientCommitTimestampAtomicTableTest {
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
         Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
-        byte[] stagingValue = strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
+        byte[] stagingValue = strategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.staging(commitStatus));
         byte[] committedValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.committed(commitStatus));
+                strategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.committed(commitStatus));
         spiedStore.atomicUpdate(timestampAsCell, stagingValue);
 
         List<byte[]> actualValues = ImmutableList.of(committedValue);

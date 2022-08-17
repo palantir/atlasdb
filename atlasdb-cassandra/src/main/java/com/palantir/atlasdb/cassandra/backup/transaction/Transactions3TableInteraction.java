@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
 import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
@@ -59,7 +60,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     @Override
     public PreparedStatement prepareAbortStatement(TableMetadata transactionsTable, CqlSession session) {
         // we are declaring bankruptcy if this fails anyway
-        ByteBuffer abortCommitTsBb = ByteBuffer.wrap(EncodingStrategyV3.ABORTED_TRANSACTION_COMMITTED_VALUE);
+        ByteBuffer abortCommitTsBb = ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_COMMITTED_VALUE);
 
         Statement abortStatement = QueryBuilder.update(transactionsTable)
                 .with(QueryBuilder.set(CassandraConstants.VALUE, abortCommitTsBb))
@@ -87,7 +88,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         long startTimestamp = EncodingStrategyV3.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        AtomicValue<TransactionStatus> commitValue = EncodingStrategyV3.INSTANCE.decodeValueAsCommitTimestamp(
+        AtomicValue<TransactionStatus> commitValue = EncodingStrategyV3.INSTANCE.decodeValueAsCommitStatus(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
 
         if (commitValue.value() == TransactionConstants.ABORTED) {
@@ -125,7 +126,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
 
     @Override
     public List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable) {
-        Set<ByteBuffer> encodedRowKeys = EncodingStrategyV3.INSTANCE
+        Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
                 .encodeRangeOfStartTimestampsAsRows(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())
                 .map(ByteBuffer::wrap)

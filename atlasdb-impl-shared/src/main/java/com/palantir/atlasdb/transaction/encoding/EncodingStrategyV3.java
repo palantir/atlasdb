@@ -34,14 +34,14 @@ public enum EncodingStrategyV3 implements TimestampEncodingStrategy<AtomicValue<
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
     }
 
     @Override
-    public AtomicValue<TransactionStatus> decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public AtomicValue<TransactionStatus> decodeValueAsCommitStatus(long startTimestamp, byte[] value) {
         return value == null
-                ? TwoPhaseEncodingStrategy.IN_PROGRESS
+                ? TwoPhaseEncodingStrategy.IN_PROGRESS_COMMITTED
                 : TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsTransactionStatus(startTimestamp, value);
     }
 }

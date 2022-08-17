@@ -58,7 +58,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
                 KeyedStream.stream(values)
                         .mapEntries((startTs, commitTs) -> Map.entry(
                                 encodingStrategy.encodeStartTimestampAsCell(startTs),
-                                encodingStrategy.encodeCommitTimestampAsValue(startTs, commitTs)))
+                                encodingStrategy.encodeCommitStatusAsValue(startTs, commitTs)))
                         .collectToMap());
     }
 
@@ -74,7 +74,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
                 presentValues -> KeyedStream.stream(startTsToCell)
                         .map(presentValues::get)
                         .map(value -> value == null ? null : value.getContents())
-                        .map(encodingStrategy::decodeValueAsCommitTimestamp)
+                        .map(encodingStrategy::decodeValueAsCommitStatus)
                         .collectToMap(),
                 MoreExecutors.directExecutor());
     }

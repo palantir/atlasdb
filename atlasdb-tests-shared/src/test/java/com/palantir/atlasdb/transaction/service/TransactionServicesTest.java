@@ -158,7 +158,7 @@ public class TransactionServicesTest {
     private void assertExpectedArgument(
             Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy<TransactionStatus> strategy) {
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
-        byte[] value = strategy.encodeCommitTimestampAsValue(startTs, TransactionStatusUtils.fromTimestamp(commitTs));
+        byte[] value = strategy.encodeCommitStatusAsValue(startTs, TransactionStatusUtils.fromTimestamp(commitTs));
 
         assertThat(actualArgument.keySet()).containsExactly(cell);
         assertThat(actualArgument.get(cell)).containsExactly(value);

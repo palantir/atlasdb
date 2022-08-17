@@ -87,7 +87,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         long startTimestamp = TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        TransactionStatus commitStatus = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        TransactionStatus commitStatus = TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitStatus(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
         return TransactionTableEntryUtils.fromStatus(startTimestamp, commitStatus);
     }
@@ -112,7 +112,7 @@ public class Transactions2TableInteraction implements TransactionsTableInteracti
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
-        ByteBuffer valueBb = ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+        ByteBuffer valueBb = ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(
                 startTs, TransactionStatusUtils.fromTimestamp(commitTs)));
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb, valueBb);
         return bound.setConsistencyLevel(ConsistencyLevel.QUORUM)

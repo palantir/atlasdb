@@ -32,11 +32,11 @@ public enum TwoPhaseEncodingStrategy {
     INSTANCE;
 
     private static final byte[] STAGING = new byte[] {0};
-    private static final byte[] COMMITTED = new byte[] {1};
+    static final byte[] COMMITTED = new byte[] {1};
 
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
-    static final AtomicValue<TransactionStatus> IN_PROGRESS = AtomicValue.committed(TransactionConstants.IN_PROGRESS);
+    static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED = AtomicValue.committed(TransactionConstants.IN_PROGRESS);
 
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);
@@ -48,7 +48,7 @@ public enum TwoPhaseEncodingStrategy {
 
     public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
         return EncodingUtils.add(
-                TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp.value()),
+                TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(startTimestamp, commitTimestamp.value()),
                 commitTimestamp.isCommitted() ? COMMITTED : STAGING);
     }
 
@@ -57,7 +57,7 @@ public enum TwoPhaseEncodingStrategy {
         byte[] tail = PtBytes.tail(value, 1);
 
         TransactionStatus commitStatus =
-                TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(startTimestamp, head);
+                TicketsEncodingStrategy.INSTANCE.decodeValueAsCommitStatus(startTimestamp, head);
         if (Arrays.equals(tail, COMMITTED)) {
             return AtomicValue.committed(commitStatus);
         }

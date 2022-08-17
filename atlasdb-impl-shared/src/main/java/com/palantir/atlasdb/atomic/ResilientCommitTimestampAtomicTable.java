@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
 import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -86,7 +87,8 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                         }
                         if (followUpAction == FollowUpAction.PUT) {
                             store.put(ImmutableMap.of(
-                                    cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
+                                    cellInfo.cell(),
+                                    TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(cellInfo.value())));
                         }
                     });
                     return TransactionStatusUtils.fromTimestamp(cellInfo.commitTs());
@@ -133,12 +135,12 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
-                .map(startTs -> encodingStrategy.encodeCommitTimestampAsValue(
+                .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
         store.atomicUpdate(stagingValues);
         store.put(KeyedStream.stream(stagingValues)
-                .map(encodingStrategy::transformStagingToCommitted)
+                .map(TwoPhaseEncodingStrategy.INSTANCE::transformStagingToCommitted)
                 .collectToMap());
     }
 
@@ -165,9 +167,9 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
             AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+                    encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
             TransactionStatus commitStatus = currentValue.value();
-            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
+            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitStatus(
                     startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
                     kvsValue.isCommitted()
@@ -193,14 +195,14 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 resultBuilder.put(
                         startTs,
                         encodingStrategy
-                                .decodeValueAsCommitTimestamp(startTs, null)
+                                .decodeValueAsCommitStatus(startTs, null)
                                 .value());
                 continue;
             }
 
             byte[] actual = maybeActual.get();
             AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+                    encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
 
             TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {

@@ -86,10 +86,10 @@ public class TicketsEncodingStrategyTest {
         fuzzOneThousandTrials(() -> {
             long startTimestamp = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE - 1);
             long commitTimestamp = ThreadLocalRandom.current().nextLong(startTimestamp, Long.MAX_VALUE);
-            byte[] encoded = STRATEGY.encodeCommitTimestampAsValue(
+            byte[] encoded = STRATEGY.encodeCommitStatusAsValue(
                     startTimestamp, TransactionStatuses.committed(commitTimestamp));
             assertThat(TransactionStatuses.getCommitTimestamp(
-                            STRATEGY.decodeValueAsCommitTimestamp(startTimestamp, encoded)))
+                            STRATEGY.decodeValueAsCommitStatus(startTimestamp, encoded)))
                     .hasValue(commitTimestamp);
         });
     }
@@ -98,10 +98,10 @@ public class TicketsEncodingStrategyTest {
     public void storesLargeCommitTimestampsCompactly() {
         long highTimestamp = Long.MAX_VALUE - 1;
         byte[] commitTimestampEncoding =
-                STRATEGY.encodeCommitTimestampAsValue(highTimestamp, TransactionStatuses.committed(highTimestamp + 1));
+                STRATEGY.encodeCommitStatusAsValue(highTimestamp, TransactionStatuses.committed(highTimestamp + 1));
         assertThat(commitTimestampEncoding).hasSize(1);
         assertThat(TransactionStatuses.getCommitTimestamp(
-                        STRATEGY.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding)))
+                        STRATEGY.decodeValueAsCommitStatus(highTimestamp, commitTimestampEncoding)))
                 .hasValue(highTimestamp + 1);
     }
 
@@ -151,36 +151,36 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreTransactionsCommittingInstantaneously() {
-        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, TransactionStatuses.committed(10L)))
+        assertThatCode(() -> STRATEGY.encodeCommitStatusAsValue(10, TransactionStatuses.committed(10L)))
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void canStoreAbortedTransactionCompactly() {
-        assertThat(STRATEGY.encodeCommitTimestampAsValue(537369, TransactionConstants.ABORTED))
+        assertThat(STRATEGY.encodeCommitStatusAsValue(537369, TransactionConstants.ABORTED))
                 .hasSize(0);
     }
 
     @Test
     public void encodingIllegalCommitThrows() {
-        assertThatThrownBy(() -> STRATEGY.encodeCommitTimestampAsValue(12327758, TransactionStatuses.inProgress()))
+        assertThatThrownBy(() -> STRATEGY.encodeCommitStatusAsValue(12327758, TransactionStatuses.inProgress()))
                 .isInstanceOf(SafeIllegalArgumentException.class);
-        assertThatThrownBy(() -> STRATEGY.encodeCommitTimestampAsValue(12327758, TransactionStatuses.unknown()))
+        assertThatThrownBy(() -> STRATEGY.encodeCommitStatusAsValue(12327758, TransactionStatuses.unknown()))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
     public void canDecodeEmptyByteArrayAsAbortedTransaction() {
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY))
+        assertThat(STRATEGY.decodeValueAsCommitStatus(1, PtBytes.EMPTY_BYTE_ARRAY))
                 .isEqualTo(TransactionConstants.ABORTED);
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
+        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
                 .isEqualTo(TransactionConstants.ABORTED);
     }
 
     @Test
     public void canDecodeNullAsInProgressTransaction() {
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, null))
+        assertThat(STRATEGY.decodeValueAsCommitStatus(1, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, null))
                 .isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
