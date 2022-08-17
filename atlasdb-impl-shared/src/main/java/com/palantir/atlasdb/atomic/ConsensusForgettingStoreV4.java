@@ -48,18 +48,12 @@ public class ConsensusForgettingStoreV4 implements ConsensusForgettingStore {
         this.reader = new ConsensusForgettingStoreReaderImpl(kvs, tableRef);
     }
 
-    /**
-     * Operation to put a marker value against a cell. The semantics of the mark operation depend on the
-     * underlying implementation.
-     */
+    @Override
     public void mark(Cell cell) {
         mark(ImmutableSet.of(cell));
     }
 
-    /**
-     * Operation to put a marker value on multiple cell. This call may or may not guarantee atomicity across cells
-     * depending on the underlying implementation.
-     */
+    @Override
     public void mark(Set<Cell> cells) {
         kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }

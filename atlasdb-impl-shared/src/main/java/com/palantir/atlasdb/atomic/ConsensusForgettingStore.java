@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -31,6 +32,22 @@ import java.util.Map;
  *   value until a put occurs.
  */
 public interface ConsensusForgettingStore extends ConsensusForgettingStoreReader {
+
+    /**
+     * Operation to put a marker value against a cell. The semantics of the mark operation depend on the
+     * underlying implementation.
+     */
+    default void mark(Cell cell) {
+        // no op
+    }
+
+    /**
+     * Operation to put a marker value on multiple cell. This call may or may not guarantee atomicity across cells
+     * depending on the underlying implementation.
+     */
+    default void mark(Set<Cell> cells) {
+        // no op
+    }
 
     /**
      * An atomic update operation. If this method throws an exception, there are no consistency guarantees:
