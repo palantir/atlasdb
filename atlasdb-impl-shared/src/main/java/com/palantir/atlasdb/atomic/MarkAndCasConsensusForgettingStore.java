@@ -34,13 +34,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ConsensusForgettingStoreV4 implements ConsensusForgettingStore {
+public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
     private final byte[] inProgressMarker;
     private final KeyValueService kvs;
     private final TableReference tableRef;
-    private final ConsensusForgettingStoreReader reader;
+    private final ReadableConsensusForgettingStore reader;
 
-    public ConsensusForgettingStoreV4(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
+    public MarkAndCasConsensusForgettingStore(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
@@ -55,6 +55,7 @@ public class ConsensusForgettingStoreV4 implements ConsensusForgettingStore {
 
     @Override
     public void mark(Set<Cell> cells) {
+        // we mark at lowest possible non-negative timestamp to make marking visible to all transactions.
         kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }
 

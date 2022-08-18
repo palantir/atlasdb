@@ -33,9 +33,9 @@ public class PueCassImitatingConsensusForgettingStoreTest {
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    ConsensusForgettingStore neverThrowing = new CassImitatingConsensusForgettingStoreV3(0.0);
-    CassandraImitatingConsensusForgettingStore sometimesThrowing =
-            new CassImitatingConsensusForgettingStoreV3(PROBABILITY_THROWING_ON_QUORUM_HALF);
+    private final ConsensusForgettingStore neverThrowing = new PueCassImitatingConsensusForgettingStore(0.0);
+    private final CassandraImitatingConsensusForgettingStore sometimesThrowing =
+            new PueCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
     public void trivialGet() throws ExecutionException, InterruptedException {

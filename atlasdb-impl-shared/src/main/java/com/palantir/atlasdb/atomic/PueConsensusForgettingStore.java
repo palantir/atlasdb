@@ -28,12 +28,12 @@ import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
 
-public class ConsensusForgettingStoreV3 implements ConsensusForgettingStore {
+public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     private final KeyValueService kvs;
     private final TableReference tableRef;
-    private final ConsensusForgettingStoreReader reader;
+    private final ReadableConsensusForgettingStore reader;
 
-    public ConsensusForgettingStoreV3(KeyValueService kvs, TableReference tableRef) {
+    public PueConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.kvs = kvs;
         this.tableRef = tableRef;

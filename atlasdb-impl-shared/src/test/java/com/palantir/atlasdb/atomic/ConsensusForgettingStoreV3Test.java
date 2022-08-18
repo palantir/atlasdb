@@ -33,7 +33,7 @@ public class ConsensusForgettingStoreV3Test {
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
     private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
-    ConsensusForgettingStore store = new ConsensusForgettingStoreV3(kvs, TABLE);
+    ConsensusForgettingStore store = new PueConsensusForgettingStore(kvs, TABLE);
 
     @Test
     public void putOverwritesPutUnlessExists() throws ExecutionException, InterruptedException {

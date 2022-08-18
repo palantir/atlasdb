@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Map;
 import java.util.Optional;
 
-public interface ConsensusForgettingStoreReader {
+public interface ReadableConsensusForgettingStore {
     ListenableFuture<Optional<byte[]>> get(Cell cell);
 
     ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells);

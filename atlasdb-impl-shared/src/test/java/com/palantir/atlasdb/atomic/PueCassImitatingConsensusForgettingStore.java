@@ -16,20 +16,17 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-public final class CassImitatingConsensusForgettingStoreV4 extends CassandraImitatingConsensusForgettingStore {
-    static final byte[] IN_PROGRESS_MARKER = new byte[1];
+public class PueCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
 
-    public CassImitatingConsensusForgettingStoreV4(double probabilityOfFailure) {
+    public PueCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
         super(probabilityOfFailure);
     }
 
@@ -42,37 +39,21 @@ public final class CassImitatingConsensusForgettingStoreV4 extends CassandraImit
      * changed between the read and the write.
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
             Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult.map(BytesAndTimestamp::bytes).stream()
-                    .noneMatch(read -> Arrays.equals(read, IN_PROGRESS_MARKER))) {
-                throw new CheckAndSetException(
-                        "Did not find the expected value",
-                        cell,
-                        value,
-                        readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
+            if (readResult.isPresent()) {
+                throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
             }
             writeToQuorum(cell, quorumNodes, value);
         });
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
                 .forEach(this::atomicUpdate);
-    }
-
-    public void mark(Cell cell) {
-        runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
-            writeToQuorum(cell, quorumNodes, IN_PROGRESS_MARKER);
-        });
-    }
-
-    public void mark(Set<Cell> cells) {
-        cells.stream().sorted().forEach(this::mark);
     }
 }

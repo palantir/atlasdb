@@ -26,15 +26,16 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import java.util.Optional;
 import org.junit.Test;
 
-public class CassImitatingConsensusForgettingStoreV4Test {
+public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});
     private static final byte[] VALUE = PtBytes.toBytes("VAL");
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    CassImitatingConsensusForgettingStoreV4 neverThrowing = new CassImitatingConsensusForgettingStoreV4(0.0);
-    CassImitatingConsensusForgettingStoreV4 sometimesThrowing =
-            new CassImitatingConsensusForgettingStoreV4(PROBABILITY_THROWING_ON_QUORUM_HALF);
+    MarkAndCassCassImitatingConsensusForgettingStore neverThrowing =
+            new MarkAndCassCassImitatingConsensusForgettingStore(0.0);
+    MarkAndCassCassImitatingConsensusForgettingStore sometimesThrowing =
+            new MarkAndCassCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
     public void trivialGet() {
@@ -45,7 +46,7 @@ public class CassImitatingConsensusForgettingStoreV4Test {
     public void canGetAfterMark() {
         neverThrowing.mark(CELL);
         assertThat(Futures.getUnchecked(neverThrowing.get(CELL)))
-                .contains(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
+                .contains(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
     }
 
     @Test
@@ -130,7 +131,7 @@ public class CassImitatingConsensusForgettingStoreV4Test {
                 numberOfSuccessfulUpdates++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);
                 assertThat(Futures.getUnchecked(sometimesThrowing.get(cell)))
-                        .hasValue(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
+                        .hasValue(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
             } catch (RuntimeException e) {
                 sometimesThrowing.setProbabilityOfFailure(0.0);
@@ -138,7 +139,8 @@ public class CassImitatingConsensusForgettingStoreV4Test {
                 if (actualValue.isEmpty()) {
                     numberOfNothingPresent++;
                 } else {
-                    assertThat(actualValue).hasValue(CassImitatingConsensusForgettingStoreV4.IN_PROGRESS_MARKER);
+                    assertThat(actualValue)
+                            .hasValue(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
                     numberOfValuePresentAfterFailure++;
                 }
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
@@ -151,7 +153,7 @@ public class CassImitatingConsensusForgettingStoreV4Test {
         assertThat(numberOfValuePresentAfterFailure).isBetween(10, 55);
     }
 
-    private void atomicUpdate(CassImitatingConsensusForgettingStoreV4 store, Cell cell) {
+    private void atomicUpdate(MarkAndCassCassImitatingConsensusForgettingStore store, Cell cell) {
         store.mark(cell);
         store.atomicUpdate(cell, VALUE);
     }

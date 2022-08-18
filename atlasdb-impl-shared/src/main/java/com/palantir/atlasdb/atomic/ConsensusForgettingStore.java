@@ -31,7 +31,7 @@ import java.util.Set;
  *   3. Once (1) or (2) is successful, get will never return an Optional.empty() and will always return a consistent
  *   value until a put occurs.
  */
-public interface ConsensusForgettingStore extends ConsensusForgettingStoreReader {
+public interface ConsensusForgettingStore extends ReadableConsensusForgettingStore {
 
     /**
      * Operation to put a marker value against a cell. The semantics of the mark operation depend on the

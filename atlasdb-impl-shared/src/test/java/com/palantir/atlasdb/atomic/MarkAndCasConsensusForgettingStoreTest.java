@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
-public class ConsensusForgettingStoreV4Test {
+public class MarkAndCasConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
     private static final byte[] HAPPY = PtBytes.toBytes("happy");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("a"), PtBytes.toBytes("b"));
@@ -36,7 +36,8 @@ public class ConsensusForgettingStoreV4Test {
     private static final byte[] IN_PROGRESS_MARKER = new byte[0];
 
     private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
-    ConsensusForgettingStoreV4 store = new ConsensusForgettingStoreV4(IN_PROGRESS_MARKER, kvs, TABLE);
+    private final MarkAndCasConsensusForgettingStore store =
+            new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
