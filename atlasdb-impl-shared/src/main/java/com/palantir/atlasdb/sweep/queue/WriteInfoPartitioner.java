@@ -26,7 +26,6 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -54,6 +53,29 @@ public class WriteInfoPartitioner {
         this.numShards = numShards;
     }
 
+    public Map<PartitionInfo, List<WriteInfo>> filterAndPartitionUnsweepableCells(List<WriteInfo> writes) {
+        // todo(snanda); which shards to use?
+        return partitionUnsweepableWritesByShardStrategyTimestamp(filterOutSweepableTables(writes));
+    }
+
+    // Todo(snanda): if we have introduces a third state, then we do not have to filter out the writes.
+    @VisibleForTesting
+    List<WriteInfo> filterOutSweepableTables(List<WriteInfo> writes) {
+        return writes.stream()
+                .filter(writeInfo -> getStrategy(writeInfo).isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    Map<PartitionInfo, List<WriteInfo>> partitionUnsweepableWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+        int shards = numShards.get();
+        return writes.stream()
+                .collect(Collectors.groupingBy(write -> getWeirdPartitionInfo(write, shards), Collectors.toList()));
+    }
+
+    private PartitionInfo getWeirdPartitionInfo(WriteInfo write, int shards) {
+        return PartitionInfo.of(shards + write.toShard(shards), getSweeperStrategyForWrite(write), write.timestamp());
+    }
+
     /**
      * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
      * shard, strategy, and start timestamp of the transaction that performed the write.
@@ -61,7 +83,7 @@ public class WriteInfoPartitioner {
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
         return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
     }
-
+    // todo(snanda): this filtering is so obscure - refactor required
     @VisibleForTesting
     List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
         return writes.stream()
@@ -77,13 +99,13 @@ public class WriteInfoPartitioner {
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
+        return PartitionInfo.of(write.toShard(shards), getSweeperStrategyForWrite(write), write.timestamp());
     }
 
-    private boolean isConservative(WriteInfo write) {
+    // todo(snanda): consequences
+    private SweeperStrategy getSweeperStrategyForWrite(WriteInfo write) {
         Optional<SweeperStrategy> strategy = getStrategy(write);
-        Preconditions.checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
-        return strategy.get() == SweeperStrategy.CONSERVATIVE;
+        return strategy.orElse(SweeperStrategy.NOTHING);
     }
 
     @VisibleForTesting

@@ -29,7 +29,8 @@ import java.util.Optional;
 public final class SweepStrategy {
     public enum SweeperStrategy {
         CONSERVATIVE,
-        THOROUGH
+        THOROUGH,
+        NOTHING //  This is required for transactions 4
     }
 
     public static final SweepStrategy CONSERVATIVE =

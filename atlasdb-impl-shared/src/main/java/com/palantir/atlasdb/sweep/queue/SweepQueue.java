@@ -19,7 +19,6 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
@@ -140,7 +139,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         // The order must not be changed without considering correctness of txn4
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
-        deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        deleter.sweep(sweepBatch.writes(), shardStrategy);
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 
         if (!sweepBatch.isEmpty()) {

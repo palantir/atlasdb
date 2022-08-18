@@ -47,13 +47,17 @@ public class SweepQueueDeleter {
     /**
      * Executes targeted sweep, by inserting ranged tombstones corresponding to the given writes, using the sweep
      * strategy determined by the sweeper.
-     *
-     * @param unfilteredWrites individual writes to sweep for. Depending on the strategy, we will insert a ranged
+     *  @param unfilteredWrites individual writes to sweep for. Depending on the strategy, we will insert a ranged
      * tombstone for each write at either the write's timestamp - 1, or at its timestamp.
-     * @param sweeper supplies the strategy-specific behaviour: the timestamp for the tombstone and whether we must use
-     * sentinels or not.
+     * @param shardAndStrategy is used to create a sweeper that supplies the strategy-specific behaviour: the timestamp
+     *                         for the tombstone and whether we must use
      */
-    public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
+    public void sweep(Collection<WriteInfo> unfilteredWrites, ShardAndStrategy shardAndStrategy) {
+        if (shardAndStrategy.isNoop()) {
+            return;
+        }
+
+        Sweeper sweeper = Sweeper.of(shardAndStrategy);
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
         Map<TableReference, Map<Cell, TimestampRangeDelete>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, TimestampRangeDelete>> entry : maxTimestampByCell.entrySet()) {

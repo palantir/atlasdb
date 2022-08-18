@@ -51,6 +51,10 @@ public abstract class ShardAndStrategy {
         return strategy() == SweeperStrategy.THOROUGH;
     }
 
+    public boolean isNoop() {
+        return strategy() == SweeperStrategy.NOTHING;
+    }
+
     public static ShardAndStrategy of(int shard, SweeperStrategy sweepStrategy) {
         return ImmutableShardAndStrategy.builder()
                 .shard(shard)

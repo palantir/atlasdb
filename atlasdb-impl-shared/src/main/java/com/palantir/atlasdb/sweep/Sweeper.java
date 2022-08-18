@@ -26,7 +26,8 @@ import java.util.function.Function;
 public enum Sweeper {
     CONSERVATIVE(
             provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),
-    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false);
+    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false),
+    NOTHING(_ignore -> -1L, false, false);
 
     private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;
@@ -58,6 +59,8 @@ public enum Sweeper {
             case CONSERVATIVE:
                 return CONSERVATIVE;
             case THOROUGH:
+                return THOROUGH;
+            case NOTHING:
                 return THOROUGH;
         }
         throw new SafeIllegalStateException("Unknown sweep strategy", SafeArg.of("strategy", sweepStrategy));
