@@ -48,7 +48,9 @@ public interface PreCommitCondition {
      * the transaction has already failed or committed.
      *
      * If the cleanup is run, then the cleanup is guaranteed to run before any
-     * {@link Transaction#onSuccess(Runnable)} callbacks.
+     * {@link Transaction#onSuccess(Runnable)} callbacks, <i>if {@link Transaction#commit()} was not called during a
+     * transaction task.
+     * </i>
      */
     default void cleanup() {}
 }
