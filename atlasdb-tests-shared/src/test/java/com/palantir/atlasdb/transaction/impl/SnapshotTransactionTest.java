@@ -145,7 +145,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -174,6 +176,8 @@ import org.mockito.Mockito;
 public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
+
+    private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {};
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
@@ -1027,15 +1031,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void cleanupPreCommitConditionsOnSuccess() {
         MutableLong counter = new MutableLong(0L);
-        PreCommitCondition succeedsCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {}
-
-            @Override
-            public void cleanup() {
-                counter.increment();
-            }
-        };
+        PreCommitCondition succeedsCondition =
+                preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, counter::increment);
 
         serializableTxManager.runTaskWithConditionThrowOnConflict(succeedsCondition, (tx, condition) -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
@@ -1051,17 +1048,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void cleanupPreCommitConditionsOnFailure() {
         MutableLong counter = new MutableLong(0L);
-        PreCommitCondition failsCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {
-                throw new TransactionFailedRetriableException("Condition failed");
-            }
-
-            @Override
-            public void cleanup() {
-                counter.increment();
-            }
-        };
+        PreCommitCondition failsCondition = preCommitConditionFactory(
+                _timestamp -> {
+                    throw new TransactionFailedRetriableException("Condition failed");
+                },
+                counter::increment);
 
         assertThatThrownBy(() ->
                         serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
@@ -1078,17 +1069,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void conditionCleanupRunsBeforeOnSuccess() {
+    public void conditionCleanupRunsBeforeOnSuccessInReadWriteTask() {
         MutableLong counter = new MutableLong(0L);
-        PreCommitCondition latchingCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {}
-
-            @Override
-            public void cleanup() {
-                assertThat(counter.getAndAdd(1)).isEqualTo(0);
-            }
-        };
+        PreCommitCondition latchingCondition =
+                preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, () -> assertThat(counter.getAndAdd(1))
+                        .isEqualTo(0));
 
         serializableTxManager.runTaskWithConditionThrowOnConflict(latchingCondition, (tx, condition) -> {
             tx.onSuccess(() -> assertThat(counter.getAndAdd(1)).isEqualTo(1));
@@ -1096,10 +1081,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         });
         assertThat(counter.intValue()).isEqualTo(2);
+    }
 
-        counter.setValue(0);
-        serializableTxManager.runTaskWithConditionReadOnly(latchingCondition, (tx, condition) -> {
-            tx.onSuccess(() -> assertThat(counter.getAndAdd(1)).isEqualTo(1));
+    @Test
+    public void conditionCleanupRunsBeforeOnSuccessInReadOnlyTask() {
+        MutableLong counter = new MutableLong(0);
+        PreCommitCondition preCommitCondition =
+                preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, () -> assertThat(counter.getAndAdd(1))
+                        .isEqualTo(0));
+        serializableTxManager.runTaskWithConditionReadOnly(preCommitCondition, (tx, condition) -> {
+            tx.onSuccess(() -> {
+                assertThat(counter.getAndAdd(1)).isEqualTo(1);
+            });
             return tx.get(TABLE, ImmutableSet.of(TEST_CELL));
         });
         assertThat(counter.intValue()).isEqualTo(2);
@@ -1905,15 +1898,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void transactionStillCommittedEvenIfCallbackThrows() {
+        RuntimeException exception = new RuntimeException("boom");
         assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
                     txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
                     txn.onSuccess(() -> {
-                        throw new RuntimeException("boom");
+                        throw exception;
                     });
                     return null;
                 }))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("boom");
+                .isInstanceOf(exception.getClass())
+                .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
             assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
                     .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
@@ -1923,27 +1917,38 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void transactionStillCommittedEvenIfConditionCleanupThrows() {
-        PreCommitCondition preCommitCondition = new PreCommitCondition() {
-            @Override
-            public void throwIfConditionInvalid(long timestamp) {}
-
-            @Override
-            public void cleanup() {
-                throw new RuntimeException("boom");
-            }
-        };
+        RuntimeException exception = new RuntimeException("boom");
+        PreCommitCondition preCommitCondition = preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, () -> {
+            throw exception;
+        });
 
         assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
                     txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
                     return null;
                 }))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("boom");
+                .isInstanceOf(exception.getClass())
+                .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
             assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
                     .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
             return null;
         });
+    }
+
+    @Test
+    public void preCommitCleanupHappensIfStartTransactionsFails() {
+        AtomicBoolean hasRun = new AtomicBoolean(false);
+        PreCommitCondition preCommitCondition =
+                preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, () -> hasRun.set(true));
+
+        inMemoryTimeLockRule.close();
+
+        assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        }));
+
+        assertThat(hasRun.get()).isTrue();
     }
 
     @Test
@@ -2352,6 +2357,21 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
         }
         return (SnapshotTransaction) transaction;
+    }
+
+    private static PreCommitCondition preCommitConditionFactory(
+            Consumer<Long> throwIfConditionInvalid, Runnable cleanup) {
+        return new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {
+                throwIfConditionInvalid.accept(timestamp);
+            }
+
+            @Override
+            public void cleanup() {
+                cleanup.run();
+            }
+        };
     }
 
     private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {

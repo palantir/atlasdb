@@ -170,8 +170,14 @@ import javax.validation.constraints.NotNull;
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         checkOpen();
-        OpenTransaction openTransaction =
-                runTimed(() -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
+        OpenTransaction openTransaction;
+        try {
+            openTransaction = runTimed(
+                    () -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
+        } catch (Exception e) {
+            condition.cleanup();
+            throw e;
+        }
         return openTransaction.finishWithCallback(
                 transaction -> task.execute(transaction, condition), condition::cleanup);
     }
