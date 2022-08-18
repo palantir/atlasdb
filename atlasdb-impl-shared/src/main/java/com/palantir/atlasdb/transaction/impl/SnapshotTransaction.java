@@ -1756,16 +1756,19 @@ public class SnapshotTransaction extends AbstractTransaction
         runSuccessCallbacksIfDefinitivelyCommitted();
     }
 
+    @Override
     public void runSuccessCallbacksIfDefinitivelyCommitted() {
         if (isDefinitivelyCommitted()) {
             successCallbackManager.runCallbacks();
         }
     }
 
+    @Override
     public void commitWithoutCallbacks() {
         commitWithoutCallbacks(defaultTransactionService);
     }
 
+    @Override
     public void commitWithoutCallbacks(TransactionService transactionService) {
         if (state.get() == State.COMMITTED) {
             return;
