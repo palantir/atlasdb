@@ -26,10 +26,11 @@ import com.palantir.atlasdb.atomic.TimestampExtractingAtomicTable;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.CellEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -38,9 +39,10 @@ import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final AtomicTable<Long, Long> txnTable;
-    private final TimestampEncodingStrategy<?> encodingStrategy;
+    private final TransactionStatusEncodingStrategy<?> encodingStrategy;
 
-    private SimpleTransactionService(AtomicTable<Long, Long> txnTable, TimestampEncodingStrategy<?> encodingStrategy) {
+    private SimpleTransactionService(
+            AtomicTable<Long, Long> txnTable, TransactionStatusEncodingStrategy<?> encodingStrategy) {
         this.encodingStrategy = encodingStrategy;
         this.txnTable = txnTable;
     }
@@ -61,7 +63,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return createResilient(
                 kvs,
                 TransactionConstants.TRANSACTIONS2_TABLE,
-                EncodingStrategyV3.INSTANCE,
+                new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),
                 metricRegistry,
                 acceptStagingReadsAsCommitted);
     }
@@ -69,7 +71,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     private static SimpleTransactionService createSimple(
             KeyValueService kvs,
             TableReference tableRef,
-            TimestampEncodingStrategy<TransactionStatus> encodingStrategy) {
+            TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(
                 new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy));
         return new SimpleTransactionService(pueTable, encodingStrategy);
@@ -78,7 +80,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     private static SimpleTransactionService createResilient(
             KeyValueService kvs,
             TableReference tableRef,
-            EncodingStrategyV3 encodingStrategy,
+            TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(

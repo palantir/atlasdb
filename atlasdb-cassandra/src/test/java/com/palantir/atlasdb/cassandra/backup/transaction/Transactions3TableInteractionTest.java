@@ -32,7 +32,7 @@ import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -52,7 +52,7 @@ public class Transactions3TableInteractionTest {
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE);
+    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, encodingStrategy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before
@@ -103,8 +103,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
+        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
+                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -115,8 +115,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getsRowsInAllSpannedPartitions() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
+        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
+                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -127,8 +127,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void doesntGetNextPartitionIfOpenBounded() {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
-        Transactions3TableInteraction txnInteraction =
-                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
+        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
+                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
@@ -158,7 +158,8 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(EncodingStrategyV3.INSTANCE.encodeCommitStatusAsValue(start, commit)));
+                .thenReturn(ByteBuffer.wrap(
+                        BaseProgressEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(start, commit)));
         return row;
     }
 

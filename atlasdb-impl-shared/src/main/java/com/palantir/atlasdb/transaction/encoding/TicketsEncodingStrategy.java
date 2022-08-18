@@ -38,7 +38,7 @@ import java.util.stream.Stream;
  * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
  * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
-public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
+public enum TicketsEncodingStrategy implements TransactionStatusEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
     // DO NOT change the following without a transactions table migration!
@@ -59,13 +59,13 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy<Transac
     }
 
     @Override
-    public byte[] encodeCommitStatusAsValue(long startTimestamp, TransactionStatus commit) {
-        return TransactionStatuses.caseOf(commit)
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, TransactionStatus commitStatus) {
+        return TransactionStatuses.caseOf(commitStatus)
                 .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
                 .aborted_(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)
                 .otherwise(() -> {
                     throw new SafeIllegalArgumentException(
-                            "Unexpected transaction status", SafeArg.of("status", commit));
+                            "Unexpected transaction status", SafeArg.of("status", commitStatus));
                 });
     }
 

@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
-import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -63,7 +62,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     private static final Duration COMMIT_THRESHOLD = Duration.ofSeconds(1);
 
     private final ConsensusForgettingStore store;
-    private final EncodingStrategyV3 encodingStrategy;
+    private final TwoPhaseEncodingStrategy encodingStrategy;
     private final Supplier<Boolean> acceptStagingReadsAsCommitted;
     private final Clock clock;
     private final PutUnlessExistsTableMetrics metrics;
@@ -87,8 +86,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                         }
                         if (followUpAction == FollowUpAction.PUT) {
                             store.put(ImmutableMap.of(
-                                    cellInfo.cell(),
-                                    TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(cellInfo.value())));
+                                    cellInfo.cell(), encodingStrategy.transformStagingToCommitted(cellInfo.value())));
                         }
                     });
                     return TransactionStatusUtils.fromTimestamp(cellInfo.commitTs());
@@ -98,13 +96,15 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     private volatile Instant acceptStagingUntil = Instant.EPOCH;
 
     public ResilientCommitTimestampAtomicTable(
-            ConsensusForgettingStore store, EncodingStrategyV3 encodingStrategy, TaggedMetricRegistry metricRegistry) {
+            ConsensusForgettingStore store,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, () -> false, metricRegistry);
     }
 
     public ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
-            EncodingStrategyV3 encodingStrategy,
+            TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             TaggedMetricRegistry metricRegistry) {
         this(store, encodingStrategy, acceptStagingReadsAsCommitted, new SystemClock(), metricRegistry);
@@ -113,7 +113,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     @VisibleForTesting
     ResilientCommitTimestampAtomicTable(
             ConsensusForgettingStore store,
-            EncodingStrategyV3 encodingStrategy,
+            TwoPhaseEncodingStrategy encodingStrategy,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Clock clock,
             TaggedMetricRegistry metricRegistry) {
@@ -140,7 +140,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 .collectToMap();
         store.atomicUpdate(stagingValues);
         store.put(KeyedStream.stream(stagingValues)
-                .map(TwoPhaseEncodingStrategy.INSTANCE::transformStagingToCommitted)
+                .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());
     }
 

@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
+public enum V1EncodingStrategy implements TransactionStatusEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
     @Override

@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.transaction.encoding.EncodingStrategyV3;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
@@ -50,7 +50,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
     private final ConsensusForgettingStore forgettingStore =
             new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
     private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
-            forgettingStore, EncodingStrategyV3.INSTANCE, new DefaultTaggedMetricRegistry());
+            forgettingStore, BaseProgressEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
 
     @Test
     public void repeatableReads() throws InterruptedException {

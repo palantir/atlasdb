@@ -28,32 +28,51 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public enum TwoPhaseEncodingStrategy {
-    INSTANCE;
-
+public final class TwoPhaseEncodingStrategy
+        implements TransactionStatusEncodingStrategy<AtomicValue<TransactionStatus>> {
     private static final byte[] STAGING = new byte[] {0};
     static final byte[] COMMITTED = new byte[] {1};
 
+    private static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED =
+            AtomicValue.committed(TransactionConstants.IN_PROGRESS);
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
-    static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED =
-            AtomicValue.committed(TransactionConstants.IN_PROGRESS);
+    private final ProgressEncodingStrategy progressEncodingStrategy;
 
+    public TwoPhaseEncodingStrategy(ProgressEncodingStrategy progressEncodingStrategy) {
+        this.progressEncodingStrategy = progressEncodingStrategy;
+    }
+
+    @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTimestamp);
     }
 
+    @Override
     public long decodeCellAsStartTimestamp(Cell cell) {
         return TicketsEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(cell);
     }
 
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitTimestamp) {
+    @Override
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, AtomicValue<TransactionStatus> commitStatus) {
         return EncodingUtils.add(
-                TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(startTimestamp, commitTimestamp.value()),
-                commitTimestamp.isCommitted() ? COMMITTED : STAGING);
+                TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(startTimestamp, commitStatus.value()),
+                commitStatus.isCommitted() ? COMMITTED : STAGING);
     }
 
-    public AtomicValue<TransactionStatus> decodeValueAsTransactionStatus(long startTimestamp, byte[] value) {
+    @Override
+    public AtomicValue<TransactionStatus> decodeValueAsCommitStatus(long startTimestamp, byte[] value) {
+        return progressEncodingStrategy.isInProgress(value)
+                ? IN_PROGRESS_COMMITTED
+                : decodeValueAsCommitStatusInternal(startTimestamp, value);
+    }
+
+    @Override
+    public byte[] getInProgressMarker() {
+        return progressEncodingStrategy.getInProgressMarker();
+    }
+
+    private AtomicValue<TransactionStatus> decodeValueAsCommitStatusInternal(long startTimestamp, byte[] value) {
         byte[] head = PtBytes.head(value, value.length - 1);
         byte[] tail = PtBytes.tail(value, 1);
 

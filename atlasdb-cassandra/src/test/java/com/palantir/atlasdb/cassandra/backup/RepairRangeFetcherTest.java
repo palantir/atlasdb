@@ -104,7 +104,7 @@ public class RepairRangeFetcherTest {
     @Test
     public void testRepairTxn3() {
         List<TransactionsTableInteraction> interactions =
-                ImmutableList.of(new Transactions3TableInteraction(range(1L, 10_000_000L)));
+                ImmutableList.of(new Transactions3TableInteraction(range(1L, 10_000_000L), encodingStrategy));
         Map<String, Map<InetSocketAddress, RangeSet<LightweightOppToken>>> rangesForRepair =
                 repairRangeFetcher.getTransactionTableRangesForRepair(interactions);
 

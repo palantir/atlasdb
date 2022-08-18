@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
@@ -156,7 +156,7 @@ public class TransactionServicesTest {
     }
 
     private void assertExpectedArgument(
-            Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy<TransactionStatus> strategy) {
+            Map<Cell, byte[]> actualArgument, TransactionStatusEncodingStrategy<TransactionStatus> strategy) {
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
         byte[] value = strategy.encodeCommitStatusAsValue(startTs, TransactionStatusUtils.fromTimestamp(commitTs));
 
