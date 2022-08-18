@@ -61,6 +61,10 @@ public class Blacklist {
     }
 
     void checkAndUpdate(Map<CassandraServer, CassandraClientPoolingContainer> pools) {
+        if (blacklist.isEmpty()) {
+            return; // nothing to review, no need to iterate
+        }
+
         // Check blacklist and re-integrate or continue to wait as necessary
         Iterator<Entry<CassandraServer, Long>> blacklistIterator =
                 blacklist.entrySet().iterator();
@@ -68,13 +72,14 @@ public class Blacklist {
             Map.Entry<CassandraServer, Long> blacklistedEntry = blacklistIterator.next();
             if (coolOffPeriodExpired(blacklistedEntry)) {
                 CassandraServer cassandraServer = blacklistedEntry.getKey();
-                if (!pools.containsKey(cassandraServer)) {
+                CassandraClientPoolingContainer container = pools.get(cassandraServer);
+                if (container == null) {
                     // Probably the pool changed underneath us
                     blacklistIterator.remove();
                     log.info(
                             "Removing cassandraServer {} from the blacklist as it wasn't found in the pool.",
                             SafeArg.of("cassandraServer", cassandraServer.cassandraHostName()));
-                } else if (isHostHealthy(pools.get(cassandraServer))) {
+                } else if (isHostHealthy(container)) {
                     blacklistIterator.remove();
                     log.info(
                             "Added cassandraServer {} back into the pool after a waiting period and successful health"
