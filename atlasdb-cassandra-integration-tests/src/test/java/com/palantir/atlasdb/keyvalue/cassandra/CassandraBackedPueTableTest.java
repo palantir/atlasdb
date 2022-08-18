@@ -31,6 +31,7 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -55,7 +56,9 @@ public class CassandraBackedPueTableTest {
     private final ConsensusForgettingStore store =
             new PueKvsConsensusForgettingStore(kvs, TransactionConstants.TRANSACTIONS2_TABLE);
     private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
-            store, BaseProgressEncodingStrategy.INSTANCE, new DefaultTaggedMetricRegistry());
+            store,
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),
+            new DefaultTaggedMetricRegistry());
     private final ExecutorService writeExecutor = PTExecutors.newFixedThreadPool(1);
     private final ListeningExecutorService readExecutors =
             MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(10));

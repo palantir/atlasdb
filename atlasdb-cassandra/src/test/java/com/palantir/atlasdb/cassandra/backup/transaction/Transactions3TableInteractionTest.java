@@ -49,10 +49,13 @@ import org.junit.Test;
 
 public class Transactions3TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
+    private static final TwoPhaseEncodingStrategy ENCODING_STRATEGY =
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
+
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
-    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE, encodingStrategy);
+    private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
     @Before
@@ -103,8 +106,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getAllRowsInPartition() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, 1000L);
-        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
-                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -115,8 +118,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void getsRowsInAllSpannedPartitions() {
         Range<Long> rangeWithinOnePartition = Range.closed(100L, PARTITIONING_QUANTUM + 1000000);
-        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
-                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
@@ -127,8 +130,8 @@ public class Transactions3TableInteractionTest {
     @Test
     public void doesntGetNextPartitionIfOpenBounded() {
         Range<Long> rangeWithinOnePartition = Range.closedOpen(100L, 25000000L);
-        Transactions3TableInteraction txnInteraction = new Transactions3TableInteraction(
-                FullyBoundedTimestampRange.of(rangeWithinOnePartition), encodingStrategy);
+        Transactions3TableInteraction txnInteraction =
+                new Transactions3TableInteraction(FullyBoundedTimestampRange.of(rangeWithinOnePartition));
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
@@ -158,8 +161,7 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(
-                        BaseProgressEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(start, commit)));
+                .thenReturn(ByteBuffer.wrap(ENCODING_STRATEGY.encodeCommitStatusAsValue(start, commit)));
         return row;
     }
 
