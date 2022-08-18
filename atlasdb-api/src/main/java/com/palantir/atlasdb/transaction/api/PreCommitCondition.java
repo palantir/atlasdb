@@ -46,6 +46,9 @@ public interface PreCommitCondition {
      *
      * The cleanup method should not throw any exceptions - it should be best effort. When this method is called,
      * the transaction has already failed or committed.
+     *
+     * If the cleanup is run, then the cleanup is guaranteed to run before any
+     * {@link Transaction#onSuccess(Runnable)} callbacks.
      */
     default void cleanup() {}
 }

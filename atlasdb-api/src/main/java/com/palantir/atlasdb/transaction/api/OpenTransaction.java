@@ -29,6 +29,13 @@ public interface OpenTransaction extends Transaction {
     @Timed
     <T, E extends Exception> T finish(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
+    /**
+     * Like {@link #finish(TransactionTask)}, except runs a callback after the task has finished. This callback will
+     * not run while the transaction remains in an uncommitted state, but may run afterwards, regardless of whether
+     * the commit was successful, finished, or aborted.
+     *
+     * If the callback is run, it will run before any {@link Transaction#onSuccess(Runnable)} callbacks.
+     */
     @Timed
     <T, E extends Exception> T finishWithCallback(TransactionTask<T, E> task, Runnable callback)
             throws E, TransactionFailedRetriableException;
