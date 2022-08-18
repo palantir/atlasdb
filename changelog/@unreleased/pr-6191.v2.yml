@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: If the cleanup is to run, `PreCommitCondition#cleanup()` is guaranteed
+    to run before `Transaction#onSuccess()` callbacks, provided that `Transaction#commit()`
+    was not called manually.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6191
