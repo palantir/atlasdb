@@ -68,6 +68,7 @@ public final class MarkAndCassCassImitatingConsensusForgettingStore extends Cass
                 .forEach(this::atomicUpdate);
     }
 
+    @Override
     public void mark(Cell cell) {
         runAtomically(cell, () -> {
             Set<Node> quorumNodes = getQuorumNodes();
@@ -75,6 +76,7 @@ public final class MarkAndCassCassImitatingConsensusForgettingStore extends Cass
         });
     }
 
+    @Override
     public void mark(Set<Cell> cells) {
         // sort by cells to avoid deadlock
         cells.stream().sorted().forEach(this::mark);
