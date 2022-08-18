@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy;
@@ -48,7 +49,7 @@ public class DefaultFutileTimestampStore implements FutileTimestampStore {
     public Set<Long> getFutileTimestampsInRange(long startInclusive, long endInclusive) {
         Stream<byte[]> rows =
                 ABORTED_TICKETS_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(startInclusive, endInclusive);
-        return null;
+        // TODO Actually do this correctly
     }
 
     @Override
