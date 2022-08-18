@@ -189,7 +189,8 @@ import org.apache.commons.lang3.tuple.Pair;
  * row.  If you are thinking about making your row bigger than like 10MB, you should think about breaking these up into
  * different rows and using range scans.
  */
-public class SnapshotTransaction extends AbstractTransaction implements ConstraintCheckingTransaction {
+public class SnapshotTransaction extends AbstractTransaction
+        implements ConstraintCheckingTransaction, CallbackAwareTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
@@ -1751,6 +1752,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     @Override
     public void commit(TransactionService transactionService) {
+        commitWithoutCallbacks(transactionService);
+        runSuccessCallbacksIfDefinitivelyCommitted();
+    }
+
+    public void runSuccessCallbacksIfDefinitivelyCommitted() {
+        if (isDefinitivelyCommitted()) {
+            successCallbackManager.runCallbacks();
+        }
+    }
+
+    public void commitWithoutCallbacks() {
+        commitWithoutCallbacks(defaultTransactionService);
+    }
+
+    public void commitWithoutCallbacks(TransactionService transactionService) {
         if (state.get() == State.COMMITTED) {
             return;
         }
@@ -1794,7 +1810,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (success) {
                 state.set(State.COMMITTED);
                 transactionOutcomeMetrics.markSuccessfulCommit();
-                successCallbackManager.runCallbacks();
             } else {
                 state.set(State.FAILED);
                 transactionOutcomeMetrics.markFailedCommit();

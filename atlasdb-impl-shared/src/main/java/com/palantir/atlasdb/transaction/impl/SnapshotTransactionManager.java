@@ -170,13 +170,10 @@ import javax.validation.constraints.NotNull;
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         checkOpen();
-        try {
-            OpenTransaction openTransaction = runTimed(
-                    () -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
-            return openTransaction.finish(transaction -> task.execute(transaction, condition));
-        } finally {
-            condition.cleanup();
-        }
+        OpenTransaction openTransaction =
+                runTimed(() -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
+        return openTransaction.finishWithCallback(
+                transaction -> task.execute(transaction, condition), condition::cleanup);
     }
 
     @Override
@@ -208,7 +205,7 @@ import javax.validation.constraints.NotNull;
                                 Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
                                         response.startTimestampAndPartition().timestamp());
 
-                                Transaction transaction = createTransaction(
+                                CallbackAwareTransaction transaction = createTransaction(
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
@@ -229,10 +226,10 @@ import javax.validation.constraints.NotNull;
 
     private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
-        private final Transaction delegate;
+        private final CallbackAwareTransaction delegate;
         private final LockToken immutableTsLock;
 
-        private OpenTransactionImpl(Transaction delegate, LockToken immutableTsLock) {
+        private OpenTransactionImpl(CallbackAwareTransaction delegate, LockToken immutableTsLock) {
             this.delegate = delegate;
             this.immutableTsLock = immutableTsLock;
         }
@@ -245,15 +242,21 @@ import javax.validation.constraints.NotNull;
         @Override
         public <T, E extends Exception> T finish(TransactionTask<T, E> task)
                 throws E, TransactionFailedRetriableException {
+            return finishWithCallback(task, () -> {});
+        }
+
+        @Override
+        public <T, E extends Exception> T finishWithCallback(TransactionTask<T, E> task, Runnable callback)
+                throws E, TransactionFailedRetriableException {
             Timer postTaskTimer = getTimer("finishTask");
             Timer.Context postTaskContext;
 
             TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
 
-            Transaction tx = delegate;
+            CallbackAwareTransaction tx = delegate;
             T result;
             try {
-                result = runTaskThrowOnConflict(wrappedTask, tx);
+                result = runTaskThrowOnConflictWithCallback(wrappedTask, tx, callback);
             } finally {
                 lockWatchManager.removeTransactionStateFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
@@ -285,7 +288,7 @@ import javax.validation.constraints.NotNull;
         return !validateLocksOnReads;
     }
 
-    protected Transaction createTransaction(
+    protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
@@ -358,12 +361,10 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController);
-        try {
-            return runTaskThrowOnConflict(
-                    txn -> task.execute(txn, condition), new ReadTransaction(transaction, sweepStrategyManager));
-        } finally {
-            condition.cleanup();
-        }
+        return runTaskThrowOnConflictWithCallback(
+                txn -> task.execute(txn, condition),
+                new ReadTransaction(transaction, sweepStrategyManager),
+                condition::cleanup);
     }
 
     @Override

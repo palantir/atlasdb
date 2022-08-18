@@ -28,4 +28,8 @@ public interface OpenTransaction extends Transaction {
      */
     @Timed
     <T, E extends Exception> T finish(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+
+    @Timed
+    <T, E extends Exception> T finishWithCallback(TransactionTask<T, E> task, Runnable callback)
+            throws E, TransactionFailedRetriableException;
 }
