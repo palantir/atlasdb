@@ -31,7 +31,7 @@ public interface PartitionInfo {
     static PartitionInfo of(int shard, SweeperStrategy sweepStrategy, long timestamp) {
         return ImmutablePartitionInfo.builder()
                 .shard(shard)
-                .isConservative(PersistableBoolean.of(sweepStrategy))
+                .sweepStrategy(sweepStrategy)
                 .timestamp(timestamp)
                 .build();
     }

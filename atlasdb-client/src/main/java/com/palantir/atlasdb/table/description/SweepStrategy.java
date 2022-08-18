@@ -30,7 +30,7 @@ public final class SweepStrategy {
     public enum SweeperStrategy {
         CONSERVATIVE,
         THOROUGH,
-        NOTHING //  This is required for transactions 4
+        NOTHING
     }
 
     public static final SweepStrategy CONSERVATIVE =
