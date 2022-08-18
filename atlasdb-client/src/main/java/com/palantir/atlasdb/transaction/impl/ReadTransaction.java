@@ -26,8 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
-import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -38,7 +36,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-public class ReadTransaction extends ForwardingTransaction implements CallbackAwareTransaction {
+public class ReadTransaction extends ForwardingCallbackAwareTransaction {
     private final CallbackAwareTransaction delegate;
     private final SweepStrategyManager sweepStrategies;
 
@@ -160,20 +158,5 @@ public class ReadTransaction extends ForwardingTransaction implements CallbackAw
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         checkTableName(tableRef);
         return delegate().getAsync(tableRef, cells);
-    }
-
-    @Override
-    public void commitWithoutCallbacks() throws TransactionFailedException {
-        delegate().commitWithoutCallbacks();
-    }
-
-    @Override
-    public void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException {
-        delegate().commitWithoutCallbacks(transactionService);
-    }
-
-    @Override
-    public void runSuccessCallbacksIfDefinitivelyCommitted() {
-        delegate().runSuccessCallbacksIfDefinitivelyCommitted();
     }
 }

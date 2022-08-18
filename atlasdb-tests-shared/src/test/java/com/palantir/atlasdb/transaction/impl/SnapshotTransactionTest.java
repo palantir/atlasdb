@@ -181,7 +181,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             {SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP},
             {
                 ASYNC,
-                (WrapperWithTracker<Transaction>) GetAsyncDelegate::new,
+                (WrapperWithTracker<CallbackAwareTransaction>) GetAsyncCallbackAwareDelegate::new,
                 (WrapperWithTracker<KeyValueService>) VerifyingKeyValueServiceDelegate::new
             }
         };
@@ -189,7 +189,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private final String name;
-    private final WrapperWithTracker<Transaction> transactionWrapper;
+    private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
     private final Map<String, ExpectationFactory> expectationsMapping =
             ImmutableMap.<String, ExpectationFactory>builder()
@@ -237,7 +237,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     public SnapshotTransactionTest(
             String name,
-            WrapperWithTracker<Transaction> transactionWrapper,
+            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
@@ -1078,6 +1078,34 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void conditionCleanupRunsBeforeOnSuccess() {
+        MutableLong counter = new MutableLong(0L);
+        PreCommitCondition latchingCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {}
+
+            @Override
+            public void cleanup() {
+                assertThat(counter.getAndAdd(1)).isEqualTo(0);
+            }
+        };
+
+        serializableTxManager.runTaskWithConditionThrowOnConflict(latchingCondition, (tx, condition) -> {
+            tx.onSuccess(() -> assertThat(counter.getAndAdd(1)).isEqualTo(1));
+            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+            return null;
+        });
+        assertThat(counter.intValue()).isEqualTo(2);
+
+        counter.setValue(0);
+        serializableTxManager.runTaskWithConditionReadOnly(latchingCondition, (tx, condition) -> {
+            tx.onSuccess(() -> assertThat(counter.getAndAdd(1)).isEqualTo(1));
+            return tx.get(TABLE, ImmutableSet.of(TEST_CELL));
+        });
+        assertThat(counter.intValue()).isEqualTo(2);
+    }
+
+    @Test
     public void getRowsColumnRangesReturnsInOrderInCaseOfAbortedTxns() {
         byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
         Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
@@ -1893,6 +1921,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     txn.onSuccess(() -> {
                         throw new RuntimeException("boom");
                     });
+                    return null;
+                }))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("boom");
+        txManager.runTaskReadOnly(txn -> {
+            assertThat(txn.get(TABLE, ImmutableSet.of(TEST_CELL)))
+                    .containsExactly(Maps.immutableEntry(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        });
+    }
+
+    @Test
+    public void transactionStillCommittedEvenIfConditionCleanupThrows() {
+        PreCommitCondition preCommitCondition = new PreCommitCondition() {
+            @Override
+            public void throwIfConditionInvalid(long timestamp) {}
+
+            @Override
+            public void cleanup() {
+                throw new RuntimeException("boom");
+            }
+        };
+
+        assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
                     return null;
                 }))
                 .isInstanceOf(RuntimeException.class)
