@@ -53,12 +53,15 @@ public class SweepQueueDeleter {
      *                         for the tombstone and whether we must use
      */
     public void sweep(Collection<WriteInfo> unfilteredWrites, ShardAndStrategy shardAndStrategy) {
+        // todo(snanda): we still need to abort and populate A :(
         if (shardAndStrategy.isNoop()) {
             return;
         }
 
         Sweeper sweeper = Sweeper.of(shardAndStrategy);
+        // this is only for conservative shit :(
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
+
         Map<TableReference, Map<Cell, TimestampRangeDelete>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, TimestampRangeDelete>> entry : maxTimestampByCell.entrySet()) {
             try {

@@ -53,42 +53,13 @@ public class WriteInfoPartitioner {
         this.numShards = numShards;
     }
 
-    public Map<PartitionInfo, List<WriteInfo>> filterAndPartitionUnsweepableCells(List<WriteInfo> writes) {
-        // todo(snanda); which shards to use?
-        return partitionUnsweepableWritesByShardStrategyTimestamp(filterOutSweepableTables(writes));
-    }
-
-    // Todo(snanda): if we have introduces a third state, then we do not have to filter out the writes.
-    @VisibleForTesting
-    List<WriteInfo> filterOutSweepableTables(List<WriteInfo> writes) {
-        return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo).isEmpty())
-                .collect(Collectors.toList());
-    }
-
-    Map<PartitionInfo, List<WriteInfo>> partitionUnsweepableWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
-        int shards = numShards.get();
-        return writes.stream()
-                .collect(Collectors.groupingBy(write -> getWeirdPartitionInfo(write, shards), Collectors.toList()));
-    }
-
-    private PartitionInfo getWeirdPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(shards + write.toShard(shards), getSweeperStrategyForWrite(write), write.timestamp());
-    }
-
+    // todo(snanda): we do not filter out?
     /**
      * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
      * shard, strategy, and start timestamp of the transaction that performed the write.
      */
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
-        return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
-    }
-    // todo(snanda): this filtering is so obscure - refactor required
-    @VisibleForTesting
-    List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
-        return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
-                .collect(Collectors.toList());
+        return partitionWritesByShardStrategyTimestamp(writes);
     }
 
     @VisibleForTesting
