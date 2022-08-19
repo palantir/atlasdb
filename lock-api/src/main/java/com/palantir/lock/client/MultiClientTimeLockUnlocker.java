@@ -28,7 +28,6 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.v2.LockToken;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,11 +37,10 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public class MultiClientTimeLockUnlocker implements AutoCloseable {
-    private final DisruptorAutobatcher<UnlockRequest, Set<LockToken>> batcher;
+    private final DisruptorAutobatcher<UnlockRequest, Set<ConjureLockTokenV2>> batcher;
 
     public MultiClientTimeLockUnlocker(InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
         this.batcher = Autobatchers.independent(new UnlockConsumer(delegate))
@@ -52,7 +50,7 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
                 .build();
     }
 
-    public Set<LockToken> unlock(Namespace namespace, Set<LockToken> tokens) {
+    public Set<ConjureLockTokenV2> unlock(Namespace namespace, Set<ConjureLockTokenV2> tokens) {
         return AtlasFutures.getUnchecked(batcher.apply(ImmutableUnlockRequest.of(namespace, tokens)));
     }
 
@@ -62,33 +60,29 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
     }
 
     private static final class SingleClientBatchManager {
-        private final List<BatchElement<UnlockRequest, Set<LockToken>>> requests;
+        private final List<BatchElement<UnlockRequest, Set<ConjureLockTokenV2>>> requests;
 
         private SingleClientBatchManager() {
             this.requests = new ArrayList<>();
         }
 
-        private void addBatchElement(BatchElement<UnlockRequest, Set<LockToken>> batchElement) {
+        private void addBatchElement(BatchElement<UnlockRequest, Set<ConjureLockTokenV2>> batchElement) {
             requests.add(batchElement);
         }
 
         private ConjureUnlockRequestV2 getCombinedRequest() {
             Set<ConjureLockTokenV2> lockTokens = new HashSet<>();
-            for (BatchElement<UnlockRequest, Set<LockToken>> batchElement : requests) {
+            for (BatchElement<UnlockRequest, Set<ConjureLockTokenV2>> batchElement : requests) {
                 UnlockRequest lockSet = batchElement.argument();
-                lockTokens.addAll(lockSet.lockSet().stream()
-                        .map(c -> ConjureLockTokenV2.of(c.getRequestId()))
-                        .collect(Collectors.toSet()));
+                lockTokens.addAll(lockSet.lockSet());
             }
             return ConjureUnlockRequestV2.of(lockTokens);
         }
 
         public void applyResponse(ConjureUnlockResponseV2 relevantResponse) {
-            Set<LockToken> unlockedTokens = relevantResponse.get().stream()
-                    .map(conjureToken -> LockToken.of(conjureToken.get()))
-                    .collect(Collectors.toCollection(HashSet::new));
-            for (BatchElement<UnlockRequest, Set<LockToken>> batchElement : requests) {
-                Set<LockToken> plausibleUnlocks = ImmutableSet.copyOf(
+            Set<ConjureLockTokenV2> unlockedTokens = new HashSet<>(relevantResponse.get());
+            for (BatchElement<UnlockRequest, Set<ConjureLockTokenV2>> batchElement : requests) {
+                Set<ConjureLockTokenV2> plausibleUnlocks = ImmutableSet.copyOf(
                         Sets.intersection(batchElement.argument().lockSet(), unlockedTokens));
                 batchElement.result().set(plausibleUnlocks);
                 unlockedTokens.removeAll(plausibleUnlocks);
@@ -97,7 +91,7 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static class UnlockConsumer implements Consumer<List<BatchElement<UnlockRequest, Set<LockToken>>>> {
+    static class UnlockConsumer implements Consumer<List<BatchElement<UnlockRequest, Set<ConjureLockTokenV2>>>> {
         private final InternalMultiClientConjureTimelockService timelockService;
 
         public UnlockConsumer(InternalMultiClientConjureTimelockService timelockService) {
@@ -105,9 +99,9 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
         }
 
         @Override
-        public void accept(List<BatchElement<UnlockRequest, Set<LockToken>>> batchElements) {
+        public void accept(List<BatchElement<UnlockRequest, Set<ConjureLockTokenV2>>> batchElements) {
             Map<Namespace, SingleClientBatchManager> batchManagers = new HashMap<>();
-            for (BatchElement<UnlockRequest, Set<LockToken>> batchElement : batchElements) {
+            for (BatchElement<UnlockRequest, Set<ConjureLockTokenV2>> batchElement : batchElements) {
                 UnlockRequest unlockRequest = batchElement.argument();
                 batchManagers
                         .computeIfAbsent(unlockRequest.namespace(), unused -> new SingleClientBatchManager())
@@ -131,6 +125,6 @@ public class MultiClientTimeLockUnlocker implements AutoCloseable {
         Namespace namespace();
 
         @Value.Parameter
-        Set<LockToken> lockSet();
+        Set<ConjureLockTokenV2> lockSet();
     }
 }

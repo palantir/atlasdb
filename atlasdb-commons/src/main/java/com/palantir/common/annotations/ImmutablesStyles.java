@@ -21,6 +21,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.immutables.value.Value;
+import org.immutables.value.Value.Style.ImplementationVisibility;
 
 public interface ImmutablesStyles {
     @Target({ElementType.PACKAGE, ElementType.TYPE})
@@ -48,4 +49,9 @@ public interface ImmutablesStyles {
     @Retention(RetentionPolicy.SOURCE)
     @Value.Style(attributeBuilderDetection = true)
     @interface AttributeBuilderDetectionStyle {}
+
+    @Target({ElementType.PACKAGE, ElementType.TYPE})
+    @Retention(RetentionPolicy.SOURCE)
+    @Value.Style(weakInterning = true, overshadowImplementation = true, visibility = ImplementationVisibility.PACKAGE)
+    @interface WeakInterningImmutablesStyle {}
 }

@@ -32,6 +32,7 @@ import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -48,6 +49,9 @@ import org.junit.Test;
 
 public class Transactions3TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
+    private static final TwoPhaseEncodingStrategy ENCODING_STRATEGY =
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
+
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
@@ -157,8 +161,7 @@ public class Transactions3TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(
-                        ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(start, commit)));
+                .thenReturn(ByteBuffer.wrap(ENCODING_STRATEGY.encodeCommitStatusAsValue(start, commit)));
         return row;
     }
 

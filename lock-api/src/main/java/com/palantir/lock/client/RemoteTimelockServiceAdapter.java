@@ -65,9 +65,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchersFactory batcherFactory) {
+            RequestBatchersFactory batcherFactory,
+            LockTokenUnlocker unlocker) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter, unlocker);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
         this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
         this.conjureTimelockService = conjureTimelockService;
@@ -82,15 +83,17 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()));
+                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()),
+                new LegacyLockTokenUnlocker(conjureClient));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchersFactory batcherFactory) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory);
+            RequestBatchersFactory batcherFactory,
+            LockTokenUnlocker unlocker) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory, unlocker);
     }
 
     @Override

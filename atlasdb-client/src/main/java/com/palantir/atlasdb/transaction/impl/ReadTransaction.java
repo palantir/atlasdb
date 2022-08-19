@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -37,17 +36,17 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-public class ReadTransaction extends ForwardingTransaction {
-    private final AbstractTransaction delegate;
+public class ReadTransaction extends ForwardingCallbackAwareTransaction {
+    private final CallbackAwareTransaction delegate;
     private final SweepStrategyManager sweepStrategies;
 
-    public ReadTransaction(AbstractTransaction delegate, SweepStrategyManager sweepStrategies) {
+    public ReadTransaction(CallbackAwareTransaction delegate, SweepStrategyManager sweepStrategies) {
         this.delegate = delegate;
         this.sweepStrategies = sweepStrategies;
     }
 
     @Override
-    public Transaction delegate() {
+    public CallbackAwareTransaction delegate() {
         return delegate;
     }
 

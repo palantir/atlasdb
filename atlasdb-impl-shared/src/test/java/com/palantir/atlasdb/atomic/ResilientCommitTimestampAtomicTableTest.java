@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -80,15 +81,13 @@ public class ResilientCommitTimestampAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> atomicTable;
     private final AtomicLong clockLong = new AtomicLong(1000);
     private final Clock clock = clockLong::get;
+    private final TwoPhaseEncodingStrategy encodingStrategy =
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
 
     public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
         atomicTable = new ResilientCommitTimestampAtomicTable(
-                spiedStore,
-                TwoPhaseEncodingStrategy.INSTANCE,
-                () -> !validating,
-                clock,
-                new DefaultTaggedMetricRegistry());
+                spiedStore, encodingStrategy, () -> !validating, clock, new DefaultTaggedMetricRegistry());
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -169,14 +168,14 @@ public class ResilientCommitTimestampAtomicTableTest {
     @Test
     public void getReturnsStagingValuesThatWereCommittedBySomeoneElse()
             throws ExecutionException, InterruptedException {
-        TwoPhaseEncodingStrategy strategy = TwoPhaseEncodingStrategy.INSTANCE;
 
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
-        Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
-        byte[] stagingValue = strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
+        Cell timestampAsCell = encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
+        byte[] stagingValue =
+                encodingStrategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.staging(commitStatus));
         byte[] committedValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.committed(commitStatus));
+                encodingStrategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.committed(commitStatus));
         spiedStore.atomicUpdate(timestampAsCell, stagingValue);
 
         List<byte[]> actualValues = ImmutableList.of(committedValue);
@@ -194,7 +193,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
                 new PueCassImitatingConsensusForgettingStore(0.5d),
-                TwoPhaseEncodingStrategy.INSTANCE,
+                    encodingStrategy,
                 new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
@@ -462,7 +461,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         @Override
         public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
             if (commitUnderUs) {
-                super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
+                super.put(ImmutableMap.of(cell, encodingStrategy.transformStagingToCommitted(value)));
             }
             int current = concurrentTouches.incrementAndGet();
             if (current > maximumConcurrentTouches.get()) {

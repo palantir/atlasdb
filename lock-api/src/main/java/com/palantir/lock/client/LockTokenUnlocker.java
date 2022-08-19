@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.lock.client;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
+import java.util.Set;
 
-interface WrapperWithTracker<T> {
-    WrapperWithTracker<CallbackAwareTransaction> TRANSACTION_NO_OP = (delegate, synchronousTracker) -> delegate;
+public interface LockTokenUnlocker extends AutoCloseable {
+    Set<ConjureLockTokenV2> unlock(Set<ConjureLockTokenV2> tokens);
 
-    WrapperWithTracker<KeyValueService> KEY_VALUE_SERVICE_NO_OP = (delegate, synchronousTracker) -> delegate;
-
-    T apply(T delegate, PathTypeTracker pathTypeTracker);
+    @Override
+    void close();
 }
