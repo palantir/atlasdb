@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
@@ -35,12 +35,12 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
 
     private final KeyValueService kvs;
     private final TableReference tableRef;
-    private final TimestampEncodingStrategy<TransactionStatus> encodingStrategy;
+    private final TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy;
 
     public SimpleCommitTimestampAtomicTable(
             KeyValueService kvs,
             TableReference tableRef,
-            TimestampEncodingStrategy<TransactionStatus> encodingStrategy) {
+            TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         this.kvs = kvs;
         this.tableRef = tableRef;
         this.encodingStrategy = encodingStrategy;
@@ -58,7 +58,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
                 KeyedStream.stream(values)
                         .mapEntries((startTs, commitTs) -> Map.entry(
                                 encodingStrategy.encodeStartTimestampAsCell(startTs),
-                                encodingStrategy.encodeCommitTimestampAsValue(startTs, commitTs)))
+                                encodingStrategy.encodeCommitStatusAsValue(startTs, commitTs)))
                         .collectToMap());
     }
 
@@ -74,7 +74,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
                 presentValues -> KeyedStream.stream(startTsToCell)
                         .map(presentValues::get)
                         .map(value -> value == null ? null : value.getContents())
-                        .map(encodingStrategy::decodeValueAsCommitTimestamp)
+                        .map(encodingStrategy::decodeValueAsCommitStatus)
                         .collectToMap(),
                 MoreExecutors.directExecutor());
     }

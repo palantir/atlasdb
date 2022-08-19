@@ -126,7 +126,7 @@ public class Transactions2TableInteractionTest {
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(
+                .thenReturn(ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(
                         start, TransactionStatuses.committed(commit))));
         return row;
     }
