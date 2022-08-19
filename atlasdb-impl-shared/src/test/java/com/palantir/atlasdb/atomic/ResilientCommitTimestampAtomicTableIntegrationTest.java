@@ -49,7 +49,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
     private static final long MAXIMUM_EVALUATED_TIMESTAMP = 100;
 
     private final ConsensusForgettingStore forgettingStore =
-            new CassandraImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
+            new PueCassImitatingConsensusForgettingStore(WRITE_FAILURE_PROBABILITY);
     private final AtomicTable<Long, TransactionStatus> pueTable = new ResilientCommitTimestampAtomicTable(
             forgettingStore,
             new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),

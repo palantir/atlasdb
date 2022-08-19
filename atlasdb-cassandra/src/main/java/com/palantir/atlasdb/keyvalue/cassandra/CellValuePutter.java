@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.atomic.PueKvsConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.PueConsensusForgettingStore;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -43,9 +43,9 @@ import org.apache.cassandra.thrift.Mutation;
 public class CellValuePutter {
     /**
      * This value has been chosen so that, in case of internal KVS inconsistency, the value stored with
-     * {@link PueKvsConsensusForgettingStore#put(Cell, byte[])} is always considered as the latest value. It is the
-     * responsibility of the user of this class to verify that this is true for the particular KVS implementation,
-     * which it is and must remain so for the Cassandra KVS.
+     * {@link PueConsensusForgettingStore#put(Cell, byte[])} is always considered as
+     * the latest value. It is the responsibility of the user of this class to verify that this is true for the
+     * particular KVS implementation, which it is and must remain so for the Cassandra KVS.
      */
     public static final long SET_TIMESTAMP = Long.MAX_VALUE - 10;
 

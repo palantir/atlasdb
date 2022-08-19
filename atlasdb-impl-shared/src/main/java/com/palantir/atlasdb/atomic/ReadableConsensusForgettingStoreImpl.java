@@ -17,57 +17,26 @@
 package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore {
+public class ReadableConsensusForgettingStoreImpl implements ReadableConsensusForgettingStore {
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
-    public PueKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
-        Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
+    public ReadableConsensusForgettingStoreImpl(KeyValueService kvs, TableReference tableRef) {
         this.kvs = kvs;
         this.tableRef = tableRef;
-    }
-
-    @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        atomicUpdate(ImmutableMap.of(cell, value));
-    }
-
-    @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        kvs.putUnlessExists(tableRef, values);
-    }
-
-    @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
-        kvs.checkAndSet(request);
-    }
-
-    /**
-     * Note that changing this method may invalidate existing tests in
-     * ResilientCommitTimestampPutUnlessExistsTableTest.
-     */
-    @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
     }
 
     @Override
@@ -87,15 +56,5 @@ public class PueKvsConsensusForgettingStore implements ConsensusForgettingStore 
                                 .collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE))),
                 result -> KeyedStream.stream(result).map(Value::getContents).collectToMap(),
                 MoreExecutors.directExecutor());
-    }
-
-    @Override
-    public void put(Cell cell, byte[] value) {
-        put(ImmutableMap.of(cell, value));
-    }
-
-    @Override
-    public void put(Map<Cell, byte[]> values) {
-        kvs.setOnce(tableRef, values);
     }
 }

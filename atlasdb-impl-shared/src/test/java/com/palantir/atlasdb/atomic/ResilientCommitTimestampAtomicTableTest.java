@@ -74,9 +74,8 @@ public class ResilientCommitTimestampAtomicTableTest {
     private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
-    private final UnreliablePueKvsConsensusForgettingStore spiedStore =
-            spy(new UnreliablePueKvsConsensusForgettingStore(
-                    spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
+    private final UnreliablePueConsensusForgettingStore spiedStore = spy(new UnreliablePueConsensusForgettingStore(
+            spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final boolean validating;
     private final AtomicTable<Long, TransactionStatus> atomicTable;
@@ -193,7 +192,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     @Test
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
-                new CassandraImitatingConsensusForgettingStore(0.5d),
+                new PueCassImitatingConsensusForgettingStore(0.5d),
                 encodingStrategy,
                 new DefaultTaggedMetricRegistry());
 
@@ -433,17 +432,17 @@ public class ResilientCommitTimestampAtomicTableTest {
      * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
      *
      * WARNING: the usefulness of this store is coupled with the implementation of
-     * {@link PueKvsConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
+     * {@link PueConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private class UnreliablePueKvsConsensusForgettingStore extends PueKvsConsensusForgettingStore {
+    private class UnreliablePueConsensusForgettingStore extends PueConsensusForgettingStore {
         private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private volatile boolean commitUnderUs = false;
         private volatile long millisForPue = 0;
 
-        public UnreliablePueKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+        public UnreliablePueConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
         }
 
@@ -456,7 +455,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
 
         /**
-         * We rely on the fact that {@link PueKvsConsensusForgettingStore} uses the default
+         * We rely on the fact that {@link PueConsensusForgettingStore} uses the default
          * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
          */
         @Override
