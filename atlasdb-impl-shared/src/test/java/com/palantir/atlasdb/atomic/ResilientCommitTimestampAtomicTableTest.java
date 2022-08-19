@@ -193,7 +193,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
                 new PueCassImitatingConsensusForgettingStore(0.5d),
-                    encodingStrategy,
+                encodingStrategy,
                 new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
