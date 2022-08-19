@@ -223,8 +223,9 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency,
                 transactionConfig);
-        return runTaskThrowOnConflict(
+        return runTaskThrowOnConflictWithCallback(
                 transaction -> task.execute(transaction, condition),
-                new ReadTransaction(txn, txn.sweepStrategyManager));
+                new ReadTransaction(txn, txn.sweepStrategyManager),
+                condition::cleanup);
     }
 }

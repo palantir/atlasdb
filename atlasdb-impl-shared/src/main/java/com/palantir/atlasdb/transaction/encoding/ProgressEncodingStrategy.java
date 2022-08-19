@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.encoding;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+public interface ProgressEncodingStrategy {
+    default byte[] getInProgressMarker() {
+        throw new UnsupportedOperationException("Do not expect to mark progress for transaction schema version < 4.");
+    }
 
-interface WrapperWithTracker<T> {
-    WrapperWithTracker<CallbackAwareTransaction> TRANSACTION_NO_OP = (delegate, synchronousTracker) -> delegate;
-
-    WrapperWithTracker<KeyValueService> KEY_VALUE_SERVICE_NO_OP = (delegate, synchronousTracker) -> delegate;
-
-    T apply(T delegate, PathTypeTracker pathTypeTracker);
+    default boolean isInProgress(byte[] value) {
+        return false;
+    }
 }

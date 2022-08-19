@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionStatus> {
+public enum V1EncodingStrategy implements TransactionStatusEncodingStrategy<TransactionStatus> {
     INSTANCE;
 
     @Override
@@ -39,7 +39,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
+    public byte[] encodeCommitStatusAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
         return TransactionStatuses.caseOf(commitStatus)
                 .committed(TransactionConstants::getValueForTimestamp)
                 .aborted_(TransactionConstants.DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE)
@@ -50,7 +50,7 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy<TransactionS
     }
 
     @Override
-    public TransactionStatus decodeValueAsCommitTimestamp(long _ignoredStartTimestamp, byte[] value) {
+    public TransactionStatus decodeValueAsCommitStatus(long _ignoredStartTimestamp, byte[] value) {
         if (value == null) {
             return TransactionConstants.IN_PROGRESS;
         }

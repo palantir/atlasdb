@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TTS | Introduce ConsensusForgettingStoreV4
+  links:
+  - https://github.com/palantir/atlasdb/pull/6189

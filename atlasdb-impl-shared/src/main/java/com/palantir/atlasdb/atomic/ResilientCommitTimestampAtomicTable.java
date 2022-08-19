@@ -135,7 +135,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
         Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
-                .map(startTs -> encodingStrategy.encodeCommitTimestampAsValue(
+                .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
         store.atomicUpdate(stagingValues);
@@ -166,11 +166,10 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             return FollowUpAction.PUT;
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
-            AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
             TransactionStatus commitStatus = currentValue.value();
-            AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitTimestamp(
-                    startTs, Iterables.getOnlyElement(e.getActualValues()));
+            AtomicValue<TransactionStatus> kvsValue =
+                    encodingStrategy.decodeValueAsCommitStatus(startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
                     kvsValue.isCommitted()
                             && TransactionStatuses.getCommitTimestamp(kvsValue.value())
@@ -195,14 +194,13 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 resultBuilder.put(
                         startTs,
                         encodingStrategy
-                                .decodeValueAsCommitTimestamp(startTs, null)
+                                .decodeValueAsCommitStatus(startTs, null)
                                 .value());
                 continue;
             }
 
             byte[] actual = maybeActual.get();
-            AtomicValue<TransactionStatus> currentValue =
-                    encodingStrategy.decodeValueAsCommitTimestamp(startTs, actual);
+            AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
 
             TransactionStatus commitStatus = currentValue.value();
             if (currentValue.isCommitted()) {

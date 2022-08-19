@@ -380,6 +380,7 @@ public interface Transaction {
      *     <li>Exceptions thrown from any callback will be propagated immediately, and cause callbacks registered
      *     later to not run.</li>
      *     <li>Exceptions thrown from any callback will not change the result of the transaction.</li>
+     *     <li>Callbacks may run 0 or more times. Callbacks should therefore be idempotent.</li>
      * </ul>
      */
     void onSuccess(Runnable callback);

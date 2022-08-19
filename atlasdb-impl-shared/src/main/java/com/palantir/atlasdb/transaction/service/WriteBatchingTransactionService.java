@@ -86,6 +86,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @Override
     public void markInProgress(long startTimestamp) {
+
         delegate.markInProgress(ImmutableSet.of(startTimestamp));
     }
 

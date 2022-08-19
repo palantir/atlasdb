@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -73,23 +74,20 @@ public class ResilientCommitTimestampAtomicTableTest {
     private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
-    private final UnreliablePueKvsConsensusForgettingStore spiedStore =
-            spy(new UnreliablePueKvsConsensusForgettingStore(
-                    spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
+    private final UnreliablePueConsensusForgettingStore spiedStore = spy(new UnreliablePueConsensusForgettingStore(
+            spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final boolean validating;
     private final AtomicTable<Long, TransactionStatus> atomicTable;
     private final AtomicLong clockLong = new AtomicLong(1000);
     private final Clock clock = clockLong::get;
+    private final TwoPhaseEncodingStrategy encodingStrategy =
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
 
     public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
         validating = (boolean) parameter;
         atomicTable = new ResilientCommitTimestampAtomicTable(
-                spiedStore,
-                TwoPhaseEncodingStrategy.INSTANCE,
-                () -> !validating,
-                clock,
-                new DefaultTaggedMetricRegistry());
+                spiedStore, encodingStrategy, () -> !validating, clock, new DefaultTaggedMetricRegistry());
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -170,14 +168,14 @@ public class ResilientCommitTimestampAtomicTableTest {
     @Test
     public void getReturnsStagingValuesThatWereCommittedBySomeoneElse()
             throws ExecutionException, InterruptedException {
-        TwoPhaseEncodingStrategy strategy = TwoPhaseEncodingStrategy.INSTANCE;
 
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatuses.committed(2L);
-        Cell timestampAsCell = strategy.encodeStartTimestampAsCell(startTimestamp);
-        byte[] stagingValue = strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.staging(commitStatus));
+        Cell timestampAsCell = encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
+        byte[] stagingValue =
+                encodingStrategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.staging(commitStatus));
         byte[] committedValue =
-                strategy.encodeCommitTimestampAsValue(startTimestamp, AtomicValue.committed(commitStatus));
+                encodingStrategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.committed(commitStatus));
         spiedStore.atomicUpdate(timestampAsCell, stagingValue);
 
         List<byte[]> actualValues = ImmutableList.of(committedValue);
@@ -194,8 +192,8 @@ public class ResilientCommitTimestampAtomicTableTest {
     @Test
     public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
-                new CassandraImitatingConsensusForgettingStore(0.5d),
-                TwoPhaseEncodingStrategy.INSTANCE,
+                new PueCassImitatingConsensusForgettingStore(0.5d),
+                encodingStrategy,
                 new DefaultTaggedMetricRegistry());
 
         for (long startTs = 1L; startTs < 1000; startTs++) {
@@ -434,17 +432,17 @@ public class ResilientCommitTimestampAtomicTableTest {
      * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
      *
      * WARNING: the usefulness of this store is coupled with the implementation of
-     * {@link PueKvsConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
+     * {@link PueConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private class UnreliablePueKvsConsensusForgettingStore extends PueKvsConsensusForgettingStore {
+    private class UnreliablePueConsensusForgettingStore extends PueConsensusForgettingStore {
         private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private volatile boolean commitUnderUs = false;
         private volatile long millisForPue = 0;
 
-        public UnreliablePueKvsConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+        public UnreliablePueConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
         }
 
@@ -457,13 +455,13 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
 
         /**
-         * We rely on the fact that {@link PueKvsConsensusForgettingStore} uses the default
+         * We rely on the fact that {@link PueConsensusForgettingStore} uses the default
          * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
          */
         @Override
         public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
             if (commitUnderUs) {
-                super.put(ImmutableMap.of(cell, TwoPhaseEncodingStrategy.INSTANCE.transformStagingToCommitted(value)));
+                super.put(ImmutableMap.of(cell, encodingStrategy.transformStagingToCommitted(value)));
             }
             int current = concurrentTouches.incrementAndGet();
             if (current > maximumConcurrentTouches.get()) {
