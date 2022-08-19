@@ -32,10 +32,10 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    MarkAndCassCassImitatingConsensusForgettingStore neverThrowing =
-            new MarkAndCassCassImitatingConsensusForgettingStore(0.0);
-    MarkAndCassCassImitatingConsensusForgettingStore sometimesThrowing =
-            new MarkAndCassCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
+    MarkAndCasCassImitatingConsensusForgettingStore neverThrowing =
+            new MarkAndCasCassImitatingConsensusForgettingStore(0.0);
+    MarkAndCasCassImitatingConsensusForgettingStore sometimesThrowing =
+            new MarkAndCasCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
     public void trivialGet() {
@@ -46,7 +46,7 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
     public void canGetAfterMark() {
         neverThrowing.mark(CELL);
         assertThat(Futures.getUnchecked(neverThrowing.get(CELL)))
-                .contains(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+                .contains(MarkAndCasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
     }
 
     @Test
@@ -131,7 +131,7 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
                 numberOfSuccessfulUpdates++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);
                 assertThat(Futures.getUnchecked(sometimesThrowing.get(cell)))
-                        .hasValue(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+                        .hasValue(MarkAndCasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
             } catch (RuntimeException e) {
                 sometimesThrowing.setProbabilityOfFailure(0.0);
@@ -140,7 +140,7 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
                     numberOfNothingPresent++;
                 } else {
                     assertThat(actualValue)
-                            .hasValue(MarkAndCassCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
+                            .hasValue(MarkAndCasCassImitatingConsensusForgettingStore.IN_PROGRESS_MARKER);
                     numberOfValuePresentAfterFailure++;
                 }
                 sometimesThrowing.setProbabilityOfFailure(PROBABILITY_THROWING_ON_QUORUM_HALF);
@@ -153,7 +153,7 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
         assertThat(numberOfValuePresentAfterFailure).isBetween(10, 55);
     }
 
-    private void atomicUpdate(MarkAndCassCassImitatingConsensusForgettingStore store, Cell cell) {
+    private void atomicUpdate(MarkAndCasCassImitatingConsensusForgettingStore store, Cell cell) {
         store.mark(cell);
         store.atomicUpdate(cell, VALUE);
     }

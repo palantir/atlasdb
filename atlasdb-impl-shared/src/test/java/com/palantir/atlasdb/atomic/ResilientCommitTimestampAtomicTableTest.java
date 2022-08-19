@@ -73,9 +73,8 @@ public class ResilientCommitTimestampAtomicTableTest {
     private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
-    private final UnreliablePueKvsPueConsensusForgettingStore spiedStore =
-            spy(new UnreliablePueKvsPueConsensusForgettingStore(
-                    spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
+    private final UnreliablePueConsensusForgettingStore spiedStore = spy(new UnreliablePueConsensusForgettingStore(
+            spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
     private final boolean validating;
     private final AtomicTable<Long, TransactionStatus> atomicTable;
@@ -437,14 +436,14 @@ public class ResilientCommitTimestampAtomicTableTest {
      * {@link PueConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
      */
-    private class UnreliablePueKvsPueConsensusForgettingStore extends PueConsensusForgettingStore {
+    private class UnreliablePueConsensusForgettingStore extends PueConsensusForgettingStore {
         private volatile Optional<RuntimeException> putException = Optional.empty();
         private final AtomicInteger concurrentTouches = new AtomicInteger(0);
         private final AtomicInteger maximumConcurrentTouches = new AtomicInteger(0);
         private volatile boolean commitUnderUs = false;
         private volatile long millisForPue = 0;
 
-        public UnreliablePueKvsPueConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
+        public UnreliablePueConsensusForgettingStore(KeyValueService kvs, TableReference tableRef) {
             super(kvs, tableRef);
         }
 

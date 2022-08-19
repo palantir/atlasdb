@@ -30,11 +30,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class ConsensusForgettingStoreReaderImpl implements ReadableConsensusForgettingStore {
+public class ReadableConsensusForgettingStoreImpl implements ReadableConsensusForgettingStore {
     private final KeyValueService kvs;
     private final TableReference tableRef;
 
-    public ConsensusForgettingStoreReaderImpl(KeyValueService kvs, TableReference tableRef) {
+    public ReadableConsensusForgettingStoreImpl(KeyValueService kvs, TableReference tableRef) {
         this.kvs = kvs;
         this.tableRef = tableRef;
     }

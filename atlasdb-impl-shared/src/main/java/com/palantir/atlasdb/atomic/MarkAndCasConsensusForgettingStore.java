@@ -45,7 +45,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
         this.tableRef = tableRef;
-        this.reader = new ConsensusForgettingStoreReaderImpl(kvs, tableRef);
+        this.reader = new ReadableConsensusForgettingStoreImpl(kvs, tableRef);
     }
 
     @Override
@@ -55,7 +55,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
     @Override
     public void mark(Set<Cell> cells) {
-        // we mark at lowest possible non-negative timestamp to make marking visible to all transactions.
+        // atomic updates generally happen at the Cassandra wall clock time of the operation, so we need the mark to
+        // have a lower write time than what any atomic update might attempt to write
         kvs.put(tableRef, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> inProgressMarker)), 0L);
     }
 
@@ -116,7 +117,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                 .map(Cell::getRowName)
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toSet());
-        Preconditions.checkState(rows.size() == 1, "Only allowed to make batch cells across one row.");
+        Preconditions.checkState(rows.size() == 1, "Only allowed to make batch updates to cells across one row.");
         return Iterables.getOnlyElement(rows).array();
     }
 }

@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
-public class ConsensusForgettingStoreV3Test {
+public class PueConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
     private static final byte[] HAPPY = PtBytes.toBytes("happy");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("a"), PtBytes.toBytes("b"));

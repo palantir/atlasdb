@@ -26,11 +26,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public final class MarkAndCassCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
+public final class MarkAndCasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
     @VisibleForTesting
     static final byte[] IN_PROGRESS_MARKER = new byte[1];
 
-    public MarkAndCassCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
+    public MarkAndCasCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
         super(probabilityOfFailure);
     }
 

@@ -37,7 +37,7 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.kvs = kvs;
         this.tableRef = tableRef;
-        this.reader = new ConsensusForgettingStoreReaderImpl(kvs, tableRef);
+        this.reader = new ReadableConsensusForgettingStoreImpl(kvs, tableRef);
     }
 
     @Override
