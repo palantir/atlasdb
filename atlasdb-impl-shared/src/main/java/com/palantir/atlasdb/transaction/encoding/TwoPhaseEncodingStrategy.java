@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 public final class TwoPhaseEncodingStrategy
         implements TransactionStatusEncodingStrategy<AtomicValue<TransactionStatus>> {
     private static final byte[] STAGING = new byte[] {0};
-    static final byte[] COMMITTED = new byte[] {1};
+    private static final byte[] COMMITTED = new byte[] {1};
 
     private static final AtomicValue<TransactionStatus> IN_PROGRESS_COMMITTED =
             AtomicValue.committed(TransactionConstants.IN_PROGRESS);
