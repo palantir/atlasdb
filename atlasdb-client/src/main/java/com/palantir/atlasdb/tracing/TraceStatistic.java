@@ -48,14 +48,27 @@ public final class TraceStatistic {
         return of(emptyReads.sum(), skippedValues.sum(), bytesReadFromDb.sum());
     }
 
+    /**
+     * Number of reads where the latest value is empty. This happens whenever the (row, col, ts) with the latest ts has
+     * been deleted but not swept yet.
+     */
     public long emptyReads() {
         return emptyReads.sum();
     }
 
+    /**
+     * Number of non-latest values read. This happens whenever range scanning and encountering multiple (row, col, ts)
+     * entries are returned for the same (row, col) tuple. All but the one with the latest timestamp will be skipped.
+     * This will eventually be swept.
+     */
     public long skippedValues() {
         return skippedValues.sum();
     }
 
+    /**
+     * Total number of useful bytes read. This doesn't account for e.g. protocol overheads, and just tracks the sizes
+     * of rows/cols/values.
+     */
     public long bytesReadFromDb() {
         return bytesReadFromDb.sum();
     }

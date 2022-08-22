@@ -73,6 +73,8 @@ public final class TraceStatistics {
 
     /**
      * Increment the number of empty values that have been read.
+     *
+     * Empty reads happens whenever the (row, col, ts) with the latest ts has been deleted but not swept yet.
      */
     public static void incEmptyValues(long emptyValues) {
         if (!isTraceObservable()) {
@@ -83,7 +85,11 @@ public final class TraceStatistics {
     }
 
     /**
-     * Increment the number of empty values that have been read.
+     * Increment the number of skipped values that have been read.
+     *
+     * Values are skipped whenever range scanning and encountering multiple (row, col, ts) entries are returned for
+     * the same (row, col) tuple. All but the one with the latest timestamp will be skipped. This will eventually be
+     * swept.
      */
     public static void incSkippedValues(long skippedValues) {
         if (!isTraceObservable()) {
@@ -94,7 +100,8 @@ public final class TraceStatistics {
     }
 
     /**
-     * Increment the number of bytes that have been read from the underlying database.
+     * Increment the total number of useful bytes read. This doesn't account for e.g. protocol overheads, and just
+     * tracks the sizes of rows/cols/values.
      */
     public static void incBytesRead(long bytes) {
         if (!isTraceObservable()) {
@@ -105,7 +112,8 @@ public final class TraceStatistics {
     }
 
     /**
-     * Increment the number of bytes that have been read from the underlying database.
+     * Increment the total number of useful bytes read. This doesn't account for e.g. protocol overheads, and just
+     * tracks the sizes of rows/cols/values.
      */
     public static void incBytesRead(byte[] bytes) {
         if (!isTraceObservable() || bytes == null) {
