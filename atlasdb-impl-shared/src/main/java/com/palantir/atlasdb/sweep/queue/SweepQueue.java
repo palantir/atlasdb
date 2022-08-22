@@ -142,7 +142,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         deleter.sweep(sweepBatch.writes(), shardStrategy);
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 
-        if (!sweepBatch.isEmpty()) {
+        if (!(sweepBatch.isEmpty() || shardStrategy.isNoop())) {
             log.debug(
                     "Put {} ranged tombstones and swept up to timestamp {} for {}.",
                     SafeArg.of("tombstones", sweepBatch.writes().size()),
@@ -156,7 +156,9 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 sweepBatch.lastSweptTimestamp(),
                 sweepBatch.dedicatedRows());
 
-        metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
+        if (!shardStrategy.isNoop()) {
+            metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
+        }
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
 
         if (sweepBatch.isEmpty()) {
