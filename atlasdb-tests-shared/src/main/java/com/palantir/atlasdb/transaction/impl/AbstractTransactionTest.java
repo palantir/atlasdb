@@ -91,6 +91,7 @@ import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Test;
 
+@SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final BatchColumnRangeSelection ALL_COLUMNS =
             BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);

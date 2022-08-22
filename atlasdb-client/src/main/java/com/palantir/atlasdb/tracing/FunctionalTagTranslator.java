@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,14 @@
 
 package com.palantir.atlasdb.tracing;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
-import com.google.errorprone.annotations.MustBeClosed;
-import com.palantir.tracing.CloseableTracer;
+import com.palantir.tracing.TagTranslator;
 import java.util.function.Consumer;
 
-public interface Tracing {
+public enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
+    INSTANCE;
 
-    @MustBeClosed
-    static CloseableTracer startLocalTrace(
-            @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
-        return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
+    @Override
+    public <T> void translate(TagAdapter<T> adapter, T target, Consumer<TagConsumer> data) {
+        data.accept((key, value) -> adapter.tag(target, key, value));
     }
 }

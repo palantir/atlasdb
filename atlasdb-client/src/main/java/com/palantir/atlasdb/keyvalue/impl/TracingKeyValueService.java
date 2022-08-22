@@ -44,16 +44,17 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.tracing.FunctionalTagTranslator;
+import com.palantir.atlasdb.tracing.TagConsumer;
+import com.palantir.atlasdb.tracing.TraceStatistic;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.tracing.Tracing;
-import com.palantir.atlasdb.tracing.Tracing.FunctionalTagTranslator;
-import com.palantir.atlasdb.tracing.Tracing.TagConsumer;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.DetachedSpan;
-import com.palantir.tracing.TagTranslator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.List;
@@ -300,24 +301,41 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getRange(tableRef, rangeRequest, timestamp);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRange");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<RowResult<Value>> result = delegate().getRange(tableRef, rangeRequest, timestamp);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> sink.tableRef(tableRef));
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRangeOfTimestamps");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<RowResult<Set<Long>>> result =
+                delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> sink.tableRef(tableRef));
     }
 
     @Override
+    @MustBeClosed
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
-        // No tracing, as we just return a lazy iterator and don't perform any calls to the backing KVS.
-        return delegate().getCandidateCellsForSweeping(tableRef, request);
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getCandidateCellsForSweeping");
+
+        @SuppressWarnings("MustBeClosedChecker")
+        ClosableIterator<List<CandidateCellForSweeping>> result =
+                delegate().getCandidateCellsForSweeping(tableRef, request);
+
+        return attachDetachedSpanCompletion(detachedSpan, result, sink -> sink.tableRef(tableRef));
     }
 
     @Override
@@ -339,8 +357,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowsColumnRange", sink -> {
+            sink.statistics(TraceStatistics.getCopyAndRestoreOriginal(original));
             sink.tableRef(tableRef);
             sink.size("rows", rows);
             sink.timestamp(timestamp);
@@ -474,9 +495,21 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // We'll be completing in a different unrelated thread, so we have no chance to restore the original; this is a
+        // known limitation of the async trace statistics. We still want to clear the current statistics.
+        TraceStatistics.getCurrentAndClear();
+
+        // As the trace executor will close out this span, we need to keep a reference to the current mutable statistics
+        TraceStatistic current = TraceStatistics.getReferenceToCurrent();
+
         DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getAsync");
+
+        // Note that the trace statistics rely on the executor being compatible with
+        // {@link ExecutorInheritableThreadLocal} to function correctly
         ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
+
         return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService, sink -> {
+            sink.statistics(current);
             sink.tableRef(tableRef);
             sink.size("cells", timestampByCell);
         });
@@ -484,27 +517,48 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @MustBeClosed
     private static CloseableTracer startLocalTrace(@CompileTimeConstant final String operation) {
-        return CloseableTracer.startSpan(operation);
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+
+        return Tracing.startLocalTrace(
+                operation, sink -> sink.statistics(TraceStatistics.getCopyAndRestoreOriginal(original)));
     }
 
     @MustBeClosed
     private static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, TableReference tableReference) {
-        return CloseableTracer.startSpan(operation, TableReferenceTagTranslator.INSTANCE, tableReference);
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+
+        return Tracing.startLocalTrace(operation, sink -> {
+            sink.statistics(TraceStatistics.getCopyAndRestoreOriginal(original));
+            sink.tableRef(tableReference);
+        });
     }
 
     @MustBeClosed
     private static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
-        return Tracing.startLocalTrace(operation, tagTranslator);
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+
+        return Tracing.startLocalTrace(operation, sink -> {
+            sink.statistics(TraceStatistics.getCopyAndRestoreOriginal(original));
+            tagTranslator.accept(sink);
+        });
     }
 
     @MustBeClosed
     private static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Collection<TableReference> tableReferences) {
-        return CloseableTracer.startSpan(operation, TableReferencesTagTranslator.INSTANCE, tableReferences);
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+
+        return Tracing.startLocalTrace(operation, sink -> {
+            sink.statistics(TraceStatistics.getCopyAndRestoreOriginal(original));
+            sink.tableRefs(tableReferences);
+        });
     }
 
+    /**
+     * Attach a detached span to a future completing.
+     */
     private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
             DetachedSpan detachedSpan,
             ListenableFuture<V> future,
@@ -531,23 +585,32 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         return future;
     }
 
-    private enum TableReferenceTagTranslator implements TagTranslator<TableReference> {
-        INSTANCE;
+    /**
+     * Attach a detached span to the close of a closable iterator.
+     *
+     * Note: due to legacy code this span is not guaranteed to close. This will mean that some logs will be lost/missed.
+     */
+    @MustBeClosed
+    private static <V> ClosableIterator<V> attachDetachedSpanCompletion(
+            DetachedSpan detachedSpan, ClosableIterator<V> closableIterator, Consumer<TagConsumer> tagTranslator) {
+        // We'll possibly be completing in a different unrelated thread, so we have no chance to restore the original;
+        // this is a known limitation of the async trace statistics. We still want to clear the current statistics.
+        TraceStatistic original = TraceStatistics.getCurrentAndClear();
+        Thread originalThread = Thread.currentThread();
 
-        @Override
-        public <T> void translate(TagAdapter<T> adapter, T target, TableReference data) {
-            adapter.tag(
-                    target, "table", LoggingArgs.safeTableOrPlaceholder(data).toString());
-        }
-    }
+        // As the trace executor will close out this span, we need to keep a reference to the current mutable statistics
+        TraceStatistic current = TraceStatistics.getReferenceToCurrent();
 
-    private enum TableReferencesTagTranslator implements TagTranslator<Collection<TableReference>> {
-        INSTANCE;
+        return ClosableIterators.appendOnClose(closableIterator, () -> {
+            detachedSpan.complete(FunctionalTagTranslator.INSTANCE, sink -> {
+                sink.statistics(current);
+                tagTranslator.accept(sink);
 
-        @Override
-        public <T> void translate(TagAdapter<T> adapter, T target, Collection<TableReference> data) {
-            adapter.tag(
-                    target, "tables", LoggingArgs.safeTablesOrPlaceholder(data).toString());
-        }
+                if (Thread.currentThread() == originalThread) {
+                    // Lucky, we can clean up the threadlocals
+                    TraceStatistics.getCopyAndRestoreOriginal(original);
+                }
+            });
+        });
     }
 }

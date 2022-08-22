@@ -19,6 +19,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -49,16 +50,24 @@ public class GetCandidateCellsForSweepingShim {
         this.keyValueService = keyValueService;
     }
 
+    @MustBeClosed
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(request.startRowInclusive())
                 .batchHint(request.batchSizeHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
                 .build();
-        try (ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults = new ReleasableCloseable<>(getValues(
-                        tableRef, range, request.maxTimestampExclusive(), request.shouldCheckIfLatestValueIsEmpty()));
-                ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults = new ReleasableCloseable<>(
-                        keyValueService.getRangeOfTimestamps(tableRef, range, request.maxTimestampExclusive()))) {
+        try (@SuppressWarnings("MustBeClosedChecker")
+                        ReleasableCloseable<ClosableIterator<RowResult<Value>>> valueResults =
+                                new ReleasableCloseable<>(getValues(
+                                        tableRef,
+                                        range,
+                                        request.maxTimestampExclusive(),
+                                        request.shouldCheckIfLatestValueIsEmpty()));
+                @SuppressWarnings("MustBeClosedChecker")
+                        ReleasableCloseable<ClosableIterator<RowResult<Set<Long>>>> tsResults =
+                                new ReleasableCloseable<>(keyValueService.getRangeOfTimestamps(
+                                        tableRef, range, request.maxTimestampExclusive()))) {
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults.get());
 
             Iterator<List<RowResult<Set<Long>>>> tsBatches = Iterators.partition(tsResults.get(), range.getBatchHint());
@@ -98,6 +107,7 @@ public class GetCandidateCellsForSweepingShim {
         return closer;
     }
 
+    @MustBeClosed
     private ClosableIterator<RowResult<Value>> getValues(
             TableReference tableRef, RangeRequest range, long sweepTs, boolean checkIfLatestValueIsEmpty) {
         if (checkIfLatestValueIsEmpty) {

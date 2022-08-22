@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    Add statistics to spans emitted from within atlasdb. The following tags will be added to spans:
+    - `atlasdb.emptyReads`: The number of AtlasDB tombstones read during this span.
+    - `atlasdb.bytesRead`: An estimate of the number of bytes read during this span from the underlying database. This is currently the number of column name & value bytes read, and will not contain various overheads. It should be used seen as a value correlated with the real value.
+
+    Note that both these statistics are best-effort. There is no guarantee of completeness, and require correct usage of AtlasDB to work (e.g. closing `ClosableIterators`).
+  links:
+  - https://github.com/palantir/atlasdb/pull/6096

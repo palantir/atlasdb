@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cleaner;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -257,6 +258,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         }
     }
 
+    @MustBeClosed
     private static ClosableIterator<RowResult<Value>> getFirstRowBefore(KeyValueService kvs, long millis) {
         RangeRequest rangeRequest = RangeRequest.builder()
                 .startRowInclusive(createRow(millis))

@@ -63,10 +63,10 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         Map<byte[], RowColumnRangeIterator> range =
                 keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
-            return ClosableIterators.wrap(
+            return ClosableIterators.wrapWithEmptyClose(
                     ImmutableList.<Map.Entry<Cell, Value>>of().iterator());
         }
-        return ClosableIterators.wrap(Iterables.getOnlyElement(range.values()));
+        return ClosableIterators.wrapWithEmptyClose(Iterables.getOnlyElement(range.values()));
     }
 
     @Override
