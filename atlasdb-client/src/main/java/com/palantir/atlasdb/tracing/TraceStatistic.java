@@ -50,7 +50,7 @@ public final class TraceStatistic {
 
     /**
      * Number of reads where the latest value is empty. This happens whenever the (row, col, ts) with the latest ts has
-     * been deleted but not swept yet.
+     * been deleted. If you are using Thorough Sweep these will eventually be swept.
      */
     public long emptyReads() {
         return emptyReads.sum();

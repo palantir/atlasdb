@@ -74,7 +74,8 @@ public final class TraceStatistics {
     /**
      * Increment the number of empty values that have been read.
      *
-     * Empty reads happens whenever the (row, col, ts) with the latest ts has been deleted but not swept yet.
+     * Empty reads happens whenever the (row, col, ts) with the latest ts has been deleted. If you are using
+     * Thorough Sweep these will eventually be swept.
      */
     public static void incEmptyValues(long emptyValues) {
         if (!isTraceObservable()) {
