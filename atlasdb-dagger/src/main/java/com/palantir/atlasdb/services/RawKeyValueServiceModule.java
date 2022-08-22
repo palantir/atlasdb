@@ -17,12 +17,12 @@ package com.palantir.atlasdb.services;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import dagger.Module;
 import dagger.Provides;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +32,6 @@ import javax.inject.Singleton;
 @Module
 public class RawKeyValueServiceModule {
     private static final SafeLogger log = SafeLoggerFactory.get(RawKeyValueServiceModule.class);
-    private static final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private static final int DELAY_BETWEEN_INITIALIZATION_CHECKS_MILLIS = 100;
 
     @Provides
@@ -51,6 +50,7 @@ public class RawKeyValueServiceModule {
 
     private CompletableFuture<KeyValueService> transformToFuture(KeyValueService keyValueService) {
         CompletableFuture<KeyValueService> future = new CompletableFuture<>();
+        ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
         ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(
                 () -> {
                     try {
@@ -66,7 +66,10 @@ public class RawKeyValueServiceModule {
                 0,
                 DELAY_BETWEEN_INITIALIZATION_CHECKS_MILLIS,
                 TimeUnit.MILLISECONDS);
-        future.whenComplete((_result, _thrown) -> scheduledFuture.cancel(true));
+        future.whenComplete((_result, _thrown) -> {
+            scheduledFuture.cancel(true);
+            executor.shutdown();
+        });
         return future;
     }
 }
