@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.command;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
+import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -37,7 +38,6 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -204,7 +204,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
         AtlasDbRuntimeConfig fromRuntimeConfig = loadFromFile(
                         fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
-                .map(KvsMigrationCommand::disableSweep)
+                .map(KvsMigrationCommand::disableSweepAndCompaction)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
 
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig), fromRuntimeConfig);
@@ -218,7 +218,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
         AtlasDbRuntimeConfig toRuntimeConfig = loadFromFileOrInline(
                         toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
-                .map(KvsMigrationCommand::disableSweep)
+                .map(KvsMigrationCommand::disableSweepAndCompaction)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), toRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
@@ -240,11 +240,12 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 .build());
     }
 
-    private static AtlasDbRuntimeConfig disableSweep(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+    private static AtlasDbRuntimeConfig disableSweepAndCompaction(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .from(atlasDbRuntimeConfig)
                 .sweep(SweepConfig.disabled())
                 .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .compact(CompactorConfig.disabled())
                 .build();
     }
 
@@ -265,7 +266,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
             try {
                 return function.apply(f);
             } catch (IOException e) {
-                throw new UncheckedIOException(e);
+                throw new SafeRuntimeException(e);
             }
         };
     }

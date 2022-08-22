@@ -22,6 +22,7 @@ import com.google.common.collect.ObjectArrays;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
+import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
@@ -75,7 +76,7 @@ public class TestKvsMigrationCommand {
         String[] commandArgs = new String[] {"-frc", runtimeFilePath, "-mrc", runtimeFilePath};
         KvsMigrationCommand command = getCommand(commandArgs, EMPTY_ARGS);
 
-        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromFile());
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromFile());
 
         assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
         assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
@@ -86,7 +87,7 @@ public class TestKvsMigrationCommand {
         String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
         KvsMigrationCommand command = getCommand(EMPTY_ARGS, globalArgs);
 
-        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromString());
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromString());
 
         assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
     }
@@ -98,7 +99,7 @@ public class TestKvsMigrationCommand {
         String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
         KvsMigrationCommand command = getCommand(commandArgs, globalArgs);
 
-        AtlasDbRuntimeConfig expected = withDisabledSweep(loadFromFile());
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromFile());
 
         assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
     }
@@ -212,11 +213,12 @@ public class TestKvsMigrationCommand {
         return AtlasDbConfigs.loadFromString(RUNTIME_CONFIG, null, AtlasDbRuntimeConfig.class);
     }
 
-    private static AtlasDbRuntimeConfig withDisabledSweep(AtlasDbRuntimeConfig config) {
+    private static AtlasDbRuntimeConfig withDisabledSweepAndCompaction(AtlasDbRuntimeConfig config) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .from(config)
                 .sweep(SweepConfig.disabled())
                 .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .compact(CompactorConfig.disabled())
                 .build();
     }
 }
