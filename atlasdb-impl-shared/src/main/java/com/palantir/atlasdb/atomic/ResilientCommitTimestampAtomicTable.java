@@ -127,7 +127,9 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
 
     @Override
     public void markInProgress(Iterable<Long> keys) {
-        // no op
+        store.mark(StreamSupport.stream(keys.spliterator(), false)
+                .map(encodingStrategy::encodeStartTimestampAsCell)
+                .collect(Collectors.toSet()));
     }
 
     @Override

@@ -16,36 +16,107 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.keyvalue.api.*;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
     private final byte[] inProgressMarker;
     private final KeyValueService kvs;
     private final TableReference tableRef;
     private final ReadableConsensusForgettingStore reader;
+    private final DisruptorAutobatcher<CasRequest, Void> autobatcher;
 
-    public MarkAndCasConsensusForgettingStore(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
+    public MarkAndCasConsensusForgettingStore(
+            byte[] inProgressMarker,
+            KeyValueService kvs,
+            TableReference tableRef,
+            DisruptorAutobatcher<CasRequest, Void> autobatcher) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
         this.tableRef = tableRef;
         this.reader = new ReadableConsensusForgettingStoreImpl(kvs, tableRef);
+        this.autobatcher = autobatcher;
+    }
+
+    public static MarkAndCasConsensusForgettingStore create(
+            byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
+        DisruptorAutobatcher<CasRequest, Void> autobatcher = Autobatchers.<CasRequest, Void>independent(
+                        x -> processBatch(kvs, tableRef, x))
+                .safeLoggablePurpose("mcas-batching-store")
+                .batchFunctionTimeout(Duration.ofMinutes(5))
+                .build();
+        return new MarkAndCasConsensusForgettingStore(inProgressMarker, kvs, tableRef, autobatcher);
+    }
+
+    private static void processBatch(
+            KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
+        // filter out updates for same cell
+        List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
+        Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
+                .collect(Collectors.groupingBy(
+                        elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
+        for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
+            ByteBuffer rowName = requestEntry.getKey();
+            List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
+            MultiCheckAndSetRequest multiCheckAndSetRequest = multiCASRequest(tableRef, rowName, pendingRequests);
+            try {
+                kvs.multiCheckAndSet(multiCheckAndSetRequest);
+                pendingRequests.forEach(req -> req.result().set(null));
+            } catch (Exception e) {
+                pendingRequests.forEach(req -> req.result().setException(e));
+            }
+        }
+    }
+
+    private static MultiCheckAndSetRequest multiCASRequest(
+            TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> requests) {
+        Map<Cell, byte[]> expected = KeyedStream.of(requests)
+                .mapKeys(elem -> elem.argument().cell())
+                .map(elem -> elem.argument().expected())
+                .collectToMap();
+        Map<Cell, byte[]> updates = KeyedStream.of(requests)
+                .mapKeys(elem -> elem.argument().cell())
+                .map(elem -> elem.argument().update())
+                .collectToMap();
+        return MultiCheckAndSetRequest.multipleCells(tableRef, rowName.array(), expected, updates);
+    }
+
+    private static List<BatchElement<CasRequest, Void>> getFilteredUpdates(List<BatchElement<CasRequest, Void>> batch) {
+        Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
+                .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
+
+        ImmutableList.Builder<BatchElement<CasRequest, Void>> pendingUpdates = ImmutableList.builder();
+
+        for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> entry : partitionedElems.entrySet()) {
+            List<BatchElement<CasRequest, Void>> requestedUpdates = entry.getValue();
+
+            // todo(snanda): think about the algo here and the exception handling
+            pendingUpdates.add(requestedUpdates.remove(0));
+
+            for (BatchElement<CasRequest, Void> reject : requestedUpdates) {
+                reject.result().setException(new CheckAndSetException("Another check and set is in progress."));
+            }
+        }
+
+        return pendingUpdates.build();
     }
 
     @Override
@@ -68,6 +139,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, inProgressMarker, value);
         kvs.checkAndSet(request);
+        //        autobatcher.apply()
     }
 
     @Override
@@ -119,5 +191,17 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                 .collect(Collectors.toSet());
         Preconditions.checkState(rows.size() == 1, "Only allowed to make batch updates to cells across one row.");
         return Iterables.getOnlyElement(rows).array();
+    }
+
+    @Value.Immutable
+    interface CasRequest {
+        @Value.Parameter
+        Cell cell();
+
+        @Value.Parameter
+        byte[] expected();
+
+        @Value.Parameter
+        byte[] update();
     }
 }
