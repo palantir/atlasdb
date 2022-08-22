@@ -42,8 +42,7 @@ public class RawKeyValueServiceModuleTest {
 
     @Test
     public void provideInitializedRawKeyValueServicePropagatesException() {
-        when(keyValueService.isInitialized()).thenReturn(false);
-        when(keyValueService.isInitialized()).thenThrow(new SafeIllegalStateException("test"));
+        when(keyValueService.isInitialized()).thenReturn(false).thenThrow(new SafeIllegalStateException("test"));
         assertThatThrownBy(() -> new RawKeyValueServiceModule().provideInitializedRawKeyValueService(keyValueService))
                 .hasRootCauseInstanceOf(SafeIllegalStateException.class)
                 .hasRootCauseMessage("test");
