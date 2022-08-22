@@ -138,19 +138,21 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
     }
 
     private CellRangeQuery getRangeQueryCoveringMultiplePartitions(
-            long fromInclusive,
-            long toInclusive,
-            long startPartition,
-            long endPartition) {
-        Preconditions.checkState(endPartition > startPartition,
-                "Expecting query to cross multiple partitions");
+            long fromInclusive, long toInclusive, long startPartition, long endPartition) {
+        Preconditions.checkState(endPartition > startPartition, "Expecting query to cross multiple partitions");
         List<CellRangeQuery> individualPartitionQueries = new ArrayList<>();
-        individualPartitionQueries.add(getRangeQueryCoveringTimestampRange(fromInclusive,
-                getEndTimestampForPartition(startPartition)));
-        for (long currentPartition = getExclusiveUpperBound(startPartition); currentPartition < endPartition; currentPartition++) {
-            individualPartitionQueries.add(getRangeQueryCoveringTimestampRange(getStartTimestampForPartition(currentPartition), getEndTimestampForPartition(currentPartition)));
+        individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
+                startPartition, fromInclusive, getEndTimestampForPartition(startPartition)));
+        for (long currentPartition = getExclusiveUpperBound(startPartition);
+                currentPartition < endPartition;
+                currentPartition++) {
+            individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
+                    currentPartition,
+                    getStartTimestampForPartition(currentPartition),
+                    getEndTimestampForPartition(currentPartition)));
         }
-        individualPartitionQueries.add(getRangeQueryCoveringTimestampRange(getStartTimestampForPartition(endPartition), toInclusive));
+        individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
+                endPartition, getStartTimestampForPartition(endPartition), toInclusive));
         return CellRangeQuery.merge(individualPartitionQueries);
     }
 
@@ -160,6 +162,8 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
         for (int rowOffset = 0; rowOffset < rowsPerQuantum; rowOffset++) {
             long firstColumnInPartition = getFirstColumnInPartition(fromInclusive, rowOffset);
             long lastColumnInPartition = getLastColumnInPartition(toInclusive, rowOffset);
+            // If a given row is not required for the user's range query, lastColumnInPartition will be less than
+            // firstColumnInPartition, and thus we don't include it in this case.
             if (firstColumnInPartition <= lastColumnInPartition) {
                 builder.putRowsToBeLoaded(
                         ValueType.VAR_LONG.convertFromJava(partitionNumber * rowsPerQuantum + rowOffset),

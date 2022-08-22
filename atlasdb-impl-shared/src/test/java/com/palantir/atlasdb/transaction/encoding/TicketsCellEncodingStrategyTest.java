@@ -144,12 +144,13 @@ public class TicketsCellEncodingStrategyTest {
                             .boxed()
                             .collect(Collectors.toList());
                     assertThat(columnToRangeSelection.keySet()).hasSameElementsAs(expectedRows);
-                    expectedRows.forEach(expectedRow -> assertThat(columnToRangeSelection.get(expectedRow)).satisfies(rangeSelection -> {
-                        assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getStartCol(), 0))
-                                .isEqualTo(0L);
-                        assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getEndCol(), 0))
-                                .isEqualTo(SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS);
-                    }));
+                    expectedRows.forEach(expectedRow -> assertThat(columnToRangeSelection.get(expectedRow))
+                            .satisfies(rangeSelection -> {
+                                assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getStartCol(), 0))
+                                        .isEqualTo(0L);
+                                assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getEndCol(), 0))
+                                        .isEqualTo(SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS);
+                            }));
                 });
     }
 
@@ -161,16 +162,22 @@ public class TicketsCellEncodingStrategyTest {
                     .mapKeys(rowKey -> (long) ValueType.VAR_LONG.convertToJava(rowKey, 0))
                     .collectToMap();
             ColumnRangeSelection offsetFourSelection = columnToRangeSelection.get(4L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getStartCol(), 0)).isEqualTo(1L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getEndCol(), 0)).isEqualTo(2L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getStartCol(), 0))
+                    .isEqualTo(1L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getEndCol(), 0))
+                    .isEqualTo(2L);
 
             ColumnRangeSelection offsetZeroSelection = columnToRangeSelection.get(0L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getStartCol(), 0)).isEqualTo(2L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getEndCol(), 0)).isEqualTo(3L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getStartCol(), 0))
+                    .isEqualTo(2L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getEndCol(), 0))
+                    .isEqualTo(3L);
 
             ColumnRangeSelection offsetOneSelection = columnToRangeSelection.get(1L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getStartCol(), 0)).isEqualTo(2L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getEndCol(), 0)).isEqualTo(3L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getStartCol(), 0))
+                    .isEqualTo(2L);
+            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getEndCol(), 0))
+                    .isEqualTo(3L);
 
             assertThat(columnToRangeSelection.keySet()).containsExactly(0L, 1L, 4L);
         });
@@ -188,22 +195,29 @@ public class TicketsCellEncodingStrategyTest {
 
         Range<Long> lastColumnOnly = Range.closedOpen(LARGE_QUANTUM_MAX_COLUMN, LARGE_QUANTUM_MAX_COLUMN + 1);
         assertThat(selections).doesNotContainKey(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 4);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 3))).isEqualTo(lastColumnOnly);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 2))).isEqualTo(lastColumnOnly);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 1))).isEqualTo(lastColumnOnly);
+        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 3)))
+                .isEqualTo(lastColumnOnly);
+        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 2)))
+                .isEqualTo(lastColumnOnly);
+        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 1)))
+                .isEqualTo(lastColumnOnly);
 
-        for (long row = 3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum(); row < 17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum(); row++) {
+        for (long row = 3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum();
+                row < 17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum();
+                row++) {
             assertThat(decode(selections.get(row))).isEqualTo(Range.closedOpen(0L, LARGE_QUANTUM_MAX_COLUMN + 1));
         }
 
         Range<Long> firstColumnOnly = Range.closedOpen(0L, 1L);
-        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum()))).isEqualTo(firstColumnOnly);
-        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() + 1))).isEqualTo(firstColumnOnly);
+        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum())))
+                .isEqualTo(firstColumnOnly);
+        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() + 1)))
+                .isEqualTo(firstColumnOnly);
         assertThat(selections).doesNotContainKey(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() + 2);
     }
 
     private static Range<Long> decode(ColumnRangeSelection columnRangeSelection) {
-        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0),
-                (Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getEndCol(), 0));
+        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0), (Long)
+                ValueType.VAR_LONG.convertToJava(columnRangeSelection.getEndCol(), 0));
     }
 }
