@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.util.PersistableBoolean;
@@ -24,9 +26,15 @@ import org.immutables.value.Value;
 public interface PartitionInfo {
     int shard();
 
-    SweepStrategy sweepStrategy();
+    @JsonIgnore
+    SweeperStrategy sweepStrategy();
 
     long timestamp();
+
+    @Value.Derived
+    default PersistableBoolean isConservative() {
+        return PersistableBoolean.of(sweepStrategy().equals(SweeperStrategy.CONSERVATIVE));
+    }
 
     static PartitionInfo of(int shard, SweeperStrategy sweepStrategy, long timestamp) {
         return ImmutablePartitionInfo.builder()

@@ -53,12 +53,11 @@ public class WriteInfoPartitioner {
         this.numShards = numShards;
     }
 
-    // todo(snanda): we do not filter out?
     /**
      * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
      * shard, strategy, and start timestamp of the transaction that performed the write.
      */
-    public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
+    public Map<PartitionInfo, List<WriteInfo>> partition(List<WriteInfo> writes) {
         return partitionWritesByShardStrategyTimestamp(writes);
     }
 
@@ -73,7 +72,6 @@ public class WriteInfoPartitioner {
         return PartitionInfo.of(write.toShard(shards), getSweeperStrategyForWrite(write), write.timestamp());
     }
 
-    // todo(snanda): consequences
     private SweeperStrategy getSweeperStrategyForWrite(WriteInfo write) {
         Optional<SweeperStrategy> strategy = getStrategy(write);
         return strategy.orElse(SweeperStrategy.NOTHING);
