@@ -37,7 +37,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
 
     private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
     private final MarkAndCasConsensusForgettingStore store =
-            new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
+            MarkAndCasConsensusForgettingStore.create(IN_PROGRESS_MARKER, kvs, TABLE);
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.atomic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -33,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -66,59 +66,6 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         return new MarkAndCasConsensusForgettingStore(inProgressMarker, kvs, tableRef, autobatcher);
     }
 
-    private static void processBatch(
-            KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
-        // filter out updates for same cell
-        List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
-        Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
-                .collect(Collectors.groupingBy(
-                        elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
-        for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
-            ByteBuffer rowName = requestEntry.getKey();
-            List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
-            MultiCheckAndSetRequest multiCheckAndSetRequest = multiCASRequest(tableRef, rowName, pendingRequests);
-            try {
-                kvs.multiCheckAndSet(multiCheckAndSetRequest);
-                pendingRequests.forEach(req -> req.result().set(null));
-            } catch (Exception e) {
-                pendingRequests.forEach(req -> req.result().setException(e));
-            }
-        }
-    }
-
-    private static MultiCheckAndSetRequest multiCASRequest(
-            TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> requests) {
-        Map<Cell, byte[]> expected = KeyedStream.of(requests)
-                .mapKeys(elem -> elem.argument().cell())
-                .map(elem -> elem.argument().expected())
-                .collectToMap();
-        Map<Cell, byte[]> updates = KeyedStream.of(requests)
-                .mapKeys(elem -> elem.argument().cell())
-                .map(elem -> elem.argument().update())
-                .collectToMap();
-        return MultiCheckAndSetRequest.multipleCells(tableRef, rowName.array(), expected, updates);
-    }
-
-    private static List<BatchElement<CasRequest, Void>> getFilteredUpdates(List<BatchElement<CasRequest, Void>> batch) {
-        Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
-                .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
-
-        ImmutableList.Builder<BatchElement<CasRequest, Void>> pendingUpdates = ImmutableList.builder();
-
-        for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> entry : partitionedElems.entrySet()) {
-            List<BatchElement<CasRequest, Void>> requestedUpdates = entry.getValue();
-
-            // todo(snanda): think about the algo here and the exception handling
-            pendingUpdates.add(requestedUpdates.remove(0));
-
-            for (BatchElement<CasRequest, Void> reject : requestedUpdates) {
-                reject.result().setException(new CheckAndSetException("Another check and set is in progress."));
-            }
-        }
-
-        return pendingUpdates.build();
-    }
-
     @Override
     public void mark(Cell cell) {
         mark(ImmutableSet.of(cell));
@@ -137,31 +84,22 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      */
     @Override
     public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, inProgressMarker, value);
-        kvs.checkAndSet(request);
-        //        autobatcher.apply()
+        autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarker, value));
     }
 
     @Override
     public void atomicUpdate(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
-        byte[] row = getRowName(values);
-        Map<Cell, byte[]> expected =
-                values.keySet().stream().collect(Collectors.toMap(cell -> cell, _ignore -> inProgressMarker));
-        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, expected, values);
-        kvs.multiCheckAndSet(request);
+        values.forEach(this::atomicUpdate);
     }
 
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
-        kvs.checkAndSet(request);
+        autobatcher.apply(ImmutableCasRequest.of(cell, value, value));
     }
 
     @Override
     public void checkAndTouch(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
-        byte[] row = getRowName(values);
-        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.multipleCells(tableRef, row, values, values);
-        kvs.multiCheckAndSet(request);
+        values.forEach(this::checkAndTouch);
     }
 
     @Override
@@ -184,13 +122,59 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         kvs.setOnce(tableRef, values);
     }
 
-    private byte[] getRowName(Map<Cell, byte[]> values) {
-        Set<ByteBuffer> rows = values.keySet().stream()
-                .map(Cell::getRowName)
-                .map(ByteBuffer::wrap)
-                .collect(Collectors.toSet());
-        Preconditions.checkState(rows.size() == 1, "Only allowed to make batch updates to cells across one row.");
-        return Iterables.getOnlyElement(rows).array();
+    private static void processBatch(
+            KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
+        // filter out updates for same cell
+        List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
+        Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
+                .collect(Collectors.groupingBy(
+                        elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
+        for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
+            ByteBuffer rowName = requestEntry.getKey();
+            List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
+            MultiCheckAndSetRequest multiCheckAndSetRequest = multiCASRequest(tableRef, rowName, pendingRequests);
+            try {
+                kvs.multiCheckAndSet(multiCheckAndSetRequest);
+                pendingRequests.forEach(req -> req.result().set(null));
+            } catch (Exception e) {
+                pendingRequests.forEach(req -> req.result().setException(e));
+            }
+        }
+    }
+
+    private static MultiCheckAndSetRequest multiCASRequest(
+            TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> requests) {
+        Map<Cell, byte[]> expected = getValueMap(requests, CasRequest::expected);
+        Map<Cell, byte[]> updates = getValueMap(requests, CasRequest::update);
+        return MultiCheckAndSetRequest.multipleCells(tableRef, rowName.array(), expected, updates);
+    }
+
+    private static Map<Cell, byte[]> getValueMap(
+            List<BatchElement<CasRequest, Void>> requests, Function<CasRequest, byte[]> valueExtractor) {
+        return KeyedStream.of(requests)
+                .mapKeys(elem -> elem.argument().cell())
+                .map(elem -> valueExtractor.apply(elem.argument()))
+                .collectToMap();
+    }
+
+    private static List<BatchElement<CasRequest, Void>> getFilteredUpdates(List<BatchElement<CasRequest, Void>> batch) {
+        Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
+                .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
+
+        ImmutableList.Builder<BatchElement<CasRequest, Void>> pendingUpdates = ImmutableList.builder();
+
+        for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> entry : partitionedElems.entrySet()) {
+            List<BatchElement<CasRequest, Void>> requestedUpdates = entry.getValue();
+
+            // todo(snanda): think about the algo here and the exception handling
+            pendingUpdates.add(requestedUpdates.remove(0));
+
+            for (BatchElement<CasRequest, Void> reject : requestedUpdates) {
+                reject.result().setException(new CheckAndSetException("Another check and set is in progress."));
+            }
+        }
+
+        return pendingUpdates.build();
     }
 
     @Value.Immutable
