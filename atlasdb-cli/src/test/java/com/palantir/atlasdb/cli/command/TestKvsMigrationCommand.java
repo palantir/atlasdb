@@ -71,7 +71,7 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void loadsRuntimeConfigFromFileWithSweepDisabled() throws URISyntaxException, IOException {
+    public void loadsRuntimeConfigFromFileWithSweepAndCompactionDisabled() throws URISyntaxException, IOException {
         String runtimeFilePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.RUNTIME_CONFIG_LOCATION);
         String[] commandArgs = new String[] {"-frc", runtimeFilePath, "-mrc", runtimeFilePath};
         KvsMigrationCommand command = getCommand(commandArgs, EMPTY_ARGS);
@@ -83,7 +83,8 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void loadsInlineRuntimeConfigWithSweepDisabledForToService() throws IOException, URISyntaxException {
+    public void loadsInlineRuntimeConfigWithSweepAndCompactionDisabledForToService()
+            throws IOException, URISyntaxException {
         String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
         KvsMigrationCommand command = getCommand(EMPTY_ARGS, globalArgs);
 
@@ -105,8 +106,8 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void usesDefaultRuntimeConfigWithDisabledSweepWhenFileNorInlineSpecified() {
-        AtlasDbRuntimeConfig expected = AtlasDbRuntimeConfig.withSweepDisabled();
+    public void usesDefaultRuntimeConfigWithSweepAndCompactionDisabledWhenFileNorInlineSpecified() {
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(AtlasDbRuntimeConfig.defaultRuntimeConfig());
 
         assertThat(fromServices.getAtlasDbRuntimeConfig()).isEqualTo(expected);
         assertThat(toServices.getAtlasDbRuntimeConfig()).isEqualTo(expected);
