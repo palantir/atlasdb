@@ -53,17 +53,20 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     private void flush() {
         try {
             Map<T, R> results = function.apply(pending.keySet());
-            pending.forEach((argument, futures) -> futures.forEach(future -> {
+            pending.forEach((argument, futures) -> {
                 R result = results.get(argument);
-                if (result != null || results.containsKey(argument)) {
-                    future.set(result);
-                } else {
-                    log.warn(
-                            "Coalescing function has violated coalescing function postcondition",
-                            SafeArg.of("functionClass", function.getClass().getCanonicalName()));
-                    future.setException(new PostconditionFailedException(function.getClass()));
+                boolean hasResult = result != null || results.containsKey(argument);
+                for (DisruptorFuture<R> future : futures) {
+                    if (hasResult) {
+                        future.set(result);
+                    } else {
+                        log.warn(
+                                "Coalescing function has violated coalescing function postcondition",
+                                SafeArg.of("functionClass", function.getClass().getCanonicalName()));
+                        future.setException(new PostconditionFailedException(function.getClass()));
+                    }
                 }
-            }));
+            });
         } catch (Throwable t) {
             pending.forEach((argument, futures) -> futures.forEach(future -> future.setException(t)));
         }
