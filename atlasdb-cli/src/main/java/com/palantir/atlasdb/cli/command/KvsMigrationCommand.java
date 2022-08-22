@@ -204,7 +204,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
         AtlasDbRuntimeConfig fromRuntimeConfig = loadFromFile(
                         fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
-                .map(this::disableSweep)
+                .map(KvsMigrationCommand::disableSweep)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
 
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig), fromRuntimeConfig);
@@ -218,7 +218,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
         AtlasDbRuntimeConfig toRuntimeConfig = loadFromFileOrInline(
                         toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
-                .map(this::disableSweep)
+                .map(KvsMigrationCommand::disableSweep)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), toRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
@@ -231,14 +231,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 .build();
     }
 
-    private AtlasDbRuntimeConfig disableSweep(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        return ImmutableAtlasDbRuntimeConfig.builder()
-                .from(atlasDbRuntimeConfig)
-                .sweep(SweepConfig.disabled())
-                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
-                .build();
-    }
-
     private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) {
         return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
@@ -246,6 +238,14 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 .threads(threads)
                 .batchSize(batchSize)
                 .build());
+    }
+
+    private static AtlasDbRuntimeConfig disableSweep(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .from(atlasDbRuntimeConfig)
+                .sweep(SweepConfig.disabled())
+                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .build();
     }
 
     private static <K> Optional<K> loadFromFileOrInline(
