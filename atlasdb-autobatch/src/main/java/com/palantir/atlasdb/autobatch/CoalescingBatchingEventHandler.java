@@ -54,8 +54,9 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         try {
             Map<T, R> results = function.apply(pending.keySet());
             pending.forEach((argument, futures) -> futures.forEach(future -> {
-                if (results.containsKey(argument)) {
-                    future.set(results.get(argument));
+                R result = results.get(argument);
+                if (result != null || results.containsKey(argument)) {
+                    future.set(result);
                 } else {
                     log.warn(
                             "Coalescing function has violated coalescing function postcondition",
