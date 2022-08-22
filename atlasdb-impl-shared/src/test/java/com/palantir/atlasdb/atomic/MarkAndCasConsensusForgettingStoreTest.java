@@ -16,17 +16,18 @@
 
 package com.palantir.atlasdb.atomic;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
+
+import java.util.concurrent.ExecutionException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MarkAndCasConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
@@ -37,7 +38,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
 
     private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
     private final MarkAndCasConsensusForgettingStore store =
-            MarkAndCasConsensusForgettingStore.create(IN_PROGRESS_MARKER, kvs, TABLE);
+            new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
