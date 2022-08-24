@@ -32,13 +32,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import org.immutables.value.Value;
-
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
     private final byte[] inProgressMarker;
@@ -47,10 +51,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     private final ReadableConsensusForgettingStore reader;
     private final DisruptorAutobatcher<CasRequest, Void> autobatcher;
 
-    public MarkAndCasConsensusForgettingStore(
-            byte[] inProgressMarker,
-            KeyValueService kvs,
-            TableReference tableRef) {
+    public MarkAndCasConsensusForgettingStore(byte[] inProgressMarker, KeyValueService kvs, TableReference tableRef) {
         Preconditions.checkArgument(!kvs.getCheckAndSetCompatibility().consistentOnFailure());
         this.inProgressMarker = inProgressMarker;
         this.kvs = kvs;
@@ -118,7 +119,6 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         kvs.setOnce(tableRef, values);
     }
 
-
     class CasCoalescingFunction implements CoalescingRequestFunction<CasRequest, Void> {
         @Override
         public Map<CasRequest, Void> apply(Set<CasRequest> batch) {
@@ -161,7 +161,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         }
 
         private List<CasRequest> getFilteredUpdates(Set<CasRequest> batch) {
-            Map<Cell, List<CasRequest>> partitionedElems = batch.stream().collect(Collectors.groupingBy(CasRequest::cell));
+            Map<Cell, List<CasRequest>> partitionedElems =
+                    batch.stream().collect(Collectors.groupingBy(CasRequest::cell));
 
             ImmutableList.Builder<CasRequest> pendingUpdates = ImmutableList.builder();
 
@@ -180,7 +181,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             if (req.expected().equals(req.update())) {
                 return 1;
             }
-            if (req.expected().equals(ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE))) {
+            if (req.expected()
+                    .equals(ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE))) {
                 return 3;
             }
             return 2;
