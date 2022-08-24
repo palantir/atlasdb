@@ -545,10 +545,15 @@ public class Scrubber {
                     SafeArg.of("cellCount", entry.getValue().size()),
                     LoggingArgs.tableRef(tableRef));
 
-            // TODO(gs): need to check table still exists somewhere here - see PDS-293560
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
-                Multimap<Cell, Long> cellsToMarkScrubbed =
+                Multimap<Cell, Long> allTimestamps =
                         scrubBatchOfCells(txManager, scrubTimestamp, transactionType, tableRef, cells);
+
+                Multimap<Cell, Long> cellsToMarkScrubbed = HashMultimap.create(allTimestamps);
+                for (Cell cell : cells) {
+                    cellsToMarkScrubbed.put(cell, scrubTimestamp);
+                }
+
                 allCellsToMarkScrubbed.put(tableRef, cellsToMarkScrubbed);
             }
             log.debug(
@@ -597,12 +602,7 @@ public class Scrubber {
         // If transactionType == TransactionType.AGGRESSIVE_HARD_DELETE this might
         // force other transactions to abort or retry
         deleteCellsAtTimestamps(txManager, tableRef, timestampsToDelete, transactionType);
-
-        Multimap<Cell, Long> cellsToMarkScrubbed = HashMultimap.create(allTimestamps);
-        for (Cell cell : cells) {
-            cellsToMarkScrubbed.put(cell, scrubTimestamp);
-        }
-        return cellsToMarkScrubbed;
+        return allTimestamps;
     }
 
     private void deleteCellsAtTimestamps(
