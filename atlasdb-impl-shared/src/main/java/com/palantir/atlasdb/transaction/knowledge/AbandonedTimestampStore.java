@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import java.util.Set;
 
-public interface FutileTimestampStore {
+public interface AbandonedTimestampStore {
     /**
      * Returns the start timestamps of the set of transactions in the provided range that are known to be unable to
      * commit. For timestamps in the range covered by a corresponding {@link KnownConcludedTransactionsStore}, this
@@ -28,10 +28,10 @@ public interface FutileTimestampStore {
      * not in the set may or may not be able to commit.
      */
     // TODO (jkong): Do we want to return a primitive typed Collection given how many numbers are floating around?
-    Set<Long> getFutileTimestampsInRange(long startInclusive, long endInclusive);
+    Set<Long> getAbandonedTimestampsInRange(long startInclusive, long endInclusive);
 
     /**
      * Registers that the transaction with the provided start timestamp will not be able to commit.
      */
-    void markFutile(long timestampToAbort);
+    void markAbandoned(long timestampToAbort);
 }

@@ -23,12 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-import org.immutables.value.Value;
 
 /**
  * We divide the first PARTITIONING_QUANTUM timestamps among the first ROW_PER_QUANTUM rows.
@@ -128,111 +124,40 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
         return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsCellEncodingStrategy::rowToBytes);
     }
 
-    public CellRangeQuery getRangeQueryCoveringTimestampRange(long fromInclusive, long toInclusive) {
+    /**
+     * Returns a column range *covering* the provided timestamp range: notice that this may load more timestamps than
+     * necessary. Users must post-filter any results they receive.
+     */
+    public ColumnRangeSelection getColumnRangeCoveringTimestampRange(long fromInclusive, long toInclusive) {
         long startPartition = getPartition(fromInclusive);
         long endPartition = getPartition(toInclusive);
         if (startPartition == endPartition) {
-            return getQueryForSingleDoublyBoundedPartition(startPartition, fromInclusive, toInclusive);
+            return getQueryForSingleDoublyBoundedPartition(fromInclusive, toInclusive);
         }
-        return getRangeQueryCoveringMultiplePartitions(fromInclusive, toInclusive, startPartition, endPartition);
+
+        // The request covers more than one partition. In this case, there will not exist a suitable contiguous range
+        // of columns containing all values, hence we just load all rows.
+        return new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
-    private CellRangeQuery getRangeQueryCoveringMultiplePartitions(
-            long fromInclusive, long toInclusive, long startPartition, long endPartition) {
-        Preconditions.checkState(endPartition > startPartition, "Expecting query to cross multiple partitions");
-        List<CellRangeQuery> individualPartitionQueries = new ArrayList<>();
-        individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
-                startPartition, fromInclusive, getEndTimestampForPartition(startPartition)));
-        for (long currentPartition = getExclusiveUpperBound(startPartition);
-                currentPartition < endPartition;
-                currentPartition++) {
-            individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
-                    currentPartition,
-                    getStartTimestampForPartition(currentPartition),
-                    getEndTimestampForPartition(currentPartition)));
-        }
-        individualPartitionQueries.add(getQueryForSingleDoublyBoundedPartition(
-                endPartition, getStartTimestampForPartition(endPartition), toInclusive));
-        return CellRangeQuery.merge(individualPartitionQueries);
-    }
+    private ColumnRangeSelection getQueryForSingleDoublyBoundedPartition(long fromInclusive, long toInclusive) {
+        long lowestRequiredColumn = getColumnIndex(fromInclusive);
+        long highestRequiredColumn = getColumnIndex(toInclusive);
 
-    private CellRangeQuery getQueryForSingleDoublyBoundedPartition(
-            long partitionNumber, long fromInclusive, long toInclusive) {
-        ImmutableCellRangeQuery.Builder builder = ImmutableCellRangeQuery.builder();
-        for (int rowOffset = 0; rowOffset < rowsPerQuantum; rowOffset++) {
-            long firstColumnInPartition = getFirstColumnInPartition(fromInclusive, rowOffset);
-            long lastColumnInPartition = getLastColumnInPartition(toInclusive, rowOffset);
-            // If a given row is not required for the user's range query, lastColumnInPartition will be less than
-            // firstColumnInPartition, and thus we don't include it in this case.
-            if (firstColumnInPartition <= lastColumnInPartition) {
-                builder.putRowsToBeLoaded(
-                        ValueType.VAR_LONG.convertFromJava(partitionNumber * rowsPerQuantum + rowOffset),
-                        new ColumnRangeSelection(
-                                ValueType.VAR_LONG.convertFromJava(firstColumnInPartition),
-                                ValueType.VAR_LONG.convertFromJava(getExclusiveUpperBound(lastColumnInPartition))));
-            }
-        }
-        return builder.build();
+        return new ColumnRangeSelection(
+                ValueType.VAR_LONG.convertFromJava(lowestRequiredColumn),
+                ValueType.VAR_LONG.convertFromJava(getExclusiveUpperBound(highestRequiredColumn)));
     }
 
     private long getExclusiveUpperBound(long lastColumnInPartition) {
         return lastColumnInPartition + 1;
     }
 
-    /**
-     * Returns the first column in a given row that would be relevant given the lower bound of the timestamp range.
-     * For example, where rowsPerQuantum = 10,
-     * - getFirstColumnInPartition(75, 5) = 7, because in row 5 the cell with column 7 represents timestamp 75.
-     * - getFirstColumnInPartition(75, 4) = 8, because in row 4, the cell with column 7 represents timestamp 74
-     * (which is less than 75), but the cell with column 8 represents timestamp 84 (greater than 75).
-     */
-    private long getFirstColumnInPartition(long fromInclusive, int rowOffset) {
-        return getPartitionOffsetRow(fromInclusive) <= rowOffset
-                ? getColumnIndex(fromInclusive)
-                : getColumnIndex(fromInclusive) + 1;
-    }
-
-    /**
-     * Returns the last column in a given row that would be relevant given the lower bound of the timestamp range.
-     * For example, where rowsPerQuantum = 10,
-     * - getLastColumnInPartition(75, 5) = 7, because in row 5 the cell with column 7 represents timestamp 75.
-     * - getLastColumnInPartition(75, 6) = 6, because in row 6, the cell with column 7 represents timestamp 76
-     * (which is greater than 75), but the cell with column 6 represents timestamp 66 (less than 75).
-     */
-    private long getLastColumnInPartition(long toInclusive, int rowOffset) {
-        return getPartitionOffsetRow(toInclusive) >= rowOffset
-                ? getColumnIndex(toInclusive)
-                : getColumnIndex(toInclusive) - 1;
-    }
-
     private long getPartition(long timestamp) {
         return timestamp / partitioningQuantum;
     }
 
-    private long getStartTimestampForPartition(long partition) {
-        return partition * partitioningQuantum;
-    }
-
-    private long getEndTimestampForPartition(long partition) {
-        return (partition + 1) * partitioningQuantum - 1;
-    }
-
     private long getColumnIndex(long timestamp) {
         return (timestamp % partitioningQuantum) / rowsPerQuantum;
-    }
-
-    private long getPartitionOffsetRow(long timestamp) {
-        return (timestamp % partitioningQuantum) % rowsPerQuantum;
-    }
-
-    @Value.Immutable
-    interface CellRangeQuery {
-        Map<byte[], ColumnRangeSelection> rowsToBeLoaded();
-
-        static CellRangeQuery merge(List<CellRangeQuery> queries) {
-            ImmutableCellRangeQuery.Builder builder = ImmutableCellRangeQuery.builder();
-            queries.forEach(query -> builder.putAllRowsToBeLoaded(query.rowsToBeLoaded()));
-            return builder.build();
-        }
     }
 }

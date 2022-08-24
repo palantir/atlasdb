@@ -27,11 +27,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy.CellRangeQuery;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -45,7 +42,6 @@ public class TicketsCellEncodingStrategyTest {
 
     private final long LARGE_QUANTUM = 1_000_000_000L;
     private final long LARGE_NUMBER_OF_ROWS = 1_000L;
-    private final long LARGE_QUANTUM_MAX_COLUMN = LARGE_QUANTUM / LARGE_NUMBER_OF_ROWS - 1;
     private final TicketsCellEncodingStrategy LARGE_QUANTUM_STRATEGY =
             new TicketsCellEncodingStrategy(LARGE_QUANTUM, LARGE_NUMBER_OF_ROWS);
 
@@ -131,93 +127,52 @@ public class TicketsCellEncodingStrategyTest {
     }
 
     @Test
-    public void getRangeQueryForSingleBoundedPartitionWithCompleteRange() {
+    public void columnRangeForMultiPartitionQueriesIsUniversal() {
         assertThat(SMALL_QUANTUM_STRATEGY
-                        .getRangeQueryCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4 - 1)
-                        .rowsToBeLoaded())
-                .satisfies(map -> {
-                    Map<Long, ColumnRangeSelection> columnToRangeSelection = KeyedStream.stream(map)
-                            .mapKeys(rowKey -> (long) ValueType.VAR_LONG.convertToJava(rowKey, 0))
-                            .collectToMap();
+                .getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4)).isEqualTo(
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)
+        );
+        assertThat(SMALL_QUANTUM_STRATEGY
+                .getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 17, SMALL_QUANTUM * 88 - 1)).isEqualTo(
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)
+        );
+    }
 
-                    List<Long> expectedRows = LongStream.range(3 * SMALL_NUMBER_OF_ROWS, 4 * SMALL_NUMBER_OF_ROWS)
-                            .boxed()
-                            .collect(Collectors.toList());
-                    assertThat(columnToRangeSelection.keySet()).hasSameElementsAs(expectedRows);
-                    expectedRows.forEach(expectedRow -> assertThat(columnToRangeSelection.get(expectedRow))
-                            .satisfies(rangeSelection -> {
-                                assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getStartCol(), 0))
-                                        .isEqualTo(0L);
-                                assertThat(ValueType.VAR_LONG.convertToJava(rangeSelection.getEndCol(), 0))
-                                        .isEqualTo(SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS);
-                            }));
-                });
+    @Test
+    public void columnRangeForSingleBoundedFullPartition() {
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(0, SMALL_QUANTUM - 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(0L, SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS));
+    }
+
+    @Test
+    public void columnRangeForSingleBoundedSingleValue() {
+        long timestamp = 88L;
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(timestamp, timestamp);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(timestamp / SMALL_NUMBER_OF_ROWS,
+                timestamp / SMALL_NUMBER_OF_ROWS + 1));
+    }
+
+    @Test
+    public void columnRangeForSingleBoundedContiguousRange() {
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(3 * SMALL_NUMBER_OF_ROWS,
+                        7 * SMALL_NUMBER_OF_ROWS - 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(3L, 7L));
     }
 
     @Test
     public void getRangeQueryForSingleBoundedPartitionWithWrapAroundRange() {
-        CellRangeQuery cellRangeQueryNoCompleteLoop = SMALL_QUANTUM_STRATEGY.getRangeQueryCoveringTimestampRange(9, 11);
-        assertThat(cellRangeQueryNoCompleteLoop.rowsToBeLoaded()).satisfies(map -> {
-            Map<Long, ColumnRangeSelection> columnToRangeSelection = KeyedStream.stream(map)
-                    .mapKeys(rowKey -> (long) ValueType.VAR_LONG.convertToJava(rowKey, 0))
-                    .collectToMap();
-            ColumnRangeSelection offsetFourSelection = columnToRangeSelection.get(4L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getStartCol(), 0))
-                    .isEqualTo(1L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetFourSelection.getEndCol(), 0))
-                    .isEqualTo(2L);
-
-            ColumnRangeSelection offsetZeroSelection = columnToRangeSelection.get(0L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getStartCol(), 0))
-                    .isEqualTo(2L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetZeroSelection.getEndCol(), 0))
-                    .isEqualTo(3L);
-
-            ColumnRangeSelection offsetOneSelection = columnToRangeSelection.get(1L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getStartCol(), 0))
-                    .isEqualTo(2L);
-            assertThat(ValueType.VAR_LONG.convertToJava(offsetOneSelection.getEndCol(), 0))
-                    .isEqualTo(3L);
-
-            assertThat(columnToRangeSelection.keySet()).containsExactly(0L, 1L, 4L);
-        });
-    }
-
-    @Test
-    public void getRangeQueryAcrossMultiplePartitioningQuanta() {
-        long lowerBound = 3 * LARGE_QUANTUM_STRATEGY.getPartitioningQuantum() - 3;
-        long upperBound = 17 * LARGE_QUANTUM_STRATEGY.getPartitioningQuantum() + 1;
-
-        CellRangeQuery query = LARGE_QUANTUM_STRATEGY.getRangeQueryCoveringTimestampRange(lowerBound, upperBound);
-        Map<Long, ColumnRangeSelection> selections = KeyedStream.stream(query.rowsToBeLoaded())
-                .mapKeys(bytes -> (Long) ValueType.VAR_LONG.convertToJava(bytes, 0))
-                .collectToMap();
-
-        Range<Long> lastColumnOnly = Range.closedOpen(LARGE_QUANTUM_MAX_COLUMN, LARGE_QUANTUM_MAX_COLUMN + 1);
-        assertThat(selections).doesNotContainKey(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 4);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 3)))
-                .isEqualTo(lastColumnOnly);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 2)))
-                .isEqualTo(lastColumnOnly);
-        assertThat(decode(selections.get(3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() - 1)))
-                .isEqualTo(lastColumnOnly);
-
-        for (long row = 3 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum();
-                row < 17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum();
-                row++) {
-            assertThat(decode(selections.get(row))).isEqualTo(Range.closedOpen(0L, LARGE_QUANTUM_MAX_COLUMN + 1));
-        }
-
-        Range<Long> firstColumnOnly = Range.closedOpen(0L, 1L);
-        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum())))
-                .isEqualTo(firstColumnOnly);
-        assertThat(decode(selections.get(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() + 1)))
-                .isEqualTo(firstColumnOnly);
-        assertThat(selections).doesNotContainKey(17 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum() + 2);
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(6 * SMALL_NUMBER_OF_ROWS - 1,
+                        6 * SMALL_NUMBER_OF_ROWS + 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(5L, 7L));
     }
 
     private static Range<Long> decode(ColumnRangeSelection columnRangeSelection) {
-        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0), (Long)
+        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0),
+                (Long)
                 ValueType.VAR_LONG.convertToJava(columnRangeSelection.getEndCol(), 0));
     }
 }

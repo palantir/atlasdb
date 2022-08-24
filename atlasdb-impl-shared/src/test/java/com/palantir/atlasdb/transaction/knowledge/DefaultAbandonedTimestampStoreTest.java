@@ -24,11 +24,11 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultFutileTimestampStoreTest {
+public class DefaultAbandonedTimestampStoreTest {
     private static final long TIMESTAMP = 4L;
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(false);
-    private final FutileTimestampStore futileTimestampStore = new DefaultFutileTimestampStore(keyValueService);
+    private final AbandonedTimestampStore abandonedTimestampStore = new DefaultAbandonedTimestampStore(keyValueService);
 
     @Before
     public void before() {
@@ -37,7 +37,7 @@ public class DefaultFutileTimestampStoreTest {
 
     @Test
     public void markingTimestampsFutileIsIdempotent() {
-        futileTimestampStore.markFutile(TIMESTAMP);
-        assertThatCode(() -> futileTimestampStore.markFutile(TIMESTAMP)).doesNotThrowAnyException();
+        abandonedTimestampStore.markAbandoned(TIMESTAMP);
+        assertThatCode(() -> abandonedTimestampStore.markAbandoned(TIMESTAMP)).doesNotThrowAnyException();
     }
 }

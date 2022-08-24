@@ -91,27 +91,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
             long timestamp);
 
     /**
-     * Gets values from the key-value store for the specified rows and the associated column ranges, as separate
-     * iterators for each row.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param rowToColumnRangeSelection mapping of rows to range queries that would be relevant for the corresponding
-     *                                 rows.
-     * @param cellBatchHint number of cells to load from the underlying database at a time.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
-     * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
-     *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
-     * @throws IllegalArgumentException if {@code rows} contains duplicates.
-     */
-    @Idempotent
-    @Timed
-    Map<byte[], RowColumnRangeIterator> getRowsColumnMultiRange(
-            TableReference tableRef,
-            Map<byte[], ColumnRangeSelection> rowToColumnRangeSelection,
-            int cellBatchHint,
-            long timestamp);
-
-    /**
      * Gets values from the key-value store for the specified rows and column range as a single iterator. This method
      * should be at least as performant as
      * {@link #getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)}, and may be more
