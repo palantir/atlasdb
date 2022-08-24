@@ -54,8 +54,9 @@ public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
                 ABORTED_TICKETS_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(startInclusive, endInclusive);
         RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
                 TransactionConstants.KNOWN_ABORTED_TIMESTAMPS_TABLE,
-                ABORTED_TICKETS_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(startInclusive, endInclusive).collect(
-                        Collectors.toSet()),
+                ABORTED_TICKETS_ENCODING_STRATEGY
+                        .getRowSetCoveringTimestampRange(startInclusive, endInclusive)
+                        .collect(Collectors.toSet()),
                 ABORTED_TICKETS_ENCODING_STRATEGY.getColumnRangeCoveringTimestampRange(startInclusive, endInclusive),
                 CELL_BATCH_HINT,
                 Long.MAX_VALUE);

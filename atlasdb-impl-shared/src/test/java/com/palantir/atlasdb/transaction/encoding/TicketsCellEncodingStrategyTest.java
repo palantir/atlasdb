@@ -128,14 +128,11 @@ public class TicketsCellEncodingStrategyTest {
 
     @Test
     public void columnRangeForMultiPartitionQueriesIsUniversal() {
-        assertThat(SMALL_QUANTUM_STRATEGY
-                .getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4)).isEqualTo(
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)
-        );
-        assertThat(SMALL_QUANTUM_STRATEGY
-                .getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 17, SMALL_QUANTUM * 88 - 1)).isEqualTo(
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)
-        );
+        assertThat(SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4))
+                .isEqualTo(new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY));
+        assertThat(SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                        SMALL_QUANTUM * 17, SMALL_QUANTUM * 88 - 1))
+                .isEqualTo(new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY));
     }
 
     @Test
@@ -150,29 +147,26 @@ public class TicketsCellEncodingStrategyTest {
         long timestamp = 88L;
         ColumnRangeSelection selection =
                 SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(timestamp, timestamp);
-        assertThat(decode(selection)).isEqualTo(Range.closedOpen(timestamp / SMALL_NUMBER_OF_ROWS,
-                timestamp / SMALL_NUMBER_OF_ROWS + 1));
+        assertThat(decode(selection))
+                .isEqualTo(Range.closedOpen(timestamp / SMALL_NUMBER_OF_ROWS, timestamp / SMALL_NUMBER_OF_ROWS + 1));
     }
 
     @Test
     public void columnRangeForSingleBoundedContiguousRange() {
-        ColumnRangeSelection selection =
-                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(3 * SMALL_NUMBER_OF_ROWS,
-                        7 * SMALL_NUMBER_OF_ROWS - 1);
+        ColumnRangeSelection selection = SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                3 * SMALL_NUMBER_OF_ROWS, 7 * SMALL_NUMBER_OF_ROWS - 1);
         assertThat(decode(selection)).isEqualTo(Range.closedOpen(3L, 7L));
     }
 
     @Test
     public void getRangeQueryForSingleBoundedPartitionWithWrapAroundRange() {
-        ColumnRangeSelection selection =
-                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(6 * SMALL_NUMBER_OF_ROWS - 1,
-                        6 * SMALL_NUMBER_OF_ROWS + 1);
+        ColumnRangeSelection selection = SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                6 * SMALL_NUMBER_OF_ROWS - 1, 6 * SMALL_NUMBER_OF_ROWS + 1);
         assertThat(decode(selection)).isEqualTo(Range.closedOpen(5L, 7L));
     }
 
     private static Range<Long> decode(ColumnRangeSelection columnRangeSelection) {
-        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0),
-                (Long)
+        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0), (Long)
                 ValueType.VAR_LONG.convertToJava(columnRangeSelection.getEndCol(), 0));
     }
 }
