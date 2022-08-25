@@ -288,6 +288,16 @@ public class ShardProgressTest {
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(32L);
     }
 
+    @Test
+    public void canUpdateProgressForNonSweepable() {
+        progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, 150L);
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(150L);
+
+        progress.updateLastSeenCommitTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, 200L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(200L);
+    }
+
     private Value createValue(long num) {
         SweepShardProgressTable.Value value = SweepShardProgressTable.Value.of(num);
         return Value.create(value.persistValue(), 0L);

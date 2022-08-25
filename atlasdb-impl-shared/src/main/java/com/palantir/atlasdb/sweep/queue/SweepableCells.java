@@ -158,6 +158,7 @@ public class SweepableCells extends SweepQueueTable {
                 .dedicatedRow(false)
                 .shard(shardStrategy.shard())
                 .dedicatedRowNumber(0)
+                .nonSweepableTransaction(false)
                 .build();
 
         return SweepableCellsRow.of(partitionFine, metadata.persistToBytes());
