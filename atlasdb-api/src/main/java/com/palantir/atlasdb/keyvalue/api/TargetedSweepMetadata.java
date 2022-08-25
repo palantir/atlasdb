@@ -29,6 +29,8 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     public abstract long dedicatedRowNumber();
 
+    public abstract boolean nonSweepableTransaction();
+
     public static final int MAX_SHARDS = 256;
     public static final int MAX_DEDICATED_ROWS = 64;
     private static final int SWEEP_STRATEGY_MASK = 0x80;
@@ -54,12 +56,22 @@ public abstract class TargetedSweepMetadata implements Persistable {
                 dedicatedRowNumber());
     }
 
+    @Value.Check
+    void checkDefaultsForNonSweepableTransaction() {
+        if (nonSweepableTransaction()) {
+            Preconditions.checkArgument(conservative(), "Non sweepable transactions must set the conservative bit.");
+            Preconditions.checkArgument(!dedicatedRow(), "Non sweepable transactions must not use dedicated rows.");
+            Preconditions.checkArgument(shard() == 0, "Non sweepable transactions must use only shard 0.");
+        }
+    }
+
     public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR =
             input -> ImmutableTargetedSweepMetadata.builder()
                     .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
                     .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
                     .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
                     .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
+                    .nonSweepableTransaction((input[2] & SWEEP_STRATEGY_MASK) != 0)
                     .build();
 
     @Override
@@ -74,6 +86,9 @@ public abstract class TargetedSweepMetadata implements Persistable {
         }
         result[1] |= dedicatedRowNumber() & DEDICATED_ROW_NUMBER_MASK;
         result[1] |= (shard() << 6) & BYTE_MASK;
+        if (nonSweepableTransaction()) {
+            result[2] |= SWEEP_STRATEGY_MASK;
+        }
         return result;
     }
 }
