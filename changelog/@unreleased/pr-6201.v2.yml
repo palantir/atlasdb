@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix generateSchemas gradle task
+  links:
+  - https://github.com/palantir/atlasdb/pull/6201
