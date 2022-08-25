@@ -19,11 +19,8 @@ package com.palantir.atlasdb.atomic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,8 +37,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import org.junit.Test;
 
 public class MarkAndCasConsensusForgettingStoreTest {
@@ -55,7 +50,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private final InMemoryKeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final MarkAndCasConsensusForgettingStore store =
             new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
-//    private final CasCoalescingFunction casCoalescingFunction =
+    //    private final CasCoalescingFunction casCoalescingFunction =
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
@@ -143,20 +138,20 @@ public class MarkAndCasConsensusForgettingStoreTest {
             }
         });
 
-//        service.execute(() -> {
-//            try {
-//                latch.await();
-//                store.atomicUpdate(CELL, TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE);
-//            } catch (InterruptedException e) {
-//                // Do nothing
-//            } finally {
-//                done.countDown();
-//            }
-//        });
+        //        service.execute(() -> {
+        //            try {
+        //                latch.await();
+        //                store.atomicUpdate(CELL, TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE);
+        //            } catch (InterruptedException e) {
+        //                // Do nothing
+        //            } finally {
+        //                done.countDown();
+        //            }
+        //        });
 
         latch.countDown();
         done.await();
-//        verify(kvs).multiCheckAndSet(any());
+        //        verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(stagingCommitTs);
     }
 }
