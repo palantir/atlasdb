@@ -1113,23 +1113,43 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.enqueue(ImmutableMap.of(TABLE_NOTH, ImmutableMap.of(DEFAULT_CELL, PtBytes.toBytes(755))), 153_459L);
         putTimestampIntoTransactionTable(123_457L, 177_777L);
         putTimestampIntoTransactionTable(123_459L, 999_999L);
-        reader.getNextBatch(100_000L);
+
+        TableReference cellsRef =
+                TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
+
+        reader.getNextBatch(95_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
-                .isEqualTo(99_999L);
+                .isEqualTo(94_999L);
+        // there was nothing there and we started at the beginning of the row
+        verify(spiedKvs, never()).deleteRows(eq(cellsRef), any(Iterable.class));
+
         reader.getNextBatch(200_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(123_458L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(177_777L);
-
-        TableReference cellsRef =
-                TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
-        // delete row -1
+        // we have to delete the previous row since we did not start at the beginning of the row
         verify(spiedKvs, times(1)).deleteRows(eq(cellsRef), any(Iterable.class));
 
         reader.getNextBatch(1_000_000L);
-        // delete rows -1, 0, 2, 3
-        verify(spiedKvs, times(4)).deleteRows(eq(cellsRef), any(Iterable.class));
-        // todo(gmaretic): make deletions less jank
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(149_999L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);
+        // we have to delete the processed row
+        verify(spiedKvs, times(2)).deleteRows(eq(cellsRef), any(Iterable.class));
+
+        reader.getNextBatch(1_000_000L);
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(199_999L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);
+        // we have to delete the processed row
+        verify(spiedKvs, times(3)).deleteRows(eq(cellsRef), any(Iterable.class));
+
+        reader.getNextBatch(1_000_000L);
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(999_999L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);
+        // no more deletes
+        verify(spiedKvs, times(3)).deleteRows(eq(cellsRef), any(Iterable.class));
     }
 
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {

@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 public class NonSweepableTimestampsReader {
     private final SweepableTimestamps sweepableTimestamps;
@@ -33,44 +34,69 @@ public class NonSweepableTimestampsReader {
 
     public void getNextBatch(long sweepTs) {
         long lastSweptTimestamp = progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE);
-        boolean hasNext = true;
 
-        while (hasNext) {
-            Optional<Long> nextFinePartition =
-                    sweepableTimestamps.nextNonSweepableTimestampPartition(lastSweptTimestamp, sweepTs);
-            if (nextFinePartition.isEmpty()) {
-                if (SweepQueueUtils.tsPartitionFine(lastSweptTimestamp)
-                        < SweepQueueUtils.tsPartitionFine(sweepTs - 1)) {
-                    sweepableCells.deleteNonSweepableRows(
-                            ImmutableSet.of(SweepQueueUtils.tsPartitionFine(lastSweptTimestamp)));
-                }
-                if (SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)
-                        < SweepQueueUtils.tsPartitionCoarse(sweepTs - 1)) {
-                    sweepableTimestamps.deleteNonSweepableCoarsePartitions(
-                            ImmutableSet.of(SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)));
-                }
+        Optional<Long> nextFinePartition =
+                sweepableTimestamps.nextNonSweepableTimestampPartition(lastSweptTimestamp, sweepTs);
+
+        if (nextFinePartition.isEmpty()) {
+            possiblyCleanTables(lastSweptTimestamp, sweepTs, false);
+            progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, sweepTs - 1);
+            return;
+        }
+
+        NonSweepableBatchInfo batch =
+                sweepableCells.getNonSweepableBatchForPartition(nextFinePartition.get(), lastSweptTimestamp, sweepTs);
+        progress.updateLastSeenCommitTimestamp(
+                SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, batch.lastSeenCommitTimestamp());
+        // todo (gmaretic) : update abandoned timestamps
+        long previousLastSwept = lastSweptTimestamp;
+        if (batch.processedAll()) {
+            long maxPossibleSwept = SweepQueueUtils.maxTsForFinePartition(nextFinePartition.get());
+            if (sweepTs > maxPossibleSwept) {
+                lastSweptTimestamp = maxPossibleSwept;
+            } else {
                 lastSweptTimestamp = sweepTs - 1;
-                progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTimestamp);
-                return;
             }
-            NonSweepableBatchInfo batch = sweepableCells.getNonSweepableBatchForPartition(
-                    nextFinePartition.get(), lastSweptTimestamp, sweepTs);
-            progress.updateLastSeenCommitTimestamp(
-                    SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, batch.lastSeenCommitTimestamp());
-            // todo (gmaretic) : update abandoned timestamps
-            lastSweptTimestamp = !batch.processedAll()
-                    ? batch.lastSweptTimestamp()
-                    : Math.min(sweepTs - 1, SweepQueueUtils.maxTsForFinePartition(nextFinePartition.get()));
-            if (lastSweptTimestamp == SweepQueueUtils.maxTsForFinePartition(nextFinePartition.get())) {
-                sweepableCells.deleteNonSweepableRows(ImmutableSet.of(nextFinePartition.get()));
-            }
-            if (SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)
-                    < SweepQueueUtils.tsPartitionCoarse(batch.lastSweptTimestamp())) {
-                sweepableTimestamps.deleteNonSweepableCoarsePartitions(
-                        ImmutableSet.of(SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)));
-            }
-            progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTimestamp);
-            hasNext = batch.processedAll() && lastSweptTimestamp < sweepTs - 1;
+        } else {
+            lastSweptTimestamp = batch.lastSweptTimestamp();
+        }
+        possiblyCleanTables(previousLastSwept, lastSweptTimestamp, true);
+        progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTimestamp);
+    }
+
+    private void possiblyCleanTables(long previouslyLastSwept, long lastSwept, boolean foundAny) {
+        long firstCandidateFinePartition = SweepQueueUtils.tsPartitionFine(previouslyLastSwept + 1);
+        long lastSweptFinePartition = SweepQueueUtils.tsPartitionFine(lastSwept);
+        long firstNonProcessedFinePartition = SweepQueueUtils.tsPartitionFine(lastSwept + 1);
+        boolean startedAtBeginningOfRowForCells =
+                SweepQueueUtils.minTsForFinePartition(firstCandidateFinePartition) == previouslyLastSwept + 1;
+
+        Set<Long> finePartitionsToClean = new HashSet<>();
+        if (!startedAtBeginningOfRowForCells && firstCandidateFinePartition < firstNonProcessedFinePartition) {
+            finePartitionsToClean.add(firstCandidateFinePartition);
+        }
+        if (foundAny && lastSweptFinePartition < firstNonProcessedFinePartition) {
+            finePartitionsToClean.add(lastSweptFinePartition);
+        }
+        if (!finePartitionsToClean.isEmpty()) {
+            sweepableCells.deleteNonSweepableRows(finePartitionsToClean);
+        }
+
+        long firstCandidateCoarsePartition = SweepQueueUtils.tsPartitionCoarse(previouslyLastSwept + 1);
+        long lastSweptCoarsePartition = SweepQueueUtils.tsPartitionCoarse(lastSwept);
+        long firstNonProcessedCoarsePartition = SweepQueueUtils.tsPartitionCoarse(lastSwept + 1);
+        boolean startedAtBeginningOfRowForTimestamps =
+                SweepQueueUtils.minTsForCoarsePartition(firstCandidateCoarsePartition) == previouslyLastSwept + 1;
+
+        Set<Long> coarsePartitionsToClean = new HashSet<>();
+        if (!startedAtBeginningOfRowForTimestamps && firstCandidateCoarsePartition < firstNonProcessedCoarsePartition) {
+            coarsePartitionsToClean.add(firstCandidateCoarsePartition);
+        }
+        if (foundAny && lastSweptCoarsePartition < firstNonProcessedCoarsePartition) {
+            coarsePartitionsToClean.add(lastSweptCoarsePartition);
+        }
+        if (!coarsePartitionsToClean.isEmpty()) {
+            sweepableTimestamps.deleteNonSweepableCoarsePartitions(coarsePartitionsToClean);
         }
     }
 }
