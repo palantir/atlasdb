@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -122,8 +123,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         kvs.setOnce(tableRef, values);
     }
 
-    private static void processBatch(
-            KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
+    @VisibleForTesting
+    static void processBatch(KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
         List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
         Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
                 .collect(Collectors.groupingBy(
@@ -194,6 +195,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         if (req.expected().equals(req.update())) {
             return 1;
         }
+        // todo(snanda): this is wrong - need to remove the last byte that reps the phase :( Extract a constant
         if (req.expected().equals(ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE))) {
             return 3;
         }

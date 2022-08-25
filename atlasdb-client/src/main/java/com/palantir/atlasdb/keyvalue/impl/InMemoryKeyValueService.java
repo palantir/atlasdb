@@ -498,7 +498,20 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        throw new UnsupportedOperationException("InMemoryKvs does not support multi-checkAndSet operation!");
+        List<CheckAndSetRequest> casRequests = new ArrayList<>();
+        for (Map.Entry<Cell, byte[]> update : multiCheckAndSetRequest.updates().entrySet()) {
+            if (multiCheckAndSetRequest.expected().containsKey(update.getKey())) {
+                casRequests.add(CheckAndSetRequest.singleCell(
+                        multiCheckAndSetRequest.tableRef(),
+                        update.getKey(),
+                        multiCheckAndSetRequest.expected().get(update.getKey()),
+                        update.getValue()));
+            } else {
+                casRequests.add(CheckAndSetRequest.newCell(
+                        multiCheckAndSetRequest.tableRef(), update.getKey(), update.getValue()));
+            }
+        }
+        casRequests.forEach(this::checkAndSet);
     }
 
     // Returns the existing contents, if any, and null otherwise
