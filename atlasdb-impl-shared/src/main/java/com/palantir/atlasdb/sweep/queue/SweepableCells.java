@@ -252,7 +252,7 @@ public class SweepableCells extends SweepQueueTable {
                 .abortedTimestamps(abortedTimestamps)
                 .lastSweptTimestamp(lastSweptTs)
                 .lastSeenCommitTimestamp(lastSeenCommitTs)
-                .hasNext(!processedAll)
+                .hasNext(processedAll)
                 .build();
     }
 

@@ -46,6 +46,9 @@ public final class SweepQueueUtils {
     public static final long RESET_TIMESTAMP = 0L;
     public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
     public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
+    public static final int DUMMY_SHARD_FOR_NON_SWEEPABLE = 2050;
+    public static final ShardAndStrategy DUMMY_SAS_FOR_NON_SWEEPABLE =
+            ShardAndStrategy.conservative(DUMMY_SHARD_FOR_NON_SWEEPABLE);
 
     private SweepQueueUtils() {
         // utility
