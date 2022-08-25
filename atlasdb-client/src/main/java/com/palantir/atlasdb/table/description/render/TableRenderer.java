@@ -111,7 +111,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import javax.annotation.Generated;
 import javax.annotation.Nullable;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -188,7 +187,7 @@ public class TableRenderer {
 
         @Override
         protected void run() {
-            ImportRenderer importRenderer = new ImportRenderer(this, getImports(optionalType));
+            ImportRenderer importRenderer = new ImportRenderer(this, getImports(optionalType), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
             if (!isNestedIndex) {
                 line("package ", packageName, ";");
                 line();
@@ -1958,7 +1957,6 @@ public class TableRenderer {
         Namespace.class,
         Hashing.class,
         ValueType.class,
-        Generated.class,
         TableReference.class,
         BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,

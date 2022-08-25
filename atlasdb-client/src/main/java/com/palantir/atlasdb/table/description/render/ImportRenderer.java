@@ -26,10 +26,16 @@ public class ImportRenderer extends Renderer {
     private static final ImmutableList<String> IMPORT_PREFIXES =
             ImmutableList.of("java.", "javax.", "org.", "com.", "net.");
     private final Collection<Class<?>> imports;
+    private final Collection<String> stringImports;
 
     public ImportRenderer(Renderer parent, Collection<Class<?>> imports) {
+        this(renderer, classImports, stringImports);
+    }
+
+    public ImportRenderer(Renderer parent, Collection<Class<?>> classImports, Collection<String> stringImports) {
         super(parent);
-        this.imports = imports;
+        this.imports = classImports;
+        this.stringImports = stringImports;
     }
 
     @Override
@@ -68,6 +74,7 @@ public class ImportRenderer extends Renderer {
         for (Class<?> clazz : imports) {
             sortedImports.add(clazz.getCanonicalName());
         }
+        sortedImports.addAll(stringImports);
         return sortedImports.build();
     }
 
@@ -76,6 +83,7 @@ public class ImportRenderer extends Renderer {
         for (Class<?> clazz : imports) {
             sortedImports.add(clazz.getSimpleName());
         }
+        sortedImports.addAll(stringImports);
         return sortedImports.build();
     }
 }

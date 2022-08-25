@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -51,6 +52,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -148,7 +150,7 @@ public class StreamStoreRenderer {
         return new Renderer() {
             @Override
             protected void run() {
-                ImportRenderer importRenderer = new ImportRenderer(this, Arrays.asList(IMPORTS));
+                ImportRenderer importRenderer = new ImportRenderer(this, Arrays.asList(IMPORTS), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
                 line("package ", packageName, ";");
                 line();
                 importRenderer.renderImports();
@@ -1067,7 +1069,6 @@ public class StreamStoreRenderer {
         BlockLoader.class,
         List.class,
         CheckForNull.class,
-        Generated.class,
         StreamCompression.class,
         Pair.class,
         Functions.class,

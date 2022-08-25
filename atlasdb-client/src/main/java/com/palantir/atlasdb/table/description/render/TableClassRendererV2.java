@@ -65,7 +65,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Generated;
 import javax.lang.model.element.Modifier;
 
 public class TableClassRendererV2 {
@@ -119,7 +118,7 @@ public class TableClassRendererV2 {
 
     private TypeSpec buildTypeSpec() {
         TypeSpec.Builder tableBuilder = TypeSpec.classBuilder(this.simpleTableName)
-                .addAnnotation(AnnotationSpec.builder(Generated.class)
+                .addAnnotation(AnnotationSpec.builder(GeneratedImport.generatedAnnotationClassName())
                         .addMember("value", "$S", TableRendererV2.class.getName())
                         .build())
                 .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
