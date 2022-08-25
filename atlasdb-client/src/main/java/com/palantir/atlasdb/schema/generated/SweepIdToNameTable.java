@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -754,5 +754,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "TCkfqEbhWHCJvC+P6uu7GQ==";
+    static String __CLASS_HASH = "XhY0sfHU7ygS3NHM1+HK7Q==";
 }

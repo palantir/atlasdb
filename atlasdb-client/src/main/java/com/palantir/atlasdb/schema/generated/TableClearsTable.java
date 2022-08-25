@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -681,5 +681,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7M6FU/3Ys4wUHyxKlBgnYw==";
+    static String __CLASS_HASH = "G5tVqtzNmeGOIdOf4QSySA==";
 }
