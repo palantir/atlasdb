@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -27,7 +27,6 @@ import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
     // DO NOT change the following without a migration of the known aborted timestamps table!
@@ -50,23 +49,31 @@ public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
 
     @Override
     public Set<Long> getAbandonedTimestampsInRange(long startInclusive, long endInclusive) {
-        Stream<byte[]> rows =
-                ABORTED_TICKETS_ENCODING_STRATEGY.getRowSetCoveringTimestampRange(startInclusive, endInclusive);
         RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
-                TransactionConstants.KNOWN_ABORTED_TIMESTAMPS_TABLE,
+                TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE,
                 ABORTED_TICKETS_ENCODING_STRATEGY
                         .getRowSetCoveringTimestampRange(startInclusive, endInclusive)
                         .collect(Collectors.toSet()),
                 ABORTED_TICKETS_ENCODING_STRATEGY.getColumnRangeCoveringTimestampRange(startInclusive, endInclusive),
                 CELL_BATCH_HINT,
                 Long.MAX_VALUE);
-        return ImmutableSet.of(); // TODO
+        Set<Long> resultSet = Sets.newHashSet();
+        iterator.forEachRemaining(entry -> {
+            // There is an optimisation that relies on the ordering in which values are returned to perform fewer
+            // checks.
+            Cell cell = entry.getKey();
+            long timestamp = ABORTED_TICKETS_ENCODING_STRATEGY.decodeCellAsStartTimestamp(cell);
+            if (startInclusive <= timestamp && timestamp <= endInclusive) {
+                resultSet.add(timestamp);
+            }
+        });
+        return resultSet;
     }
 
     @Override
     public void markAbandoned(long timestampToAbort) {
         keyValueService.put(
-                TransactionConstants.KNOWN_ABORTED_TIMESTAMPS_TABLE,
+                TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE,
                 ImmutableMap.of(getTargetCell(timestampToAbort), MARKER_VALUE),
                 AtlasDbConstants.TRANSACTION_TS);
     }

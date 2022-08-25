@@ -118,6 +118,11 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
     }
 
     public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        Preconditions.checkArgument(
+                fromInclusive <= toInclusive,
+                "Range provided does not exist",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
         long startRow = startTimestampToRow(fromInclusive - ((fromInclusive % partitioningQuantum) % rowsPerQuantum));
         long endRow = startTimestampToRow(
                 toInclusive + rowsPerQuantum - ((toInclusive % partitioningQuantum) % rowsPerQuantum) - 1);
@@ -129,6 +134,11 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
      * necessary. Users must post-filter any results they receive.
      */
     public ColumnRangeSelection getColumnRangeCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        Preconditions.checkArgument(
+                fromInclusive <= toInclusive,
+                "Range provided does not exist",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
         long startPartition = getPartition(fromInclusive);
         long endPartition = getPartition(toInclusive);
         if (startPartition == endPartition) {

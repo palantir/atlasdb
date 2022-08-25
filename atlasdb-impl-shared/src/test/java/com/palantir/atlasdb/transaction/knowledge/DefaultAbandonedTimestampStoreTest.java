@@ -16,11 +16,17 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,8 +42,45 @@ public class DefaultAbandonedTimestampStoreTest {
     }
 
     @Test
-    public void markingTimestampsFutileIsIdempotent() {
+    public void markingTimestampsAbandonedIsIdempotent() {
         abandonedTimestampStore.markAbandoned(TIMESTAMP);
         assertThatCode(() -> abandonedTimestampStore.markAbandoned(TIMESTAMP)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void timestampsMarkedAsAbandonedCanBeRetrievedFromTheStore() {
+        abandonedTimestampStore.markAbandoned(TIMESTAMP);
+        assertThat(abandonedTimestampStore.getAbandonedTimestampsInRange(TIMESTAMP, TIMESTAMP))
+                .containsExactly(TIMESTAMP);
+    }
+
+    @Test
+    public void onlyReturnsTimestampsInProvidedRange() {
+        abandonedTimestampStore.markAbandoned(TIMESTAMP);
+        abandonedTimestampStore.markAbandoned(TIMESTAMP + 5);
+        abandonedTimestampStore.markAbandoned(TIMESTAMP + 10);
+        assertThat(abandonedTimestampStore.getAbandonedTimestampsInRange(TIMESTAMP, TIMESTAMP + 7))
+                .containsExactly(TIMESTAMP, TIMESTAMP + 5);
+
+    }
+
+    @Test
+    public void onlyTimestampsRequestedForAreActuallyReturned() {
+        int timestampLimit = 100;
+        IntStream.range(0, timestampLimit).forEach(abandonedTimestampStore::markAbandoned);
+
+        for (int start = 0; start < timestampLimit; start++) {
+            for (int end = start; end < timestampLimit; end++) {
+                assertThat(abandonedTimestampStore.getAbandonedTimestampsInRange(start, end))
+                        .hasSameElementsAs(LongStream.rangeClosed(start, end).boxed().collect(Collectors.toSet()));
+            }
+        }
+    }
+
+    @Test
+    public void throwsOnRequestingForInvalidTimestampRange() {
+        assertThatThrownBy(() -> abandonedTimestampStore.getAbandonedTimestampsInRange(TIMESTAMP, TIMESTAMP - 2))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
     }
 }

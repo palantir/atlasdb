@@ -127,6 +127,16 @@ public class TicketsCellEncodingStrategyTest {
     }
 
     @Test
+    public void throwsIfGettingRowNamesOnInvalidRange() {
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getRowSetCoveringTimestampRange(8L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getRowSetCoveringTimestampRange(54L, 13L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+    }
+
+    @Test
     public void columnRangeForMultiPartitionQueriesIsUniversal() {
         assertThat(SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4))
                 .isEqualTo(new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY));
@@ -159,10 +169,20 @@ public class TicketsCellEncodingStrategyTest {
     }
 
     @Test
-    public void getRangeQueryForSingleBoundedPartitionWithWrapAroundRange() {
+    public void columnRangeForWrapAroundRange() {
         ColumnRangeSelection selection = SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
                 6 * SMALL_NUMBER_OF_ROWS - 1, 6 * SMALL_NUMBER_OF_ROWS + 1);
         assertThat(decode(selection)).isEqualTo(Range.closedOpen(5L, 7L));
+    }
+
+    @Test
+    public void throwsIfGettingColumnRangeForInvalidRange() {
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(8L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(49L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
     }
 
     private static Range<Long> decode(ColumnRangeSelection columnRangeSelection) {
