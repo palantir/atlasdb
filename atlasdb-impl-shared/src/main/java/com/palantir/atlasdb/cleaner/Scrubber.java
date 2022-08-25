@@ -577,7 +577,7 @@ public class Scrubber {
             // This won't work with Cassandra, but we consider this acceptable because the Scrubber is generally
             // not used with Cassandra - note that we don't have access to the "table not found" exception currently
             // thrown by thrift here.
-            if (Throwables.hasCause(ex, TableMappingNotFoundException.class)) {
+            if (Throwables.hasCauseInCausalChain(ex, TableMappingNotFoundException.class)) {
                 // The table was deleted from under us - ignore this case.
                 log.info(
                         "Caught a TableMappingNotFoundException during scrubbing. This means that "
