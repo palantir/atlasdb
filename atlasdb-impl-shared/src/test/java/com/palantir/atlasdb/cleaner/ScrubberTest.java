@@ -116,21 +116,7 @@ public class ScrubberTest {
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
         TableReference tableRef = TableReference.createFromFullyQualifiedName("foo.bar");
         kvs.createTable(tableRef, new byte[] {});
-        kvs.putWithTimestamps(
-                tableRef,
-                ImmutableMultimap.<Cell, Value>builder()
-                        .put(cell1, Value.create(new byte[] {3}, 10))
-                        .put(cell1, Value.create(new byte[] {4}, 20))
-                        .put(cell2, Value.create(new byte[] {4}, 30))
-                        .put(cell2, Value.create(new byte[] {5}, 40))
-                        .put(cell2, Value.create(new byte[] {6}, 50))
-                        .put(cell3, Value.create(new byte[] {7}, 60))
-                        .build());
-        transactions.putUnlessExists(10, 15);
-        transactions.putUnlessExists(20, 25);
-        transactions.putUnlessExists(30, 35);
-        transactions.putUnlessExists(50, 55);
-        transactions.putUnlessExists(60, 65);
+        putValues(tableRef, cell1, cell2, cell3);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 10, 100);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 20, 100);
         scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell2, tableRef), 40, 100);
@@ -150,6 +136,21 @@ public class ScrubberTest {
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
         TableReference tableRef = TableReference.createFromFullyQualifiedName("foo.bar");
         kvs.createTable(tableRef, new byte[] {});
+        putValues(tableRef, cell1, cell2, cell3);
+        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 20, 100);
+        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell2, tableRef), 50, 100);
+        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell3, tableRef), 60, 100);
+
+        kvs.dropTable(tableRef);
+
+        scrubber.runBackgroundScrubTask(null);
+
+        List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
+                BatchingVisitables.copyToList(scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
+        assertThat(scrubQueue).isEmpty();
+    }
+
+    private void putValues(TableReference tableRef, Cell cell1, Cell cell2, Cell cell3) {
         kvs.putWithTimestamps(
                 tableRef,
                 ImmutableMultimap.<Cell, Value>builder()
@@ -165,17 +166,6 @@ public class ScrubberTest {
         transactions.putUnlessExists(30, 35);
         transactions.putUnlessExists(50, 55);
         transactions.putUnlessExists(60, 65);
-        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell1, tableRef), 20, 100);
-        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell2, tableRef), 50, 100);
-        scrubStore.queueCellsForScrubbing(ImmutableMultimap.of(cell3, tableRef), 60, 100);
-
-        kvs.dropTable(tableRef);
-
-        scrubber.runBackgroundScrubTask(null);
-
-        List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
-                BatchingVisitables.copyToList(scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
-        assertThat(scrubQueue).isEmpty();
     }
 
     private Scrubber getScrubber(
