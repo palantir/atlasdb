@@ -78,7 +78,8 @@ afterEvaluate {
                 logger.info "Processing schemas for ${schema}"
                 javaexec {
                     main schema
-                    classpath sourceSets.test.runtimeClasspath
+                    // need both compile & runtime classpath for schema generation
+                    classpath sourceSets.test.compileClasspath + sourceSets.test.runtimeClasspath
                 }
             }
         }
