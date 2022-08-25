@@ -16,29 +16,35 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.lmax.disruptor.EventHandler;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
+import java.util.Set;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
     private static final SafeLogger log = SafeLoggerFactory.get(CoalescingBatchingEventHandler.class);
 
     private final CoalescingRequestFunction<T, R> function;
-    private final SetMultimap<T, DisruptorAutobatcher.DisruptorFuture<R>> pending;
+
+    // explicitly not using Multimap to avoid expensive com.google.common.collect.AbstractMapBasedMultimap.clear()
+    // that iterates and clears each value collection.
+    private final Map<T, Set<DisruptorFuture<R>>> pending;
 
     CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize) {
         this.function = function;
-        this.pending = HashMultimap.create(bufferSize, 5);
+        this.pending = Maps.newHashMapWithExpectedSize(bufferSize);
     }
 
     @Override
     public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) {
-        pending.put(event.argument(), event.result());
+        pending.computeIfAbsent(event.argument(), _key -> Sets.newHashSetWithExpectedSize(5))
+                .add(event.result());
         if (endOfBatch) {
             flush();
         }
@@ -47,18 +53,22 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     private void flush() {
         try {
             Map<T, R> results = function.apply(pending.keySet());
-            pending.forEach((argument, future) -> {
-                if (results.containsKey(argument)) {
-                    future.set(results.get(argument));
-                } else {
-                    log.warn(
-                            "Coalescing function has violated coalescing function postcondition",
-                            SafeArg.of("functionClass", function.getClass().getCanonicalName()));
-                    future.setException(new PostconditionFailedException(function.getClass()));
+            pending.forEach((argument, futures) -> {
+                R result = results.get(argument);
+                boolean hasResult = result != null || results.containsKey(argument);
+                for (DisruptorFuture<R> future : futures) {
+                    if (hasResult) {
+                        future.set(result);
+                    } else {
+                        log.warn(
+                                "Coalescing function has violated coalescing function postcondition",
+                                SafeArg.of("functionClass", function.getClass().getCanonicalName()));
+                        future.setException(new PostconditionFailedException(function.getClass()));
+                    }
                 }
             });
         } catch (Throwable t) {
-            pending.forEach((unused, future) -> future.setException(t));
+            pending.forEach((argument, futures) -> futures.forEach(future -> future.setException(t)));
         }
         pending.clear();
     }
