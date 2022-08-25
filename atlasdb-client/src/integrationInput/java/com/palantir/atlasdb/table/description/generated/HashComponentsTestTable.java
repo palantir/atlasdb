@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
