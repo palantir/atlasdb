@@ -306,9 +306,8 @@ public class TracingKeyValueServiceTest {
     @Test
     @SuppressWarnings("MustBeClosed")
     public void getRange() throws Exception {
-        RowResult<Value> rowResult = RowResult.of(CELL, VALUE);
-        ClosableIterator<RowResult<Value>> expectedResult =
-                ClosableIterators.wrapWithEmptyClose(List.of(rowResult).iterator());
+        ClosableIterator<RowResult<Value>> expectedResult = ClosableIterators.wrapWithEmptyClose(
+                List.of(RowResult.of(CELL, VALUE)).iterator());
 
         RangeRequest rangeRequest = RangeRequest.all();
         when(delegate.getRange(TABLE_REF, rangeRequest, TIMESTAMP)).thenReturn(expectedResult);
@@ -334,9 +333,8 @@ public class TracingKeyValueServiceTest {
     @Test
     @SuppressWarnings("MustBeClosed")
     public void getRange_withTrackedByteReads() {
-        RowResult<Value> rowResult = RowResult.of(CELL, VALUE);
-        ClosableIterator<RowResult<Value>> expectedResult =
-                ClosableIterators.wrapWithEmptyClose(List.of(rowResult).iterator());
+        ClosableIterator<RowResult<Value>> expectedResult = ClosableIterators.wrapWithEmptyClose(
+                List.of(RowResult.of(CELL, VALUE)).iterator());
 
         RangeRequest rangeRequest = RangeRequest.all();
         when(delegate.getRange(TABLE_REF, rangeRequest, TIMESTAMP)).thenReturn(expectedResult);
