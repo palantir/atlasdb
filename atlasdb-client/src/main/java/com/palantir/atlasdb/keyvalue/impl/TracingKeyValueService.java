@@ -304,11 +304,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     @MustBeClosed
+    @SuppressWarnings("MustBeClosedChecker")
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRange");
 
-        @SuppressWarnings("MustBeClosedChecker")
         ClosableIterator<RowResult<Value>> result = delegate().getRange(tableRef, rangeRequest, timestamp);
 
         // Only instrument observable traces
