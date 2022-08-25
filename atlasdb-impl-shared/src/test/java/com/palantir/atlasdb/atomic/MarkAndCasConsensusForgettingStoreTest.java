@@ -50,7 +50,6 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private final InMemoryKeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final MarkAndCasConsensusForgettingStore store =
             new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
-    //    private final CasCoalescingFunction casCoalescingFunction =
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
