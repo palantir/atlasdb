@@ -28,10 +28,6 @@ public class ImportRenderer extends Renderer {
     private final Collection<Class<?>> imports;
     private final Collection<String> stringImports;
 
-    public ImportRenderer(Renderer parent, Collection<Class<?>> imports) {
-        this(parent, imports, ImmutableList.of());
-    }
-
     public ImportRenderer(Renderer parent, Collection<Class<?>> classImports, Collection<String> stringImports) {
         super(parent);
         this.imports = classImports;
