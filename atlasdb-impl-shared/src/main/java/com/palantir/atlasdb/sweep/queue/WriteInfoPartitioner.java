@@ -42,9 +42,9 @@ public class WriteInfoPartitioner {
     private final Supplier<Integer> numShards;
 
     private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder.newBuilder()
-            .build(new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
+            .build(new CacheLoader<>() {
                 @Override
-                public Optional<SweeperStrategy> load(TableReference key) throws Exception {
+                public Optional<SweeperStrategy> load(TableReference key) {
                     return getStrategyFromKvs(key);
                 }
             });
@@ -58,22 +58,22 @@ public class WriteInfoPartitioner {
      * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
      * shard, strategy, and start timestamp of the transaction that performed the write.
      */
-    public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
-        return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
+    public PartitionedWriteInfo filterAndPartition(List<WriteInfo> writes) {
+        Preconditions.checkArgument(!writes.isEmpty(), "There must be at least one write.");
+        if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo).isEmpty())) {
+            return PartitionedWriteInfos.nonSweepableTransaction(
+                    writes.get(writes.size() - 1).timestamp());
+        }
+        return partitionWritesByShardStrategyTimestamp(writes);
     }
 
     @VisibleForTesting
-    List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
-        return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
-                .collect(Collectors.toList());
-    }
-
-    @VisibleForTesting
-    Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+    PartitionedWriteInfo partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         int shards = numShards.get();
-        return writes.stream()
+        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = writes.stream()
+                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
                 .collect(Collectors.groupingBy(write -> getPartitionInfo(write, shards), Collectors.toList()));
+        return PartitionedWriteInfos.filteredSweepableTransaction(partitionedWrites);
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
