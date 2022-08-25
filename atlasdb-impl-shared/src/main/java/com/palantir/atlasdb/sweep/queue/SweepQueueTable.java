@@ -51,9 +51,15 @@ public abstract class SweepQueueTable {
     }
 
     public void enqueue(List<WriteInfo> allWrites) {
+        PartitionedWriteInfos.caseOf(partitioner.filterAndPartition(allWrites))
+                // todo (gmaretic)
+                .nonSweepableTransaction(x -> null)
+                .filteredSweepableTransaction(this::enqueueFiltered);
+    }
+
+    private Void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
-        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
 
         SweepQueueUtils.validateNumberOfCellsWritten(partitionedWrites.values());
 
@@ -71,6 +77,7 @@ public abstract class SweepQueueTable {
                     write(cellsToWrite, timestamp);
                     updateWriteMetrics(partitionedWrites);
                 });
+        return null;
     }
 
     private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {

@@ -117,12 +117,25 @@ public class WriteInfoPartitionerTest {
                 getWriteInfoWithFixedShard(THOROUGH, 2, numShards),
                 getWriteInfoWithFixedShard(NOTHING, 0, numShards));
 
-        assertThat(partitioner.filterOutUnsweepableTables(writes))
-                .containsExactly(
+        assertThat(
+                        PartitionedWriteInfos.getPartitionedWrites(partitioner.filterAndPartition(writes))
+                                .orElseThrow()
+                                .values()
+                                .stream()
+                                .flatMap(List::stream))
+                .containsExactlyInAnyOrder(
                         getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
                                 getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
                         getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards),
                                 getWriteInfoWithFixedShard(THOROUGH, 2, numShards));
+    }
+
+    @Test
+    public void onlyUnsweepableWrites() {
+        List<WriteInfo> writes = ImmutableList.of(
+                getWriteInfoWithFixedShard(NOTHING, 1, numShards), getWriteInfoWithFixedShard(NOTHING, 2, numShards));
+        assertThat(PartitionedWriteInfos.getStartTimestamp(partitioner.filterAndPartition(writes)))
+                .hasValue(1L);
     }
 
     @Test
@@ -135,7 +148,9 @@ public class WriteInfoPartitionerTest {
                 getWriteInfo(CONSERVATIVE2, 0, 0, 100L),
                 getWriteInfo(THOROUGH, 0, 0, 100L));
 
-        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
+        Map<PartitionInfo, List<WriteInfo>> partitions = PartitionedWriteInfos.getPartitionedWrites(
+                        partitioner.filterAndPartition(writes))
+                .orElseThrow();
         assertThat(partitions).hasSize(6);
     }
 
@@ -145,7 +160,9 @@ public class WriteInfoPartitionerTest {
         for (int i = 0; i <= numShards; i++) {
             writes.add(getWriteInfoWithFixedShard(CONSERVATIVE, i, numShards));
         }
-        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
+        Map<PartitionInfo, List<WriteInfo>> partitions = PartitionedWriteInfos.getPartitionedWrites(
+                        partitioner.filterAndPartition(writes))
+                .orElseThrow();
         assertThat(partitions.keySet())
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
         assertThat(Iterables.getOnlyElement(partitions.values())).containsExactlyElementsOf(writes);
@@ -154,13 +171,15 @@ public class WriteInfoPartitionerTest {
     @Test
     public void changingNumberOfPartitionsIsReflectedInPartitionInfo() {
         WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
-        PartitionInfo partition1 = Iterables.getOnlyElement(partitioner
-                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
-                .keySet());
+        PartitionInfo partition1 = Iterables.getOnlyElement(
+                PartitionedWriteInfos.getPartitionedWrites(partitioner.filterAndPartition(ImmutableList.of(write)))
+                        .orElseThrow()
+                        .keySet());
         numShards += 1;
-        PartitionInfo partition2 = Iterables.getOnlyElement(partitioner
-                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
-                .keySet());
+        PartitionInfo partition2 = Iterables.getOnlyElement(
+                PartitionedWriteInfos.getPartitionedWrites(partitioner.filterAndPartition(ImmutableList.of(write)))
+                        .orElseThrow()
+                        .keySet());
 
         assertThat(partition1.isConservative()).isEqualTo(partition2.isConservative());
         assertThat(partition1.timestamp()).isEqualTo(partition2.timestamp());

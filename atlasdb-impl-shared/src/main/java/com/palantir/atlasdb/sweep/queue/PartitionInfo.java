@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.util.PersistableBoolean;
 import org.immutables.value.Value;
 
@@ -23,7 +22,7 @@ import org.immutables.value.Value;
 public interface PartitionInfo {
     int shard();
 
-    TableMetadataPersistence.SweepStrategy sweepStrategy();
+    PersistableBoolean isConservative();
 
     long timestamp();
 

@@ -67,8 +67,7 @@ public class WriteInfoPartitioner {
         return partitionWritesByShardStrategyTimestamp(writes);
     }
 
-    @VisibleForTesting
-    PartitionedWriteInfo partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+    private PartitionedWriteInfo partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         int shards = numShards.get();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = writes.stream()
                 .filter(writeInfo -> getStrategy(writeInfo).isPresent())
