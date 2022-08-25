@@ -52,9 +52,16 @@ public abstract class SweepQueueTable {
 
     public void enqueue(List<WriteInfo> allWrites) {
         PartitionedWriteInfos.caseOf(partitioner.filterAndPartition(allWrites))
-                // todo (gmaretic)
-                .nonSweepableTransaction(x -> null)
+                .nonSweepableTransaction(this::enqueueNonSweepable)
                 .filteredSweepableTransaction(this::enqueueFiltered);
+    }
+
+    private Void enqueueNonSweepable(long startTimestamp) {
+        write(populateReferences(startTimestamp), startTimestamp);
+        write(populateCells(startTimestamp), startTimestamp);
+
+        // todo (gmaretic): metrics?
+        return null;
     }
 
     private Void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
@@ -91,6 +98,8 @@ public abstract class SweepQueueTable {
      */
     abstract Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes);
 
+    abstract Map<Cell, byte[]> populateReferences(long startTimetamp);
+
     /**
      * Converts a list of write infos into the required format to be persisted into the kvs. This method assumes all
      * the writes correspond to the same partition and have the same start timestamp (they are all part of the same
@@ -102,6 +111,12 @@ public abstract class SweepQueueTable {
      * @return map of cell to byte array persisting the write infomations into the kvs
      */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
+
+    /**
+     * Similar to {@link #populateCells(PartitionInfo, List)}, except that this method is used for transactions that
+     * only have writes to tables that are not being swept.
+     */
+    abstract Map<Cell, byte[]> populateCells(long startTimestamp);
 
     private void write(Map<Cell, byte[]> cells, long timestamp) {
         if (!cells.isEmpty()) {

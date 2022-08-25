@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 public class SweepableTimestamps extends SweepQueueTable {
     private static final byte[] DUMMY = new byte[0];
+    private static final int DUMMY_SHARD_FOR_NON_SWEEPABLE = 2050;
 
     public SweepableTimestamps(KeyValueService kvs, WriteInfoPartitioner partitioner) {
         super(
@@ -48,9 +49,28 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     @Override
+    Map<Cell, byte[]> populateReferences(long startTimetamp) {
+        return ImmutableMap.of();
+    }
+
+    @Override
     Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes) {
         SweepableTimestampsTable.SweepableTimestampsRow row = computeRow(info);
-        SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info);
+        SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info.timestamp());
+
+        SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
+                SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
+
+        return ImmutableMap.of(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
+    }
+
+    @Override
+    Map<Cell, byte[]> populateCells(long startTimestamp) {
+        SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
+                DUMMY_SHARD_FOR_NON_SWEEPABLE,
+                SweepQueueUtils.tsPartitionCoarse(startTimestamp),
+                PersistableBoolean.of(true).persistToBytes());
+        SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(startTimestamp);
 
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
@@ -65,8 +85,8 @@ public class SweepableTimestamps extends SweepQueueTable {
                 partitionInfo.isConservative().persistToBytes());
     }
 
-    private SweepableTimestampsTable.SweepableTimestampsColumn computeColumn(PartitionInfo info) {
-        return SweepableTimestampsTable.SweepableTimestampsColumn.of(SweepQueueUtils.tsPartitionFine(info.timestamp()));
+    private SweepableTimestampsTable.SweepableTimestampsColumn computeColumn(long startTimestamp) {
+        return SweepableTimestampsTable.SweepableTimestampsColumn.of(SweepQueueUtils.tsPartitionFine(startTimestamp));
     }
 
     /**
@@ -81,11 +101,16 @@ public class SweepableTimestamps extends SweepQueueTable {
     Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
-        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
+        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive, false);
+    }
+
+    Optional<Long> nextNonSweepableTimestampPartition(long lastSweptTs, long sweepTs) {
+        return nextSweepableTimestampPartition(
+                ShardAndStrategy.conservative(DUMMY_SHARD_FOR_NON_SWEEPABLE), lastSweptTs, sweepTs);
     }
 
     private Optional<Long> nextSweepablePartition(
-            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive) {
+            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive, boolean nonSweepable) {
         ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
@@ -148,5 +173,9 @@ public class SweepableTimestamps extends SweepQueueTable {
                 .collect(Collectors.toSet());
 
         deleteRows(rowsBytes);
+    }
+
+    void deleteNonSweepableCoarsePartitions(Set<Long> partitionsCoarse) {
+        deleteCoarsePartitions(ShardAndStrategy.conservative(DUMMY_SHARD_FOR_NON_SWEEPABLE), partitionsCoarse);
     }
 }
