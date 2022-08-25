@@ -75,6 +75,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.GuardedBy;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 /**
  * Scrubs individuals cells on-demand.
@@ -574,7 +575,10 @@ public class Scrubber {
         try {
             return tryScrubBatchOfCells(txManager, scrubTimestamp, transactionType, tableRef, cells);
         } catch (IllegalArgumentException ex) {
-            if (ex.getCause() instanceof TableMappingNotFoundException) {
+            // This won't work with Cassandra, but we consider this acceptable because the Scrubber is generally
+            // not used with Cassandra - note that we don't have access to the "table not found" exception currently
+            // thrown by thrift here.
+            if (ExceptionUtils.hasCause(ex, TableMappingNotFoundException.class)) {
                 // The table was deleted from under us - ignore this case.
                 log.info(
                         "Caught a TableMappingNotFoundException during scrubbing. This means that "
