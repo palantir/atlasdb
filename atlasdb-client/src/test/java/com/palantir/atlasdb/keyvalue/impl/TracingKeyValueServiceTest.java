@@ -306,7 +306,7 @@ public class TracingKeyValueServiceTest {
     @Test
     @SuppressWarnings("MustBeClosed")
     public void getRange() throws Exception {
-        RowResult<Value> rowResult = mock(RowResult.class);
+        RowResult<Value> rowResult = RowResult.of(CELL, VALUE);
         ClosableIterator<RowResult<Value>> expectedResult =
                 ClosableIterators.wrapWithEmptyClose(List.of(rowResult).iterator());
 
@@ -333,8 +333,8 @@ public class TracingKeyValueServiceTest {
 
     @Test
     @SuppressWarnings("MustBeClosed")
-    public void getRange_withTrackedByteReads() throws Exception {
-        RowResult<Value> rowResult = mock(RowResult.class);
+    public void getRange_withTrackedByteReads() {
+        RowResult<Value> rowResult = RowResult.of(CELL, VALUE);
         ClosableIterator<RowResult<Value>> expectedResult =
                 ClosableIterators.wrapWithEmptyClose(List.of(rowResult).iterator());
 
