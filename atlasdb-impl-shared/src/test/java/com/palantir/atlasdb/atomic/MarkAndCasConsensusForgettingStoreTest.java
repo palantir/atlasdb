@@ -18,11 +18,10 @@ package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -32,21 +31,15 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
-
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import org.junit.Test;
 
 public class MarkAndCasConsensusForgettingStoreTest {
@@ -112,26 +105,33 @@ public class MarkAndCasConsensusForgettingStoreTest {
     @Test
     public void coalescesMultipleMcasCalls() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        TestBatchElement element = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
 
-        List<BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void>> requests = IntStream.range(0, 100).mapToObj(idx -> element).collect(Collectors.toList());
+        List<BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void>> requests = IntStream.range(0, 100)
+                .mapToObj(idx -> TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY))
+                .collect(Collectors.toList());
         store.processBatch(kvs, TABLE, requests);
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
+        requests.forEach(req -> assertThatCode(() -> req.result().get()).doesNotThrowAnyException());
     }
 
     @Test
     public void choosesCommitOverAbort() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        ByteBuffer commitVal = ByteBuffer.wrap(new byte[]{9, 23, 45, 27, 0});
+        ByteBuffer commitVal = ByteBuffer.wrap(new byte[] {9, 23, 45, 27, 0});
         TestBatchElement commit = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, commitVal);
-        TestBatchElement abort = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE));
+        TestBatchElement abort = TestBatchElement.of(
+                CELL,
+                BUFFERED_IN_PROGRESS_MARKER,
+                ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE));
 
         store.processBatch(kvs, TABLE, ImmutableList.of(commit, abort));
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(commitVal.array());
     }
 
+
+    @SuppressWarnings("immutables:subtype")
     @org.immutables.value.Value.Immutable
     interface TestBatchElement extends BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void> {
         @org.immutables.value.Value.Parameter
