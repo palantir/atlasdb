@@ -738,7 +738,6 @@ public final class HashComponentsTestTable implements
      * {@link Entry}
      * {@link EnumSet}
      * {@link Function}
-     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -785,6 +784,7 @@ public final class HashComponentsTestTable implements
      * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
+     * {@link javax.annotation.processing.Generated}
      */
-    static String __CLASS_HASH = "xtZFNbacNMZC5kfQbmdZNA==";
+    static String __CLASS_HASH = "il8KyzmDPPgG1TvLmcLR2Q==";
 }

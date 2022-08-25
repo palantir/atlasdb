@@ -1,5 +1,26 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import javax.annotation.processing.Generated;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -63,25 +84,6 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"all", "deprecation"})
@@ -2081,7 +2083,6 @@ public final class AllValueTypesTestTable implements
      * {@link Entry}
      * {@link EnumSet}
      * {@link Function}
-     * {@link Generated}
      * {@link HashMultimap}
      * {@link HashSet}
      * {@link Hashing}
@@ -2128,6 +2129,7 @@ public final class AllValueTypesTestTable implements
      * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
+     * {@link javax.annotation.processing.Generated}
      */
-    static String __CLASS_HASH = "+z9yTY9fbM1RMcCD3o7Eyg==";
+    static String __CLASS_HASH = "jOeoGbx8Zd8RmCE3tqmD/w==";
 }
