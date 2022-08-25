@@ -52,7 +52,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -83,7 +82,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
-import javax.annotation.Generated;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {
@@ -150,7 +148,8 @@ public class StreamStoreRenderer {
         return new Renderer() {
             @Override
             protected void run() {
-                ImportRenderer importRenderer = new ImportRenderer(this, Arrays.asList(IMPORTS), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
+                ImportRenderer importRenderer = new ImportRenderer(
+                        this, Arrays.asList(IMPORTS), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
                 line("package ", packageName, ";");
                 line();
                 importRenderer.renderImports();

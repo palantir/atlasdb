@@ -187,7 +187,8 @@ public class TableRenderer {
 
         @Override
         protected void run() {
-            ImportRenderer importRenderer = new ImportRenderer(this, getImports(optionalType), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
+            ImportRenderer importRenderer = new ImportRenderer(
+                    this, getImports(optionalType), ImmutableList.of(GeneratedImport.generatedAnnotationType()));
             if (!isNestedIndex) {
                 line("package ", packageName, ";");
                 line();

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -33,16 +35,13 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
-
-import javax.lang.model.element.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
-import static com.palantir.atlasdb.AtlasDbConstants.SCHEMA_V2_TABLE_NAME;
+import javax.lang.model.element.Modifier;
 
 public final class TableFactoryRenderer {
     private final String schemaName;
