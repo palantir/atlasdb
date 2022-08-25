@@ -1102,6 +1102,36 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
 
+    @Test
+    public void nonSweepableTest() {
+        NonSweepableTimestampsReader reader =
+                new NonSweepableTimestampsReader(sweepableTimestamps, sweepableCells, progress);
+
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_NOTH, ImmutableMap.of(DEFAULT_CELL, PtBytes.toBytes(234))), 123_456L);
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_NOTH, ImmutableMap.of(DEFAULT_CELL, PtBytes.toBytes(755))), 123_457L);
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_NOTH, ImmutableMap.of(DEFAULT_CELL, PtBytes.toBytes(755))), 123_459L);
+        sweepQueue.enqueue(ImmutableMap.of(TABLE_NOTH, ImmutableMap.of(DEFAULT_CELL, PtBytes.toBytes(755))), 153_459L);
+        putTimestampIntoTransactionTable(123_457L, 177_777L);
+        putTimestampIntoTransactionTable(123_459L, 999_999L);
+        reader.getNextBatch(100_000L);
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(99_999L);
+        reader.getNextBatch(200_000L);
+        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
+                .isEqualTo(123_458L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(177_777L);
+
+        TableReference cellsRef =
+                TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
+        // delete row -1
+        verify(spiedKvs, times(1)).deleteRows(eq(cellsRef), any(Iterable.class));
+
+        reader.getNextBatch(1_000_000L);
+        // delete rows -1, 0, 2, 3
+        verify(spiedKvs, times(4)).deleteRows(eq(cellsRef), any(Iterable.class));
+        // todo(gmaretic): make deletions less jank
+    }
+
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 5);

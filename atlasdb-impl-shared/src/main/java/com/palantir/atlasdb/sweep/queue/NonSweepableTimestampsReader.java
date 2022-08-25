@@ -39,6 +39,18 @@ public class NonSweepableTimestampsReader {
             Optional<Long> nextFinePartition =
                     sweepableTimestamps.nextNonSweepableTimestampPartition(lastSweptTimestamp, sweepTs);
             if (nextFinePartition.isEmpty()) {
+                if (SweepQueueUtils.tsPartitionFine(lastSweptTimestamp)
+                        < SweepQueueUtils.tsPartitionFine(sweepTs - 1)) {
+                    sweepableCells.deleteNonSweepableRows(
+                            ImmutableSet.of(SweepQueueUtils.tsPartitionFine(lastSweptTimestamp)));
+                }
+                if (SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)
+                        < SweepQueueUtils.tsPartitionCoarse(sweepTs - 1)) {
+                    sweepableTimestamps.deleteNonSweepableCoarsePartitions(
+                            ImmutableSet.of(SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)));
+                }
+                lastSweptTimestamp = sweepTs - 1;
+                progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTimestamp);
                 return;
             }
             NonSweepableBatchInfo batch = sweepableCells.getNonSweepableBatchForPartition(
@@ -46,15 +58,19 @@ public class NonSweepableTimestampsReader {
             progress.updateLastSeenCommitTimestamp(
                     SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, batch.lastSeenCommitTimestamp());
             // todo (gmaretic) : update abandoned timestamps
-            sweepableCells.deleteNonSweepableRows(ImmutableSet.of(nextFinePartition.get()));
+            lastSweptTimestamp = !batch.processedAll()
+                    ? batch.lastSweptTimestamp()
+                    : Math.min(sweepTs - 1, SweepQueueUtils.maxTsForFinePartition(nextFinePartition.get()));
+            if (lastSweptTimestamp == SweepQueueUtils.maxTsForFinePartition(nextFinePartition.get())) {
+                sweepableCells.deleteNonSweepableRows(ImmutableSet.of(nextFinePartition.get()));
+            }
             if (SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)
                     < SweepQueueUtils.tsPartitionCoarse(batch.lastSweptTimestamp())) {
                 sweepableTimestamps.deleteNonSweepableCoarsePartitions(
                         ImmutableSet.of(SweepQueueUtils.tsPartitionCoarse(lastSweptTimestamp)));
             }
-            lastSweptTimestamp = batch.lastSweptTimestamp();
-            progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, batch.lastSweptTimestamp());
-            hasNext = batch.hasNext();
+            progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTimestamp);
+            hasNext = batch.processedAll() && lastSweptTimestamp < sweepTs - 1;
         }
     }
 }

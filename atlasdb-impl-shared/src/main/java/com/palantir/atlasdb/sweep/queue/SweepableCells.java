@@ -216,11 +216,14 @@ public class SweepableCells extends SweepQueueTable {
         SweepableCellsRow row = computeNonSweepableRow(partitionFine);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
         Set<Long> startTimestamps = new HashSet<>();
+        boolean processedAll = true;
+
         while (resultIterator.hasNext() && startTimestamps.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
             if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
+                processedAll = false;
                 break;
             }
             startTimestamps.add(startTs);
@@ -230,7 +233,6 @@ public class SweepableCells extends SweepQueueTable {
         Set<Long> abortedTimestamps = new HashSet<>();
         long lastSweptTs = minTsExclusive;
         long lastSeenCommitTs = 0L;
-        boolean processedAll = true;
 
         List<Long> sortedStartTimestamps =
                 startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
@@ -253,7 +255,7 @@ public class SweepableCells extends SweepQueueTable {
                 .abortedTimestamps(abortedTimestamps)
                 .lastSweptTimestamp(lastSweptTs)
                 .lastSeenCommitTimestamp(lastSeenCommitTs)
-                .hasNext(processedAll)
+                .processedAll(processedAll)
                 .build();
     }
 
