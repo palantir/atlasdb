@@ -28,10 +28,11 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
@@ -78,8 +79,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             Class<U> interfaceClass, Supplier<U> delegateSupplier, LeadershipCoordinator awaitingLeadership) {
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
-        return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
+        return interfaceClass.cast(Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy));
     }
 
     @SuppressWarnings("ThrowError") // Possible legacy API
@@ -92,12 +93,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             return null;
         }
 
-        // The state must NEVER be cached, each request must fetch latest leadership state from the
-        // leadershipStateManager
+        // The state must NEVER be cached, each request must fetch the latest state from leadershipStateManager
         LeadershipState<T> leadershipState = leadershipStateManager.getLeadershipState();
-
-        final LeadershipToken leadershipToken = leadershipState.leadershipToken();
-        T maybeValidDelegate = leadershipState.delegate();
+        LeadershipToken leadershipToken = leadershipState.leadershipToken();
 
         ListenableFuture<StillLeadingStatus> leadingFuture = Tracers.wrapListenableFuture(
                 "validate-leadership",
@@ -105,72 +103,82 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                         "validate-leadership-attempt", () -> leadershipCoordinator.isStillLeading(leadershipToken))));
 
         ListenableFuture<T> delegateFuture = Futures.transformAsync(
-                leadingFuture,
-                leading -> {
-                    // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
-                    // and should assume we're not the leader
-                    if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-                        return Futures.submitAsync(
-                                () -> {
-                                    leadershipStateManager.handleNotLeading(leadershipToken, null /* cause */);
-                                    throw new AssertionError("should not reach here");
-                                },
-                                executionExecutor);
-                    }
+                leadingFuture, leading -> delegate(leadershipState, leading), MoreExecutors.directExecutor());
 
-                    if (isClosed) {
-                        throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
-                    }
-
-                    Preconditions.checkNotNull(
-                            maybeValidDelegate,
-                            "no valid delegate present",
-                            SafeArg.of("InterfaceClass", interfaceClass.getName()));
-                    return Futures.immediateFuture(maybeValidDelegate);
-                },
-                MoreExecutors.directExecutor());
-
-        if (!method.getReturnType().equals(ListenableFuture.class)) {
-            T delegate = AtlasFutures.getUnchecked(delegateFuture);
-            try (CloseableTracer ignored = CloseableTracer.startSpan("execute-on-delegate")) {
-                return method.invoke(delegate, args);
-            } catch (InvocationTargetException e) {
-                throw handleDelegateThrewException(leadershipToken, e);
-            }
+        if (ListenableFuture.class.equals(method.getReturnType())) {
+            return executeOnDelegateAsync(method, args, leadershipToken, delegateFuture);
         } else {
-            return FluentFuture.from(delegateFuture)
-                    .transformAsync(
-                            delegate -> Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
-                                try {
-                                    return (ListenableFuture<Object>) method.invoke(delegate, args);
-                                } catch (IllegalAccessException | InvocationTargetException e) {
-                                    return Futures.immediateFailedFuture(e);
-                                }
-                            }),
-                            executionExecutor)
-                    .catchingAsync(
-                            InvocationTargetException.class,
-                            e -> {
-                                throw handleDelegateThrewException(leadershipToken, e);
-                            },
-                            executionExecutor);
+            return executeOnDelegate(method, args, leadershipToken, delegateFuture);
         }
     }
 
-    private RuntimeException handleDelegateThrewException(
-            LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-        if (exception.getCause() instanceof ServiceNotAvailableException
-                || exception.getCause() instanceof NotCurrentLeaderException) {
-            leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
+    private Object executeOnDelegate(
+            Method method, Object[] args, LeadershipToken leadershipToken, ListenableFuture<T> delegateFuture)
+            throws Exception {
+        T delegate = AtlasFutures.getUnchecked(delegateFuture);
+        try (CloseableTracer ignored = CloseableTracer.startSpan("execute-on-delegate")) {
+            return method.invoke(delegate, args);
+        } catch (InvocationTargetException e) {
+            throw handleDelegateThrewException(leadershipToken, causeFrom(e));
+        }
+    }
+
+    private FluentFuture<Object> executeOnDelegateAsync(
+            Method method, Object[] args, LeadershipToken leadershipToken, ListenableFuture<T> delegateFuture) {
+        Preconditions.checkArgument(
+                ListenableFuture.class.equals(method.getReturnType()), "Async delegate must return ListenableFuture");
+        return FluentFuture.from(delegateFuture)
+                .transformAsync(
+                        delegate -> Tracers.wrapListenableFuture("execute-on-delegate-async", () -> {
+                            try {
+                                return (ListenableFuture<Object>) method.invoke(delegate, args);
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                return Futures.immediateFailedFuture(causeFrom(e));
+                            }
+                        }),
+                        executionExecutor)
+                .catchingAsync(
+                        Throwable.class,
+                        t -> {
+                            throw handleDelegateThrewException(leadershipToken, causeFrom(t));
+                        },
+                        executionExecutor);
+    }
+
+    private ListenableFuture<T> delegate(LeadershipState<T> leadershipState, StillLeadingStatus leading) {
+        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+        // and should assume we're not the leader
+        if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
+            throw leadershipStateManager.handleNotLeading(leadershipState.leadershipToken(), null /* cause */);
+        } else if (isClosed) {
+            throw new SafeIllegalStateException("Already closed proxy", SafeArg.of("interfaceClass", interfaceClass));
+        }
+        return Futures.immediateFuture(Preconditions.checkNotNull(
+                leadershipState.delegate(),
+                "no valid delegate present",
+                SafeArg.of("interfaceClass", interfaceClass.getName())));
+    }
+
+    private SafeRuntimeException handleDelegateThrewException(LeadershipToken leadershipToken, Throwable throwable)
+            throws Exception {
+        Throwable cause = causeFrom(throwable);
+        if (cause instanceof ServiceNotAvailableException) {
+            throw leadershipStateManager.handleNotLeading(leadershipToken, cause);
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (exception.getCause() instanceof InterruptedException
-                && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
+        if (cause instanceof InterruptedException && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
             throw leadershipCoordinator.notCurrentLeaderException(
-                    "received an interrupt due to leader election.", exception.getCause());
+                    "received an interrupt due to leader election.", cause);
         }
-        Throwables.propagateIfPossible(exception.getCause(), Exception.class);
-        throw new RuntimeException(exception.getCause());
+        Throwables.propagateIfPossible(cause, Exception.class);
+        throw new SafeRuntimeException("Delegate threw", throwable);
+    }
+
+    private static Throwable causeFrom(Throwable throwable) {
+        if (throwable instanceof InvocationTargetException) {
+            return throwable.getCause();
+        }
+        return throwable;
     }
 }
