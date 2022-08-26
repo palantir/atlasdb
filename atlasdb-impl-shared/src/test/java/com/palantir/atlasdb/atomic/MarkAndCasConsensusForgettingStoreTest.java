@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -53,7 +53,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("col2"));
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
-    private static final byte[] IN_PROGRESS_MARKER = new byte[] {0};
+    private static final byte[] IN_PROGRESS_MARKER = new byte[] {1};
     private static final ByteBuffer BUFFERED_IN_PROGRESS_MARKER = ByteBuffer.wrap(IN_PROGRESS_MARKER);
 
     private final InMemoryKeyValueService kvs = spy(new InMemoryKeyValueService(true));
@@ -123,11 +123,43 @@ public class MarkAndCasConsensusForgettingStoreTest {
         TestBatchElement abort = TestBatchElement.of(
                 CELL,
                 BUFFERED_IN_PROGRESS_MARKER,
-                ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE));
+                ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE));
 
         store.processBatch(kvs, TABLE, ImmutableList.of(commit, abort));
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(commitVal.array());
+    }
+
+    @Test
+    public void choosesTouchOverAbort() throws ExecutionException, InterruptedException {
+        ByteBuffer commitVal = ByteBuffer.wrap(new byte[] {9, 23, 45, 27, 0});
+        kvs.put(TABLE, ImmutableMap.of(CELL, commitVal.array()), 0);
+
+        TestBatchElement touch = TestBatchElement.of(CELL, commitVal, commitVal);
+        TestBatchElement abort = TestBatchElement.of(
+                CELL,
+                BUFFERED_IN_PROGRESS_MARKER,
+                ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE));
+
+        assertThatCode(() -> store.processBatch(kvs, TABLE, ImmutableList.of(touch, abort)))
+                .doesNotThrowAnyException();
+        verify(kvs).multiCheckAndSet(any());
+        assertThat(store.get(CELL).get()).hasValue(commitVal.array());
+    }
+
+    @Test
+    public void choosesTouchOverCommit() throws ExecutionException, InterruptedException {
+        ByteBuffer abortVal = ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE);
+        kvs.put(TABLE, ImmutableMap.of(CELL, abortVal.array()), 0);
+
+        TestBatchElement touch = TestBatchElement.of(CELL, abortVal, abortVal);
+        TestBatchElement commit =
+                TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, ByteBuffer.wrap(new byte[] {27, 9, 81, 63, 0}));
+
+        assertThatCode(() -> store.processBatch(kvs, TABLE, ImmutableList.of(touch, commit)))
+                .doesNotThrowAnyException();
+        verify(kvs).multiCheckAndSet(any());
+        assertThat(store.get(CELL).get()).hasValue(abortVal.array());
     }
 
     @SuppressWarnings("immutables:subtype")
