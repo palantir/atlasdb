@@ -51,6 +51,7 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -539,20 +540,16 @@ public class Scrubber {
                     "Attempting to immediately scrub {} cells from table {}",
                     SafeArg.of("cellCount", entry.getValue().size()),
                     LoggingArgs.tableRef(tableRef));
+
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
                 Multimap<Cell, Long> allTimestamps =
-                        keyValueService.getAllTimestamps(tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
-                Multimap<Cell, Long> timestampsToDelete =
-                        Multimaps.filterValues(allTimestamps, v -> !v.equals(Value.INVALID_VALUE_TIMESTAMP));
-
-                // If transactionType == TransactionType.AGGRESSIVE_HARD_DELETE this might
-                // force other transactions to abort or retry
-                deleteCellsAtTimestamps(txManager, tableRef, timestampsToDelete, transactionType);
+                        scrubBatchOfCells(txManager, scrubTimestamp, transactionType, tableRef, cells);
 
                 Multimap<Cell, Long> cellsToMarkScrubbed = HashMultimap.create(allTimestamps);
                 for (Cell cell : cells) {
                     cellsToMarkScrubbed.put(cell, scrubTimestamp);
                 }
+
                 allCellsToMarkScrubbed.put(tableRef, cellsToMarkScrubbed);
             }
             log.debug(
@@ -562,6 +559,49 @@ public class Scrubber {
         }
         scrubberStore.markCellsAsScrubbed(allCellsToMarkScrubbed, batchSizeSupplier.get());
         lazyWriteMetric(AtlasDbMetricNames.SCRUBBED_CELLS, allCellsToMarkScrubbed.size());
+    }
+
+    private Multimap<Cell, Long> scrubBatchOfCells(
+            TransactionManager txManager,
+            long scrubTimestamp,
+            TransactionType transactionType,
+            TableReference tableRef,
+            List<Cell> cells) {
+        try {
+            return tryScrubBatchOfCells(txManager, scrubTimestamp, transactionType, tableRef, cells);
+        } catch (IllegalArgumentException ex) {
+            // This won't work with Cassandra, but we consider this acceptable because the Scrubber is generally
+            // not used with Cassandra - note that we don't have access to the "table not found" exception currently
+            // thrown by thrift here.
+            if (Throwables.hasCauseInCausalChain(ex, TableMappingNotFoundException.class)) {
+                // The table was deleted from under us - ignore this case.
+                log.info(
+                        "Caught a TableMappingNotFoundException during scrubbing. This means that "
+                                + "the table was deleted from under us, and thus we have nothing to scrub.",
+                        LoggingArgs.tableRef(tableRef),
+                        ex);
+                return ImmutableMultimap.of();
+            } else {
+                throw ex;
+            }
+        }
+    }
+
+    private Multimap<Cell, Long> tryScrubBatchOfCells(
+            TransactionManager txManager,
+            long scrubTimestamp,
+            TransactionType transactionType,
+            TableReference tableRef,
+            List<Cell> cells) {
+        Multimap<Cell, Long> allTimestamps =
+                keyValueService.getAllTimestamps(tableRef, ImmutableSet.copyOf(cells), scrubTimestamp);
+        Multimap<Cell, Long> timestampsToDelete =
+                Multimaps.filterValues(allTimestamps, v -> !v.equals(Value.INVALID_VALUE_TIMESTAMP));
+
+        // If transactionType == TransactionType.AGGRESSIVE_HARD_DELETE this might
+        // force other transactions to abort or retry
+        deleteCellsAtTimestamps(txManager, tableRef, timestampsToDelete, transactionType);
+        return allTimestamps;
     }
 
     private void deleteCellsAtTimestamps(
