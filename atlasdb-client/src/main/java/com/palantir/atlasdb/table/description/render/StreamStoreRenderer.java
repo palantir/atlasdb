@@ -81,7 +81,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class StreamStoreRenderer {

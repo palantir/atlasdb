@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -743,5 +743,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OzVTBeZRDN3eNncbksH1sw==";
+    static String __CLASS_HASH = "hup2zbIPEU3UyNMOfe1YNw==";
 }

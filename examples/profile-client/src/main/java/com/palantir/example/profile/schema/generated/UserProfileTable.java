@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -236,6 +236,8 @@ public final class UserProfileTable implements
      * </pre>
      */
     public static final class Create implements UserProfileNamedColumnValue<com.palantir.example.profile.schema.CreationData> {
+        private static final com.palantir.example.profile.schema.CreationData.Persister REUSABLE_PERSISTER = new com.palantir.example.profile.schema.CreationData.Persister();
+
         private final com.palantir.example.profile.schema.CreationData value;
 
         public static Create of(com.palantir.example.profile.schema.CreationData value) {
@@ -263,7 +265,7 @@ public final class UserProfileTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.example.profile.schema.CreationData.Persister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(REUSABLE_PERSISTER.persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -276,7 +278,7 @@ public final class UserProfileTable implements
             @Override
             public Create hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(new com.palantir.example.profile.schema.CreationData.Persister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
+                return of(REUSABLE_PERSISTER.hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
         };
 
@@ -296,6 +298,8 @@ public final class UserProfileTable implements
      * </pre>
      */
     public static final class Json implements UserProfileNamedColumnValue<com.fasterxml.jackson.databind.JsonNode> {
+        private static final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.persister.JsonNodePersister();
+
         private final com.fasterxml.jackson.databind.JsonNode value;
 
         public static Json of(com.fasterxml.jackson.databind.JsonNode value) {
@@ -323,7 +327,7 @@ public final class UserProfileTable implements
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.atlasdb.persister.JsonNodePersister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(REUSABLE_PERSISTER.persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
@@ -338,7 +342,6 @@ public final class UserProfileTable implements
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(REUSABLE_PERSISTER.hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
             }
-            private final com.palantir.atlasdb.persister.JsonNodePersister REUSABLE_PERSISTER = new com.palantir.atlasdb.persister.JsonNodePersister();
         };
 
         @Override
@@ -3337,5 +3340,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XQx5IMlaY1C+fEZFXzLO7Q==";
+    static String __CLASS_HASH = "3Edl1drru2bGGW0fAmHL/g==";
 }

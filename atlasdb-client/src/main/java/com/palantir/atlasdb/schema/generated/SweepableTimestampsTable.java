@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -786,5 +786,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gH5yVvu8VJQMspkIgQi4CA==";
+    static String __CLASS_HASH = "Jw99h/0z3T8JcRN8j6d17w==";
 }

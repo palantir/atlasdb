@@ -41,7 +41,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 import javax.lang.model.element.Modifier;
 
 public final class TableFactoryRenderer {
