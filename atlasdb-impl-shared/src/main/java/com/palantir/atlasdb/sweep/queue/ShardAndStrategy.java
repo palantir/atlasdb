@@ -27,6 +27,11 @@ public abstract class ShardAndStrategy {
 
     public abstract SweeperStrategy strategy();
 
+    @Value.Default
+    public boolean nonSweepable() {
+        return false;
+    }
+
     @Value.Check
     void allowOnlyConservativeAndThorough() {
         Preconditions.checkArgument(

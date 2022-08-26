@@ -66,9 +66,9 @@ public class SweepableTimestamps extends SweepQueueTable {
     @Override
     Map<Cell, byte[]> populateCells(long startTimestamp) {
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                SweepQueueUtils.DUMMY_SHARD_FOR_NON_SWEEPABLE,
+                SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE.shard(),
                 SweepQueueUtils.tsPartitionCoarse(startTimestamp),
-                PersistableBoolean.of(true).persistToBytes());
+                SweepQueueUtils.NON_SWEEPABLE);
         SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(startTimestamp);
 
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
@@ -100,7 +100,7 @@ public class SweepableTimestamps extends SweepQueueTable {
     Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
-        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive, false);
+        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
     }
 
     Optional<Long> nextNonSweepableTimestampPartition(long lastSweptTs, long sweepTs) {
@@ -108,7 +108,7 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     private Optional<Long> nextSweepablePartition(
-            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive, boolean nonSweepable) {
+            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive) {
         ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
@@ -146,10 +146,11 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {
+        byte[] sweepStrategy = shardStrategy.nonSweepable()
+                ? SweepQueueUtils.NON_SWEEPABLE
+                : PersistableBoolean.of(shardStrategy.isConservative()).persistToBytes();
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shardStrategy.shard(),
-                coarsePartition,
-                PersistableBoolean.of(shardStrategy.isConservative()).persistToBytes());
+                shardStrategy.shard(), coarsePartition, sweepStrategy);
         return row.persistToBytes();
     }
 

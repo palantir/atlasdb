@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.table.api.ColumnValue;
+import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -46,9 +47,12 @@ public final class SweepQueueUtils {
     public static final long RESET_TIMESTAMP = 0L;
     public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
     public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
-    public static final int DUMMY_SHARD_FOR_NON_SWEEPABLE = 2050;
-    public static final ShardAndStrategy DUMMY_SAS_FOR_NON_SWEEPABLE =
-            ShardAndStrategy.conservative(DUMMY_SHARD_FOR_NON_SWEEPABLE);
+    public static final ShardAndStrategy DUMMY_SAS_FOR_NON_SWEEPABLE = ImmutableShardAndStrategy.builder()
+            .shard(0)
+            .strategy(SweeperStrategy.CONSERVATIVE)
+            .nonSweepable(true)
+            .build();
+    public static final byte[] NON_SWEEPABLE = new byte[] {2};
 
     private SweepQueueUtils() {
         // utility
