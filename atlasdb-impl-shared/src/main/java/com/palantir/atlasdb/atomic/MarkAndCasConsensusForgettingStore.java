@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -30,12 +31,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Unsafe;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +44,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.palantir.logsafe.Unsafe;
 import org.immutables.value.Value;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
@@ -129,16 +128,19 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     @VisibleForTesting
     static void processBatch(KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
         List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
+
         Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
                 .collect(Collectors.groupingBy(
                         elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
 
         // There is one request per row
-        ImmutableMap.Builder<CasRequest, CasResponse> resultMap = ImmutableMap.builder();
+        Map<CasRequest, CasResponse> resultMap = Maps.newHashMap();
+
         for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
             ByteBuffer rowName = requestEntry.getKey();
             List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
-            MultiCheckAndSetRequest multiCheckAndSetRequest = multiCASRequest(tableRef, rowName.array(), pendingRequests);
+            MultiCheckAndSetRequest multiCheckAndSetRequest =
+                    multiCASRequest(tableRef, rowName.array(), pendingRequests);
             try {
                 kvs.multiCheckAndSet(multiCheckAndSetRequest);
                 pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.success()));
@@ -147,9 +149,13 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             }
         }
 
+        populateResult(batch, resultMap);
+    }
+
+    private static void populateResult(
+            List<BatchElement<CasRequest, Void>> batch, Map<CasRequest, CasResponse> results) {
         CasResponse defaultResponse =
                 CasResponse.failure(new CheckAndSetException("Another check and set is in progress."));
-        Map<CasRequest, CasResponse> results = resultMap.build();
         batch.forEach(elem -> {
             CasResponse response = results.getOrDefault(elem.argument(), defaultResponse);
             if (response.successful()) {
@@ -162,12 +168,12 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
     private static MultiCheckAndSetRequest multiCASRequest(
             TableReference tableRef, byte[] rowName, List<BatchElement<CasRequest, Void>> requests) {
-        Map<Cell, byte[]> expected = getValueMap(requests, CasRequest::expected);
-        Map<Cell, byte[]> updates = getValueMap(requests, CasRequest::update);
+        Map<Cell, byte[]> expected = extractValueMap(requests, CasRequest::expected);
+        Map<Cell, byte[]> updates = extractValueMap(requests, CasRequest::update);
         return MultiCheckAndSetRequest.multipleCells(tableRef, rowName, expected, updates);
     }
 
-    private static Map<Cell, byte[]> getValueMap(
+    private static Map<Cell, byte[]> extractValueMap(
             List<BatchElement<CasRequest, Void>> requests, Function<CasRequest, ByteBuffer> valueExtractor) {
         return KeyedStream.of(requests)
                 .mapKeys(elem -> elem.argument().cell())
@@ -175,19 +181,18 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                 .collectToMap();
     }
 
-    // everything with a different rank fails, and other than that, same rank elements are coalesced.
+    // every request with a lower rank fails with CheckAndSetException. Requests with same rank are coalesced.
     private static List<BatchElement<CasRequest, Void>> getFilteredUpdates(List<BatchElement<CasRequest, Void>> batch) {
-
         Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
                 .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
 
         ImmutableList.Builder<BatchElement<CasRequest, Void>> pendingUpdates = ImmutableList.builder();
 
-        for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> entry : partitionedElems.entrySet()) {
-            List<BatchElement<CasRequest, Void>> requestedUpdates = entry.getValue();
-
-            Collections.sort(requestedUpdates, Comparator.comparingInt(elem -> rank(elem.argument())));
-            pendingUpdates.add(requestedUpdates.get(0));
+        for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> requestedUpdatesForCell :
+                partitionedElems.entrySet()) {
+            requestedUpdatesForCell.getValue().stream()
+                    .min(Comparator.comparingInt(elem -> rank(elem.argument())))
+                    .ifPresent(pendingUpdates::add);
         }
 
         return pendingUpdates.build();
@@ -198,8 +203,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         if (req.expected().equals(req.update())) {
             return 1;
         }
-        // todo(snanda): this is wrong - need to remove the last byte that reps the phase :( Extract a constant
-        if (req.expected().equals(ByteBuffer.wrap(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE))) {
+        if (req.expected().equals(ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE))) {
             return 3;
         }
         return 2;
@@ -215,6 +219,12 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
         @Value.Parameter
         ByteBuffer update();
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(expected().hasArray(), "Cannot request CAS without expected value.");
+            Preconditions.checkState(update().hasArray(), "Cannot request CAS without update.");
+        }
     }
 
     @Unsafe
@@ -224,7 +234,13 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
         Optional<Exception> exception();
 
-        // todo(snanda) add checks
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    successful() || exception().isPresent(),
+                    "The response can either be successful OR fail with exception.");
+        }
+
         static CasResponse success() {
             return ImmutableCasResponse.builder().successful(true).build();
         }

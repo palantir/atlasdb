@@ -130,7 +130,6 @@ public class MarkAndCasConsensusForgettingStoreTest {
         assertThat(store.get(CELL).get()).hasValue(commitVal.array());
     }
 
-
     @SuppressWarnings("immutables:subtype")
     @org.immutables.value.Value.Immutable
     interface TestBatchElement extends BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void> {
