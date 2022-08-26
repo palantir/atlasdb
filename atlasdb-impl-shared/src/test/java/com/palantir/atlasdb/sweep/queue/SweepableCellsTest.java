@@ -438,7 +438,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         NonSweepableBatchInfo batch = sweepableCells.getNonSweepableBatchForPartition(0L, 20L, 150L);
         assertThat(batch.lastSweptTimestamp()).isEqualTo(129L);
         assertThat(batch.abortedTimestamps()).containsExactlyInAnyOrder(30L, 50L);
-        assertThat(batch.lastSeenCommitTimestamp()).isEqualTo(120L);
+        assertThat(batch.greatestSeenCommitTimestamp()).isEqualTo(120L);
     }
 
     @Test

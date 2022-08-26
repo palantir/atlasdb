@@ -25,7 +25,5 @@ public interface NonSweepableBatchInfo {
 
     long lastSweptTimestamp();
 
-    long lastSeenCommitTimestamp();
-
-    boolean processedAll();
+    long greatestSeenCommitTimestamp();
 }

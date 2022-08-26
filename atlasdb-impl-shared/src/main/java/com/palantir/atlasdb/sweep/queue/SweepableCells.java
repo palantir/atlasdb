@@ -216,36 +216,32 @@ public class SweepableCells extends SweepQueueTable {
         SweepableCellsRow row = computeNonSweepableRow(partitionFine);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
         Set<Long> startTimestamps = new HashSet<>();
-        boolean processedAll = true;
 
-        while (resultIterator.hasNext() && startTimestamps.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
+        while (resultIterator.hasNext()) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
+            startTimestamps.add(startTs);
             if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
-                processedAll = false;
                 break;
             }
-            startTimestamps.add(startTs);
         }
 
         Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(startTimestamps);
         Set<Long> abortedTimestamps = new HashSet<>();
-        long lastSweptTs = minTsExclusive;
-        long lastSeenCommitTs = 0L;
+        // this is assuming the entire row is processed up to the sweep timestamp
+        long lastSweptTs = Math.min(sweepTs - 1, SweepQueueUtils.maxTsForFinePartition(partitionFine));
+        long greatestSeenCommitTimestamp = 0L;
 
         List<Long> sortedStartTimestamps =
                 startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
         for (long startTs : sortedStartTimestamps) {
             long commitTs = startToCommitTs.get(startTs);
             if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
-                lastSweptTs = startTs;
                 abortedTimestamps.add(startTs);
             } else if (commitTs < sweepTs) {
-                lastSweptTs = startTs;
-                lastSeenCommitTs = Math.max(lastSeenCommitTs, commitTs);
+                greatestSeenCommitTimestamp = Math.max(greatestSeenCommitTimestamp, commitTs);
             } else {
-                processedAll = false;
                 lastSweptTs = startTs - 1;
                 break;
             }
@@ -254,8 +250,7 @@ public class SweepableCells extends SweepQueueTable {
         return ImmutableNonSweepableBatchInfo.builder()
                 .abortedTimestamps(abortedTimestamps)
                 .lastSweptTimestamp(lastSweptTs)
-                .lastSeenCommitTimestamp(lastSeenCommitTs)
-                .processedAll(processedAll)
+                .greatestSeenCommitTimestamp(greatestSeenCommitTimestamp)
                 .build();
     }
 
