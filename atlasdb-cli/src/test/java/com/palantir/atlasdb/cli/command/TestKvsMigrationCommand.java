@@ -48,6 +48,8 @@ public class TestKvsMigrationCommand {
             + "  enabled: true\n"
             + "targetedSweep:\n"
             + "  enabled: true\n"
+            + "compact:\n"
+            + "  enableCompaction: true\n"
             + "keyValueService:\n"
             + "  type: cassandra\n"
             + "  servers:\n"

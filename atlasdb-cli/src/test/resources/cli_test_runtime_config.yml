@@ -11,6 +11,8 @@ atlasdb:
     enabled: true
   targetedSweep:
     enabled: true
+  compact:
+    enableCompaction: true
   keyValueService:
     type: cassandra
     servers:
