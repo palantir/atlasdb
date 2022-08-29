@@ -1,4 +1,4 @@
-# [AtlasDB](https://palantir.github.io/atlasdb/) [![Download](https://api.bintray.com/packages/palantir/releases/atlasdb/images/download.svg)](https://bintray.com/palantir/releases/atlasdb/_latestVersion)
+# [AtlasDB](https://palantir.github.io/atlasdb/) - [Download the client](https://search.maven.org/artifact/com.palantir.atlasdb/atlasdb-client)
 AtlasDB is a **Transactional Distributed Database Layer**
 
 [**View the full documentation ▸**](https://palantir.github.io/atlasdb/html/index.html)
