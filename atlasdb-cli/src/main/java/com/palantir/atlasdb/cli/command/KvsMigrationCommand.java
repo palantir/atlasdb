@@ -202,10 +202,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
         AtlasDbConfig fromConfig = overrideTransactionTimeoutMillis(
                 loadFromFile(fromConfigFile, configRoot, AtlasDbConfig.class).orElseThrow());
 
-        AtlasDbRuntimeConfig fromRuntimeConfig = loadFromFile(
-                        fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
-                .map(KvsMigrationCommand::disableSweepAndCompaction)
-                .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
+        AtlasDbRuntimeConfig fromRuntimeConfig = disableSweepAndCompaction(
+                loadFromFile(fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
+                        .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled));
 
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig), fromRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
@@ -216,10 +215,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
                         toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
                 .orElseThrow(() -> new SafeRuntimeException("At least one of -mc / --inline-config is required")));
 
-        AtlasDbRuntimeConfig toRuntimeConfig = loadFromFileOrInline(
+        AtlasDbRuntimeConfig toRuntimeConfig = disableSweepAndCompaction(loadFromFileOrInline(
                         toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
-                .map(KvsMigrationCommand::disableSweepAndCompaction)
-                .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled);
+                .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled));
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), toRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
