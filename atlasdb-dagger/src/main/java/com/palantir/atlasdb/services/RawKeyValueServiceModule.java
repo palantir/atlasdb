@@ -68,6 +68,8 @@ public class RawKeyValueServiceModule {
                 TimeUnit.MILLISECONDS);
         future.whenComplete((_result, _thrown) -> {
             scheduledFuture.cancel(true);
+            // Neither complete, completeExceptionally, nor cancel will throw an InterruptedException when the
+            // interrupt flag is set. Thus, even if cancel sets the interrupt flag, we'll get to the shutdown call.
             executor.shutdown();
         });
         return future;
