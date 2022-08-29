@@ -22,6 +22,7 @@ Download The CLI
 
 The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-backed product.
 You can find the versions `here <https://search.maven.org/artifact/com.palantir.atlasdb/atlasdb-cli-distribution>`__ for download.
+Click on the relevant CLI version that matches your target AtlasDB version, then select `sls.tgz` under the Downloads dropdown.
 You can use the CLI by unpacking the tar ball and running the executable in ``service/bin/atlasdb-cli``.
 
 General CLI Options
