@@ -18,16 +18,22 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+// only meant for txn4
 public final class KnowledgeableTransactionService {
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final KnownConcludedTransactions knownConcludedTransactions;
@@ -69,11 +75,23 @@ public final class KnowledgeableTransactionService {
                 throw new SafeIllegalStateException("i do not if I can see this value.");
             }
         } else {
+            // have to return unknown here as we do not know the commit ts BUT
             return TransactionStatuses.unknown();
         }
     }
 
-    Map<Long, TransactionStatus> get(Set<Long> startTimestamp) {
-
+    Map<Long, TransactionStatus> get(Set<Long> startTimestamps) {
+        long maxStartTs = startTimestamps.stream().max(Comparator.naturalOrder()).orElse(0L);
+        if (knownConcludedTransactions.isKnownConcluded(maxStartTs, KnownConcludedTransactions.Consistency.LOCAL_READ)) {
+            return KeyedStream.of(startTimestamps).map(this::getTransactionStatusSchema4).collectToMap();
+        } else {
+            Map<Long, TransactionStatus> txnTableResult = Futures.getUnchecked(delegate.get(startTimestamps));
+            Set<Long> missingInTxnTable = startTimestamps.stream().filter(ts -> !txnTableResult.containsKey(ts)).collect(Collectors.toSet());
+            if (missingInTxnTable.isEmpty()) {
+                return txnTableResult;
+            }
+            knownConcludedTransactions.isKnownConcluded(maxStartTs, KnownConcludedTransactions.Consistency.REMOTE_READ);
+            return KeyedStream.of(startTimestamps).map(ts -> txnTableResult.computeIfAbsent(ts, this::getTransactionStatusSchema4)).collectToMap();
+        }
     }
 }
