@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Bump postgres pgjdbc driver to 42.5.0
+  links:
+  - https://github.com/palantir/atlasdb/pull/6206
