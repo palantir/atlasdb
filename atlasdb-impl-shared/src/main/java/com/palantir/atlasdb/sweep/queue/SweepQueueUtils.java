@@ -52,6 +52,8 @@ public final class SweepQueueUtils {
             .strategy(SweeperStrategy.CONSERVATIVE)
             .nonSweepable(true)
             .build();
+
+    @SuppressWarnings("MutablePublicArray")
     public static final byte[] NON_SWEEPABLE = new byte[] {2};
 
     private SweepQueueUtils() {

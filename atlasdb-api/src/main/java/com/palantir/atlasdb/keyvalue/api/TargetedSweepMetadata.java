@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -42,18 +43,18 @@ public abstract class TargetedSweepMetadata implements Persistable {
     void checkShardSize() {
         Preconditions.checkArgument(
                 shard() >= 0 && shard() < MAX_SHARDS,
-                "Shard number must non-negative and strictly less than %s, but it is %s.",
-                MAX_SHARDS,
-                shard());
+                "Shard number must non-negative and strictly less than the maximum.",
+                SafeArg.of("maxShards", MAX_SHARDS),
+                SafeArg.of("shards", shard()));
     }
 
     @Value.Check
     void checkRowNumber() {
         Preconditions.checkArgument(
                 dedicatedRowNumber() >= 0 && dedicatedRowNumber() < MAX_DEDICATED_ROWS,
-                "Dedicated row number must non-negative and strictly less than %s, but it is %s.",
-                MAX_DEDICATED_ROWS,
-                dedicatedRowNumber());
+                "Dedicated row number must non-negative and strictly less than the maximum.",
+                SafeArg.of("maxDedicatedRows", MAX_DEDICATED_ROWS),
+                SafeArg.of("dedicatedRows", dedicatedRowNumber()));
     }
 
     @Value.Check
