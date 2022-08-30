@@ -19,6 +19,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.util.PersistableBoolean;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -76,5 +77,11 @@ public abstract class ShardAndStrategy {
             return ShardAndStrategy.conservative(info.shard());
         }
         return ShardAndStrategy.thorough(info.shard());
+    }
+
+    public byte[] toBytes() {
+        return nonSweepable()
+                ? SweepQueueUtils.NON_SWEEPABLE
+                : PersistableBoolean.of(isConservative()).persistToBytes();
     }
 }

@@ -1117,34 +1117,34 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         TableReference cellsRef =
                 TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
 
-        reader.getNextBatch(95_000L);
+        reader.processNextBatch(95_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(94_999L);
         // there was nothing there and we started at the beginning of the row
         verify(spiedKvs, never()).deleteRows(eq(cellsRef), any(Iterable.class));
 
-        reader.getNextBatch(200_000L);
+        reader.processNextBatch(200_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(123_458L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(177_777L);
         // we have to delete the previous row since we did not start at the beginning of the row
         verify(spiedKvs, times(1)).deleteRows(eq(cellsRef), any(Iterable.class));
 
-        reader.getNextBatch(1_000_000L);
+        reader.processNextBatch(1_000_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(149_999L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);
         // we have to delete the processed row
         verify(spiedKvs, times(2)).deleteRows(eq(cellsRef), any(Iterable.class));
 
-        reader.getNextBatch(1_000_000L);
+        reader.processNextBatch(1_000_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(199_999L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);
         // we have to delete the processed row
         verify(spiedKvs, times(3)).deleteRows(eq(cellsRef), any(Iterable.class));
 
-        reader.getNextBatch(1_000_000L);
+        reader.processNextBatch(1_000_000L);
         assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
                 .isEqualTo(999_999L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(999_999L);

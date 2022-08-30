@@ -93,11 +93,6 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     @Override
-    Map<Cell, byte[]> populateReferences(long startTimetamp) {
-        return ImmutableMap.of();
-    }
-
-    @Override
     Map<Cell, byte[]> populateCells(PartitionInfo partitionInfo, List<WriteInfo> writes) {
         Map<Cell, byte[]> cells = new HashMap<>();
         boolean dedicate = writes.size() > SweepQueueUtils.MAX_CELLS_GENERIC;
@@ -212,7 +207,7 @@ public class SweepableCells extends SweepQueueTable {
                 entriesRead);
     }
 
-    NonSweepableBatchInfo getNonSweepableBatchForPartition(long partitionFine, long minTsExclusive, long sweepTs) {
+    NonSweepableBatchInfo processNonSweepableBatchForPartition(long partitionFine, long minTsExclusive, long sweepTs) {
         SweepableCellsRow row = computeNonSweepableRow(partitionFine);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
         Set<Long> startTimestamps = new HashSet<>();
@@ -508,8 +503,8 @@ public class SweepableCells extends SweepQueueTable {
         deleteRows(rows);
     }
 
-    void deleteNonSweepableRows(Iterable<Long> partitionsFine) {
-        List<byte[]> rows = Streams.stream(partitionsFine)
+    void deleteNonSweepableRows(Collection<Long> partitionsFine) {
+        List<byte[]> rows = partitionsFine.stream()
                 .map(this::computeNonSweepableRow)
                 .map(SweepableCellsRow::persistToBytes)
                 .collect(Collectors.toList());

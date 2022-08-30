@@ -435,7 +435,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         putTimestampIntoTransactionTable(100L, 120L);
         putTimestampIntoTransactionTable(130L, 200L);
 
-        NonSweepableBatchInfo batch = sweepableCells.getNonSweepableBatchForPartition(0L, 20L, 150L);
+        NonSweepableBatchInfo batch = sweepableCells.processNonSweepableBatchForPartition(0L, 20L, 150L);
         assertThat(batch.lastSweptTimestamp()).isEqualTo(129L);
         assertThat(batch.abortedTimestamps()).containsExactlyInAnyOrder(30L, 50L);
         assertThat(batch.greatestSeenCommitTimestamp()).isEqualTo(120L);
@@ -456,7 +456,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
                         .shard(0)
                         .build()
                         .persistToBytes())));
-        NonSweepableBatchInfo batch = sweepableCells.getNonSweepableBatchForPartition(finePartition, 20L, 150_000L);
+        NonSweepableBatchInfo batch = sweepableCells.processNonSweepableBatchForPartition(finePartition, 20L, 150_000L);
         assertThat(batch.abortedTimestamps()).isEmpty();
     }
 

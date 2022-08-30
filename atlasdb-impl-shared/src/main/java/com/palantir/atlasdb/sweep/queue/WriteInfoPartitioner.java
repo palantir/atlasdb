@@ -55,11 +55,15 @@ public class WriteInfoPartitioner {
     }
 
     /**
-     * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
-     * shard, strategy, and start timestamp of the transaction that performed the write.
+     * If all writes are made into tables with SweepStrategy NOTHING, then the write info is just the start
+     * timestamp, otherwise filters out all writes made into tables with SweepStrategy NOTHING and then partitions the
+     * writes according to shard and strategy.
      */
     public PartitionedWriteInfo filterAndPartition(List<WriteInfo> writes) {
         Preconditions.checkArgument(!writes.isEmpty(), "There must be at least one write.");
+        Preconditions.checkArgument(
+                writes.stream().mapToLong(WriteInfo::timestamp).distinct().count() == 1,
+                "All writes must be from a single transaction.");
         if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo).isEmpty())) {
             return PartitionedWriteInfos.nonSweepableTransaction(
                     writes.get(writes.size() - 1).timestamp());

@@ -32,7 +32,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.PersistableBoolean;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -180,9 +179,8 @@ public class ShardProgress {
     }
 
     private static Cell cellForShard(ShardAndStrategy shardAndStrategy) {
-        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
-                shardAndStrategy.shard(),
-                PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes());
+        SweepShardProgressTable.SweepShardProgressRow row =
+                SweepShardProgressTable.SweepShardProgressRow.of(shardAndStrategy.shard(), shardAndStrategy.toBytes());
         return Cell.create(
                 row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }

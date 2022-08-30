@@ -22,19 +22,23 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class NonSweepableTimestampsReader {
+public final class NonSweepableTimestampsReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
     private final ShardProgress progress;
 
-    NonSweepableTimestampsReader(
+    public NonSweepableTimestampsReader(
             SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, ShardProgress progress) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
         this.progress = progress;
     }
 
-    public void getNextBatch(long sweepTs) {
+    /**
+     * Processes the next batch of transactions that only wrote to tables that are not being swept: this will abort any
+     * transaction with a start timestamp before sweepTs encountered that has still not committed.
+     */
+    public void processNextBatch(long sweepTs) {
         long lastSweptTimestamp = progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE);
 
         Optional<Long> nextFinePartition =
@@ -46,8 +50,8 @@ public class NonSweepableTimestampsReader {
             return;
         }
 
-        NonSweepableBatchInfo batch =
-                sweepableCells.getNonSweepableBatchForPartition(nextFinePartition.get(), lastSweptTimestamp, sweepTs);
+        NonSweepableBatchInfo batch = sweepableCells.processNonSweepableBatchForPartition(
+                nextFinePartition.get(), lastSweptTimestamp, sweepTs);
         progress.updateLastSeenCommitTimestamp(
                 SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, batch.greatestSeenCommitTimestamp());
         // todo (gmaretic) : update abandoned timestamps here
@@ -64,7 +68,7 @@ public class NonSweepableTimestampsReader {
                 readFromLastRow);
         possiblyClean(
                 SweepQueueUtils::tsPartitionCoarse,
-                sweepableTimestamps::deleteNonSweepableCoarsePartitions,
+                sweepableTimestamps::deleteNonSweepableRows,
                 previouslyLastSwept,
                 lastSwept,
                 readFromLastRow);
@@ -86,8 +90,8 @@ public class NonSweepableTimestampsReader {
         if (readFromLastRow && lastPartitionInclusive < firstNotFullyProcessedPartition) {
             partitionsToClean.add(lastPartitionInclusive);
         }
-        // if we finished the first row, it's either also the last row which is already covered, or it was empty
-        // if it was empty we clean if and only if we did not start at the beginning of the row
+        // if we finished the first row, it's either also the last row which is already covered, or the portion we
+        // processed now was empty. In this case, we clean if and only if we did not start at the beginning of the row
         if (firstPartition < firstNotFullyProcessedPartition && previouslyProcessedPartition == firstPartition) {
             partitionsToClean.add(firstPartition);
         }

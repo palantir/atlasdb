@@ -22,6 +22,10 @@ import org.derive4j.Data;
 
 @Data
 public interface PartitionedWriteInfo {
+    /**
+     * If a transaction only writes to non-sweepable tables, we only need the start timestamp. If there are one or more
+     * writes to sweepable tables, then we filter out the non-sweepable writes and group the writes.
+     */
     interface Cases<R> {
         R nonSweepableTransaction(long startTimestamp);
 

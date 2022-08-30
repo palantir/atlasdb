@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.util.PersistableBoolean;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,11 +43,6 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     @Override
     Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes) {
-        return ImmutableMap.of();
-    }
-
-    @Override
-    Map<Cell, byte[]> populateReferences(long startTimetamp) {
         return ImmutableMap.of();
     }
 
@@ -146,9 +140,7 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {
-        byte[] sweepStrategy = shardStrategy.nonSweepable()
-                ? SweepQueueUtils.NON_SWEEPABLE
-                : PersistableBoolean.of(shardStrategy.isConservative()).persistToBytes();
+        byte[] sweepStrategy = shardStrategy.toBytes();
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
                 shardStrategy.shard(), coarsePartition, sweepStrategy);
         return row.persistToBytes();
@@ -174,7 +166,7 @@ public class SweepableTimestamps extends SweepQueueTable {
         deleteRows(rowsBytes);
     }
 
-    void deleteNonSweepableCoarsePartitions(Set<Long> partitionsCoarse) {
+    void deleteNonSweepableRows(Set<Long> partitionsCoarse) {
         deleteCoarsePartitions(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, partitionsCoarse);
     }
 }

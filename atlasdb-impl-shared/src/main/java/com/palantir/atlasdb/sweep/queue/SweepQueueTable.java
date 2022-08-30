@@ -57,10 +57,8 @@ public abstract class SweepQueueTable {
     }
 
     private Void enqueueNonSweepable(long startTimestamp) {
-        write(populateReferences(startTimestamp), startTimestamp);
         write(populateCells(startTimestamp), startTimestamp);
-
-        // todo (gmaretic): metrics?
+        // todo (gmaretic): metrics
         return null;
     }
 
@@ -97,8 +95,6 @@ public abstract class SweepQueueTable {
      * {@link #populateCells(PartitionInfo, List)}. Necessary to allow batched writes.
      */
     abstract Map<Cell, byte[]> populateReferences(PartitionInfo partitionInfo, List<WriteInfo> writes);
-
-    abstract Map<Cell, byte[]> populateReferences(long startTimetamp);
 
     /**
      * Converts a list of write infos into the required format to be persisted into the kvs. This method assumes all
