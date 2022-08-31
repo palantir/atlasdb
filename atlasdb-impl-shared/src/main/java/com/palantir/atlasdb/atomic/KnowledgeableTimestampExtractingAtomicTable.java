@@ -15,6 +15,7 @@
  */
 
 package com.palantir.atlasdb.atomic;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
