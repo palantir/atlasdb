@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -105,6 +106,7 @@ import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorro
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServiceFactory;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -427,7 +429,7 @@ public abstract class TransactionManagers {
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
-        TransactionService transactionService = components.transactionService();
+        TransactionServiceFactory transactionServiceFactory = components.transactionServiceFactory();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -438,7 +440,7 @@ public abstract class TransactionManagers {
                                 keyValueService,
                                 lockAndTimestampServices.timelock(),
                                 ImmutableList.of(follower),
-                                transactionService,
+                                transactionServiceFactory.get(),
                                 metricsManager)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                         .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
@@ -484,7 +486,7 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
-                        transactionService,
+                        transactionServiceFactory,
                         () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                         conflictManager,
                         sweepStrategyManager,
@@ -510,7 +512,7 @@ public abstract class TransactionManagers {
         timeLockFeedbackBackgroundTask.ifPresent(task -> transactionManager.registerClosingCallback(task::close));
 
         lockAndTimestampServices.resources().forEach(transactionManager::registerClosingCallback);
-        transactionManager.registerClosingCallback(transactionService::close);
+        transactionManager.registerClosingCallback(transactionServiceFactory::close);
         components
                 .schemaInstaller()
                 .ifPresent(installer -> transactionManager.registerClosingCallback(installer::close));
@@ -523,7 +525,7 @@ public abstract class TransactionManagers {
                         runtime,
                         registrar(),
                         keyValueService,
-                        transactionService,
+                        transactionServiceFactory.get(),
                         follower,
                         transactionManager,
                         runBackgroundSweepProcess()),
@@ -679,7 +681,27 @@ public abstract class TransactionManagers {
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
-        TransactionService transactionService = initializeCloseable(
+        // todo(snanda): refactor this jank
+        TransactionServiceFactory transactionServiceFactory = new TransactionServiceFactory(
+                Suppliers.memoize(() -> defaultTransactionService(
+                        closeables, metricsManager, keyValueService, runtimeConfigSupplier, transactionSchemaManager)),
+                Suppliers.memoize(() -> readOnlyTransactionService(
+                        closeables, metricsManager, keyValueService, runtimeConfigSupplier, transactionSchemaManager)));
+        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
+                closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
+        return ImmutableTransactionComponents.builder()
+                .transactionServiceFactory(transactionServiceFactory)
+                .schemaInstaller(schemaInstaller)
+                .build();
+    }
+
+    private TransactionService defaultTransactionService(
+            List<AutoCloseable> closeables,
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        return initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
                         TransactionService.class,
@@ -690,14 +712,31 @@ public abstract class TransactionManagers {
                                 () -> runtimeConfigSupplier
                                         .get()
                                         .internalSchema()
-                                        .acceptStagingReadsOnVersionThree())),
+                                        .acceptStagingReadsOnVersionThree(),
+                                false)),
                 closeables);
-        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
-                closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
-        return ImmutableTransactionComponents.builder()
-                .transactionService(transactionService)
-                .schemaInstaller(schemaInstaller)
-                .build();
+    }
+
+    private TransactionService readOnlyTransactionService(
+            List<AutoCloseable> closeables,
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        return initializeCloseable(
+                () -> AtlasDbMetrics.instrumentTimed(
+                        metricsManager.getRegistry(),
+                        TransactionService.class,
+                        TransactionServices.createTransactionService(
+                                keyValueService,
+                                transactionSchemaManager,
+                                metricsManager.getTaggedRegistry(),
+                                () -> runtimeConfigSupplier
+                                        .get()
+                                        .internalSchema()
+                                        .acceptStagingReadsOnVersionThree(),
+                                true)),
+                closeables);
     }
 
     private static Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
@@ -964,7 +1003,7 @@ public abstract class TransactionManagers {
 
     @Value.Immutable
     public interface TransactionComponents {
-        TransactionService transactionService();
+        TransactionServiceFactory transactionServiceFactory();
 
         Optional<TransactionSchemaInstaller> schemaInstaller();
     }

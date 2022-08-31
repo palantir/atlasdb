@@ -40,22 +40,34 @@ public final class TransactionServices {
         // Utility class
     }
 
-    public static TransactionService createTransactionService(
+    public static TransactionService createTransactionServiceDefault(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         // Should only be used for testing, or in contexts where users are not concerned about metrics
         return createTransactionService(
-                keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry(), () -> false);
+                keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry(), () -> false, false);
+    }
+
+    public static TransactionService createTransactionServiceReadOnly(
+            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+        // Should only be used for testing, or in contexts where users are not concerned about metrics
+        return createTransactionService(
+                keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry(), () -> false, true);
     }
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
+            Supplier<Boolean> acceptStagingReadsOnVersionThree,
+            boolean readOnly) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return createSplitKeyTransactionService(
-                    keyValueService, transactionSchemaManager, metricRegistry, acceptStagingReadsOnVersionThree);
+                    keyValueService,
+                    transactionSchemaManager,
+                    metricRegistry,
+                    acceptStagingReadsOnVersionThree,
+                    readOnly);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -64,7 +76,8 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
+            Supplier<Boolean> acceptStagingReadsOnVersionThree,
+            boolean readOnly) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -74,8 +87,10 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV3TransactionService(
-                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree))));
+                        createV3TransactionService(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree),
+                        TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION,
+                        createV4TransactionService(
+                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree, readOnly))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -95,6 +110,21 @@ public final class TransactionServices {
                 SimpleTransactionService.createV3(keyValueService, metricRegistry, acceptStagingReadsAsCommitted)));
     }
 
+    private static TransactionService createV4TransactionService(
+            KeyValueService keyValueService,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            boolean readOnly) {
+        if (readOnly) {
+            return new PreStartHandlingTransactionService(
+                    WriteBatchingTransactionService.create(SimpleTransactionService.createV4ReadOnly(
+                            keyValueService, metricRegistry, acceptStagingReadsAsCommitted)));
+        } else {
+            return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
+                    SimpleTransactionService.createV4(keyValueService, metricRegistry, acceptStagingReadsAsCommitted)));
+        }
+    }
+
     /**
      * This method should only be used to create {@link TransactionService}s for testing, because in production there
      * are intermediate services like the {@link CoordinationService} this creates where metrics or other forms of
@@ -104,9 +134,10 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
+        return createTransactionServiceDefault(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
+    // todo(snanda): kill this code
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
             KeyValueService keyValueService, MetricsManager metricsManager) {
         if (keyValueService.supportsCheckAndSet()) {

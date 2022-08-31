@@ -39,10 +39,14 @@ import java.util.function.Supplier;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final AtomicTable<Long, Long> txnTable;
+    private final AsyncTransactionService asyncGetter;
     private final TransactionStatusEncodingStrategy<?> encodingStrategy;
 
     private SimpleTransactionService(
-            AtomicTable<Long, Long> txnTable, TransactionStatusEncodingStrategy<?> encodingStrategy) {
+            AtomicTable<Long, Long> txnTable,
+            AsyncTransactionService asyncGetter,
+            TransactionStatusEncodingStrategy<?> encodingStrategy) {
+        this.asyncGetter = asyncGetter;
         this.encodingStrategy = encodingStrategy;
         this.txnTable = txnTable;
     }
@@ -68,13 +72,40 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 acceptStagingReadsAsCommitted);
     }
 
+    public static SimpleTransactionService createV4(
+            KeyValueService kvs, TaggedMetricRegistry metricRegistry, Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        return createV4Internal(kvs, metricRegistry, acceptStagingReadsAsCommitted, false);
+    }
+
+    public static SimpleTransactionService createV4ReadOnly(
+            KeyValueService kvs, TaggedMetricRegistry metricRegistry, Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        return createV4Internal(kvs, metricRegistry, acceptStagingReadsAsCommitted, true);
+    }
+
+    private static SimpleTransactionService createV4Internal(
+            KeyValueService kvs,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            boolean readOnly) {
+        if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
+            return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
+        }
+        return createResilientV4(
+                kvs,
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),
+                metricRegistry,
+                acceptStagingReadsAsCommitted,
+                readOnly);
+    }
+
     private static SimpleTransactionService createSimple(
             KeyValueService kvs,
             TableReference tableRef,
             TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(
                 new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy));
-        return new SimpleTransactionService(pueTable, encodingStrategy);
+        return new SimpleTransactionService(pueTable, new AsyncTransactionServiceImpl(pueTable), encodingStrategy);
     }
 
     private static SimpleTransactionService createResilient(
@@ -88,17 +119,36 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         AtomicTable<Long, Long> atomicTable =
                 new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
                         store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
-        return new SimpleTransactionService(atomicTable, encodingStrategy);
+        return new SimpleTransactionService(
+                atomicTable, new AsyncTransactionServiceImpl(atomicTable), encodingStrategy);
+    }
+
+    private static SimpleTransactionService createResilientV4(
+            KeyValueService kvs,
+            TableReference tableRef,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            boolean readOnly) {
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
+        AtomicTable<Long, Long> atomicTable =
+                new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
+                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
+        return new SimpleTransactionService(
+                atomicTable,
+                new KnowledgeableTransactionService(atomicTable, kvs, metricRegistry, readOnly),
+                encodingStrategy);
     }
 
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getAsync(startTimestamp));
+        return AtlasFutures.getUnchecked(asyncGetter.getAsync(startTimestamp));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getAsync(startTimestamps));
+        return AtlasFutures.getUnchecked(asyncGetter.getAsync(startTimestamps));
     }
 
     @Override

@@ -46,7 +46,7 @@ public final class TransactionStatusUtils {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
-                .unknown(() -> startTs)
+                .unknown_(startTs)
                 .otherwiseEmpty();
     }
 }

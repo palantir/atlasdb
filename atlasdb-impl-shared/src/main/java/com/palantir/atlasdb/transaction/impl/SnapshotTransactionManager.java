@@ -50,6 +50,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationCont
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServiceFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
@@ -75,7 +76,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
@@ -84,7 +84,7 @@ import javax.validation.constraints.NotNull;
 
     final MetricsManager metricsManager;
     final KeyValueService keyValueService;
-    final TransactionService transactionService;
+    final TransactionServiceFactory transactionServiceFactory;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
     final TimestampManagementService timestampManagementService;
@@ -115,7 +115,7 @@ import javax.validation.constraints.NotNull;
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
-            @NotNull TransactionService transactionService,
+            TransactionServiceFactory transactionServiceFactory,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
@@ -139,7 +139,7 @@ import javax.validation.constraints.NotNull;
         this.timelockService = timelockService;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
-        this.transactionService = transactionService;
+        this.transactionServiceFactory = transactionServiceFactory;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
         this.constraintModeSupplier = constraintModeSupplier;
@@ -304,7 +304,7 @@ import javax.validation.constraints.NotNull;
                 keyValueService,
                 timelockService,
                 lockWatchManager,
-                transactionService,
+                transactionServiceFactory.get(),
                 cleaner,
                 startTimestampSupplier,
                 conflictDetectionManager,
@@ -346,7 +346,7 @@ import javax.validation.constraints.NotNull;
                 keyValueService,
                 timelockService,
                 NoOpLockWatchManager.create(),
-                transactionService,
+                transactionServiceFactory.getReadOnly(),
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
                 conflictDetectionManager,
@@ -515,9 +515,10 @@ import javax.validation.constraints.NotNull;
         return timestampManagementService;
     }
 
+    // todo(snanda): break this interface? :(
     @Override
     public TransactionService getTransactionService() {
-        return transactionService;
+        return transactionServiceFactory.get();
     }
 
     @Override
