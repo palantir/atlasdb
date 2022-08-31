@@ -42,10 +42,11 @@ public final class TransactionStatusUtils {
                 });
     }
 
-    public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
+    public static Optional<Long> maybeGetCommitTs(long startTs, TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
+                .unknown(() -> startTs)
                 .otherwiseEmpty();
     }
 }

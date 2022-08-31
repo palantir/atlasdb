@@ -192,9 +192,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             if (maybeActual.isEmpty()) {
                 resultBuilder.put(
                         startTs,
-                        encodingStrategy
-                                .decodeNullValueAsCommitStatus(startTs)
-                                .value());
+                        encodingStrategy.decodeNullValueAsCommitStatus().value());
                 continue;
             }
 

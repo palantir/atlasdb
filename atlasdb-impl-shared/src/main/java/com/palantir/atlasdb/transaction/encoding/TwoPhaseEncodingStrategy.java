@@ -61,11 +61,11 @@ public final class TwoPhaseEncodingStrategy
                 commitStatus.isCommitted() ? COMMITTED : STAGING);
     }
 
-    public AtomicValue<TransactionStatus> decodeNullValueAsCommitStatus(long startTimestamp) {
+    public AtomicValue<TransactionStatus> decodeNullValueAsCommitStatus() {
         if (progressEncodingStrategy.isInProgress(null)) {
             return IN_PROGRESS_COMMITTED;
         }
-        // todo(snanda): correctness
+        // todo(snanda): can this be refactored?
         return AtomicValue.committed(TransactionStatuses.unknown());
     }
 
