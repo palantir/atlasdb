@@ -33,8 +33,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
-public final class DefaultKnownConcludedTransactions implements KnownConcludedTransactions {
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultKnownConcludedTransactions.class);
+public final class KnownConcludedTransactionsImpl implements KnownConcludedTransactions {
+    private static final SafeLogger log = SafeLoggerFactory.get(KnownConcludedTransactionsImpl.class);
     private static final int MAX_ATTEMPTS = 20;
 
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore;
@@ -55,7 +55,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
         return null;
     });
 
-    private DefaultKnownConcludedTransactions(
+    private KnownConcludedTransactionsImpl(
             KnownConcludedTransactionsStore knownConcludedTransactionsStore,
             KnownConcludedTransactionsMetrics metrics) {
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
@@ -68,7 +68,7 @@ public final class DefaultKnownConcludedTransactions implements KnownConcludedTr
     public static KnownConcludedTransactions create(
             KnownConcludedTransactionsStore knownConcludedTransactionsStore,
             TaggedMetricRegistry taggedMetricRegistry) {
-        DefaultKnownConcludedTransactions store = new DefaultKnownConcludedTransactions(
+        KnownConcludedTransactionsImpl store = new KnownConcludedTransactionsImpl(
                 knownConcludedTransactionsStore, KnownConcludedTransactionsMetrics.of(taggedMetricRegistry));
         return store;
     }
