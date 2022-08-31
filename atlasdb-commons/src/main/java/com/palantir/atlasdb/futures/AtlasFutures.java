@@ -22,6 +22,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tracing.DeferredTracer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -43,7 +44,7 @@ public final class AtlasFutures {
             @Override
             public <T, R> ListenableFuture<Map<T, R>> allAsMap(
                     Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap) {
-                return AtlasFutures.allAsMap(inputToListenableFutureMap, executorService);
+                return AtlasFutures.allOptionalsAsMap(inputToListenableFutureMap, executorService);
             }
 
             @Override
@@ -63,7 +64,7 @@ public final class AtlasFutures {
      * @param <R> type of query result
      * @return {@link ListenableFuture} of the combined map
      */
-    public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
+    public static <T, R> ListenableFuture<Map<T, R>> allOptionalsAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap, Executor executor) {
         Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allAsMap");
 
@@ -73,6 +74,19 @@ public final class AtlasFutures {
                                 .map(AtlasFutures::getDone)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
+                                .collectToMap(),
+                        tracingExecutor);
+    }
+
+    public static <T, R> ListenableFuture<Map<T, R>> allAsMap(
+            Map<T, ListenableFuture<R>> inputToListenableFutureMap, Executor executor) {
+        Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allAsMap");
+
+        return Futures.whenAllSucceed(inputToListenableFutureMap.values())
+                .call(
+                        () -> KeyedStream.stream(inputToListenableFutureMap)
+                                .map(AtlasFutures::getDone)
+                                .filter(Objects::nonNull)
                                 .collectToMap(),
                         tracingExecutor);
     }

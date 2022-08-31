@@ -73,7 +73,11 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TableReference tableRef,
             TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(
-                new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy));
+                new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy),
+                knownAbortedTransactions,
+                knownConcludedTransactions,
+                lastSeenCommitTs,
+                readOnly);
         return new SimpleTransactionService(pueTable, encodingStrategy);
     }
 
@@ -85,9 +89,13 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> atomicTable =
-                new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
-                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
+        AtomicTable<Long, Long> atomicTable = new TimestampExtractingAtomicTable(
+                new ResilientCommitTimestampAtomicTable(
+                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry),
+                knownAbortedTransactions,
+                knownConcludedTransactions,
+                lastSeenCommitTs,
+                readOnly);
         return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 

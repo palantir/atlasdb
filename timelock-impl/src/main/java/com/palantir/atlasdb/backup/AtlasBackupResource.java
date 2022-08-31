@@ -139,7 +139,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         Map<InProgressBackupToken, ListenableFuture<Optional<RefreshLockResponseV2>>> refreshResponsesPerToken =
                 request.getTokens().stream().collect(Collectors.toMap(token -> token, this::refreshBackupAsync));
         ListenableFuture<Map<InProgressBackupToken, RefreshLockResponseV2>> collatedRefreshResponse =
-                AtlasFutures.allAsMap(refreshResponsesPerToken, MoreExecutors.newDirectExecutorService());
+                AtlasFutures.allOptionalsAsMap(refreshResponsesPerToken, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(collatedRefreshResponse, this::getRefreshedTokens, MoreExecutors.directExecutor());
     }
@@ -180,7 +180,7 @@ public class AtlasBackupResource implements UndertowAtlasBackupClient {
         Map<InProgressBackupToken, ListenableFuture<Optional<CompletedBackup>>> completedBackupsPerToken =
                 request.getBackupTokens().stream().collect(Collectors.toMap(token -> token, this::completeBackupAsync));
         ListenableFuture<Map<InProgressBackupToken, CompletedBackup>> collatedCompletedBackups =
-                AtlasFutures.allAsMap(completedBackupsPerToken, MoreExecutors.newDirectExecutorService());
+                AtlasFutures.allOptionalsAsMap(completedBackupsPerToken, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
                 collatedCompletedBackups,
