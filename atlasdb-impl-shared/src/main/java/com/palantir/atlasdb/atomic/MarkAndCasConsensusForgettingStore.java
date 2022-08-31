@@ -38,6 +38,7 @@ import com.palantir.logsafe.Unsafe;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -134,7 +135,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                         elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
 
         // There is one request per row
-        Map<CasRequest, CasResponse> resultMap = Maps.newHashMap();
+        Map<CasRequest, CasResponse> resultMap = new HashMap<>();
 
         for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
             ByteBuffer rowName = requestEntry.getKey();
