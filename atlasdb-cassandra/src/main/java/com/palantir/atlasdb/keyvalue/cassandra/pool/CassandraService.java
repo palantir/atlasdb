@@ -134,6 +134,7 @@ public class CassandraService implements AutoCloseable {
     public void close() {}
 
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
+        // explicitly not using immutable builders to deduplicate nodes
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
 
