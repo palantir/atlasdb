@@ -20,15 +20,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -105,27 +102,6 @@ public final class TransactionServices {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
-    }
-
-    public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            KeyValueService keyValueService, MetricsManager metricsManager) {
-        if (keyValueService.supportsCheckAndSet()) {
-            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                    keyValueService,
-                    () -> {
-                        throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
-                                + " transaction service! This is probably a product bug. Please contact"
-                                + " support.");
-                    },
-                    metricsManager,
-                    false);
-            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager =
-                    new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
-                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
-        }
-        return createV1TransactionService(keyValueService);
     }
 
     /**
