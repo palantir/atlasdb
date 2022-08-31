@@ -65,7 +65,8 @@ public final class TwoPhaseEncodingStrategy
         if (progressEncodingStrategy.isInProgress(null)) {
             return IN_PROGRESS_COMMITTED;
         }
-        // todo(snanda): can this be refactored?
+        // Null value is the in_progress marked for transaction schema <= 3. For transaction schema > 3, we have an
+        // explicit in-progress marker and a null values represents that the table has been swept.
         return AtomicValue.committed(TransactionStatuses.unknown());
     }
 

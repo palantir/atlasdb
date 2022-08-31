@@ -24,7 +24,6 @@ import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
-import com.palantir.atlasdb.transaction.knowledge.DefaultKnownAbortedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
@@ -42,8 +41,9 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public final class KnowledgeableTransactionService implements AsyncTransactionService {
-    // this is timestamp extracting
+    // This is timestamp extracting transaction table
     private final AtomicTable<Long, Long> txnTable;
+
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbortedTransactions knownAbortedTransactions;
     private final Supplier<Long> lastSeenCommitTs;
@@ -53,16 +53,15 @@ public final class KnowledgeableTransactionService implements AsyncTransactionSe
             AtomicTable<Long, Long> atomicTable,
             KeyValueService kvs,
             TaggedMetricRegistry metricRegistry,
+            KnownAbortedTransactions knownAbortedTransactions,
+            Supplier<Long> lastSeenCommitTs,
             boolean readOnly) {
         this.txnTable = atomicTable;
+        this.knownAbortedTransactions = knownAbortedTransactions;
+        this.lastSeenCommitTs = lastSeenCommitTs;
         this.knownConcludedTransactions =
                 KnownConcludedTransactionsImpl.create(KnownConcludedTransactionsStore.create(kvs), metricRegistry);
         this.readOnly = readOnly;
-
-        // todo(snanda): the wiring is pending
-        this.knownAbortedTransactions = DefaultKnownAbortedTransactions.create(
-                knownConcludedTransactions, null, metricRegistry, Optional.empty());
-        this.lastSeenCommitTs = null;
     }
 
     @Override
