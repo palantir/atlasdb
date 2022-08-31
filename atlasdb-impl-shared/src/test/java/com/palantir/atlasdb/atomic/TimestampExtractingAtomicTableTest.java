@@ -24,26 +24,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Supplier;
 import org.junit.Test;
 
 public class TimestampExtractingAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> delegate = mock(AtomicTable.class);
-    private final KnownAbortedTransactions knownAbortedTransactions = mock(KnownAbortedTransactions.class);
-    private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
-    private final Supplier<Long> lastSeenCommitTs = mock(Supplier.class);
-
-    private final TimestampExtractingAtomicTable readOnlyAtomicTable = new TimestampExtractingAtomicTable(
-            delegate, knownAbortedTransactions, knownConcludedTransactions, lastSeenCommitTs, true);
-    private final TimestampExtractingAtomicTable defaultAtomicTable = new TimestampExtractingAtomicTable(
-            delegate, knownAbortedTransactions, knownConcludedTransactions, lastSeenCommitTs, false);
+    private final TimestampExtractingAtomicTable timestampExtractingAtomicTable =
+            new TimestampExtractingAtomicTable(delegate);
 
     @Test
     public void canExtractCommittedTransaction() throws ExecutionException, InterruptedException {
@@ -54,7 +45,7 @@ public class TimestampExtractingAtomicTableTest {
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         Map<Long, Long> expected = KeyedStream.of(keys).map(this::commitTs).collectToMap();
-        assertThat(defaultAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
     }
 
     @Test
@@ -67,7 +58,7 @@ public class TimestampExtractingAtomicTableTest {
         Map<Long, Long> expected = KeyedStream.of(keys)
                 .map(_unused -> TransactionConstants.FAILED_COMMIT_TS)
                 .collectToMap();
-        assertThat(defaultAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
     }
 
     @Test
@@ -84,7 +75,7 @@ public class TimestampExtractingAtomicTableTest {
 
         Map<Long, Long> expected =
                 ImmutableMap.of(committedTs, commitTs(committedTs), abortedTs, TransactionConstants.FAILED_COMMIT_TS);
-        assertThat(defaultAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
     }
 
     @Test
@@ -95,7 +86,7 @@ public class TimestampExtractingAtomicTableTest {
                 .collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
-        assertThat(defaultAtomicTable.get(keys).get()).isEmpty();
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEmpty();
     }
 
     @Test
@@ -105,45 +96,8 @@ public class TimestampExtractingAtomicTableTest {
                 KeyedStream.of(keys).map(_key -> TransactionConstants.UNKNOWN).collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
-        assertThat(defaultAtomicTable.get(keys).get()).isEmpty();
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEmpty();
     }
-    //
-    //    @Test
-    //    public void canGetAbortedTransactionStateFromLocal() throws ExecutionException, InterruptedException {
-    //        long startTs = 24L;
-    //        when(knownConcludedTransactions.isKnownConcluded(startTs,
-    // KnownConcludedTransactions.Consistency.LOCAL_READ))
-    //                .thenReturn(true);
-    //        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(true);
-    //
-    //        // read-write transaction
-    //        assertThat(transactionService.getAsync(startTs).get()).isNull();
-    //
-    //        // read-only transaction
-    //        assertThat(readOnlyTransactionService.getAsync(startTs).get()).isNull();
-    //    }
-    //
-    //    @Test
-    //    public void canGetStatusFromLocalForReadWriteTxn() throws ExecutionException, InterruptedException {
-    //        long startTs = 24L;
-    //        when(knownConcludedTransactions.isKnownConcluded(startTs,
-    // KnownConcludedTransactions.Consistency.LOCAL_READ))
-    //                .thenReturn(true);
-    //        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(false);
-    //
-    //        assertThat(transactionService.getAsync(startTs).get()).isEqualTo(startTs);
-    //    }
-    //
-    //    @Test
-    //    public void canGetStatusFromTxnTableForReadWriteTxn() throws ExecutionException, InterruptedException {
-    //        long startTs = 24L;
-    //        when(knownConcludedTransactions.isKnownConcluded(startTs,
-    // KnownConcludedTransactions.Consistency.LOCAL_READ))
-    //                .thenReturn(false);
-    //        //        when(atomicTable.get(startTs)).thenReturn(Immutable);
-    //
-    //        assertThat(transactionService.getAsync(startTs).get()).isEqualTo(startTs);
-    //    }
 
     private long commitTs(long startTs) {
         return 4 * startTs;

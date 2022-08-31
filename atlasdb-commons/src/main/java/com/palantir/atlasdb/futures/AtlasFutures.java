@@ -66,7 +66,7 @@ public final class AtlasFutures {
      */
     public static <T, R> ListenableFuture<Map<T, R>> allOptionalsAsMap(
             Map<T, ListenableFuture<Optional<R>>> inputToListenableFutureMap, Executor executor) {
-        Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allAsMap");
+        Executor tracingExecutor = traceRestoringExecutor(executor, "AtlasFutures: allOptionalsAsMap");
 
         return Futures.whenAllSucceed(inputToListenableFutureMap.values())
                 .call(
