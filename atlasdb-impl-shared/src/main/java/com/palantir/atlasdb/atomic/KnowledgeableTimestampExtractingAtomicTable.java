@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -30,27 +31,20 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbortedTransactions knownAbortedTransactions;
-    private final Supplier<Long> lastSeenCommitTsSupplier;
-    private final boolean readOnly;
 
     public KnowledgeableTimestampExtractingAtomicTable(
             AtomicTable<Long, TransactionStatus> delegate,
-            KnownAbortedTransactions knownAbortedTransactions,
             KnownConcludedTransactions knownConcludedTransactions,
-            Supplier<Long> lastSeenCommitTsSupplier,
-            boolean readOnly) {
+            KnownAbortedTransactions knownAbortedTransactions) {
         this.delegate = delegate;
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.knownAbortedTransactions = knownAbortedTransactions;
-        this.lastSeenCommitTsSupplier = lastSeenCommitTsSupplier;
-        this.readOnly = readOnly;
     }
 
     @Override
@@ -75,55 +69,43 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
      * */
     @Override
     public ListenableFuture<Long> get(Long startTimestamp) {
-        return getInternal(startTimestamp, lastSeenCommitTsSupplier.get());
+        return getInternal(startTimestamp);
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
-        long lastSeenCommitTs = lastSeenCommitTsSupplier.get();
         Map<Long, ListenableFuture<Long>> futures = KeyedStream.of(
                         StreamSupport.stream(keys.spliterator(), false).sorted(Comparator.reverseOrder()))
-                .map(startTs -> getInternal(startTs, lastSeenCommitTs))
+                .map(startTs -> getInternal(startTs))
                 .collectToMap();
         return AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor());
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, long lastSeenCommitTs) {
+    @VisibleForTesting
+    ListenableFuture<Long> getInternal(long startTimestamp) {
         if (knownConcludedTransactions.isKnownConcluded(
                 startTimestamp, KnownConcludedTransactions.Consistency.LOCAL_READ)) {
-            return Futures.immediateFuture(getCommitTsForConcludedTransaction(startTimestamp, lastSeenCommitTs));
+            return Futures.immediateFuture(getCommitTsForConcludedTransaction(startTimestamp));
         } else {
             ListenableFuture<TransactionStatus> presentValueFuture = delegate.get(startTimestamp);
             return Futures.transform(
                     presentValueFuture,
-                    presentValue -> getCommitTsFromStatus(startTimestamp, presentValue, lastSeenCommitTs),
+                    presentValue -> getCommitTsFromStatus(startTimestamp, presentValue),
                     MoreExecutors.directExecutor());
         }
     }
 
-    private Long getCommitTsFromStatus(long startTs, TransactionStatus status, long lastSeenCommitTs) {
+    private Long getCommitTsFromStatus(long startTs, TransactionStatus status) {
         if (status.equals(TransactionStatuses.unknown())) {
-            knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.REMOTE_READ);
-            return getCommitTsForConcludedTransaction(startTs, lastSeenCommitTs);
+            // unknown status implies that the transactions table has been swept and the transaction is therefore
+            // concluded.
+            return getCommitTsForConcludedTransaction(startTs);
         } else {
             return TransactionStatusUtils.maybeGetCommitTs(status).orElse(null);
         }
     }
 
-    private long getCommitTsForConcludedTransaction(long startTs, long lastSeenCommitTs) {
-        if (knownAbortedTransactions.isKnownAborted(startTs)) {
-            return TransactionConstants.FAILED_COMMIT_TS;
-        }
-
-        if (readOnly) {
-            // For read-only transactions, we have chosen to be more defensive and return the
-            // greatest commitTs seen by sweep so far.
-            return lastSeenCommitTs;
-        } else {
-            // For read-write transactions, unknown would mean that the transaction table has been swept for startTs.
-            // This is only possible if the values written at startTs were committed before any currently alive
-            // read-write transactions.
-            return startTs;
-        }
+    private long getCommitTsForConcludedTransaction(long startTs) {
+        return knownAbortedTransactions.isKnownAborted(startTs) ? TransactionConstants.FAILED_COMMIT_TS : startTs;
     }
 }
