@@ -1082,10 +1082,11 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef, long timestamp) {
-        if (!isValidationNecessaryOnReads(tableRef)) {
-            return;
+        throwIfTransactionsTableSweptBeyondReadOnlyTxn();
+
+        if (isValidationNecessaryOnReads(tableRef)) {
+            throwIfPreCommitRequirementsNotMet(null, timestamp);
         }
-        throwIfPreCommitRequirementsNotMet(null, timestamp);
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
@@ -2009,6 +2010,17 @@ public class SnapshotTransaction extends AbstractTransaction
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
         throwIfPreCommitConditionInvalid(timestamp);
+    }
+
+    private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
+        long lastSeenCommitTs = 0L;
+        if (immutableTimestampLock.isEmpty()) {
+            // todo(snanda): why is startTs a supplier?
+            Preconditions.checkState(lastSeenCommitTs < getStartTimestamp(), "Transactions table has " +
+                    "been swept beyond current start timestamp, therefore, we cannot consistently values accessible to " +
+                    "this transactions. This can happen if the transaction has been alive for more than an hour and " +
+                    "is expected to be transient.");
+        }
     }
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {
