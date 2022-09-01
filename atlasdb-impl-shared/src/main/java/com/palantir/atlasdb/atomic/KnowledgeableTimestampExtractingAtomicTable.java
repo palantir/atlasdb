@@ -65,13 +65,18 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
      * For transactions that are aborted, returns -1.
      * For transactions that are unknown, returns startTs as commitTs for read-write transactions.
      * For read-only transactions, only returns if the greatestSeenCommitTS < startTs, otherwise throws.
-     * Start timestamps for transactions that are in progress are not included in the result.
+     * Start timestamps for transactions that are in progress return a void future.
      * */
     @Override
     public ListenableFuture<Long> get(Long startTimestamp) {
         return getInternal(startTimestamp);
     }
 
+    /**
+     * Returns commit timestamps against start timestamps supplied as arg.
+     * Delegates to {@link KnowledgeableTimestampExtractingAtomicTable#get(Long)} serially.
+     * Start timestamps for transactions that are in progress are not included in the map.
+     * */
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
         Map<Long, ListenableFuture<Long>> futures = KeyedStream.of(
