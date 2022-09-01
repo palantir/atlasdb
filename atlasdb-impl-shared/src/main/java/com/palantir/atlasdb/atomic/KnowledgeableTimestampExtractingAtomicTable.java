@@ -81,7 +81,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
         Map<Long, ListenableFuture<Long>> futures = KeyedStream.of(
                         StreamSupport.stream(keys.spliterator(), false).sorted(Comparator.reverseOrder()))
-                .map(startTs -> getInternal(startTs))
+                .map(this::getInternal)
                 .collectToMap();
         return AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor());
     }
