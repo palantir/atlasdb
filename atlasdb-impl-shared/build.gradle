@@ -24,7 +24,6 @@ dependencies {
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.palantir.common:streams'
-  implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.safe-logging:preconditions'
