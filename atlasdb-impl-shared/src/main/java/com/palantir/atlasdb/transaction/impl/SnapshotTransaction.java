@@ -56,6 +56,7 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -261,6 +262,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final Supplier<Long> lastSeenCommitTs;
+    protected final TransactionSchemaManager transactionSchemaManager;
 
     protected volatile boolean hasReads;
 
@@ -275,6 +277,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
+            TransactionSchemaManager transactionSchemaManager,
             Cleaner cleaner,
             Supplier<Long> startTimestamp,
             ConflictDetectionManager conflictDetectionManager,
@@ -303,6 +306,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
+        this.transactionSchemaManager = transactionSchemaManager;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimestamp;
@@ -2017,12 +2021,16 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
-        if (immutableTimestampLock.isEmpty()) {
-            // todo(snanda): we only want to do this for schema 4 :( 
-            Preconditions.checkState(lastSeenCommitTs.get() < getStartTimestamp(), "Transactions table has " +
-                    "been swept beyond current start timestamp, therefore, we cannot consistently values accessible to " +
-                    "this transactions. This can happen if the transaction has been alive for more than an hour and " +
-                    "is expected to be transient.");
+        long startTimestamp = getStartTimestamp();
+        // todo(snanda): refactor this shit.
+        if (transactionSchemaManager.getTransactionsSchemaVersion(startTimestamp)
+                        == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION
+                && immutableTimestampLock.isEmpty()) {
+            Preconditions.checkState(
+                    lastSeenCommitTs.get() < startTimestamp,
+                    "Transactions table has been swept beyond current start timestamp, therefore, we cannot"
+                            + " consistently values accessible to this transactions. This can happen if the transaction"
+                            + " has been alive for more than an hour and is expected to be transient.");
         }
     }
 

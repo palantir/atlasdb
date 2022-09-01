@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
@@ -85,6 +86,7 @@ import javax.validation.constraints.NotNull;
     final MetricsManager metricsManager;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
+    final TransactionSchemaManager transactionSchemaManager;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
     final TimestampManagementService timestampManagementService;
@@ -116,6 +118,7 @@ import javax.validation.constraints.NotNull;
             TimestampManagementService timestampManagementService,
             LockService lockService,
             @NotNull TransactionService transactionService,
+            TransactionSchemaManager transactionSchemaManager,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
@@ -140,6 +143,7 @@ import javax.validation.constraints.NotNull;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
         this.transactionService = transactionService;
+        this.transactionSchemaManager = transactionSchemaManager;
         this.conflictDetectionManager = conflictDetectionManager;
         this.sweepStrategyManager = sweepStrategyManager;
         this.constraintModeSupplier = constraintModeSupplier;
@@ -305,6 +309,7 @@ import javax.validation.constraints.NotNull;
                 timelockService,
                 lockWatchManager,
                 transactionService,
+                transactionSchemaManager,
                 cleaner,
                 startTimestampSupplier,
                 conflictDetectionManager,
@@ -347,6 +352,7 @@ import javax.validation.constraints.NotNull;
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
+                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 getStartTimestampSupplier(),
                 conflictDetectionManager,

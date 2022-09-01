@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -73,6 +74,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TransactionService transactionService,
+            TransactionSchemaManager transactionSchemaManager,
             long startTimeStamp,
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             TransactionReadSentinelBehavior readSentinelBehavior,
@@ -87,6 +89,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 null,
                 NoOpLockWatchManager.create(),
                 transactionService,
+                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 () -> startTimeStamp,
                 ConflictDetectionManagers.createWithNoConflictDetection(),

@@ -485,6 +485,7 @@ public abstract class TransactionManagers {
                         lockAndTimestampServices.managedTimestampService(),
                         lockAndTimestampServices.lock(),
                         transactionService,
+                        components.transactionSchemaManager(),
                         () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                         conflictManager,
                         sweepStrategyManager,
@@ -695,6 +696,7 @@ public abstract class TransactionManagers {
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
         return ImmutableTransactionComponents.builder()
+                .transactionSchemaManager(transactionSchemaManager)
                 .transactionService(transactionService)
                 .schemaInstaller(schemaInstaller)
                 .build();
@@ -964,6 +966,8 @@ public abstract class TransactionManagers {
 
     @Value.Immutable
     public interface TransactionComponents {
+        TransactionSchemaManager transactionSchemaManager();
+
         TransactionService transactionService();
 
         Optional<TransactionSchemaInstaller> schemaInstaller();
