@@ -61,7 +61,6 @@ public class DefaultAbandonedTimestampStoreTest {
         abandonedTimestampStore.markAbandoned(TIMESTAMP + 10);
         assertThat(abandonedTimestampStore.getAbandonedTimestampsInRange(TIMESTAMP, TIMESTAMP + 7))
                 .containsExactly(TIMESTAMP, TIMESTAMP + 5);
-
     }
 
     @Test
@@ -72,7 +71,8 @@ public class DefaultAbandonedTimestampStoreTest {
         for (int start = 0; start < timestampLimit; start++) {
             for (int end = start; end < timestampLimit; end++) {
                 assertThat(abandonedTimestampStore.getAbandonedTimestampsInRange(start, end))
-                        .hasSameElementsAs(LongStream.rangeClosed(start, end).boxed().collect(Collectors.toSet()));
+                        .containsExactlyElementsOf(
+                                LongStream.rangeClosed(start, end).boxed().collect(Collectors.toSet()));
             }
         }
     }

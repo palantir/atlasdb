@@ -23,6 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -47,8 +49,10 @@ import java.util.stream.Stream;
  * services that rely on consistent hashing or similar mechanisms for partitioning.
  */
 public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
+    private static final SafeLogger log = SafeLoggerFactory.get(TicketsCellEncodingStrategy.class);
     private final long partitioningQuantum;
     private final long rowsPerQuantum;
+    private final long lastColumnInRow;
 
     public TicketsCellEncodingStrategy(long partitioningQuantum, long rowsPerQuantum) {
         Preconditions.checkArgument(
@@ -62,6 +66,7 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
                 SafeArg.of("partitioningQuantum", partitioningQuantum));
         this.partitioningQuantum = partitioningQuantum;
         this.rowsPerQuantum = rowsPerQuantum;
+        this.lastColumnInRow = partitioningQuantum / rowsPerQuantum - 1;
     }
 
     @VisibleForTesting
@@ -147,12 +152,25 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
 
         // The request covers more than one partition. In this case, there will not exist a suitable contiguous range
         // of columns containing all values, hence we just load all rows.
+        log.warn(
+                "Detected a request covering more than one partition. This is not expected for how this class is "
+                        + "supposed to operate, and could indicate a bug with the class using this feature.",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
         return new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     private ColumnRangeSelection getQueryForSingleDoublyBoundedPartition(long fromInclusive, long toInclusive) {
         long lowestRequiredColumn = getColumnIndex(fromInclusive);
         long highestRequiredColumn = getColumnIndex(toInclusive);
+
+        if (lowestRequiredColumn != 0 || highestRequiredColumn != lastColumnInRow) {
+            log.warn(
+                    "Detected a request not aligned with column boundaries. This is not expected for how this class "
+                            + "is supposed to operate, and could indicate a bug with the class using this feature.",
+                    SafeArg.of("fromInclusive", fromInclusive),
+                    SafeArg.of("toInclusive", toInclusive));
+        }
 
         return new ColumnRangeSelection(
                 ValueType.VAR_LONG.convertFromJava(lowestRequiredColumn),

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +57,7 @@ public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
                 ABORTED_TICKETS_ENCODING_STRATEGY.getColumnRangeCoveringTimestampRange(startInclusive, endInclusive),
                 CELL_BATCH_HINT,
                 Long.MAX_VALUE);
-        Set<Long> resultSet = Sets.newHashSet();
+        Set<Long> resultSet = new HashSet<>();
         iterator.forEachRemaining(entry -> {
             // There is an optimisation that relies on the ordering in which values are returned to perform fewer
             // checks.
