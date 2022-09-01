@@ -77,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.tracing.TraceStatistics;
@@ -259,6 +260,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
+    private final Supplier<Long> lastSeenCommitTs;
 
     protected volatile boolean hasReads;
 
@@ -323,6 +325,8 @@ public class SnapshotTransaction extends AbstractTransaction
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
+        ShardProgress shardProgress = new ShardProgress(keyValueService);
+        this.lastSeenCommitTs = shardProgress::getLastSeenCommitTimestamp;
     }
 
     protected TransactionScopedCache getCache() {
@@ -2013,10 +2017,9 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
-        long lastSeenCommitTs = 0L;
         if (immutableTimestampLock.isEmpty()) {
-            // todo(snanda): why is startTs a supplier?
-            Preconditions.checkState(lastSeenCommitTs < getStartTimestamp(), "Transactions table has " +
+            // todo(snanda): we only want to do this for schema 4 :( 
+            Preconditions.checkState(lastSeenCommitTs.get() < getStartTimestamp(), "Transactions table has " +
                     "been swept beyond current start timestamp, therefore, we cannot consistently values accessible to " +
                     "this transactions. This can happen if the transaction has been alive for more than an hour and " +
                     "is expected to be transient.");

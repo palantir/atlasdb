@@ -122,7 +122,10 @@ public class ShardProgress {
         tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }
 
-    public Optional<Long> getLastSeenCommitTimestamp() {
+    public long getLastSeenCommitTimestamp() {
+        return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
+    }
+    public Optional<Long> getMaybeLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
 
@@ -131,19 +134,18 @@ public class ShardProgress {
             return;
         }
 
-        Optional<Long> previous = getLastSeenCommitTimestamp();
-        boolean updateNeeded =
-                previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+        long previous = getLastSeenCommitTimestamp();
+        boolean updateNeeded = previous < lastSeenCommitTs;
         while (updateNeeded) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
             CheckAndSetRequest casRequest = createRequest(
-                    LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
+                    LAST_SEEN_COMMIT_TIMESTAMP, previous, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 updateNeeded = false;
             } catch (CheckAndSetException exception) {
-                Optional<Long> current = getLastSeenCommitTimestamp();
-                if (current.equals(previous)) {
+                long current = getLastSeenCommitTimestamp();
+                if (current == previous) {
                     log.warn(
                             "Failed to update last seen commit timestamp. Values before and after CAS match.",
                             SafeArg.of("previous", previous),
@@ -153,8 +155,7 @@ public class ShardProgress {
                     throw exception;
                 }
                 previous = current;
-                updateNeeded =
-                        previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+                updateNeeded = previous < lastSeenCommitTs;
             }
         }
     }
