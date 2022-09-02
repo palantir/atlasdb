@@ -18,8 +18,9 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.util.Measurable;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,7 +34,10 @@ public final class TableReference implements Measurable {
      */
     public static TableReference createFromFullyQualifiedName(String fullTableName) {
         int index = fullTableName.indexOf('.');
-        Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.", fullTableName);
+        if (index <= 0) {
+            throw new SafeIllegalArgumentException(
+                    "Table name is not a fully qualified table name.", UnsafeArg.of("tableName", fullTableName));
+        }
         return create(
                 Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME),
                 fullTableName.substring(index + 1));
