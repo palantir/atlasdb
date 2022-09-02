@@ -27,7 +27,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
@@ -61,7 +60,9 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -134,7 +135,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         StreamTestStreamMetadataTable metaTable = tables.getStreamTestStreamMetadataTable(t);
         StreamTestStreamMetadataTable.StreamTestStreamMetadataRow row = StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
-        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: %s", id);
+        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks", SafeArg.of("id", id));
         StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
@@ -380,7 +381,9 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         for (Map.Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
             Preconditions.checkState(metadata.getStatus() == Status.STORED,
-            "Stream: %s has status: %s", e.getKey().getId(), metadata.getStatus());
+            "Stream has stored status",
+            SafeArg.of("streamId", e.getKey().getId()),
+            SafeArg.of("status", metadata.getStatus()));
             metaTable.putMetadata(e.getKey(), metadata);
         }
         SetView<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
@@ -460,6 +463,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link TransactionManager}
      * {@link TransactionTask}
      * {@link TxTask}
+     * {@link UnsafeArg}
      */
     static final int dummy = 0;
 }
