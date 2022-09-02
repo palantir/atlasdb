@@ -2022,16 +2022,23 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
         long startTimestamp = getStartTimestamp();
-        // todo(snanda): refactor this shit.
-        if (transactionSchemaManager.getTransactionsSchemaVersion(startTimestamp)
-                        == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION
-                && immutableTimestampLock.isEmpty()) {
+        // The schema version of current transaction does not matter. If the current transaction does not hold
+        // immutableTs lock, and we were previously on schema 4 for a range of transactions, we cannot know the state
+        // of those writes consistently if sweep has progressed.
+        if (immutableTimestampLock.isEmpty()) {
             Preconditions.checkState(
                     lastSeenCommitTs.get() < startTimestamp,
                     "Transactions table has been swept beyond current start timestamp, therefore, we cannot"
                             + " consistently values accessible to this transactions. This can happen if the transaction"
                             + " has been alive for more than an hour and is expected to be transient.");
         }
+    }
+
+    private boolean isReadOnlyTransactionReadingSweepableTransaction(long startTs) {
+        // current transaction does not hold immutable lock and provided timestamp is on transaction schema 4.
+        return immutableTimestampLock.isEmpty()
+                && transactionSchemaManager.getTransactionsSchemaVersion(startTs)
+                        == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION;
     }
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {
@@ -2488,7 +2495,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (Iterables.isEmpty(startTimestamps)) {
             return Futures.immediateFuture(ImmutableMap.of());
         }
-        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
+        Map<Long, Long> startToCommitTimestamps = getCommitTimestampsFromCache(startTimestamps);
         Set<Long> gets = new HashSet<>();
         for (Long startTs : startTimestamps) {
             Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
@@ -2528,6 +2535,13 @@ public class SnapshotTransaction extends AbstractTransaction
                     return startToCommitTimestamps;
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private Map<Long, Long> getCommitTimestampsFromCache(Iterable<Long> startTimestamps) {
+        return KeyedStream.of(startTimestamps)
+                .filter(ts -> !isReadOnlyTransactionReadingSweepableTransaction(ts))
+                .map(timestampValidationReadCache::getCommitTimestampIfPresent)
+                .collectTo(HashMap::new);
     }
 
     private void waitForCommitterToComplete(@Nullable TableReference tableRef, Iterable<Long> startTimestamps) {
