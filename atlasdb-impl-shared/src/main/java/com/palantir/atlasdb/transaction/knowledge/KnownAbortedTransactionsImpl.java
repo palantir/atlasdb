@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
-public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
+public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
 
@@ -44,7 +44,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
-    DefaultKnownAbortedTransactions(
+    KnownAbortedTransactionsImpl(
             FutileTimestampStore futileTimestampStore,
             AbortedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
@@ -63,14 +63,14 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
                 .build();
     }
 
-    public static DefaultKnownAbortedTransactions create(
+    public static KnownAbortedTransactionsImpl create(
             KnownConcludedTransactions knownConcludedTransactions,
             FutileTimestampStore futileTimestampStore,
             TaggedMetricRegistry registry,
             Optional<InternalSchemaInstallConfig> config) {
         AbortedTransactionSoftCache softCache =
                 new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
-        return new DefaultKnownAbortedTransactions(
+        return new KnownAbortedTransactionsImpl(
                 futileTimestampStore,
                 softCache,
                 registry,

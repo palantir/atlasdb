@@ -99,7 +99,7 @@ public class AtlasRestoreResource implements UndertowAtlasRestoreClient {
                 .map(this::completeRestoreAsync)
                 .collectToMap();
         ListenableFuture<Map<Namespace, Namespace>> completedRequests =
-                AtlasFutures.allAsMap(inFlightRequests, MoreExecutors.newDirectExecutorService());
+                AtlasFutures.allOptionalsAsMap(inFlightRequests, MoreExecutors.newDirectExecutorService());
 
         return Futures.transform(
                 completedRequests,

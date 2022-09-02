@@ -34,14 +34,14 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.junit.Test;
 
-public final class DefaultKnownAbortedTransactionsTest {
+public final class KnownAbortedTransactionsImplTest {
     private final FutileTimestampStore futileTimestampStore = mock(FutileTimestampStore.class);
     private final AbortedTransactionSoftCache softCache = mock(AbortedTransactionSoftCache.class);
-    private final DefaultKnownAbortedTransactions knownAbortedTransactions = new DefaultKnownAbortedTransactions(
+    private final KnownAbortedTransactionsImpl knownAbortedTransactions = new KnownAbortedTransactionsImpl(
             futileTimestampStore,
             softCache,
             new DefaultTaggedMetricRegistry(),
-            DefaultKnownAbortedTransactions.MAXIMUM_CACHE_WEIGHT);
+            KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
 
     @Test
     public void testIsKnownAbortedReturnsTrueIfAbortedInSoftCache() {
@@ -126,7 +126,7 @@ public final class DefaultKnownAbortedTransactionsTest {
                 .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long numAbortedTimestampsInBucket = Math.min(
-                AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, DefaultKnownAbortedTransactions.MAXIMUM_CACHE_WEIGHT);
+                AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
         when(futileTimestampStore.getAbortedTransactionsInRange(anyLong(), anyLong()))
                 .thenAnswer(invocation -> {
                     long start = invocation.getArgument(0);
