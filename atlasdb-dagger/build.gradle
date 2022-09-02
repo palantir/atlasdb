@@ -28,6 +28,9 @@ dependencies {
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.assertj:assertj-core'
+
   shadow project(':atlasdb-service')
 }
 
