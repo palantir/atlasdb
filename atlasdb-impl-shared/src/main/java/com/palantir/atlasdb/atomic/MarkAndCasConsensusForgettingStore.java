@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -48,6 +47,9 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
+    private static final ByteBuffer WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE =
+            ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE);
+
     private final ByteBuffer inProgressMarkerBuffer;
     private final byte[] inProgressMarker;
     private final KeyValueService kvs;
@@ -82,13 +84,19 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
     /**
      * Atomically updates cells that have been marked. Throws {@code CheckAndSetException} if cell to update has not
-     * been marked.
+     * been marked. The MCAS calls to KVS are batched.
      */
     @Override
     public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
         autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
     }
 
+    /**
+     * This call serially delegated to {@link MarkAndCasConsensusForgettingStore#atomicUpdate(Cell, byte[])}
+     * and does not guarantee atomicity across cells.
+     * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
+     * atomically.
+     * */
     @Override
     public void atomicUpdate(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
         values.forEach(this::atomicUpdate);
@@ -128,7 +136,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     @SuppressWarnings("ByteBufferBackingArray")
     @VisibleForTesting
     static void processBatch(KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
-        List<BatchElement<CasRequest, Void>> pendingUpdates = getFilteredUpdates(batch);
+        List<BatchElement<CasRequest, Void>> pendingUpdates = filterOptimalUpdatePerCell(batch);
 
         Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
                 .collect(Collectors.groupingBy(
@@ -156,7 +164,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     private static void populateResult(
             List<BatchElement<CasRequest, Void>> batch, Map<CasRequest, CasResponse> results) {
         CasResponse defaultResponse =
-                CasResponse.failure(new CheckAndSetException("Another check and set is in progress."));
+                CasResponse.failure(new CheckAndSetException("There were one or more concurrent updates for the same "
+                        + "cell and a higher ranking update was selected to be executed. "));
         batch.forEach(elem -> {
             CasResponse response = results.getOrDefault(elem.argument(), defaultResponse);
             if (response.successful()) {
@@ -182,8 +191,9 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                 .collectToMap();
     }
 
-    // every request with a lower rank fails with CheckAndSetException. Requests with same rank are coalesced.
-    private static List<BatchElement<CasRequest, Void>> getFilteredUpdates(List<BatchElement<CasRequest, Void>> batch) {
+    // Every request with a lower rank fails with CheckAndSetException. Requests with same rank are coalesced.
+    private static List<BatchElement<CasRequest, Void>> filterOptimalUpdatePerCell(
+            List<BatchElement<CasRequest, Void>> batch) {
         Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
                 .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
 
@@ -192,22 +202,34 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> requestedUpdatesForCell :
                 partitionedElems.entrySet()) {
             requestedUpdatesForCell.getValue().stream()
-                    .min(Comparator.comparingInt(elem -> rank(elem.argument())))
+                    .min(Comparator.comparingInt(elem -> rank(elem.argument()).value))
                     .ifPresent(pendingUpdates::add);
         }
 
         return pendingUpdates.build();
     }
 
-    // The idea is touch > state change to commit > state change to abort and ignore all the other requests.
-    private static int rank(CasRequest req) {
+    private static UpdateRank rank(CasRequest req) {
         if (req.expected().equals(req.update())) {
-            return 1;
+            return UpdateRank.TOUCH;
         }
-        if (req.expected().equals(ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE))) {
-            return 3;
+        if (req.expected().equals(WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
+            return UpdateRank.ABORT;
         }
-        return 2;
+        return UpdateRank.COMMIT;
+    }
+
+    enum UpdateRank {
+        // The idea is touch > state change to commit > state change to abort and ignore all the other requests.
+        TOUCH(1),
+        COMMIT(2),
+        ABORT(3);
+
+        private final int value;
+
+        UpdateRank(int value) {
+            this.value = value;
+        }
     }
 
     @Value.Immutable
