@@ -101,13 +101,9 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     }
 
     private Long getCommitTsFromStatus(long startTs, TransactionStatus status) {
-        if (status.equals(TransactionStatuses.unknown())) {
-            // unknown status implies that the transactions table has been swept and the transaction is therefore
-            // concluded.
-            return getCommitTsForConcludedTransaction(startTs);
-        } else {
-            return TransactionStatusUtils.maybeGetCommitTs(status).orElse(null);
-        }
+TransactionStatuses.caseOf(status)
+                .unknown(() -> getCommitTsForConcludedTransaction(startTs))
+                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
     }
 
     private long getCommitTsForConcludedTransaction(long startTs) {
