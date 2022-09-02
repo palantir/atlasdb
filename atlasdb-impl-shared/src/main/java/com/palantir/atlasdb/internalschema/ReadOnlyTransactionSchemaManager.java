@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
@@ -31,12 +31,12 @@ public class ReadOnlyTransactionSchemaManager {
     }
 
     public Integer getTransactionsSchemaVersion(long timestamp) {
-        if (timestamp < AtlasDbConstants.STARTING_TS) {
+        if (timestamp < TransactionConstants.LOWEST_POSSIBLE_START_TS) {
             throw new SafeIllegalStateException(
                     "Query attempted for a timestamp which was never given out by the"
                             + " timestamp service, as the timestamps is earlier than the starting timestamp.",
                     SafeArg.of("queriedTimestamp", timestamp),
-                    SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
+                    SafeArg.of("startOfTime", TransactionConstants.LOWEST_POSSIBLE_START_TS));
         }
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);

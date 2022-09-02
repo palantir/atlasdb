@@ -6,7 +6,7 @@ dependencies {
   api(project(":atlasdb-client"))
   implementation(project(":atlasdb-commons"))
 
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation 'com.palantir.safe-logging:safe-logging'
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
@@ -24,10 +24,10 @@ dependencies {
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation 'junit:junit'
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
 }

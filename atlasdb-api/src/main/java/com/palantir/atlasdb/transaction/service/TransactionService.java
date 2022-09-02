@@ -52,10 +52,22 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**
-     * This operation is guaranteed to be atomic and only set the value if it hasn't already been
-     * set.
-     * @throws KeyAlreadyExistsException If this value was already set, but {@link #get(long)} should
-     * be called to check what the value was set to.  This may throw spuriously due to retry.
+     * In practice, a transaction on schema version >= 4 must call this method before any information about its start
+     * timestamp is persisted into the KVS; i.e. KVS writes, writing to the sweep queue, etc. i.e.
+     * this method MUST be called for each start timestamp before {@link #putUnlessExists(long, long) is ever called}.
+     */
+    void markInProgress(long startTimestamp);
+
+    default void markInProgress(Iterable<Long> startTimestamps) {
+        startTimestamps.forEach(this::markInProgress);
+    }
+
+    /**
+     * This operation is guaranteed to be atomic and only commit the value if it hasn't already been
+     * committed. The naming is not accurate as this operation can differ in implementation.
+     *
+     * @throws KeyAlreadyExistsException If this transaction was already committed, but {@link #get(long)} should
+     * be called to check what the value was set to. This may throw spuriously due to retry.
      * @throws RuntimeException If a runtime exception is thrown, this operation may or may
      * not have ran.
      */
@@ -76,7 +88,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
      * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
-    default void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+    default void putUnlessExists(Map<Long, Long> startTimestampToCommitTimestamp) {
         startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
     }
 

@@ -82,7 +82,6 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.OldestTargetedSweepTrackedTimestamp;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -113,7 +112,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
-import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.time.Clock;
 import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
@@ -299,6 +297,7 @@ public abstract class TransactionManagers {
             Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
+                .collectThreadDumpOnTimestampServiceInit(false)
                 .build();
         return builder()
                 .config(config)
@@ -364,6 +363,7 @@ public abstract class TransactionManagers {
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
+                config().collectThreadDumpOnTimestampServiceInit(),
                 adapter);
         DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
@@ -403,7 +403,7 @@ public abstract class TransactionManagers {
                     // to
                     // at least retain the option to perform background sweep, which requires updating the priority
                     // table.
-                    if (!targetedSweepIsFullyEnabled(config(), runtime)) {
+                    if (!targetedSweepIsEnabled(runtime)) {
                         kvs = SweepStatsKeyValueService.create(
                                 kvs,
                                 new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
@@ -421,16 +421,6 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs);
                 },
                 closeables);
-
-        if (config().targetedSweep().enableSweepQueueWrites()) {
-            initializeCloseable(
-                    () -> OldestTargetedSweepTrackedTimestamp.createStarted(
-                            keyValueService,
-                            lockAndTimestampServices.timestamp(),
-                            PTExecutors.newSingleThreadScheduledExecutor(
-                                    new NamedThreadFactory("OldestTargetedSweepTrackedTimestamp", true))),
-                    closeables);
-        }
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
@@ -578,12 +568,18 @@ public abstract class TransactionManagers {
         if (isUsingTimeLock(config, runtimeConfig.current()) && shouldGiveFeedbackToServer(config)) {
             Refreshable<List<TimeLockClientFeedbackService>> refreshableTimeLockClientFeedbackServices =
                     getTimeLockClientFeedbackServices(config, runtimeConfig, userAgent(), reloadingFactory());
+            Refreshable<Integer> timelockNodeCountSupplier =
+                    DefaultLockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig)
+                            .map(ServerListConfig::servers)
+                            .map(Set::size);
+
             return Optional.of(initializeCloseable(
                     () -> TimeLockFeedbackBackgroundTask.create(
                             metricsManager.getTaggedRegistry(),
                             AtlasDbVersion::readVersion,
                             serviceName(),
                             refreshableTimeLockClientFeedbackServices,
+                            timelockNodeCountSupplier,
                             namespace()),
                     closeables));
         }
@@ -669,10 +665,8 @@ public abstract class TransactionManagers {
                         || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
     }
 
-    private static boolean targetedSweepIsFullyEnabled(
-            AtlasDbConfig installConfig, Supplier<AtlasDbRuntimeConfig> runtime) {
-        return installConfig.targetedSweep().enableSweepQueueWrites()
-                && runtime.get().targetedSweep().enabled();
+    private static boolean targetedSweepIsEnabled(Supplier<AtlasDbRuntimeConfig> runtime) {
+        return runtime.get().targetedSweep().enabled();
     }
 
     private TransactionComponents createTransactionComponents(
@@ -836,12 +830,11 @@ public abstract class TransactionManagers {
                 config.initializeAsync(),
                 sweepBatchConfigSource);
 
-        boolean sweepQueueWritesEnabled = config.targetedSweep().enableSweepQueueWrites();
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
                 new ShouldRunBackgroundSweepSupplier(
-                        () -> runtimeConfigSupplier.get().sweep(), sweepQueueWritesEnabled)::getAsBoolean,
+                        () -> runtimeConfigSupplier.get().sweep())::getAsBoolean,
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
@@ -966,9 +959,6 @@ public abstract class TransactionManagers {
             TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
-        if (!install.enableSweepQueueWrites()) {
-            return MultiTableSweepQueueWriter.NO_OP;
-        }
         return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
     }
 

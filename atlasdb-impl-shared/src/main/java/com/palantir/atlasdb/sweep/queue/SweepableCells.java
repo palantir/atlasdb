@@ -171,7 +171,13 @@ public class SweepableCells extends SweepQueueTable {
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, tsToSweep.processedAll(), entriesRead);
+        return SweepBatch.of(
+                writes,
+                filteredDedicatedRows,
+                lastSweptTs,
+                tsToSweep.lastSeenCommitTs(),
+                tsToSweep.processedAll(),
+                entriesRead);
     }
 
     private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {
@@ -258,6 +264,7 @@ public class SweepableCells extends SweepQueueTable {
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
         List<Long> committedTimestamps = new ArrayList<>();
         long lastSweptTs = minTsExclusive;
+        long lastSeenCommitTs = 0L;
         boolean processedAll = true;
 
         List<Long> sortedStartTimestamps =
@@ -272,6 +279,7 @@ public class SweepableCells extends SweepQueueTable {
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;
                 committedTimestamps.add(startTs);
+                lastSeenCommitTs = Math.max(lastSeenCommitTs, commitTs);
             } else {
                 processedAll = false;
                 lastSweptTs = startTs - 1;
@@ -304,7 +312,10 @@ public class SweepableCells extends SweepQueueTable {
         });
 
         return TimestampsToSweep.of(
-                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(), lastSweptTs, processedAll);
+                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(),
+                lastSweptTs,
+                lastSeenCommitTs,
+                processedAll);
     }
 
     private boolean tableWasDropped(TableReference tableRef) {

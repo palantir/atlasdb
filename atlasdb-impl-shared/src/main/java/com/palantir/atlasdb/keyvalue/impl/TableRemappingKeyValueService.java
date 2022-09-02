@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -34,6 +35,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -230,6 +233,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         return fullTableNameToBytes;
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
@@ -240,6 +244,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         }
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
@@ -250,6 +255,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         }
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
@@ -377,6 +383,19 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
                     .build();
             delegate().checkAndSet(request);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        try {
+            MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
+                    .from(multiCheckAndSetRequest)
+                    .tableRef(tableMapper.getMappedTableName(multiCheckAndSetRequest.tableRef()))
+                    .build();
+            delegate().multiCheckAndSet(request);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

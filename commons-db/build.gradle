@@ -7,24 +7,16 @@ dependencies {
   implementation project(":commons-proxy")
 
   implementation "com.palantir.nylon:nylon-threads"
-  implementation group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
-  implementation group: 'org.apache.commons', name: 'commons-lang3'
-  implementation group: 'commons-io', name: 'commons-io'
-  implementation group: 'com.palantir.tracing', name: 'tracing'
+  implementation 'commons-dbutils:commons-dbutils'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'commons-io:commons-io'
+  implementation 'com.palantir.tracing:tracing'
 
-  // Danger, Will Robinson!
-  //
-  // This driver has historically low code quality and should be considered a high-risk update.
-  // Severe performance regressions in 1202,3,4.
-  // Severe correctness issues in 1204,5,6.
-  // Update with care and caution.
-  implementation group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql
   implementation 'com.oracle.database.jdbc:ojdbc11'
 
-  implementation group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
-  implementation group: 'joda-time', name: 'joda-time'
+  implementation 'com.zaxxer:HikariCP'
+  implementation 'joda-time:joda-time'
 
-  implementation 'com.h2database:h2'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
@@ -37,7 +29,7 @@ dependencies {
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
 
-  testImplementation group: 'junit', name: 'junit'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'org.assertj', name: 'assertj-core'
+  testImplementation 'junit:junit'
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.assertj:assertj-core'
 }

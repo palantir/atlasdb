@@ -10,17 +10,17 @@ dependencies {
   implementation project(":atlasdb-autobatch")
   implementation project(":atlasdb-commons")
 
-  implementation group: "com.github.ben-manes.caffeine", name: "caffeine"
-  implementation group: "com.google.protobuf", name: "protobuf-java"
-  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-  implementation group: 'com.palantir.sls.versions', name: 'sls-versions'
-  implementation group: 'com.zaxxer', name: 'HikariCP'
-  implementation group: "commons-io", name: "commons-io"
-  implementation group: "org.jdbi", name: 'jdbi3-core'
-  implementation group: "org.jdbi", name: 'jdbi3-sqlobject'
-  implementation group: 'org.xerial', name: 'sqlite-jdbc'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
+  implementation 'com.google.protobuf:protobuf-java'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.sls.versions:sls-versions'
+  implementation 'com.zaxxer:HikariCP'
+  implementation 'commons-io:commons-io'
+  implementation 'org.jdbi:jdbi3-core'
+  implementation 'org.jdbi:jdbi3-sqlobject'
+  implementation 'org.xerial:sqlite-jdbc'
 
-  implementation group: 'com.palantir.common', name: 'streams'
+  implementation 'com.palantir.common:streams'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.guava:guava'
@@ -38,20 +38,20 @@ dependencies {
   testImplementation project(':leader-election-api-protobufs')
 
 
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
-  testImplementation group: 'org.assertj', name: 'assertj-core'
-  testImplementation group: 'org.awaitility', name: 'awaitility'
-  testImplementation group: 'org.mockito', name: 'mockito-core'
-  testImplementation group: 'com.palantir.tracing', name: 'tracing-test-utils'
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'com.palantir.tracing:tracing-test-utils'
 }
 
 configurations {

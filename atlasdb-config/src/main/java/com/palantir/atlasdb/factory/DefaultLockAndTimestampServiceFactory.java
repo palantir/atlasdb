@@ -58,10 +58,14 @@ import com.palantir.lock.client.LeaderElectionReportingTimelockService;
 import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
+import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.LockTokenUnlocker;
+import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.client.NamespacedLockTokenUnlocker;
 import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.ReferenceTrackingWrapper;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
@@ -347,7 +351,12 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
                         multiClientTimelockServiceSupplier),
-                timeLockHelperServices.requestBatchersFactory());
+                timeLockHelperServices.requestBatchersFactory(),
+                getTimeLockUnlocker(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        namespacedConjureTimelockService,
+                        multiClientTimelockServiceSupplier));
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -360,6 +369,22 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
+    }
+
+    // Note: There is some duplication in the following two methods, but extracting a common method requires a fairly
+    // large amount of nontrivial state. Consider extracting a common method if this needs to be implemented again.
+    private static LockTokenUnlocker getTimeLockUnlocker(
+            String timelockNamespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            NamespacedConjureTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        if (timelockRequestBatcherProviders.isEmpty()) {
+            return new LegacyLockTokenUnlocker(namespacedConjureTimelockService);
+        }
+        ReferenceTrackingWrapper<MultiClientTimeLockUnlocker> batcher =
+                timelockRequestBatcherProviders.get().unlock().getBatcher(multiClientTimelockServiceSupplier);
+        batcher.recordReference();
+        return new NamespacedLockTokenUnlocker(timelockNamespace, batcher);
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

@@ -17,10 +17,9 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.Transaction;
 
 interface WrapperWithTracker<T> {
-    WrapperWithTracker<Transaction> TRANSACTION_NO_OP = (delegate, synchronousTracker) -> delegate;
+    WrapperWithTracker<CallbackAwareTransaction> TRANSACTION_NO_OP = (delegate, synchronousTracker) -> delegate;
 
     WrapperWithTracker<KeyValueService> KEY_VALUE_SERVICE_NO_OP = (delegate, synchronousTracker) -> delegate;
 

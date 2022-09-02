@@ -25,6 +25,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
 import com.google.common.primitives.Bytes;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
@@ -278,6 +279,7 @@ public class KvTableMappingService implements TableMappingService {
         return ret;
     }
 
+    @MustBeClosed
     private ClosableIterator<RowResult<Value>> rangeScanNamespaceTable() {
         return kvs.getRange(
                 AtlasDbConstants.NAMESPACE_TABLE, RangeRequest.builder().build(), Long.MAX_VALUE);

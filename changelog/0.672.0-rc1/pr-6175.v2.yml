@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDB is now able to work with old versions of timelock as well.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6175

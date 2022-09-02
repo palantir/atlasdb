@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.EnumMap;
 import java.util.List;
@@ -37,6 +38,8 @@ public abstract class PaxosResources {
     public abstract LeadershipContextFactory leadershipContextFactory();
 
     abstract List<Object> adhocResources();
+
+    public abstract List<UndertowService> undertowServices();
 
     public abstract TimeLockCorruptionComponents timeLockCorruptionComponents();
 

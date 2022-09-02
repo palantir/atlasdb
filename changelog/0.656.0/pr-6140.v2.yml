@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add ability to override initializeFailTimeout in Hikari ConnectionConfig.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6140

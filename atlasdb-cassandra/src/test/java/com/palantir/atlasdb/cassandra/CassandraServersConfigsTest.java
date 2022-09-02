@@ -16,49 +16,29 @@
 
 package com.palantir.atlasdb.cassandra;
 
+import static com.palantir.atlasdb.cassandra.backup.BackupTestUtils.TEST_THRIFT_PORT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
+import com.palantir.atlasdb.cassandra.backup.BackupTestUtils;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Test;
 
 public class CassandraServersConfigsTest {
-
-    private static final int TEST_THRIFT_PORT = 44;
-    private static final int TEST_CQL_PORT = 45;
-
     private static final InetSocketAddress THRIFT_SERVER_1 =
             InetSocketAddress.createUnresolved("foo", TEST_THRIFT_PORT);
     private static final InetSocketAddress THRIFT_SERVER_2 =
             InetSocketAddress.createUnresolved("bar", TEST_THRIFT_PORT);
 
-    private static final CqlCapableConfig CQL_CAPABLE_CONFIG = cqlCapable("bar", "foo");
+    public static final CqlCapableConfig CQL_CAPABLE_CONFIG = BackupTestUtils.cqlCapableConfig("bar", "foo");
 
     private static CassandraServersConfigs.DefaultConfig defaultConfig(InetSocketAddress... thriftServers) {
         return ImmutableDefaultConfig.builder().addThriftHosts(thriftServers).build();
-    }
-
-    private static CqlCapableConfig cqlCapable(String... hosts) {
-        Iterable<InetSocketAddress> thriftHosts = constructHosts(TEST_THRIFT_PORT, hosts);
-        Iterable<InetSocketAddress> cqlHosts = constructHosts(TEST_CQL_PORT, hosts);
-        return ImmutableCqlCapableConfig.builder()
-                .cqlHosts(cqlHosts)
-                .thriftHosts(thriftHosts)
-                .build();
-    }
-
-    private static List<InetSocketAddress> constructHosts(int port, String[] hosts) {
-        return Stream.of(hosts)
-                .map(host -> InetSocketAddress.createUnresolved(host, port))
-                .collect(Collectors.toList());
     }
 
     @Test

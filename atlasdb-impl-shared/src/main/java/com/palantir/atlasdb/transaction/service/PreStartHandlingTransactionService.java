@@ -16,14 +16,14 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
@@ -57,22 +57,27 @@ public class PreStartHandlingTransactionService implements TransactionService {
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamp, synchronousAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getFromDelegate(startTimestamp, synchronousAsyncTransactionService));
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getInternal(startTimestamps, synchronousAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getFromDelegate(startTimestamps, synchronousAsyncTransactionService));
+    }
+
+    @Override
+    public void markInProgress(long startTimestamp) {
+        delegate.markInProgress(startTimestamp);
     }
 
     @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getInternal(startTimestamp, delegate);
+        return getFromDelegate(startTimestamp, delegate);
     }
 
     @Override
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getInternal(startTimestamps, delegate);
+        return getFromDelegate(startTimestamps, delegate);
     }
 
     @Override
@@ -91,23 +96,24 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.close();
     }
 
-    private ListenableFuture<Long> getInternal(long startTimestamp, AsyncTransactionService asyncTransactionService) {
+    private ListenableFuture<Long> getFromDelegate(
+            long startTimestamp, AsyncTransactionService asyncTransactionService) {
         if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(AtlasDbConstants.STARTING_TS - 1);
+            return Futures.immediateFuture(TransactionConstants.LOWEST_POSSIBLE_START_TS - 1);
         }
         return asyncTransactionService.getAsync(startTimestamp);
     }
 
-    private ListenableFuture<Map<Long, Long>> getInternal(
+    private ListenableFuture<Map<Long, Long>> getFromDelegate(
             Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
-        List<Long> validTimestamps = classifiedTimestamps.get(true);
-        Map<Long, Long> result = new HashMap<>();
-        result.putAll(Maps.asMap(
-                ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
+        Map<Long, Long> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
+                .map(_ignore -> TransactionConstants.LOWEST_POSSIBLE_START_TS - 1)
+                .collectTo(HashMap::new);
 
+        List<Long> validTimestamps = classifiedTimestamps.get(true);
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
                     asyncTransactionService.getAsync(validTimestamps),
@@ -121,6 +127,6 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     private static boolean isTimestampValid(Long startTimestamp) {
-        return startTimestamp >= AtlasDbConstants.STARTING_TS;
+        return startTimestamp >= TransactionConstants.LOWEST_POSSIBLE_START_TS;
     }
 }

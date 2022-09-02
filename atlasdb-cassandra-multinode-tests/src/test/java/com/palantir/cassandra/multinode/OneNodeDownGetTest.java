@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 
+@SuppressWarnings("MustBeClosedChecker")
 public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
     private static final Set<Map.Entry<Cell, Value>> expectedRowEntries =
             ImmutableMap.of(CELL_1_1, VALUE, CELL_1_2, VALUE).entrySet();

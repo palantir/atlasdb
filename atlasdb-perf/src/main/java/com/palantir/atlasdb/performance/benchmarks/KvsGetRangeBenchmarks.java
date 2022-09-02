@@ -42,10 +42,11 @@ public class KvsGetRangeBenchmarks {
     private Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
         RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, sliceSize, false));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
-        ClosableIterator<RowResult<Value>> result =
-                table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
-        List<RowResult<Value>> list = Lists.newArrayList(result);
-        result.close();
+        List<RowResult<Value>> list;
+        try (ClosableIterator<RowResult<Value>> result =
+                table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE)) {
+            list = Lists.newArrayList(result);
+        }
         Preconditions.checkState(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
             byte[] rowName = rowResult.getRowName();
@@ -57,7 +58,7 @@ public class KvsGetRangeBenchmarks {
                     rowNumber,
                     sliceSize);
         });
-        return result;
+        return list;
     }
 
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {

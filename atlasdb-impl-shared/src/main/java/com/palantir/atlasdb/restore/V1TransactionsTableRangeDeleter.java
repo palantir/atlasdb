@@ -18,7 +18,6 @@ package com.palantir.atlasdb.restore;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -49,8 +48,8 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
 
     @Override
     public void deleteRange(TimestampRange commitTimestampRange) {
-        byte[] startBytes =
-                TransactionConstants.getValueForTimestamp(startTimestamp.orElse(AtlasDbConstants.STARTING_TS));
+        byte[] startBytes = TransactionConstants.getValueForTimestamp(
+                startTimestamp.orElse(TransactionConstants.LOWEST_POSSIBLE_START_TS));
         byte[] timestampBytes = TransactionConstants.getValueForTimestamp(commitTimestampRange.getLowerBound());
 
         if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
@@ -59,51 +58,52 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
                     startBytes.length, timestampBytes.length));
         }
 
-        ClosableIterator<RowResult<Value>> range = kvs.getRange(
+        Multimap<Cell, Long> toDelete = HashMultimap.create();
+
+        try (ClosableIterator<RowResult<Value>> range = kvs.getRange(
                 TransactionConstants.TRANSACTION_TABLE,
                 !startTimestamp.isPresent()
                         ? RangeRequest.all()
                         : RangeRequest.builder().startRowInclusive(startBytes).build(),
-                Long.MAX_VALUE);
+                Long.MAX_VALUE)) {
 
-        Multimap<Cell, Long> toDelete = HashMultimap.create();
+            long lastLoggedTsCountdown = 0;
+            while (range.hasNext()) {
+                RowResult<Value> row = range.next();
+                byte[] rowName = row.getRowName();
+                long startTs = TransactionConstants.getTimestampForValue(rowName);
 
-        long lastLoggedTsCountdown = 0;
-        while (range.hasNext()) {
-            RowResult<Value> row = range.next();
-            byte[] rowName = row.getRowName();
-            long startTs = TransactionConstants.getTimestampForValue(rowName);
+                if (lastLoggedTsCountdown == 0) {
+                    stateLogger.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
+                    lastLoggedTsCountdown = 100000;
+                }
+                lastLoggedTsCountdown -= 1;
 
-            if (lastLoggedTsCountdown == 0) {
-                stateLogger.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
-                lastLoggedTsCountdown = 100000;
+                Value value;
+                try {
+                    value = row.getOnlyColumnValue();
+                } catch (IllegalStateException e) {
+                    // this should never happen
+                    stateLogger.error(
+                            "Found a row in the transactions table that didn't have 1"
+                                    + " and only 1 column value: start={}",
+                            SafeArg.of("startTs", startTs));
+                    continue;
+                }
+
+                long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
+                if (!commitTimestampRange.contains(commitTs)) {
+                    continue; // this is not a transaction we are targeting
+                }
+
+                stateLogger.info(
+                        "Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
+                        SafeArg.of("startTs", startTs),
+                        SafeArg.of("commitTs", commitTs));
+
+                Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
+                toDelete.put(key, value.getTimestamp()); // value.getTimestamp() should always be 0L
             }
-            lastLoggedTsCountdown -= 1;
-
-            Value value;
-            try {
-                value = row.getOnlyColumnValue();
-            } catch (IllegalStateException e) {
-                // this should never happen
-                stateLogger.error(
-                        "Found a row in the transactions table that didn't have 1"
-                                + " and only 1 column value: start={}",
-                        SafeArg.of("startTs", startTs));
-                continue;
-            }
-
-            long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
-            if (!commitTimestampRange.contains(commitTs)) {
-                continue; // this is not a transaction we are targeting
-            }
-
-            stateLogger.info(
-                    "Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
-                    SafeArg.of("startTs", startTs),
-                    SafeArg.of("commitTs", commitTs));
-
-            Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toDelete.put(key, value.getTimestamp()); // value.getTimestamp() should always be 0L
         }
 
         if (!toDelete.isEmpty()) {

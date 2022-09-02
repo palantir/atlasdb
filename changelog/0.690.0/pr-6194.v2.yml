@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    CoalescingBatchingEventHandler uses Map<T, Set<DisruptorFuture<R>>>
+
+    Flush avoids expensive AbstractMapBasedMultimap.clear() that iterates
+    and clears each value collection.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6194

@@ -29,12 +29,16 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.RetryPolicy;
 import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -45,6 +49,9 @@ import org.junit.Test;
 
 public class Transactions3TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
+    private static final TwoPhaseEncodingStrategy ENCODING_STRATEGY =
+            new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
+
     private static final String KEYSPACE = "keyspace";
 
     private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
@@ -62,17 +69,21 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntry entry = interaction.extractTimestamps(createRow(150L, 200L));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.committed(200L));
+            assertThat(commitValue.isCommitted()).isTrue();
+            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
+                    .hasValue(200L);
         });
     }
 
     @Test
     public void extractStagingCommitTimestampTest() {
-        TransactionTableEntry entry =
-                interaction.extractTimestamps(createRow(150L, PutUnlessExistsValue.staging(200L)));
+        TransactionTableEntry entry = interaction.extractTimestamps(
+                createRow(150L, AtomicValue.staging(TransactionStatusUtils.fromTimestamp(200L))));
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
-            assertThat(commitValue).isEqualTo(PutUnlessExistsValue.staging(200L));
+            assertThat(commitValue.isCommitted()).isFalse();
+            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
+                    .hasValue(200L);
         });
     }
 
@@ -85,8 +96,9 @@ public class Transactions3TableInteractionTest {
 
     @Test
     public void extractStagingAbortedTimestampTest() {
-        TransactionTableEntry entry = interaction.extractTimestamps(
-                createRow(150L, PutUnlessExistsValue.staging(TransactionConstants.FAILED_COMMIT_TS)));
+        TransactionTableEntry entry = interaction.extractTimestamps(createRow(
+                150L,
+                AtomicValue.staging(TransactionStatusUtils.fromTimestamp(TransactionConstants.FAILED_COMMIT_TS))));
         TransactionTableEntryAssertions.assertAborted(
                 entry, startTimestamp -> assertThat(startTimestamp).isEqualTo(150L));
     }
@@ -140,17 +152,16 @@ public class Transactions3TableInteractionTest {
     }
 
     private static Row createRow(long start, long commit) {
-        return createRow(start, PutUnlessExistsValue.committed(commit));
+        return createRow(start, AtomicValue.committed(TransactionStatusUtils.fromTimestamp(commit)));
     }
 
-    private static Row createRow(long start, PutUnlessExistsValue<Long> commit) {
+    private static Row createRow(long start, AtomicValue<TransactionStatus> commit) {
         Row row = mock(Row.class);
         Cell cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(start);
         when(row.getBytes(CassandraConstants.ROW)).thenReturn(ByteBuffer.wrap(cell.getRowName()));
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
-                .thenReturn(
-                        ByteBuffer.wrap(TwoPhaseEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(start, commit)));
+                .thenReturn(ByteBuffer.wrap(ENCODING_STRATEGY.encodeCommitStatusAsValue(start, commit)));
         return row;
     }
 

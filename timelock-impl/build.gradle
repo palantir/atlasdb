@@ -17,9 +17,9 @@ dependencies {
         exclude group:'io.dropwizard'
     }
 
-    implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
-    implementation group: 'org.mindrot', name: 'jbcrypt'
-    implementation group: 'com.zaxxer', name: 'HikariCP'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'org.mindrot:jbcrypt'
+    implementation 'com.zaxxer:HikariCP'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -29,6 +29,7 @@ dependencies {
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.conjure.java:conjure-lib'
+    implementation 'com.palantir.conjure.java:conjure-undertow-annotations'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.sls.versions:sls-versions'
@@ -83,20 +84,21 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
 
+    annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
-    annotationProcessor group: 'org.immutables', name: 'value'
+    annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.derive4j:derive4j'
     compileOnly 'org.derive4j:derive4j-annotation'
 
     testImplementation project(path: ":leader-election-impl", configuration: "testArtifacts")
 
-    testImplementation group: 'com.palantir.safe-logging', name: 'preconditions-assertj'
-    testImplementation group: 'com.palantir.conjure.java.api', name: 'test-utils'
-    testImplementation group: 'org.assertj', name: 'assertj-core'
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+    testImplementation 'com.palantir.conjure.java.api:test-utils'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
 
-    testAnnotationProcessor group: 'org.immutables', name: 'value'
+    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 }

@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TransactionStarterHelper avoids Set copies
+  links:
+  - https://github.com/palantir/atlasdb/pull/6137

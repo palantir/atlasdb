@@ -111,8 +111,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import javax.annotation.Generated;
 import javax.annotation.Nullable;
+import javax.annotation.processing.Generated;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableRenderer {

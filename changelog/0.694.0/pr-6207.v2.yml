@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Deduplicate Cassandra service nodes
+  links:
+  - https://github.com/palantir/atlasdb/pull/6207

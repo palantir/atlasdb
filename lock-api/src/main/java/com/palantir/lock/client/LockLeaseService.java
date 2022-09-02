@@ -19,11 +19,11 @@ package com.palantir.lock.client;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
-import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
@@ -47,19 +47,27 @@ public class LockLeaseService implements AutoCloseable {
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
+    private final LockTokenUnlocker unlocker;
     private final BlockEnforcingLockService lockService;
 
     @VisibleForTesting
-    LockLeaseService(NamespacedConjureTimelockService delegate, UUID clientId, LeaderTimeGetter leaderTimeGetter) {
+    LockLeaseService(
+            NamespacedConjureTimelockService delegate,
+            UUID clientId,
+            LeaderTimeGetter leaderTimeGetter,
+            LockTokenUnlocker unlocker) {
         this.delegate = delegate;
         this.clientId = clientId;
         this.leaderTimeGetter = leaderTimeGetter;
         this.lockService = BlockEnforcingLockService.create(delegate);
+        this.unlocker = unlocker;
     }
 
     public static LockLeaseService create(
-            NamespacedConjureTimelockService conjureTimelock, LeaderTimeGetter leaderTimeGetter) {
-        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter);
+            NamespacedConjureTimelockService conjureTimelock,
+            LeaderTimeGetter leaderTimeGetter,
+            LockTokenUnlocker unlocker) {
+        return new LockLeaseService(conjureTimelock, UUID.randomUUID(), leaderTimeGetter, unlocker);
     }
 
     LockImmutableTimestampResponse lockImmutableTimestamp() {
@@ -152,10 +160,10 @@ public class LockLeaseService implements AutoCloseable {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        Set<ConjureLockToken> unlocked = delegate.unlock(ConjureUnlockRequest.of(serverTokens(leasedLockTokens)))
-                .getTokens();
+        Set<ConjureLockTokenV2> unlocked = unlocker.unlock(serverTokens(leasedLockTokens));
         return leasedLockTokens.stream()
-                .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
+                .filter(leasedLockToken ->
+                        unlocked.contains(LockLeaseService.convertV1Token(leasedLockToken.serverToken())))
                 .collect(Collectors.toSet());
     }
 
@@ -164,12 +172,14 @@ public class LockLeaseService implements AutoCloseable {
             return leasedTokens;
         }
 
-        ConjureRefreshLocksResponse refreshLockResponse =
-                delegate.refreshLocks(ConjureRefreshLocksRequest.of(serverTokens(leasedTokens)));
+        ConjureRefreshLocksResponseV2 refreshLockResponse =
+                delegate.refreshLocksV2(ConjureRefreshLocksRequestV2.of(serverTokens(leasedTokens)));
         Lease lease = refreshLockResponse.getLease();
 
         Set<LeasedLockToken> refreshedTokens = leasedTokens.stream()
-                .filter(t -> refreshLockResponse.getRefreshedTokens().contains(t.serverToken()))
+                .filter(t -> refreshLockResponse
+                        .getRefreshedTokens()
+                        .contains(LockLeaseService.convertV1Token(t.serverToken())))
                 .collect(Collectors.toSet());
 
         refreshedTokens.forEach(t -> t.updateLease(lease));
@@ -185,8 +195,15 @@ public class LockLeaseService implements AutoCloseable {
         return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 
-    private static Set<ConjureLockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
-        return leasedTokens.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet());
+    private static Set<ConjureLockTokenV2> serverTokens(Set<LeasedLockToken> leasedTokens) {
+        return leasedTokens.stream()
+                .map(LeasedLockToken::serverToken)
+                .map(LockLeaseService::convertV1Token)
+                .collect(Collectors.toSet());
+    }
+
+    private static ConjureLockTokenV2 convertV1Token(ConjureLockToken conjureLockToken) {
+        return ConjureLockTokenV2.of(conjureLockToken.getRequestId());
     }
 
     @Override

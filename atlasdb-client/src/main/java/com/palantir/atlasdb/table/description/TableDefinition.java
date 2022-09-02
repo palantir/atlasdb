@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
+import com.palantir.atlasdb.persist.api.ReusablePersister;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
@@ -447,6 +448,8 @@ public class TableDefinition extends AbstractDefinition {
             return ColumnValueDescription.forProtoMessage(protoOrPersistable, compression);
         } else if (Persister.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersister(protoOrPersistable, compression);
+        } else if (ReusablePersister.class.isAssignableFrom(protoOrPersistable)) {
+            return ColumnValueDescription.forReusablePersister(protoOrPersistable, compression);
         } else if (Persistable.class.isAssignableFrom(protoOrPersistable)) {
             return ColumnValueDescription.forPersistable(protoOrPersistable, compression);
         } else {

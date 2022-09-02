@@ -19,13 +19,13 @@ import com.datastax.driver.core.exceptions.DriverInternalError;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -59,6 +59,8 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingReques
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
@@ -70,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.RowColumnRangeExtractor.RowColumnRangeResult;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -132,6 +135,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import one.util.streamex.EntryStream;
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -618,7 +622,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
-                            + hostAndRows.getKey(),
+                            + hostAndRows.getKey().cassandraHostName(),
                     () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
@@ -657,7 +661,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
             throws Exception {
 
-        final ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = LinkedListMultimap.create();
+        ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = ArrayListMultimap.create(rows.size(), 1);
 
         List<KeyPredicate> query = rows.stream()
                 .map(row -> keyPredicate(
@@ -666,17 +670,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
-            ListMultimap<ByteBuffer, ColumnOrSuperColumn> partialResult = KeyedStream.stream(
-                            getForKeyPredicates(host, tableRef, query, startTs))
-                    .filter(cells -> !cells.isEmpty())
-                    .flatMap(Collection::stream)
-                    .collectToMultimap(LinkedListMultimap::create);
-
-            result.putAll(partialResult);
-
-            query = KeyedStream.stream(Multimaps.asMap(partialResult))
-                    .map((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
-                    .values()
+            query = EntryStream.of(getForKeyPredicates(host, tableRef, query, startTs))
+                    .filterValues(cells -> !cells.isEmpty())
+                    .peekKeyValue(result::putAll)
+                    .mapKeyValue((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
                     .collect(Collectors.toList());
         }
 
@@ -875,7 +872,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
-                            + hostAndRows.getKey(),
+                            + hostAndRows.getKey().cassandraHostName(),
                     () -> getRowsColumnRangeIteratorForSingleHost(
                             hostAndRows.getKey(),
                             tableRef,
@@ -899,7 +896,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         try {
-            RowColumnRangeExtractor.RowColumnRangeResult firstPage =
+            RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, batchColumnRangeSelection, startTs);
 
             Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
@@ -953,7 +950,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(
+    private RowColumnRangeResult getRowsColumnRangeForSingleHost(
             CassandraServer host,
             TableReference tableRef,
             List<byte[]> rows,
@@ -961,12 +958,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             long startTs) {
         try {
             return clientPool.runWithRetryOnServer(
-                    host,
-                    new FunctionCheckedException<
-                            CassandraClient, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
+                    host, new FunctionCheckedException<CassandraClient, RowColumnRangeResult, Exception>() {
                         @Override
-                        public RowColumnRangeExtractor.RowColumnRangeResult apply(CassandraClient client)
-                                throws Exception {
+                        public RowColumnRangeResult apply(CassandraClient client) throws Exception {
                             Range range = createColumnRange(
                                     batchColumnRangeSelection.getStartCol(),
                                     batchColumnRangeSelection.getEndCol(),
@@ -982,10 +976,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     pred,
                                     readConsistencyProvider.getConsistency(tableRef));
 
-                            RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
-                            extractor.extractResults(rows, results, startTs);
-
-                            return extractor.getRowColumnRangeResult();
+                            return RowColumnRangeExtractor.extract(rows, results, startTs, metricsManager);
                         }
 
                         @Override
@@ -1006,7 +997,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             byte[] row,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
-        return ClosableIterators.wrap(
+        return ClosableIterators.wrapWithEmptyClose(
                 new AbstractPagingIterable<
                         Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override
@@ -1057,14 +1048,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             return SimpleTokenBackedResultsPage.create(
                                                     startCol, ImmutableList.of(), false);
                                         }
-                                        RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
-                                        extractor.extractResults(ImmutableList.of(row), results, startTs);
-                                        RowColumnRangeExtractor.RowColumnRangeResult decoded =
-                                                extractor.getRowColumnRangeResult();
 
                                         // May be empty if all results are at ts > startTs
-                                        Map<Cell, Value> ret =
-                                                decoded.getResults().getOrDefault(row, Collections.emptyMap());
+                                        Map<Cell, Value> ret = RowColumnRangeExtractor.extract(
+                                                        ImmutableList.of(row), results, startTs, metricsManager)
+                                                .getResults()
+                                                .getOrDefault(row, Collections.emptyMap());
                                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn())
                                                 .getLhSide();
@@ -1211,7 +1200,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             final Set<TableReference> tableRefs = extractTableNames(batch);
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
-                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
+                    "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on "
+                            + host.cassandraHostName(),
                     () -> multiPutForSingleHostInternal(host, tableRefs, batch, timestamp)));
         }
         return tasks;
@@ -1977,6 +1967,56 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    /**
+     * Performs a check-and-set for multiple cells in a row into the key-value store.
+     * Please see {@link MultiCheckAndSetRequest} for information about how to create this request,
+     * and {@link KeyValueService} for more detailed documentation.
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     * If the old cells initially did not have the values you expected, none of the cells will be updated and
+     * {@link MultiCheckAndSetException} will be thrown.
+     *
+     * Another thing to note is that the check operation will **only be performed on values of cells that are declared
+     * in the set of expected values** i.e. the check operation DOES NOT take updates into account.
+     *
+     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
+     *
+     * @param request the request, including table, rowName, old values and new values.
+     * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
+     */
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        TableReference tableRef = request.tableRef();
+        ByteBuffer row = ByteBuffer.wrap(request.rowName());
+
+        List<Column> oldCol = request.expected().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        List<Column> newCol = request.updates().entrySet().stream()
+                .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                .collect(Collectors.toList());
+        try {
+            CASResult casResult = clientPool.runWithRetry(client ->
+                    client.cas(tableRef, row, oldCol, newCol, ConsistencyLevel.SERIAL, ConsistencyLevel.EACH_QUORUM));
+            if (!casResult.isSuccess()) {
+                Map<Cell, byte[]> currentValues = KeyedStream.of(casResult.getCurrent_values())
+                        .mapKeys(column -> Cell.create(
+                                request.rowName(), CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
+                        .map(Column::getValue)
+                        .collectToMap();
+
+                throw new MultiCheckAndSetException(
+                        LoggingArgs.tableRef(tableRef), request.rowName(), request.expected(), currentValues);
+            }
+        } catch (MultiCheckAndSetException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error while executing multi-checkAndSet operation.", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }

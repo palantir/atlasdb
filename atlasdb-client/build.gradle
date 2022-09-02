@@ -68,26 +68,25 @@ dependencies {
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.hdrhistogram:HdrHistogram'
-  implementation 'org.rocksdb:rocksdbjni'
+  implementation 'org.xerial.snappy:snappy-java'
   implementation project(':atlasdb-autobatch')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
-  implementation (group: 'org.xerial.snappy', name: 'snappy-java', version: libVersions.snappy)
-  implementation (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
+  implementation ('com.palantir.tritium:tritium-caffeine') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-registry') {
+  implementation ('com.palantir.tritium:tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-metrics') {
+  implementation ('com.palantir.tritium:tritium-metrics') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  implementation (group: 'com.palantir.tritium', name: 'tritium-lib') {
+  implementation ('com.palantir.tritium:tritium-lib') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
@@ -108,7 +107,7 @@ dependencies {
 
   testImplementation 'junit:junit'
   testImplementation 'org.mockito:mockito-core'
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
   testImplementation 'ch.qos.logback:logback-classic'

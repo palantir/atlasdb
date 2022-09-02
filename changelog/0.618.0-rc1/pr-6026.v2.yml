@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Transactions_3 now has proper concurrency controls when reading a staging
+    value.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6026

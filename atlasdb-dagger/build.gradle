@@ -4,7 +4,7 @@ apply from: '../gradle/shared.gradle'
 
 dependencies {
   api project(':atlasdb-service')
-  implementation group: 'com.google.dagger', name: 'dagger'
+  implementation 'com.google.dagger:dagger'
 
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
@@ -23,10 +23,13 @@ dependencies {
   implementation project(':lock-impl')
   implementation project(':timestamp-api')
 
-  annotationProcessor group: 'com.google.dagger', name: 'dagger-compiler'
+  annotationProcessor 'com.google.dagger:dagger-compiler'
   compileOnly 'com.google.dagger:dagger-compiler'
-  annotationProcessor group: 'org.immutables', name: 'value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
+
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.assertj:assertj-core'
 
   shadow project(':atlasdb-service')
 }
@@ -38,7 +41,7 @@ shadowJar {
   relocate('dagger', 'com.palantir.atlasdb.shaded.dagger')
 
   dependencies {
-    include dependency(group: 'com.google.dagger', name: 'dagger')
+    include dependency('com.google.dagger:dagger')
   }
 }
 

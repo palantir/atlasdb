@@ -50,6 +50,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -87,6 +89,7 @@ import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -346,14 +349,25 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes(ROW), row.getBytes(COL));
+
+                TraceStatistics.incBytesRead(cell.getRowName().length);
+                TraceStatistics.incBytesRead(cell.getColumnName().length);
+
                 Long overflowId = hasOverflow ? row.getLongObject("overflow") : null;
                 if (overflowId == null) {
                     Value value = Value.create(row.getBytes(VAL), row.getLong(TIMESTAMP));
+
+                    TraceStatistics.incBytesRead(value.getContents().length);
+
                     Value oldValue = results.put(cell, value);
                     if (oldValue != null && oldValue.getTimestamp() > value.getTimestamp()) {
                         results.put(cell, oldValue);
                     }
                 } else {
+                    // Note: the bytes read for overflow values are tracked when fetching the actual value, this
+                    // just pulls a pointer out of the DB (two longs)
+                    TraceStatistics.incBytesRead(2 * 8);
+
                     OverflowValue ov = ImmutableOverflowValue.of(row.getLong(TIMESTAMP), overflowId);
                     OverflowValue oldOv = overflowResults.put(cell, ov);
                     if (oldOv != null && oldOv.ts() > ov.ts()) {
@@ -564,6 +578,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         }
     }
 
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        throw new UnsupportedOperationException("DbKvs does not support multi-checkAndSet operation!");
+    }
+
     private void executeCheckAndSet(CheckAndSetRequest request) {
         Preconditions.checkArgument(request.oldValue().isPresent());
 
@@ -639,7 +658,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return ClosableIterators.wrap(getRangeStrategy.getRange(tableRef, rangeRequest, timestamp));
+        return ClosableIterators.wrapWithEmptyClose(getRangeStrategy.getRange(tableRef, rangeRequest, timestamp));
     }
 
     public void setMaxRangeOfTimestampsBatchSize(long newValue) {
@@ -714,13 +733,13 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                         return getTimestampsPage(tableRef, newRange, timestamp, maxRangeOfTimestampsBatchSize, token);
                     }
                 };
-        return ClosableIterators.wrap(rows.iterator());
+        return ClosableIterators.wrapWithEmptyClose(rows.iterator());
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
-        return ClosableIterators.wrap(
+        return ClosableIterators.wrapWithEmptyClose(
                 getCandidateCellsForSweepingStrategy.getCandidateCellsForSweeping(tableRef, request));
     }
 
@@ -922,7 +941,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
             TableReference tableRef, byte[] row, BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         List<byte[]> rowList = ImmutableList.of(row);
-        return ClosableIterators.wrap(
+        return ClosableIterators.wrapWithEmptyClose(
                 new AbstractPagingIterable<
                         Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override
@@ -1084,6 +1103,10 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             Cell cell = entry.getKey();
             OverflowValue ov = entry.getValue();
             byte[] val = resolvedOverflowValues.get(ov.id());
+
+            // Track the loading of the overflow values (used e.g. by Oracle for large values)
+            TraceStatistics.incBytesRead(val);
+
             com.google.common.base.Preconditions.checkNotNull(
                     val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
             values.put(cell, Value.create(val, ov.ts()));

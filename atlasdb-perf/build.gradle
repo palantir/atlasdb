@@ -10,7 +10,7 @@ schemas = ['com.palantir.atlasdb.performance.schema.StreamTestSchema']
 configurations.all {
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
         if (details.requested.group == 'com.google.code.findbugs' && details.requested.name == 'annotations') {
-            details.useTarget group: 'com.google.code.findbugs', name: 'findbugs-annotations', version: '3.0.1'
+            details.useTarget 'com.google.code.findbugs:findbugs-annotations', version: '3.0.1'
         }
     }
 }

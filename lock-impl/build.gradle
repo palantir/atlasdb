@@ -32,7 +32,7 @@ dependencies {
   testImplementation project(':commons-executors')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
 

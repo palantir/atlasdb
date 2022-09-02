@@ -13,40 +13,41 @@ com.google.auto.service:auto-service-annotations = 1.0
 com.google.auto:auto-common = 1.2.1
 com.google.code.findbugs:findbugs-annotations = 3.0.1
 com.google.code.findbugs:jsr305 = 3.0.2
-com.google.dagger:* = 2.42
+com.google.dagger:* = 2.43.2
 # Ksp version is temporary, can be removed once Maven calms down.
 com.google.devtools.ksp:symbol-processing-api = 1.5.21-1.0.0-beta07
 com.google.errorprone:* = 2.10.0 # upgrading to 2.11.0 is blocked by a google bug
 com.google.errorprone:error_prone_annotations = 2.10.0
 com.google.guava:* = 31.1-jre
-com.google.protobuf:protobuf-java = 3.21.1
+com.google.protobuf:* = 3.21.4
 com.googlecode.protobuf-java-format:* = 1.4
 com.lmax:disruptor = 3.4.2
-com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
 com.palantir.common:streams = 2.0.0
 com.palantir.config.crypto:* = 4.0.0
-com.palantir.conjure.java.api:* = 2.25.0
+com.palantir.conjure.java.api:* = 2.27.0
 com.palantir.conjure.java.runtime:* = 7.33.0
-com.palantir.conjure.java:* = 6.50.0
+com.palantir.conjure.java:* = 6.56.0
 com.palantir.conjure:conjure = 4.31.0
-com.palantir.dialogue:* = 3.61.0
+com.palantir.dialogue:* = 3.65.0
 com.palantir.docker.compose:docker-compose-rule* = 1.8.0
 com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
-com.palantir.goethe:* = 0.7.0
+com.palantir.goethe:* = 0.8.0
 com.palantir.nylon:* = 0.3.0
 com.palantir.refreshable:refreshable = 2.2.0
-com.palantir.safe-logging:* = 1.26.0
+com.palantir.safe-logging:* = 3.0.0
 com.palantir.sls.versions:* = 1.4.0
-com.palantir.tracing:* = 6.11.0
-com.palantir.tritium:* = 0.48.0
+com.palantir.tracing:* = 6.12.0
+com.palantir.tritium:* = 0.51.0
 com.squareup:javapoet = 1.13.0
 com.zaxxer:HikariCP = 5.0.1
+commons-cli:* = 1.5.0
 commons-codec:* = 1.15
+commons-dbutils:* = 1.7
 commons-io:* = 2.11.0
 io.airlift:airline = 0.9
 io.dropwizard:* = 2.0.2
-io.netty:* = 4.1.77.Final
-io.undertow:undertow-core = 2.2.17.Final
+io.netty:* = 4.1.79.Final
+io.undertow:undertow-core = 2.2.18.Final
 io.vavr:* = 0.10.4
 joda-time:joda-time = 2.10.14
 junit:junit = 4.13.2
@@ -60,20 +61,22 @@ org.assertj:assertj-guava = 3.4.0
 org.awaitility:awaitility = 4.2.0
 org.clojure:clojure = 1.8.0
 org.derive4j:* = 1.1.1
-org.eclipse.collections:* = 11.0.0
+org.eclipse.collections:* = 11.1.0
 org.freemarker:freemarker = 2.3.31
+org.gmock:* = 0.8.3
 org.immutables:* = 2.8.8
-org.jboss.marshalling:jboss-marshalling = 2.0.12.Final
+org.jboss.marshalling:jboss-marshalling = 2.1.0.Final
 org.jboss.threads:jboss-threads = 3.4.2.Final
-org.jdbi:* = 3.13.0
+org.jdbi:* = 3.30.0
 org.jmock:jmock* = 2.12.0
-org.mindrot:jbcrypt = 0.3m
+org.mindrot:jbcrypt = 0.4
 org.mockito:mockito-* = 4.6.1
 org.openjdk.jmh:* = 1.35
 org.reflections:reflections = 0.10.2
-org.rocksdb:rocksdbjni = 7.3.1
+org.rocksdb:rocksdbjni = 7.4.4
 org.slf4j:* = 1.7.36
 org.wildfly.common:wildfly-common = 1.6.0.Final
+org.xerial.snappy:snappy-java = 1.1.1.7
 org.xerial:sqlite-jdbc = 3.36.0
 org.yaml:snakeyaml = 1.30
 uk.org.lidalia:slf4j-test = 1.1.0
@@ -81,7 +84,14 @@ uk.org.lidalia:slf4j-test = 1.1.0
 # Manually upgraded versions
 # dependency-upgrader:OFF
 
+# Database drivers can have unexpected breaking changes and should be upgraded with caution
+com.datastax.cassandra:cassandra-driver-core = 3.8.0
+com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
+com.palantir.cassandra:* = 2.2.13-1.6.0
+org.postgresql:postgresql = 42.4.1
+
 # transitive dep with API breaks in 0.14.0
 org.apache.thrift:libthrift = 0.12.0
+
 # Large internal product uses 2.x
 org.codehaus.groovy:* = 2.5.14

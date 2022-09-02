@@ -16,61 +16,16 @@
 
 package com.palantir.atlasdb.tracing;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CompileTimeConstant;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.logging.LoggingArgs;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.tracing.CloseableTracer;
-import com.palantir.tracing.TagTranslator;
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public interface Tracing {
 
+    @MustBeClosed
     static CloseableTracer startLocalTrace(
             @CompileTimeConstant final String operation, Consumer<TagConsumer> tagTranslator) {
         return CloseableTracer.startSpan(operation, FunctionalTagTranslator.INSTANCE, tagTranslator);
-    }
-
-    interface TagConsumer extends BiConsumer<String, String> {
-        default void tableRef(TableReference tableReference) {
-            accept("table", LoggingArgs.safeTableOrPlaceholder(tableReference).toString());
-        }
-
-        default void timestamp(long ts) {
-            accept("ts", Long.toString(ts));
-        }
-
-        default void size(@CompileTimeConstant final String name, Iterable<?> iterable) {
-            integer(name, Iterables.size(iterable));
-        }
-
-        default void size(@CompileTimeConstant final String name, Collection<?> collection) {
-            integer(name, collection.size());
-        }
-
-        default void size(@CompileTimeConstant final String name, Map<?, ?> map) {
-            integer(name, map.size());
-        }
-
-        default void size(@CompileTimeConstant final String name, Multimap<?, ?> multiMap) {
-            integer(name, multiMap.size());
-        }
-
-        default void integer(@CompileTimeConstant final String name, int value) {
-            accept(name, Integer.toString(value));
-        }
-    }
-
-    enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
-        INSTANCE;
-
-        @Override
-        public <T> void translate(TagAdapter<T> adapter, T target, Consumer<TagConsumer> data) {
-            data.accept((key, value) -> adapter.tag(target, key, value));
-        }
     }
 }

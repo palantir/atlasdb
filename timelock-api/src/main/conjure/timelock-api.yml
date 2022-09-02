@@ -62,13 +62,26 @@ types:
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      ConjureSingleTimestamp:
+        alias: Long
+      ConjureTimestampRange:
+        fields:
+          start: Long
+          count: Long
+        docs: |
+          A contiguous range of timestamps, covering the range [start, start + count). This format is chosen to balance
+          efficiency and readability.
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer
+      ConjureGetFreshTimestampsRequestV2:
+        alias: integer
       ConjureGetFreshTimestampsResponse:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+      ConjureGetFreshTimestampsResponseV2:
+        alias: ConjureTimestampRange
       ConjureLockDescriptor:
         alias: binary
       ConjureLockRequest:
@@ -80,6 +93,8 @@ types:
       ConjureLockToken:
         fields:
           requestId: uuid
+      ConjureLockTokenV2:
+        alias: uuid
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
@@ -106,6 +121,16 @@ types:
       ConjureUnlockResponse:
         fields:
           tokens: set<ConjureLockToken>
+      ConjureRefreshLocksRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureRefreshLocksResponseV2:
+        fields:
+          refreshedTokens: set<ConjureLockTokenV2>
+          lease: Lease
+      ConjureUnlockRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureUnlockResponseV2:
+        alias: set<ConjureLockTokenV2>
       GetCommitTimestampsRequest:
         fields:
           numTimestamps: integer
@@ -114,6 +139,13 @@ types:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+          lockWatchUpdate: LockWatchStateUpdate
+      GetCommitTimestampRequest:
+        fields:
+          lastKnownVersion: optional<ConjureIdentifiedVersion>
+      GetCommitTimestampResponse:
+        fields:
+          timestamp: Long
           lockWatchUpdate: LockWatchStateUpdate
       LockWatchRequest:
         fields:
@@ -232,6 +264,17 @@ services:
           namespace: string
           request: ConjureGetFreshTimestampsRequest
         returns: ConjureGetFreshTimestampsResponse
+      getFreshTimestampsV2:
+        http: POST /t2/{namespace}
+        args:
+          namespace: string
+          request: ConjureGetFreshTimestampsRequestV2
+        returns: ConjureGetFreshTimestampsResponseV2
+      getFreshTimestamp:
+        http: POST /ts1/{namespace}
+        args:
+          namespace: string
+        returns: ConjureSingleTimestamp
       leaderTime:
         http: POST /lt/{namespace}
         args:
@@ -255,12 +298,24 @@ services:
           namespace: string
           request: ConjureRefreshLocksRequest
         returns: ConjureRefreshLocksResponse
+      refreshLocksV2:
+        http: POST /rl2/{namespace}
+        args:
+          namespace: string
+          request: ConjureRefreshLocksRequestV2
+        returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
         args:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
+      unlockV2:
+        http: POST /ul2/{namespace}
+        args:
+          namespace: string
+          request: ConjureUnlockRequestV2
+        returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:
@@ -270,6 +325,12 @@ services:
         docs: |
           Batched endpoint for acquiring commit timestamps (a list of fresh timestamps) and the list of all lock watch
           events since the last known version up to after the commit timestamps have been issued.
+      getCommitTimestamp:
+        http: POST /g1ct/{namespace}
+        args:
+          namespace: string
+          request: GetCommitTimestampRequest
+        returns: GetCommitTimestampResponse
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -326,3 +387,10 @@ services:
         returns: map<Namespace, GetCommitTimestampsResponse>
         docs: |
           Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
+      unlock:
+        http: POST /ul
+        args:
+          requests: map<Namespace, ConjureUnlockRequestV2>
+        returns: map<Namespace, ConjureUnlockResponseV2>
+        docs: |
+          Version of unlockV2 to unlock locks across multiple namespaces.

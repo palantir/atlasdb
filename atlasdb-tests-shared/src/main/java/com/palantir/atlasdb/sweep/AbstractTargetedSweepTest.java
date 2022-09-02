@@ -114,6 +114,25 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         completeSweep(null, 160);
     }
 
+    @Test
+    public void conservativeSweepRecordsLastSeenCommitTs() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 50);
+        put(TABLE_NAME, TEST_CELL, NEW_VALUE, 150);
+
+        completeSweep(null, 90);
+        assertThat(getValue(TABLE_NAME, 110)).isEqualTo(Value.create(PtBytes.toBytes(OLD_VALUE), 50));
+        assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
+        assertThat(getLastSeenCommitTimestamp()).hasValue(50L);
+
+        completeSweep(null, 160);
+        assertThat(getValue(TABLE_NAME, 110))
+                .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
+        assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
+        assertThat(getLastSeenCommitTimestamp()).hasValue(150L);
+    }
+
     private Value getValue(TableReference tableRef, long ts) {
         return kvs.get(tableRef, ImmutableMap.of(TEST_CELL, ts)).get(TEST_CELL);
     }

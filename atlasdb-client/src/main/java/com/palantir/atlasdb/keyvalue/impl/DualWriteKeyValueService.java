@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -29,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -123,6 +126,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        delegate1.multiCheckAndSet(multiCheckAndSetRequest);
+    }
+
+    @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         delegate1.delete(tableRef, keys);
         delegate2.delete(tableRef, keys);
@@ -158,6 +166,7 @@ public class DualWriteKeyValueService implements KeyValueService {
         delegate2.truncateTables(tableRefs);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
@@ -222,12 +231,14 @@ public class DualWriteKeyValueService implements KeyValueService {
         return delegate1.getAllTimestamps(tableRef, cells, timestamp);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {

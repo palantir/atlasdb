@@ -93,7 +93,6 @@ public final class AtlasDbConstants {
 
     public static final int DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS = 10;
 
-    public static final long STARTING_TS = 1L;
     public static final long TRANSACTION_TS = 0L;
     public static final long MAX_TS = Long.MAX_VALUE;
 
@@ -105,6 +104,8 @@ public final class AtlasDbConstants {
     public static final ImmutableSet<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
+            TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE,
+            TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,
@@ -123,6 +124,7 @@ public final class AtlasDbConstants {
     public static final ImmutableSet<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             TransactionConstants.TRANSACTIONS2_TABLE,
+            TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);
@@ -134,11 +136,11 @@ public final class AtlasDbConstants {
      *
      * Where applicable, tables in this set should ideally not be read frequently. Implementers are encouraged to
      * provide alternative solutions in cases where the tables are read frequently and/or read performance is
-     * critical. See ResilientCommitTimestampPutUnlessExistsTable for an example of how to work around such
+     * critical. See ResilientCommitTimestampAtomicTable for an example of how to work around such
      * limitations for the {@link TransactionConstants#TRANSACTIONS2_TABLE}.
      */
     public static final ImmutableSet<TableReference> SERIAL_CONSISTENCY_ATOMIC_TABLES =
-            ImmutableSet.of(COORDINATION_TABLE);
+            ImmutableSet.of(COORDINATION_TABLE, TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE);
 
     /**
      * These tables are atomic tables, but are not intended to be read in a high-cost mode. The intention of this set
@@ -176,7 +178,6 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_WRITE_THRESHOLD = 1 << 12;
     public static final long DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 25;
 
-    public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = true;
     public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = true;
     public static final int LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS = 1;
     public static final int DEFAULT_TARGETED_SWEEP_SHARDS = 16;
@@ -198,4 +199,6 @@ public final class AtlasDbConstants {
     public static final int TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT = 50_000;
 
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
+
+    public static final long ABORTED_TIMESTAMPS_BUCKET_SIZE = 1_000_000;
 }

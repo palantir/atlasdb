@@ -16,8 +16,9 @@
 
 package com.palantir.lock.client;
 
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -64,9 +65,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchersFactory batcherFactory) {
+            RequestBatchersFactory batcherFactory,
+            LockTokenUnlocker unlocker) {
         this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter);
+        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter, unlocker);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
         this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
         this.conjureTimelockService = conjureTimelockService;
@@ -81,20 +83,22 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
-                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()));
+                RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()),
+                new LegacyLockTokenUnlocker(conjureClient));
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
-            RequestBatchersFactory batcherFactory) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory);
+            RequestBatchersFactory batcherFactory,
+            LockTokenUnlocker unlocker) {
+        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory, unlocker);
     }
 
     @Override
     public long getFreshTimestamp() {
-        return getFreshTimestamps(1).getLowerBound();
+        return conjureTimelockService.getFreshTimestamp().get();
     }
 
     @Override
@@ -104,9 +108,10 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        ConjureGetFreshTimestampsResponse response =
-                conjureTimelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(numTimestampsRequested));
-        return TimestampRange.createInclusiveRange(response.getInclusiveLower(), response.getInclusiveUpper());
+        ConjureGetFreshTimestampsResponseV2 response = conjureTimelockService.getFreshTimestampsV2(
+                ConjureGetFreshTimestampsRequestV2.of(numTimestampsRequested));
+        ConjureTimestampRange timestampRange = response.get();
+        return TimestampRange.createRangeFromDeltaEncoding(timestampRange.getStart(), timestampRange.getCount());
     }
 
     @Override

@@ -1,0 +1,13 @@
+apply plugin: 'com.google.protobuf'
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.21.3'
+    }
+}
+
+dependencies {
+    api 'com.google.protobuf:protobuf-java'
+}
+
+project.tasks.idea.dependsOn('generateProto')

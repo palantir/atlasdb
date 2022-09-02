@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: '[PDS-270677] | Actually log the current perceived Timelock config
+    when encountering unknown remote exception.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6102

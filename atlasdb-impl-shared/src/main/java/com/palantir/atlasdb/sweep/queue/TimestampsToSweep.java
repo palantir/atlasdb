@@ -24,12 +24,15 @@ public interface TimestampsToSweep {
 
     long maxSwept();
 
+    long lastSeenCommitTs();
+
     boolean processedAll();
 
-    static TimestampsToSweep of(SortedSet<Long> list, long max, boolean processedAll) {
+    static TimestampsToSweep of(SortedSet<Long> list, long max, long lastSeenCommitTs, boolean processedAll) {
         return ImmutableTimestampsToSweep.builder()
                 .timestampsDescending(list)
                 .maxSwept(max)
+                .lastSeenCommitTs(lastSeenCommitTs)
                 .processedAll(processedAll)
                 .build();
     }

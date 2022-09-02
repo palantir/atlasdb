@@ -81,14 +81,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractKeyValueServiceTest {
     private final KvsManager kvsManager;
 
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
+    protected static final Cell TEST_CELL = Cell.create(row(0), column(0));
+
     private static final TableReference TEST_NONEXISTING_TABLE =
             TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
 
-    private static final Cell TEST_CELL = Cell.create(row(0), column(0));
     private static final long TEST_TIMESTAMP = 1000000L;
     private final Function<KeyValueService, KeyValueService> keyValueServiceWrapper;
 
@@ -1407,9 +1409,17 @@ public abstract class AbstractKeyValueServiceTest {
 
         RangeRequest range = RangeRequest.all().withBatchHint(2);
         List<RowResult<Set<Long>>> results =
-                ImmutableList.copyOf(keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
+                getRangeOfTimestamps(keyValueService, TEST_TABLE, range, TEST_TIMESTAMP + 1);
         assertThat(results).hasSize(1).first().extracting(RowResult::getRowName).isEqualTo(row(0));
         assertThat(results.get(0).getOnlyColumnValue()).first().isEqualTo(TEST_TIMESTAMP);
+    }
+
+    private static List<RowResult<Set<Long>>> getRangeOfTimestamps(
+            KeyValueService keyValueService, TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+        try (ClosableIterator<RowResult<Set<Long>>> iterator =
+                keyValueService.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
+            return ImmutableList.copyOf(iterator);
+        }
     }
 
     @Test
@@ -1430,7 +1440,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .endRowExclusive(row(2))
                 .build();
         List<RowResult<Set<Long>>> results =
-                ImmutableList.copyOf(keyValueService.getRangeOfTimestamps(TEST_TABLE, range, TEST_TIMESTAMP + 1));
+                getRangeOfTimestamps(keyValueService, TEST_TABLE, range, TEST_TIMESTAMP + 1);
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getRowName()).isEqualTo(row(1));
     }
@@ -1605,19 +1615,21 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(timestamps).hasSize(1);
         assertThat(timestamps.get(key)).containsExactly(AtlasDbConstants.TRANSACTION_TS);
 
-        ClosableIterator<RowResult<Value>> result =
-                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1);
+        try (ClosableIterator<RowResult<Value>> result =
+                keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.TRANSACTION_TS + 1)) {
 
-        // Check result is right
-        byte[] actual = result.next().getColumns().get(key.getColumnName()).getContents();
-        assertThat(actual)
-                .describedAs(
-                        "Value \"%s\" different from expected \"%s\"",
-                        new String(actual, StandardCharsets.UTF_8), new String(expectedValue, StandardCharsets.UTF_8))
-                .isEqualTo(expectedValue);
+            // Check result is right
+            byte[] actual = result.next().getColumns().get(key.getColumnName()).getContents();
+            assertThat(actual)
+                    .describedAs(
+                            "Value \"%s\" different from expected \"%s\"",
+                            new String(actual, StandardCharsets.UTF_8),
+                            new String(expectedValue, StandardCharsets.UTF_8))
+                    .isEqualTo(expectedValue);
 
-        // Check no more results
-        assertThat(result).isExhausted();
+            // Check no more results
+            assertThat(result).isExhausted();
+        }
     }
 
     @Test
@@ -1733,9 +1745,12 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testGetRangeOfTimestampsThrowsOnError() {
-        assertThatThrownBy(() -> keyValueService
-                        .getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)
-                        .hasNext())
+        assertThatThrownBy(() -> {
+                    try (ClosableIterator<RowResult<Set<Long>>> iterator = keyValueService.getRangeOfTimestamps(
+                            TEST_NONEXISTING_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)) {
+                        iterator.hasNext();
+                    }
+                })
                 .describedAs("getRangeOfTimestamps must throw on failure")
                 .isInstanceOf(RuntimeException.class);
     }
@@ -1924,7 +1939,7 @@ public abstract class AbstractKeyValueServiceTest {
         return PtBytes.toBytes("column" + number);
     }
 
-    private static byte[] val(int row, int col) {
+    protected static byte[] val(int row, int col) {
         return PtBytes.toBytes("value" + row + col);
     }
 

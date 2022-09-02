@@ -4,9 +4,9 @@ dependencies {
     implementation project(':lock-impl')
     implementation project(':leader-election-impl')
     implementation project(':atlasdb-config')
-    implementation group: 'jakarta.inject', name: 'jakarta.inject-api'
+    implementation 'jakarta.inject:jakarta.inject-api'
 
-    testImplementation group: 'org.mockito', name: 'mockito-core'
+    testImplementation 'org.mockito:mockito-core'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -29,5 +29,5 @@ dependencies {
     testImplementation project(':atlasdb-client')
 
     // Needed for Jersey Response-based tests
-    testImplementation group: 'org.glassfish.jersey.core', name: 'jersey-common'
+    testImplementation 'org.glassfish.jersey.core:jersey-common'
 }

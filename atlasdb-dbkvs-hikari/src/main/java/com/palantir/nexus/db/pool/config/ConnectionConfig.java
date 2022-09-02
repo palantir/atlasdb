@@ -149,6 +149,12 @@ public abstract class ConnectionConfig {
         return new Properties();
     }
 
+    /**
+     * Please refer to <a href="https://github.com/brettwooldridge/HikariCP#infrequently-used">HikariCP</a>
+     * before overriding.
+     * */
+    public abstract Optional<Long> initializeFailTimeoutMillis();
+
     @JsonIgnore
     @Value.Lazy
     public HikariConfig getHikariConfig() {
@@ -159,7 +165,7 @@ public abstract class ConnectionConfig {
 
         config.setPoolName(getConnectionPoolName());
         config.setRegisterMbeans(true);
-        config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
+        config.setMetricRegistry(SharedMetricRegistries.tryGetDefault());
 
         config.setMinimumIdle(getMinConnections());
         config.setMaximumPoolSize(getMaxConnections());
@@ -173,6 +179,8 @@ public abstract class ConnectionConfig {
         //   - connectionTimeout = how long to wait for a connection to be opened.
         // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
+
+        initializeFailTimeoutMillis().ifPresent(config::setInitializationFailTimeout);
 
         if (getTestQuery() != null && !getTestQuery().isEmpty()) {
             config.setConnectionTestQuery(getTestQuery());

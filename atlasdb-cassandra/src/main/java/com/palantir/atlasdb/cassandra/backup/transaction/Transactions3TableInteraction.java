@@ -25,13 +25,15 @@ import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.Bytes;
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.cassandra.backup.CqlSession;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CellValuePutter;
-import com.palantir.atlasdb.pue.PutUnlessExistsValue;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -40,9 +42,11 @@ import java.util.stream.Collectors;
 
 public class Transactions3TableInteraction implements TransactionsTableInteraction {
     private final FullyBoundedTimestampRange timestampRange;
+    private final TwoPhaseEncodingStrategy encodingStrategy;
 
     public Transactions3TableInteraction(FullyBoundedTimestampRange timestampRange) {
         this.timestampRange = timestampRange;
+        this.encodingStrategy = new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
     }
 
     @Override
@@ -83,12 +87,13 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
 
     @Override
     public TransactionTableEntry extractTimestamps(Row row) {
-        long startTimestamp = TwoPhaseEncodingStrategy.INSTANCE.decodeCellAsStartTimestamp(Cell.create(
+        long startTimestamp = encodingStrategy.decodeCellAsStartTimestamp(Cell.create(
                 Bytes.getArray(row.getBytes(CassandraConstants.ROW)),
                 Bytes.getArray(row.getBytes(CassandraConstants.COLUMN))));
-        PutUnlessExistsValue<Long> commitValue = TwoPhaseEncodingStrategy.INSTANCE.decodeValueAsCommitTimestamp(
+        AtomicValue<TransactionStatus> commitValue = encodingStrategy.decodeValueAsCommitStatus(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
-        if (commitValue.value() == TransactionConstants.FAILED_COMMIT_TS) {
+
+        if (commitValue.value() == TransactionConstants.ABORTED) {
             return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
 
@@ -98,7 +103,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     @Override
     public Statement bindCheckStatement(PreparedStatement preparedCheckStatement, TransactionTableEntry entry) {
         long startTs = TransactionTableEntries.getStartTimestamp(entry);
-        Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
+        Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
         BoundStatement bound = preparedCheckStatement.bind(rowKeyBb, columnNameBb);
@@ -111,7 +116,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
     @Override
     public Statement bindAbortStatement(PreparedStatement preparedAbortStatement, TransactionTableEntry entry) {
         long startTs = TransactionTableEntries.getStartTimestamp(entry);
-        Cell cell = TwoPhaseEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
+        Cell cell = encodingStrategy.encodeStartTimestampAsCell(startTs);
         ByteBuffer rowKeyBb = ByteBuffer.wrap(cell.getRowName());
         ByteBuffer columnNameBb = ByteBuffer.wrap(cell.getColumnName());
         BoundStatement bound = preparedAbortStatement.bind(rowKeyBb, columnNameBb);
@@ -123,7 +128,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
 
     @Override
     public List<Statement> createSelectStatementsForScanningFullTimestampRange(TableMetadata transactionsTable) {
-        Set<ByteBuffer> encodedRowKeys = TwoPhaseEncodingStrategy.INSTANCE
+        Set<ByteBuffer> encodedRowKeys = encodingStrategy
                 .encodeRangeOfStartTimestampsAsRows(
                         timestampRange.inclusiveLowerBound(), timestampRange.inclusiveUpperBound())
                 .map(ByteBuffer::wrap)

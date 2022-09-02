@@ -18,12 +18,15 @@ package com.palantir.atlasdb.transaction.encoding;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -83,19 +86,23 @@ public class TicketsEncodingStrategyTest {
         fuzzOneThousandTrials(() -> {
             long startTimestamp = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE - 1);
             long commitTimestamp = ThreadLocalRandom.current().nextLong(startTimestamp, Long.MAX_VALUE);
-            byte[] encoded = STRATEGY.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-            assertThat(STRATEGY.decodeValueAsCommitTimestamp(startTimestamp, encoded))
-                    .isEqualTo(commitTimestamp);
+            byte[] encoded =
+                    STRATEGY.encodeCommitStatusAsValue(startTimestamp, TransactionStatuses.committed(commitTimestamp));
+            assertThat(TransactionStatuses.getCommitTimestamp(
+                            STRATEGY.decodeValueAsCommitStatus(startTimestamp, encoded)))
+                    .hasValue(commitTimestamp);
         });
     }
 
     @Test
     public void storesLargeCommitTimestampsCompactly() {
         long highTimestamp = Long.MAX_VALUE - 1;
-        byte[] commitTimestampEncoding = STRATEGY.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
+        byte[] commitTimestampEncoding =
+                STRATEGY.encodeCommitStatusAsValue(highTimestamp, TransactionStatuses.committed(highTimestamp + 1));
         assertThat(commitTimestampEncoding).hasSize(1);
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
-                .isEqualTo(highTimestamp + 1);
+        assertThat(TransactionStatuses.getCommitTimestamp(
+                        STRATEGY.decodeValueAsCommitStatus(highTimestamp, commitTimestampEncoding)))
+                .hasValue(highTimestamp + 1);
     }
 
     @Test
@@ -144,21 +151,36 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreTransactionsCommittingInstantaneously() {
-        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10L)).doesNotThrowAnyException();
+        assertThatCode(() -> STRATEGY.encodeCommitStatusAsValue(10, TransactionStatuses.committed(10L)))
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void canStoreAbortedTransactionCompactly() {
-        assertThat(STRATEGY.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS))
+        assertThat(STRATEGY.encodeCommitStatusAsValue(537369, TransactionConstants.ABORTED))
                 .hasSize(0);
     }
 
     @Test
+    public void encodingIllegalCommitThrows() {
+        assertThatThrownBy(() -> STRATEGY.encodeCommitStatusAsValue(12327758, TransactionStatuses.inProgress()))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatThrownBy(() -> STRATEGY.encodeCommitStatusAsValue(12327758, TransactionStatuses.unknown()))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
     public void canDecodeEmptyByteArrayAsAbortedTransaction() {
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY))
-                .isEqualTo(-1);
-        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
-                .isEqualTo(-1);
+        assertThat(STRATEGY.decodeValueAsCommitStatus(1, PtBytes.EMPTY_BYTE_ARRAY))
+                .isEqualTo(TransactionConstants.ABORTED);
+        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, PtBytes.EMPTY_BYTE_ARRAY))
+                .isEqualTo(TransactionConstants.ABORTED);
+    }
+
+    @Test
+    public void canDecodeNullAsInProgressTransaction() {
+        assertThat(STRATEGY.decodeValueAsCommitStatus(1, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(STRATEGY.decodeValueAsCommitStatus(862846378267L, null)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
     @Test

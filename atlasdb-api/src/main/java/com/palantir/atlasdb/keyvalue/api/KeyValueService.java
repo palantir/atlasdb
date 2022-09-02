@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
@@ -309,6 +310,25 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
+     * Performs a check-and-set for multiple cells in a row into the key-value store.
+     * Please see {@link MultiCheckAndSetRequest} for information about how to create this request.
+     *
+     * If the call completes successfully, then you know that the old cells initially had the values you expected.
+     * In this case, you can be sure that all your cells have been updated to their new values.
+     * In case of failure, there are no guarantees that the operation was not partially applied but the
+     * implementations may offer such a guarantee.
+     *
+     * If a {@link MultiCheckAndSetException} is thrown, it is likely that the values stored in the cells were not as
+     * you expected.
+     * In this case, you may want to check the stored values and determine why it was different from the expected value.
+     *
+     * @param multiCheckAndSetRequest the request, including table, rowName, old values and new values.
+     * @throws MultiCheckAndSetException if the stored values for the cells were not as expected.
+     */
+    @Timed
+    void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException;
+
+    /**
      * Deletes values from the key-value store.
      * <p>
      * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However it
@@ -424,6 +444,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
+    @MustBeClosed
     ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp);
 
     /**
@@ -447,6 +468,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Idempotent
     @Deprecated
     @Timed
+    @MustBeClosed
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) throws InsufficientConsistencyException;
 
@@ -466,6 +488,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * about batching. The caller can always use Iterators.concat() or similar if this is undesired.
      */
     @Timed
+    @MustBeClosed
     ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request);
 

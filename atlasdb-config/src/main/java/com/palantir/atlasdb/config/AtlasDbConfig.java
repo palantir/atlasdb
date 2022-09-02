@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
+import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -36,7 +38,7 @@ import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
-@JsonIgnoreProperties("enableSweep")
+@JsonIgnoreProperties(value = {"enableSweep", "persistentStorage"})
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
@@ -51,8 +53,6 @@ public abstract class AtlasDbConfig {
     public abstract Optional<ServerListConfig> lock();
 
     public abstract Optional<ServerListConfig> timestamp();
-
-    public abstract Optional<PersistentStorageConfig> persistentStorage();
 
     /**
      * A namespace refers to a String that is used to identify this AtlasDB client to the relevant timestamp, lock and
@@ -303,6 +303,23 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public boolean enableNonstandardAndPossiblyErrorProneTopologyAllowDifferentKvsAndTimelockNamespaces() {
         return false;
+    }
+
+    /**
+     * Configure stack trace collection during timestamp service initialisation. Enabled by default.
+     *
+     * Timestamp service is expected to be initialised only once.
+     * Stack traces are collected and stored in temporary file when
+     * another initialisation occurred to help with debugging.
+     */
+    @Value.Default
+    public boolean collectThreadDumpOnTimestampServiceInit() {
+        return true;
+    }
+
+    @Value.Default
+    public InternalSchemaInstallConfig internalSchema() {
+        return ImmutableInternalSchemaInstallConfig.builder().build();
     }
 
     @Value.Check

@@ -28,11 +28,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
+import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.common.time.NanoTime;
@@ -87,7 +88,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void getFreshTimestampShouldFail() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
         assertThrowsOnSecondCall(this::getFreshTimestamp);
         assertThat(timelockService
                         .getTimestampBounds()
@@ -99,7 +100,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void getFreshTimestampsShouldFail() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
         assertThrowsOnSecondCall(() -> getFreshTimestamps(2));
         assertThat(timelockService
                         .getTimestampBounds()
@@ -152,7 +153,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void startTransactionsThrowsIfSpanningBound() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(10L, 20L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(10L, 20L));
         when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(makeResponse(15L, 30));
         getFreshTimestamps(11);
         assertThat(timelockService
@@ -182,7 +183,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
     public void failsUnderConflictingMixedOperations() {
         ConjureStartTransactionsResponse startTransactionsResponse = makeResponse(1L, 1);
         when(rawTimelockService.startTransactions(startTransactionsRequest)).thenReturn(startTransactionsResponse);
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 2L));
         timelockService.startTransactions(startTransactionsRequest);
         assertThrowsClocksWentBackwardsException(() -> getFreshTimestamps(2));
         assertThat(timelockService.getTimestampBounds().boundFromTransactions().lowerBoundForNextRequest())
@@ -213,7 +214,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
     @Test
     public void resilientUnderMultipleThreads() throws InterruptedException {
         BlockingTimestamp blockingTimestampReturning = new BlockingTimestamp(1);
-        when(rawTimelockService.getFreshTimestamps(any()))
+        when(rawTimelockService.getFreshTimestampsV2(any()))
                 .thenAnswer(blockingTimestampReturning)
                 .thenReturn(getFreshTimestampsResponse(2L, 2L));
 
@@ -221,7 +222,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
         blockingTimestampReturning.waitForFirstCallToBlock();
 
-        assertThat(getFreshTimestamp().getInclusiveLower())
+        assertThat(getFreshTimestamp().get().getStart())
                 .as("This should have updated the lower bound to 2")
                 .isEqualTo(2L);
 
@@ -238,7 +239,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void callbackInvokedMultipleTimesWithMultipleViolations() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
 
         getFreshTimestamp();
         assertThrowsClocksWentBackwardsException(this::getFreshTimestamp);
@@ -253,7 +254,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void metricsSuitablyIncremented() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         timelockService = (TimestampCorroboratingTimelockService)
                 TimestampCorroboratingTimelockService.create(NAMESPACE_1, taggedMetricRegistry, rawTimelockService);
@@ -274,7 +275,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     @Test
     public void metricsNotRegisteredIfNoViolationsDetected() {
-        when(rawTimelockService.getFreshTimestamps(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
+        when(rawTimelockService.getFreshTimestampsV2(any())).thenReturn(getFreshTimestampsResponse(1L, 1L));
         TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         timelockService = (TimestampCorroboratingTimelockService)
                 TimestampCorroboratingTimelockService.create(NAMESPACE_1, taggedMetricRegistry, rawTimelockService);
@@ -283,12 +284,12 @@ public final class TimestampCorroboratingTimelockServiceTest {
         assertThat(taggedMetricRegistry.getMetrics()).isEmpty();
     }
 
-    private ConjureGetFreshTimestampsResponse getFreshTimestamp() {
+    private ConjureGetFreshTimestampsResponseV2 getFreshTimestamp() {
         return getFreshTimestamps(1);
     }
 
-    private ConjureGetFreshTimestampsResponse getFreshTimestamps(int count) {
-        return timelockService.getFreshTimestamps(ConjureGetFreshTimestampsRequest.of(count));
+    private ConjureGetFreshTimestampsResponseV2 getFreshTimestamps(int count) {
+        return timelockService.getFreshTimestampsV2(ConjureGetFreshTimestampsRequestV2.of(count));
     }
 
     private void assertThrowsOnSecondCall(Runnable runnable) {
@@ -302,9 +303,10 @@ public final class TimestampCorroboratingTimelockServiceTest {
                 .hasMessageStartingWith("It appears that clocks went backwards!");
     }
 
-    private static ConjureGetFreshTimestampsResponse getFreshTimestampsResponse(
+    private static ConjureGetFreshTimestampsResponseV2 getFreshTimestampsResponse(
             long startInclusive, long endInclusive) {
-        return ConjureGetFreshTimestampsResponse.of(startInclusive, endInclusive);
+        return ConjureGetFreshTimestampsResponseV2.of(
+                ConjureTimestampRange.of(startInclusive, endInclusive - startInclusive + 1));
     }
 
     private static ConjureStartTransactionsResponse makeResponse(long startTimestamp, int count) {
@@ -320,7 +322,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
                 .build();
     }
 
-    private static final class BlockingTimestamp implements Answer<ConjureGetFreshTimestampsResponse> {
+    private static final class BlockingTimestamp implements Answer<ConjureGetFreshTimestampsResponseV2> {
         private final CountDownLatch returnTimestampLatch = new CountDownLatch(1);
         private final CountDownLatch blockingLatch = new CountDownLatch(1);
 
@@ -331,7 +333,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
         }
 
         @Override
-        public ConjureGetFreshTimestampsResponse answer(InvocationOnMock invocation) throws Throwable {
+        public ConjureGetFreshTimestampsResponseV2 answer(InvocationOnMock invocation) throws Throwable {
             blockingLatch.countDown();
             returnTimestampLatch.await();
             return getFreshTimestampsResponse(timestampToReturn, timestampToReturn);

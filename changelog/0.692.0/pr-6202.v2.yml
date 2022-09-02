@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Use javax.annotation.processing.Generated
+  links:
+  - https://github.com/palantir/atlasdb/pull/6202

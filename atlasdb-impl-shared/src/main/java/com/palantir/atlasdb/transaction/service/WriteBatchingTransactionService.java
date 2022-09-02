@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
@@ -84,6 +85,12 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
+    public void markInProgress(long startTimestamp) {
+
+        delegate.markInProgress(ImmutableSet.of(startTimestamp));
+    }
+
+    @Override
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }
@@ -138,7 +145,7 @@ public final class WriteBatchingTransactionService implements TransactionService
             Map<Long, BatchElement<TimestampPair, Void>> batch =
                     extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
-                delegate.putUnlessExistsMultiple(KeyedStream.stream(batch)
+                delegate.putUnlessExists(KeyedStream.stream(batch)
                         .map(batchElement -> batchElement.argument().commitTimestamp())
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);

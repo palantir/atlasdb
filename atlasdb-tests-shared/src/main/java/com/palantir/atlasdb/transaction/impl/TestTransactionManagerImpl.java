@@ -54,7 +54,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             ImmutableTransactionConfig.builder().build();
 
     private final Map<TableReference, Optional<ConflictHandler>> conflictHandlerOverrides = new HashMap<>();
-    private final WrapperWithTracker<Transaction> transactionWrapper;
+    private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
 
@@ -134,7 +134,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
-            WrapperWithTracker<Transaction> transactionWrapper,
+            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
         super(
                 metricsManager,
@@ -184,7 +184,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    protected Transaction createTransaction(
+    protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,

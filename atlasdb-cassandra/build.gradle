@@ -25,10 +25,10 @@ dependencies {
   explicitShadow project(":atlasdb-processors")
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
-  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift') {
     exclude group: 'org.apache.httpcomponents'
   }
-  explicitShadow ('com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core) {
+  explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
 
@@ -47,6 +47,7 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-metrics'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'
@@ -77,10 +78,10 @@ dependencies {
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':commons-executors')
-  testImplementation(group: 'org.jmock', name: 'jmock') {
+  testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
+  testImplementation ('com.palantir.cassandra:cassandra-thrift') {
     exclude group: 'commons-logging'
     exclude module: 'junit'
     exclude group: 'org.apache.httpcomponents'
@@ -117,7 +118,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.rescue'
         productName = 'rescue'
-        minimumVersion = '4.137.0'
+        minimumVersion = '4.220.0' // transactions3 support
         maximumVersion = '4.x.x'
     }
 

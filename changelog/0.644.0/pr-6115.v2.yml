@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TableReference#hashCode() does not allocate vararg array
+  links:
+  - https://github.com/palantir/atlasdb/pull/6115
