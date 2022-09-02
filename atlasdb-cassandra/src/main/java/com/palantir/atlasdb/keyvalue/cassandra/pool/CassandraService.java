@@ -27,7 +27,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -306,22 +305,17 @@ public class CassandraService implements AutoCloseable {
     }
 
     private int getKnownPort() throws UnknownHostException {
-        ImmutableSet<Integer> allKnownPorts =
-                getAllKnownHosts().stream().map(InetSocketAddress::getPort).collect(ImmutableSet.toImmutableSet());
+        Set<Integer> allKnownPorts = Stream.concat(
+                        currentPools.keySet().stream().map(CassandraServer::proxy),
+                        getServersSocketAddressesFromConfig().stream())
+                .map(InetSocketAddress::getPort)
+                .collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
             return Iterables.getOnlyElement(allKnownPorts);
         } else {
             throw new UnknownHostException("No single known port");
         }
-    }
-
-    private SetView<InetSocketAddress> getAllKnownHosts() {
-        return Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig());
-    }
-
-    private ImmutableSet<InetSocketAddress> getProxiesFromCurrentPool() {
-        return currentPools.keySet().stream().map(CassandraServer::proxy).collect(ImmutableSet.toImmutableSet());
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {
