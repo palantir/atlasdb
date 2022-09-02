@@ -61,9 +61,10 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
 
     /**
      * Returns commit timestamp for the start timestamp supplied as arg.
-     * For transactions that are successfully committed, returns the respective commit timestamps.
+     * For transactions with a known commit timestamp, returns the respective commit timestamps.
      * For transactions that are aborted, returns -1.
-     * For transactions that are unknown, returns startTs as commitTs for read-write transactions.
+     * For transactions that are known ot be committed but have unknown commitTs, returns startTs as commitTs for
+     * read-write transactions.
      * For read-only transactions, only returns if the greatestSeenCommitTS < startTs, otherwise throws.
      * Start timestamps for transactions that are in progress return a void future.
      * */
@@ -101,7 +102,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     }
 
     private Long getCommitTsFromStatus(long startTs, TransactionStatus status) {
-TransactionStatuses.caseOf(status)
+        return TransactionStatuses.caseOf(status)
                 .unknown(() -> getCommitTsForConcludedTransaction(startTs))
                 .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
     }
