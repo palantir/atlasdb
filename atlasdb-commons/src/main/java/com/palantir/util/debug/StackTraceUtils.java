@@ -300,8 +300,29 @@ public final class StackTraceUtils {
             int nextStartingIndex = index + 1;
             index = trace.indexOf("com.palantir", nextStartingIndex);
         }
-        score += POINTS_PER_LINE * trace.chars().filter(x -> x == '\n').sum();
+        score += POINTS_PER_LINE * countNonBlankLines(trace);
         return score;
+    }
+
+    static int countNonBlankLines(String str) {
+        if (str == null || str.isEmpty()) {
+            return 0;
+        }
+
+        int count = 0;
+        int index = 0;
+        int prev = 0;
+
+        while (index != -1) {
+            index = str.indexOf(LINE_ENDING, prev);
+
+            if (index > prev || (index == -1 && prev < str.length())) {
+                count++;
+            }
+
+            prev = index + 1;
+        }
+        return count;
     }
 
     private enum StackTraceComparator implements Comparator<String>, Serializable {
