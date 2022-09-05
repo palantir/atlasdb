@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -47,16 +50,12 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
 
 public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
