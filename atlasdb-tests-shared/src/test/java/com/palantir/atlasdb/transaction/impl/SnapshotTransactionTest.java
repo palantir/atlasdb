@@ -15,24 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -120,6 +102,23 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.commons.lang3.tuple.Pair;
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.jmock.lib.concurrent.Synchroniser;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
+
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -155,22 +154,24 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.commons.lang3.tuple.Pair;
-import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
@@ -1314,15 +1315,66 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
+    public void throwIfTTSBeyondForTTSCell() {
         long transactionTs = timelockService.getFreshTimestamp();
+
+        // configure TTS cell
+        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs)).thenReturn(4);
+
+        // no immutableTs lock for read-only transaction
         LockImmutableTimestampResponse res = LockImmutableTimestampResponse.of(transactionTs, null);
         Transaction transaction = getSnapshotTransaction(
-                timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false, () -> transactionTs + 1);
+                timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true, () -> transactionTs + 1);
 
         assertThatExceptionOfType(SafeIllegalStateException.class)
                 .isThrownBy(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
                 .withMessageContaining("Transactions table has been swept beyond current start timestamp");
+    }
+
+    @Test
+    public void doNotThrowIfTTSBeyondReadOnlyTxnForNonTTSCell() {
+        long transactionTs = timelockService.getFreshTimestamp();
+
+        // configure non TTS cell
+        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs)).thenReturn(3);
+
+        // no immutableTs lock for read-only transaction
+        LockImmutableTimestampResponse res = LockImmutableTimestampResponse.of(transactionTs, null);
+
+        Transaction transaction = getSnapshotTransaction(
+                timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true, () -> transactionTs + 1);
+
+        assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL))).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void doNotThrowIfTTSBeyondReadWriteTxnForTTSCell() {
+        long transactionTs = timelockService.getFreshTimestamp();
+
+        // configure TTS cell
+        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs)).thenReturn(4);
+
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction = getSnapshotTransaction(
+                timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false, () -> transactionTs + 1);
+
+        // the transaction will eventually throw at commit time. In this test we are only concerned with per read validation.
+        assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL))).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void doNotThrowIfTTSBeyondReadWriteTxnForNonTTSCell() {
+        long transactionTs = timelockService.getFreshTimestamp();
+
+        // configure non TTS cell
+        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs)).thenReturn(3);
+
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction = getSnapshotTransaction(
+                timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false, () -> transactionTs + 1);
+
+        // the transaction will eventually throw at commit time. In this test we are only concerned with per read validation.
+        assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL))).doesNotThrowAnyException();
     }
 
     @Test
