@@ -84,7 +84,7 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
 
-//    annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
+    annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
     annotationProcessor 'org.immutables:value'

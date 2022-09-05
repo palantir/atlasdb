@@ -154,20 +154,20 @@ public final class PaxosResourcesFactory {
 
         LeaderAcceptorResource leaderAcceptorResource =
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
-        return null;
-        //        return resourcesBuilder
-        //                .leadershipContextFactory(factory)
-        //                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
-        //                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-        //                .addAdhocResources(
-        //                        leaderAcceptorResource,
-        //                        new
-        // LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-        //                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-        //                .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
-        //                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(),
-        // remoteClients))
-        //                .build();
+
+        return resourcesBuilder
+                        .leadershipContextFactory(factory)
+                        .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
+                        .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                        .addAdhocResources(
+                                leaderAcceptorResource,
+                                new
+         LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+                                factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+                        .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+                        .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(),
+         remoteClients))
+                        .build();
     }
 
     private static ImmutablePaxosResources.Builder setupTimestampResources(
