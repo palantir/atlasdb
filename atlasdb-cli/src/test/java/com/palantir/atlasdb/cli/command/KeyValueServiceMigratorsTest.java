@@ -349,8 +349,7 @@ public class KeyValueServiceMigratorsTest {
 
         TransactionTables.createTables(kvs);
 
-        // Todo(snanda)
-        TransactionSchemaManager transactionSchemaManager = spy(TransactionSchemaManager.class);
+        TransactionSchemaManager transactionSchemaManager = mock(TransactionSchemaManager.class);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, transactionSchemaManager));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
