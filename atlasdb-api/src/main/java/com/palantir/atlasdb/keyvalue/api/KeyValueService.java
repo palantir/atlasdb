@@ -27,7 +27,6 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
