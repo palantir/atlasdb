@@ -104,15 +104,13 @@ public class TargetedSweepMetricsTest {
         assertThat(anotherManager).hasNotRegisteredEnqueuedWritesConservativeMetric();
 
         anotherMetrics.registerOccurrenceOf(CONS_ZERO, SweepOutcome.SUCCESS);
-        assertThat(anotherManager)
-                .hasNotRegisteredTargetedOutcome(SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
+        assertThat(anotherManager).hasNotRegisteredTargetedOutcome(SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
 
         anotherMetrics.updateEnqueuedWrites(THOR_ZERO, 5);
         assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(5);
 
         anotherMetrics.registerOccurrenceOf(THOR_ZERO, SweepOutcome.SUCCESS);
-        assertThat(anotherManager)
-                .hasTargetedOutcomeEqualTo(SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
+        assertThat(anotherManager).hasTargetedOutcomeEqualTo(SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
     }
 
     @Test
