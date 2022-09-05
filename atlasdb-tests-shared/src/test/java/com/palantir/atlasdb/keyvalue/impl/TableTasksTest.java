@@ -25,6 +25,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -63,6 +67,7 @@ public class TableTasksTest {
     private LockServiceImpl lockService;
     private TransactionManager txManager;
     private TransactionService txService;
+    private TransactionSchemaManager txSchemaManager;
 
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
@@ -74,7 +79,10 @@ public class TableTasksTest {
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
-        txService = TransactionServices.createRaw(kvs, inMemoryTimeLockRule.getTimestampService(), false);
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                kvs, inMemoryTimeLockRule.getTimestampService(), MetricsManagers.createForTests(), false);
+        txSchemaManager = new TransactionSchemaManager(coordinationService);
+        txService = TransactionServices.createRaw(kvs, txSchemaManager);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -89,6 +97,7 @@ public class TableTasksTest {
                 lockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 txService,
+                txSchemaManager,
                 constraints,
                 cdm,
                 ssm,

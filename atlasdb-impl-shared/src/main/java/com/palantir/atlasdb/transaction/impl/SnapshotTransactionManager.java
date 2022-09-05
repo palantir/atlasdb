@@ -66,8 +66,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
-
-import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -79,6 +77,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);

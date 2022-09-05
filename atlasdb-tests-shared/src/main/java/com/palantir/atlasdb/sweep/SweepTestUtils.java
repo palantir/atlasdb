@@ -17,6 +17,10 @@ package com.palantir.atlasdb.sweep;
 
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -51,12 +55,16 @@ public final class SweepTestUtils {
     private SweepTestUtils() {}
 
     public static TransactionManager setupTxManager(KeyValueService kvs, InMemoryTimelockServices timelock) {
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                kvs, timelock.getTimestampService(), MetricsManagers.createForTests(), false);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         return setupTxManager(
                 kvs,
                 timelock.getLegacyTimelockService(),
                 timelock.getTimestampManagementService(),
                 SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createRaw(kvs, timelock.getTimestampService(), false));
+                TransactionServices.createRaw(kvs, transactionSchemaManager),
+                transactionSchemaManager);
     }
 
     public static TransactionManager setupTxManager(
@@ -64,7 +72,8 @@ public final class SweepTestUtils {
             TimelockService legacyTimelockService,
             TimestampManagementService tsmService,
             SweepStrategyManager ssm,
-            TransactionService txService) {
+            TransactionService txService,
+            TransactionSchemaManager txSchemaManager) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
@@ -81,6 +90,7 @@ public final class SweepTestUtils {
                 lockService,
                 NoOpLockWatchManager.create(),
                 txService,
+                txSchemaManager,
                 constraints,
                 cdm,
                 ssm,

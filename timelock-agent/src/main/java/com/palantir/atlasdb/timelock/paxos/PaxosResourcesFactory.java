@@ -49,15 +49,14 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.zaxxer.hikari.HikariDataSource;
-import org.immutables.value.Value;
-
-import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.sql.DataSource;
+import org.immutables.value.Value;
 
 public final class PaxosResourcesFactory {
 
@@ -157,16 +156,18 @@ public final class PaxosResourcesFactory {
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
         return null;
         //        return resourcesBuilder
-//                .leadershipContextFactory(factory)
-//                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
-//                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-//                .addAdhocResources(
-//                        leaderAcceptorResource,
-//                        new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-//                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-//                .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
-//                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
-//                .build();
+        //                .leadershipContextFactory(factory)
+        //                .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
+        //                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+        //                .addAdhocResources(
+        //                        leaderAcceptorResource,
+        //                        new
+        // LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
+        //                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
+        //                .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+        //                .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(),
+        // remoteClients))
+        //                .build();
     }
 
     private static ImmutablePaxosResources.Builder setupTimestampResources(

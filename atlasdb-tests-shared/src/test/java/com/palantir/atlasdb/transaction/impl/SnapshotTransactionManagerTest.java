@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -92,6 +93,7 @@ public class SnapshotTransactionManagerTest {
                 timestampService,
                 closeableLockService,
                 mock(TransactionService.class),
+                mock(TransactionSchemaManager.class),
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 null,
                 null,
@@ -148,6 +150,7 @@ public class SnapshotTransactionManagerTest {
                 services.getManagedTimestampService(),
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
+                mock(TransactionSchemaManager.class),
                 null,
                 null,
                 null,
@@ -276,6 +279,7 @@ public class SnapshotTransactionManagerTest {
                 timestampService,
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
+                mock(TransactionSchemaManager.class),
                 () -> null,
                 null,
                 null,

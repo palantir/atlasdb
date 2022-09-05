@@ -20,6 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -39,6 +43,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -77,6 +82,7 @@ public abstract class AbstractSweepTest {
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     protected TransactionService txService;
+    protected TransactionSchemaManager transactionSchemaManager;
     protected SweepStrategyManager ssm;
     protected ShardProgress shardProgress;
 
@@ -99,12 +105,20 @@ public abstract class AbstractSweepTest {
         txManager = createAndRegisterManager();
         txService = TransactionServices.createRaw(kvs, txManager.getTimestampService(), false);
         shardProgress = new ShardProgress(kvs);
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                kvs, txManager.getTimestampService(), MetricsManagers.createForTests(), false);
+        this.transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         SweepTestUtils.setupTables(kvs);
     }
 
     protected TransactionManager createAndRegisterManager() {
         TransactionManager manager = SweepTestUtils.setupTxManager(
-                kvs, services.getLegacyTimelockService(), services.getTimestampManagementService(), ssm, txService);
+                kvs,
+                services.getLegacyTimelockService(),
+                services.getTimestampManagementService(),
+                ssm,
+                txService,
+                transactionSchemaManager);
         tmManager.registerTransactionManager(manager);
         return manager;
     }

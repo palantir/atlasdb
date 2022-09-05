@@ -59,8 +59,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 
-import javax.swing.text.TabableView;
-
 public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
 
@@ -123,6 +121,7 @@ public class AtlasDbTestCase {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
+                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 DefaultTimestampCache.createForTests(),
@@ -165,6 +164,7 @@ public class AtlasDbTestCase {
                 lockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
+                transactionSchemaManager,
                 mode);
     }
 

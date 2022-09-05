@@ -147,6 +147,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
+                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
