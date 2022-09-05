@@ -18,7 +18,9 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.conjure.java.jackson.optimizations.ObjectMapperOptimizations;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -29,6 +31,7 @@ public final class WriteReferencePersister {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())
             .registerModules(ObjectMapperOptimizations.createModules());
+    private static final StoredWriteReference DUMMY = ImmutableStoredWriteReference.of(PtBytes.EMPTY_BYTE_ARRAY);
 
     private final SweepTableIndices tableIndices;
 
@@ -37,7 +40,7 @@ public final class WriteReferencePersister {
     }
 
     public WriteReference unpersist(StoredWriteReference writeReference) {
-        return writeReference.accept(new StoredWriteReference.Visitor<WriteReference>() {
+        return writeReference.accept(new StoredWriteReference.Visitor<>() {
             @Override
             public WriteReference visitJson(byte[] ref) {
                 try {
@@ -82,10 +85,18 @@ public final class WriteReferencePersister {
                         .isTombstone(isTombstone == 1)
                         .build();
             }
+
+            @Override
+            public WriteReference visitDummy() {
+                return SweepQueueUtils.DUMMY;
+            }
         });
     }
 
     public StoredWriteReference persist(WriteReference writeReference) {
+        if (writeReference.equals(SweepQueueUtils.DUMMY)) {
+            return DUMMY;
+        }
         byte[] tableId = EncodingUtils.encodeUnsignedVarLong(tableIndices.getTableId(writeReference.tableRef()));
         byte[] row = EncodingUtils.encodeSizedBytes(writeReference.cell().getRowName());
         byte[] column = EncodingUtils.encodeSizedBytes(writeReference.cell().getColumnName());

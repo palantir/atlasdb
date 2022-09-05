@@ -22,8 +22,7 @@ import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.concurrent.TimeUnit;
@@ -80,7 +79,7 @@ public class TargetedSweepMetricsTest {
                 kvs,
                 () -> clockTime,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
-                        .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
+                        .addTrackedSweeperStrategies(SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
                         .build(),
                 8);
@@ -96,7 +95,7 @@ public class TargetedSweepMetricsTest {
                 kvs,
                 () -> clockTime,
                 TargetedSweepMetrics.MetricsConfiguration.builder()
-                        .addTrackedSweeperStrategies(SweepStrategy.SweeperStrategy.THOROUGH)
+                        .addTrackedSweeperStrategies(SweeperStrategy.THOROUGH)
                         .millisBetweenRecomputingMetrics(RECOMPUTE_MILLIS)
                         .build(),
                 8);
@@ -106,14 +105,14 @@ public class TargetedSweepMetricsTest {
 
         anotherMetrics.registerOccurrenceOf(CONS_ZERO, SweepOutcome.SUCCESS);
         assertThat(anotherManager)
-                .hasNotRegisteredTargetedOutcome(SweepStrategy.SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
+                .hasNotRegisteredTargetedOutcome(SweeperStrategy.CONSERVATIVE, SweepOutcome.SUCCESS);
 
         anotherMetrics.updateEnqueuedWrites(THOR_ZERO, 5);
         assertThat(anotherManager).hasEnqueuedWritesThoroughEqualTo(5);
 
         anotherMetrics.registerOccurrenceOf(THOR_ZERO, SweepOutcome.SUCCESS);
         assertThat(anotherManager)
-                .hasTargetedOutcomeEqualTo(SweepStrategy.SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
+                .hasTargetedOutcomeEqualTo(SweeperStrategy.THOROUGH, SweepOutcome.SUCCESS, 1L);
     }
 
     @Test

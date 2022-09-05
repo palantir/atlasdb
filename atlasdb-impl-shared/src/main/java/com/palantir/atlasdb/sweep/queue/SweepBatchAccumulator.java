@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 class SweepBatchAccumulator {
     private final List<WriteInfo> accumulatedWrites = new ArrayList<>();
+    private final Set<Long> abortedTimestamps = new HashSet<>();
     private final Set<Long> finePartitions = new HashSet<>();
     private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = new ArrayList<>();
     private final long sweepTimestamp;
@@ -56,6 +57,7 @@ class SweepBatchAccumulator {
                 sweepTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
+        abortedTimestamps.addAll(sweepBatch.abortedTimestamps());
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
         addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());

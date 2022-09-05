@@ -91,14 +91,14 @@ public class SweepableTimestamps extends SweepQueueTable {
      * @return Optional containing the fine partition, or Optional.empty() if there are no more candidates before
      * sweepTs
      */
-    Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
     }
 
     Optional<Long> nextNonSweepableTimestampPartition(long lastSweptTs, long sweepTs) {
-        return nextSweepableTimestampPartition(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTs, sweepTs);
+        return nextTimestampPartition(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, lastSweptTs, sweepTs);
     }
 
     private Optional<Long> nextSweepablePartition(
@@ -140,7 +140,7 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {
-        byte[] sweepStrategy = shardStrategy.toBytes();
+        byte[] sweepStrategy = shardStrategy.strategy().persistToBytes();
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
                 shardStrategy.shard(), coarsePartition, sweepStrategy);
         return row.persistToBytes();

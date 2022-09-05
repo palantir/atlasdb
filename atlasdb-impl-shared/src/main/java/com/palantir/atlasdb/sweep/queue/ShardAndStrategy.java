@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.util.PersistableBoolean;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -27,19 +25,6 @@ public abstract class ShardAndStrategy {
     public abstract int shard();
 
     public abstract SweeperStrategy strategy();
-
-    @Value.Default
-    public boolean nonSweepable() {
-        return false;
-    }
-
-    @Value.Check
-    void allowOnlyConservativeAndThorough() {
-        Preconditions.checkArgument(
-                isConservative() || isThorough(),
-                "Sweep strategy should be CONSERVATIVE or " + "THOROUGH, but it is %s instead.",
-                strategy());
-    }
 
     public String toText() {
         return "shard " + shard() + " and strategy " + strategy();
@@ -49,8 +34,12 @@ public abstract class ShardAndStrategy {
         return StringLockDescriptor.of(toText());
     }
 
-    public boolean isConservative() {
-        return strategy() == SweeperStrategy.CONSERVATIVE;
+    public boolean conservativeFlag() {
+        return strategy() == SweeperStrategy.CONSERVATIVE || strategy() == SweeperStrategy.NON_SWEEPABLE;
+    }
+
+    public boolean nonSweepableFlag() {
+        return strategy() == SweeperStrategy.NON_SWEEPABLE;
     }
 
     public boolean isThorough() {
@@ -72,16 +61,14 @@ public abstract class ShardAndStrategy {
         return ShardAndStrategy.of(shard, SweeperStrategy.THOROUGH);
     }
 
+    public static ShardAndStrategy nonSweepable() {
+        return SweepQueueUtils.NON_SWEEPABLE;
+    }
+
     public static ShardAndStrategy fromInfo(PartitionInfo info) {
         if (info.isConservative().isTrue()) {
             return ShardAndStrategy.conservative(info.shard());
         }
         return ShardAndStrategy.thorough(info.shard());
-    }
-
-    public byte[] toBytes() {
-        return nonSweepable()
-                ? SweepQueueUtils.NON_SWEEPABLE
-                : PersistableBoolean.of(isConservative()).persistToBytes();
     }
 }

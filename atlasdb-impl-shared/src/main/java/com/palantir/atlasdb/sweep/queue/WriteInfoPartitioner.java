@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
@@ -31,7 +31,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -41,10 +40,10 @@ public class WriteInfoPartitioner {
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
 
-    private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder.newBuilder()
+    private final LoadingCache<TableReference, SweeperStrategy> cache = CacheBuilder.newBuilder()
             .build(new CacheLoader<>() {
                 @Override
-                public Optional<SweeperStrategy> load(TableReference key) {
+                public SweeperStrategy load(TableReference key) {
                     return getStrategyFromKvs(key);
                 }
             });
@@ -64,7 +63,7 @@ public class WriteInfoPartitioner {
         Preconditions.checkArgument(
                 writes.stream().mapToLong(WriteInfo::timestamp).distinct().count() == 1,
                 "All writes must be from a single transaction.");
-        if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo).isEmpty())) {
+        if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo) == SweeperStrategy.NON_SWEEPABLE)) {
             return PartitionedWriteInfos.nonSweepableTransaction(
                     writes.get(writes.size() - 1).timestamp());
         }
@@ -74,36 +73,31 @@ public class WriteInfoPartitioner {
     private PartitionedWriteInfo partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         int shards = numShards.get();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
+                .filter(writeInfo -> getStrategy(writeInfo) != SweeperStrategy.NON_SWEEPABLE)
                 .collect(Collectors.groupingBy(write -> getPartitionInfo(write, shards), Collectors.toList()));
         return PartitionedWriteInfos.filteredSweepableTransaction(partitionedWrites);
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
-    }
-
-    private boolean isConservative(WriteInfo write) {
-        Optional<SweeperStrategy> strategy = getStrategy(write);
-        Preconditions.checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
-        return strategy.get() == SweeperStrategy.CONSERVATIVE;
+        return PartitionInfo.of(write.toShard(shards), getStrategy(write), write.timestamp());
     }
 
     @VisibleForTesting
-    Optional<SweeperStrategy> getStrategy(WriteInfo writeInfo) {
+    SweeperStrategy getStrategy(WriteInfo writeInfo) {
         return getStrategyForTable(writeInfo.tableRef());
     }
 
-    Optional<SweeperStrategy> getStrategyForTable(TableReference tableRef) {
+    SweeperStrategy getStrategyForTable(TableReference tableRef) {
         return cache.getUnchecked(tableRef);
     }
 
-    private Optional<SweeperStrategy> getStrategyFromKvs(TableReference tableRef) {
+    private SweeperStrategy getStrategyFromKvs(TableReference tableRef) {
         try {
             return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR
                             .hydrateFromBytes(kvs.getMetadataForTable(tableRef))
                             .getSweepStrategy())
-                    .getSweeperStrategy();
+                    .getSweeperStrategy()
+                    .orElse(SweeperStrategy.NON_SWEEPABLE);
         } catch (Exception e) {
             log.warn("Failed to obtain sweep strategy for table {}.", LoggingArgs.tableRef(tableRef), e);
             throw Throwables.rewrapAndThrowUncheckedException(e);

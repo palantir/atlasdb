@@ -209,14 +209,14 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     }
 
     private Optional<Long> readConservative(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(
+        return sweepableTimestamps.nextTimestampPartition(
                 conservative(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.conservative(shardNumber)),
                 Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(
+        return sweepableTimestamps.nextTimestampPartition(
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
                 Sweeper.THOROUGH.getSweepTimestamp(timestampsSupplier));

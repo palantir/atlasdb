@@ -126,7 +126,7 @@ public class ShardProgress {
     }
 
     private void tryUpdateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long lastSeenCommitTs) {
-        if (!shardAndStrategy.isConservative()) {
+        if (!shardAndStrategy.conservativeFlag()) {
             return;
         }
 
@@ -179,8 +179,8 @@ public class ShardProgress {
     }
 
     private static Cell cellForShard(ShardAndStrategy shardAndStrategy) {
-        SweepShardProgressTable.SweepShardProgressRow row =
-                SweepShardProgressTable.SweepShardProgressRow.of(shardAndStrategy.shard(), shardAndStrategy.toBytes());
+        SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
+                shardAndStrategy.shard(), shardAndStrategy.strategy().persistToBytes());
         return Cell.create(
                 row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 
 /**
@@ -27,6 +28,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface SweepBatch {
     List<WriteInfo> writes();
+
+    Set<Long> abortedTimestamps();
 
     DedicatedRows dedicatedRows();
 
