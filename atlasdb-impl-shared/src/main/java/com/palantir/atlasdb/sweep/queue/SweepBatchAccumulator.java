@@ -74,6 +74,7 @@ class SweepBatchAccumulator {
     SweepBatchWithPartitionInfo toSweepBatch() {
         SweepBatch sweepBatch = SweepBatch.of(
                 getLatestWritesByCellReference(),
+                abortedTimestamps,
                 DedicatedRows.of(accumulatedDedicatedRows),
                 getLastSweptTimestamp(),
                 lastSeenCommitTimestamp,
@@ -90,6 +91,7 @@ class SweepBatchAccumulator {
 
     private List<WriteInfo> getLatestWritesByCellReference() {
         return ImmutableList.copyOf(accumulatedWrites.stream()
+                .filter(info -> info.writeRef() != null)
                 .collect(Collectors.toMap(info -> info.writeRef().cellReference(), x -> x, WriteInfo::higherTimestamp))
                 .values());
     }

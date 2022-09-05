@@ -435,17 +435,17 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         putTimestampIntoTransactionTable(100L, 120L);
         putTimestampIntoTransactionTable(130L, 200L);
 
-        NonSweepableBatchInfo batch = sweepableCells.processNonSweepableBatchForPartition(0L, 20L, 150L);
+        SweepBatch batch = sweepableCells.getBatchForPartition(ShardAndStrategy.nonSweepable(), 0L, 20L, 150L);
         assertThat(batch.lastSweptTimestamp()).isEqualTo(129L);
         assertThat(batch.abortedTimestamps()).containsExactlyInAnyOrder(30L, 50L);
-        assertThat(batch.greatestSeenCommitTimestamp()).isEqualTo(120L);
+        assertThat(batch.lastSeenCommitTimestamp()).isEqualTo(120L);
     }
 
     @Test
     public void canCleanUpNonSweepable() {
         sweepableCells.enqueue(ImmutableList.of(WriteInfo.write(TABLE_NOTH, DEFAULT_CELL, 100_000L)));
         long finePartition = tsPartitionFine(100_000L);
-        sweepableCells.deleteNonSweepableRows(ImmutableList.of(finePartition));
+        sweepableCells.deleteNonDedicatedRows(ShardAndStrategy.nonSweepable(), ImmutableList.of(finePartition));
         verifyRowsDeletedFromSweepQueue(ImmutableList.of(SweepableCellsRow.of(
                 finePartition,
                 ImmutableTargetedSweepMetadata.builder()
@@ -456,7 +456,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
                         .shard(0)
                         .build()
                         .persistToBytes())));
-        NonSweepableBatchInfo batch = sweepableCells.processNonSweepableBatchForPartition(finePartition, 20L, 150_000L);
+        SweepBatch batch =
+                sweepableCells.getBatchForPartition(ShardAndStrategy.nonSweepable(), finePartition, 20L, 150_000L);
         assertThat(batch.abortedTimestamps()).isEmpty();
     }
 

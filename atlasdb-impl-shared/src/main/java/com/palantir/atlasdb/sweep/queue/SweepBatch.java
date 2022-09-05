@@ -61,6 +61,7 @@ public interface SweepBatch {
 
     static SweepBatch of(
             Collection<WriteInfo> writes,
+            Set<Long> abortedTimestamps,
             DedicatedRows dedicatedRows,
             long timestamp,
             long lastSeenCommitTimestamp,
@@ -68,6 +69,7 @@ public interface SweepBatch {
             long entriesRead) {
         return ImmutableSweepBatch.builder()
                 .writes(writes)
+                .abortedTimestamps(abortedTimestamps)
                 .dedicatedRows(dedicatedRows)
                 .lastSweptTimestamp(timestamp)
                 .lastSeenCommitTimestamp(lastSeenCommitTimestamp)

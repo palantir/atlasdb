@@ -64,11 +64,4 @@ public abstract class ShardAndStrategy {
     public static ShardAndStrategy nonSweepable() {
         return SweepQueueUtils.NON_SWEEPABLE;
     }
-
-    public static ShardAndStrategy fromInfo(PartitionInfo info) {
-        if (info.isConservative().isTrue()) {
-            return ShardAndStrategy.conservative(info.shard());
-        }
-        return ShardAndStrategy.thorough(info.shard());
-    }
 }

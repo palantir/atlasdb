@@ -163,6 +163,8 @@ public class TargetedSweepMetrics {
                 return AtlasDbMetricNames.TAG_CONSERVATIVE;
             case THOROUGH:
                 return AtlasDbMetricNames.TAG_THOROUGH;
+            case NON_SWEEPABLE:
+                return AtlasDbMetricNames.TAG_NON_SWEEPABLE;
             default:
                 throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
         }

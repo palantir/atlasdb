@@ -51,18 +51,10 @@ public abstract class SweepQueueTable {
     }
 
     public void enqueue(List<WriteInfo> allWrites) {
-        PartitionedWriteInfos.caseOf(partitioner.filterAndPartition(allWrites))
-                .nonSweepableTransaction(this::enqueueNonSweepable)
-                .filteredSweepableTransaction(this::enqueueFiltered);
+        enqueueFiltered(partitioner.filterAndPartition(allWrites));
     }
 
-    private Void enqueueNonSweepable(long startTimestamp) {
-        write(populateCells(startTimestamp), startTimestamp);
-        // todo (gmaretic): metrics
-        return null;
-    }
-
-    private Void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
+    private void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
 
@@ -82,12 +74,11 @@ public abstract class SweepQueueTable {
                     write(cellsToWrite, timestamp);
                     updateWriteMetrics(partitionedWrites);
                 });
-        return null;
     }
 
     private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
         maybeMetrics.ifPresent(metrics -> partitionedWrites.forEach(
-                (info, writes) -> metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
+                (info, writes) -> metrics.updateEnqueuedWrites(info.shardAndStrategy(), writes.size())));
     }
 
     /**
@@ -107,12 +98,6 @@ public abstract class SweepQueueTable {
      * @return map of cell to byte array persisting the write infomations into the kvs
      */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
-
-    /**
-     * Similar to {@link #populateCells(PartitionInfo, List)}, except that this method is used for transactions that
-     * only have writes to tables that are not being swept.
-     */
-    abstract Map<Cell, byte[]> populateCells(long startTimestamp);
 
     private void write(Map<Cell, byte[]> cells, long timestamp) {
         if (!cells.isEmpty()) {

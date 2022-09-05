@@ -42,7 +42,7 @@ public class SweepQueueReader {
                 currentBatch++) {
             Optional<Long> nextFinePartition =
                     sweepableTimestamps.nextTimestampPartition(shardStrategy, previousProgress, sweepTs);
-            if (!nextFinePartition.isPresent()) {
+            if (nextFinePartition.isEmpty()) {
                 return accumulator.toSweepBatch();
             }
             SweepBatch batch = sweepableCells.getBatchForPartition(

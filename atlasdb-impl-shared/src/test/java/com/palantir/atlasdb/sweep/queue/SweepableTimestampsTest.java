@@ -192,7 +192,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     @Test
     public void canReadNonSweepable() {
         writeToDefaultCellCommitted(sweepableTimestamps, 100L, TABLE_NOTH);
-        assertThat(sweepableTimestamps.nextNonSweepableTimestampPartition(0L, 200L))
+        assertThat(sweepableTimestamps.nextTimestampPartition(ShardAndStrategy.nonSweepable(), 0L, 200L))
                 .hasValue(0L);
     }
 
@@ -203,7 +203,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         writeToDefaultCellAborted(sweepableTimestamps, 100_250L, TABLE_NOTH);
 
         assertThat(readConservative(shardCons)).hasValue(0L);
-        assertThat(sweepableTimestamps.nextNonSweepableTimestampPartition(0L, 200_000L))
+        assertThat(sweepableTimestamps.nextTimestampPartition(ShardAndStrategy.nonSweepable(), 0L, 200_000L))
                 .hasValue(2L);
         assertThat(readThorough(shardThor)).hasValue(1L);
     }

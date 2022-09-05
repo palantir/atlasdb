@@ -49,6 +49,7 @@ public class ShardProgressTest {
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
     private static final ShardAndStrategy CONSERVATIVE_TWENTY = ShardAndStrategy.conservative(20);
+    private static final ShardAndStrategy NON_SWEEPABLE = ShardAndStrategy.nonSweepable();
 
     private static final Cell DUMMY = Cell.create(new byte[] {0}, new byte[] {0});
 
@@ -290,11 +291,10 @@ public class ShardProgressTest {
 
     @Test
     public void canUpdateProgressForNonSweepable() {
-        progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, 150L);
-        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
-                .isEqualTo(150L);
+        progress.updateLastSweptTimestamp(NON_SWEEPABLE, 150L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(150L);
 
-        progress.updateLastSeenCommitTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, 200L);
+        progress.updateLastSeenCommitTimestamp(NON_SWEEPABLE, 200L);
         assertThat(progress.getLastSeenCommitTimestamp()).hasValue(200L);
     }
 
@@ -303,18 +303,15 @@ public class ShardProgressTest {
         ShardAndStrategy conservativeZero = ShardAndStrategy.conservative(0);
 
         assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(-1L);
-        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
-                .isEqualTo(-1L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(-1L);
 
         progress.updateLastSweptTimestamp(conservativeZero, 150L);
         assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(150L);
-        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
-                .isEqualTo(-1L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(-1L);
 
-        progress.updateLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE, 250L);
+        progress.updateLastSweptTimestamp(NON_SWEEPABLE, 250L);
         assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(150L);
-        assertThat(progress.getLastSweptTimestamp(SweepQueueUtils.DUMMY_SAS_FOR_NON_SWEEPABLE))
-                .isEqualTo(250L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(250L);
     }
 
     private Value createValue(long num) {

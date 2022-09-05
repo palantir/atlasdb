@@ -1479,18 +1479,16 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
-        sweepQueue.getSweepStrategy(table).ifPresent(strategy -> {
-            if (strategy == SweeperStrategy.THOROUGH) {
-                SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
-                        .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                        .collectToSetMultimap();
-                try {
-                    runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
-                } catch (Throwable th) {
-                    // best effort
-                }
+        if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
+            SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
+                    .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
+                    .collectToSetMultimap();
+            try {
+                runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
+            } catch (Throwable th) {
+                // best effort
             }
-        });
+        }
     }
 
     /**

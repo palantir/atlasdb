@@ -25,11 +25,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.ImmutableStoredWriteReference;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -104,16 +102,6 @@ public class SweepableCells extends SweepQueueTable {
         return cells;
     }
 
-    @Override
-    Map<Cell, byte[]> populateCells(long startTimestamp) {
-        SweepableCellsRow row = computeNonSweepableRow(SweepQueueUtils.tsPartitionFine(startTimestamp));
-        SweepableCellsTable.SweepableCellsColumn col =
-                SweepableCellsTable.SweepableCellsColumn.of(tsMod(startTimestamp), 0);
-        SweepableCellsColumnValue colVal =
-                SweepableCellsColumnValue.of(col, ImmutableStoredWriteReference.of(PtBytes.EMPTY_BYTE_ARRAY));
-        return ImmutableMap.of(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
-    }
-
     private Map<Cell, byte[]> addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes) {
         return addCell(info, SweepQueueUtils.DUMMY, false, 0, entryIndicatingNumberOfRequiredRows(writes));
     }
@@ -139,7 +127,7 @@ public class SweepableCells extends SweepQueueTable {
                 .dedicatedRow(isDedicatedRow)
                 .shard(info.shardAndStrategy().shard())
                 .dedicatedRowNumber(dedicatedRowNumber)
-                .nonSweepableTransaction(false)
+                .nonSweepableTransaction(info.shardAndStrategy().nonSweepableFlag())
                 .build();
 
         long tsOrPartition = getTimestampOrPartition(info.timestamp(), isDedicatedRow);
@@ -176,7 +164,7 @@ public class SweepableCells extends SweepQueueTable {
         SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
-        WriteBatch writeBatch = getBatchOfWrites(shardStrategy, row, peekingResultIterator, sweepTs);
+        WriteBatch writeBatch = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         Multimap<Long, WriteInfo> writesByStartTs = writeBatch.writesByStartTs;
         int entriesRead = writesByStartTs.size();
         maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, entriesRead));
@@ -188,53 +176,12 @@ public class SweepableCells extends SweepQueueTable {
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
         return SweepBatch.of(
                 writes,
+                tsToSweep.abortedTimestamps(),
                 filteredDedicatedRows,
                 lastSweptTs,
                 tsToSweep.lastSeenCommitTs(),
                 tsToSweep.processedAll(),
                 entriesRead);
-    }
-
-    NonSweepableBatchInfo processNonSweepableBatchForPartition(long partitionFine, long minTsExclusive, long sweepTs) {
-        SweepableCellsRow row = computeNonSweepableRow(partitionFine);
-        RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
-        Set<Long> startTimestamps = new HashSet<>();
-
-        while (resultIterator.hasNext()) {
-            Map.Entry<Cell, Value> entry = resultIterator.next();
-            SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
-            long startTs = getTimestamp(row, col);
-            startTimestamps.add(startTs);
-            if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
-                break;
-            }
-        }
-
-        Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(startTimestamps);
-        Set<Long> abortedTimestamps = new HashSet<>();
-        // this is assuming the entire row is processed up to the sweep timestamp
-        long lastSweptTs = Math.min(sweepTs - 1, SweepQueueUtils.maxTsForFinePartition(partitionFine));
-        long greatestSeenCommitTimestamp = 0L;
-
-        List<Long> sortedStartTimestamps =
-                startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
-        for (long startTs : sortedStartTimestamps) {
-            long commitTs = startToCommitTs.get(startTs);
-            if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
-                abortedTimestamps.add(startTs);
-            } else if (commitTs < sweepTs) {
-                greatestSeenCommitTimestamp = Math.max(greatestSeenCommitTimestamp, commitTs);
-            } else {
-                lastSweptTs = startTs - 1;
-                break;
-            }
-        }
-
-        return ImmutableNonSweepableBatchInfo.builder()
-                .abortedTimestamps(abortedTimestamps)
-                .lastSweptTimestamp(lastSweptTs)
-                .greatestSeenCommitTimestamp(greatestSeenCommitTimestamp)
-                .build();
     }
 
     private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {
@@ -250,20 +197,17 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private WriteBatch getBatchOfWrites(
-            ShardAndStrategy shardStrategy,
-            SweepableCellsRow row,
-            PeekingIterator<Entry<Cell, Value>> resultIterator,
-            long sweepTs) {
+            SweepableCellsRow row, PeekingIterator<Entry<Cell, Value>> resultIterator, long sweepTs) {
         WriteBatch writeBatch = new WriteBatch();
         while (resultIterator.hasNext() && writeBatch.writesByStartTs.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long startTs = getTimestamp(row, col);
             if (knownToBeCommittedAfterSweepTs(startTs, sweepTs)) {
-                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, shardStrategy, entry.getValue())));
+                writeBatch.add(ImmutableList.of(getWriteInfo(startTs, entry.getValue())));
                 return writeBatch;
             }
-            writeBatch.merge(getWrites(shardStrategy, row, col, entry.getValue()));
+            writeBatch.merge(getWrites(row, col, entry.getValue()));
         }
         // there may be entries remaining with the same start timestamp as the last processed one. If that is the case
         // we want to include these ones as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
@@ -272,7 +216,7 @@ public class SweepableCells extends SweepQueueTable {
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
             long timestamp = getTimestamp(row, col);
             if (writeBatch.writesByStartTs.containsKey(timestamp)) {
-                writeBatch.merge(getWrites(shardStrategy, row, col, entry.getValue()));
+                writeBatch.merge(getWrites(row, col, entry.getValue()));
                 resultIterator.next();
             } else {
                 break;
@@ -329,13 +273,17 @@ public class SweepableCells extends SweepQueueTable {
 
         List<Long> sortedStartTimestamps =
                 startToCommitTs.keySet().stream().sorted().collect(Collectors.toList());
+        Set<Long> abortedTimestamps = new HashSet<>();
         for (long startTs : sortedStartTimestamps) {
             long commitTs = startToCommitTs.get(startTs);
             if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
                 lastSweptTs = startTs;
-                writesByStartTs.get(startTs).forEach(write -> cellsToDelete
-                        .computeIfAbsent(write.tableRef(), ignore -> HashMultimap.create())
-                        .put(write.cell(), write.timestamp()));
+                abortedTimestamps.add(startTs);
+                writesByStartTs.get(startTs).stream()
+                        .filter(info -> info.writeRef() != null)
+                        .forEach(write -> cellsToDelete
+                                .computeIfAbsent(write.writeRef().tableRef(), ignore -> HashMultimap.create())
+                                .put(write.writeRef().cell(), write.timestamp()));
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;
                 committedTimestamps.add(startTs);
@@ -371,11 +319,14 @@ public class SweepableCells extends SweepQueueTable {
                     LoggingArgs.tableRef(tableRef));
         });
 
-        return TimestampsToSweep.of(
-                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(),
-                lastSweptTs,
-                lastSeenCommitTs,
-                processedAll);
+        return ImmutableTimestampsToSweep.builder()
+                .timestampsDescending(
+                        ImmutableSortedSet.copyOf(committedTimestamps).descendingSet())
+                .abortedTimestamps(abortedTimestamps)
+                .maxSwept(lastSweptTs)
+                .lastSeenCommitTs(lastSeenCommitTs)
+                .processedAll(processedAll)
+                .build();
     }
 
     private boolean tableWasDropped(TableReference tableRef) {
@@ -387,6 +338,7 @@ public class SweepableCells extends SweepQueueTable {
         startTs.stream()
                 .map(writesByStartTs::get)
                 .flatMap(Collection::stream)
+                .filter(write -> write.writeRef() != null)
                 .forEach(write -> writesToSweepFor.putIfAbsent(write.writeRef().cellReference(), write));
         return writesToSweepFor.values();
     }
@@ -403,12 +355,11 @@ public class SweepableCells extends SweepQueueTable {
         }
     }
 
-    private WriteBatch getWrites(
-            ShardAndStrategy shardStrategy, SweepableCellsRow row, SweepableCellsColumn col, Value value) {
+    private WriteBatch getWrites(SweepableCellsRow row, SweepableCellsColumn col, Value value) {
         if (isReferenceToDedicatedRows(col)) {
             return writesFromDedicated(row, col);
         } else {
-            return WriteBatch.single(getWriteInfo(getTimestamp(row, col), shardStrategy, value));
+            return WriteBatch.single(getWriteInfo(getTimestamp(row, col), value));
         }
     }
 
@@ -424,7 +375,7 @@ public class SweepableCells extends SweepQueueTable {
         return batch.add(
                 dedicatedRows,
                 Streams.stream(iterator)
-                        .map(entry -> getWriteInfo2(getTimestamp(row, col), entry.getValue()))
+                        .map(entry -> getWriteInfo(getTimestamp(row, col), entry.getValue()))
                         .collect(Collectors.toList()));
     }
 
@@ -466,16 +417,11 @@ public class SweepableCells extends SweepQueueTable {
         return getRowsColumnRange(rows, SweepQueueUtils.ALL_COLUMNS, SweepQueueUtils.BATCH_SIZE_KVS);
     }
 
-    private WriteInfo getWriteInfo(long startTs, ShardAndStrategy shardAndStrategy, Value value) {
-        if (shardAndStrategy.nonSweepableFlag()) {
-            return WriteInfo.of(DUMMY, startTs);
-        }
-        return getWriteInfo2(startTs, value);
-    }
-
-    private WriteInfo getWriteInfo2(long timestamp, Value value) {
+    private WriteInfo getWriteInfo(long timestamp, Value value) {
         return WriteInfo.of(
-                writeReferencePersister.unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents())),
+                writeReferencePersister
+                        .unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents()))
+                        .orElse(null),
                 timestamp);
     }
 
@@ -497,14 +443,6 @@ public class SweepableCells extends SweepQueueTable {
     void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionsFine) {
         List<byte[]> rows = Streams.stream(partitionsFine)
                 .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))
-                .map(SweepableCellsRow::persistToBytes)
-                .collect(Collectors.toList());
-        deleteRows(rows);
-    }
-
-    void deleteNonSweepableRows(Collection<Long> partitionsFine) {
-        List<byte[]> rows = partitionsFine.stream()
-                .map(this::computeNonSweepableRow)
                 .map(SweepableCellsRow::persistToBytes)
                 .collect(Collectors.toList());
         deleteRows(rows);

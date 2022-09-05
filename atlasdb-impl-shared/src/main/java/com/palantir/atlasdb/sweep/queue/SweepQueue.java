@@ -34,7 +34,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -107,7 +106,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    public SweeperStrategy getSweepStrategy(TableReference tableReference) {
         return writer.getSweepStrategy(tableReference);
     }
 

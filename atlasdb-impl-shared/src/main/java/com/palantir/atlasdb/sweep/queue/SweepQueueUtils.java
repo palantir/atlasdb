@@ -115,4 +115,12 @@ public final class SweepQueueUtils {
                 .persistToBytes();
         return new ColumnRangeSelection(startCol, endCol);
     }
+
+    public static PartitionInfo nonSweepable(long startTs) {
+        return PartitionInfo.of(0, SweeperStrategy.NON_SWEEPABLE, startTs);
+    }
+
+    public static WriteInfo infoWithNullReference(long startTs) {
+        return WriteInfo.of(null, startTs);
+    }
 }

@@ -220,7 +220,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     @Override
-    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    public SweeperStrategy getSweepStrategy(TableReference tableReference) {
         return queue.getSweepStrategy(tableReference);
     }
 

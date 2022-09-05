@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 /**
@@ -32,15 +33,8 @@ import org.immutables.value.Value;
 public interface WriteInfo {
     long timestamp();
 
+    @Nullable
     WriteReference writeRef();
-
-    default TableReference tableRef() {
-        return writeRef().tableRef();
-    }
-
-    default Cell cell() {
-        return writeRef().cell();
-    }
 
     default TimestampRangeDelete toDelete(Sweeper sweeper) {
         return new TimestampRangeDelete.Builder()
@@ -65,7 +59,7 @@ public interface WriteInfo {
         return hash;
     }
 
-    static WriteInfo of(WriteReference writeRef, long timestamp) {
+    static WriteInfo of(@Nullable WriteReference writeRef, long timestamp) {
         return ImmutableWriteInfo.builder()
                 .writeRef(writeRef)
                 .timestamp(timestamp)

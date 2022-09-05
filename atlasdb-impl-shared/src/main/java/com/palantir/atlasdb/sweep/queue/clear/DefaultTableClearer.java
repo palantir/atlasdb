@@ -62,9 +62,10 @@ public final class DefaultTableClearer implements TableClearer, TargetedSweepFil
     }
 
     @Override
+    @SuppressWarnings("ConstantConditions") // no writeInfo that reaches here will have a null writeReference
     public Collection<WriteInfo> filter(Collection<WriteInfo> writeInfos) {
         Set<TableReference> tablesToCareAbout = getConservativeTables(
-                writeInfos.stream().map(WriteInfo::tableRef).collect(Collectors.toSet()));
+                writeInfos.stream().map(info -> info.writeRef().tableRef()).collect(Collectors.toSet()));
 
         if (tablesToCareAbout.isEmpty()) {
             return writeInfos;
@@ -72,8 +73,9 @@ public final class DefaultTableClearer implements TableClearer, TargetedSweepFil
 
         Map<TableReference, Long> truncationTimes = watermarkStore.getWatermarks(tablesToCareAbout);
         return writeInfos.stream()
-                .filter(write -> !truncationTimes.containsKey(write.tableRef())
-                        || write.timestamp() > truncationTimes.get(write.tableRef()))
+                .filter(write -> !truncationTimes.containsKey(write.writeRef().tableRef())
+                        || write.timestamp()
+                                > truncationTimes.get(write.writeRef().tableRef()))
                 .collect(Collectors.toList());
     }
 
