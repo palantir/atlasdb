@@ -1307,11 +1307,23 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = LockImmutableTimestampResponse.of(transactionTs, null);
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false, () -> transactionTs + 1);
+
+        assertThatExceptionOfType(SafeIllegalStateException.class)
+                .isThrownBy(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .withMessageContaining("Transactions table has been swept beyond current start timestamp");
+    }
+
+    @Test
     public void validateLocksOnReadsIfThoroughlySwept() {
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
-                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
@@ -2241,7 +2253,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             PreCommitCondition preCommitCondition) {
         return getSnapshotTransactionWith(
-                timelockService, startTs, lockImmutableTimestampResponse, preCommitCondition, true);
+                timelockService, startTs, lockImmutableTimestampResponse, preCommitCondition, true, () -> startTs.get() - 1);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -2249,7 +2261,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             Supplier<Long> startTs,
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             PreCommitCondition preCommitCondition,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<Long> lastSeenCommitTs) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
@@ -2257,6 +2270,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
+                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 startTs,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(
@@ -2277,7 +2291,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                lastSeenCommitTs);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

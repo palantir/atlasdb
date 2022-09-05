@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
@@ -65,6 +66,8 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
+
+import javax.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -76,7 +79,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
@@ -329,7 +331,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                new ShardProgress(keyValueService)::getLastSeenCommitTimestamp);
     }
 
     @Override
@@ -372,7 +375,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                new ShardProgress(keyValueService)::getLastSeenCommitTimestamp);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

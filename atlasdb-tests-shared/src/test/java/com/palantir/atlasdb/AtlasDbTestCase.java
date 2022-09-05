@@ -19,6 +19,10 @@ import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -55,6 +59,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 
+import javax.swing.text.TabableView;
+
 public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
 
@@ -70,6 +76,7 @@ public class AtlasDbTestCase {
     protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
+    protected TransactionSchemaManager transactionSchemaManager;
     protected TargetedSweeper sweepQueue;
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
     protected int sweepQueueShards = 128;
@@ -85,7 +92,10 @@ public class AtlasDbTestCase {
         timestampService = inMemoryTimeLockRule.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
-        transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
+        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                keyValueService, timestampService, MetricsManagers.createForTests(), false);
+        transactionSchemaManager = spy(new TransactionSchemaManager(coordinationService));
+        transactionService = spy(TransactionServices.createRaw(keyValueService, transactionSchemaManager));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 

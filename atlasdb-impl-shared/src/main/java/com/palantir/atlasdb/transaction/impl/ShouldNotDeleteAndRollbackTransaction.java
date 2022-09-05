@@ -22,6 +22,7 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -109,7 +110,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 true,
                 transactionConfig,
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager));
+                new SimpleTableLevelMetricsController(metricsManager),
+                new ShardProgress(keyValueService)::getLastSeenCommitTimestamp);
     }
 
     @Override

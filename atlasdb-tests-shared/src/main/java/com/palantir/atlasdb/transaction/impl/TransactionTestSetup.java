@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static com.palantir.atlasdb.transaction.service.TransactionServices.createTransactionService;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -56,10 +54,6 @@ import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -68,6 +62,13 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.palantir.atlasdb.transaction.service.TransactionServices.createTransactionService;
 
 /**
  * Expectations for semantics of tests that are run as part of this class (not that the author thinks these
@@ -203,6 +204,7 @@ public abstract class TransactionTestSetup {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
+                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,

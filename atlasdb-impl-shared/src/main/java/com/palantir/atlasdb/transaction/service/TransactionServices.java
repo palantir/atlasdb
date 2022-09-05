@@ -107,6 +107,11 @@ public final class TransactionServices {
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
+    public static TransactionService createRaw(
+            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+        return createTransactionService(keyValueService, transactionSchemaManager);
+    }
+
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
             KeyValueService keyValueService, MetricsManager metricsManager) {
         if (keyValueService.supportsCheckAndSet()) {

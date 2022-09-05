@@ -118,6 +118,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 lockService,
                 lockWatchManager,
                 transactionService,
+                transactionSchemaManager,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
