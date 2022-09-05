@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -347,7 +348,10 @@ public class KeyValueServiceMigratorsTest {
         ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
 
         TransactionTables.createTables(kvs);
-        TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
+
+        // Todo(snanda)
+        TransactionSchemaManager transactionSchemaManager = spy(TransactionSchemaManager.class);
+        TransactionService transactionService = spy(TransactionServices.createRaw(kvs, transactionSchemaManager));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
         when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
@@ -362,6 +366,7 @@ public class KeyValueServiceMigratorsTest {
                 timeLock.getLockService(),
                 timeLock.getLockWatchManager(),
                 transactionService,
+                transactionSchemaManager,
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 ConflictDetectionManagers.createWithoutWarmingCache(kvs),
                 SweepStrategyManagers.createDefault(kvs),

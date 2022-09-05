@@ -679,7 +679,6 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
