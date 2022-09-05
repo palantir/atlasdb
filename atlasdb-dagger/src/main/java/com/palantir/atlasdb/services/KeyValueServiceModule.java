@@ -91,6 +91,13 @@ public class KeyValueServiceModule {
 
     @Provides
     @Singleton
+    public TransactionSchemaManager provideTransactionSchemaManager(
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return new TransactionSchemaManager(coordinationService);
+    }
+
+    @Provides
+    @Singleton
     public ConflictDetectionManager provideConflictDetectionManager(@Named("kvs") KeyValueService kvs) {
         return ConflictDetectionManagers.create(kvs);
     }

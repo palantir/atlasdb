@@ -27,6 +27,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -54,6 +55,7 @@ import javax.inject.Named;
 import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
+@SuppressWarnings("TooManyArguments") // Tech-debt
 @Module
 public class TestTransactionManagerModule {
     @Qualifier
@@ -113,6 +115,7 @@ public class TestTransactionManagerModule {
             LockAndTimestampServices lts,
             LockClient lockClient,
             TransactionService transactionService,
+            TransactionSchemaManager transactionSchemaManager,
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
@@ -125,6 +128,7 @@ public class TestTransactionManagerModule {
                 lts.managedTimestampService(),
                 lts.lock(),
                 transactionService,
+                transactionSchemaManager,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictManager,
                 sweepStrategyManager,
