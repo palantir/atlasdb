@@ -302,13 +302,13 @@ services:
         returns: ConjureRefreshLocksResponse
       refreshLocksV2:
         http: POST /rl2/{namespace}
+        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureRefreshLocksRequestV2
         returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
-        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureUnlockRequest
