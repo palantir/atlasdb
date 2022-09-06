@@ -34,7 +34,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -349,7 +352,9 @@ public class KeyValueServiceMigratorsTest {
 
         TransactionTables.createTables(kvs);
 
-        TransactionSchemaManager transactionSchemaManager = mock(TransactionSchemaManager.class);
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(kvs, timestampService, MetricsManagers.createForTests(), false);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, transactionSchemaManager));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);

@@ -74,10 +74,10 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV3TransactionService(
-                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree),
+                        createV3TransactionService(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree),
                         TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION,
-                        createV4TransactionService(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree))));
+                        createV4TransactionService(
+                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -104,7 +104,6 @@ public final class TransactionServices {
         return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
                 SimpleTransactionService.createV4(keyValueService, metricRegistry, acceptStagingReadsAsCommitted)));
     }
-
 
     /**
      * This method should only be used to create {@link TransactionService}s for testing, because in production there

@@ -34,7 +34,6 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -117,8 +116,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
                         store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
         // todo(snanda)
-//        AtomicTable<Long, Long> atomicTable =
-//                new KnowledgeableTimestampExtractingAtomicTable(delegate);
+        //        AtomicTable<Long, Long> atomicTable =
+        //                new KnowledgeableTimestampExtractingAtomicTable(delegate);
         return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 
