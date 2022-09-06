@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static java.util.stream.Collectors.toList;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
@@ -139,6 +137,10 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.Pair;
+
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -175,9 +177,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import javax.annotation.Nullable;
-import org.apache.commons.lang3.Validate;
-import org.apache.commons.lang3.tuple.Pair;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -2537,7 +2538,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private Map<Long, Long> getCommitTimestampsFromCache(Iterable<Long> startTimestamps) {
-        return KeyedStream.of(startTimestamps)
+        Set<Long> startTsSet = StreamSupport.stream(startTimestamps.spliterator(), false).collect(Collectors.toSet());
+        return KeyedStream.of(startTsSet)
                 .filter(ts -> !isReadOnlyTransactionReadingSweepableTransaction(ts))
                 .map(timestampValidationReadCache::getCommitTimestampIfPresent)
                 .collectTo(HashMap::new);
