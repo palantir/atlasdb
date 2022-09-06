@@ -56,8 +56,10 @@ import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -84,6 +86,9 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import org.immutables.value.Value;
+
+import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -109,8 +114,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import org.immutables.value.Value;
 
 /**
  * This class will track all reads to verify that there are no read-write conflicts at commit time.
@@ -191,7 +194,12 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                new ShardProgress(keyValueService)::getLastSeenCommitTimestamp);
+                getGetLastSeenCommitTimestamp(keyValueService));
+    }
+
+    private static Supplier<Long> getGetLastSeenCommitTimestamp(KeyValueService keyValueService) {
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), keyValueService);
+        return new ShardProgress(keyValueService)::getLastSeenCommitTimestamp;
     }
 
     @Override
@@ -873,7 +881,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                new ShardProgress(keyValueService)::getLastSeenCommitTimestamp) {
+                getGetLastSeenCommitTimestamp(keyValueService)) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
