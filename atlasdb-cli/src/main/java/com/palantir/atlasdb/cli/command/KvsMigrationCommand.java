@@ -18,21 +18,30 @@ package com.palantir.atlasdb.cli.command;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
+import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
@@ -60,6 +69,29 @@ public class KvsMigrationCommand implements Callable<Integer> {
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
+
+    @Option(
+            name = {"-frc", "--fromRuntimeConfig"},
+            title = "RUNTIME CONFIG PATH",
+            description = "path to yaml runtime configuration file for the KVS you're migrating from. Note that this "
+                    + "config will not be reloaded while the CLI is running",
+            required = false)
+    private File fromRuntimeConfigFile;
+
+    @Option(
+            name = {"-mrc", "--migrateRuntimeConfig"},
+            title = "RUNTIME CONFIG PATH",
+            description = "path to yaml runtime configuration file for the KVS you're migrating to. Note that this "
+                    + "config will not be reloaded while the CLI is running",
+            required = false)
+    private File toRuntimeConfigFile;
+
+    @Option(
+            name = {"--runtime-config-root"},
+            title = "RUNTIME CONFIG ROOT",
+            type = OptionType.GLOBAL,
+            description = "field in the runtime config yaml file that contains the atlasdb configuration root")
+    private String runtimeConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(
             name = {"-t", "--threads"},
@@ -106,6 +138,13 @@ public class KvsMigrationCommand implements Callable<Integer> {
             type = OptionType.GLOBAL,
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
+
+    @Option(
+            name = {"--inline-runtime-config"},
+            title = "INLINE RUNTIME CONFIG",
+            type = OptionType.GLOBAL,
+            description = "inline runtime configuration file for atlasdb")
+    private String inlineRuntimeConfig;
 
     @Override
     public Integer call() throws Exception {
@@ -159,21 +198,27 @@ public class KvsMigrationCommand implements Callable<Integer> {
         }
     }
 
-    public AtlasDbServices connectFromServices() throws IOException {
-        AtlasDbConfig fromConfig =
-                overrideTransactionTimeoutMillis(AtlasDbConfigs.load(fromConfigFile, configRoot, AtlasDbConfig.class));
-        ServicesConfigModule scm = ServicesConfigModule.create(
-                makeOfflineIfNecessary(fromConfig), AtlasDbRuntimeConfig.withSweepDisabled());
+    public AtlasDbServices connectFromServices() {
+        AtlasDbConfig fromConfig = overrideTransactionTimeoutMillis(
+                loadFromFile(fromConfigFile, configRoot, AtlasDbConfig.class).orElseThrow());
+
+        AtlasDbRuntimeConfig fromRuntimeConfig = disableSweepAndCompaction(
+                loadFromFile(fromRuntimeConfigFile, runtimeConfigRoot, AtlasDbRuntimeConfig.class)
+                        .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled));
+
+        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig), fromRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    public AtlasDbServices connectToServices() throws IOException {
-        AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(
-                toConfigFile != null
-                        ? AtlasDbConfigs.load(toConfigFile, configRoot, AtlasDbConfig.class)
-                        : AtlasDbConfigs.loadFromString(inlineConfig, null, AtlasDbConfig.class));
-        ServicesConfigModule scm =
-                ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), AtlasDbRuntimeConfig.withSweepDisabled());
+    public AtlasDbServices connectToServices() {
+        AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(loadFromFileOrInline(
+                        toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
+                .orElseThrow(() -> new SafeRuntimeException("At least one of -mc / --inline-config is required")));
+
+        AtlasDbRuntimeConfig toRuntimeConfig = disableSweepAndCompaction(loadFromFileOrInline(
+                        toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
+                .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled));
+        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), toRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
@@ -191,5 +236,36 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 .threads(threads)
                 .batchSize(batchSize)
                 .build());
+    }
+
+    private static AtlasDbRuntimeConfig disableSweepAndCompaction(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .from(atlasDbRuntimeConfig)
+                .sweep(SweepConfig.disabled())
+                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .compact(CompactorConfig.disabled())
+                .build();
+    }
+
+    private static <K> Optional<K> loadFromFileOrInline(
+            @Nullable File configFile, String fileConfigRoot, @Nullable String inline, Class<K> clazz) {
+        return loadFromFile(configFile, fileConfigRoot, clazz).or(() -> Optional.ofNullable(inline)
+                .map(rethrowIoExceptionAsUnchecked(config -> AtlasDbConfigs.loadFromString(config, null, clazz))));
+    }
+
+    private static <K> Optional<K> loadFromFile(@Nullable File configFile, String fileConfigRoot, Class<K> clazz) {
+        return Optional.ofNullable(configFile)
+                .map(rethrowIoExceptionAsUnchecked(file -> AtlasDbConfigs.load(file, fileConfigRoot, clazz)));
+    }
+
+    private static <F, T, K extends IOException> Function<F, T> rethrowIoExceptionAsUnchecked(
+            FunctionCheckedException<F, T, K> function) {
+        return f -> {
+            try {
+                return function.apply(f);
+            } catch (IOException e) {
+                throw new SafeRuntimeException(e);
+            }
+        };
     }
 }
