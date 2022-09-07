@@ -2018,15 +2018,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
-        long startTimestamp = getStartTimestamp();
+        long startTs = getStartTimestamp();
         // The schema version of current transaction does not matter. If the current transaction does not hold
         // immutableTs lock, and we were previously on schema 4 for a range of transactions, we cannot know the state
         // of those writes consistently if sweep has progressed.
 
-        // todo(snanda): this would be nicer if we only threw if we actually read something on txn 4
         if (immutableTimestampLock.isEmpty()) {
             Preconditions.checkState(
-                    lastSeenCommitTs.get() < startTimestamp,
+                    lastSeenCommitTs.get() < startTs,
                     "Transactions table has been swept beyond current start timestamp, therefore, we cannot"
                             + " consistently values accessible to this transactions. This can happen if the transaction"
                             + " has been alive for more than an hour and is expected to be transient.");
