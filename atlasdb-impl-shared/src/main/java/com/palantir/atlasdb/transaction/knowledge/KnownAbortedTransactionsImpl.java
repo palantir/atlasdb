@@ -45,7 +45,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     @VisibleForTesting
     KnownAbortedTransactionsImpl(
-            FutileTimestampStore abandonedTimestampStore,
+            AbandonedTimestampStore abandonedTimestampStore,
             AbortedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
             int maxCacheWeight) {
@@ -65,13 +65,13 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     public static KnownAbortedTransactionsImpl create(
             KnownConcludedTransactions knownConcludedTransactions,
-            FutileTimestampStore futileTimestampStore,
+            AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
             Optional<InternalSchemaInstallConfig> config) {
         AbortedTransactionSoftCache softCache =
-                new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
+                new AbortedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
         return new KnownAbortedTransactionsImpl(
-                futileTimestampStore,
+                abandonedTimestampStore,
                 softCache,
                 registry,
                 config.map(InternalSchemaInstallConfig::versionFourAbortedTransactionsCacheSize)
@@ -99,7 +99,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        abandonedTimestampStore.addAbortedTimestamps(abortedTimestamps);
+        abortedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
     }
 
     @VisibleForTesting
@@ -113,7 +113,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
         metrics.abortedTxnCacheMiss().mark();
-        return abandonedTimestampStore.getAbortedTransactionsInRange(
+        return abandonedTimestampStore.getAbandonedTimestampsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }
 
