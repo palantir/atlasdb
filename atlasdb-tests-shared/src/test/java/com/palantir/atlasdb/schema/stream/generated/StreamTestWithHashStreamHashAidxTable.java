@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -739,5 +739,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "n5LSn5a3OH6VQMw1J/OB0g==";
+    static String __CLASS_HASH = "X1hqbiqiEZbDU9agjHYzMA==";
 }

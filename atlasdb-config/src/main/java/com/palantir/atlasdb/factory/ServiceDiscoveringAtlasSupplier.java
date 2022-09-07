@@ -33,9 +33,12 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -136,13 +139,16 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private static String saveThreadDumpsToFile(File file) throws IOException {
-        try (FileOutputStream outputStream = new FileOutputStream(file)) {
-            writeStringToStream(
-                    outputStream,
-                    "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
-                            + "MultipleRunningTimestampServices error. In this case, please send this file to them.\n");
-            writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo + "\n");
-            writeStringToStream(outputStream, "Second thread dump: " + ThreadDumps.programmaticThreadDump() + "\n");
+        try (OutputStream outputStream = new FileOutputStream(file);
+                OutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+                PrintWriter writer = new PrintWriter(bufferedOutputStream, false, StandardCharsets.UTF_8)) {
+            writer.println("This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you "
+                    + "hit a MultipleRunningTimestampServices error. In this case, please send this file to them.");
+            writer.print("First thread dump: ");
+            writer.println(timestampServiceCreationInfo);
+            writer.print("Second thread dump: ");
+            writer.println(ThreadDumps.programmaticThreadDump());
+            writer.flush();
             return file.getPath();
         }
     }
@@ -166,9 +172,5 @@ public class ServiceDiscoveringAtlasSupplier {
                             + "support.",
                     UnsafeArg.of("path", path));
         }
-    }
-
-    private static void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
-        outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
     }
 }

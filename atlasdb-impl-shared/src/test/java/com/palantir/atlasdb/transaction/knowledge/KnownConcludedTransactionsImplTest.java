@@ -44,7 +44,7 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultKnownConcludedTransactionsTest {
+public class KnownConcludedTransactionsImplTest {
     private static final Range<Long> DEFAULT_RANGE = Range.closed(10L, 100L);
     private static final Range<Long> ADDITIONAL_RANGE = Range.closed(88L, 200L);
 
@@ -52,7 +52,7 @@ public class DefaultKnownConcludedTransactionsTest {
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
             mock(KnownConcludedTransactionsStore.class);
     private final KnownConcludedTransactions defaultKnownConcludedTransactions =
-            DefaultKnownConcludedTransactions.create(knownConcludedTransactionsStore, taggedMetricRegistry);
+            KnownConcludedTransactionsImpl.create(knownConcludedTransactionsStore, taggedMetricRegistry);
 
     @Before
     public void setUp() {

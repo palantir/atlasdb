@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -706,5 +706,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lxkBgMs/0YB/yfs9lh69Kw==";
+    static String __CLASS_HASH = "YleWz4H842qjJBXcYvLobg==";
 }

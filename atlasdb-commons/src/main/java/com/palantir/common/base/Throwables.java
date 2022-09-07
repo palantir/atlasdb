@@ -73,6 +73,14 @@ public final class Throwables {
         return throwable;
     }
 
+    /**
+     *  Returns true iff an exception of type causeClass exists somewhere in the causal chain.
+     */
+    public static <T extends Throwable> boolean hasCauseInCausalChain(T throwable, Class<? extends T> causeClass) {
+        return com.google.common.base.Throwables.getCausalChain(throwable).stream()
+                .anyMatch(causeClass::isInstance);
+    }
+
     private static String extractMessageSafely(Throwable ex) {
         if (ex instanceof SafeLoggable) {
             return ((SafeLoggable) ex).getLogMessage();

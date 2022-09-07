@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: AtlasDB CLI and other Dagger AtlasDB consumers no longer throw `NotInitializedException`
+    when KVS async initialization is enabled.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6188
