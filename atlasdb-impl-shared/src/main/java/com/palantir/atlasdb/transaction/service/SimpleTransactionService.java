@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.InstrumentedConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.atomic.PueConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
@@ -33,6 +34,11 @@ import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrate
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactionsImpl;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -112,12 +118,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> atomicTable =
-                new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
-                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
-        // todo(snanda)
-        //        AtomicTable<Long, Long> atomicTable =
-        //                new KnowledgeableTimestampExtractingAtomicTable(delegate);
+        AtomicTable<Long, TransactionStatus> delegate = new ResilientCommitTimestampAtomicTable(
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
+
+        KnownConcludedTransactions knownConcludedTransactions = KnownConcludedTransactionsImpl.create(
+                KnownConcludedTransactionsStore.create(kvs), metricRegistry);
+        // todo(snanda): Pending on merging Futile and abandoned ts stores
+        KnownAbortedTransactions knownAbortedTransactions =
+                KnownAbortedTransactionsImpl.create(knownConcludedTransactions, null, metricRegistry, null);
+       AtomicTable<Long, Long> atomicTable =
+                       new KnowledgeableTimestampExtractingAtomicTable(delegate, knownConcludedTransactions, knownAbortedTransactions);
         return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 

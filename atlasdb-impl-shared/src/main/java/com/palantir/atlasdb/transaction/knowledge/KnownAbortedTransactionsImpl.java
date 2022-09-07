@@ -33,7 +33,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
 
-    private final FutileTimestampStore futileTimestampStore;
+    private final AbandonedTimestampStore abandonedTimestampStore;
 
     /**
      * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
@@ -45,11 +45,11 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     @VisibleForTesting
     KnownAbortedTransactionsImpl(
-            FutileTimestampStore futileTimestampStore,
+            FutileTimestampStore abandonedTimestampStore,
             AbortedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
             int maxCacheWeight) {
-        this.futileTimestampStore = futileTimestampStore;
+        this.abandonedTimestampStore = abandonedTimestampStore;
         this.softCache = softCache;
         this.metrics = AbortedTransctionsCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
@@ -99,7 +99,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        futileTimestampStore.addAbortedTimestamps(abortedTimestamps);
+        abandonedTimestampStore.addAbortedTimestamps(abortedTimestamps);
     }
 
     @VisibleForTesting
@@ -113,7 +113,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
         metrics.abortedTxnCacheMiss().mark();
-        return futileTimestampStore.getAbortedTransactionsInRange(
+        return abandonedTimestampStore.getAbortedTransactionsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }
 
