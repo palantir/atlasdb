@@ -63,7 +63,7 @@ public final class SweepTestUtils {
                 timelock.getLegacyTimelockService(),
                 timelock.getTimestampManagementService(),
                 SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createRaw(kvs, transactionSchemaManager),
+                TransactionServices.createTransactionService(kvs, transactionSchemaManager),
                 transactionSchemaManager);
     }
 

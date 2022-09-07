@@ -1315,7 +1315,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void throwIfTTSBeyondForTTSCell() {
+    public void throwIfTTSBeyondReadOnlyForTTSCell() {
         serializableTxManager.runTaskWithRetry(tx -> {
             tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
             return null;

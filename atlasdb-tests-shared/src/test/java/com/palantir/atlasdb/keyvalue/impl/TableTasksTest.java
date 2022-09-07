@@ -82,7 +82,7 @@ public class TableTasksTest {
         CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
                 kvs, inMemoryTimeLockRule.getTimestampService(), MetricsManagers.createForTests(), false);
         txSchemaManager = new TransactionSchemaManager(coordinationService);
-        txService = TransactionServices.createRaw(kvs, txSchemaManager);
+        txService = TransactionServices.createTransactionService(kvs, txSchemaManager);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
