@@ -50,6 +50,7 @@ import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
+import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -426,7 +427,7 @@ public abstract class TransactionManagers {
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
+                closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime, config().internalSchema());
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -675,7 +676,8 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            InternalSchemaInstallConfig internalSchemaInstallConfig) {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
@@ -690,7 +692,8 @@ public abstract class TransactionManagers {
                                 () -> runtimeConfigSupplier
                                         .get()
                                         .internalSchema()
-                                        .acceptStagingReadsOnVersionThree())),
+                                        .acceptStagingReadsOnVersionThree(),
+                                Optional.of(internalSchemaInstallConfig))),
                 closeables);
         Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
