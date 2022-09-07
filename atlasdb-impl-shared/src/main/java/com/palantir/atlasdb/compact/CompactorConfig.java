@@ -79,4 +79,9 @@ public interface CompactorConfig {
     static CompactorConfig defaultCompactorConfig() {
         return ImmutableCompactorConfig.builder().build();
     }
+
+    static CompactorConfig disabled() {
+        // Explicitly disabled compaction in case default ever changes.
+        return ImmutableCompactorConfig.builder().enableCompaction(false).build();
+    }
 }

@@ -64,7 +64,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             name = {"--runtime-config-root"},
             title = "RUNTIME CONFIG ROOT",
             type = OptionType.GLOBAL,
-            description = "field in the config yaml file that contains the atlasdb configuration root")
+            description = "field in the runtime config yaml file that contains the atlasdb configuration root")
     private String runtimeConfigRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(

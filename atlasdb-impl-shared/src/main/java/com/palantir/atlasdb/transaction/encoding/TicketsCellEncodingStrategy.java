@@ -19,9 +19,12 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -31,12 +34,25 @@ import java.util.stream.Stream;
  * least significant bits of the timestamp and using that as the row number. For example, we would store values that
  * might be associated with the timestamps 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
  *
+ * One may view the layout of cells as follows (for example, where R is the number of rows per quantum and Q is the
+ * partitioning quantum; N = Q/R):
+ *
+ *  row \ column |   0     1     2     3     ...      N-1
+ *  -------------+----------------------------------------
+ *             0 |   0     R    2R    3R     ...   (N-1)R
+ *             1 |   1   R+1  2R+1  3R+1     ... (N-1)R+1
+ *             2 |   2   R+2  2R+2  3R+2     ... (N-1)R+2
+ *           ... |  ...  ...   ...   ...     ...   ...
+ *           R-1 | R-1  2R-1  3R-1  4R-1     ...     NR-1
+ *
  * We store the row name as a bit-wise reversed version of the row number to ensure even distribution in key-value
  * services that rely on consistent hashing or similar mechanisms for partitioning.
  */
 public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
+    private static final SafeLogger log = SafeLoggerFactory.get(TicketsCellEncodingStrategy.class);
     private final long partitioningQuantum;
     private final long rowsPerQuantum;
+    private final long lastColumnInRow;
 
     public TicketsCellEncodingStrategy(long partitioningQuantum, long rowsPerQuantum) {
         Preconditions.checkArgument(
@@ -50,6 +66,7 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
                 SafeArg.of("partitioningQuantum", partitioningQuantum));
         this.partitioningQuantum = partitioningQuantum;
         this.rowsPerQuantum = rowsPerQuantum;
+        this.lastColumnInRow = partitioningQuantum / rowsPerQuantum - 1;
     }
 
     @VisibleForTesting
@@ -106,9 +123,69 @@ public class TicketsCellEncodingStrategy implements CellEncodingStrategy {
     }
 
     public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        Preconditions.checkArgument(
+                fromInclusive <= toInclusive,
+                "Range provided does not exist",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
         long startRow = startTimestampToRow(fromInclusive - ((fromInclusive % partitioningQuantum) % rowsPerQuantum));
         long endRow = startTimestampToRow(
                 toInclusive + rowsPerQuantum - ((toInclusive % partitioningQuantum) % rowsPerQuantum) - 1);
         return LongStream.rangeClosed(startRow, endRow).mapToObj(TicketsCellEncodingStrategy::rowToBytes);
+    }
+
+    /**
+     * Returns a column range *covering* the provided timestamp range: notice that this may load more timestamps than
+     * necessary. Users must post-filter any results they receive.
+     */
+    public ColumnRangeSelection getColumnRangeCoveringTimestampRange(long fromInclusive, long toInclusive) {
+        Preconditions.checkArgument(
+                fromInclusive <= toInclusive,
+                "Range provided does not exist",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
+        long startPartition = getPartition(fromInclusive);
+        long endPartition = getPartition(toInclusive);
+        if (startPartition == endPartition) {
+            return getQueryForSingleDoublyBoundedPartition(fromInclusive, toInclusive);
+        }
+
+        // The request covers more than one partition. In this case, there will not exist a suitable contiguous range
+        // of columns containing all values, hence we just load all rows.
+        log.warn(
+                "Detected a request covering more than one partition. This is not expected for how this class is "
+                        + "supposed to operate, and could indicate a bug with the class using this feature.",
+                SafeArg.of("fromInclusive", fromInclusive),
+                SafeArg.of("toInclusive", toInclusive));
+        return new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY);
+    }
+
+    private ColumnRangeSelection getQueryForSingleDoublyBoundedPartition(long fromInclusive, long toInclusive) {
+        long lowestRequiredColumn = getColumnIndex(fromInclusive);
+        long highestRequiredColumn = getColumnIndex(toInclusive);
+
+        if (lowestRequiredColumn != 0 || highestRequiredColumn != lastColumnInRow) {
+            log.warn(
+                    "Detected a request not aligned with column boundaries. This is not expected for how this class "
+                            + "is supposed to operate, and could indicate a bug with the class using this feature.",
+                    SafeArg.of("fromInclusive", fromInclusive),
+                    SafeArg.of("toInclusive", toInclusive));
+        }
+
+        return new ColumnRangeSelection(
+                ValueType.VAR_LONG.convertFromJava(lowestRequiredColumn),
+                ValueType.VAR_LONG.convertFromJava(getExclusiveUpperBound(highestRequiredColumn)));
+    }
+
+    private long getExclusiveUpperBound(long lastColumnInPartition) {
+        return lastColumnInPartition + 1;
+    }
+
+    private long getPartition(long timestamp) {
+        return timestamp / partitioningQuantum;
+    }
+
+    private long getColumnIndex(long timestamp) {
+        return (timestamp % partitioningQuantum) / rowsPerQuantum;
     }
 }

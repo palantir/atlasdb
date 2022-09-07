@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: AtlasDB CLI Migrate command supports optional `-frc / --fromRuntimeConfig`
+    and `-mrc / --migrateRuntimeConfig` for specifying the runtime config file path
+    for the initial and target KVSs. The optional `--inline-runtime-config` command
+    allows for specifying the runtime config as a string for the initial KVS, and
+    the optional `--runtime-config-root` command allows for specifying the config
+    root within the file.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6186

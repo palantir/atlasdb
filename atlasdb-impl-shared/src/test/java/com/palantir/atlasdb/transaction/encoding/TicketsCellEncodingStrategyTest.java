@@ -22,8 +22,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
 import java.util.Set;
@@ -121,5 +124,69 @@ public class TicketsCellEncodingStrategyTest {
                                 18 * LARGE_QUANTUM_STRATEGY.getRowsPerQuantum())
                         .boxed()
                         .collect(Collectors.toList()));
+    }
+
+    @Test
+    public void throwsIfGettingRowNamesOnInvalidRange() {
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getRowSetCoveringTimestampRange(8L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getRowSetCoveringTimestampRange(54L, 13L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+    }
+
+    @Test
+    public void columnRangeForMultiPartitionQueriesIsUniversal() {
+        assertThat(SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(SMALL_QUANTUM * 3, SMALL_QUANTUM * 4))
+                .isEqualTo(new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY));
+        assertThat(SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                        SMALL_QUANTUM * 17, SMALL_QUANTUM * 88 - 1))
+                .isEqualTo(new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY));
+    }
+
+    @Test
+    public void columnRangeForSingleBoundedFullPartition() {
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(0, SMALL_QUANTUM - 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(0L, SMALL_QUANTUM / SMALL_NUMBER_OF_ROWS));
+    }
+
+    @Test
+    public void columnRangeForSingleBoundedSingleValue() {
+        long timestamp = 88L;
+        ColumnRangeSelection selection =
+                SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(timestamp, timestamp);
+        assertThat(decode(selection))
+                .isEqualTo(Range.closedOpen(timestamp / SMALL_NUMBER_OF_ROWS, timestamp / SMALL_NUMBER_OF_ROWS + 1));
+    }
+
+    @Test
+    public void columnRangeForSingleBoundedContiguousRange() {
+        ColumnRangeSelection selection = SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                3 * SMALL_NUMBER_OF_ROWS, 7 * SMALL_NUMBER_OF_ROWS - 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(3L, 7L));
+    }
+
+    @Test
+    public void columnRangeForWrapAroundRange() {
+        ColumnRangeSelection selection = SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(
+                6 * SMALL_NUMBER_OF_ROWS - 1, 6 * SMALL_NUMBER_OF_ROWS + 1);
+        assertThat(decode(selection)).isEqualTo(Range.closedOpen(5L, 7L));
+    }
+
+    @Test
+    public void throwsIfGettingColumnRangeForInvalidRange() {
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(8L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+        assertThatThrownBy(() -> SMALL_QUANTUM_STRATEGY.getColumnRangeCoveringTimestampRange(49L, 7L))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Range provided does not exist");
+    }
+
+    private static Range<Long> decode(ColumnRangeSelection columnRangeSelection) {
+        return Range.closedOpen((Long) ValueType.VAR_LONG.convertToJava(columnRangeSelection.getStartCol(), 0), (Long)
+                ValueType.VAR_LONG.convertToJava(columnRangeSelection.getEndCol(), 0));
     }
 }

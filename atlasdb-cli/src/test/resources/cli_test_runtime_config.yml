@@ -1,0 +1,20 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+
+atlasdb:
+  sweep:
+    enabled: true
+  targetedSweep:
+    enabled: true
+  compact:
+    enableCompaction: true
+  keyValueService:
+    type: cassandra
+    servers:
+      - 127.0.0.1:1337
+    replicationFactor: 3

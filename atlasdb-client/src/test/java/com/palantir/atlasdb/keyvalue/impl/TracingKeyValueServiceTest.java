@@ -44,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.SpanType;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -305,7 +306,9 @@ public class TracingKeyValueServiceTest {
     @Test
     @SuppressWarnings("MustBeClosed")
     public void getRange() throws Exception {
-        ClosableIterator<RowResult<Value>> expectedResult = mock(ClosableIterator.class);
+        ClosableIterator<RowResult<Value>> expectedResult = ClosableIterators.wrapWithEmptyClose(
+                List.of(RowResult.of(CELL, VALUE)).iterator());
+
         RangeRequest rangeRequest = RangeRequest.all();
         when(delegate.getRange(TABLE_REF, rangeRequest, TIMESTAMP)).thenReturn(expectedResult);
 
@@ -314,18 +317,25 @@ public class TracingKeyValueServiceTest {
         // Trace-logging should be async
         assertThat(observer.spans()).isEmpty();
 
+        // "Read" one row
+        assertThat(result.hasNext()).isTrue();
+        result.next();
+        assertThat(result.hasNext()).isFalse();
+
         // Close to trigger span logging
         result.close();
 
-        checkSpan("atlasdb-kvs.getRange", ImmutableMap.of("table", "{table}"));
+        checkSpan("atlasdb-kvs.getRange", ImmutableMap.of("table", "{table}", "rows", "1"));
         verify(delegate).getRange(TABLE_REF, rangeRequest, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
 
     @Test
     @SuppressWarnings("MustBeClosed")
-    public void getRange_withTrackedByteReads() throws Exception {
-        ClosableIterator<RowResult<Value>> expectedResult = mock(ClosableIterator.class);
+    public void getRange_withTrackedByteReads() {
+        ClosableIterator<RowResult<Value>> expectedResult = ClosableIterators.wrapWithEmptyClose(
+                List.of(RowResult.of(CELL, VALUE)).iterator());
+
         RangeRequest rangeRequest = RangeRequest.all();
         when(delegate.getRange(TABLE_REF, rangeRequest, TIMESTAMP)).thenReturn(expectedResult);
 
@@ -339,7 +349,7 @@ public class TracingKeyValueServiceTest {
         // Close to trigger span logging
         result.close();
 
-        checkSpan("atlasdb-kvs.getRange", ImmutableMap.of("table", "{table}", "atlasdb.bytesRead", "42"));
+        checkSpan("atlasdb-kvs.getRange", ImmutableMap.of("table", "{table}", "rows", "0", "atlasdb.bytesRead", "42"));
         verify(delegate).getRange(TABLE_REF, rangeRequest, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
