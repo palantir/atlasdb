@@ -1,6 +1,0 @@
-type: improvement
-improvement:
-  description: TTS | Introduce `KnowledgeableTimestampExtractingAtomicTable` for transactions
-    on schema version 4.
-  links:
-  - https://github.com/palantir/atlasdb/pull/6208
