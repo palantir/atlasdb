@@ -52,12 +52,12 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     private final DisruptorAutobatcher<Long, TransactionSoftCacheStatus> autobatcher;
 
     private volatile PatchyCache patchyCache = null;
-    private final FutileTimestampStore futileTimestampStore;
+    private final AbandonedTimestampStore abandonedTimestampStore;
     private final KnownConcludedTransactions knownConcludedTransactions;
 
     public AbortedTransactionSoftCache(
-            FutileTimestampStore futileTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
-        this.futileTimestampStore = futileTimestampStore;
+            AbandonedTimestampStore abandonedTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
+        this.abandonedTimestampStore = abandonedTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
         this.autobatcher = Autobatchers.coalescing(this::processBatch)
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
@@ -143,7 +143,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
         }
 
         Set<Long> newAbortedTransactions =
-                futileTimestampStore.getAbortedTransactionsInRange(currentLastKnownConcluded, latestTs);
+                abandonedTimestampStore.getAbandonedTimestampsInRange(currentLastKnownConcluded, latestTs);
         snapshot.extend(latestTs, newAbortedTransactions);
         return snapshot;
     }
@@ -151,10 +151,10 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, Bucket latestBucketSeenSoFar) {
         long maxTsInCurrentBucket = latestBucketSeenSoFar.getMaxTsInCurrentBucket();
 
-        Set<Long> futileTimestamps = futileTimestampStore.getAbortedTransactionsInRange(
+        Set<Long> abandonedTimestamps = abandonedTimestampStore.getAbandonedTimestampsInRange(
                 latestBucketSeenSoFar.getMinTsInBucket(), maxTsInCurrentBucket);
 
-        return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), futileTimestamps);
+        return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), abandonedTimestamps);
     }
 
     // This is a mutable snapshot, but it is guaranteed that the snapshot will not extend beyond its bucket
