@@ -34,10 +34,8 @@ import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.ShardProgress;
-import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
@@ -333,7 +331,7 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                getGetLastSeenCommitTsSupplier());
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
     }
 
     @Override
@@ -377,7 +375,7 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                getGetLastSeenCommitTsSupplier());
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),
@@ -442,12 +440,6 @@ import javax.validation.constraints.NotNull;
     public void clearTimestampCache() {
         timestampValidationReadCache.clear();
     }
-
-    private Supplier<Long> getGetLastSeenCommitTsSupplier() {
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), keyValueService);
-        return new ShardProgress(keyValueService)::getLastSeenCommitTimestamp;
-    }
-
     private void closeLockServiceIfPossible() {
         if (lockService instanceof AutoCloseable) {
             try {

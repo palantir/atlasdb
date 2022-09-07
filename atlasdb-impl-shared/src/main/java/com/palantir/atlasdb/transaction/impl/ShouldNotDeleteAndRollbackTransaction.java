@@ -21,10 +21,8 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.ShardProgress;
-import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -113,15 +111,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 transactionConfig,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
-                getGetLastSeenCommitTimestamp(keyValueService));
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
     }
-
-    private static Supplier<Long> getGetLastSeenCommitTimestamp(KeyValueService keyValueService) {
-        // todo(snanda): making me cry with this
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), keyValueService);
-        return new ShardProgress(keyValueService)::getLastSeenCommitTimestamp;
-    }
-
     @Override
     protected boolean shouldDeleteAndRollback() {
         // We don't want to delete any data or roll back any transactions because we don't participate in the

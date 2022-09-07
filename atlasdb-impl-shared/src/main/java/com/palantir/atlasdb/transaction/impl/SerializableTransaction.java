@@ -56,10 +56,8 @@ import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.ShardProgress;
-import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -193,12 +191,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                getGetLastSeenCommitTimestamp(keyValueService));
-    }
-
-    private static Supplier<Long> getGetLastSeenCommitTimestamp(KeyValueService keyValueService) {
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), keyValueService);
-        return new ShardProgress(keyValueService)::getLastSeenCommitTimestamp;
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
     }
 
     @Override
@@ -880,7 +873,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                getGetLastSeenCommitTimestamp(keyValueService)) {
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService)) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());

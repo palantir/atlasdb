@@ -72,7 +72,7 @@ import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -455,7 +455,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        new ShardProgress(kvs)::getLastSeenCommitTimestamp),
+                        SweepQueueFactory.getGetLastSeenCommitTsSupplier(kvs)),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
