@@ -61,7 +61,7 @@ public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
-    protected TransactionSchemaManager transactionSchemaManager = mock(TransactionSchemaManager.class);
+    protected final TransactionSchemaManager transactionSchemaManager = mock(TransactionSchemaManager.class);
 
     protected LockClient lockClient;
     protected LockService lockService;
