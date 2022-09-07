@@ -113,6 +113,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 new SimpleTableLevelMetricsController(metricsManager),
                 SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
     }
+
     @Override
     protected boolean shouldDeleteAndRollback() {
         // We don't want to delete any data or roll back any transactions because we don't participate in the

@@ -265,6 +265,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             init(kvs);
             return new ShardProgress(kvs)::getLastSeenCommitTimestamp;
         }
+
         private static void init(KeyValueService kvs) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         }

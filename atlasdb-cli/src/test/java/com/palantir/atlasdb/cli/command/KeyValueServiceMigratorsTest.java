@@ -355,9 +355,8 @@ public class KeyValueServiceMigratorsTest {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(kvs, timestampService, MetricsManagers.createForTests(), false);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        TransactionService transactionService = spy(TransactionServices.createTransactionService(
-                kvs,
-                transactionSchemaManager));
+        TransactionService transactionService =
+                spy(TransactionServices.createTransactionService(kvs, transactionSchemaManager));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
         when(mockServices.getManagedTimestampService()).thenReturn(timestampService);

@@ -440,6 +440,7 @@ import javax.validation.constraints.NotNull;
     public void clearTimestampCache() {
         timestampValidationReadCache.clear();
     }
+
     private void closeLockServiceIfPossible() {
         if (lockService instanceof AutoCloseable) {
             try {

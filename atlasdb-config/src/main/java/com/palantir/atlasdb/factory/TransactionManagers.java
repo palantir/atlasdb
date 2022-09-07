@@ -427,7 +427,12 @@ public abstract class TransactionManagers {
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime, config().internalSchema());
+                closeables,
+                metricsManager,
+                lockAndTimestampServices,
+                keyValueService,
+                runtime,
+                config().internalSchema());
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

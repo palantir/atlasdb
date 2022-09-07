@@ -1328,7 +1328,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // no immutableTs lock for read-only transaction
         Transaction transaction = getSnapshotTransaction(
-                timelockService, () -> transactionTs, transactionTs, Optional.empty(), PreCommitConditions.NO_OP, true,
+                timelockService,
+                () -> transactionTs,
+                transactionTs,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
+                true,
                 () -> transactionTs + 1);
 
         assertThatExceptionOfType(SafeIllegalStateException.class)
@@ -1341,12 +1346,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         long transactionTs = timelockService.getFreshTimestamp();
 
         // configure non TTS cell
-        when(transactionSchemaManager.getTransactionsSchemaVersion(anyLong()))
-                .thenReturn(3);
+        when(transactionSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(3);
 
         // no immutableTs lock for read-only transaction
         Transaction transaction = getSnapshotTransaction(
-                timelockService, () -> transactionTs, transactionTs, Optional.empty(), PreCommitConditions.NO_OP, true,
+                timelockService,
+                () -> transactionTs,
+                transactionTs,
+                Optional.empty(),
+                PreCommitConditions.NO_OP,
+                true,
                 () -> transactionTs + 1);
 
         assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
@@ -2357,13 +2366,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return getSnapshotTransaction(
                 timelockService,
                 startTs,
-        lockImmutableTimestampResponse.getImmutableTimestamp(),
-        Optional.of(lockImmutableTimestampResponse.getLock()),
-        preCommitCondition,
-        validateLocksOnReads,
-        lastSeenCommitTs);
-
+                lockImmutableTimestampResponse.getImmutableTimestamp(),
+                Optional.of(lockImmutableTimestampResponse.getLock()),
+                preCommitCondition,
+                validateLocksOnReads,
+                lastSeenCommitTs);
     }
+
     private Transaction getSnapshotTransaction(
             TimelockService timelockService,
             Supplier<Long> startTs,

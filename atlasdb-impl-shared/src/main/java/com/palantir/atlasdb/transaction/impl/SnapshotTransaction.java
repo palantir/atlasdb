@@ -2034,7 +2034,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean isReadingSweepableTransaction(long startTs) {
         return transactionSchemaManager.getTransactionsSchemaVersion(startTs)
-                        == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION;
+                == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION;
     }
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {

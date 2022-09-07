@@ -46,7 +46,11 @@ public final class TransactionServices {
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         // Should only be used for testing, or in contexts where users are not concerned about metrics
         return createTransactionService(
-                keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry(), () -> false, Optional.empty());
+                keyValueService,
+                transactionSchemaManager,
+                new DefaultTaggedMetricRegistry(),
+                () -> false,
+                Optional.empty());
     }
 
     public static TransactionService createTransactionService(
@@ -58,7 +62,11 @@ public final class TransactionServices {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return createSplitKeyTransactionService(
-                    keyValueService, transactionSchemaManager, metricRegistry, acceptStagingReadsOnVersionThree, schemaInstallConfig);
+                    keyValueService,
+                    transactionSchemaManager,
+                    metricRegistry,
+                    acceptStagingReadsOnVersionThree,
+                    schemaInstallConfig);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -81,7 +89,10 @@ public final class TransactionServices {
                         createV3TransactionService(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree),
                         TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION,
                         createV4TransactionService(
-                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree, schemaInstallConfig))));
+                                keyValueService,
+                                metricRegistry,
+                                acceptStagingReadsOnVersionThree,
+                                schemaInstallConfig))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -106,9 +117,9 @@ public final class TransactionServices {
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Optional<InternalSchemaInstallConfig> config) {
-        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
-                SimpleTransactionService.createV4(keyValueService, metricRegistry, acceptStagingReadsAsCommitted,
-                        config)));
+        return new PreStartHandlingTransactionService(
+                WriteBatchingTransactionService.create(SimpleTransactionService.createV4(
+                        keyValueService, metricRegistry, acceptStagingReadsAsCommitted, config)));
     }
 
     /**
@@ -122,6 +133,7 @@ public final class TransactionServices {
                 keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
+
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
             KeyValueService keyValueService, MetricsManager metricsManager) {
         if (keyValueService.supportsCheckAndSet()) {

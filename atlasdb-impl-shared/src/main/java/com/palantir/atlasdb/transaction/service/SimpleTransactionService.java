@@ -78,8 +78,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     public static SimpleTransactionService createV4(
-            KeyValueService kvs, TaggedMetricRegistry metricRegistry, Supplier<Boolean> acceptStagingReadsAsCommitted
-            , Optional<InternalSchemaInstallConfig> schemaInstallConfig) {
+            KeyValueService kvs,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            Optional<InternalSchemaInstallConfig> schemaInstallConfig) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
             return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
@@ -127,13 +129,12 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         AtomicTable<Long, TransactionStatus> delegate = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
 
-        KnownConcludedTransactions knownConcludedTransactions = KnownConcludedTransactionsImpl.create(
-                KnownConcludedTransactionsStore.create(kvs), metricRegistry);
-        KnownAbortedTransactions knownAbortedTransactions =
-                KnownAbortedTransactionsImpl.create(knownConcludedTransactions,
-                        new DefaultAbandonedTimestampStore(kvs), metricRegistry, config);
-       AtomicTable<Long, Long> atomicTable =
-                       new KnowledgeableTimestampExtractingAtomicTable(delegate, knownConcludedTransactions, knownAbortedTransactions);
+        KnownConcludedTransactions knownConcludedTransactions =
+                KnownConcludedTransactionsImpl.create(KnownConcludedTransactionsStore.create(kvs), metricRegistry);
+        KnownAbortedTransactions knownAbortedTransactions = KnownAbortedTransactionsImpl.create(
+                knownConcludedTransactions, new DefaultAbandonedTimestampStore(kvs), metricRegistry, config);
+        AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(
+                delegate, knownConcludedTransactions, knownAbortedTransactions);
         return new SimpleTransactionService(atomicTable, encodingStrategy);
     }
 
