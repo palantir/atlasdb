@@ -30,7 +30,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -241,7 +240,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         }
     }
 
-    @Unsafe @Value.Immutable
+    @Value.Immutable
     interface ActionProfile {
         @Value.Parameter
         String actionName();

@@ -50,7 +50,7 @@ public final class LoggingArgs {
     public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
-    @Unsafe @Value.Immutable
+    @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
 
@@ -151,7 +151,8 @@ public final class LoggingArgs {
         }
     }
 
-    @Unsafe public static Arg<String> safeInternalTableName(String internalTableReference) {
+    @Unsafe
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
         if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
             return SafeArg.of("tableRef", internalTableReference);
         } else {
@@ -232,7 +233,7 @@ public final class LoggingArgs {
         return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 
-    @Unsafe private static <T> Arg<T> getArg(String name, T value, boolean safe) {
+    private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }
 }

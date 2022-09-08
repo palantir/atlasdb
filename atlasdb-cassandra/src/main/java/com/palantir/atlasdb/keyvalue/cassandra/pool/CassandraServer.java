@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
-import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import java.net.InetSocketAddress;
 import java.util.Set;
@@ -42,7 +41,7 @@ public interface CassandraServer {
     /**
      * The only proxy that will be used to reach the Cassandra host.
      * */
-    @DoNotLog @Value.Lazy
+    @Value.Lazy
     @Value.Redacted // exclude from toString for thread names & logs
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element

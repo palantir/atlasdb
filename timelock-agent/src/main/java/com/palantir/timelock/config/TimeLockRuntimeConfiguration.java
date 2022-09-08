@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.logsafe.DoNotLog;
 import com.palantir.tokens.auth.BearerToken;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -30,7 +29,7 @@ import org.immutables.value.Value;
  *
  * Note that the {@link ClusterConfiguration} is an exception to above rule.
  */
-@DoNotLog @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
+@JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @Value.Immutable
 @JsonIgnoreProperties({"targeted-sweep-locks", "test-only-lock-watches"})

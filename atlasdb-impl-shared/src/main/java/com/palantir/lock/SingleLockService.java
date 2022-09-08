@@ -21,7 +21,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -95,7 +94,7 @@ public class SingleLockService implements AutoCloseable {
         }
     }
 
-    @Unsafe private Arg<String> getLockIdLoggingArg() {
+    private Arg<String> getLockIdLoggingArg() {
         return isLockIdSafeForLogging ? SafeArg.of("lockId", lockId) : UnsafeArg.of("lockId", lockId);
     }
 }

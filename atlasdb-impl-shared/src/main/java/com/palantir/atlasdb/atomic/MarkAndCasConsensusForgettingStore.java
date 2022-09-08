@@ -162,8 +162,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
     private static void populateResult(
             List<BatchElement<CasRequest, Void>> batch, Map<CasRequest, CasResponse> results) {
-        CasResponse defaultResponse =
-                CasResponse.failure(new MultiCheckAndSetException("There were one or more concurrent updates for the same "
+        CasResponse defaultResponse = CasResponse.failure(
+                new MultiCheckAndSetException("There were one or more concurrent updates for the same "
                         + "cell and a higher ranking update was selected to be executed. "));
         batch.forEach(elem -> {
             CasResponse response = results.getOrDefault(elem.argument(), defaultResponse);
@@ -230,6 +230,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             Preconditions.checkState(expected().hasArray(), "Cannot request CAS without expected value.");
             Preconditions.checkState(update().hasArray(), "Cannot request CAS without update.");
         }
+
         private static UpdateRank rank(CasRequest req) {
             if (req.expected().equals(req.update())) {
                 return UpdateRank.TOUCH;
