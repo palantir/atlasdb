@@ -32,7 +32,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OracleNamespaceCleanerIntegrationTest {
-    private static final String TABLE_NAME = "table-name-one";
+    private static final String TABLE_NAME = "tablenameone";
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
