@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -340,10 +341,23 @@ public class CassandraServiceTest {
         int replicas = 3;
         int partitions = 5;
         Set<CassandraServer> nodes = generateNodes(replicas, partitions);
+        assertThat(nodes).allSatisfy(node -> assertThat(node.reachableProxyIps())
+                .allSatisfy(address -> assertThat(address.isUnresolved()).isTrue()));
         CassandraService cassandra = clientPoolWithServers(nodes);
         List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
-        ImmutableSet<CassandraServer> servers = cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges);
-        assertThat(servers).hasSize(nodes.size());
+        assertThat(tokenRanges).hasSize(partitions);
+        assertThat(cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges))
+                .hasSize(nodes.size())
+                .satisfies(servers -> {
+                    assertThat(Collections2.transform(servers, CassandraServer::cassandraHostName))
+                            .containsExactlyInAnyOrderElementsOf(
+                                    Collections2.transform(nodes, CassandraServer::cassandraHostName));
+                    assertThat(Collections2.transform(servers, CassandraServer::reachableProxyIps))
+                            .allSatisfy(ips -> assertThat(ips).allSatisfy(address -> {
+                                assertThat(address).isNotNull();
+                                assertThat(address.isUnresolved()).isFalse();
+                            }));
+                });
     }
 
     @Test
@@ -351,11 +365,22 @@ public class CassandraServiceTest {
         int replicas = 3;
         int partitions = 5;
         Set<CassandraServer> nodes = generateNodes(replicas, partitions);
+        assertThat(nodes).allSatisfy(node -> assertThat(node.reachableProxyIps())
+                .allSatisfy(address -> assertThat(address.isUnresolved()).isTrue()));
         CassandraService cassandra = clientPoolWithServers(nodes);
         List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
-        ImmutableSet<CassandraServer> servers =
-                cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges.subList(0, partitions));
-        assertThat(servers).hasSize(nodes.size());
+        assertThat(tokenRanges).hasSize(partitions);
+        assertThat(cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges.subList(0, 3)))
+                .hasSize(9)
+                .satisfies(servers -> {
+                    assertThat(Collections2.transform(servers, CassandraServer::cassandraHostName))
+                            .containsAnyElementsOf(Collections2.transform(nodes, CassandraServer::cassandraHostName));
+                    assertThat(Collections2.transform(servers, CassandraServer::reachableProxyIps))
+                            .allSatisfy(ips -> assertThat(ips).allSatisfy(address -> {
+                                assertThat(address).isNotNull();
+                                assertThat(address.isUnresolved()).isFalse();
+                            }));
+                });
     }
 
     private static Set<CassandraServer> generateNodes(int replicas, int partitions) {
