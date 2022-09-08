@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import java.io.Closeable;
 
-public interface NamespaceCleaner {
-    void dropNamespace(Namespace namespace);
+public interface NamespaceCleaner extends Closeable {
+    void dropAllTables();
 
-    boolean hasNamespaceSuccessfullyDropped(Namespace namespace);
+    boolean areAllTablesSuccessfullyDropped();
 }

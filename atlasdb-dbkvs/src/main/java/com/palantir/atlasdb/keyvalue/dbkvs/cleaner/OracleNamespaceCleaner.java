@@ -17,12 +17,12 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.cleaner;
 
 import com.palantir.atlasdb.NamespaceCleaner;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,11 +41,11 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     public OracleNamespaceCleaner(OracleDdlConfig oracleDdlConfig, DbKeyValueServiceConfig config) {
         this.oracleDdlConfig = oracleDdlConfig;
         this.config = config;
-        this.connectionManager = HikariClientPoolConnectionManagers.create(config.connection());
+        this.connectionManager = HikariClientPoolConnectionManagers.createShared(config.connection(), 1, 30);
     }
 
     @Override
-    public void dropNamespace(Namespace namespace) {
+    public void dropAllTables() {
         runWithConnection(connection -> {
             PreparedStatement dropTablePreparedStatement = connection.prepareStatement(DROP_TABLE);
             PreparedStatement listAllTablesPreparedStatement = connection.prepareStatement(LIST_ALL_TABLES);
@@ -62,7 +62,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     }
 
     @Override
-    public boolean hasNamespaceSuccessfullyDropped(Namespace namespace) {
+    public boolean areAllTablesSuccessfullyDropped() {
         return runWithConnection(connection -> {
             PreparedStatement listAllTablesPreparedStatement = connection.prepareStatement(LIST_ALL_TABLES);
             return getAllTablesWithPrefix(listAllTablesPreparedStatement, oracleDdlConfig.tablePrefix())
@@ -101,5 +101,14 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
 
     private static String withWildcardSuffix(String tableName) {
         return tableName + "%";
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            connectionManager.close();
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
     }
 }

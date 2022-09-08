@@ -17,17 +17,16 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.cleaner;
 
 import com.palantir.atlasdb.NamespaceCleaner;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 public class PostgresNamespaceCleaner implements NamespaceCleaner {
     @Override
-    public void dropNamespace(Namespace namespace) {
+    public void dropAllTables() {
         // This will eventually likely be implemented in a similar fashion to the {@link OracleNamespaceCleaner}
         throw new UnsupportedOperationException("Dropping a Postgres namespace is unsupported.");
     }
 
     @Override
-    public boolean hasNamespaceSuccessfullyDropped(Namespace namespace) {
+    public boolean areAllTablesSuccessfullyDropped() {
         return false;
     }
 }

@@ -21,7 +21,6 @@ import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -35,27 +34,29 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
     private final CassandraKeyValueServiceConfig config;
 
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
+    private final String keyspace;
 
     public CassandraNamespaceCleaner(
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
+        keyspace = config.getKeyspaceOrThrow();
     }
 
     @Override
-    public void dropNamespace(Namespace namespace) {
+    public void dropAllTables() {
         try (CassandraClient client = getClient()) {
             CassandraKeyValueServices.runWithWaitingForSchemas(
-                    () -> dropKeyspace(namespace, client), config, client, "Dropping keyspace " + namespace.getName());
+                    () -> dropKeyspace(keyspace, client), config, client, "Dropping keyspace " + keyspace);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
     @Override
-    public boolean hasNamespaceSuccessfullyDropped(Namespace namespace) {
+    public boolean areAllTablesSuccessfullyDropped() {
         try (CassandraClient client = getClient()) {
-            client.describe_keyspace(namespace.getName());
+            client.describe_keyspace(keyspace);
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -74,11 +75,12 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
                 .orElseThrow(() -> new SafeIllegalStateException("No cassandra server found"));
     }
 
-    private static void dropKeyspace(Namespace namespace, CassandraClient client) throws TException {
-        String keyspace = wrapInQuotes(namespace.getName());
+    private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
+        String quotedKeyspace = wrapInQuotes(keyspace);
 
         CqlQuery query = CqlQuery.builder()
-                .safeQueryFormat(SchemaBuilder.dropKeyspace(keyspace).ifExists().buildInternal())
+                .safeQueryFormat(
+                        SchemaBuilder.dropKeyspace(quotedKeyspace).ifExists().buildInternal())
                 .build();
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }

@@ -27,11 +27,19 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.nexus.db.pool.ConnectionManager;
+import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OracleNamespaceCleanerIntegrationTest {
+    private static final String LIST_ALL_TABLES =
+            "SELECT COUNT(table_name) AS total FROM all_tables WHERE owner = ? AND table_name LIKE ?";
     private static final String TABLE_NAME_ONE = "tablenameone";
     private static final String TABLE_NAME_TWO = "tablenametwo";
 
@@ -42,7 +50,7 @@ public class OracleNamespaceCleanerIntegrationTest {
     private DbKeyValueServiceConfig dbKeyValueServiceConfig;
     private OracleDdlConfig oracleDdlConfig;
     private NamespaceCleaner namespaceCleaner;
-    private Namespace namespace;
+    private ConnectionManager connectionManager;
 
     @Before
     public void before() {
@@ -50,34 +58,37 @@ public class OracleNamespaceCleanerIntegrationTest {
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
         namespaceCleaner = new OracleNamespaceCleaner(oracleDdlConfig, dbKeyValueServiceConfig);
-        namespace = Namespace.create(dbKeyValueServiceConfig.namespace().orElseThrow());
+        connectionManager =
+                HikariClientPoolConnectionManagers.createShared(dbKeyValueServiceConfig.connection(), 1, 60);
     }
 
     @Test
     public void dropNamespaceDropsAllTablesAndOverflowTablesWithConfigPrefix() {
+        int kvsTables = getNumberOfTables();
         createTableAndOverflowTable(TABLE_NAME_ONE);
         createTableAndOverflowTable(TABLE_NAME_TWO);
-        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(4);
+        assertThat(getNumberOfTables() - kvsTables).isEqualTo(4);
 
-        namespaceCleaner.dropNamespace(namespace);
+        namespaceCleaner.dropAllTables();
 
-        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(0);
+        assertThat(getNumberOfTables()).isEqualTo(0);
     }
 
     @Test
     public void hasNamespaceSuccessfullyDroppedReturnsFalseIfTablesRemain() {
         createTableAndOverflowTable(TABLE_NAME_ONE);
-        assertThat(namespaceCleaner.hasNamespaceSuccessfullyDropped(namespace)).isFalse();
+        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
     }
 
     @Test
     public void hasNamespaceSuccessfullyDroppedReturnsTrueIfNoTablesRemain() {
+        int kvsTables = getNumberOfTables();
         createTableAndOverflowTable(TABLE_NAME_ONE);
         createTableAndOverflowTable(TABLE_NAME_TWO);
-        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(4);
+        assertThat(getNumberOfTables() - kvsTables).isEqualTo(4);
 
-        namespaceCleaner.dropNamespace(namespace);
-        assertThat(namespaceCleaner.hasNamespaceSuccessfullyDropped(namespace)).isTrue();
+        namespaceCleaner.dropAllTables();
+        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isTrue();
     }
 
     private void createTableAndOverflowTable(String tableName) {
@@ -85,6 +96,25 @@ public class OracleNamespaceCleanerIntegrationTest {
     }
 
     private TableReference getTableReference(String tableName) {
-        return TableReference.create(namespace, tableName);
+        return dbKeyValueServiceConfig
+                .namespace()
+                .map(namespace -> TableReference.create(Namespace.create(namespace), tableName))
+                .orElseGet(() -> TableReference.createWithEmptyNamespace(tableName));
+    }
+
+    private int getNumberOfTables() {
+        return getNumberOfTables(oracleDdlConfig.tablePrefix())
+                + getNumberOfTables(oracleDdlConfig.overflowTablePrefix());
+    }
+
+    private int getNumberOfTables(String prefix) {
+        try (Connection connection = connectionManager.getConnection()) {
+            PreparedStatement statement = connection.prepareStatement(LIST_ALL_TABLES);
+            statement.setString(1, prefix + "%");
+            ResultSet resultSet = statement.executeQuery();
+            return resultSet.getInt("total");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
