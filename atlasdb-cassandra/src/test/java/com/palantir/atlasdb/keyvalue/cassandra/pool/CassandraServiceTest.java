@@ -468,12 +468,6 @@ public class CassandraServiceTest {
         String rack();
     }
 
-    private static TokenRange tokenRange(String start, String end, EndpointDetails details, List<String> endpoints) {
-        TokenRange tokens = new TokenRange(start, end, endpoints);
-        tokens.setEndpoint_details(ImmutableList.of(details));
-        return tokens;
-    }
-
     private static EndpointDetails endpointDetails(String host, String datacenter, String rack) {
         EndpointDetails endpointDetails = new EndpointDetails(host, datacenter);
         endpointDetails.setRack(rack);
