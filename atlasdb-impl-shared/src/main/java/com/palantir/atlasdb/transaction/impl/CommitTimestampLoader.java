@@ -61,7 +61,8 @@ public final class CommitTimestampLoader {
     private final long immutableTimestamp;
     private final Supplier<Long> lastSeenCommitTs;
 
-    public CommitTimestampLoader(Optional<LockToken> immutableTimestampLock,
+    public CommitTimestampLoader(
+            Optional<LockToken> immutableTimestampLock,
             Supplier<Long> startTimestampSupplier,
             Supplier<TransactionConfig> transactionConfig,
             MetricsManager metricsManager,
@@ -116,7 +117,6 @@ public final class CommitTimestampLoader {
                 MoreExecutors.directExecutor());
     }
 
-
     /**
      * We will block here until the passed transactions have released their lock.  This means that the committing
      * transaction is either complete or it has failed and we are allowed to roll it back.
@@ -145,8 +145,7 @@ public final class CommitTimestampLoader {
 
         // TODO(fdesouza): Revert this once PDS-95791 is resolved.
         long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
-        WaitForLocksRequest request =
-                WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
+        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
         WaitForLocksResponse response = timelockService.waitForLocks(request);
         if (!response.wasSuccessful()) {
             log.error(
@@ -158,6 +157,7 @@ public final class CommitTimestampLoader {
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
     }
+
     private void waitForCommitterToComplete(@Nullable TableReference tableRef, Iterable<Long> startTimestamps) {
         Timer.Context timer = getTimer("waitForCommitTsMillis").time();
         waitForCommitToComplete(startTimestamps);
@@ -192,7 +192,8 @@ public final class CommitTimestampLoader {
     // todo(snanda): why are we using iterables?
     private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService, Iterable<Long> startTimestamps) {
-        Set<Long> keys = StreamSupport.stream(startTimestamps.spliterator(), false).collect(Collectors.toSet());
+        Set<Long> keys =
+                StreamSupport.stream(startTimestamps.spliterator(), false).collect(Collectors.toSet());
 
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (keys.size() == 1) {
@@ -206,6 +207,7 @@ public final class CommitTimestampLoader {
             return asyncTransactionService.getAsync(keys);
         }
     }
+
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
         long startTs = startTimestampSupplier.get();
         // The schema version of current transaction does not matter. If the current transaction does not hold

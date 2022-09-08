@@ -207,10 +207,7 @@ public class SnapshotTransaction extends AbstractTransaction
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
         return commitTimestampLoader.getCommitTimestamps(
-                tableRef,
-                startTimestamps,
-                shouldWaitForCommitterToComplete,
-                asyncTransactionService);
+                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
     }
 
     private enum State {
@@ -1544,8 +1541,8 @@ public class SnapshotTransaction extends AbstractTransaction
         Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                commitTimestampLoader.getCommitTimestamps(tableRef, valuesStartTimestamps, true,
-                        asyncTransactionService),
+                commitTimestampLoader.getCommitTimestamps(
+                        tableRef, valuesStartTimestamps, true, asyncTransactionService),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
                         rawResults,
@@ -2402,7 +2399,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         return result;
     }
-
 
     ///////////////////////////////////////////////////////////////////////////
     /// Commit timestamp management
