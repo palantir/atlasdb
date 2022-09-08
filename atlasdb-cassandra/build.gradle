@@ -94,6 +94,7 @@ dependencies {
   compileOnly 'org.derive4j:derive4j-annotation'
   compileOnly 'org.immutables:value::annotations'
   compileOnly project(":atlasdb-processors")
+  testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
 }
 

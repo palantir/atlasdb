@@ -15,14 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
+import com.github.benmanes.caffeine.cache.Interner;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Interner;
-import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
@@ -54,9 +53,9 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -73,10 +72,11 @@ import java.util.stream.Stream;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
-public class CassandraService implements AutoCloseable {
+public class CassandraService {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
     private static final Interner<ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>>>
-            tokensInterner = Interners.newWeakInterner();
+            tokenRingInterner = Interner.newWeakInterner();
+    private static final Interner<LightweightOppToken> tokenInterner = Interner.newWeakInterner();
 
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
@@ -106,14 +106,30 @@ public class CassandraService implements AutoCloseable {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
-        this.myLocationSupplier =
-                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
+        this.myLocationSupplier =
+                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(
+                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts)::get, 1, TimeUnit.MINUTES);
+    }
 
-        Supplier<Map<String, String>> hostnamesByIpSupplier =
-                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
-        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
+    @VisibleForTesting
+    CassandraService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics,
+            Supplier<Optional<HostLocation>> myLocationSupplier,
+            Supplier<Map<String, String>> hostnameByIpSupplier) {
+        this.metricsManager = metricsManager;
+        this.config = config;
+        this.runtimeConfig = runtimeConfig;
+        this.blacklist = blacklist;
+        this.poolMetrics = poolMetrics;
+        this.myLocationSupplier = myLocationSupplier;
+        this.hostnameByIpSupplier = hostnameByIpSupplier;
     }
 
     public static CassandraService createInitialized(
@@ -129,61 +145,12 @@ public class CassandraService implements AutoCloseable {
         return cassandraService;
     }
 
-    @Override
-    public void close() {}
-
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
-        // explicitly not using immutable builders to deduplicate nodes
-        Set<CassandraServer> servers = new HashSet<>();
-        Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
-
         try {
-            ImmutableRangeMap.Builder<LightweightOppToken, ImmutableSet<CassandraServer>> newTokenRing =
-                    ImmutableRangeMap.builder();
-
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
-
-            // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
-            if (tokenRanges.size() == 1) {
-                EndpointDetails onlyEndpoint = Iterables.getOnlyElement(
-                        Iterables.getOnlyElement(tokenRanges).getEndpoint_details());
-                CassandraServer onlyHost = getAddressForHost(onlyEndpoint.getHost());
-                newTokenRing.put(Range.all(), ImmutableSet.of(onlyHost));
-                servers.add(onlyHost);
-                hostToDatacentersThisRefresh.put(onlyHost, onlyEndpoint.getDatacenter());
-            } else { // normal case, large cluster with many vnodes
-                for (TokenRange tokenRange : tokenRanges) {
-                    Map<CassandraServer, String> hostToDatacentersOnThisTokenRange = KeyedStream.of(
-                                    tokenRange.getEndpoint_details())
-                            .mapKeys(EndpointDetails::getHost)
-                            .mapKeys(this::getAddressForHostThrowUnchecked)
-                            .map(EndpointDetails::getDatacenter)
-                            .collectToMap();
-
-                    ImmutableSet<CassandraServer> hosts =
-                            ImmutableSet.copyOf(hostToDatacentersOnThisTokenRange.keySet());
-                    servers.addAll(hosts);
-                    hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
-
-                    LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getStart_token().toUpperCase()));
-                    LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getEnd_token().toUpperCase()));
-                    if (startToken.compareTo(endToken) <= 0) {
-                        newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
-                    } else {
-                        // Handle wrap-around
-                        newTokenRing.put(Range.greaterThan(startToken), hosts);
-                        newTokenRing.put(Range.atMost(endToken), hosts);
-                    }
-                }
-            }
-            tokenMap = tokensInterner.intern(newTokenRing.build());
-            hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
-            logHostToDatacenterMapping(hostToDatacenter);
-            return ImmutableSet.copyOf(servers);
+            return getCassandraServers(tokenRanges);
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -202,6 +169,69 @@ public class CassandraService implements AutoCloseable {
         }
     }
 
+    @VisibleForTesting
+    ImmutableSet<CassandraServer> getCassandraServers(List<TokenRange> tokenRanges) throws UnknownHostException {
+        ImmutableSet.Builder<CassandraServer> nodes = ImmutableSet.builder();
+        Map<CassandraServer, String> nodeToDatacentersThisRefresh = new LinkedHashMap<>();
+
+        ImmutableRangeMap.Builder<LightweightOppToken, ImmutableSet<CassandraServer>> newTokenRing =
+                ImmutableRangeMap.builder();
+
+        if (tokenRanges.isEmpty()) {
+            log.warn("Empty token range");
+        } else if (tokenRanges.size() == 1
+                && Iterables.getOnlyElement(tokenRanges).getEndpoint_details().size() == 1) {
+            // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
+            List<EndpointDetails> endpointDetails =
+                    Iterables.getOnlyElement(tokenRanges).getEndpoint_details();
+            EndpointDetails onlyEndpoint = Iterables.getOnlyElement(endpointDetails);
+            CassandraServer onlyNode = getAddressForHost(onlyEndpoint.getHost());
+            newTokenRing.put(Range.all(), ImmutableSet.of(onlyNode));
+            nodes.add(onlyNode);
+            nodeToDatacentersThisRefresh.put(onlyNode, onlyEndpoint.getDatacenter());
+        } else { // normal case, large cluster with many vnodes
+            for (TokenRange tokenRange : tokenRanges) {
+                Map<CassandraServer, String> nodeToDatacentersOnThisTokenRange =
+                        tokenRange.getEndpoint_details().stream()
+                                .collect(Collectors.toMap(
+                                        ep -> getAddressForHostThrowUnchecked(ep.getHost()),
+                                        EndpointDetails::getDatacenter));
+
+                ImmutableSet<CassandraServer> servers = ImmutableSet.copyOf(nodeToDatacentersOnThisTokenRange.keySet());
+                nodes.addAll(servers);
+                nodeToDatacentersOnThisTokenRange.forEach((cassandra, datacenter) -> {
+                    String existing = nodeToDatacentersThisRefresh.put(cassandra, datacenter);
+                    if (existing != null && !Objects.equals(datacenter, existing)) {
+                        log.warn(
+                                "Cassandra node mapped to multiple different datacenters",
+                                SafeArg.of("host", cassandra),
+                                SafeArg.of("datacenter1", existing),
+                                SafeArg.of("datacenter2", datacenter));
+                    }
+                });
+
+                LightweightOppToken startToken = getToken(tokenRange.getStart_token());
+                LightweightOppToken endToken = getToken(tokenRange.getEnd_token());
+                if (startToken.compareTo(endToken) <= 0) {
+                    newTokenRing.put(Range.openClosed(startToken, endToken), servers);
+                } else {
+                    // Handle wrap-around
+                    newTokenRing.put(Range.greaterThan(startToken), servers);
+                    newTokenRing.put(Range.atMost(endToken), servers);
+                }
+            }
+        }
+
+        setTokenMap(newTokenRing.build());
+        setHostToDatacenterMapping(ImmutableMap.copyOf(nodeToDatacentersThisRefresh));
+        return nodes.build();
+    }
+
+    static LightweightOppToken getToken(String token) {
+        return tokenInterner.intern(
+                new LightweightOppToken(BaseEncoding.base16().decode(token.toUpperCase(Locale.ROOT))));
+    }
+
     /**
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
@@ -214,17 +244,6 @@ public class CassandraService implements AutoCloseable {
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
         return runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE);
-    }
-
-    private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
-        if (log.isDebugEnabled()) {
-            Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
-                    .mapKeys(CassandraServer::cassandraHostName)
-                    .collectToMap();
-            log.debug(
-                    "Logging host -> datacenter mapping following a refresh",
-                    SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
-        }
     }
 
     private List<TokenRange> getTokenRanges() throws Exception {
@@ -392,6 +411,40 @@ public class CassandraService implements AutoCloseable {
         return tokenMap;
     }
 
+    private void setTokenMap(ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenRing) {
+        // intern to deduplicate equivalent rings to avoid memory overhead of different views
+        ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> newRing =
+                tokenRingInterner.intern(tokenRing);
+        ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> previousRing = tokenMap; // volatile read
+
+        @SuppressWarnings("ReferenceEquality") // interning provides ability to rely on reference equality for changes
+        boolean ringChanged = previousRing != newRing;
+        if (ringChanged) {
+            if (log.isDebugEnabled()) {
+                // expensive logging only at debug
+                log.debug(
+                        "Token ring changed",
+                        SafeArg.of("previousRing", previousRing),
+                        SafeArg.of(
+                                "previousRingSize", previousRing.asMapOfRanges().size()),
+                        SafeArg.of("newRing", newRing),
+                        SafeArg.of("newRingSize", newRing.asMapOfRanges().size()),
+                        SafeArg.of("blacklistedNodes", blacklist.blacklistDetails()));
+            } else {
+                log.info(
+                        "Token ring changed",
+                        SafeArg.of(
+                                "previousRingSize", previousRing.asMapOfRanges().size()),
+                        SafeArg.of("newRingSize", newRing.asMapOfRanges().size()),
+                        SafeArg.of(
+                                "blacklistedNodesSize",
+                                blacklist.blacklistDetails().size()));
+            }
+        }
+
+        this.tokenMap = newRing;
+    }
+
     public Map<CassandraServer, CassandraClientPoolingContainer> getPools() {
         return currentPools;
     }
@@ -522,7 +575,20 @@ public class CassandraService implements AutoCloseable {
     }
 
     @VisibleForTesting
-    void overrideHostToDatacenterMapping(ImmutableMap<CassandraServer, String> hostToDatacenterOverride) {
-        this.hostToDatacenter = hostToDatacenterOverride;
+    void setHostToDatacenterMapping(ImmutableMap<CassandraServer, String> hostToDatacenterMapping) {
+        this.hostToDatacenter = hostToDatacenterMapping;
+        if (log.isDebugEnabled()) {
+            Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacenterMapping)
+                    .mapKeys(CassandraServer::cassandraHostName)
+                    .collectToMap();
+            log.debug(
+                    "Logging host -> datacenter mapping following a refresh",
+                    SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
+        }
+    }
+
+    @VisibleForTesting
+    Blacklist blacklist() {
+        return blacklist;
     }
 }

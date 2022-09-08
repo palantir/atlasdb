@@ -272,7 +272,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public void shutdown() {
-        cassandra.close();
         refreshPoolFuture.cancel(false);
         cassandra
                 .getPools()
