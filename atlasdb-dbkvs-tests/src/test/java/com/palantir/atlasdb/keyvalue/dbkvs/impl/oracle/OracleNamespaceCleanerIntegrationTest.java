@@ -32,7 +32,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OracleNamespaceCleanerIntegrationTest {
-    private static final String TABLE_NAME = "tablenameone";
+    private static final String TABLE_NAME_ONE = "tablenameone";
+    private static final String TABLE_NAME_TWO = "tablenametwo";
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
@@ -53,12 +54,33 @@ public class OracleNamespaceCleanerIntegrationTest {
     }
 
     @Test
-    public void helpMe() {
-        createTable(TABLE_NAME);
+    public void dropNamespaceDropsAllTablesAndOverflowTablesWithConfigPrefix() {
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+        createTableAndOverflowTable(TABLE_NAME_TWO);
+        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(4);
+
+        namespaceCleaner.dropNamespace(namespace);
+
+        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void hasNamespaceSuccessfullyDroppedReturnsFalseIfTablesRemain() {
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+        assertThat(namespaceCleaner.hasNamespaceSuccessfullyDropped(namespace)).isFalse();
+    }
+
+    @Test
+    public void hasNamespaceSuccessfullyDroppedReturnsTrueIfNoTablesRemain() {
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+        createTableAndOverflowTable(TABLE_NAME_TWO);
+        assertThat(keyValueService.getAllTableNames().size()).isEqualTo(4);
+
+        namespaceCleaner.dropNamespace(namespace);
         assertThat(namespaceCleaner.hasNamespaceSuccessfullyDropped(namespace)).isTrue();
     }
 
-    private void createTable(String tableName) {
+    private void createTableAndOverflowTable(String tableName) {
         keyValueService.createTable(getTableReference(tableName), AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
