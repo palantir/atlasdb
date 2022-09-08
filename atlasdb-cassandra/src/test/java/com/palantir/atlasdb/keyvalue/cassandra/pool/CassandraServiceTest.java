@@ -300,19 +300,6 @@ public class CassandraServiceTest {
     public void testMultiServerGetCassandraServers() throws Exception {
         Set<CassandraServer> allHosts = ImmutableSet.of(SERVER_1, SERVER_2, SERVER_3);
         CassandraService cassandra = clientPoolWithServers(allHosts);
-        //        AtomicInteger rack = new AtomicInteger();
-        //        AtomicInteger token = new AtomicInteger();
-        //        List<TokenRange> tokenRanges = allHosts.stream()
-        //                .map(cass -> {
-        //                    String start = BaseEncoding.base16().encode(Ints.toByteArray(token.get()));
-        //                    String end = BaseEncoding.base16().encode(Ints.toByteArray(token.incrementAndGet()));
-        //                    return tokenRange(
-        //                            start,
-        //                            end,
-        //                            endpointDetails(cass.cassandraHostName(), DC_1, "rack" + rack.incrementAndGet()),
-        //                            ImmutableList.of(cass.cassandraHostName()));
-        //                })
-        //                .collect(ImmutableList.toImmutableList());
         List<TokenRange> tokenRanges = generateTokenRanges(3, 1, allHosts);
         assertThat(cassandra.getCassandraServers(tokenRanges)).hasSize(3);
     }
@@ -326,6 +313,7 @@ public class CassandraServiceTest {
         List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
 
         assertThat(cassandra.getCassandraServers(tokenRanges)).hasSize(nodes.size());
+        // spot check some subsets of ranges
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(0, 1))).hasSize(replicas);
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(0, 2))).hasSize(2 * replicas);
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(0, 3))).hasSize(3 * replicas);
@@ -334,6 +322,7 @@ public class CassandraServiceTest {
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(3, 5))).hasSize(2 * replicas);
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(4, 5))).hasSize(replicas);
 
+        // exhaustively check all ranges
         for (int i = 0; i < partitions; i++) {
             for (int j = i + 1; j <= partitions; j++) {
                 for (int k = 1; k <= replicas; k++) {
