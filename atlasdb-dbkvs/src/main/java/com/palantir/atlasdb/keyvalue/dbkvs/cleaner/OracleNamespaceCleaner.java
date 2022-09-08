@@ -27,11 +27,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class OracleNamespaceCleaner implements NamespaceCleaner {
     private static final String LIST_ALL_TABLES =
-            "SELECT table_name FROM all_tables WHERE owner = ? AND table_name LIKE ?%";
-    private static final String DROP_TABLE = "DROP TABLE ?"; // not CASCADE CONSTRAINTS NOR PURGE
+            "SELECT table_name FROM all_tables WHERE owner = ? AND table_name LIKE ?";
+    private static final String DROP_TABLE = "DROP TABLE %s"; // not CASCADE CONSTRAINTS NOR PURGE
     private OracleDdlConfig oracleDdlConfig;
     private final DbKeyValueServiceConfig config;
 
@@ -73,20 +74,20 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
 
     private ResultSet getAllTablesWithPrefix(PreparedStatement listAllTablesPreparedStatement, String prefix)
             throws SQLException {
-        listAllTablesPreparedStatement.setString(1, config.connection().getDbLogin());
-        listAllTablesPreparedStatement.setString(2, prefix);
+        listAllTablesPreparedStatement.setString(
+                1, withWildcardSuffix(config.connection().getDbLogin()));
+        listAllTablesPreparedStatement.setString(2, withWildcardSuffix(prefix));
         ResultSet resultSet = listAllTablesPreparedStatement.executeQuery();
         listAllTablesPreparedStatement.clearParameters();
         return resultSet;
     }
 
-    private void dropAllTablesFromList(PreparedStatement dropTablePreparedStatement, ResultSet tableNames)
-            throws SQLException {
+    private void dropAllTablesFromList(Statement statement, ResultSet tableNames) throws SQLException {
         while (tableNames.next()) {
             String tableName = tableNames.getString("table_name");
-            dropTablePreparedStatement.setString(1, tableName);
-            dropTablePreparedStatement.executeUpdate();
-            dropTablePreparedStatement.clearParameters();
+            statement.executeUpdate(String.format(DROP_TABLE, tableName));
+            // There is no IF EXISTS. DDL commands perform an implicit commit. If we fail, we should just retry by
+            // dropping the namespace again!
         }
     }
 
@@ -96,5 +97,9 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static String withWildcardSuffix(String tableName) {
+        return tableName + "%";
     }
 }
