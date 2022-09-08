@@ -35,8 +35,9 @@ public class TransactionStatusCachingAtomicTable implements AtomicTable<Long, Tr
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final CommitStateCache<TransactionStatus> cache;
 
-    public TransactionStatusCachingAtomicTable(
-            AtomicTable<Long, TransactionStatus> delegate, MetricRegistry metricRegistry, LongSupplier size) {
+    public TransactionStatusCachingAtomicTable(AtomicTable<Long, TransactionStatus> delegate,
+            MetricRegistry metricRegistry,
+            LongSupplier size) {
         this.delegate = delegate;
         this.cache = new DefaultCommitStateCache<>(metricRegistry, size);
     }
@@ -70,19 +71,19 @@ public class TransactionStatusCachingAtomicTable implements AtomicTable<Long, Tr
         }
 
         return Futures.transform(
-                delegate.get(pendingGets),
-                rawResults -> {
-                    for (Map.Entry<Long, TransactionStatus> e : rawResults.entrySet()) {
-                        if (e.getValue() != null) {
-                            Long startTs = e.getKey();
-                            TransactionStatus commit = e.getValue();
-                            result.put(startTs, commit);
-                            cache.putAlreadyCommittedTransaction(startTs, commit);
-                        }
+            delegate.get(pendingGets),
+            rawResults -> {
+                for (Map.Entry<Long, TransactionStatus> e : rawResults.entrySet()) {
+                    if (e.getValue() != null) {
+                        Long startTs = e.getKey();
+                        TransactionStatus commit = e.getValue();
+                        result.put(startTs, commit);
+                        cache.putAlreadyCommittedTransaction(startTs, commit);
                     }
+                }
 
-                    return result;
-                },
-                MoreExecutors.directExecutor());
+                return result;
+            },
+            MoreExecutors.directExecutor());
     }
 }

@@ -117,8 +117,9 @@ public final class TransactionServices {
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Optional<InternalSchemaInstallConfig> config) {
-        return new PreStartHandlingTransactionService(SimpleTransactionService.createV4(
-                keyValueService, metricRegistry, acceptStagingReadsAsCommitted, config));
+        return new PreStartHandlingTransactionService(
+                SimpleTransactionService.createV4(keyValueService,
+                        metricRegistry, acceptStagingReadsAsCommitted, config));
     }
 
     /**
