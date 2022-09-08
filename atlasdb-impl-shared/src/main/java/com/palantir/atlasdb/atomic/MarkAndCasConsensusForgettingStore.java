@@ -220,16 +220,9 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     enum UpdateRank {
-        // The idea is touch > state change to commit > state change to abort and ignore all the other requests.
-        TOUCH(1),
-        COMMIT(2),
-        ABORT(3);
-
-        private final int value;
-
-        UpdateRank(int value) {
-            this.value = value;
-        }
+        TOUCH,
+        COMMIT,
+        ABORT
     }
 
     @Value.Immutable
