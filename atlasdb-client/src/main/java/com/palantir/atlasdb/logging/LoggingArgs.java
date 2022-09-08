@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -151,7 +150,6 @@ public final class LoggingArgs {
         }
     }
 
-    @Unsafe
     public static Arg<String> safeInternalTableName(String internalTableReference) {
         if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
             return SafeArg.of("tableRef", internalTableReference);
