@@ -21,19 +21,19 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.function.LongSupplier;
 import javax.annotation.Nullable;
 
-public final class OffHeapTimestampCache implements TimestampCache {
+public final class OffHeapCommitStateCache implements CommitStateCache<Long> {
     private final OffHeapCache<Long, Long> offHeapCache;
 
-    public static TimestampCache create(
+    public static CommitStateCache create(
             PersistentStore persistentStore, TaggedMetricRegistry taggedMetricRegistry, LongSupplier maxSize) {
-        return new OffHeapTimestampCache(DefaultOffHeapCache.create(
+        return new OffHeapCommitStateCache(DefaultOffHeapCache.create(
                 persistentStore,
                 new DeltaEncodingTimestampEntryMapper(new LongEntryMapper()),
                 taggedMetricRegistry,
                 maxSize));
     }
 
-    private OffHeapTimestampCache(OffHeapCache<Long, Long> offHeapCache) {
+    private OffHeapCommitStateCache(OffHeapCache<Long, Long> offHeapCache) {
         this.offHeapCache = offHeapCache;
     }
 
@@ -43,13 +43,13 @@ public final class OffHeapTimestampCache implements TimestampCache {
     }
 
     @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
-        offHeapCache.put(startTimestamp, commitTimestamp);
+    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commit) {
+        offHeapCache.put(startTimestamp, commit);
     }
 
     @Nullable
     @Override
-    public Long getCommitTimestampIfPresent(Long startTimestamp) {
+    public Long getCommitStateIfPresent(Long startTimestamp) {
         return offHeapCache.get(startTimestamp).orElse(null);
     }
 }

@@ -36,7 +36,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -155,7 +155,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             Long transactionTimeoutMillis,
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
-            TimestampCache timestampCache,
+            CommitStateCache commitStateCache,
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
@@ -182,7 +182,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionTimeoutMillis,
                 readSentinelBehavior,
                 allowHiddenTableAccess,
-                timestampCache,
+                commitStateCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueue,

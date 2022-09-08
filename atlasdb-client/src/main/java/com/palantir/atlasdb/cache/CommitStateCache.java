@@ -19,7 +19,7 @@ package com.palantir.atlasdb.cache;
 import com.palantir.atlasdb.metrics.Timed;
 import javax.annotation.Nullable;
 
-public interface TimestampCache {
+public interface CommitStateCache<T> {
     /**
      * Clear all values from the cache.
      */
@@ -30,10 +30,10 @@ public interface TimestampCache {
      * effectively using the timestamp table as existing concurrency control for who wins a commit.
      *
      * @param startTimestamp transaction start timestamp
-     * @param commitTimestamp transaction commit timestamp
+     * @param commit transaction commit timestamp
      */
     @Timed
-    void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp);
+    void putAlreadyCommittedTransaction(Long startTimestamp, T commit);
     /**
      * Returns null if not present.
      *
@@ -42,5 +42,5 @@ public interface TimestampCache {
      */
     @Nullable
     @Timed
-    Long getCommitTimestampIfPresent(Long startTimestamp);
+    T getCommitStateIfPresent(Long startTimestamp);
 }

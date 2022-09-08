@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.health.MetricsBasedTimelockHealthCheck;
 import com.palantir.atlasdb.health.TimelockHealthCheck;
 import com.palantir.atlasdb.transaction.api.TimelockServiceStatus;
@@ -29,14 +29,14 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
-    final TimestampCache timestampValidationReadCache;
+    final CommitStateCache timestampValidationReadCache;
     private volatile boolean closed = false;
 
     private final TimelockHealthCheck timelockHealthCheck;
 
-    AbstractTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
+    AbstractTransactionManager(MetricsManager metricsManager, CommitStateCache commitStateCache) {
         this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager);
-        this.timestampValidationReadCache = timestampCache;
+        this.timestampValidationReadCache = commitStateCache;
     }
 
     protected boolean shouldStopRetrying(@SuppressWarnings("unused") int numTimesFailed) {

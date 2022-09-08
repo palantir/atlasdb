@@ -51,8 +51,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
-import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
+import com.palantir.atlasdb.cache.DefaultCommitStateCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -202,7 +202,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
                     .build();
-    private final TimestampCache timestampCache = new DefaultTimestampCache(
+    private final CommitStateCache commitStateCache = new DefaultCommitStateCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     private final int defaultGetRangesConcurrency = 2;
@@ -354,7 +354,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                timestampCache,
+                commitStateCache,
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
@@ -446,7 +446,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         null,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
                         false,
-                        timestampCache,
+                        commitStateCache,
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
@@ -483,7 +483,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                timestampCache,
+                commitStateCache,
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
@@ -970,7 +970,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                timestampCache,
+                commitStateCache,
                 sweepQueue,
                 executor,
                 transactionWrapper,
@@ -2401,7 +2401,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
-                timestampCache,
+                commitStateCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,

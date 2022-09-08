@@ -51,7 +51,7 @@ import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -258,7 +258,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
     protected final boolean allowHiddenTableAccess;
-    protected final TimestampCache timestampValidationReadCache;
+    protected final CommitStateCache timestampValidationReadCache;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = ConcurrentHashMap.newKeySet();
@@ -296,7 +296,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Long transactionTimeoutMillis,
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
-            TimestampCache timestampValidationReadCache,
+            CommitStateCache timestampValidationReadCache,
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
@@ -337,9 +337,8 @@ public class SnapshotTransaction extends AbstractTransaction
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
-        this.commitTimestampLoader = new CommitTimestampLoader(timestampValidationReadCache,
+        this.commitTimestampLoader = new CommitTimestampLoader(
                 immutableTimestampLock,
-                transactionSchemaManager,
                 this::getStartTimestamp,
                 transactionConfig,
                 metricsManager,

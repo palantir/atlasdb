@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -127,7 +127,7 @@ import javax.validation.constraints.NotNull;
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            TimestampCache timestampCache,
+            CommitStateCache commitStateCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
@@ -135,7 +135,7 @@ import javax.validation.constraints.NotNull;
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize) {
-        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
+        super(metricsManager, commitStateCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;

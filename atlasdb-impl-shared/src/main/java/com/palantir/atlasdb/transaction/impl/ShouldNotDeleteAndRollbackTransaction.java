@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -80,7 +80,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
             AtlasDbConstraintCheckingMode constraintCheckingMode,
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
-            TimestampCache timestampCache,
+            CommitStateCache commitStateCache,
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             Supplier<TransactionConfig> transactionConfig) {
@@ -102,7 +102,7 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 null,
                 readSentinelBehavior,
                 allowHiddenTableAccess,
-                timestampCache,
+                commitStateCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,

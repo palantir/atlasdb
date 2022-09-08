@@ -118,8 +118,8 @@ public final class TransactionServices {
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             Optional<InternalSchemaInstallConfig> config) {
         return new PreStartHandlingTransactionService(
-                WriteBatchingTransactionService.create(SimpleTransactionService.createV4(
-                        keyValueService, metricRegistry, acceptStagingReadsAsCommitted, config)));
+                SimpleTransactionService.createV4(keyValueService,
+                        metricRegistry, acceptStagingReadsAsCommitted, config));
     }
 
     /**

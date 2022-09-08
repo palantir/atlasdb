@@ -177,7 +177,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
-                timestampCache,
+                commitStateCache,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,

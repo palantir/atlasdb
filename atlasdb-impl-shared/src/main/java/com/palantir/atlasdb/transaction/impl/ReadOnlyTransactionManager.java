@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cache.CommitStateCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -70,10 +70,10 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
-            TimestampCache timestampCache,
+            CommitStateCache commitStateCache,
             Supplier<TransactionConfig> transactionConfig,
             TransactionSchemaManager transactionSchemaManager) {
-        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
+        super(metricsManager, commitStateCache, () -> transactionConfig.get().retryStrategy());
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;

@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.DefaultCommitStateCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -289,7 +289,7 @@ public class SerializableTransactionManagerTest {
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
-                DefaultTimestampCache.createForTests(),
+                DefaultCommitStateCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack,
                 executor,

@@ -159,7 +159,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
-                timestampCache,
+                commitStateCache,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),

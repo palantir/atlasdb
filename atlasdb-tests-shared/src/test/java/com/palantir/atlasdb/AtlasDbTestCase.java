@@ -19,7 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.DefaultCommitStateCache;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -119,7 +119,7 @@ public class AtlasDbTestCase {
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                DefaultTimestampCache.createForTests(),
+                DefaultCommitStateCache.createForTests(),
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService());
     }
