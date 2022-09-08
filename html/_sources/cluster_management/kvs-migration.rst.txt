@@ -136,7 +136,7 @@ Setup
 
 .. code-block:: bash
 
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup
+     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml [--fromRuntimeConfig fromRuntime.yml] --migrateConfig to.yml [--migrateRuntimeConfig toRuntime.yml] --setup
 
 Running this command will prepare the target KVS for the migration.
 The CLI will first **drop all tables in the target KVS** except atomic tables and Cassandra hidden tables.
@@ -148,7 +148,7 @@ Migrate
 
 .. code-block:: bash
 
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml [--fromRuntimeConfig fromRuntime.yml] --migrateConfig to.yml [--migrateRuntimeConfig toRuntime.yml] --migrate
 
 Running this command will migrate the actual data from source KVS to target KVS.
 For each table in the source KVS that is not in the list of special tables above, the entire table is transactionally
@@ -172,7 +172,7 @@ Validate
 
 .. code-block:: bash
 
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml [--fromRuntimeConfig fromRuntime.yml] --migrateConfig to.yml [--migrateRuntimeConfig toRuntime.yml] --validate
 
 Running this command will validate the correctness of the migration.
 For each table in the source KVS that can be migrated, except the legacy sweep priority tables, the table is

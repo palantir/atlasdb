@@ -199,7 +199,7 @@ you restart your service with the new KVS.</p>
 <p>All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
 deleted.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --setup
 </pre></div>
 </div>
 <p>Running this command will prepare the target KVS for the migration.
@@ -209,7 +209,7 @@ metadata is created in the target KVS.</p>
 </section>
 <section id="migrate">
 <h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --migrate
 </pre></div>
 </div>
 <p>Running this command will migrate the actual data from source KVS to target KVS.
@@ -230,7 +230,7 @@ Running setup at this point will reset the migration state and force a fresh mig
 </section>
 <section id="validate">
 <h3>Validate<a class="headerlink" href="#validate" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --validate
 </pre></div>
 </div>
 <p>Running this command will validate the correctness of the migration.
