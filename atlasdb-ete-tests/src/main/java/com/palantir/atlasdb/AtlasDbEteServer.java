@@ -53,8 +53,10 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.lock.SimpleLockResource;
+import com.palantir.atlasdb.oracle.SimpleOracleResource;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
@@ -147,6 +149,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
+        environment
+                .jersey()
+                .register(new SimpleOracleResource(
+                        txManager.getKeyValueService(),
+                        config.getAtlasDbConfig().namespace().map(Namespace::create)));
     }
 
     private boolean shouldSetUpBackupAndRestoreResource(AtlasDbEteConfiguration config) {

@@ -57,7 +57,8 @@ import org.junit.runners.Suite.SuiteClasses;
     DbKvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,
-    OracleEmbeddedDbTimestampBoundStoreTest.class
+    OracleEmbeddedDbTimestampBoundStoreTest.class,
+    OracleNamespaceCleanerIntegrationTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final String LOCALHOST = "0.0.0.0";
