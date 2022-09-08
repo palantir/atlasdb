@@ -125,16 +125,6 @@ public final class CommitTimestampLoader {
         return Futures.transform(
                 loadCommitTimestamps(asyncTransactionService, pendingGets),
                 rawResults -> {
-                    Set<Long> sweptKeys = KeyedStream.stream(rawResults)
-                            // todo(snanda); this is so jank
-                            .filterEntries(Long::equals)
-                            .keys()
-                            .collect(Collectors.toSet());
-
-                    if (!sweptKeys.isEmpty()) {
-                        throwIfTransactionsTableSweptBeyondReadOnlyTxn();
-                    }
-
                     for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
                         if (e.getValue() != null) {
                             Long startTs = e.getKey();
@@ -144,9 +134,22 @@ public final class CommitTimestampLoader {
                         }
                     }
 
+                    validateReadability(startToCommitTimestamps);
                     return startToCommitTimestamps;
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private void validateReadability(Map<Long, Long> startToCommitTimestamps) {
+        Set<Long> sweptKeys = KeyedStream.stream(startToCommitTimestamps)
+                // todo(snanda); this is so jank
+                .filterEntries(Long::equals)
+                .keys()
+                .collect(Collectors.toSet());
+
+        if (!sweptKeys.isEmpty()) {
+            throwIfTransactionsTableSweptBeyondReadOnlyTxn();
+        }
     }
 
     /**
