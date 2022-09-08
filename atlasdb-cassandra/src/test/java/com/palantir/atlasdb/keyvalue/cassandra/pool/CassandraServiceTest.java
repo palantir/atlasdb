@@ -55,9 +55,9 @@ import org.junit.Test;
 public class CassandraServiceTest {
     private static final int DEFAULT_PORT = 5000;
     private static final int OTHER_PORT = 6000;
-    private static final String HOSTNAME_1 = "1.0.0.0";
-    private static final String HOSTNAME_2 = "2.0.0.0";
-    private static final String HOSTNAME_3 = "3.0.0.0";
+    private static final String HOSTNAME_1 = "192.168.1.0";
+    private static final String HOSTNAME_2 = "192.168.2.0";
+    private static final String HOSTNAME_3 = "192.168.3.0";
     private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
@@ -261,7 +261,7 @@ public class CassandraServiceTest {
     @Test
     public void getRandomHostByActiveConnectionsReturnsDesiredHost() {
         ImmutableSet<CassandraServer> servers = IntStream.range(0, 24)
-                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("10.0.0." + i1, DEFAULT_PORT)))
+                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("192.168.0." + i1, DEFAULT_PORT)))
                 .collect(ImmutableSet.toImmutableSet());
         CassandraService service = clientPoolWithParams(servers, servers, 1.0);
         service.setLocalHosts(servers.stream().limit(8).collect(ImmutableSet.toImmutableSet()));
@@ -487,7 +487,11 @@ public class CassandraServiceTest {
         Supplier<Optional<HostLocation>> myLocationSupplier =
                 () -> servers.stream().findFirst().map(cs -> HostLocation.of(DC_1, RACK_0));
         Supplier<Map<String, String>> hostnamesByIpSupplier = () -> servers.stream()
-                .collect(Collectors.toMap(CassandraServer::cassandraHostName, CassandraServer::cassandraHostName));
+                .collect(Collectors.toMap(
+                        s -> s.proxy().isUnresolved()
+                                ? s.proxy().getHostString()
+                                : s.proxy().getAddress().toString(),
+                        CassandraServer::cassandraHostName));
         CassandraService service = new CassandraService(
                 metricsManager,
                 config,
