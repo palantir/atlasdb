@@ -86,7 +86,7 @@ public final class CommitTimestampLoader {
      * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't committed, then it will be
      * missing from the map.  This method will block until the transactions for these start timestamps are complete.
      */
-    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+    ListenableFuture<Map<Long, Long>> getCommitTimestamps(
             @Nullable TableReference tableRef,
             Iterable<Long> startTimestamps,
             boolean shouldWaitForCommitterToComplete,
@@ -125,7 +125,6 @@ public final class CommitTimestampLoader {
         return Futures.transform(
                 loadCommitTimestamps(asyncTransactionService, pendingGets),
                 rawResults -> {
-
                     Set<Long> sweptKeys = KeyedStream.stream(rawResults)
                             // todo(snanda); this is so jank
                             .filterEntries(Long::equals)

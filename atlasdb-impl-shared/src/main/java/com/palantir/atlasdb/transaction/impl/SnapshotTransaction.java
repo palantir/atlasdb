@@ -334,9 +334,9 @@ public class SnapshotTransaction extends AbstractTransaction
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
-        this.commitTimestampLoader = new CommitTimestampLoader(timestampValidationReadCache,
+        this.commitTimestampLoader = new CommitTimestampLoader(
+                timestampValidationReadCache,
                 immutableTimestampLock,
-                transactionSchemaManager,
                 this::getStartTimestamp,
                 transactionConfig,
                 metricsManager,
@@ -2029,11 +2029,6 @@ public class SnapshotTransaction extends AbstractTransaction
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
         throwIfPreCommitConditionInvalid(timestamp);
-    }
-
-    private boolean isReadingSweepableTransaction(long startTs) {
-        return transactionSchemaManager.getTransactionsSchemaVersion(startTs)
-                == TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION;
     }
 
     private void throwIfPreCommitConditionInvalid(long timestamp) {
