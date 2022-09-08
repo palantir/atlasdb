@@ -48,7 +48,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -426,8 +425,7 @@ public class CassandraClientPoolTest {
     }
 
     private void setCassandraServersTo(CassandraServer... servers) {
-        when(cassandra.refreshTokenRangesAndGetServers())
-                .thenReturn(Arrays.stream(servers).collect(ImmutableSet.toImmutableSet()));
+        when(cassandra.refreshTokenRangesAndGetServers()).thenReturn(ImmutableSet.copyOf(servers));
     }
 
     private CassandraClientPoolImpl createClientPool() {

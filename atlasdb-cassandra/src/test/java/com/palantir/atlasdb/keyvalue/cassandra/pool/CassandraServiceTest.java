@@ -55,9 +55,9 @@ import org.junit.Test;
 public class CassandraServiceTest {
     private static final int DEFAULT_PORT = 5000;
     private static final int OTHER_PORT = 6000;
-    private static final String HOSTNAME_1 = "192.168.1.0";
-    private static final String HOSTNAME_2 = "192.168.2.0";
-    private static final String HOSTNAME_3 = "192.168.3.0";
+    private static final String HOSTNAME_1 = "10.1.2.3";
+    private static final String HOSTNAME_2 = "10.2.3.4";
+    private static final String HOSTNAME_3 = "10.3.4.5";
     private static final InetSocketAddress HOST_1 = InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = InetSocketAddress.createUnresolved(HOSTNAME_3, DEFAULT_PORT);
@@ -261,11 +261,11 @@ public class CassandraServiceTest {
     @Test
     public void getRandomHostByActiveConnectionsReturnsDesiredHost() {
         ImmutableSet<CassandraServer> servers = IntStream.range(0, 24)
-                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("192.168.0." + i1, DEFAULT_PORT)))
+                .mapToObj(i1 -> CassandraServer.of(InetSocketAddress.createUnresolved("10.1.2." + i1, DEFAULT_PORT)))
                 .collect(ImmutableSet.toImmutableSet());
         CassandraService service = clientPoolWithParams(servers, servers, 1.0);
         service.setLocalHosts(servers.stream().limit(8).collect(ImmutableSet.toImmutableSet()));
-        for (int i = 0; i < 500_000; i++) {
+        for (int i = 0; i < 10_000; i++) {
             // select some random nodes
             ImmutableSet<CassandraServer> desired = IntStream.generate(
                             () -> ThreadLocalRandom.current().nextInt(servers.size()))
@@ -300,19 +300,20 @@ public class CassandraServiceTest {
     public void testMultiServerGetCassandraServers() throws Exception {
         Set<CassandraServer> allHosts = ImmutableSet.of(SERVER_1, SERVER_2, SERVER_3);
         CassandraService cassandra = clientPoolWithServers(allHosts);
-        AtomicInteger rack = new AtomicInteger();
-        AtomicInteger token = new AtomicInteger();
-        List<TokenRange> tokenRanges = allHosts.stream()
-                .map(cass -> {
-                    String start = BaseEncoding.base16().encode(Ints.toByteArray(token.get()));
-                    String end = BaseEncoding.base16().encode(Ints.toByteArray(token.incrementAndGet()));
-                    return tokenRange(
-                            start,
-                            end,
-                            endpointDetails(cass.cassandraHostName(), DC_1, "rack" + rack.incrementAndGet()),
-                            ImmutableList.of(cass.cassandraHostName()));
-                })
-                .collect(ImmutableList.toImmutableList());
+        //        AtomicInteger rack = new AtomicInteger();
+        //        AtomicInteger token = new AtomicInteger();
+        //        List<TokenRange> tokenRanges = allHosts.stream()
+        //                .map(cass -> {
+        //                    String start = BaseEncoding.base16().encode(Ints.toByteArray(token.get()));
+        //                    String end = BaseEncoding.base16().encode(Ints.toByteArray(token.incrementAndGet()));
+        //                    return tokenRange(
+        //                            start,
+        //                            end,
+        //                            endpointDetails(cass.cassandraHostName(), DC_1, "rack" + rack.incrementAndGet()),
+        //                            ImmutableList.of(cass.cassandraHostName()));
+        //                })
+        //                .collect(ImmutableList.toImmutableList());
+        List<TokenRange> tokenRanges = generateTokenRanges(3, 1, allHosts);
         assertThat(cassandra.getCassandraServers(tokenRanges)).hasSize(3);
     }
 
@@ -320,64 +321,9 @@ public class CassandraServiceTest {
     public void testComplexMultiDatacenterMultiRackServerGetCassandraServers() throws Exception {
         int replicas = 3;
         int partitions = 5;
-        int nodeCount = replicas * partitions + 1;
-        assertThat(nodeCount).isLessThan(255);
-        Set<CassandraServer> nodes = IntStream.range(1, nodeCount)
-                .mapToObj(i -> "10." + i + ".0.0")
-                .map(ip -> InetSocketAddress.createUnresolved(ip, DEFAULT_PORT))
-                .map(CassandraServer::of)
-                .collect(Collectors.toSet());
-
+        Set<CassandraServer> nodes = generateNodes(replicas, partitions);
         CassandraService cassandra = clientPoolWithServers(nodes);
-
-        Map<CassandraServer, String> nodeToRack = nodes.stream().collect(Collectors.toMap(Function.identity(), node -> {
-            String hostname = node.cassandraHostName();
-            assertThat(hostname).startsWith("10.").endsWith(".0.0");
-            int dotIndex = hostname.indexOf('.', 3);
-            assertThat(dotIndex).isGreaterThan(0);
-            String substring = hostname.substring(3, dotIndex);
-            assertThat(substring).isNotEmpty();
-            int id = Integer.parseInt(substring);
-            assertThat(id).isGreaterThanOrEqualTo(0).isLessThanOrEqualTo(replicas * partitions);
-            int rack = id % replicas;
-            assertThat(rack).isGreaterThanOrEqualTo(0).isLessThan(replicas);
-            return "rack" + rack;
-        }));
-        assertThat(nodeToRack).containsOnlyKeys(nodes).hasSize(nodes.size());
-        assertThat(nodeToRack.values()).hasSize(15).containsOnly(RACK_0, RACK_1, RACK_2);
-
-        AtomicInteger token = new AtomicInteger();
-        List<Node> endpointNodes = nodeToRack.entrySet().stream()
-                .map(e -> {
-                    int min = token.getAndIncrement() % partitions;
-                    int max = (min + 1) % partitions;
-                    return ImmutableNode.builder()
-                            .start(min)
-                            .end(max)
-                            .server(e.getKey())
-                            .rack(e.getValue())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        List<TokenRange> tokenRanges = Multimaps.index(endpointNodes, Node::start).asMap().entrySet().stream()
-                .map(e -> {
-                    Integer start = e.getKey();
-                    String begin = BaseEncoding.base16().encode(Ints.toByteArray(start));
-                    String end = BaseEncoding.base16().encode(Ints.toByteArray(start + 1));
-
-                    List<EndpointDetails> endpointDetails = e.getValue().stream()
-                            .map(n -> endpointDetails(n.server().cassandraHostName(), DC_1, n.rack()))
-                            .collect(Collectors.toList());
-
-                    List<String> endpoints = nodes.stream()
-                            .map(CassandraServer::cassandraHostName)
-                            .collect(Collectors.toList());
-                    TokenRange tokens = new TokenRange(begin, end, endpoints);
-                    tokens.setEndpoint_details(endpointDetails);
-                    return tokens;
-                })
-                .collect(Collectors.toList());
+        List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
 
         assertThat(cassandra.getCassandraServers(tokenRanges)).hasSize(nodes.size());
         assertThat(cassandra.getCassandraServers(tokenRanges.subList(0, 1))).hasSize(replicas);
@@ -398,6 +344,98 @@ public class CassandraServiceTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testComplexMultiDatacenterMultiRackRefreshTokenRanges() {
+        int replicas = 3;
+        int partitions = 5;
+        Set<CassandraServer> nodes = generateNodes(replicas, partitions);
+        CassandraService cassandra = clientPoolWithServers(nodes);
+        List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
+        ImmutableSet<CassandraServer> servers = cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges);
+        assertThat(servers).hasSize(nodes.size());
+    }
+
+    @Test
+    public void testComplexMultiDatacenterMultiRackPartialRefreshTokenRanges() {
+        int replicas = 3;
+        int partitions = 5;
+        Set<CassandraServer> nodes = generateNodes(replicas, partitions);
+        CassandraService cassandra = clientPoolWithServers(nodes);
+        List<TokenRange> tokenRanges = generateTokenRanges(replicas, partitions, nodes);
+        ImmutableSet<CassandraServer> servers =
+                cassandra.refreshTokenRangesAndGetServers(() -> tokenRanges.subList(0, partitions));
+        assertThat(servers).hasSize(nodes.size());
+    }
+
+    private static Set<CassandraServer> generateNodes(int replicas, int partitions) {
+        int nodeCount = replicas * partitions + 1;
+        assertThat(nodeCount).isLessThan(255);
+        return IntStream.range(1, nodeCount)
+                .mapToObj(i -> "10." + i + ".0.0")
+                .map(ip -> InetSocketAddress.createUnresolved(ip, DEFAULT_PORT))
+                .map(CassandraServer::of)
+                .collect(Collectors.toSet());
+    }
+
+    private static List<TokenRange> generateTokenRanges(int replicas, int partitions, Set<CassandraServer> nodes) {
+        Map<CassandraServer, String> nodeToRack = nodes.stream().collect(Collectors.toMap(Function.identity(), node -> {
+            String hostname = node.cassandraHostName();
+            assertThat(hostname).startsWith("10.");
+            int dotIndex = hostname.indexOf('.', 3);
+            assertThat(dotIndex).isGreaterThan(0);
+            String substring = hostname.substring(3, dotIndex);
+            assertThat(substring).isNotEmpty();
+            int id = Integer.parseInt(substring);
+            assertThat(id).isGreaterThanOrEqualTo(0).isLessThanOrEqualTo(replicas * partitions);
+            int rack = id % replicas;
+            assertThat(rack).isGreaterThanOrEqualTo(0).isLessThan(replicas);
+            return "rack" + rack;
+        }));
+        assertThat(nodeToRack).containsOnlyKeys(nodes).hasSize(nodes.size());
+        assertThat(nodeToRack.values())
+                .hasSize(replicas * partitions)
+                .containsAnyElementsOf(
+                        IntStream.range(0, replicas).mapToObj(i -> "rack" + i).collect(Collectors.toList()));
+
+        AtomicInteger token = new AtomicInteger();
+        List<Node> endpointNodes = nodeToRack.entrySet().stream()
+                .map(e -> {
+                    int min = token.getAndIncrement() % partitions;
+                    int max = (min + 1) % partitions;
+                    return ImmutableNode.builder()
+                            .start(min)
+                            .end(max)
+                            .server(e.getKey())
+                            .rack(e.getValue())
+                            .build();
+                })
+                .collect(Collectors.toList());
+        assertThat(endpointNodes).hasSize(nodes.size());
+        return generateTokenRanges(nodes, endpointNodes);
+    }
+
+    private static List<TokenRange> generateTokenRanges(Set<CassandraServer> nodes, List<Node> endpointNodes) {
+        List<TokenRange> tokenRanges = Multimaps.index(endpointNodes, Node::start).asMap().entrySet().stream()
+                .map(e -> {
+                    Integer start = e.getKey();
+                    String begin = BaseEncoding.base16().encode(Ints.toByteArray(start));
+                    String end = BaseEncoding.base16().encode(Ints.toByteArray(start + 1));
+
+                    List<EndpointDetails> endpointDetails = e.getValue().stream()
+                            .map(n -> endpointDetails(n.server().cassandraHostName(), DC_1, n.rack()))
+                            .collect(Collectors.toList());
+
+                    List<String> endpoints = nodes.stream()
+                            .map(CassandraServer::cassandraHostName)
+                            .collect(Collectors.toList());
+                    TokenRange tokens = new TokenRange(begin, end, endpoints);
+                    tokens.setEndpoint_details(endpointDetails);
+                    return tokens;
+                })
+                .collect(Collectors.toList());
+        return tokenRanges;
     }
 
     @Value.Immutable
@@ -492,6 +530,7 @@ public class CassandraServiceTest {
                                 ? s.proxy().getHostString()
                                 : s.proxy().getAddress().toString(),
                         CassandraServer::cassandraHostName));
+        Supplier<List<TokenRange>> tokenRangeSupplier = () -> generateTokenRanges(1, 1, servers);
         CassandraService service = new CassandraService(
                 metricsManager,
                 config,
@@ -499,7 +538,8 @@ public class CassandraServiceTest {
                 blacklist,
                 new CassandraClientPoolMetrics(metricsManager),
                 myLocationSupplier,
-                hostnamesByIpSupplier);
+                hostnamesByIpSupplier,
+                tokenRangeSupplier);
 
         service.cacheInitialCassandraHosts();
         serversInPool.forEach(service::addPool);

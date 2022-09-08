@@ -51,7 +51,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -89,11 +88,12 @@ public class CassandraService {
     private final Map<CassandraServer, CassandraClientPoolingContainer> currentPools = new ConcurrentHashMap<>();
     private volatile ImmutableMap<CassandraServer, String> hostToDatacenter = ImmutableMap.of();
 
-    private List<CassandraServer> cassandraHosts;
+    private volatile ImmutableList<CassandraServer> cassandraHosts;
 
     private volatile ImmutableSet<CassandraServer> localHosts = ImmutableSet.of();
     private final Supplier<Optional<HostLocation>> myLocationSupplier;
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
+    private final Supplier<List<TokenRange>> tokenRangeSupplier;
 
     private final Random random = new Random();
 
@@ -112,6 +112,7 @@ public class CassandraService {
                 AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(
                 new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts)::get, 1, TimeUnit.MINUTES);
+        this.tokenRangeSupplier = this::getTokenRanges;
     }
 
     @VisibleForTesting
@@ -122,7 +123,8 @@ public class CassandraService {
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics,
             Supplier<Optional<HostLocation>> myLocationSupplier,
-            Supplier<Map<String, String>> hostnameByIpSupplier) {
+            Supplier<Map<String, String>> hostnameByIpSupplier,
+            Supplier<List<TokenRange>> tokenRangeSupplier) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -130,6 +132,7 @@ public class CassandraService {
         this.poolMetrics = poolMetrics;
         this.myLocationSupplier = myLocationSupplier;
         this.hostnameByIpSupplier = hostnameByIpSupplier;
+        this.tokenRangeSupplier = tokenRangeSupplier;
     }
 
     public static CassandraService createInitialized(
@@ -146,10 +149,15 @@ public class CassandraService {
     }
 
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
+        return refreshTokenRangesAndGetServers(this.tokenRangeSupplier);
+    }
+
+    @VisibleForTesting
+    ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers(Supplier<List<TokenRange>> rangeSupplier) {
         try {
             // grab latest token ring view from a random node in the cluster and update local hosts
-            List<TokenRange> tokenRanges = getTokenRanges();
-            localHosts = refreshLocalHosts(tokenRanges);
+            List<TokenRange> tokenRanges = rangeSupplier.get();
+            setLocalHosts(refreshLocalHosts(tokenRanges));
             return getCassandraServers(tokenRanges);
         } catch (Exception e) {
             log.info(
@@ -246,8 +254,12 @@ public class CassandraService {
         return runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE);
     }
 
-    private List<TokenRange> getTokenRanges() throws Exception {
-        return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
+    private List<TokenRange> getTokenRanges() {
+        try {
+            return getRandomGoodHost().runWithPooledResource(CassandraUtils.getDescribeRing(config));
+        } catch (Exception e) {
+            throw new SafeIllegalStateException("Failed to describe ring", e);
+        }
     }
 
     private String getSnitch() {
@@ -290,8 +302,15 @@ public class CassandraService {
     }
 
     @VisibleForTesting
-    void setLocalHosts(ImmutableSet<CassandraServer> localHosts) {
-        this.localHosts = localHosts;
+    void setLocalHosts(ImmutableSet<CassandraServer> newLocalHosts) {
+        ImmutableSet<CassandraServer> previousLocalHosts = this.localHosts; // volatile read
+        if (!Objects.equals(previousLocalHosts, newLocalHosts)) {
+            this.localHosts = newLocalHosts;
+            log.info(
+                    "Updating local hosts",
+                    SafeArg.of("previousLocalHosts", previousLocalHosts),
+                    SafeArg.of("newLocalHosts", newLocalHosts));
+        }
     }
 
     public Set<CassandraServer> getLocalHosts() {
@@ -564,14 +583,15 @@ public class CassandraService {
     public void cacheInitialCassandraHosts() {
         ImmutableSet<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
 
-        cassandraHosts = thriftSocket.stream()
+        ImmutableList<CassandraServer> hosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
-                .collect(Collectors.toList());
-        cassandraHosts.forEach(this::addPool);
+                .collect(ImmutableList.toImmutableList());
+        cassandraHosts = hosts;
+        hosts.forEach(this::addPool);
     }
 
     public void clearInitialCassandraHosts() {
-        cassandraHosts = Collections.emptyList();
+        cassandraHosts = ImmutableList.of();
     }
 
     @VisibleForTesting
