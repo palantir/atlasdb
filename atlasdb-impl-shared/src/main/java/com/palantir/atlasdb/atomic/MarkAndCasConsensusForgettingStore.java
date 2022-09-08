@@ -202,7 +202,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> requestedUpdatesForCell :
                 partitionedElems.entrySet()) {
             requestedUpdatesForCell.getValue().stream()
-                    .min(Comparator.comparingInt(elem -> rank(elem.argument()).value))
+                    .min(Comparator.comparing(elem -> rank(elem.argument())))
                     .ifPresent(pendingUpdates::add);
         }
 
