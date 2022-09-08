@@ -28,6 +28,8 @@ import java.util.Arrays;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
 
+    private static final LightweightOppToken EMPTY_TOKEN = new LightweightOppToken(new byte[0]);
+
     final byte[] bytes;
 
     public LightweightOppToken(byte[] bytes) {
@@ -40,7 +42,11 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
 
     public static LightweightOppToken serialize(Token token) {
         ByteBuffer serializedToken = token.serialize(CassandraConstants.DEFAULT_PROTOCOL_VERSION);
-        byte[] bytes = new byte[serializedToken.remaining()];
+        int remaining = serializedToken.remaining();
+        if (remaining == 0) {
+            return EMPTY_TOKEN;
+        }
+        byte[] bytes = new byte[remaining];
         serializedToken.get(bytes);
         return new LightweightOppToken(bytes);
     }
@@ -51,7 +57,7 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
                 "Token range lower bound should be open",
                 SafeArg.of("range", range));
 
-        return range.hasLowerBound() ? range.lowerEndpoint() : new LightweightOppToken(new byte[0]);
+        return range.hasLowerBound() ? range.lowerEndpoint() : EMPTY_TOKEN;
     }
 
     public static LightweightOppToken getUpperInclusive(Range<LightweightOppToken> range) {
@@ -60,7 +66,7 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
                 "Token range upper bound should be closed",
                 SafeArg.of("range", range));
 
-        return range.hasUpperBound() ? range.upperEndpoint() : new LightweightOppToken(new byte[0]);
+        return range.hasUpperBound() ? range.upperEndpoint() : EMPTY_TOKEN;
     }
 
     public ByteBuffer deserialize() {
