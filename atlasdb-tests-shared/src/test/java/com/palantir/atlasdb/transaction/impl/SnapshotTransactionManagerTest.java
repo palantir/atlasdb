@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -101,7 +101,7 @@ public class SnapshotTransactionManagerTest {
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                DefaultCommitStateCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 true,
@@ -158,7 +158,7 @@ public class SnapshotTransactionManagerTest {
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                DefaultCommitStateCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 true,
@@ -287,7 +287,7 @@ public class SnapshotTransactionManagerTest {
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
-                DefaultCommitStateCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 true,

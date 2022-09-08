@@ -25,8 +25,8 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.atlasdb.cache.CommitStateCache;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -467,8 +467,8 @@ public abstract class TransactionManagers {
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction).map(this::withConsolidatedGrabImmutableTsLockFlag);
 
-        CommitStateCache commitStateCache = config().timestampCache()
-                .orElseGet(() -> new DefaultCommitStateCache(
+        TimestampCache timestampCache = config().timestampCache()
+                .orElseGet(() -> new DefaultTimestampCache(
                         metricsManager.getRegistry(), () -> runtime.get().getTimestampCacheSize()));
 
         ConflictTracer conflictTracer = lockDiagnosticComponents()
@@ -502,7 +502,7 @@ public abstract class TransactionManagers {
                         derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                         derivedSnapshotConfig.defaultGetRangesConcurrency(),
                         config().initializeAsync(),
-                        commitStateCache,
+                        timestampCache,
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),

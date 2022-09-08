@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cache.CommitStateCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -29,9 +29,9 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractCondit
 
     AbstractLockAwareTransactionManager(
             MetricsManager metricsManager,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             Supplier<TransactionRetryStrategy> retryStrategy) {
-        super(metricsManager, commitStateCache, retryStrategy);
+        super(metricsManager, timestampCache, retryStrategy);
     }
 
     @Override

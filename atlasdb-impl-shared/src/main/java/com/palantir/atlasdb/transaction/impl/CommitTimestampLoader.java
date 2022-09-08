@@ -22,6 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -40,6 +41,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -47,12 +49,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 public final class CommitTimestampLoader {
     private static final SafeLogger log = SafeLoggerFactory.get(CommitTimestampLoader.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
+    private final TimestampCache timestampCache;
     private final Optional<LockToken> immutableTimestampLock;
     private final Supplier<Long> startTimestampSupplier;
     private final Supplier<TransactionConfig> transactionConfig;
@@ -62,6 +64,7 @@ public final class CommitTimestampLoader {
     private final Supplier<Long> lastSeenCommitTs;
 
     public CommitTimestampLoader(
+            TimestampCache timestampCache,
             Optional<LockToken> immutableTimestampLock,
             Supplier<Long> startTimestampSupplier,
             Supplier<TransactionConfig> transactionConfig,
@@ -69,6 +72,7 @@ public final class CommitTimestampLoader {
             TimelockService timelockService,
             long immutableTimestamp,
             Supplier<Long> lastSeenCommitTs) {
+        this.timestampCache = timestampCache;
         this.immutableTimestampLock = immutableTimestampLock;
         this.startTimestampSupplier = startTimestampSupplier;
         this.transactionConfig = transactionConfig;
@@ -87,21 +91,41 @@ public final class CommitTimestampLoader {
             Iterable<Long> startTimestamps,
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
-
         if (Iterables.isEmpty(startTimestamps)) {
             return Futures.immediateFuture(ImmutableMap.of());
         }
 
-        // todo(snanda): how bad is it to wait for committer if all the transactions are in cache
+        Set<Long> pendingGets = new HashSet<>();
+        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
+
+        for (Long startTs : startTimestamps) {
+            Long commitTs = timestampCache.getCommitTimestampIfPresent(startTs);
+            if (commitTs == null) {
+                pendingGets.add(startTs);
+            } else {
+                startToCommitTimestamps.put(startTs, commitTs);
+            }
+        }
+
+        if (pendingGets.isEmpty()) {
+            return Futures.immediateFuture(startToCommitTimestamps);
+        }
+
         // Before we do the reads, we need to make sure the committer is done writing.
         if (shouldWaitForCommitterToComplete) {
             waitForCommitterToComplete(tableRef, startTimestamps);
         }
 
-        // todo(snanda): I am killing some of the logging here and tracing here.
+        traceGetCommitTimestamps(tableRef, pendingGets);
+
+        if (pendingGets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
+            logLargeNumberOfTransactions(tableRef, pendingGets);
+        }
+
         return Futures.transform(
-                loadCommitTimestamps(asyncTransactionService, startTimestamps),
+                loadCommitTimestamps(asyncTransactionService, pendingGets),
                 rawResults -> {
+
                     Set<Long> sweptKeys = KeyedStream.stream(rawResults)
                             // todo(snanda); this is so jank
                             .filterEntries(Long::equals)
@@ -112,7 +136,16 @@ public final class CommitTimestampLoader {
                         throwIfTransactionsTableSweptBeyondReadOnlyTxn();
                     }
 
-                    return rawResults;
+                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
+                        if (e.getValue() != null) {
+                            Long startTs = e.getKey();
+                            Long commitTs = e.getValue();
+                            startToCommitTimestamps.put(startTs, commitTs);
+                            timestampCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                        }
+                    }
+
+                    return startToCommitTimestamps;
                 },
                 MoreExecutors.directExecutor());
     }
@@ -189,23 +222,26 @@ public final class CommitTimestampLoader {
         log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
     }
 
-    // todo(snanda): why are we using iterables?
     private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
-            AsyncTransactionService asyncTransactionService, Iterable<Long> startTimestamps) {
-        Set<Long> keys =
-                StreamSupport.stream(startTimestamps.spliterator(), false).collect(Collectors.toSet());
-
+            AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
-        if (keys.size() == 1) {
-            Long singleTs = keys.iterator().next();
+        if (startTimestamps.size() == 1) {
+            Long singleTs = startTimestamps.iterator().next();
             return Futures.transform(
                     asyncTransactionService.getAsync(singleTs),
                     commitTsOrNull ->
                             commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsync(keys);
+            return asyncTransactionService.getAsync(startTimestamps);
         }
+    }
+
+    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
+        log.info(
+                "Looking up a large number of transactions.",
+                SafeArg.of("numberOfTransactionIds", gets.size()),
+                tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef));
     }
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {

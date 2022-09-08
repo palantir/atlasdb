@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cache.CommitStateCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
@@ -289,7 +289,7 @@ public abstract class AtlasDbConfig {
      * If set, the timestamp cache that should be used by AtlasDB. If set, any timestamp cache sizing configuration
      * is ignored.
      */
-    public abstract Optional<CommitStateCache> timestampCache();
+    public abstract Optional<TimestampCache> timestampCache();
 
     /**
      * If set, allows the timelock and key-value-service namespaces to be different.

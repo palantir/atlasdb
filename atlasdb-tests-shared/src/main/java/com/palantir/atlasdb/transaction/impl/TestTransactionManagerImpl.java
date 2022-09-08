@@ -19,8 +19,8 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.CommitStateCache;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -69,7 +69,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionSchemaManager transactionSchemaManager,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor) {
         this(
@@ -81,7 +81,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                commitStateCache,
+                timestampCache,
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
@@ -112,7 +112,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                DefaultCommitStateCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
@@ -137,7 +137,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TransactionSchemaManager transactionSchemaManager,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
@@ -155,7 +155,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                commitStateCache,
+                timestampCache,
                 false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,

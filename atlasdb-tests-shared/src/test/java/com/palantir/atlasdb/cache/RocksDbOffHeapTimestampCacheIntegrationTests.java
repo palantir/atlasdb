@@ -31,13 +31,13 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-public final class RocksDbOffHeapCommitStateCacheIntegrationTests {
+public final class RocksDbOffHeapTimestampCacheIntegrationTests {
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
     private static final int CACHE_SIZE = 2;
 
-    private CommitStateCache offHeapCommitStateCache;
+    private TimestampCache offHeapTimestampCache;
     private PersistentStore persistentStore;
 
     @Before
@@ -47,7 +47,7 @@ public final class RocksDbOffHeapCommitStateCacheIntegrationTests {
 
         persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
 
-        offHeapCommitStateCache = OffHeapCommitStateCache.create(
+        offHeapTimestampCache = OffHeapTimestampCache.create(
                 persistentStore, MetricsManagers.createForTests().getTaggedRegistry(), () -> CACHE_SIZE);
     }
 
@@ -58,33 +58,33 @@ public final class RocksDbOffHeapCommitStateCacheIntegrationTests {
 
     @Test
     public void cachedEntry() {
-        offHeapCommitStateCache.putAlreadyCommittedTransaction(1L, 3L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
 
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(1L)).isEqualTo(3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
     }
 
     @Test
     public void nonCachedEntry() {
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(1L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
     }
 
     @Test
     public void cacheNukedWhenSizeLimitExceeded() {
-        offHeapCommitStateCache.putAlreadyCommittedTransaction(1L, 3L);
-        offHeapCommitStateCache.putAlreadyCommittedTransaction(2L, 4L);
-        offHeapCommitStateCache.putAlreadyCommittedTransaction(5L, 6L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(2L, 4L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(5L, 6L);
 
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(1L)).isNull();
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(2L)).isNull();
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(5L)).isEqualTo(6L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(2L)).isNull();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(5L)).isEqualTo(6L);
     }
 
     @Test
     public void clearCache() {
-        offHeapCommitStateCache.putAlreadyCommittedTransaction(1L, 3L);
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(1L)).isEqualTo(3L);
+        offHeapTimestampCache.putAlreadyCommittedTransaction(1L, 3L);
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isEqualTo(3L);
 
-        offHeapCommitStateCache.clear();
-        assertThat(offHeapCommitStateCache.getCommitStateIfPresent(1L)).isNull();
+        offHeapTimestampCache.clear();
+        assertThat(offHeapTimestampCache.getCommitTimestampIfPresent(1L)).isNull();
     }
 }

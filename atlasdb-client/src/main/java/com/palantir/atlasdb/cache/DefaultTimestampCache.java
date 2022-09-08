@@ -24,30 +24,30 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import java.util.function.LongSupplier;
 import javax.annotation.Nullable;
 
-public final class DefaultCommitStateCache<T> implements CommitStateCache<T> {
+public final class DefaultTimestampCache implements TimestampCache {
     private final LongSupplier size;
 
-    private final Cache<Long, T> startToCommitTimestampCache;
-    private final Policy.Eviction<Long, T> evictionPolicy;
+    private final Cache<Long, Long> startToCommitTimestampCache;
+    private final Policy.Eviction<Long, Long> evictionPolicy;
 
     @VisibleForTesting
-    Cache<Long, T> createCache(long size) {
+    static Cache<Long, Long> createCache(long size) {
         return Caffeine.newBuilder().maximumSize(size).recordStats().build();
     }
 
-    public DefaultCommitStateCache(MetricRegistry metricRegistry, LongSupplier size) {
+    public DefaultTimestampCache(MetricRegistry metricRegistry, LongSupplier size) {
         this.size = size;
         startToCommitTimestampCache = createCache(size.getAsLong());
         evictionPolicy = startToCommitTimestampCache.policy().eviction().get();
         AtlasDbMetrics.registerCache(
                 metricRegistry,
                 startToCommitTimestampCache,
-                MetricRegistry.name(CommitStateCache.class, "startToCommitTimestamp"));
+                MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 
     @Override
     @Nullable
-    public T getCommitStateIfPresent(Long startTimestamp) {
+    public Long getCommitTimestampIfPresent(Long startTimestamp) {
         resizeIfNecessary();
         return startToCommitTimestampCache.getIfPresent(startTimestamp);
     }
@@ -59,8 +59,8 @@ public final class DefaultCommitStateCache<T> implements CommitStateCache<T> {
     }
 
     @Override
-    public void putAlreadyCommittedTransaction(Long startTimestamp, T commit) {
-        startToCommitTimestampCache.put(startTimestamp, commit);
+    public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
+        startToCommitTimestampCache.put(startTimestamp, commitTimestamp);
     }
 
     @Override
@@ -68,7 +68,7 @@ public final class DefaultCommitStateCache<T> implements CommitStateCache<T> {
         startToCommitTimestampCache.invalidateAll();
     }
 
-    public static CommitStateCache createForTests() {
-        return new DefaultCommitStateCache(new MetricRegistry(), () -> 1000L);
+    public static TimestampCache createForTests() {
+        return new DefaultTimestampCache(new MetricRegistry(), () -> 1000L);
     }
 }

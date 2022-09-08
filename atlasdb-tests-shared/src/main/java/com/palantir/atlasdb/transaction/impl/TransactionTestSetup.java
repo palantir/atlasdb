@@ -20,8 +20,8 @@ import static com.palantir.atlasdb.transaction.service.TransactionServices.creat
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.ComparingCommitStateCache;
-import com.palantir.atlasdb.cache.CommitStateCache;
+import com.palantir.atlasdb.ComparingTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -118,7 +118,7 @@ public abstract class TransactionTestSetup {
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
-    protected CommitStateCache commitStateCache;
+    protected TimestampCache timestampCache;
 
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
@@ -130,7 +130,7 @@ public abstract class TransactionTestSetup {
 
     @Before
     public void setUp() {
-        commitStateCache = ComparingCommitStateCache.comparingOffHeapForTests(metricsManager, persistentStore);
+        timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
@@ -206,7 +206,7 @@ public abstract class TransactionTestSetup {
                 transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
-                commitStateCache,
+                timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }

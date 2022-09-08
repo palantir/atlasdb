@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.cache.CommitStateCache;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -235,7 +235,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
@@ -262,7 +262,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 initializeAsync,
-                commitStateCache,
+                timestampCache,
                 sweepQueueWriter,
                 callback,
                 PTExecutors.newSingleThreadScheduledExecutor(
@@ -293,7 +293,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
@@ -320,7 +320,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 initializeAsync,
-                commitStateCache,
+                timestampCache,
                 sweepQueueWriter,
                 callback,
                 PTExecutors.newSingleThreadScheduledExecutor(
@@ -350,7 +350,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
@@ -377,7 +377,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 initializeAsync,
-                commitStateCache,
+                timestampCache,
                 sweepQueueWriter,
                 callback,
                 initializer,
@@ -407,7 +407,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
@@ -430,7 +430,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                commitStateCache,
+                timestampCache,
                 allowHiddenTableAccess,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
@@ -485,7 +485,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 cleaner,
-                new DefaultCommitStateCache(metricsManager.getRegistry(), () -> 1000L),
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> 1000L),
                 false,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
@@ -511,7 +511,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            CommitStateCache commitStateCache,
+            TimestampCache timestampCache,
             boolean allowHiddenTableAccess,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
@@ -538,7 +538,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 allowHiddenTableAccess,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
-                commitStateCache,
+                timestampCache,
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,

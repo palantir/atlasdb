@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb;
 
-import com.palantir.atlasdb.cache.CommitStateCache;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
-import com.palantir.atlasdb.cache.OffHeapCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.OffHeapTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
@@ -27,23 +27,23 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
-public final class ComparingCommitStateCache implements CommitStateCache<Long> {
-    private final CommitStateCache<Long> first;
-    private final CommitStateCache<Long> second;
+public final class ComparingTimestampCache implements TimestampCache {
+    private final TimestampCache first;
+    private final TimestampCache second;
 
-    public static CommitStateCache comparingOffHeapForTests(
+    public static TimestampCache comparingOffHeapForTests(
             MetricsManager metricRegistry, PersistentStore persistentStore) {
-        CommitStateCache first = new DefaultCommitStateCache(
+        TimestampCache first = new DefaultTimestampCache(
                 metricRegistry.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
-        CommitStateCache second = OffHeapCommitStateCache.create(
+        TimestampCache second = OffHeapTimestampCache.create(
                 persistentStore,
                 metricRegistry.getTaggedRegistry(),
                 () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
-        return new ComparingCommitStateCache(first, second);
+        return new ComparingTimestampCache(first, second);
     }
 
-    private ComparingCommitStateCache(CommitStateCache first, CommitStateCache second) {
+    private ComparingTimestampCache(TimestampCache first, TimestampCache second) {
         this.first = first;
         this.second = second;
     }
@@ -55,16 +55,16 @@ public final class ComparingCommitStateCache implements CommitStateCache<Long> {
     }
 
     @Override
-    public synchronized void putAlreadyCommittedTransaction(Long startTimestamp, Long commit) {
-        first.putAlreadyCommittedTransaction(startTimestamp, commit);
-        second.putAlreadyCommittedTransaction(startTimestamp, commit);
+    public synchronized void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
+        first.putAlreadyCommittedTransaction(startTimestamp, commitTimestamp);
+        second.putAlreadyCommittedTransaction(startTimestamp, commitTimestamp);
     }
 
     @Nullable
     @Override
-    public synchronized Long getCommitStateIfPresent(Long startTimestamp) {
-        Long firstCommitTimestamp = first.getCommitStateIfPresent(startTimestamp);
-        Long secondCommitTimestamp = second.getCommitStateIfPresent(startTimestamp);
+    public synchronized Long getCommitTimestampIfPresent(Long startTimestamp) {
+        Long firstCommitTimestamp = first.getCommitTimestampIfPresent(startTimestamp);
+        Long secondCommitTimestamp = second.getCommitTimestampIfPresent(startTimestamp);
         if (firstCommitTimestamp == null || secondCommitTimestamp == null) {
             return Stream.of(firstCommitTimestamp, secondCommitTimestamp)
                     .filter(Objects::nonNull)

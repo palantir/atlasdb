@@ -17,7 +17,7 @@ package com.palantir.atlasdb.services.test;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -133,7 +133,7 @@ public class TestTransactionManagerModule {
                 conflictManager,
                 sweepStrategyManager,
                 cleaner,
-                new DefaultCommitStateCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
+                new DefaultTimestampCache(metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig()
                         .getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),

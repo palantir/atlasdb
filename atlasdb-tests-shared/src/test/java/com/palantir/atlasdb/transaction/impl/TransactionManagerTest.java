@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.DefaultCommitStateCache;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -180,7 +180,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writerStartTimestamp))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
                 .isNull();
     }
 
@@ -191,12 +191,12 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn;
         });
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writer.getTimestamp()))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
                 .isNull();
 
         txMgr.runTaskWithRetry(txn -> get(txn, TEST_TABLE, "row", "column"));
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writer.getTimestamp()))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writer.getTimestamp()))
                 .isEqualTo(transactionService.get(writer.getTimestamp()));
     }
 
@@ -207,7 +207,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writerStartTimestamp))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
                 .isNull();
 
         txMgr.runTaskWithRetry(txn -> {
@@ -215,7 +215,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return null;
         });
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writerStartTimestamp))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
                 .isEqualTo(transactionService.get(writerStartTimestamp));
     }
 
@@ -226,7 +226,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
             return txn.getTimestamp();
         });
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writerStartTimestamp))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
                 .isNull();
 
         assertThatThrownBy(() -> txMgr.runTaskWithRetry(txn -> {
@@ -236,7 +236,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("abort");
 
-        assertThat(commitStateCache.getCommitStateIfPresent(writerStartTimestamp))
+        assertThat(timestampCache.getCommitTimestampIfPresent(writerStartTimestamp))
                 .isEqualTo(transactionService.get(writerStartTimestamp));
     }
 
@@ -257,7 +257,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                DefaultCommitStateCache.createForTests(),
+                DefaultTimestampCache.createForTests(),
                 false,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
