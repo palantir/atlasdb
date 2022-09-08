@@ -41,6 +41,7 @@ public class OracleNamespaceCleanerIntegrationTest {
     private DbKeyValueServiceConfig dbKeyValueServiceConfig;
     private OracleDdlConfig oracleDdlConfig;
     private NamespaceCleaner namespaceCleaner;
+    private Namespace namespace;
 
     @Before
     public void before() {
@@ -48,13 +49,13 @@ public class OracleNamespaceCleanerIntegrationTest {
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
         namespaceCleaner = new OracleNamespaceCleaner(oracleDdlConfig, dbKeyValueServiceConfig);
+        namespace = Namespace.create(dbKeyValueServiceConfig.namespace().orElseThrow());
     }
 
     @Test
     public void helpMe() {
         createTable(TABLE_NAME);
-        assertThat(dbKeyValueServiceConfig.namespace()).contains("HALLO");
-        // namespaceCleaner.hasNamespaceSuccessfullyDropped()
+        assertThat(namespaceCleaner.hasNamespaceSuccessfullyDropped(namespace)).isTrue();
     }
 
     private void createTable(String tableName) {
@@ -62,9 +63,6 @@ public class OracleNamespaceCleanerIntegrationTest {
     }
 
     private TableReference getTableReference(String tableName) {
-        return dbKeyValueServiceConfig
-                .namespace()
-                .map(namespace -> TableReference.create(Namespace.create(namespace), tableName))
-                .orElseGet(() -> TableReference.createWithEmptyNamespace(tableName));
+        return TableReference.create(namespace, tableName);
     }
 }
