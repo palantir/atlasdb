@@ -24,6 +24,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import javax.annotation.Nullable;
 
 public final class PtBytes {
@@ -132,7 +133,7 @@ public final class PtBytes {
         if (hexString == null) {
             return PtBytes.EMPTY_BYTE_ARRAY;
         }
-        return BaseEncoding.base16().lowerCase().decode(hexString.toLowerCase());
+        return BaseEncoding.base16().lowerCase().decode(hexString.toLowerCase(Locale.ROOT));
     }
 
     public static final Function<byte[], String> BYTES_TO_HEX_STRING = PtBytes::encodeHexString;

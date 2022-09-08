@@ -25,7 +25,6 @@ import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
@@ -66,7 +65,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         this.reader = new ReadableConsensusForgettingStoreImpl(kvs, tableRef);
         this.autobatcher = Autobatchers.<CasRequest, Void>independent(list -> processBatch(kvs, tableRef, list))
                 .safeLoggablePurpose("mcas-batching-store")
-                .batchFunctionTimeout(Duration.ofMinutes(5))
+                .batchFunctionTimeout(Duration.ofMinutes(2))
                 .build();
     }
 
@@ -87,7 +86,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * been marked. The MCAS calls to KVS are batched.
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
+    public void atomicUpdate(Cell cell, byte[] value) throws MultiCheckAndSetException {
         autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
     }
 
@@ -103,7 +102,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+    public void checkAndTouch(Cell cell, byte[] value) throws MultiCheckAndSetException {
         ByteBuffer buffer = ByteBuffer.wrap(value);
         autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
     }
@@ -153,7 +152,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             try {
                 kvs.multiCheckAndSet(multiCheckAndSetRequest);
                 pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.success()));
-            } catch (Exception e) {
+            } catch (MultiCheckAndSetException e) {
                 pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.failure(e)));
             }
         }
@@ -164,7 +163,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     private static void populateResult(
             List<BatchElement<CasRequest, Void>> batch, Map<CasRequest, CasResponse> results) {
         CasResponse defaultResponse =
-                CasResponse.failure(new CheckAndSetException("There were one or more concurrent updates for the same "
+                CasResponse.failure(new MultiCheckAndSetException("There were one or more concurrent updates for the same "
                         + "cell and a higher ranking update was selected to be executed. "));
         batch.forEach(elem -> {
             CasResponse response = results.getOrDefault(elem.argument(), defaultResponse);
@@ -202,21 +201,11 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> requestedUpdatesForCell :
                 partitionedElems.entrySet()) {
             requestedUpdatesForCell.getValue().stream()
-                    .min(Comparator.comparing(elem -> rank(elem.argument())))
+                    .min(Comparator.comparing(elem -> CasRequest.rank(elem.argument())))
                     .ifPresent(pendingUpdates::add);
         }
 
         return pendingUpdates.build();
-    }
-
-    private static UpdateRank rank(CasRequest req) {
-        if (req.expected().equals(req.update())) {
-            return UpdateRank.TOUCH;
-        }
-        if (req.expected().equals(WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
-            return UpdateRank.ABORT;
-        }
-        return UpdateRank.COMMIT;
     }
 
     enum UpdateRank {
@@ -240,6 +229,15 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         default void check() {
             Preconditions.checkState(expected().hasArray(), "Cannot request CAS without expected value.");
             Preconditions.checkState(update().hasArray(), "Cannot request CAS without update.");
+        }
+        private static UpdateRank rank(CasRequest req) {
+            if (req.expected().equals(req.update())) {
+                return UpdateRank.TOUCH;
+            }
+            if (req.expected().equals(WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
+                return UpdateRank.ABORT;
+            }
+            return UpdateRank.COMMIT;
         }
     }
 

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;
@@ -24,6 +25,13 @@ public class MultiCheckAndSetException extends RuntimeException {
     private final byte[] rowName;
     private final Map<Cell, byte[]> expectedValues;
     private final Map<Cell, byte[]> actualValues;
+
+    public MultiCheckAndSetException(@CompileTimeConstant String message) {
+        super(new SafeRuntimeException(message));
+        this.rowName = null;
+        this.expectedValues = null;
+        this.actualValues = null;
+    }
 
     public MultiCheckAndSetException(
             Arg<String> tableReference,

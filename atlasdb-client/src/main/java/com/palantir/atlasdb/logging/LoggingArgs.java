@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +50,7 @@ public final class LoggingArgs {
     public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
-    @Value.Immutable
+    @Unsafe @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
 
@@ -150,7 +151,7 @@ public final class LoggingArgs {
         }
     }
 
-    public static Arg<String> safeInternalTableName(String internalTableReference) {
+    @Unsafe public static Arg<String> safeInternalTableName(String internalTableReference) {
         if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
             return SafeArg.of("tableRef", internalTableReference);
         } else {
@@ -231,7 +232,7 @@ public final class LoggingArgs {
         return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 
-    private static <T> Arg<T> getArg(String name, T value, boolean safe) {
+    @Unsafe private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }
 }
