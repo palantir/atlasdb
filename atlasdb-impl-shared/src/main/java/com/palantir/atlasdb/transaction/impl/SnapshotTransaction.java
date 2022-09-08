@@ -2495,12 +2495,12 @@ public class SnapshotTransaction extends AbstractTransaction
         boolean isReadOnly = immutableTimestampLock.isEmpty();
 
         Set<Long> pendingGets = new HashSet<>();
-        Set<Long> schema4Gets = new HashSet<>();
+        Set<Long> sweepableGets = new HashSet<>();
         Map<Long, Long> startToCommitTimestamps = new HashMap<>();
 
         for (Long startTs : startTimestamps) {
             if (isReadOnly && isReadingSweepableTransaction(startTs)) {
-                schema4Gets.add(startTs);
+                sweepableGets.add(startTs);
                 pendingGets.add(startTs);
             } else {
                 Long commitTs = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
@@ -2538,7 +2538,7 @@ public class SnapshotTransaction extends AbstractTransaction
                             timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
                         }
                     }
-                    if (!schema4Gets.isEmpty()) {
+                    if (!sweepableGets.isEmpty()) {
                         throwIfTransactionsTableSweptBeyondReadOnlyTxn();
                     }
                     return startToCommitTimestamps;
