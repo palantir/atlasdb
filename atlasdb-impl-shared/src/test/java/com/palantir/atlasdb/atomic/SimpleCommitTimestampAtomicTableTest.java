@@ -87,7 +87,7 @@ public class SimpleCommitTimestampAtomicTableTest {
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
-        assertThat(result.size()).isEqualTo(4);
+        assertThat(result).hasSize(4);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(7L))).hasValue(8L);
@@ -99,7 +99,7 @@ public class SimpleCommitTimestampAtomicTableTest {
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L)).get();
-        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).hasSize(1);
         assertThat(result.get(1L)).isEqualTo(TransactionConstants.ABORTED);
     }
 
@@ -109,7 +109,7 @@ public class SimpleCommitTimestampAtomicTableTest {
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L)).get();
-        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).hasSize(2);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
         assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
