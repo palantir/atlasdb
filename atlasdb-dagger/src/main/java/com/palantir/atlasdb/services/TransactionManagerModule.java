@@ -53,7 +53,6 @@ import javax.inject.Named;
 import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
-@SuppressWarnings("TooManyArguments") // tech-debt
 @Module
 public class TransactionManagerModule {
     @Qualifier

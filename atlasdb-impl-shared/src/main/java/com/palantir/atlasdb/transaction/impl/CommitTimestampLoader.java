@@ -22,6 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -136,7 +137,7 @@ public final class CommitTimestampLoader {
 
             if (commitTs == null) continue;
 
-            if (isTransactionStatusUnknown(start, commitTs)) {
+            if (KnowledgeableTimestampExtractingAtomicTable.isUnknownCommittedTransaction(start, commitTs)) {
                 shouldValidate = true;
             } else {
                 timestampCache.putAlreadyCommittedTransaction(start, commitTs);
@@ -149,11 +150,6 @@ public final class CommitTimestampLoader {
         }
 
         return results;
-    }
-
-    private boolean isTransactionStatusUnknown(Long startTs, Long commitTs) {
-        // todo(snanda): this is not ideal - is there a better place to place this?
-        return startTs.equals(commitTs);
     }
 
     /**

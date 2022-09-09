@@ -345,8 +345,8 @@ public class KeyValueServiceMigratorsTest {
 
     private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLockRule timeLock) {
         ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
-        TransactionTables.createTables(kvs);
 
+        TransactionTables.createTables(kvs);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);

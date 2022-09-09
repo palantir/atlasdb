@@ -35,7 +35,6 @@ dependencies {
     testImplementation project(':atlasdb-client-protobufs')
     testImplementation project(':atlasdb-commons')
     testImplementation project(':atlasdb-config')
-    testImplementation project(':atlasdb-coordination-impl')
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':atlasdb-tests-shared').sourceSets.test.output

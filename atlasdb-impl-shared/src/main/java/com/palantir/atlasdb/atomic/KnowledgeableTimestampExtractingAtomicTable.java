@@ -108,6 +108,16 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     }
 
     private long getCommitTsForConcludedTransaction(long startTs) {
-        return knownAbortedTransactions.isKnownAborted(startTs) ? TransactionConstants.FAILED_COMMIT_TS : startTs;
+        return knownAbortedTransactions.isKnownAborted(startTs)
+                ? TransactionConstants.FAILED_COMMIT_TS
+                : getCommitTsForNonAbortedUnknownTransaction(startTs);
+    }
+
+    private static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
+        return startTs;
+    }
+
+    public static boolean isUnknownCommittedTransaction(long startTs, long commitTs) {
+        return startTs == commitTs;
     }
 }

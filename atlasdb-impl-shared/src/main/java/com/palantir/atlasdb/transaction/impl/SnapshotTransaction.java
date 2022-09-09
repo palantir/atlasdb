@@ -200,15 +200,6 @@ public class SnapshotTransaction extends AbstractTransaction
     @VisibleForTesting
     static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
 
-    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
-            TableReference tableRef,
-            Iterable<Long> startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
-        return commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
-    }
-
     private enum State {
         UNCOMMITTED,
         COMMITTED,
@@ -2351,6 +2342,15 @@ public class SnapshotTransaction extends AbstractTransaction
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
+    }
+
+    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean shouldWaitForCommitterToComplete,
+            AsyncTransactionService asyncTransactionService) {
+        return commitTimestampLoader.getCommitTimestamps(
+                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
     }
 
     private void logCommitLockTenureExceeded(

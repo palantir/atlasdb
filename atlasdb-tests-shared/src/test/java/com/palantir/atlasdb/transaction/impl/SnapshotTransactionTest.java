@@ -1317,9 +1317,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         long transactionTs = timelockService.getFreshTimestamp();
 
-        // configure TTS cell
-        when(transactionSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(4);
-
         // no immutableTs lock for read-only transaction
         Transaction transaction = getSnapshotTransaction(
                 timelockService,
@@ -1339,8 +1336,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void doNotThrowIfTTSBeyondReadOnlyTxnForNonTTSCell() {
         long transactionTs = timelockService.getFreshTimestamp();
 
-        // configure non TTS cell
-        when(transactionSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(3);
 
         // no immutableTs lock for read-only transaction
         Transaction transaction = getSnapshotTransaction(
@@ -1360,9 +1355,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void doNotThrowIfTTSBeyondReadWriteTxnForTTSCell() {
         long transactionTs = timelockService.getFreshTimestamp();
 
-        // configure TTS cell
-        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs))
-                .thenReturn(4);
 
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction = getSnapshotTransaction(
@@ -1378,9 +1370,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void doNotThrowIfTTSBeyondReadWriteTxnForNonTTSCell() {
         long transactionTs = timelockService.getFreshTimestamp();
 
-        // configure non TTS cell
-        when(transactionSchemaManager.getTransactionsSchemaVersion(transactionTs))
-                .thenReturn(3);
 
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction = getSnapshotTransaction(

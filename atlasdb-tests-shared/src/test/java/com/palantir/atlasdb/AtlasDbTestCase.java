@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -61,7 +59,6 @@ public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
-    protected final TransactionSchemaManager transactionSchemaManager = mock(TransactionSchemaManager.class);
 
     protected LockClient lockClient;
     protected LockService lockService;
