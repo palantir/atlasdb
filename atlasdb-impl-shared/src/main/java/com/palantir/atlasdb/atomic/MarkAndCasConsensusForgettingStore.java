@@ -261,7 +261,10 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         }
 
         static CasResponse failure(Exception ex) {
-            return ImmutableCasResponse.builder().successful(false).exception(ex).build();
+            return ImmutableCasResponse.builder()
+                    .successful(false)
+                    .exception(ex)
+                    .build();
         }
     }
 }
