@@ -20,6 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -56,8 +58,7 @@ public class CommitTimestampLoaderTest {
         setup(startTs, commitTs);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
+        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
@@ -80,8 +81,9 @@ public class CommitTimestampLoaderTest {
                 commitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
 
         assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> commitTimestampLoader.getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs),
-                        false, transactionService).get())
+                .isThrownBy(() -> commitTimestampLoader
+                        .getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs), false, transactionService)
+                        .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
                 .withMessageContaining("Transactions table has been swept beyond current start timestamp");
     }
@@ -139,17 +141,45 @@ public class CommitTimestampLoaderTest {
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
 
+    @Test
+    public void doesNotCacheUnknownTransactions() throws ExecutionException, InterruptedException {
+        long transactionTs = 27l;
+
+        long startTsKnown = 5l;
+        long commitTsKnown = startTsKnown + 1;
+
+        long startTsUnknown = 7l;
+        long commitTsUnknown =
+                KnowledgeableTimestampExtractingAtomicTable.getCommitTsForNonAbortedUnknownTransaction(startTsUnknown);
+
+        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTsUnknown);
+
+        setup(startTsKnown, commitTsKnown);
+        // the transaction will eventually throw at commit time. In this test we are only concerned with per read
+        // validation.
+        assertCanGetCommitTs(startTsKnown, commitTsKnown, commitTimestampLoader);
+        verify(timestampCache).getCommitTimestampIfPresent(startTsKnown);
+        verify(timestampCache).putAlreadyCommittedTransaction(startTsKnown, commitTsKnown);
+
+        setup(startTsUnknown, commitTsUnknown);
+        assertCanGetCommitTs(startTsUnknown, commitTsUnknown, commitTimestampLoader);
+        verify(timestampCache).getCommitTimestampIfPresent(startTsUnknown);
+        verifyNoMoreInteractions(timestampCache);
+    }
+
     // add tests for caching
     private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
-        Map<Long, Long> loadedCommitTs = commitTimestampLoader.getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs),
-                false, transactionService).get();
+        Map<Long, Long> loadedCommitTs = commitTimestampLoader
+                .getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs), false, transactionService)
+                .get();
         assertThat(loadedCommitTs).hasSize(1);
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
     }
 
     private CommitTimestampLoader commitTsLoader(Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
-        CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(timestampCache,
+        CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(
+                timestampCache,
                 lock, // commitTsLoader does not care if the lock expires.
                 () -> transactionTs,
                 () -> transactionConfig,
