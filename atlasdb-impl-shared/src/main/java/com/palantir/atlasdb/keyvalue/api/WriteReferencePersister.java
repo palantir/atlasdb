@@ -25,7 +25,6 @@ import com.palantir.conjure.java.jackson.optimizations.ObjectMapperOptimizations
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.IOException;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 public final class WriteReferencePersister {
     private static final byte[] writePrefix = {1};
@@ -94,14 +93,15 @@ public final class WriteReferencePersister {
         });
     }
 
-    public StoredWriteReference persist(@Nullable WriteReference writeReference) {
-        if (writeReference == null) {
+    public StoredWriteReference persist(Optional<WriteReference> writeReference) {
+        if (writeReference.isEmpty()) {
             return DUMMY;
         }
-        byte[] tableId = EncodingUtils.encodeUnsignedVarLong(tableIndices.getTableId(writeReference.tableRef()));
-        byte[] row = EncodingUtils.encodeSizedBytes(writeReference.cell().getRowName());
-        byte[] column = EncodingUtils.encodeSizedBytes(writeReference.cell().getColumnName());
-        byte[] isTombstone = EncodingUtils.encodeUnsignedVarLong(writeReference.isTombstone() ? 1 : 0);
+        WriteReference writeRef = writeReference.get();
+        byte[] tableId = EncodingUtils.encodeUnsignedVarLong(tableIndices.getTableId(writeRef.tableRef()));
+        byte[] row = EncodingUtils.encodeSizedBytes(writeRef.cell().getRowName());
+        byte[] column = EncodingUtils.encodeSizedBytes(writeRef.cell().getColumnName());
+        byte[] isTombstone = EncodingUtils.encodeUnsignedVarLong(writeRef.isTombstone() ? 1 : 0);
         return ImmutableStoredWriteReference.of(EncodingUtils.add(writePrefix, tableId, row, column, isTombstone));
     }
 }

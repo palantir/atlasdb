@@ -91,8 +91,9 @@ class SweepBatchAccumulator {
 
     private List<WriteInfo> getLatestWritesByCellReference() {
         return ImmutableList.copyOf(accumulatedWrites.stream()
-                .filter(info -> info.writeRef() != null)
-                .collect(Collectors.toMap(info -> info.writeRef().cellReference(), x -> x, WriteInfo::higherTimestamp))
+                .filter(info -> info.writeRef().isPresent())
+                .collect(Collectors.toMap(
+                        info -> info.writeRef().get().cellReference(), x -> x, WriteInfo::higherTimestamp))
                 .values());
     }
 

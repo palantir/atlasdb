@@ -54,7 +54,7 @@ public class SweepQueueDeleter {
      * sentinels or not.
      */
     public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
-        if (sweeper == Sweeper.NO_OP) {
+        if (!sweeper.shouldDeleteCells()) {
             return;
         }
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
@@ -89,12 +89,11 @@ public class SweepQueueDeleter {
         return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
-    @SuppressWarnings("ConstantConditions") // no writeInfo that reaches here will have a null writeReference
     private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(
             Collection<WriteInfo> writes, Sweeper sweeper) {
         return writes.stream()
                 .collect(Collectors.groupingBy(
-                        info -> info.writeRef().tableRef(),
-                        Collectors.toMap(info -> info.writeRef().cell(), write -> write.toDelete(sweeper))));
+                        info -> info.writeRef().get().tableRef(),
+                        Collectors.toMap(info -> info.writeRef().get().cell(), write -> write.toDelete(sweeper))));
     }
 }

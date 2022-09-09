@@ -19,5 +19,9 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.Collection;
 
 public interface TargetedSweepFilter {
+    /**
+     * @param cellsToDelete must be WriteInfos that have the {@link com.palantir.atlasdb.keyvalue.api.WriteReference}
+     *                     parameter set.
+     */
     Collection<WriteInfo> filter(Collection<WriteInfo> cellsToDelete);
 }

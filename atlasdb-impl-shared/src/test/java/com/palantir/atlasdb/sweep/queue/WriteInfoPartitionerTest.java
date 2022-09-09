@@ -130,8 +130,7 @@ public class WriteInfoPartitionerTest {
         List<WriteInfo> writes = ImmutableList.of(
                 getWriteInfoWithFixedShard(NOTHING, 1, numShards), getWriteInfoWithFixedShard(NOTHING, 2, numShards));
         assertThat(partitioner.filterAndPartition(writes))
-                .containsExactly(Map.entry(
-                        SweepQueueUtils.nonSweepable(1L), ImmutableList.of(SweepQueueUtils.infoWithNullReference(1L))));
+                .containsExactly(Map.entry(SweepQueueUtils.nonSweepable(1L), ImmutableList.of(WriteInfo.of(1L))));
     }
 
     @Test

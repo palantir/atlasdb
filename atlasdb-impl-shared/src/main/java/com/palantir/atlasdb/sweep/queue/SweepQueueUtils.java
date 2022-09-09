@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -47,7 +49,10 @@ public final class SweepQueueUtils {
     public static final long RESET_TIMESTAMP = 0L;
     public static final ColumnRangeSelection ALL_COLUMNS = allPossibleColumns();
     public static final int MINIMUM_WRITE_INDEX = -TargetedSweepMetadata.MAX_DEDICATED_ROWS;
-    public static final ShardAndStrategy NON_SWEEPABLE = ImmutableShardAndStrategy.of(0, SweeperStrategy.NON_SWEEPABLE);
+    public static final int NON_SWEEPABLE_SHARD = 0;
+    public static final ShardAndStrategy NON_SWEEPABLE =
+            ImmutableShardAndStrategy.of(NON_SWEEPABLE_SHARD, SweeperStrategy.NON_SWEEPABLE);
+    // this is kept for backwards compatibility instead of using an empty byte array
     public static final WriteReference DUMMY = WriteReference.of(
             TableReference.createFromFullyQualifiedName("dum.my"), Cell.create(new byte[] {0}, new byte[] {0}), false);
 
@@ -117,10 +122,10 @@ public final class SweepQueueUtils {
     }
 
     public static PartitionInfo nonSweepable(long startTs) {
-        return PartitionInfo.of(0, SweeperStrategy.NON_SWEEPABLE, startTs);
+        return PartitionInfo.of(NON_SWEEPABLE_SHARD, SweeperStrategy.NON_SWEEPABLE, startTs);
     }
 
-    public static WriteInfo infoWithNullReference(long startTs) {
-        return WriteInfo.of(null, startTs);
+    public static Map<PartitionInfo, List<WriteInfo>> partitioningForNonSweepable(long startTs) {
+        return ImmutableMap.of(SweepQueueUtils.nonSweepable(startTs), ImmutableList.of(WriteInfo.of(startTs)));
     }
 }

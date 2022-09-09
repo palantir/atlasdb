@@ -192,8 +192,7 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     @Test
     public void canReadNonSweepable() {
         writeToDefaultCellCommitted(sweepableTimestamps, 100L, TABLE_NOTH);
-        assertThat(sweepableTimestamps.nextTimestampPartition(ShardAndStrategy.nonSweepable(), 0L, 200L))
-                .hasValue(0L);
+        assertThat(readNonSweepable()).hasValue(0L);
     }
 
     @Test
@@ -203,9 +202,22 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         writeToDefaultCellAborted(sweepableTimestamps, 100_250L, TABLE_NOTH);
 
         assertThat(readConservative(shardCons)).hasValue(0L);
-        assertThat(sweepableTimestamps.nextTimestampPartition(ShardAndStrategy.nonSweepable(), 0L, 200_000L))
-                .hasValue(2L);
+        assertThat(readNonSweepable()).hasValue(2L);
         assertThat(readThorough(shardThor)).hasValue(1L);
+    }
+
+    @Test
+    public void nonSweepableRespectsProgress() {
+        writeToDefaultCellUncommitted(sweepableTimestamps, 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 50_250L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 150_250L, TABLE_NOTH);
+
+        setSweepTimestampAndGet(100_000L);
+
+        assertThat(readNonSweepable()).hasValue(0L);
+        assertThat(readNonSweepable()).hasValue(0L);
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), 49_999L);
+        assertThat(readNonSweepable()).hasValue(1L);
     }
 
     private Optional<Long> readConservative(int shardNumber) {
@@ -220,6 +232,13 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
                 Sweeper.THOROUGH.getSweepTimestamp(timestampsSupplier));
+    }
+
+    private Optional<Long> readNonSweepable() {
+        return sweepableTimestamps.nextTimestampPartition(
+                ShardAndStrategy.nonSweepable(),
+                progress.getLastSweptTimestamp(ShardAndStrategy.nonSweepable()),
+                Sweeper.NO_OP.getSweepTimestamp(timestampsSupplier));
     }
 
     private long setSweepTimestampAndGet(long timestamp) {

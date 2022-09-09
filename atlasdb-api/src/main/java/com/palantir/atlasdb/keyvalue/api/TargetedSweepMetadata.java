@@ -30,7 +30,10 @@ public abstract class TargetedSweepMetadata implements Persistable {
 
     public abstract long dedicatedRowNumber();
 
-    public abstract boolean nonSweepableTransaction();
+    @Value.Default
+    public boolean nonSweepableTransaction() {
+        return false;
+    }
 
     public static final int MAX_SHARDS = 256;
     public static final int MAX_DEDICATED_ROWS = 64;

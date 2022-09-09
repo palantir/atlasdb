@@ -60,6 +60,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
@@ -103,7 +104,7 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private Map<Cell, byte[]> addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes) {
-        return addCell(info, SweepQueueUtils.DUMMY, false, 0, entryIndicatingNumberOfRequiredRows(writes));
+        return addCell(info, Optional.of(SweepQueueUtils.DUMMY), false, 0, entryIndicatingNumberOfRequiredRows(writes));
     }
 
     private long entryIndicatingNumberOfRequiredRows(List<WriteInfo> writes) {
@@ -112,7 +113,7 @@ public class SweepableCells extends SweepQueueTable {
 
     private Map<Cell, byte[]> addCell(
             PartitionInfo info,
-            WriteReference writeRef,
+            Optional<WriteReference> writeRef,
             boolean isDedicatedRow,
             long dedicatedRowNumber,
             long writeIndex) {
@@ -150,7 +151,7 @@ public class SweepableCells extends SweepQueueTable {
         return isDedicatedRow ? startTimestamp : SweepQueueUtils.tsPartitionFine(startTimestamp);
     }
 
-    private SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
+    private SweepableCellsColumnValue createColVal(long ts, long index, Optional<WriteReference> writeRef) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
         return SweepableCellsColumnValue.of(col, writeReferencePersister.persist(writeRef));
     }
@@ -280,10 +281,10 @@ public class SweepableCells extends SweepQueueTable {
                 lastSweptTs = startTs;
                 abortedTimestamps.add(startTs);
                 writesByStartTs.get(startTs).stream()
-                        .filter(info -> info.writeRef() != null)
+                        .filter(info -> info.writeRef().isPresent())
                         .forEach(write -> cellsToDelete
-                                .computeIfAbsent(write.writeRef().tableRef(), ignore -> HashMultimap.create())
-                                .put(write.writeRef().cell(), write.timestamp()));
+                                .computeIfAbsent(write.writeRef().get().tableRef(), ignore -> HashMultimap.create())
+                                .put(write.writeRef().get().cell(), write.timestamp()));
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;
                 committedTimestamps.add(startTs);
@@ -338,8 +339,9 @@ public class SweepableCells extends SweepQueueTable {
         startTs.stream()
                 .map(writesByStartTs::get)
                 .flatMap(Collection::stream)
-                .filter(write -> write.writeRef() != null)
-                .forEach(write -> writesToSweepFor.putIfAbsent(write.writeRef().cellReference(), write));
+                .filter(write -> write.writeRef().isPresent())
+                .forEach(write ->
+                        writesToSweepFor.putIfAbsent(write.writeRef().get().cellReference(), write));
         return writesToSweepFor.values();
     }
 

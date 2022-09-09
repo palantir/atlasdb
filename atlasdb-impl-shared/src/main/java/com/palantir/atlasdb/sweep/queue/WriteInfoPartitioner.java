@@ -19,8 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
@@ -29,12 +27,11 @@ import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -63,15 +60,17 @@ public class WriteInfoPartitioner {
      * writes according to shard and strategy.
      */
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
-        Preconditions.checkArgument(!writes.isEmpty(), "There must be at least one write.");
-        Preconditions.checkArgument(
-                writes.stream().mapToLong(WriteInfo::timestamp).distinct().count() == 1,
-                "All writes must be from a single transaction.");
+        return writes.stream().collect(Collectors.groupingBy(WriteInfo::timestamp)).values().stream()
+                .map(this::filterAndPartitionForSingleTimestamp)
+                .map(Map::entrySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private Map<PartitionInfo, List<WriteInfo>> filterAndPartitionForSingleTimestamp(List<WriteInfo> writes) {
         if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo) == SweeperStrategy.NON_SWEEPABLE)) {
             long startTs = writes.stream().findFirst().get().timestamp();
-            return ImmutableMap.of(
-                    SweepQueueUtils.nonSweepable(startTs),
-                    ImmutableList.of(SweepQueueUtils.infoWithNullReference(startTs)));
+            return SweepQueueUtils.partitioningForNonSweepable(startTs);
         }
         return partitionWritesByShardStrategyTimestamp(writes);
     }
@@ -89,7 +88,8 @@ public class WriteInfoPartitioner {
 
     @VisibleForTesting
     SweeperStrategy getStrategy(WriteInfo writeInfo) {
-        return Optional.ofNullable(writeInfo.writeRef())
+        return writeInfo
+                .writeRef()
                 .map(WriteReference::tableRef)
                 .map(this::getStrategyForTable)
                 .orElse(SweeperStrategy.NON_SWEEPABLE);

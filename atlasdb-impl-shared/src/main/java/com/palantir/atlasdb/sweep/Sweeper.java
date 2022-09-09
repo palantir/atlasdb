@@ -25,21 +25,31 @@ import java.util.function.Function;
 @SuppressWarnings("ImmutableEnumChecker")
 public enum Sweeper {
     CONSERVATIVE(
-            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),
-    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false),
-    NO_OP(provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, false);
+            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
+            false,
+            true,
+            true),
+    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false, true),
+    NO_OP(
+            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
+            false,
+            false,
+            false);
 
     private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;
     private final boolean shouldAddSentinels;
+    private final boolean shouldDeleteCells;
 
     Sweeper(
             Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier,
             boolean shouldSweepLastCommitted,
-            boolean shouldAddSentinels) {
+            boolean shouldAddSentinels,
+            boolean shouldDeleteCells) {
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.shouldSweepLastCommitted = shouldSweepLastCommitted;
         this.shouldAddSentinels = shouldAddSentinels;
+        this.shouldDeleteCells = shouldDeleteCells;
     }
 
     public boolean shouldSweepLastCommitted() {
@@ -48,6 +58,10 @@ public enum Sweeper {
 
     public boolean shouldAddSentinels() {
         return shouldAddSentinels;
+    }
+
+    public boolean shouldDeleteCells() {
+        return shouldDeleteCells;
     }
 
     public long getSweepTimestamp(SpecialTimestampsSupplier specialTimestampsSupplier) {

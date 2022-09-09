@@ -17,11 +17,11 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.junit.Test;
 
 public final class WriteReferencePersisterTest {
@@ -60,13 +60,12 @@ public final class WriteReferencePersisterTest {
     @Test
     public void testCanUnpersistBinary_id() {
         assertThat(persister.unpersist(StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(
-                        persister.persist(WRITE_REFERENCE).persistToBytes())))
+                        persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes())))
                 .hasValue(WRITE_REFERENCE);
     }
 
     @Test
     public void canUnpersistEmpty() {
-        assertThat(persister.unpersist(StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(PtBytes.EMPTY_BYTE_ARRAY)))
-                .isEmpty();
+        assertThat(persister.unpersist(persister.persist(Optional.empty()))).isEmpty();
     }
 }

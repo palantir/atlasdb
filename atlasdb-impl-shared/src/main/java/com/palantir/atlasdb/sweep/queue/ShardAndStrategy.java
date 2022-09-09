@@ -34,6 +34,10 @@ public abstract class ShardAndStrategy {
         return StringLockDescriptor.of(toText());
     }
 
+    /**
+     * Non-sweepable entries should be processed at the unreadable timestamp so we put them in the row with the
+     * conservative flag set to true for consistency.
+     */
     public boolean conservativeFlag() {
         return strategy() == SweeperStrategy.CONSERVATIVE || strategy() == SweeperStrategy.NON_SWEEPABLE;
     }
