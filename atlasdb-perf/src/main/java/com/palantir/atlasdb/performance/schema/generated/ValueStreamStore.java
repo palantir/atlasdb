@@ -380,10 +380,11 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> metadatas = metaTable.getMetadatas(rows);
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
-            Preconditions.checkState(metadata.getStatus() == Status.STORED,
-            "Stream has stored status",
-            SafeArg.of("streamId", e.getKey().getId()),
-            SafeArg.of("status", metadata.getStatus()));
+            Preconditions.checkState(
+                    metadata.getStatus() == Status.STORED,
+                    "Stream has stored status",
+                    SafeArg.of("streamId", e.getKey().getId()),
+                    SafeArg.of("status", metadata.getStatus()));
             metaTable.putMetadata(e.getKey(), metadata);
         }
         SetView<ValueStreamMetadataTable.ValueStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());

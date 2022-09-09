@@ -380,10 +380,11 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
         Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> metadatas = metaTable.getMetadatas(rows);
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             StreamMetadata metadata = e.getValue();
-            Preconditions.checkState(metadata.getStatus() == Status.STORED,
-            "Stream has stored status",
-            SafeArg.of("streamId", e.getKey().getId()),
-            SafeArg.of("status", metadata.getStatus()));
+            Preconditions.checkState(
+                    metadata.getStatus() == Status.STORED,
+                    "Stream has stored status",
+                    SafeArg.of("streamId", e.getKey().getId()),
+                    SafeArg.of("status", metadata.getStatus()));
             metaTable.putMetadata(e.getKey(), metadata);
         }
         SetView<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
