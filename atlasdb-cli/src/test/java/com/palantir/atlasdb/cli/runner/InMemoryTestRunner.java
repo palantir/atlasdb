@@ -21,6 +21,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 public class InMemoryTestRunner extends AbstractTestRunner {
 
     public static final String CONFIG_LOCATION = "cli_test_config.yml";
+    public static final String RUNTIME_CONFIG_LOCATION = "cli_test_runtime_config.yml";
 
     public InMemoryTestRunner(Class<? extends SingleBackendCommand> cmdClass, String... args) {
         super(cmdClass, args);

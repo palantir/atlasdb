@@ -122,7 +122,7 @@ abstract class CassandraImitatingConsensusForgettingStore implements ConsensusFo
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells) {
         // sort by cells to avoid deadlock
-        return AtlasFutures.allAsMap(
+        return AtlasFutures.allOptionalsAsMap(
                 KeyedStream.of(Streams.stream(cells).sorted()).map(this::get).collectToMap(),
                 MoreExecutors.directExecutor());
     }

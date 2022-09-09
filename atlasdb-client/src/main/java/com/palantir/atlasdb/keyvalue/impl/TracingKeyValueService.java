@@ -55,6 +55,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.DetachedSpan;
+import com.palantir.tracing.Tracer;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.List;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 
 /**
@@ -302,14 +304,28 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     @MustBeClosed
+    @SuppressWarnings("MustBeClosedChecker")
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getRange");
 
-        @SuppressWarnings("MustBeClosedChecker")
         ClosableIterator<RowResult<Value>> result = delegate().getRange(tableRef, rangeRequest, timestamp);
 
-        return attachDetachedSpanCompletion(detachedSpan, result, sink -> sink.tableRef(tableRef));
+        // Only instrument observable traces
+        if (Tracer.isTraceObservable()) {
+            LongAdder rowCount = new LongAdder();
+
+            result = result.map(value -> {
+                rowCount.increment();
+                return value;
+            });
+            result = attachDetachedSpanCompletion(detachedSpan, result, sink -> {
+                sink.tableRef(tableRef);
+                sink.longValue("rows", rowCount.sum());
+            });
+        }
+
+        return result;
     }
 
     @Override
@@ -564,6 +580,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             ListenableFuture<V> future,
             Executor tracingExecutorService,
             Consumer<TagConsumer> tagTranslator) {
+        if (!Tracer.isTraceObservable()) {
+            return future;
+        }
+
         Futures.addCallback(
                 future,
                 new FutureCallback<V>() {
@@ -593,6 +613,10 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @MustBeClosed
     private static <V> ClosableIterator<V> attachDetachedSpanCompletion(
             DetachedSpan detachedSpan, ClosableIterator<V> closableIterator, Consumer<TagConsumer> tagTranslator) {
+        if (!Tracer.isTraceObservable()) {
+            return closableIterator;
+        }
+
         // We'll possibly be completing in a different unrelated thread, so we have no chance to restore the original;
         // this is a known limitation of the async trace statistics. We still want to clear the current statistics.
         TraceStatistic original = TraceStatistics.getCurrentAndClear();

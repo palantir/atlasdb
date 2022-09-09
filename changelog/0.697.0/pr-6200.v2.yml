@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add row count tag to getRange trace spans.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6200

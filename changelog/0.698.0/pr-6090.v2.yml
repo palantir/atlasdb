@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Improve ThreadDumps and StackTraceUtils
+
+    Reduce large string copies and splits as part of generating programmatic thread dumps.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6090

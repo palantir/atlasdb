@@ -293,7 +293,7 @@ public final class AtlasBackupService implements Closeable {
                         () -> Optional.of(storeCompletedBackup(atlasService, completeBackup)), executorService))
                 .collectToMap();
         ListenableFuture<Map<AtlasService, Boolean>> allStorageTasks =
-                AtlasFutures.allAsMap(storedBackups, MoreExecutors.directExecutor());
+                AtlasFutures.allOptionalsAsMap(storedBackups, MoreExecutors.directExecutor());
 
         // Waits for future to complete
         Map<AtlasService, Boolean> storageTaskResults = AtlasFutures.getUnchecked(allStorageTasks);
