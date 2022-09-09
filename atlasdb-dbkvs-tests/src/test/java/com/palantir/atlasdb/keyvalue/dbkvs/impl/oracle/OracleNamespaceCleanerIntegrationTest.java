@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -60,6 +61,11 @@ public class OracleNamespaceCleanerIntegrationTest {
         namespaceCleaner = new OracleNamespaceCleaner(oracleDdlConfig, dbKeyValueServiceConfig);
         connectionManager =
                 HikariClientPoolConnectionManagers.createShared(dbKeyValueServiceConfig.connection(), 1, 60);
+    }
+
+    @After
+    public void after() {
+        connectionManager.closeUnchecked();
     }
 
     @Test

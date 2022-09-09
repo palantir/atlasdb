@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -87,5 +88,10 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
 
     private static String wrapInQuotes(String string) {
         return "\"" + string + "\"";
+    }
+
+    @Override
+    public void close() throws IOException {
+        // no-op
     }
 }

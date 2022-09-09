@@ -17,14 +17,20 @@
 package com.palantir.atlasdb.memory;
 
 import com.palantir.atlasdb.NamespaceCleaner;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 public final class NoOpNamespaceCleaner implements NamespaceCleaner {
     @Override
-    public void dropNamespace(Namespace namespace) {}
+    public void dropAllTables() {
+        // no-op
+    }
 
     @Override
-    public boolean hasNamespaceSuccessfullyDropped(Namespace namespace) {
+    public boolean areAllTablesSuccessfullyDropped() {
         return true;
+    }
+
+    @Override
+    public void close() {
+        // no-op
     }
 }

@@ -29,4 +29,9 @@ public class PostgresNamespaceCleaner implements NamespaceCleaner {
     public boolean areAllTablesSuccessfullyDropped() {
         return false;
     }
+
+    @Override
+    public void close() {
+        // no-op
+    }
 }
