@@ -167,7 +167,6 @@ public class CommitTimestampLoaderTest {
         verifyNoMoreInteractions(timestampCache);
     }
 
-    // add tests for caching
     private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
         Map<Long, Long> loadedCommitTs = commitTimestampLoader
