@@ -42,7 +42,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -143,7 +142,6 @@ public class SerializableTransaction extends SnapshotTransaction {
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
-            TransactionSchemaManager transactionSchemaManager,
             Cleaner cleaner,
             Supplier<Long> startTimeStamp,
             ConflictDetectionManager conflictDetectionManager,
@@ -170,7 +168,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timelockService,
                 lockWatchManager,
                 transactionService,
-                transactionSchemaManager,
                 cleaner,
                 startTimeStamp,
                 conflictDetectionManager,
@@ -852,7 +849,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 timelockService,
                 lockWatchManager,
                 defaultTransactionService,
-                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(commitTs),
                 ConflictDetectionManagers.createWithNoConflictDetection(),

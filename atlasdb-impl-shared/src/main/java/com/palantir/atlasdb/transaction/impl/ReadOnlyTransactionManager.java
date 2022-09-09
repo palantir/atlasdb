@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
@@ -58,9 +57,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final boolean allowHiddenTableAccess;
     private final int defaultGetRangesConcurrency;
     private final Supplier<TransactionConfig> transactionConfig;
-    private final TransactionSchemaManager transactionSchemaManager;
 
-    // todo(snanda): this is breaking
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -71,8 +68,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
-            Supplier<TransactionConfig> transactionConfig,
-            TransactionSchemaManager transactionSchemaManager) {
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -83,7 +79,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.transactionConfig = transactionConfig;
-        this.transactionSchemaManager = transactionSchemaManager;
     }
 
     @Override
@@ -220,7 +215,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 metricsManager,
                 keyValueService,
                 transactionService,
-                transactionSchemaManager,
                 startTimestamp.get(),
                 constraintCheckingMode,
                 readSentinelBehavior,

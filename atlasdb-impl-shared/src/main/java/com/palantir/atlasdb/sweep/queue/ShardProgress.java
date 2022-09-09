@@ -125,7 +125,6 @@ public class ShardProgress {
     public long getLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
     }
-
     public Optional<Long> getMaybeLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
@@ -139,7 +138,8 @@ public class ShardProgress {
         boolean updateNeeded = previous < lastSeenCommitTs;
         while (updateNeeded) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
-            CheckAndSetRequest casRequest = createRequest(LAST_SEEN_COMMIT_TIMESTAMP, previous, colValNew);
+            CheckAndSetRequest casRequest = createRequest(
+                    LAST_SEEN_COMMIT_TIMESTAMP, previous, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 updateNeeded = false;

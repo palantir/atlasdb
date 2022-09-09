@@ -31,7 +31,6 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
@@ -279,7 +278,6 @@ public class SerializableTransactionManagerTest {
                 mockTimestampManagementService,
                 null, // lockService
                 mock(TransactionService.class),
-                mock(TransactionSchemaManager.class),
                 () -> null, // constraintMode
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager

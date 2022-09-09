@@ -56,7 +56,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -266,8 +265,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
-    protected final TransactionSchemaManager transactionSchemaManager;
     private final CommitTimestampLoader commitTimestampLoader;
+
     protected volatile boolean hasReads;
 
     /**
@@ -281,7 +280,6 @@ public class SnapshotTransaction extends AbstractTransaction
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
-            TransactionSchemaManager transactionSchemaManager,
             Cleaner cleaner,
             Supplier<Long> startTimestamp,
             ConflictDetectionManager conflictDetectionManager,
@@ -311,7 +309,6 @@ public class SnapshotTransaction extends AbstractTransaction
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
-        this.transactionSchemaManager = transactionSchemaManager;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimestamp;
