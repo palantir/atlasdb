@@ -129,7 +129,7 @@ public final class SweeperServiceImpl implements SweeperService {
         Preconditions.checkArgument(
                 TableReference.isFullyQualifiedName(tableName),
                 "Table name is not fully qualified",
-                UnsafeArg.of("tableName", tableName));
+                LoggingArgs.safeInternalTableName(tableName));
         return TableReference.createFromFullyQualifiedName(tableName);
     }
 
@@ -137,7 +137,7 @@ public final class SweeperServiceImpl implements SweeperService {
         Preconditions.checkArgument(
                 specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
                 "Table requested to sweep does not exist",
-                UnsafeArg.of("tableName", tableName));
+                LoggingArgs.safeInternalTableName(tableName));
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
