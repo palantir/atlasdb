@@ -113,7 +113,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
                 : getCommitTsForNonAbortedUnknownTransaction(startTs);
     }
 
-    private static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
+    public static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
         return startTs;
     }
 
