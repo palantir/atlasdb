@@ -85,6 +85,7 @@ dependencies {
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':commons-annotations')
   testImplementation project(':commons-executors')
+  testImplementation project(':flake-rule')
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
