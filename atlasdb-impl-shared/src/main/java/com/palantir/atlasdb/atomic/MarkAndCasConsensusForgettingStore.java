@@ -148,7 +148,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             ByteBuffer rowName = requestEntry.getKey();
             List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
             MultiCheckAndSetRequest multiCheckAndSetRequest =
-                    multiCASRequest(tableRef, rowName.array(), pendingRequests);
+                    multiCasRequest(tableRef, rowName.array(), pendingRequests);
             try {
                 kvs.multiCheckAndSet(multiCheckAndSetRequest);
                 pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.success()));
@@ -175,7 +175,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         });
     }
 
-    private static MultiCheckAndSetRequest multiCASRequest(
+    private static MultiCheckAndSetRequest multiCasRequest(
             TableReference tableRef, byte[] rowName, List<BatchElement<CasRequest, Void>> requests) {
         Map<Cell, byte[]> expected = extractValueMap(requests, CasRequest::expected);
         Map<Cell, byte[]> updates = extractValueMap(requests, CasRequest::update);
@@ -260,8 +260,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
             return ImmutableCasResponse.builder().successful(true).build();
         }
 
-        static CasResponse failure(Exception e) {
-            return ImmutableCasResponse.builder().successful(false).exception(e).build();
+        static CasResponse failure(Exception ex) {
+            return ImmutableCasResponse.builder().successful(false).exception(ex).build();
         }
     }
 }
