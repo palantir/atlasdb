@@ -29,7 +29,6 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -48,7 +47,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 public final class CommitTimestampLoader {
@@ -83,8 +81,8 @@ public final class CommitTimestampLoader {
     }
 
     /**
-     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't committed, then it will be
-     * missing from the map.  This method will block until the transactions for these start timestamps are complete.
+     * Returns a map from start timestamp to commit timestamp. If a start timestamp wasn't committed, then it will be
+     * missing from the map. This method will block until the transactions for these start timestamps are complete.
      */
     ListenableFuture<Map<Long, Long>> getCommitTimestamps(
             @Nullable TableReference tableRef,
@@ -96,19 +94,19 @@ public final class CommitTimestampLoader {
         }
 
         Set<Long> pendingGets = new HashSet<>();
-        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
+        Map<Long, Long> result = new HashMap<>();
 
         for (Long startTs : startTimestamps) {
             Long commitTs = timestampCache.getCommitTimestampIfPresent(startTs);
             if (commitTs == null) {
                 pendingGets.add(startTs);
             } else {
-                startToCommitTimestamps.put(startTs, commitTs);
+                result.put(startTs, commitTs);
             }
         }
 
         if (pendingGets.isEmpty()) {
-            return Futures.immediateFuture(startToCommitTimestamps);
+            return Futures.immediateFuture(result);
         }
 
         // Before we do the reads, we need to make sure the committer is done writing.
@@ -116,45 +114,51 @@ public final class CommitTimestampLoader {
             waitForCommitterToComplete(tableRef, startTimestamps);
         }
 
-        traceGetCommitTimestamps(tableRef, pendingGets);
-
-        if (pendingGets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
-            logLargeNumberOfTransactions(tableRef, pendingGets);
-        }
-
         return Futures.transform(
                 loadCommitTimestamps(asyncTransactionService, pendingGets),
                 rawResults -> {
-                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
-                        if (e.getValue() != null) {
-                            Long startTs = e.getKey();
-                            Long commitTs = e.getValue();
-                            startToCommitTimestamps.put(startTs, commitTs);
-                            timestampCache.putAlreadyCommittedTransaction(startTs, commitTs);
-                        }
-                    }
-
-                    validateReadability(startToCommitTimestamps);
-                    return startToCommitTimestamps;
+                    Map<Long, Long> loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
+                    result.putAll(loadedCommitTs);
+                    return result;
                 },
                 MoreExecutors.directExecutor());
     }
 
-    private void validateReadability(Map<Long, Long> startToCommitTimestamps) {
-        Set<Long> sweptKeys = KeyedStream.stream(startToCommitTimestamps)
-                // todo(snanda); this is so jank
-                .filterEntries(Long::equals)
-                .keys()
-                .collect(Collectors.toSet());
+    // We do not cache unknown transactions as they are already being cached at a lower level.
+    private Map<Long, Long> cacheKnownLoadedValuesAndValidate(Map<Long, Long> rawResults) {
+        Map<Long, Long> results = new HashMap<>();
+        boolean shouldValidate = false;
 
-        if (!sweptKeys.isEmpty()) {
+        // The method is written this way to avoid multiple scans on the result set as it is on a hot path.
+        for (Map.Entry<Long, Long> entry : rawResults.entrySet()) {
+            Long start = entry.getKey();
+            Long commitTs = entry.getValue();
+
+            if (commitTs == null) continue;
+
+            if (isTransactionStatusUnknown(start, commitTs)) {
+                shouldValidate = true;
+            } else {
+                timestampCache.putAlreadyCommittedTransaction(start, commitTs);
+            }
+            results.put(start, commitTs);
+        }
+
+        if (shouldValidate) {
             throwIfTransactionsTableSweptBeyondReadOnlyTxn();
         }
+
+        return results;
+    }
+
+    private boolean isTransactionStatusUnknown(Long startTs, Long commitTs) {
+        // todo(snanda): this is not ideal - is there a better place to place this?
+        return startTs.equals(commitTs);
     }
 
     /**
-     * We will block here until the passed transactions have released their lock.  This means that the committing
-     * transaction is either complete or it has failed and we are allowed to roll it back.
+     * We will block here until the passed transactions have released their lock. This means that the committing
+     * transaction is either complete or it has failed, and we are allowed to roll it back.
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
         Set<LockDescriptor> lockDescriptors = new HashSet<>();
@@ -212,18 +216,6 @@ public final class CommitTimestampLoader {
         return metricsManager.registerOrGetTimer(CommitTimestampLoader.class, name);
     }
 
-    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
-        if (tableRef != null) {
-            log.trace(
-                    "Getting commit timestamps for a read while reading table.",
-                    SafeArg.of("numTimestamps", gets.size()),
-                    LoggingArgs.tableRef(tableRef));
-            return;
-        }
-
-        log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
-    }
-
     private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
@@ -237,13 +229,6 @@ public final class CommitTimestampLoader {
         } else {
             return asyncTransactionService.getAsync(startTimestamps);
         }
-    }
-
-    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
-        log.info(
-                "Looking up a large number of transactions.",
-                SafeArg.of("numberOfTransactionIds", gets.size()),
-                tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef));
     }
 
     private void throwIfTransactionsTableSweptBeyondReadOnlyTxn() {
