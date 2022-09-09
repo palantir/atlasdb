@@ -19,7 +19,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.conjure.java.server.jersey.WebPreconditions;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -126,16 +126,18 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private TableReference getTableRef(String tableName) {
-        WebPreconditions.checkArgument(
-                TableReference.isFullyQualifiedName(tableName), "Table name {} is not fully qualified", tableName);
+        Preconditions.checkArgument(
+                TableReference.isFullyQualifiedName(tableName),
+                "Table name is not fully qualified",
+                LoggingArgs.safeInternalTableName(tableName));
         return TableReference.createFromFullyQualifiedName(tableName);
     }
 
     private void checkTableExists(String tableName, TableReference tableRef) {
-        WebPreconditions.checkArgument(
+        Preconditions.checkArgument(
                 specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                "Table requested to sweep %s does not exist",
-                tableName);
+                "Table requested to sweep does not exist",
+                LoggingArgs.safeInternalTableName(tableName));
     }
 
     private SweepResults runFullSweepWithoutSavingResults(

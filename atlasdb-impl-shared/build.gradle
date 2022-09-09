@@ -24,7 +24,6 @@ dependencies {
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.palantir.common:streams'
-  implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.safe-logging:preconditions'
@@ -70,6 +69,7 @@ dependencies {
   testImplementation 'com.palantir.conjure.java.api:errors'
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.conjure.java.api:ssl-config'
+  testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
   testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'io.dropwizard.metrics:metrics-core'
