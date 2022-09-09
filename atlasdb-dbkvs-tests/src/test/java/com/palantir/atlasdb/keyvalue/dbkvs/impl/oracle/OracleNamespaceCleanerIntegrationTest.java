@@ -116,7 +116,8 @@ public class OracleNamespaceCleanerIntegrationTest {
     private int getNumberOfTables(String prefix) {
         try (Connection connection = connectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(LIST_ALL_TABLES);
-            statement.setString(1, prefix + "%");
+            statement.setString(1, dbKeyValueServiceConfig.connection().getDbLogin());
+            statement.setString(2, prefix + "%");
             ResultSet resultSet = statement.executeQuery();
             return resultSet.getInt("total");
         } catch (SQLException e) {

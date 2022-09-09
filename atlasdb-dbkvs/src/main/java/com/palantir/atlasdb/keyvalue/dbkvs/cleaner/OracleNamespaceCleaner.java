@@ -74,8 +74,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
 
     private ResultSet getAllTablesWithPrefix(PreparedStatement listAllTablesPreparedStatement, String prefix)
             throws SQLException {
-        listAllTablesPreparedStatement.setString(
-                1, withWildcardSuffix(config.connection().getDbLogin()));
+        listAllTablesPreparedStatement.setString(1, config.connection().getDbLogin());
         listAllTablesPreparedStatement.setString(2, withWildcardSuffix(prefix));
         ResultSet resultSet = listAllTablesPreparedStatement.executeQuery();
         listAllTablesPreparedStatement.clearParameters();
