@@ -105,7 +105,6 @@ import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
@@ -351,7 +350,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,
@@ -410,7 +408,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         mockery.setThreadingPolicy(new Synchroniser());
         final KeyValueService kvMock = mockery.mock(KeyValueService.class);
         final LockService lockMock = mockery.mock(LockService.class);
-        LockService lock = MultiDelegateProxy.newProxyInstance(LockService.class, lockService, lockMock);
 
         final Cell cell = Cell.create(rowName, rowName);
         timestampService.getFreshTimestamp();
@@ -434,7 +431,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         inMemoryTimeLockRule.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
-                        transactionSchemaManager,
                         NoOpCleaner.INSTANCE,
                         () -> transactionTs,
                         ConflictDetectionManagers.create(keyValueService),
@@ -480,7 +476,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,
@@ -967,7 +962,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,
@@ -2388,7 +2382,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
-                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 startTs,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(

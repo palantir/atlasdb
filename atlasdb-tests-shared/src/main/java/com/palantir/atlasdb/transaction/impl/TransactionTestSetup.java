@@ -203,7 +203,6 @@ public abstract class TransactionTestSetup {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,

@@ -116,7 +116,6 @@ public class AtlasDbTestCase {
                 inMemoryTimeLockRule.get(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 DefaultTimestampCache.createForTests(),
@@ -159,7 +158,6 @@ public class AtlasDbTestCase {
                 lockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
-                transactionSchemaManager,
                 mode);
     }
 

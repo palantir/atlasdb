@@ -165,7 +165,6 @@ public class CommitLockTest extends TransactionTestSetup {
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
-                transactionSchemaManager,
                 NoOpCleaner.INSTANCE,
                 Suppliers.ofInstance(timestampService.getFreshTimestamp()),
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),

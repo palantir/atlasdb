@@ -23,7 +23,6 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
@@ -66,7 +65,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             InMemoryTimelockServices inMemoryTimelockServices,
             LockService lockService,
             TransactionService transactionService,
-            TransactionSchemaManager transactionSchemaManager,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
@@ -78,7 +76,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 inMemoryTimelockServices,
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,
@@ -97,7 +94,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockService lockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
-            TransactionSchemaManager transactionSchemaManager,
             AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 metricsManager,
@@ -107,7 +103,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 timestampManagementService,
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 Suppliers.ofInstance(constraintCheckingMode),
                 ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
                 SweepStrategyManagers.createDefault(keyValueService),
@@ -134,7 +129,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             InMemoryTimelockServices services,
             LockService lockService,
             TransactionService transactionService,
-            TransactionSchemaManager transactionSchemaManager,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
@@ -150,7 +144,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 services.getTimestampManagementService(),
                 lockService,
                 transactionService,
-                transactionSchemaManager,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
                 conflictDetectionManager,
                 sweepStrategyManager,
@@ -204,7 +197,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         timelockService,
                         lockWatchManager,
                         transactionService,
-                        transactionSchemaManager,
                         cleaner,
                         startTimestampSupplier,
                         getConflictDetectionManager(),

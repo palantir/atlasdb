@@ -102,8 +102,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 services.getLegacyTimelockService(),
                 services.getTimestampManagementService(),
                 ssm,
-                txService,
-                txSchemaManager);
+                txService
+        );
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,

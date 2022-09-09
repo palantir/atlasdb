@@ -63,8 +63,8 @@ public final class SweepTestUtils {
                 timelock.getLegacyTimelockService(),
                 timelock.getTimestampManagementService(),
                 SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createTransactionService(kvs, transactionSchemaManager),
-                transactionSchemaManager);
+                TransactionServices.createTransactionService(kvs, transactionSchemaManager)
+        );
     }
 
     public static TransactionManager setupTxManager(
@@ -72,8 +72,7 @@ public final class SweepTestUtils {
             TimelockService legacyTimelockService,
             TimestampManagementService tsmService,
             SweepStrategyManager ssm,
-            TransactionService txService,
-            TransactionSchemaManager txSchemaManager) {
+            TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         LockService lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
@@ -90,7 +89,6 @@ public final class SweepTestUtils {
                 lockService,
                 NoOpLockWatchManager.create(),
                 txService,
-                txSchemaManager,
                 constraints,
                 cdm,
                 ssm,

@@ -117,8 +117,8 @@ public abstract class AbstractSweepTest {
                 services.getLegacyTimelockService(),
                 services.getTimestampManagementService(),
                 ssm,
-                txService,
-                transactionSchemaManager);
+                txService
+        );
         tmManager.registerTransactionManager(manager);
         return manager;
     }
