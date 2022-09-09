@@ -689,10 +689,11 @@ public class StreamStoreRenderer {
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {");
                     {
                         line("StreamMetadata metadata = e.getValue();");
-                        line("Preconditions.checkState(metadata.getStatus() == Status.STORED,");
-                        line("\"Stream has stored status\",");
-                        line("SafeArg.of(\"streamId\", e.getKey().getId()),");
-                        line("SafeArg.of(\"status\", metadata.getStatus()));");
+                        line("Preconditions.checkState(");
+                        line("        metadata.getStatus() == Status.STORED,");
+                        line("        \"Stream has stored status\",");
+                        line("        SafeArg.of(\"streamId\", e.getKey().getId()),");
+                        line("        SafeArg.of(\"status\", metadata.getStatus()));");
                         line("metaTable.putMetadata(e.getKey(), metadata);");
                     }
                     line("}");
