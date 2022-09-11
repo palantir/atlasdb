@@ -16,82 +16,80 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.cleaner;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.NamespaceCleaner;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.nexus.db.pool.ConnectionManager;
-import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 public class OracleNamespaceCleaner implements NamespaceCleaner {
     private static final String LIST_ALL_TABLES =
-            "SELECT table_name FROM all_tables WHERE owner = ? AND table_name LIKE ?";
+            "SELECT table_name FROM all_tables WHERE owner = ? AND (table_name LIKE ? OR table_name LIKE ?)";
     private static final String DROP_TABLE = "DROP TABLE %s"; // not CASCADE CONSTRAINTS NOR PURGE
-    private OracleDdlConfig oracleDdlConfig;
-    private final DbKeyValueServiceConfig config;
 
-    private final ConnectionManager connectionManager;
+    private final Supplier<Connection> connectionManager;
+    private final String tablePrefix;
+    private final String overflowTablePrefix;
+    private final String userId;
 
-    public OracleNamespaceCleaner(OracleDdlConfig oracleDdlConfig, DbKeyValueServiceConfig config) {
-        this.oracleDdlConfig = oracleDdlConfig;
-        this.config = config;
-        this.connectionManager = HikariClientPoolConnectionManagers.createShared(config.connection(), 1, 30);
+    public OracleNamespaceCleaner(NamespaceCleanerParameters parameters) {
+        this.tablePrefix = parameters.tablePrefix();
+        this.overflowTablePrefix = parameters.overflowTablePrefix();
+        this.userId = parameters.userId();
+        this.connectionManager = parameters.connectionManager();
     }
 
     @Override
     public void dropAllTables() {
-        runWithConnection(connection -> {
-            PreparedStatement dropTablePreparedStatement = connection.prepareStatement(DROP_TABLE);
-            PreparedStatement listAllTablesPreparedStatement = connection.prepareStatement(LIST_ALL_TABLES);
+        Set<String> tableNamesToDrop = getAllTableNamesToDrop();
+        dropAllTablesFromList(tableNamesToDrop);
+    }
 
-            dropAllTablesFromList(
-                    dropTablePreparedStatement,
-                    getAllTablesWithPrefix(listAllTablesPreparedStatement, oracleDdlConfig.tablePrefix()));
-
-            dropAllTablesFromList(
-                    dropTablePreparedStatement,
-                    getAllTablesWithPrefix(listAllTablesPreparedStatement, oracleDdlConfig.overflowTablePrefix()));
-            return null;
+    private Set<String> getAllTableNamesToDrop() {
+        return runWithConnection(connection -> {
+            ResultSet resultSet = getAllTables(connection);
+            ImmutableSet.Builder<String> tablesNames = ImmutableSet.builder();
+            while (resultSet.next()) {
+                tablesNames.add(resultSet.getString("table_name"));
+            }
+            return tablesNames.build();
         });
     }
 
     @Override
     public boolean areAllTablesSuccessfullyDropped() {
-        return runWithConnection(connection -> {
-            PreparedStatement listAllTablesPreparedStatement = connection.prepareStatement(LIST_ALL_TABLES);
-            return getAllTablesWithPrefix(listAllTablesPreparedStatement, oracleDdlConfig.tablePrefix())
-                            .isBeforeFirst()
-                    && getAllTablesWithPrefix(listAllTablesPreparedStatement, oracleDdlConfig.overflowTablePrefix())
-                            .isBeforeFirst();
-        });
+        return runWithConnection(connection -> !getAllTables(connection).next());
     }
 
-    private ResultSet getAllTablesWithPrefix(PreparedStatement listAllTablesPreparedStatement, String prefix)
-            throws SQLException {
-        listAllTablesPreparedStatement.setString(1, config.connection().getDbLogin());
-        listAllTablesPreparedStatement.setString(2, withWildcardSuffix(prefix));
-        ResultSet resultSet = listAllTablesPreparedStatement.executeQuery();
-        listAllTablesPreparedStatement.clearParameters();
-        return resultSet;
+    private ResultSet getAllTables(Connection connection) throws SQLException {
+        PreparedStatement statement = connection.prepareStatement(LIST_ALL_TABLES);
+        statement.setString(1, userId);
+        statement.setString(2, withWildcardSuffix(tablePrefix));
+        statement.setString(3, withWildcardSuffix(overflowTablePrefix));
+        return statement.executeQuery();
     }
 
-    private void dropAllTablesFromList(Statement statement, ResultSet tableNames) throws SQLException {
-        while (tableNames.next()) {
-            String tableName = tableNames.getString("table_name");
-            statement.executeUpdate(String.format(DROP_TABLE, tableName));
+    private void dropAllTablesFromList(Set<String> tableNames) {
+        for (String tableName : tableNames) {
+            runWithConnection(connection -> {
+                Statement statement = connection.createStatement();
+                statement.executeUpdate(String.format(DROP_TABLE, tableName));
+                return null;
+            });
             // There is no IF EXISTS. DDL commands perform an implicit commit. If we fail, we should just retry by
             // dropping the namespace again!
         }
     }
 
     private <T> T runWithConnection(FunctionCheckedException<Connection, T, SQLException> task) {
-        try (Connection connection = connectionManager.getConnection()) {
+        try (Connection connection = connectionManager.get()) {
             return task.apply(connection);
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -104,10 +102,25 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
 
     @Override
     public void close() throws IOException {
-        try {
-            connectionManager.close();
-        } catch (SQLException e) {
-            throw new IOException(e);
+        // try {
+        //     connectionManager.close();
+        // } catch (SQLException e) {
+        //     throw new IOException(e);
+        // }
+    }
+
+    @Value.Immutable
+    public interface NamespaceCleanerParameters {
+        String tablePrefix();
+
+        String overflowTablePrefix();
+
+        String userId();
+
+        Supplier<Connection> connectionManager();
+
+        static ImmutableNamespaceCleanerParameters.Builder builder() {
+            return ImmutableNamespaceCleanerParameters.builder();
         }
     }
 }

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -26,7 +25,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner;
+import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner.NamespaceCleanerParameters;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import java.sql.Connection;
@@ -58,9 +61,14 @@ public class OracleNamespaceCleanerIntegrationTest {
         keyValueService = TRM.getDefaultKvs();
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
-        namespaceCleaner = new OracleNamespaceCleaner(oracleDdlConfig, dbKeyValueServiceConfig);
         connectionManager =
                 HikariClientPoolConnectionManagers.createShared(dbKeyValueServiceConfig.connection(), 1, 60);
+        namespaceCleaner = new OracleNamespaceCleaner(NamespaceCleanerParameters.builder()
+                .tablePrefix(oracleDdlConfig.tablePrefix())
+                .overflowTablePrefix(oracleDdlConfig.overflowTablePrefix())
+                .connectionManager(connectionManager::getConnectionUnchecked)
+                .userId(dbKeyValueServiceConfig.connection().getDbLogin())
+                .build());
     }
 
     @After
@@ -98,7 +106,13 @@ public class OracleNamespaceCleanerIntegrationTest {
     }
 
     private void createTableAndOverflowTable(String tableName) {
-        keyValueService.createTable(getTableReference(tableName), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(
+                getTableReference(tableName),
+                TableMetadata.builder()
+                        .nameLogSafety(LogSafety.SAFE)
+                        .columns(new ColumnMetadataDescription())
+                        .build()
+                        .persistToBytes());
     }
 
     private TableReference getTableReference(String tableName) {
@@ -119,7 +133,11 @@ public class OracleNamespaceCleanerIntegrationTest {
             statement.setString(1, dbKeyValueServiceConfig.connection().getDbLogin());
             statement.setString(2, prefix + "%");
             ResultSet resultSet = statement.executeQuery();
-            return resultSet.getInt("total");
+            if (resultSet.next()) {
+                return resultSet.getInt("total");
+            } else {
+                return 0;
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
