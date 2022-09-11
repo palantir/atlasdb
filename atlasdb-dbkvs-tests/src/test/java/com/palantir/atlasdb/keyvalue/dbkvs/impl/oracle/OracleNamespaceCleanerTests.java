@@ -18,6 +18,8 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.ImmutableNamespaceCleanerParameters;
@@ -33,14 +35,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-public class OracleNamespaceCleanerTests {
+@RunWith(MockitoJUnitRunner.class)
+public final class OracleNamespaceCleanerTests {
     private static final String TABLE_PREFIX = "a_";
     private static final String OVERFLOW_TABLE_PREFIX = "ao_";
     private static final String ANOTHER_TABLE_PREFIX = "test";
@@ -111,6 +118,24 @@ public class OracleNamespaceCleanerTests {
 
         createDefaultTable(TABLE_NAME_1);
         assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
+    }
+
+    @Test
+    public void areAllTablesDroppedClosesConnection() throws SQLException {
+        List<Connection> allConnections = new ArrayList<>();
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .connectionManager(() -> {
+                    Connection connection = spy(getConnectionSupplier().get());
+                    allConnections.add(connection);
+                    return connection;
+                })
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        createDefaultTable(TABLE_NAME_2);
+        namespaceCleaner.areAllTablesSuccessfullyDropped();
+        for (Connection connection : allConnections) {
+            verify(connection).close();
+        }
     }
 
     @Test
@@ -186,8 +211,93 @@ public class OracleNamespaceCleanerTests {
         assertThat(countTables()).isEqualTo(1);
     }
 
+    @Test
+    public void dropAllTablesClosesConnection() throws SQLException {
+        List<Connection> allConnections = new ArrayList<>();
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .connectionManager(() -> {
+                    Connection connection = spy(getConnectionSupplier().get());
+                    allConnections.add(connection);
+                    return connection;
+                })
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        createDefaultTable(TABLE_NAME_2);
+        namespaceCleaner.dropAllTables();
+        for (Connection connection : allConnections) {
+            verify(connection).close();
+        }
+    }
+
+    @Test
+    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnOwner() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .userId("1'; CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.areAllTablesSuccessfullyDropped();
+        assertThat(countTables()).isEqualTo(2);
+    }
+
+    @Test
+    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnTablePrefix() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.areAllTablesSuccessfullyDropped();
+        assertThat(countTables()).isEqualTo(2);
+    }
+
+    @Test
+    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .userId("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.areAllTablesSuccessfullyDropped();
+        assertThat(countTables()).isEqualTo(2);
+    }
+
+    @Test
+    public void dropTablesDoesNotExecuteArbitrarySqlOnOwner() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .userId("1'; CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.dropAllTables();
+        assertThat(countTables()).isEqualTo(2);
+    }
+
+    @Test
+    public void dropTablesDoesNotExecuteArbitrarySqlOnTablePrefix() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.dropAllTables();
+        assertThat(countTables()).isEqualTo(1); // we actually do delete a table. TODO This should just list the
+        // actual tables
+    }
+
+    @Test
+    public void dropTablesDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
+        NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
+                .userId("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
+                .build());
+        createDefaultTable(TABLE_NAME_1);
+        assertThat(countTables()).isEqualTo(2);
+        namespaceCleaner.dropAllTables();
+        assertThat(countTables()).isEqualTo(2);
+    }
+
     // Don't delete other peoples tables, including with prefix, nor other users, what happens with the empty
-    // We retry correctly, that we close the connections.
+    // We retry correctly, that we close the connections, that we're not susceptible to injection
     private void createMetadataTableIfNotExists() {
         runWithConnection(connection -> {
             Statement statement = connection.createStatement();

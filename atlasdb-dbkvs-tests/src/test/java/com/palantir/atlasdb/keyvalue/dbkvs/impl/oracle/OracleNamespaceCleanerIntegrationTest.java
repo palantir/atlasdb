@@ -30,11 +30,15 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import org.junit.After;
 import org.junit.Before;
@@ -42,6 +46,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OracleNamespaceCleanerIntegrationTest {
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleNamespaceCleanerIntegrationTest.class);
+
     private static final String LIST_ALL_TABLES =
             "SELECT COUNT(table_name) AS total FROM all_tables WHERE owner = ? AND table_name LIKE ?";
     private static final String TABLE_NAME_ONE = "tablenameone";
@@ -129,15 +135,24 @@ public class OracleNamespaceCleanerIntegrationTest {
 
     private int getNumberOfTables(String prefix) {
         try (Connection connection = connectionManager.getConnection()) {
-            PreparedStatement statement = connection.prepareStatement(LIST_ALL_TABLES);
-            statement.setString(1, dbKeyValueServiceConfig.connection().getDbLogin());
-            statement.setString(2, prefix + "%");
+            PreparedStatement statement = connection.prepareStatement("SELECT * FROM all_tables");
+            // statement.setString(1, dbKeyValueServiceConfig.connection().getDbLogin());
+            // statement.setString(2, prefix + "%");
             ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getInt("total");
-            } else {
-                return 0;
+            ResultSetMetaData rsmd = resultSet.getMetaData();
+            int columnsNumber = rsmd.getColumnCount();
+            for (int row = 0; resultSet.next(); row++) {
+                for (int i = 1; i <= columnsNumber; i++) {
+                    String columnValue = resultSet.getString(i);
+                    log.info(
+                            "Column",
+                            SafeArg.of("rowNumber", row),
+                            SafeArg.of("columnValue", columnValue),
+                            SafeArg.of("columnName", rsmd.getColumnName(i)));
+                }
             }
+            return 1;
+
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
