@@ -32,7 +32,6 @@ import org.immutables.value.Value;
 public class OracleNamespaceCleaner implements NamespaceCleaner {
     private static final String LIST_ALL_TABLES =
             "SELECT table_name FROM all_tables WHERE owner = ? AND (table_name LIKE ? OR table_name LIKE ?)";
-    private static final String DROP_TABLE = "DROP TABLE %s"; // not CASCADE CONSTRAINTS NOR PURGE
 
     private final Supplier<Connection> connectionManager;
     private final String tablePrefix;
@@ -80,7 +79,8 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
         for (String tableName : tableNames) {
             runWithConnection(connection -> {
                 Statement statement = connection.createStatement();
-                statement.executeUpdate(String.format(DROP_TABLE, tableName));
+                statement.executeUpdate(String.format("DROP TABLE %s", tableName)); // No PURGE NOR CASCADE
+                // CONSTRAINTS. INLINED becuase of errorprone
                 return null;
             });
             // There is no IF EXISTS. DDL commands perform an implicit commit. If we fail, we should just retry by

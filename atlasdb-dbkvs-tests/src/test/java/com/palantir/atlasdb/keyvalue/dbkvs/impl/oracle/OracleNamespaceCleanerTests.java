@@ -187,7 +187,7 @@ public class OracleNamespaceCleanerTests {
     }
 
     // Don't delete other peoples tables, including with prefix, nor other users, what happens with the empty
-    // We retry correctly.
+    // We retry correctly, that we close the connections.
     private void createMetadataTableIfNotExists() {
         runWithConnection(connection -> {
             Statement statement = connection.createStatement();

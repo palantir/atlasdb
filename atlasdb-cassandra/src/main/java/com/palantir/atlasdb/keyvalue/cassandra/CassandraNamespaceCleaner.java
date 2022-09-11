@@ -19,76 +19,73 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
-import java.net.InetSocketAddress;
+import java.util.function.Supplier;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 
 public final class CassandraNamespaceCleaner implements NamespaceCleaner {
     private final CassandraKeyValueServiceConfig config;
-
-    private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
+    private final Supplier<CassandraClient> cassandraClientSupplier;
     private final String keyspace;
 
     public CassandraNamespaceCleaner(
-            CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
+            CassandraKeyValueServiceConfig config, Supplier<CassandraClient> cassandraClientSupplier) {
         this.config = config;
-        this.runtimeConfig = runtimeConfig;
+        this.cassandraClientSupplier = cassandraClientSupplier;
         keyspace = config.getKeyspaceOrThrow();
     }
 
     @Override
     public void dropAllTables() {
-        try (CassandraClient client = getClient()) {
+        try (CassandraClient client = cassandraClientSupplier.get()) {
             CassandraKeyValueServices.runWithWaitingForSchemas(
                     () -> dropKeyspace(keyspace, client), config, client, "Dropping keyspace " + keyspace);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+        // try (CassandraClient client = cassandraClientSupplier.get()) {
+        //     CassandraKeyValueServices.runWithWaitingForSchemas(
+        //             () -> dropKeyspace("hellooo", client), config, client, "Dropping keyspace " + keyspace);
+        // } catch (Exception e) {
+        //     throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        // }
     }
 
     @Override
     public boolean areAllTablesSuccessfullyDropped() {
-        try (CassandraClient client = getClient()) {
+        try (CassandraClient client = cassandraClientSupplier.get()) {
             client.describe_keyspace(keyspace);
-            return true;
-        } catch (NotFoundException e) {
             return false;
+        } catch (NotFoundException e) {
+            return true;
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
-    private CassandraClient getClient() throws TException {
-        return CassandraClientFactory.getClientInternal(getAnyCassandraProxy(), CassandraClientConfig.of(config));
-    }
-
-    private InetSocketAddress getAnyCassandraProxy() {
-        return runtimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
-                .findFirst()
-                .orElseThrow(() -> new SafeIllegalStateException("No cassandra server found"));
-    }
-
     private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
-        String quotedKeyspace = wrapInQuotes(keyspace);
-
         CqlQuery query = CqlQuery.builder()
-                .safeQueryFormat(
-                        SchemaBuilder.dropKeyspace(quotedKeyspace).ifExists().buildInternal())
+                .safeQueryFormat(SchemaBuilder.dropKeyspace(keyspace).ifExists().buildInternal())
                 .build();
+
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }
 
-    private static String wrapInQuotes(String string) {
-        return "\"" + string + "\"";
-    }
+    // private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
+    //     CqlQuery query = CqlQuery.builder()
+    //             .safeQueryFormat(SchemaBuilder.dropKeyspace("?").ifExists().buildInternal())
+    //             .build();
+    //     ByteBuffer byteQuery = ByteBuffer.wrap(query.toString().getBytes(StandardCharsets.UTF_8));
+    //
+    //     CqlPreparedResult preparedResult = client.prepare_cql3_query(byteQuery, Compression.NONE);
+    //     client.execute_prepared_cql3_query(
+    //             preparedResult.getItemId(),
+    //             List.of(ByteBuffer.wrap(keyspace.getBytes(StandardCharsets.UTF_8))),
+    //             CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
+    // }
 
     @Override
     public void close() throws IOException {
