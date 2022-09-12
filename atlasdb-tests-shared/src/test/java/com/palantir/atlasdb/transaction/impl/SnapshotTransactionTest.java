@@ -2280,7 +2280,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 
