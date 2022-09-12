@@ -101,6 +101,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     @Override
+    public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+        return delegate.getAsyncV2(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+        return delegate.getAsyncV2(startTimestamps);
+    }
+
+    @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         AtlasFutures.getUnchecked(autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)));
     }

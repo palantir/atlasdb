@@ -145,6 +145,16 @@ public final class TransactionServices {
             public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
                 return Futures.immediateFuture(transactionService.get(startTimestamps));
             }
+
+            @Override
+            public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+                return transactionService.getAsyncV2(startTimestamp);
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+                return transactionService.getAsyncV2(startTimestamps);
+            }
         };
     }
 }
