@@ -50,7 +50,7 @@ public class CommitTimestampLoaderTest {
     private final AsyncTransactionService transactionService = mock(AsyncTransactionService.class);
 
     @Test
-    public void readOnlyDoesNotThrowReadOnlyForUnsweptTTSCell() throws ExecutionException, InterruptedException {
+    public void readOnlyDoesNotThrowForUnsweptTTSCell() throws ExecutionException, InterruptedException {
         long transactionTs = 27l;
         long startTs = 5l;
         long commitTs = startTs + 1;
@@ -61,11 +61,6 @@ public class CommitTimestampLoaderTest {
         CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
-    }
-
-    private void setup(long startTs, long commitTs) {
-        when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
-        when(transactionService.getAsync(startTs)).thenReturn(Futures.immediateFuture(commitTs));
     }
 
     @Test
@@ -133,11 +128,7 @@ public class CommitTimestampLoaderTest {
         LockToken lock = mock(LockToken.class);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.of(lock), transactionTs, transactionTs + 1);
-
-        // the transaction will eventually throw at commit time. In this test we are only concerned with per read
-        // validation.
+        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.of(lock), transactionTs, commitTs + 1);
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
 
@@ -165,6 +156,11 @@ public class CommitTimestampLoaderTest {
         assertCanGetCommitTs(startTsUnknown, commitTsUnknown, commitTimestampLoader);
         verify(timestampCache).getCommitTimestampIfPresent(startTsUnknown);
         verifyNoMoreInteractions(timestampCache);
+    }
+
+    private void setup(long startTs, long commitTs) {
+        when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
+        when(transactionService.getAsync(startTs)).thenReturn(Futures.immediateFuture(commitTs));
     }
 
     private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)

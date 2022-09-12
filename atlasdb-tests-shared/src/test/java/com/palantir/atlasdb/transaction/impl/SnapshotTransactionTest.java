@@ -183,12 +183,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][] {
-                {SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP},
-                {
-                        ASYNC,
-                        (WrapperWithTracker<CallbackAwareTransaction>) GetAsyncCallbackAwareDelegate::new,
-                        (WrapperWithTracker<KeyValueService>) VerifyingKeyValueServiceDelegate::new
-                }
+            {SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP},
+            {
+                ASYNC,
+                (WrapperWithTracker<CallbackAwareTransaction>) GetAsyncCallbackAwareDelegate::new,
+                (WrapperWithTracker<KeyValueService>) VerifyingKeyValueServiceDelegate::new
+            }
         };
         return Arrays.asList(data);
     }
@@ -1058,15 +1058,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 counter::increment);
 
         assertThatThrownBy(() ->
-                serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                    return null;
-                }))
+                        serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
+                            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                            return null;
+                        }))
                 .isInstanceOf(TransactionFailedRetriableException.class);
         assertThat(counter.intValue()).isEqualTo(1);
 
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionReadOnly(
-                failsCondition, (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL))))
+                        failsCondition, (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL))))
                 .isInstanceOf(TransactionFailedRetriableException.class);
         assertThat(counter.intValue()).isEqualTo(2);
     }
@@ -1116,19 +1116,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
-                () -> new PreCommitCondition() {
-                    @Override
-                    public void throwIfConditionInvalid(long timestamp) {
-                        throw conditionFailure;
-                    }
+                        () -> new PreCommitCondition() {
+                            @Override
+                            public void throwIfConditionInvalid(long timestamp) {
+                                throw conditionFailure;
+                            }
 
-                    @Override
-                    public void cleanup() {}
-                },
-                (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(firstCell, value));
-                    return null;
-                }))
+                            @Override
+                            public void cleanup() {}
+                        },
+                        (tx, condition) -> {
+                            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+                            return null;
+                        }))
                 .isSameAs(conditionFailure);
 
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> BatchingVisitableView.of(tx.getRowsColumnRange(
@@ -1154,19 +1154,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
-                () -> new PreCommitCondition() {
-                    @Override
-                    public void throwIfConditionInvalid(long timestamp) {
-                        throw conditionFailure;
-                    }
+                        () -> new PreCommitCondition() {
+                            @Override
+                            public void throwIfConditionInvalid(long timestamp) {
+                                throw conditionFailure;
+                            }
 
-                    @Override
-                    public void cleanup() {}
-                },
-                (tx, condition) -> {
-                    tx.put(TABLE, ImmutableMap.of(firstCell, value));
-                    return null;
-                }))
+                            @Override
+                            public void cleanup() {}
+                        },
+                        (tx, condition) -> {
+                            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+                            return null;
+                        }))
                 .isSameAs(conditionFailure);
 
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
@@ -1639,7 +1639,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .hasMessageContaining("Tried to read a value that has been deleted.");
 
         assertThat(keyValueService.get(
-                TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
+                        TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
                 .containsExactlyEntriesOf(
                         ImmutableMap.of(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
     }
@@ -1903,12 +1903,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void transactionStillCommittedEvenIfCallbackThrows() {
         RuntimeException exception = new RuntimeException("boom");
         assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
-            txn.onSuccess(() -> {
-                throw exception;
-            });
-            return null;
-        }))
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+                    txn.onSuccess(() -> {
+                        throw exception;
+                    });
+                    return null;
+                }))
                 .isInstanceOf(exception.getClass())
                 .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
@@ -1926,9 +1926,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
-            return null;
-        }))
+                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+                    return null;
+                }))
                 .isInstanceOf(exception.getClass())
                 .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
