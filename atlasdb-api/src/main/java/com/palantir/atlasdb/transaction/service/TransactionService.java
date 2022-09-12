@@ -46,9 +46,11 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      */
     @CheckForNull
     @Timed
+    @Deprecated
     Long get(long startTimestamp);
 
     @Timed
+    @Deprecated
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**

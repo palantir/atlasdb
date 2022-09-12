@@ -32,6 +32,7 @@ public interface AsyncTransactionService {
      * @return {@link ListenableFuture} containing the timestamp which the transaction committed at, or null if the
      * transaction had not committed yet
      */
+    @Deprecated
     ListenableFuture<Long> getAsync(long startTimestamp);
 
     /**
@@ -47,5 +48,10 @@ public interface AsyncTransactionService {
      * @return {@link ListenableFuture} containing the map from a transaction start timestamp to transaction commit
      * timestamp, possibly missing entries if relevant transactions have not committed yet
      */
+    @Deprecated
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
+
+    ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp);
+
+    ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps);
 }

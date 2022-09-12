@@ -48,6 +48,7 @@ public final class TransactionConstants {
     public static final TransactionStatus IN_PROGRESS = TransactionStatuses.inProgress();
     public static final TransactionStatus UNKNOWN = TransactionStatuses.unknown();
     public static final long LOWEST_POSSIBLE_START_TS = 1L;
+    public static long PRE_START_COMMITTED_TS = TransactionConstants.LOWEST_POSSIBLE_START_TS - 1;
     public static final TransactionStatus PRE_START_COMMITTED =
             TransactionStatuses.committed(LOWEST_POSSIBLE_START_TS - 1);
 
