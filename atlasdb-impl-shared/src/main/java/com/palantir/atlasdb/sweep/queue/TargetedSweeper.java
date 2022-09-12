@@ -277,7 +277,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 return maybeLock
                         .map(targetedSweeperLock ->
                                 SweepIterationResults.success(processShard(targetedSweeperLock.getShardAndStrategy())))
-                        .orElseGet(SweepIterationResults::unableToAcquireShard);
+                        .orElseGet(() -> {
+                            metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.UNABLE_TO_ACQUIRE_LOCKS);
+                            return SweepIterationResults.unableToAcquireShard();
+                        });
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
