@@ -11,7 +11,7 @@ Unless the `no changelog` tag is present, the `changelog-bot` will leave an inte
 Release Schedule
 ================
 
-We aim to release once a week, but may release faster to patch bugs or slower if there is low code churn.
+We aim to release as often as we can, so that the change set between releases is small.
 If you'd like a release candidate published for testing, please leave a comment on your PR.
 
 Cutting for Release
