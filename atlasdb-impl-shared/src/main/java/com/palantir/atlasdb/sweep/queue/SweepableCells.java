@@ -59,7 +59,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
@@ -198,7 +197,7 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private WriteBatch getBatchOfWrites(
-            SweepableCellsRow row, PeekingIterator<Entry<Cell, Value>> resultIterator, long sweepTs) {
+            SweepableCellsRow row, PeekingIterator<Map.Entry<Cell, Value>> resultIterator, long sweepTs) {
         WriteBatch writeBatch = new WriteBatch();
         while (resultIterator.hasNext() && writeBatch.writesByStartTs.size() < SweepQueueUtils.SWEEP_BATCH_SIZE) {
             Map.Entry<Cell, Value> entry = resultIterator.next();
@@ -420,11 +419,11 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
-        return WriteInfo.of(
-                writeReferencePersister
-                        .unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents()))
-                        .orElse(null),
-                timestamp);
+        return ImmutableWriteInfo.builder()
+                .writeRef(
+                        writeReferencePersister.unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents())))
+                .timestamp(timestamp)
+                .build();
     }
 
     private boolean exhaustedAllColumns(Iterator<Map.Entry<Cell, Value>> resultIterator) {

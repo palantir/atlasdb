@@ -119,6 +119,16 @@ public class TargetedSweepMetadataTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void serializeDeserializeNonSweepable() {
+        TargetedSweepMetadata nonSweepableMetadata = defaultBuilder()
+                .conservative(true)
+                .nonSweepableTransaction(true)
+                .build();
+        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(nonSweepableMetadata.persistToBytes()))
+                .isEqualTo(nonSweepableMetadata);
+    }
+
     private static ImmutableTargetedSweepMetadata.Builder defaultBuilder() {
         return ImmutableTargetedSweepMetadata.builder().from(ALL_ZERO_METADATA);
     }

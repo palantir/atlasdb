@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.PersistableBoolean;
 import org.junit.Test;
 
@@ -40,5 +42,12 @@ public class SweeperStrategyTest {
             assertThat(SweeperStrategy.BYTES_HYDRATOR.hydrateFromBytes(strategy.persistToBytes()))
                     .isEqualTo(strategy);
         }
+    }
+
+    @Test
+    public void throwsOnUnknownBytes() {
+        assertThatThrownBy(() -> SweeperStrategy.BYTES_HYDRATOR.hydrateFromBytes(new byte[] {7}))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Unknown sweeper strategy");
     }
 }
