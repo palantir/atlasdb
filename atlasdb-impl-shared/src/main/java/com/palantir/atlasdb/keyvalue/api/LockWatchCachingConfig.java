@@ -42,7 +42,7 @@ public interface LockWatchCachingConfig {
      */
     @Value.Default
     default double validationProbability() {
-        return 1.0;
+        return 0.1;
     }
 
     static ImmutableLockWatchCachingConfig.Builder builder() {
