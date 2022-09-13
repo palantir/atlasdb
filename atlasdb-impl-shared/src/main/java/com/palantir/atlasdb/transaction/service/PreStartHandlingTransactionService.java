@@ -56,6 +56,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
 
     @CheckForNull
     @Override
+    @Deprecated
     public Long get(long startTimestamp) {
         return AtlasFutures.getUnchecked(getFromDelegate(
                 startTimestamp,
@@ -64,11 +65,29 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
+    @Deprecated
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getFromDelegate(
                 startTimestamps,
                 synchronousAsyncTransactionService::getAsync,
                 TransactionConstants.PRE_START_COMMITTED_TS));
+    }
+
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamp,
+                synchronousAsyncTransactionService::getAsyncV2,
+                TransactionConstants.PRE_START_COMMITTED));
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamps,
+                synchronousAsyncTransactionService::getAsyncV2,
+                TransactionConstants.PRE_START_COMMITTED));
     }
 
     @Override
@@ -77,11 +96,13 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getFromDelegate(startTimestamp, delegate::getAsync, TransactionConstants.PRE_START_COMMITTED_TS);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getFromDelegate(startTimestamps, delegate::getAsync, TransactionConstants.PRE_START_COMMITTED_TS);
     }
@@ -113,9 +134,9 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     private <T> ListenableFuture<T> getFromDelegate(
-            long startTimestamp, Function<Long, ListenableFuture<T>> getter, T invalidCommit) {
+            long startTimestamp, Function<Long, ListenableFuture<T>> getter, T commitValueForInvalidStart) {
         if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(invalidCommit);
+            return Futures.immediateFuture(commitValueForInvalidStart);
         }
         return getter.apply(startTimestamp);
     }

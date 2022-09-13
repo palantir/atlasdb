@@ -30,7 +30,9 @@ public interface AsyncTransactionService {
      *
      * @param startTimestamp start timestamp of the transaction being looked up
      * @return {@link ListenableFuture} containing the timestamp which the transaction committed at, or null if the
-     * transaction had not committed yet
+     * transaction had not committed yet.
+     *
+     * @deprecated use {@link #getAsyncV2(long)}
      */
     @Deprecated
     ListenableFuture<Long> getAsync(long startTimestamp);
@@ -46,7 +48,9 @@ public interface AsyncTransactionService {
      *
      * @param startTimestamps start timestamps of the transactions being looked up
      * @return {@link ListenableFuture} containing the map from a transaction start timestamp to transaction commit
-     * timestamp, possibly missing entries if relevant transactions have not committed yet
+     * timestamp, possibly missing entries if relevant transactions have not committed yet.
+     *
+     * @deprecated use {@link #getAsyncV2(Iterable)}
      */
     @Deprecated
     ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps);
@@ -59,28 +63,19 @@ public interface AsyncTransactionService {
      * concluded i.e. its status cannot change.
      *
      * @param startTimestamp start timestamp of the transaction being looked up
-     * @return {@link ListenableFuture} containing the transaction status which can be one of the following -
-     * 1. in progress transaction had not committed yet
-     * 2. committed if the transaction has been successfully committed
-     * 3. aborted if the transaction has been successfully aborted
-     * 4. unknown if the transaction has been concluded and transactions table has been swept.
+     * @return {@link ListenableFuture} containing the {@link TransactionStatus}.
      */
     ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp);
 
     /**
-     * Gets the transaction statuses associated with a given {@code startTimestamps} in a future, potentially computing
-     * it asynchronously. Known future result responses may be cached on the client-side.
+     * Gets the transaction statuses associated with the given {@code startTimestamps} in a future, potentially
+     * computing it asynchronously. Known future result responses may be cached on the client-side.
      *
      * Future result may return unknown transaction status, which means that the transaction in question has been
      * concluded i.e. its status cannot change.
      *
-     * @param startTimestamps start timestamp of the transaction being looked up
-     * @return {@link ListenableFuture} containing the map from a transaction start timestamp to transaction status
-     * which can be one of the following -
-     * 1. in progress transaction had not committed yet
-     * 2. committed if the transaction has been successfully committed
-     * 3. aborted if the transaction has been successfully aborted
-     * 4. unknown if the transaction has been concluded and transactions table has been swept.
+     * @param startTimestamps start timestamps of the transaction being looked up
+     * @return {@link ListenableFuture} containing the map from a transaction start timestamp to {@link TransactionStatus}
      * All start timestamps are expected to be present in the returning map.
      */
     ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps);

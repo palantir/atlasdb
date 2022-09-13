@@ -36,6 +36,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
+import javax.annotation.CheckForNull;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final AtomicTable<Long, Long> txnTable;
@@ -108,6 +109,17 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         return AtlasFutures.getUnchecked(getAsync(startTimestamps));
     }
 
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getAsyncV2(startTimestamp));
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getAsyncV2(startTimestamps));
+    }
+
     @Override
     public void markInProgress(long startTimestamp) {
         txnTable.markInProgress(startTimestamp);
@@ -119,11 +131,13 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return txnTable.get(startTimestamp);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return txnTable.get(startTimestamps);
     }

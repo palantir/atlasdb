@@ -42,10 +42,10 @@ import javax.annotation.CheckForNull;
  * which underlying service is contacted.
  *
  * The timestampToServiceKey function is expected to handle all timestamps greater than or equal to
- * {@link com.palantir.atlasdb.transaction.impl.TransactionConstants#LOWEST_POSSIBLE_START_TS}. It may, but is not expected to, handle
- * timestamps
- * below that. The function may return null; if it does, then for reads, values written at that timestamp are
- * considered to be uncommitted. The transaction service will throw if a write is attempted at such a timestamp.
+ * {@link com.palantir.atlasdb.transaction.impl.TransactionConstants#LOWEST_POSSIBLE_START_TS}. It may, but is not
+ * expected to, handle timestamps below that. The function may return null; if it does, then for reads, values
+ * written at that timestamp are considered to be uncommitted. The transaction service will throw if a write is
+ * attempted at such a timestamp.
  *
  * The transaction service will also throw an exception if the timestamp-to-service-key function returns a key which is
  * not in the keyedServices map.
@@ -68,13 +68,26 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
 
     @CheckForNull
     @Override
+    @Deprecated
     public Long get(long startTimestamp) {
         return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, this::getterV1, startTimestamp));
     }
 
     @Override
+    @Deprecated
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, this::getterV1, startTimestamps));
+    }
+
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, this::getterV2, startTimestamp));
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getFromDelegate(keyedSyncServices, this::getterV2, startTimestamps));
     }
 
     @Override
@@ -86,11 +99,13 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return getFromDelegate(keyedServices, this::getterV1, startTimestamp);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return getFromDelegate(keyedServices, this::getterV1, startTimestamps);
     }
@@ -118,10 +133,9 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    // todo(snanda): This looks not pretty
-    private <Status> ListenableFuture<Status> getFromDelegate(
+    private <StatusT> ListenableFuture<StatusT> getFromDelegate(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
-            BiFunction<AsyncTransactionService, Long, ListenableFuture<Status>> statusGetter,
+            BiFunction<AsyncTransactionService, Long, ListenableFuture<StatusT>> statusGetter,
             long startTimestamp) {
         return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
                 .map(service -> statusGetter.apply(service, startTimestamp))

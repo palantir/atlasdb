@@ -18,6 +18,14 @@ package com.palantir.atlasdb.transaction.service;
 
 import org.derive4j.Data;
 
+/**
+ * Status of a transaction can be one of the following -
+ * 1. IN_PROGRESS, if that the transaction with this start timestamp has started but has not committed yet,
+ * 2. COMMITTED (with a commit timestamp), if the transaction with this start timestamp has been committed,
+ * 3. ABORTED, if the transaction with this start timestamp has been aborted,
+ * 4. UNKNOWN, if the transactions table does not have information about the start timestamp. (This may,
+ *    for example, be because the transaction is known to have concluded and the transactions table has been swept).
+ * */
 @Data
 public interface TransactionStatus {
     interface Cases<R> {

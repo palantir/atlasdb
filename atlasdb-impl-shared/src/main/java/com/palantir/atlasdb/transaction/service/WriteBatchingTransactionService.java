@@ -75,27 +75,41 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @CheckForNull
     @Override
+    @Deprecated
     public Long get(long startTimestamp) {
         return delegate.get(startTimestamp);
     }
 
     @Override
+    @Deprecated
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return delegate.get(startTimestamps);
     }
 
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return delegate.getV2(startTimestamp);
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return delegate.getV2(startTimestamps);
+    }
+
     @Override
     public void markInProgress(long startTimestamp) {
-
         delegate.markInProgress(ImmutableSet.of(startTimestamp));
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return delegate.getAsync(startTimestamp);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return delegate.getAsync(startTimestamps);
     }
