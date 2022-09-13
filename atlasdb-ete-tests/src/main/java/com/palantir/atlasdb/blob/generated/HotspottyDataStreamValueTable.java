@@ -18,7 +18,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -693,5 +693,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "92s4qYucKaYQLGes5kWldg==";
+    static String __CLASS_HASH = "qpxadEqMHw8NeLcCZ0b7oA==";
 }

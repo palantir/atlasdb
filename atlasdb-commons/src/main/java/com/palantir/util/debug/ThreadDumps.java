@@ -22,20 +22,22 @@ import java.lang.management.ThreadMXBean;
 import javax.management.JMException;
 
 @SuppressWarnings("checkstyle")
-// WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
+// WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great,
 // and we lack tests, however this is covered by testing in the internal product
 // DO NOT CHANGE THIS CLASS!
 public class ThreadDumps {
     public static String programmaticThreadDump() {
+        return programmaticThreadDump(/* include locks and synchronizers= */ true);
+    }
+
+    public static String programmaticThreadDump(boolean includeLockedMonitorsAndSynchronizers) {
         String serverName = "Stack Trace"; // $NON-NLS-1$
         try {
             return StackTraceUtils.processTrace(
                     serverName, //$NON-NLS-1$
                     StackTraceUtils.getStackTraceForConnection(ManagementFactory.getPlatformMBeanServer()),
                     false);
-        } catch (JMException e) {
-            return fallbackThreadDump(serverName);
-        } catch (IOException e) {
+        } catch (JMException | IOException e) {
             return fallbackThreadDump(serverName);
         }
     }
@@ -44,7 +46,7 @@ public class ThreadDumps {
         StringBuilder dump = new StringBuilder();
         dump.append(dumpName);
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-        for (ThreadInfo info : threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 500)) {
+        for (ThreadInfo info : threadMXBean.dumpAllThreads(false, false, 500)) {
             if (info == null) {
                 continue;
             }
@@ -54,13 +56,13 @@ public class ThreadDumps {
             if (info.getLockName() != null) {
                 switch (info.getThreadState()) {
                     case BLOCKED:
-                        dump.append("\r\n\t-  blocked on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  blocked on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     case WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  waiting on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     case TIMED_WAITING:
-                        dump.append("\r\n\t-  waiting on " + info.getLockName()); // $NON-NLS-1$
+                        dump.append("\r\n\t-  timed waiting on ").append(info.getLockName()); // $NON-NLS-1$
                         break;
                     default:
                         break;

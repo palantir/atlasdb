@@ -22,11 +22,19 @@ import com.google.common.collect.ObjectArrays;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
+import com.palantir.atlasdb.compact.CompactorConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
+import java.io.File;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -35,12 +43,25 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestKvsMigrationCommand {
+    private static final String[] EMPTY_ARGS = new String[] {};
+    private static final String RUNTIME_CONFIG = "sweep:\n"
+            + "  enabled: true\n"
+            + "targetedSweep:\n"
+            + "  enabled: true\n"
+            + "compact:\n"
+            + "  enableCompaction: true\n"
+            + "keyValueService:\n"
+            + "  type: cassandra\n"
+            + "  servers:\n"
+            + "    - 127.0.0.1:1337\n"
+            + "  replicationFactor: 21";
+
     private AtlasDbServices fromServices;
     private AtlasDbServices toServices;
 
     @Before
     public void setupServices() throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] {});
+        KvsMigrationCommand cmd = getCommand(EMPTY_ARGS, EMPTY_ARGS);
         fromServices = cmd.connectFromServices();
         toServices = cmd.connectToServices();
     }
@@ -52,14 +73,46 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void doesNotSweepDuringMigration() {
-        assertThat(fromServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
-        assertThat(fromServices.getAtlasDbRuntimeConfig().targetedSweep().enabled())
-                .isFalse();
+    public void loadsRuntimeConfigFromFileWithSweepAndCompactionDisabled() throws URISyntaxException, IOException {
+        String runtimeFilePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.RUNTIME_CONFIG_LOCATION);
+        String[] commandArgs = new String[] {"-frc", runtimeFilePath, "-mrc", runtimeFilePath};
+        KvsMigrationCommand command = getCommand(commandArgs, EMPTY_ARGS);
 
-        assertThat(toServices.getAtlasDbRuntimeConfig().sweep().enabled()).contains(false);
-        assertThat(toServices.getAtlasDbRuntimeConfig().targetedSweep().enabled())
-                .isFalse();
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromFile());
+
+        assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
+        assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
+    }
+
+    @Test
+    public void loadsInlineRuntimeConfigWithSweepAndCompactionDisabledForToService()
+            throws IOException, URISyntaxException {
+        String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
+        KvsMigrationCommand command = getCommand(EMPTY_ARGS, globalArgs);
+
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromString());
+
+        assertThat(command.connectToServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
+    }
+
+    @Test
+    public void loadsFileRuntimeConfigWhenBothInlineAndFileAreSpecified() throws URISyntaxException, IOException {
+        String runtimeFilePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.RUNTIME_CONFIG_LOCATION);
+        String[] commandArgs = new String[] {"-frc", runtimeFilePath, "-mrc", runtimeFilePath};
+        String[] globalArgs = new String[] {"--inline-runtime-config", RUNTIME_CONFIG};
+        KvsMigrationCommand command = getCommand(commandArgs, globalArgs);
+
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(loadFromFile());
+
+        assertThat(command.connectFromServices().getAtlasDbRuntimeConfig()).isEqualTo(expected);
+    }
+
+    @Test
+    public void usesDefaultRuntimeConfigWithSweepAndCompactionDisabledWhenFileNorInlineSpecified() {
+        AtlasDbRuntimeConfig expected = withDisabledSweepAndCompaction(AtlasDbRuntimeConfig.defaultRuntimeConfig());
+
+        assertThat(fromServices.getAtlasDbRuntimeConfig()).isEqualTo(expected);
+        assertThat(toServices.getAtlasDbRuntimeConfig()).isEqualTo(expected);
     }
 
     @Test
@@ -95,10 +148,11 @@ public class TestKvsMigrationCommand {
         checkKvs(toServices, 10, 257);
     }
 
-    private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
+    private KvsMigrationCommand getCommand(String[] commandArgs, String[] globalArgs) throws URISyntaxException {
         String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
         String[] initArgs = new String[] {"migrate", "-fc", filePath, "-mc", filePath};
-        String[] fullArgs = ObjectArrays.concat(initArgs, args, String.class);
+        String[] fullArgs =
+                ObjectArrays.concat(globalArgs, ObjectArrays.concat(initArgs, commandArgs, String.class), String.class);
         return AbstractTestRunner.buildCommand(KvsMigrationCommand.class, fullArgs);
     }
 
@@ -107,7 +161,7 @@ public class TestKvsMigrationCommand {
     }
 
     private int runWithOptions(String... args) throws URISyntaxException {
-        KvsMigrationCommand command = getCommand(args);
+        KvsMigrationCommand command = getCommand(args, EMPTY_ARGS);
         return command.execute(fromServices, toServices);
     }
 
@@ -149,5 +203,25 @@ public class TestKvsMigrationCommand {
 
     private static TableReference getTableRef(int number) {
         return TableReference.create(Namespace.create("ns"), "table" + number);
+    }
+
+    private static AtlasDbRuntimeConfig loadFromFile() throws URISyntaxException, IOException {
+        return AtlasDbConfigs.load(
+                new File(AbstractTestRunner.getResourcePath(InMemoryTestRunner.RUNTIME_CONFIG_LOCATION)),
+                AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH,
+                AtlasDbRuntimeConfig.class);
+    }
+
+    private static AtlasDbRuntimeConfig loadFromString() throws IOException {
+        return AtlasDbConfigs.loadFromString(RUNTIME_CONFIG, null, AtlasDbRuntimeConfig.class);
+    }
+
+    private static AtlasDbRuntimeConfig withDisabledSweepAndCompaction(AtlasDbRuntimeConfig config) {
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .from(config)
+                .sweep(SweepConfig.disabled())
+                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .compact(CompactorConfig.disabled())
+                .build();
     }
 }

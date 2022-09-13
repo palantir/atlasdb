@@ -29,11 +29,11 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
-public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions {
+public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
 
-    private final FutileTimestampStore futileTimestampStore;
+    private final AbandonedTimestampStore abandonedTimestampStore;
 
     /**
      * This cache is only meant for timestamp ranges (inclusive) which are known to be concluded.
@@ -44,12 +44,12 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
     private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
-    DefaultKnownAbortedTransactions(
-            FutileTimestampStore futileTimestampStore,
+    KnownAbortedTransactionsImpl(
+            AbandonedTimestampStore abandonedTimestampStore,
             AbortedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
             int maxCacheWeight) {
-        this.futileTimestampStore = futileTimestampStore;
+        this.abandonedTimestampStore = abandonedTimestampStore;
         this.softCache = softCache;
         this.metrics = AbortedTransctionsCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
@@ -63,15 +63,15 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
                 .build();
     }
 
-    public static DefaultKnownAbortedTransactions create(
+    public static KnownAbortedTransactionsImpl create(
             KnownConcludedTransactions knownConcludedTransactions,
-            FutileTimestampStore futileTimestampStore,
+            AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
             Optional<InternalSchemaInstallConfig> config) {
         AbortedTransactionSoftCache softCache =
-                new AbortedTransactionSoftCache(futileTimestampStore, knownConcludedTransactions);
-        return new DefaultKnownAbortedTransactions(
-                futileTimestampStore,
+                new AbortedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+        return new KnownAbortedTransactionsImpl(
+                abandonedTimestampStore,
                 softCache,
                 registry,
                 config.map(InternalSchemaInstallConfig::versionFourAbortedTransactionsCacheSize)
@@ -99,7 +99,8 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        futileTimestampStore.addAbortedTimestamps(abortedTimestamps);
+        // todo(snanda): batching?
+        abortedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
     }
 
     @VisibleForTesting
@@ -113,7 +114,7 @@ public class DefaultKnownAbortedTransactions implements KnownAbortedTransactions
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
         metrics.abortedTxnCacheMiss().mark();
-        return futileTimestampStore.getAbortedTransactionsInRange(
+        return abandonedTimestampStore.getAbandonedTimestampsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }
 

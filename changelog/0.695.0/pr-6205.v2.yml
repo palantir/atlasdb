@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump PostgreSQL driver from 42.3.3 -> 42.4.1 to remediate CVE
+  links:
+  - https://github.com/palantir/atlasdb/pull/6205

@@ -19,6 +19,7 @@ import com.codahale.metrics.Counter;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,9 +45,11 @@ class ValueExtractor extends ResultsExtractor<Value> {
             Cell cell = Cell.create(row, col);
             Value value = collector.computeIfAbsent(cell, _cell -> Value.create(val, ts));
             if (value.getTimestamp() != ts) {
+                TraceStatistics.incSkippedValues(1L);
                 notLatestVisibleValueCellFilterCounter.inc();
             }
         } else {
+            TraceStatistics.incSkippedValues(1L);
             notLatestVisibleValueCellFilterCounter.inc();
         }
     }

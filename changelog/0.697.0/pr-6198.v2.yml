@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Optimize CassandraService port checks
+
+    Follow up to #6074 to further improve the Cassandra pooling to avoid unnecessary overhead for services that are coordinating many nodes. We can avoid intermediate collections when validating the Cassandra destination ports for a given pool.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6198

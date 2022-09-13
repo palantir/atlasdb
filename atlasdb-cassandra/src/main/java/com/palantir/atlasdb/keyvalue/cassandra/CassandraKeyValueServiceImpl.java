@@ -997,7 +997,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             byte[] row,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
-        return ClosableIterators.wrap(
+        return ClosableIterators.wrapWithEmptyClose(
                 new AbstractPagingIterable<
                         Map.Entry<Cell, Value>, TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]>>() {
                     @Override

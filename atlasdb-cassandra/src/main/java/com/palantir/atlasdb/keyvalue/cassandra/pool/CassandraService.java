@@ -27,7 +27,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -55,6 +54,8 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -132,8 +133,9 @@ public class CassandraService implements AutoCloseable {
     public void close() {}
 
     public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
-        ImmutableSet.Builder<CassandraServer> servers = ImmutableSet.builder();
-        ImmutableMap.Builder<CassandraServer, String> hostToDatacentersThisRefresh = ImmutableMap.builder();
+        // explicitly not using immutable builders to deduplicate nodes
+        Set<CassandraServer> servers = new HashSet<>();
+        Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
 
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, ImmutableSet<CassandraServer>> newTokenRing =
@@ -179,9 +181,9 @@ public class CassandraService implements AutoCloseable {
                 }
             }
             tokenMap = tokensInterner.intern(newTokenRing.build());
-            hostToDatacenter = hostToDatacentersThisRefresh.build();
+            hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
-            return servers.build();
+            return ImmutableSet.copyOf(servers);
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -303,22 +305,17 @@ public class CassandraService implements AutoCloseable {
     }
 
     private int getKnownPort() throws UnknownHostException {
-        ImmutableSet<Integer> allKnownPorts =
-                getAllKnownHosts().stream().map(InetSocketAddress::getPort).collect(ImmutableSet.toImmutableSet());
+        Set<Integer> allKnownPorts = Stream.concat(
+                        currentPools.keySet().stream().map(CassandraServer::proxy),
+                        getServersSocketAddressesFromConfig().stream())
+                .map(InetSocketAddress::getPort)
+                .collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
             return Iterables.getOnlyElement(allKnownPorts);
         } else {
             throw new UnknownHostException("No single known port");
         }
-    }
-
-    private SetView<InetSocketAddress> getAllKnownHosts() {
-        return Sets.union(getProxiesFromCurrentPool(), getServersSocketAddressesFromConfig());
-    }
-
-    private ImmutableSet<InetSocketAddress> getProxiesFromCurrentPool() {
-        return currentPools.keySet().stream().map(CassandraServer::proxy).collect(ImmutableSet.toImmutableSet());
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {

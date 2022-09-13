@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -171,6 +172,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
         };
     }
 
+    @MustBeClosed
     private ClosableIterator<RowResult<Value>> getIteratorToScrub(
             int batchSizeHint, long maxScrubTimestamp, byte[] startRow, byte[] endRow) {
         RangeRequest.Builder range = RangeRequest.builder();

@@ -18,7 +18,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -720,5 +720,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "5OePXxf7hU+eEtRRLN3UqA==";
+    static String __CLASS_HASH = "RPuWa9/Enf/G4yy7WraKvg==";
 }

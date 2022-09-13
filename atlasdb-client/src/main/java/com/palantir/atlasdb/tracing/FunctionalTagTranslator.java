@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.knowledge;
+package com.palantir.atlasdb.tracing;
 
-import java.util.Set;
+import com.palantir.tracing.TagTranslator;
+import java.util.function.Consumer;
 
-public interface FutileTimestampStore {
-    void addAbortedTimestamps(Set<Long> abortedTimestamps);
+public enum FunctionalTagTranslator implements TagTranslator<Consumer<TagConsumer>> {
+    INSTANCE;
 
-    Set<Long> getAbortedTransactionsInRange(long startInclusive, long endInclusive);
+    @Override
+    public <T> void translate(TagAdapter<T> adapter, T target, Consumer<TagConsumer> data) {
+        data.accept((key, value) -> adapter.tag(target, key, value));
+    }
 }

@@ -24,11 +24,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
+import java.io.Closeable;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
-public class BatchSizeIncreasingIterator<T> {
+public class BatchSizeIncreasingIterator<T> implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(BatchSizeIncreasingIterator.class);
 
     private final int originalBatchSize;
@@ -88,7 +89,8 @@ public class BatchSizeIncreasingIterator<T> {
 
         // If the last row we got was the maximal row, then we are done.
         if (!batchProvider.hasNext(lastToken)) {
-            currentResults = ClosableIterators.wrap(ImmutableList.<T>of().iterator());
+            currentResults =
+                    ClosableIterators.wrapWithEmptyClose(ImmutableList.<T>of().iterator());
             return;
         }
 
@@ -123,6 +125,7 @@ public class BatchSizeIncreasingIterator<T> {
         boolean isLastBatch();
     }
 
+    @Override
     public void close() {
         if (currentResults != null) {
             currentResults.close();

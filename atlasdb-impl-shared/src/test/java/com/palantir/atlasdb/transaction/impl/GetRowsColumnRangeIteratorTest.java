@@ -48,6 +48,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("MustBeClosedChecker")
 @RunWith(MockitoJUnitRunner.class)
 public class GetRowsColumnRangeIteratorTest {
 

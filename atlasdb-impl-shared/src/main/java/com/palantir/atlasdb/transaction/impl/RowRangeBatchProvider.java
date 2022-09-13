@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -41,6 +42,7 @@ public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
         this.timestamp = timestamp;
     }
 
+    @MustBeClosed
     @Override
     public ClosableIterator<RowResult<Value>> getBatch(int batchSize, @Nullable byte[] lastToken) {
         RangeRequest.Builder newRange = range.getBuilder();

@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRendererV2")
 @SuppressWarnings({"all", "deprecation"})

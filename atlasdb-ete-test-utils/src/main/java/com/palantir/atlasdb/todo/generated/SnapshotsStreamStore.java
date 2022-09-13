@@ -24,7 +24,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Generated;
+import javax.annotation.processing.Generated;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;

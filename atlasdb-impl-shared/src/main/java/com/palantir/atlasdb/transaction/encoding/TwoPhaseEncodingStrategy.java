@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -60,6 +61,15 @@ public final class TwoPhaseEncodingStrategy
         return EncodingUtils.add(
                 TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(startTimestamp, commitStatus.value()),
                 commitStatus.isCommitted() ? COMMITTED : STAGING);
+    }
+
+    public AtomicValue<TransactionStatus> decodeNullValueAsCommitStatus() {
+        if (progressEncodingStrategy.isInProgress(null)) {
+            return IN_PROGRESS_COMMITTED;
+        }
+        // `null` value is the in_progress marker for transaction schema <= 3. For transaction schema > 3, we have an
+        // explicit in-progress marker and a null values represents that the table has been swept.
+        return AtomicValue.committed(TransactionStatuses.unknown());
     }
 
     @Override

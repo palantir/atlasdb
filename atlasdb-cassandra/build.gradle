@@ -22,7 +22,6 @@ dependencies {
   explicitShadow project(":atlasdb-api")
   explicitShadow project(":atlasdb-client")
   explicitShadow project(":atlasdb-impl-shared")
-  explicitShadow project(":atlasdb-processors")
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
   explicitShadow ('com.palantir.cassandra:cassandra-thrift') {

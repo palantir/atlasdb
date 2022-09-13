@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fixed a bug where the background scrubber would fail if an item on
+    its queue referred to a table that was deleted in the meantime.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6195

@@ -192,12 +192,9 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             Long startTs = startTsAndCell.getKey();
 
             if (maybeActual.isEmpty()) {
-                // put in_progress if there is no value in the kvs
                 resultBuilder.put(
                         startTs,
-                        encodingStrategy
-                                .decodeValueAsCommitStatus(startTs, null)
-                                .value());
+                        encodingStrategy.decodeNullValueAsCommitStatus().value());
                 continue;
             }
 

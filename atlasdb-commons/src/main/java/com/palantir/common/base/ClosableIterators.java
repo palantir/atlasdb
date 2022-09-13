@@ -25,7 +25,15 @@ public final class ClosableIterators {
         /* */
     }
 
+    /**
+     * @deprecated Use the explicit `wrapWithEmptyClose` instead. This helps avoid accidental unwrapping.
+     */
+    @Deprecated
     public static <T> ClosableIterator<T> wrap(final Iterator<? extends T> it) {
+        return wrapWithEmptyClose(it);
+    }
+
+    public static <T> ClosableIterator<T> wrapWithEmptyClose(final Iterator<? extends T> it) {
         return new EmptyClose<T>() {
             @Override
             public boolean hasNext() {
@@ -52,11 +60,47 @@ public final class ClosableIterators {
     }
 
     private static final ClosableIterator<?> EMPTY_IMMUTABLE_CLOSABLE_ITERATOR =
-            wrap(ImmutableSet.of().iterator());
+            wrapWithEmptyClose(ImmutableSet.of().iterator());
 
     @SuppressWarnings("unchecked")
     public static <T> ClosableIterator<T> emptyImmutableClosableIterator() {
         return (ClosableIterator<T>) EMPTY_IMMUTABLE_CLOSABLE_ITERATOR;
+    }
+
+    /**
+     * Run the on close after the original close method. The additional close will be run even if the original close
+     * method fails.
+     */
+    public static <T> ClosableIterator<T> appendOnClose(ClosableIterator<T> closableIterator, final Closeable onClose) {
+        return new ClosableIterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return closableIterator.hasNext();
+            }
+
+            @Override
+            public T next() {
+                return closableIterator.next();
+            }
+
+            @Override
+            public void remove() {
+                closableIterator.remove();
+            }
+
+            @Override
+            public void close() {
+                try {
+                    closableIterator.close();
+                } finally {
+                    try {
+                        onClose.close();
+                    } catch (IOException e) {
+                        Throwables.throwUncheckedException(e);
+                    }
+                }
+            }
+        };
     }
 
     public static <T> ClosableIterator<T> wrap(final Iterator<? extends T> it, final Closeable closable) {

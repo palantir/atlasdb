@@ -31,7 +31,7 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     default void close() {}
 
     default <U> ClosableIterator<U> map(Function<T, U> mapper) {
-        return ClosableIterators.wrap(Iterators.transform(this, mapper::apply));
+        return ClosableIterators.wrap(Iterators.transform(this, mapper::apply), this);
     }
 
     default <U> ClosableIterator<U> flatMap(Function<T, Collection<U>> mapper) {
@@ -57,5 +57,13 @@ public interface ClosableIterator<T> extends Iterator<T>, Closeable {
 
     default Stream<T> stream() {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(this, 0), false);
+    }
+
+    /**
+     * Run the on close after the original close method. The additional close will be run even if the original close
+     * method fails.
+     */
+    default ClosableIterator<T> appendOnClose(Closeable onClose) {
+        return ClosableIterators.appendOnClose(this, onClose);
     }
 }
