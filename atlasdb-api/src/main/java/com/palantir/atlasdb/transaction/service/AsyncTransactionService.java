@@ -75,7 +75,8 @@ public interface AsyncTransactionService {
      * concluded i.e. its status cannot change.
      *
      * @param startTimestamps start timestamps of the transaction being looked up
-     * @return {@link ListenableFuture} containing the map from a transaction start timestamp to {@link TransactionStatus}
+     * @return {@link ListenableFuture} containing the map from a transaction start timestamp to
+     * {@link TransactionStatus}
      * All start timestamps are expected to be present in the returning map.
      */
     ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps);

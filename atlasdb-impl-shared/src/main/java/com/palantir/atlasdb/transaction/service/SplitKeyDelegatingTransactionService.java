@@ -133,15 +133,6 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         keyedServices.values().forEach(TransactionService::close);
     }
 
-    private <StatusT> ListenableFuture<StatusT> getFromDelegate(
-            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
-            BiFunction<AsyncTransactionService, Long, ListenableFuture<StatusT>> statusGetter,
-            long startTimestamp) {
-        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
-                .map(service -> statusGetter.apply(service, startTimestamp))
-                .orElseGet(() -> Futures.immediateFuture(null));
-    }
-
     private ListenableFuture<Long> getterV1(AsyncTransactionService service, Long startTs) {
         return service.getAsync(startTs);
     }
@@ -160,9 +151,18 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
         return service.getAsyncV2(startTs);
     }
 
-    private <Status> ListenableFuture<Map<Long, Status>> getFromDelegate(
+    private <StatusT> ListenableFuture<StatusT> getFromDelegate(
             Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
-            BiFunction<AsyncTransactionService, Iterable<Long>, ListenableFuture<Map<Long, Status>>> statusGetter,
+            BiFunction<AsyncTransactionService, Long, ListenableFuture<StatusT>> statusGetter,
+            long startTimestamp) {
+        return getServiceForTimestamp(keyedTransactionServices, startTimestamp)
+                .map(service -> statusGetter.apply(service, startTimestamp))
+                .orElseGet(() -> Futures.immediateFuture(null));
+    }
+
+    private <StatusT> ListenableFuture<Map<Long, StatusT>> getFromDelegate(
+            Map<T, ? extends AsyncTransactionService> keyedTransactionServices,
+            BiFunction<AsyncTransactionService, Iterable<Long>, ListenableFuture<Map<Long, StatusT>>> statusGetter,
             Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
@@ -181,7 +181,7 @@ public final class SplitKeyDelegatingTransactionService<T> implements Transactio
                     SafeArg.of("knownServiceKeys", keyedTransactionServices.keySet()));
         }
 
-        Collection<ListenableFuture<Map<Long, Status>>> futures = KeyedStream.stream(queryMap.asMap())
+        Collection<ListenableFuture<Map<Long, StatusT>>> futures = KeyedStream.stream(queryMap.asMap())
                 .map((key, value) -> statusGetter.apply(keyedTransactionServices.get(key), value))
                 .collectToMap()
                 .values();
