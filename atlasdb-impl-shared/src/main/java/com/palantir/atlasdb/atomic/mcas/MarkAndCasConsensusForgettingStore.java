@@ -14,39 +14,39 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.atomic;
+package com.palantir.atlasdb.atomic.mcas;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStoreImpl;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.Unsafe;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.immutables.value.Value;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
-    private static final ByteBuffer WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE =
+    public static final ByteBuffer WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE =
             ByteBuffer.wrap(TwoPhaseEncodingStrategy.ABORTED_TRANSACTION_STAGING_VALUE);
 
     private final ByteBuffer inProgressMarkerBuffer;
@@ -86,7 +86,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * been marked. The MCAS calls to KVS are batched.
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws MultiCheckAndSetException {
+    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
     }
 
@@ -97,18 +97,19 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * atomically.
      * */
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
+    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         values.forEach(this::atomicUpdate);
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws MultiCheckAndSetException {
+    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
         ByteBuffer buffer = ByteBuffer.wrap(value);
         autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
     }
 
+    // todo(snanda); this is serial
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws MultiCheckAndSetException {
+    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         values.forEach(this::checkAndTouch);
     }
 
@@ -137,134 +138,90 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     static void processBatch(KeyValueService kvs, TableReference tableRef, List<BatchElement<CasRequest, Void>> batch) {
         List<BatchElement<CasRequest, Void>> pendingUpdates = filterOptimalUpdatePerCell(batch);
 
-        Map<ByteBuffer, List<BatchElement<CasRequest, Void>>> pendingRawRequests = pendingUpdates.stream()
-                .collect(Collectors.groupingBy(
-                        elem -> ByteBuffer.wrap(elem.argument().cell().getRowName())));
+        List<CasRequestBatch> pendingBatchedRequests = KeyedStream.stream(pendingUpdates.stream()
+                        .collect(Collectors.groupingBy(
+                                elem -> ByteBuffer.wrap(elem.argument().cell().getRowName()))))
+                .map((rowName1, pendingRequests1) -> new CasRequestBatch(tableRef, rowName1, pendingRequests1))
+                .values()
+                .collect(Collectors.toList());
 
+        // at this point, results for requests that will never be retried are already populated.
         // There is one request per row
-        Map<CasRequest, CasResponse> resultMap = new HashMap<>();
+        while (!pendingBatchedRequests.isEmpty()) {
+            pendingBatchedRequests = pendingBatchedRequests.stream()
+                    .filter(req -> !serveMcasRequest(kvs, req))
+                    .collect(Collectors.toList());
+        }
+    }
 
-        for (Map.Entry<ByteBuffer, List<BatchElement<CasRequest, Void>>> requestEntry : pendingRawRequests.entrySet()) {
-            ByteBuffer rowName = requestEntry.getKey();
-            List<BatchElement<CasRequest, Void>> pendingRequests = requestEntry.getValue();
-            MultiCheckAndSetRequest multiCheckAndSetRequest =
-                    multiCasRequest(tableRef, rowName.array(), pendingRequests);
-            try {
-                kvs.multiCheckAndSet(multiCheckAndSetRequest);
-                pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.success()));
-            } catch (MultiCheckAndSetException e) {
-                pendingRequests.forEach(req -> resultMap.put(req.argument(), CasResponse.failure(e)));
+    private static boolean serveMcasRequest(KeyValueService kvs, CasRequestBatch casRequestBatch) {
+        List<BatchElement<CasRequest, Void>> pendingRequests = casRequestBatch.getPendingRequests();
+
+        try {
+            kvs.multiCheckAndSet(casRequestBatch.getMcasRequest());
+            // success for all
+            pendingRequests.forEach(req -> req.result().set(null));
+            casRequestBatch.setPendingRequests(ImmutableList.of());
+            return true;
+        } catch (MultiCheckAndSetException e) {
+            // we only want to retry the requests where the actual matches the expected.
+            ImmutableList.Builder<BatchElement<CasRequest, Void>> requestsToRetry = ImmutableList.builder();
+
+            for (BatchElement<CasRequest, Void> req : pendingRequests) {
+                if (shouldRetry(req, e)) {
+                    requestsToRetry.add(req);
+                } else {
+                    // The request failed because my actual and expected did not match
+                    byte[] actualValue = e.getActualValues().get(req.argument().cell());
+                    req.result().setException(CasRequest.failure(req.argument(), Optional.ofNullable(actualValue)));
+                }
             }
+
+            casRequestBatch.setPendingRequests(requestsToRetry.build());
+        }
+        return casRequestBatch.isBatchServed();
+    }
+
+    private static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException e) {
+        // the MCAS request failed but not because of me
+        CasRequest casRequest = req.argument();
+        Cell cell = casRequest.cell();
+
+        if (!e.getActualValues().containsKey(cell)) {
+            return false;
         }
 
-        populateResult(batch, resultMap);
+        return casRequest.expected().equals(ByteBuffer.wrap(e.getActualValues().get(cell)));
     }
 
-    private static void populateResult(
-            List<BatchElement<CasRequest, Void>> batch, Map<CasRequest, CasResponse> results) {
-        CasResponse defaultResponse = CasResponse.failure(
-                new MultiCheckAndSetException("There were one or more concurrent updates for the same "
-                        + "cell and a higher ranking update was selected to be executed. "));
-        batch.forEach(elem -> {
-            CasResponse response = results.getOrDefault(elem.argument(), defaultResponse);
-            if (response.successful()) {
-                elem.result().set(null);
-            } else {
-                elem.result().setException(response.exception().get());
-            }
-        });
-    }
-
-    private static MultiCheckAndSetRequest multiCasRequest(
-            TableReference tableRef, byte[] rowName, List<BatchElement<CasRequest, Void>> requests) {
-        Map<Cell, byte[]> expected = extractValueMap(requests, CasRequest::expected);
-        Map<Cell, byte[]> updates = extractValueMap(requests, CasRequest::update);
-        return MultiCheckAndSetRequest.multipleCells(tableRef, rowName, expected, updates);
-    }
-
-    private static Map<Cell, byte[]> extractValueMap(
-            List<BatchElement<CasRequest, Void>> requests, Function<CasRequest, ByteBuffer> valueExtractor) {
-        return KeyedStream.of(requests)
-                .mapKeys(elem -> elem.argument().cell())
-                .map(elem -> valueExtractor.apply(elem.argument()).array())
-                .collectToMap();
-    }
-
-    // Every request with a lower rank fails with CheckAndSetException. Requests with same rank are coalesced.
+    // Every request with a lower rank fails will never be tried. Requests for touch will fail with
+    // `CheckAndSetException` and those for atomic updates will fail with `KeyAlreadyExistsException`.
     private static List<BatchElement<CasRequest, Void>> filterOptimalUpdatePerCell(
             List<BatchElement<CasRequest, Void>> batch) {
+
         Map<Cell, List<BatchElement<CasRequest, Void>>> partitionedElems = batch.stream()
                 .collect(Collectors.groupingBy(elem -> elem.argument().cell()));
 
-        ImmutableList.Builder<BatchElement<CasRequest, Void>> pendingUpdates = ImmutableList.builder();
+        ImmutableList.Builder<BatchElement<CasRequest, Void>> requestsToProcess = ImmutableList.builder();
 
         for (Map.Entry<Cell, List<BatchElement<CasRequest, Void>>> requestedUpdatesForCell :
                 partitionedElems.entrySet()) {
-            requestedUpdatesForCell.getValue().stream()
-                    .min(Comparator.comparing(elem -> CasRequest.rank(elem.argument())))
-                    .ifPresent(pendingUpdates::add);
-        }
-
-        return pendingUpdates.build();
-    }
-
-    enum UpdateRank {
-        TOUCH,
-        COMMIT,
-        ABORT
-    }
-
-    @Value.Immutable
-    interface CasRequest {
-        @Value.Parameter
-        Cell cell();
-
-        @Value.Parameter
-        ByteBuffer expected();
-
-        @Value.Parameter
-        ByteBuffer update();
-
-        @Value.Check
-        default void check() {
-            Preconditions.checkState(expected().hasArray(), "Cannot request CAS without expected value.");
-            Preconditions.checkState(update().hasArray(), "Cannot request CAS without update.");
-        }
-
-        private static UpdateRank rank(CasRequest req) {
-            if (req.expected().equals(req.update())) {
-                return UpdateRank.TOUCH;
+            List<BatchElement<CasRequest, Void>> sortedPendingRequests = requestedUpdatesForCell.getValue().stream()
+                    .sorted(Comparator.comparing(elem -> elem.argument().rank()))
+                    .collect(Collectors.toList());
+            if (!sortedPendingRequests.isEmpty()) {
+                requestsToProcess.add(sortedPendingRequests.remove(0));
+                // we want to fail the requests that will never be tried eagerly.
+                serveUntriedRequests(sortedPendingRequests);
             }
-            if (req.expected().equals(WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
-                return UpdateRank.ABORT;
-            }
-            return UpdateRank.COMMIT;
         }
+
+        return requestsToProcess.build();
     }
 
-    @Unsafe
-    @Value.Immutable
-    interface CasResponse {
-        boolean successful();
-
-        Optional<Exception> exception();
-
-        @Value.Check
-        default void check() {
-            Preconditions.checkState(
-                    successful() || exception().isPresent(),
-                    "The response can either be successful OR fail with exception.");
-        }
-
-        static CasResponse success() {
-            return ImmutableCasResponse.builder().successful(true).build();
-        }
-
-        static CasResponse failure(Exception ex) {
-            return ImmutableCasResponse.builder()
-                    .successful(false)
-                    .exception(ex)
-                    .build();
+    private static void serveUntriedRequests(List<BatchElement<CasRequest, Void>> sortedPendingRequests) {
+        for (BatchElement<CasRequest, Void> req : sortedPendingRequests) {
+            req.result().setException(CasRequest.failureUntried(req.argument()));
         }
     }
 }

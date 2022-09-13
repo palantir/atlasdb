@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.atomic;
+package com.palantir.atlasdb.atomic.mcas;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -106,7 +106,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
     public void coalescesMultipleMcasCalls() throws ExecutionException, InterruptedException {
         store.mark(CELL);
 
-        List<BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void>> requests = IntStream.range(0, 100)
+        List<BatchElement<CasRequest, Void>> requests = IntStream.range(0, 100)
                 .mapToObj(idx -> TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY))
                 .collect(Collectors.toList());
         store.processBatch(kvs, TABLE, requests);
@@ -164,11 +164,11 @@ public class MarkAndCasConsensusForgettingStoreTest {
 
     @SuppressWarnings("immutables:subtype")
     @org.immutables.value.Value.Immutable
-    interface TestBatchElement extends BatchElement<MarkAndCasConsensusForgettingStore.CasRequest, Void> {
+    interface TestBatchElement extends BatchElement<CasRequest, Void> {
         @org.immutables.value.Value.Parameter
         @Nullable
         @Override
-        MarkAndCasConsensusForgettingStore.CasRequest argument();
+        CasRequest argument();
 
         @org.immutables.value.Value.Parameter
         @Override
