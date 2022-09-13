@@ -56,15 +56,15 @@ public interface CasRequest {
     }
 
     private static Exception failureInternal(CasRequest req, Optional<byte[]> actual) {
-        KeyAlreadyExistsException keyAlreadyExistsException = new KeyAlreadyExistsException(
-                "There already exists a " + "key for blah blah :P", ImmutableList.of(req.cell()));
-        CheckAndSetException checkAndSetException = new CheckAndSetException(
-                "There were one or more concurrent updates for the same "
-                        + "cell and a higher ranking update was selected to be executed.",
-                req.cell(),
-                req.expected().array(),
-                actual.map(ImmutableList::of).orElseGet(ImmutableList::of));
-        return req.rank().equals(UpdateRank.TOUCH) ? checkAndSetException : keyAlreadyExistsException;
+        return req.rank().equals(UpdateRank.TOUCH)
+                ? new CheckAndSetException(
+                        "There were one or more concurrent updates for the same cell and a higher ranking update was "
+                                + "selected to be executed.",
+                        req.cell(),
+                        req.expected().array(),
+                        actual.map(ImmutableList::of).orElseGet(ImmutableList::of))
+                : new KeyAlreadyExistsException(
+                        "Failed because other client-side element succeeded", ImmutableList.of(req.cell()));
     }
 
     @Value.Check

@@ -107,7 +107,6 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
     }
 
-    // todo(snanda); this is serial
     @Override
     public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         values.forEach(this::checkAndTouch);
@@ -141,7 +140,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         List<CasRequestBatch> pendingBatchedRequests = KeyedStream.stream(pendingUpdates.stream()
                         .collect(Collectors.groupingBy(
                                 elem -> ByteBuffer.wrap(elem.argument().cell().getRowName()))))
-                .map((rowName1, pendingRequests1) -> new CasRequestBatch(tableRef, rowName1, pendingRequests1))
+                .map((row, requests) -> new CasRequestBatch(tableRef, row, requests))
                 .values()
                 .collect(Collectors.toList());
 
@@ -155,35 +154,18 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     private static boolean serveMcasRequest(KeyValueService kvs, CasRequestBatch casRequestBatch) {
-        List<BatchElement<CasRequest, Void>> pendingRequests = casRequestBatch.getPendingRequests();
-
         try {
             kvs.multiCheckAndSet(casRequestBatch.getMcasRequest());
-            // success for all
-            pendingRequests.forEach(req -> req.result().set(null));
-            casRequestBatch.setPendingRequests(ImmutableList.of());
-            return true;
+            // The above operation is atomic
+            casRequestBatch.setSuccessForAllRequests();
         } catch (MultiCheckAndSetException e) {
-            // we only want to retry the requests where the actual matches the expected.
-            ImmutableList.Builder<BatchElement<CasRequest, Void>> requestsToRetry = ImmutableList.builder();
-
-            for (BatchElement<CasRequest, Void> req : pendingRequests) {
-                if (shouldRetry(req, e)) {
-                    requestsToRetry.add(req);
-                } else {
-                    // The request failed because my actual and expected did not match
-                    byte[] actualValue = e.getActualValues().get(req.argument().cell());
-                    req.result().setException(CasRequest.failure(req.argument(), Optional.ofNullable(actualValue)));
-                }
-            }
-
-            casRequestBatch.setPendingRequests(requestsToRetry.build());
+            casRequestBatch.processBatchWithException(MarkAndCasConsensusForgettingStore::shouldRetry, e);
         }
         return casRequestBatch.isBatchServed();
     }
 
+    // we only want to retry the requests where the actual matches the expected.
     private static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException e) {
-        // the MCAS request failed but not because of me
         CasRequest casRequest = req.argument();
         Cell cell = casRequest.cell();
 
@@ -194,7 +176,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         return casRequest.expected().equals(ByteBuffer.wrap(e.getActualValues().get(cell)));
     }
 
-    // Every request with a lower rank fails will never be tried. Requests for touch will fail with
+    // Every request with a lower rank will never be tried. Requests for touch will fail with
     // `CheckAndSetException` and those for atomic updates will fail with `KeyAlreadyExistsException`.
     private static List<BatchElement<CasRequest, Void>> filterOptimalUpdatePerCell(
             List<BatchElement<CasRequest, Void>> batch) {
@@ -211,6 +193,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                     .collect(Collectors.toList());
             if (!sortedPendingRequests.isEmpty()) {
                 requestsToProcess.add(sortedPendingRequests.remove(0));
+
                 // we want to fail the requests that will never be tried eagerly.
                 serveUntriedRequests(sortedPendingRequests);
             }

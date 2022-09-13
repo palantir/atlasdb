@@ -16,43 +16,61 @@
 
 package com.palantir.atlasdb.atomic.mcas;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.streams.KeyedStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public final class CasRequestBatch {
     private final TableReference tableRef;
     private final ByteBuffer rowName;
 
-    private List<BatchElement<CasRequest, Void>> pendingRequests;
+    private ImmutableList<BatchElement<CasRequest, Void>> pendingRequests;
 
-    public CasRequestBatch(
-            TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> pendingRequests) {
+    CasRequestBatch(TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> pendingRequests) {
         this.tableRef = tableRef;
         this.rowName = rowName;
-        this.pendingRequests = pendingRequests;
+        this.pendingRequests = ImmutableList.copyOf(pendingRequests);
+    }
+
+    MultiCheckAndSetRequest getMcasRequest() {
+        return multiCasRequest(tableRef, rowName.array(), pendingRequests);
+    }
+
+    void setSuccessForAllRequests() {
+        pendingRequests.forEach(req -> req.result().set(null));
+        pendingRequests = ImmutableList.of();
+    }
+
+    void processBatchWithException(
+            BiFunction<BatchElement<CasRequest, Void>, MultiCheckAndSetException, Boolean> shouldRetry,
+            MultiCheckAndSetException e) {
+        ImmutableList.Builder<BatchElement<CasRequest, Void>> requestsToRetry = ImmutableList.builder();
+
+        for (BatchElement<CasRequest, Void> req : pendingRequests) {
+            if (shouldRetry.apply(req, e)) {
+                requestsToRetry.add(req);
+            } else {
+                // The request failed because my actual and expected did not match
+                byte[] actualValue = e.getActualValues().get(req.argument().cell());
+                req.result().setException(CasRequest.failure(req.argument(), Optional.ofNullable(actualValue)));
+            }
+        }
+
+        pendingRequests = requestsToRetry.build();
     }
 
     boolean isBatchServed() {
         return pendingRequests.isEmpty();
-    }
-
-    public ByteBuffer getRowName() {
-        return rowName;
-    }
-
-    public List<BatchElement<CasRequest, Void>> getPendingRequests() {
-        return pendingRequests;
-    }
-
-    public MultiCheckAndSetRequest getMcasRequest() {
-        return multiCasRequest(tableRef, rowName.array(), pendingRequests);
     }
 
     private static MultiCheckAndSetRequest multiCasRequest(
@@ -68,10 +86,5 @@ public final class CasRequestBatch {
                 .mapKeys(elem -> elem.argument().cell())
                 .map(elem -> valueExtractor.apply(elem.argument()).array())
                 .collectToMap();
-    }
-
-    // todo(snanda): may need protection
-    public void setPendingRequests(List<BatchElement<CasRequest, Void>> pendingRequests) {
-        this.pendingRequests = pendingRequests;
     }
 }
