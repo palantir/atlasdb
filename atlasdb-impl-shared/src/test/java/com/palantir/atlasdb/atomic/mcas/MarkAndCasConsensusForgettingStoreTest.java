@@ -30,7 +30,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
@@ -95,24 +95,41 @@ public class MarkAndCasConsensusForgettingStoreTest {
         TestBatchElement element = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         store.processBatch(kvs, TABLE, ImmutableList.of(element));
         assertThatThrownBy(() -> element.result().get())
-                .hasCauseInstanceOf(CheckAndSetException.class)
+                .hasCauseInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining(
-                        "Unexpected value observed in table test.table. If this is happening repeatedly, your program"
-                                + " may be out of sync with the database");
+                        "Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).isEmpty();
     }
 
     @Test
-    public void coalescesMultipleMcasCalls() throws ExecutionException, InterruptedException {
+    public void failsAllButOneRequestsWithSameParams() throws ExecutionException, InterruptedException {
         store.mark(CELL);
+        int totalRequests = 100;
 
-        List<BatchElement<CasRequest, Void>> requests = IntStream.range(0, 100)
-                .mapToObj(idx -> TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY))
+        List<BatchElement<CasRequest, Void>> requests = IntStream.range(0, totalRequests)
+                .mapToObj(_idx -> TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY))
                 .collect(Collectors.toList());
         store.processBatch(kvs, TABLE, requests);
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
-        requests.forEach(req -> assertThatCode(() -> req.result().get()).doesNotThrowAnyException());
+
+        int success = 0;
+        int failures = 0;
+
+        for (BatchElement<CasRequest, Void> elem : requests) {
+            try {
+                elem.result().get();
+                success++;
+            } catch (Exception ex) {
+                Throwable cause = ex.getCause();
+                assertThat(cause).isInstanceOf(KeyAlreadyExistsException.class)
+                        .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
+                failures++;
+            }
+        }
+
+        assertThat(success).isEqualTo(1);
+        assertThat(failures).isEqualTo(totalRequests - 1);
     }
 
     @Test

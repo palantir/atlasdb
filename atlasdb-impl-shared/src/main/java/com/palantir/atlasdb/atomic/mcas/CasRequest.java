@@ -64,7 +64,8 @@ public interface CasRequest {
                         req.expected().array(),
                         actual.map(ImmutableList::of).orElseGet(ImmutableList::of))
                 : new KeyAlreadyExistsException(
-                        "Failed because other client-side element succeeded", ImmutableList.of(req.cell()));
+                        "Atomic update cannot go through as the key already exists in the KVS.",
+                        ImmutableList.of(req.cell()));
     }
 
     @Value.Check

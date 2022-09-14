@@ -18,8 +18,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
@@ -52,6 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -504,19 +507,46 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
         List<CheckAndSetRequest> casRequests = new ArrayList<>();
+        ImmutableMap.Builder<Cell, byte[]> expected = ImmutableMap.builder();
+        ImmutableMap.Builder<Cell, byte[]> actual = ImmutableMap.builder();
+
         for (Map.Entry<Cell, byte[]> update : multiCheckAndSetRequest.updates().entrySet()) {
             if (multiCheckAndSetRequest.expected().containsKey(update.getKey())) {
+                Cell cell = update.getKey();
+                byte[] expectedVal = multiCheckAndSetRequest.expected().get(cell);
+
+                expected.put(cell, expectedVal);
                 casRequests.add(CheckAndSetRequest.singleCell(
                         multiCheckAndSetRequest.tableRef(),
-                        update.getKey(),
-                        multiCheckAndSetRequest.expected().get(update.getKey()),
+                        cell,
+                        expectedVal,
                         update.getValue()));
+
             } else {
                 casRequests.add(CheckAndSetRequest.newCell(
                         multiCheckAndSetRequest.tableRef(), update.getKey(), update.getValue()));
             }
         }
-        casRequests.forEach(this::checkAndSet);
+
+        boolean shouldThrow = false;
+        for(CheckAndSetRequest req : casRequests) {
+             try {
+                checkAndSet(req);
+             } catch (CheckAndSetException ex) {
+                 shouldThrow = true;
+                 if (!ex.getActualValues().isEmpty()) {
+                     actual.put(req.cell(), Iterables.getOnlyElement(ex.getActualValues()));
+                 }
+             }
+         }
+
+        if (shouldThrow) {
+            throw new MultiCheckAndSetException(
+                    LoggingArgs.tableRef(multiCheckAndSetRequest.tableRef()),
+                    multiCheckAndSetRequest.rowName(), expected.build(),
+                    actual.build());
+        }
+
     }
 
     // Returns the existing contents, if any, and null otherwise
