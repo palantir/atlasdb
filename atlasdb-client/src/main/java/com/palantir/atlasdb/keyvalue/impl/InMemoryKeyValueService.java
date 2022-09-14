@@ -20,7 +20,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
@@ -58,6 +57,7 @@ import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.ArrayList;
@@ -69,6 +69,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -504,48 +505,34 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        List<CheckAndSetRequest> casRequests = new ArrayList<>();
-        Map<Cell, byte[]> expected = new HashMap<>();
-        Map<Cell, byte[]> actual = new HashMap<>();
+    public void multiCheckAndSet(MultiCheckAndSetRequest request) throws MultiCheckAndSetException {
+        Table table = getTableMap(request.tableRef());
+        Map<Key, byte[]> updates = KeyedStream.stream(request.updates())
+                .mapKeys(cell -> getKey(table, cell, AtlasDbConstants.TRANSACTION_TS))
+                .collectToMap();
 
-        for (Map.Entry<Cell, byte[]> update : multiCheckAndSetRequest.updates().entrySet()) {
-            if (multiCheckAndSetRequest.expected().containsKey(update.getKey())) {
-                Cell cell = update.getKey();
-                byte[] expectedVal = multiCheckAndSetRequest.expected().get(cell);
+        // todo(snanda): this is not performant for memory
+        ConcurrentSkipListMap<Key, byte[]> snapshot = table.entries.clone();
+        Map<Cell, byte[]> actual = KeyedStream.stream(request.updates())
+                .map((cell, _val) -> snapshot.get(getKey(table, cell, AtlasDbConstants.TRANSACTION_TS)))
+                .filter(Objects::nonNull)
+                .collectToMap();
 
-                expected.put(cell, expectedVal);
-                actual.put(cell, expectedVal);
+        throwIfActualDoesNotMatchExpected(request, actual);
+        table.entries.putAll(updates);
+    }
 
-                casRequests.add(CheckAndSetRequest.singleCell(
-                        multiCheckAndSetRequest.tableRef(), cell, expectedVal, update.getValue()));
+    private static void throwIfActualDoesNotMatchExpected(MultiCheckAndSetRequest request, Map<Cell, byte[]> actual) {
+        for (Cell cell : request.updates().keySet()) {
+            byte[] expected = request.expected().get(cell);
+            byte[] actualVal = actual.get(cell);
 
-            } else {
-                casRequests.add(CheckAndSetRequest.newCell(
-                        multiCheckAndSetRequest.tableRef(), update.getKey(), update.getValue()));
+            if (expected == null && actualVal == null) continue;
+
+            if (expected == null || actualVal == null || !Arrays.equals(expected, actualVal)) {
+                throw new MultiCheckAndSetException(
+                        LoggingArgs.tableRef(request.tableRef()), request.rowName(), request.expected(), actual);
             }
-        }
-
-        boolean shouldThrow = false;
-        for (CheckAndSetRequest req : casRequests) {
-            try {
-                checkAndSet(req);
-            } catch (CheckAndSetException ex) {
-                shouldThrow = true;
-                if (!ex.getActualValues().isEmpty()) {
-                    actual.put(req.cell(), Iterables.getOnlyElement(ex.getActualValues()));
-                } else {
-                    actual.remove(req.cell());
-                }
-            }
-        }
-
-        if (shouldThrow) {
-            throw new MultiCheckAndSetException(
-                    LoggingArgs.tableRef(multiCheckAndSetRequest.tableRef()),
-                    multiCheckAndSetRequest.rowName(),
-                    expected,
-                    actual);
         }
     }
 

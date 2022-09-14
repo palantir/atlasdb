@@ -178,7 +178,6 @@ public class MarkAndCasConsensusForgettingStoreTest {
                 .isFalse();
     }
 
-    // todo(snanda): this does not work as InMemoryKvs does not quite work.
     @Test
     public void retriesRequestsIfCanBeRetried() throws ExecutionException, InterruptedException {
         store.mark(CELL);
@@ -192,7 +191,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
         assertThatCode(() -> req1.result().get()).doesNotThrowAnyException();
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
 
-        assertThatThrownBy(() -> req2.result().get()).isInstanceOf(KeyAlreadyExistsException.class);
+        assertThatThrownBy(() -> req2.result().get()).hasCauseInstanceOf(KeyAlreadyExistsException.class);
         assertThat(store.get(CELL_2).get()).isEmpty();
     }
 
