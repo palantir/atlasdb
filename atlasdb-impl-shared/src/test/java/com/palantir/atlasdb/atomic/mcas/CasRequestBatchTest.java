@@ -18,12 +18,14 @@ package com.palantir.atlasdb.atomic.mcas;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -44,9 +46,8 @@ public final class CasRequestBatchTest {
 
     @Test
     public void canCreateMultiCheckAndSetRequest() {
-        CasRequestBatch casRequestBatch = getCasRequestBatch(ImmutableList.of(TestBatchElement.of(CELL,
-                WRAPPED_EXPECTED,
-                WRAPPED_UPDATE)));
+        CasRequestBatch casRequestBatch =
+                getCasRequestBatch(ImmutableList.of(TestBatchElement.of(CELL, WRAPPED_EXPECTED, WRAPPED_UPDATE)));
         MultiCheckAndSetRequest mcasRequest = casRequestBatch.getMcasRequest();
         assertThat(mcasRequest.tableRef()).isEqualTo(TABLE_REFERENCE);
         assertThat(mcasRequest.rowName()).isEqualTo(ROW_NAME.array());
@@ -58,10 +59,7 @@ public final class CasRequestBatchTest {
 
     @Test
     public void canSetSuccessToAllRequests() {
-        TestBatchElement elem = TestBatchElement.of(
-                CELL,
-                WRAPPED_EXPECTED,
-                WRAPPED_UPDATE);
+        TestBatchElement elem = TestBatchElement.of(CELL, WRAPPED_EXPECTED, WRAPPED_UPDATE);
         CasRequestBatch casRequestBatch = getCasRequestBatch(ImmutableList.of(elem));
         casRequestBatch.setSuccessForAllRequests();
         assertThatCode(() -> elem.result().get()).doesNotThrowAnyException();
@@ -70,20 +68,35 @@ public final class CasRequestBatchTest {
 
     @Test
     public void canProcessBatchWithException() {
-        TestBatchElement elem = TestBatchElement.of(
-                CELL,
-                WRAPPED_EXPECTED,
-                WRAPPED_UPDATE);
+        TestBatchElement elem = TestBatchElement.of(CELL, WRAPPED_EXPECTED, WRAPPED_UPDATE);
         CasRequestBatch casRequestBatch = getCasRequestBatch(ImmutableList.of(elem));
 
         // the cell already has the actual value of UPDATE
-        MultiCheckAndSetException ex  = new MultiCheckAndSetException(LoggingArgs.tableRef(TABLE_REFERENCE),
+        MultiCheckAndSetException ex = new MultiCheckAndSetException(
+                LoggingArgs.tableRef(TABLE_REFERENCE),
                 ROW_NAME.array(),
                 ImmutableMap.of(CELL, EXPECTED),
                 ImmutableMap.of(CELL, UPDATE));
         casRequestBatch.processBatchWithException((_u, _v) -> false, ex);
-        assertThatCode(() -> elem.result().get()).doesNotThrowAnyException();
+
+        assertThatThrownBy(() -> elem.result().get()).hasCauseInstanceOf(KeyAlreadyExistsException.class);
         assertThat(casRequestBatch.isBatchServed()).isTrue();
+    }
+
+    @Test
+    public void canProcessBatchForRequestsToRetry() {
+        TestBatchElement elem = TestBatchElement.of(CELL, WRAPPED_EXPECTED, WRAPPED_UPDATE);
+        CasRequestBatch casRequestBatch = getCasRequestBatch(ImmutableList.of(elem));
+
+        MultiCheckAndSetException ex = new MultiCheckAndSetException(
+                LoggingArgs.tableRef(TABLE_REFERENCE),
+                ROW_NAME.array(),
+                ImmutableMap.of(CELL, EXPECTED),
+                ImmutableMap.of(CELL, EXPECTED));
+        casRequestBatch.processBatchWithException((_u, _v) -> true, ex);
+
+        assertThat(casRequestBatch.pendingRequests).containsOnly(elem);
+        assertThat(casRequestBatch.isBatchServed()).isFalse();
     }
 
     private CasRequestBatch getCasRequestBatch(List<BatchElement<CasRequest, Void>> casRequests) {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.atomic.mcas;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,7 +35,8 @@ public final class CasRequestBatch {
     private final TableReference tableRef;
     private final ByteBuffer rowName;
 
-    private ImmutableList<BatchElement<CasRequest, Void>> pendingRequests;
+    @VisibleForTesting
+    ImmutableList<BatchElement<CasRequest, Void>> pendingRequests;
 
     CasRequestBatch(TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> pendingRequests) {
         this.tableRef = tableRef;
