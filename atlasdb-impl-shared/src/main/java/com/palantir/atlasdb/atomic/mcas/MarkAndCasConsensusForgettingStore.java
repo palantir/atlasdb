@@ -140,7 +140,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         List<CasRequestBatch> pendingBatchedRequests = KeyedStream.stream(pendingUpdates.stream()
                         .collect(Collectors.groupingBy(
                                 elem -> ByteBuffer.wrap(elem.argument().cell().getRowName()))))
-                .map((row, requests) -> new CasRequestBatch(tableRef, row, requests))
+                .map((row, requests) -> new CasRequestBatch(tableRef, row.array(), requests))
                 .values()
                 .collect(Collectors.toList());
 

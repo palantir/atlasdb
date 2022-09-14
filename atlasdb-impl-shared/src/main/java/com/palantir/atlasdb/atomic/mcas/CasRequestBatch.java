@@ -33,19 +33,19 @@ import java.util.function.Function;
 
 public final class CasRequestBatch {
     private final TableReference tableRef;
-    private final ByteBuffer rowName;
+    private final byte[] rowName;
 
     @VisibleForTesting
     ImmutableList<BatchElement<CasRequest, Void>> pendingRequests;
 
-    CasRequestBatch(TableReference tableRef, ByteBuffer rowName, List<BatchElement<CasRequest, Void>> pendingRequests) {
+    CasRequestBatch(TableReference tableRef, byte[] rowName, List<BatchElement<CasRequest, Void>> pendingRequests) {
         this.tableRef = tableRef;
         this.rowName = rowName;
         this.pendingRequests = ImmutableList.copyOf(pendingRequests);
     }
 
     MultiCheckAndSetRequest getMcasRequest() {
-        return multiCasRequest(tableRef, rowName.array(), pendingRequests);
+        return multiCasRequest(tableRef, rowName, pendingRequests);
     }
 
     void setSuccessForAllRequests() {

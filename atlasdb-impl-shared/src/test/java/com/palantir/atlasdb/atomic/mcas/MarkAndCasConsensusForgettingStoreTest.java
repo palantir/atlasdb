@@ -142,8 +142,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
         TestBatchElement req1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         TestBatchElement req2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
 
-        CasRequestBatch casRequestBatch =
-                new CasRequestBatch(TABLE, ByteBuffer.wrap(ROW), ImmutableList.of(req1, req2));
+        CasRequestBatch casRequestBatch = new CasRequestBatch(TABLE, ROW, ImmutableList.of(req1, req2));
 
         MarkAndCasConsensusForgettingStore.serveMcasRequest(kvs, casRequestBatch);
 

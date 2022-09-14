@@ -41,8 +41,9 @@ public final class CasRequestBatchTest {
     private static final byte[] UPDATE = PtBytes.toBytes(2889);
     private static final ByteBuffer WRAPPED_UPDATE = ByteBuffer.wrap(UPDATE);
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("i.am_here");
-    private static final ByteBuffer ROW_NAME = ByteBuffer.wrap(PtBytes.toBytes("r"));
-    private static final Cell CELL = Cell.create(ROW_NAME.array(), PtBytes.toBytes("c"));
+    private static final byte[] ROW = PtBytes.toBytes("r");
+    private static final ByteBuffer WRAPPED_ROW = ByteBuffer.wrap(ROW);
+    private static final Cell CELL = Cell.create(WRAPPED_ROW.array(), PtBytes.toBytes("c"));
 
     @Test
     public void canCreateMultiCheckAndSetRequest() {
@@ -50,7 +51,7 @@ public final class CasRequestBatchTest {
                 getCasRequestBatch(ImmutableList.of(TestBatchElement.of(CELL, WRAPPED_EXPECTED, WRAPPED_UPDATE)));
         MultiCheckAndSetRequest mcasRequest = casRequestBatch.getMcasRequest();
         assertThat(mcasRequest.tableRef()).isEqualTo(TABLE_REFERENCE);
-        assertThat(mcasRequest.rowName()).isEqualTo(ROW_NAME.array());
+        assertThat(mcasRequest.rowName()).isEqualTo(WRAPPED_ROW.array());
         assertThat(mcasRequest.expected()).hasSize(1);
         assertThat(mcasRequest.expected().values()).containsOnly(EXPECTED);
         assertThat(mcasRequest.updates()).hasSize(1);
@@ -74,7 +75,7 @@ public final class CasRequestBatchTest {
         // the cell already has the actual value of UPDATE
         MultiCheckAndSetException ex = new MultiCheckAndSetException(
                 LoggingArgs.tableRef(TABLE_REFERENCE),
-                ROW_NAME.array(),
+                WRAPPED_ROW.array(),
                 ImmutableMap.of(CELL, EXPECTED),
                 ImmutableMap.of(CELL, UPDATE));
         casRequestBatch.processBatchWithException((_u, _v) -> false, ex);
@@ -90,7 +91,7 @@ public final class CasRequestBatchTest {
 
         MultiCheckAndSetException ex = new MultiCheckAndSetException(
                 LoggingArgs.tableRef(TABLE_REFERENCE),
-                ROW_NAME.array(),
+                WRAPPED_ROW.array(),
                 ImmutableMap.of(CELL, EXPECTED),
                 ImmutableMap.of(CELL, EXPECTED));
         casRequestBatch.processBatchWithException((_u, _v) -> true, ex);
@@ -100,6 +101,6 @@ public final class CasRequestBatchTest {
     }
 
     private CasRequestBatch getCasRequestBatch(List<BatchElement<CasRequest, Void>> casRequests) {
-        return new CasRequestBatch(TABLE_REFERENCE, ROW_NAME, casRequests);
+        return new CasRequestBatch(TABLE_REFERENCE, ROW, casRequests);
     }
 }
