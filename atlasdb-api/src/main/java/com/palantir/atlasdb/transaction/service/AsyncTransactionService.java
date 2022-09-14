@@ -59,9 +59,6 @@ public interface AsyncTransactionService {
      * Gets the transaction status associated with a given {@code startTimestamp} in a future, potentially computing
      * it asynchronously. Known future result responses may be cached on the client-side.
      *
-     * Future result may return unknown transaction status, which means that the transaction in question has been
-     * concluded i.e. its status cannot change.
-     *
      * @param startTimestamp start timestamp of the transaction being looked up
      * @return {@link ListenableFuture} containing the {@link TransactionStatus}.
      */
@@ -70,9 +67,6 @@ public interface AsyncTransactionService {
     /**
      * Gets the transaction statuses associated with the given {@code startTimestamps} in a future, potentially
      * computing it asynchronously. Known future result responses may be cached on the client-side.
-     *
-     * Future result may return unknown transaction status, which means that the transaction in question has been
-     * concluded i.e. its status cannot change.
      *
      * @param startTimestamps start timestamps of the transaction being looked up
      * @return {@link ListenableFuture} containing the map from a transaction start timestamp to
