@@ -53,15 +53,15 @@ public final class CasRequestBatch {
 
     void processBatchWithException(
             BiFunction<BatchElement<CasRequest, Void>, MultiCheckAndSetException, Boolean> shouldRetry,
-            MultiCheckAndSetException e) {
+            MultiCheckAndSetException ex) {
         ImmutableList.Builder<BatchElement<CasRequest, Void>> requestsToRetry = ImmutableList.builder();
 
         for (BatchElement<CasRequest, Void> req : pendingRequests) {
-            if (shouldRetry.apply(req, e)) {
+            if (shouldRetry.apply(req, ex)) {
                 requestsToRetry.add(req);
             } else {
                 // The request failed because my actual and expected did not match
-                byte[] actualValue = e.getActualValues().get(req.argument().cell());
+                byte[] actualValue = ex.getActualValues().get(req.argument().cell());
                 req.result().setException(CasRequest.failure(req.argument(), Optional.ofNullable(actualValue)));
             }
         }

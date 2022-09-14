@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.annotation.Nullable;
 import org.junit.Test;
 
 public class MarkAndCasConsensusForgettingStoreTest {
@@ -179,25 +177,5 @@ public class MarkAndCasConsensusForgettingStoreTest {
                 .doesNotThrowAnyException();
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(abortVal.array());
-    }
-
-    @SuppressWarnings("immutables:subtype")
-    @org.immutables.value.Value.Immutable
-    interface TestBatchElement extends BatchElement<CasRequest, Void> {
-        @org.immutables.value.Value.Parameter
-        @Nullable
-        @Override
-        CasRequest argument();
-
-        @org.immutables.value.Value.Parameter
-        @Override
-        DisruptorAutobatcher.DisruptorFuture<Void> result();
-
-        static TestBatchElement of(Cell cell, ByteBuffer expected, ByteBuffer update) {
-            return ImmutableTestBatchElement.builder()
-                    .argument(ImmutableCasRequest.of(cell, expected, update))
-                    .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
-                    .build();
-        }
     }
 }
