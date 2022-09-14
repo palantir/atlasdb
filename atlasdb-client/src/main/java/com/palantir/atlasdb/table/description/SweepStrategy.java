@@ -27,10 +27,6 @@ import java.util.Optional;
  * immutable lock after migrating to this mode.
  */
 public final class SweepStrategy {
-    public enum SweeperStrategy {
-        CONSERVATIVE,
-        THOROUGH
-    }
 
     public static final SweepStrategy CONSERVATIVE =
             new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);

@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import org.immutables.value.Value;
@@ -27,14 +26,6 @@ public abstract class ShardAndStrategy {
 
     public abstract SweeperStrategy strategy();
 
-    @Value.Check
-    void allowOnlyConservativeAndThorough() {
-        Preconditions.checkArgument(
-                isConservative() || isThorough(),
-                "Sweep strategy should be CONSERVATIVE or " + "THOROUGH, but it is %s instead.",
-                strategy());
-    }
-
     public String toText() {
         return "shard " + shard() + " and strategy " + strategy();
     }
@@ -43,8 +34,16 @@ public abstract class ShardAndStrategy {
         return StringLockDescriptor.of(toText());
     }
 
-    public boolean isConservative() {
-        return strategy() == SweeperStrategy.CONSERVATIVE;
+    /**
+     * Non-sweepable entries should be processed at the unreadable timestamp so we put them in the row with the
+     * conservative flag set to true for consistency.
+     */
+    public boolean conservativeFlag() {
+        return strategy() == SweeperStrategy.CONSERVATIVE || strategy() == SweeperStrategy.NON_SWEEPABLE;
+    }
+
+    public boolean nonSweepableFlag() {
+        return strategy() == SweeperStrategy.NON_SWEEPABLE;
     }
 
     public boolean isThorough() {
@@ -66,10 +65,7 @@ public abstract class ShardAndStrategy {
         return ShardAndStrategy.of(shard, SweeperStrategy.THOROUGH);
     }
 
-    public static ShardAndStrategy fromInfo(PartitionInfo info) {
-        if (info.isConservative().isTrue()) {
-            return ShardAndStrategy.conservative(info.shard());
-        }
-        return ShardAndStrategy.thorough(info.shard());
+    public static ShardAndStrategy nonSweepable() {
+        return SweepQueueUtils.NON_SWEEPABLE;
     }
 }

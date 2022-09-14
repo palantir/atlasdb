@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -32,20 +33,12 @@ import org.immutables.value.Value;
 public interface WriteInfo {
     long timestamp();
 
-    WriteReference writeRef();
-
-    default TableReference tableRef() {
-        return writeRef().tableRef();
-    }
-
-    default Cell cell() {
-        return writeRef().cell();
-    }
+    Optional<WriteReference> writeRef();
 
     default TimestampRangeDelete toDelete(Sweeper sweeper) {
         return new TimestampRangeDelete.Builder()
                 .timestamp(timestamp())
-                .endInclusive(writeRef().isTombstone() && sweeper.shouldSweepLastCommitted())
+                .endInclusive(writeRef().get().isTombstone() && sweeper.shouldSweepLastCommitted())
                 .deleteSentinels(!sweeper.shouldAddSentinels())
                 .build();
     }
@@ -60,7 +53,8 @@ public interface WriteInfo {
      */
     default int dayRotatingHash() {
         int hash = 5381;
-        hash = hash * 1439 + writeRef().cellReference().goodHash();
+        hash = hash * 1439
+                + writeRef().orElse(SweepQueueUtils.DUMMY).cellReference().goodHash();
         hash = hash * 1439 + LocalDate.now(ZoneId.of("UTC")).hashCode();
         return hash;
     }
@@ -70,6 +64,10 @@ public interface WriteInfo {
                 .writeRef(writeRef)
                 .timestamp(timestamp)
                 .build();
+    }
+
+    static WriteInfo of(long timestamp) {
+        return ImmutableWriteInfo.builder().timestamp(timestamp).build();
     }
 
     static WriteInfo tombstone(TableReference tableRef, Cell cell, long timestamp) {

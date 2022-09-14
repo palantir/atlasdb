@@ -51,9 +51,12 @@ public abstract class SweepQueueTable {
     }
 
     public void enqueue(List<WriteInfo> allWrites) {
+        enqueueFiltered(partitioner.filterAndPartition(allWrites));
+    }
+
+    private void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
-        Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
 
         SweepQueueUtils.validateNumberOfCellsWritten(partitionedWrites.values());
 
@@ -75,7 +78,7 @@ public abstract class SweepQueueTable {
 
     private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
         maybeMetrics.ifPresent(metrics -> partitionedWrites.forEach(
-                (info, writes) -> metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
+                (info, writes) -> metrics.updateEnqueuedWrites(info.shardAndStrategy(), writes.size())));
     }
 
     /**

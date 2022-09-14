@@ -31,7 +31,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConf
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -220,7 +220,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     @Override
-    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    public SweeperStrategy getSweepStrategy(TableReference tableReference) {
         return queue.getSweepStrategy(tableReference);
     }
 

@@ -16,12 +16,11 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
-import java.util.Optional;
 
 class SweepQueueWriter implements MultiTableSweepQueueWriter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueueWriter.class);
@@ -45,7 +44,7 @@ class SweepQueueWriter implements MultiTableSweepQueueWriter {
     }
 
     @Override
-    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    public SweeperStrategy getSweepStrategy(TableReference tableReference) {
         return partitioner.getStrategyForTable(tableReference);
     }
 }

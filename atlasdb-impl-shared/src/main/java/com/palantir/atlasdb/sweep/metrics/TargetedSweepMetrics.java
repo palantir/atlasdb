@@ -27,7 +27,7 @@ import com.palantir.atlasdb.cleaner.MillisAndMaybeTimestamp;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -163,6 +163,8 @@ public class TargetedSweepMetrics {
                 return AtlasDbMetricNames.TAG_CONSERVATIVE;
             case THOROUGH:
                 return AtlasDbMetricNames.TAG_THOROUGH;
+            case NON_SWEEPABLE:
+                return AtlasDbMetricNames.TAG_NON_SWEEPABLE;
             default:
                 throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
         }

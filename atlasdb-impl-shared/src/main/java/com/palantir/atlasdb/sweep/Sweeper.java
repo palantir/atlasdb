@@ -17,7 +17,7 @@ package com.palantir.atlasdb.sweep;
 
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.function.Function;
@@ -25,20 +25,31 @@ import java.util.function.Function;
 @SuppressWarnings("ImmutableEnumChecker")
 public enum Sweeper {
     CONSERVATIVE(
-            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()), false, true),
-    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false);
+            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
+            false,
+            true,
+            true),
+    THOROUGH(SpecialTimestampsSupplier::getImmutableTimestamp, true, false, true),
+    NO_OP(
+            provider -> Math.min(provider.getUnreadableTimestamp(), provider.getImmutableTimestamp()),
+            false,
+            false,
+            false);
 
     private final Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier;
     private final boolean shouldSweepLastCommitted;
     private final boolean shouldAddSentinels;
+    private final boolean shouldDeleteCells;
 
     Sweeper(
             Function<SpecialTimestampsSupplier, Long> sweepTimestampSupplier,
             boolean shouldSweepLastCommitted,
-            boolean shouldAddSentinels) {
+            boolean shouldAddSentinels,
+            boolean shouldDeleteCells) {
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.shouldSweepLastCommitted = shouldSweepLastCommitted;
         this.shouldAddSentinels = shouldAddSentinels;
+        this.shouldDeleteCells = shouldDeleteCells;
     }
 
     public boolean shouldSweepLastCommitted() {
@@ -47,6 +58,10 @@ public enum Sweeper {
 
     public boolean shouldAddSentinels() {
         return shouldAddSentinels;
+    }
+
+    public boolean shouldDeleteCells() {
+        return shouldDeleteCells;
     }
 
     public long getSweepTimestamp(SpecialTimestampsSupplier specialTimestampsSupplier) {
@@ -59,6 +74,8 @@ public enum Sweeper {
                 return CONSERVATIVE;
             case THOROUGH:
                 return THOROUGH;
+            case NON_SWEEPABLE:
+                return NO_OP;
         }
         throw new SafeIllegalStateException("Unknown sweep strategy", SafeArg.of("strategy", sweepStrategy));
     }

@@ -18,17 +18,20 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.conjure.java.jackson.optimizations.ObjectMapperOptimizations;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.IOException;
+import java.util.Optional;
 
 public final class WriteReferencePersister {
     private static final byte[] writePrefix = {1};
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .registerModule(new Jdk8Module())
             .registerModules(ObjectMapperOptimizations.createModules());
+    private static final StoredWriteReference DUMMY = ImmutableStoredWriteReference.of(PtBytes.EMPTY_BYTE_ARRAY);
 
     private final SweepTableIndices tableIndices;
 
@@ -36,19 +39,19 @@ public final class WriteReferencePersister {
         this.tableIndices = tableIndices;
     }
 
-    public WriteReference unpersist(StoredWriteReference writeReference) {
-        return writeReference.accept(new StoredWriteReference.Visitor<WriteReference>() {
+    public Optional<WriteReference> unpersist(StoredWriteReference writeReference) {
+        return writeReference.accept(new StoredWriteReference.Visitor<>() {
             @Override
-            public WriteReference visitJson(byte[] ref) {
+            public Optional<WriteReference> visitJson(byte[] ref) {
                 try {
-                    return OBJECT_MAPPER.readValue(ref, WriteReference.class);
+                    return Optional.of(OBJECT_MAPPER.readValue(ref, WriteReference.class));
                 } catch (IOException e) {
                     throw new SafeRuntimeException("Exception hydrating object.");
                 }
             }
 
             @Override
-            public WriteReference visitTableNameAsStringBinary(byte[] ref) {
+            public Optional<WriteReference> visitTableNameAsStringBinary(byte[] ref) {
                 int offset = 1;
                 String tableReferenceString = EncodingUtils.decodeVarString(ref, offset);
                 TableReference tableReference = TableReference.fromString(tableReferenceString);
@@ -58,15 +61,15 @@ public final class WriteReferencePersister {
                 byte[] column = EncodingUtils.decodeSizedBytes(ref, offset);
                 offset += EncodingUtils.sizeOfSizedBytes(column);
                 long isTombstone = EncodingUtils.decodeUnsignedVarLong(ref, offset);
-                return ImmutableWriteReference.builder()
+                return Optional.of(ImmutableWriteReference.builder()
                         .tableRef(tableReference)
                         .cell(Cell.create(row, column))
                         .isTombstone(isTombstone == 1)
-                        .build();
+                        .build());
             }
 
             @Override
-            public WriteReference visitTableIdBinary(byte[] ref) {
+            public Optional<WriteReference> visitTableIdBinary(byte[] ref) {
                 int offset = 1;
                 int tableId = Ints.checkedCast(EncodingUtils.decodeUnsignedVarLong(ref, offset));
                 TableReference tableReference = tableIndices.getTableReference(tableId);
@@ -76,20 +79,29 @@ public final class WriteReferencePersister {
                 byte[] column = EncodingUtils.decodeSizedBytes(ref, offset);
                 offset += EncodingUtils.sizeOfSizedBytes(column);
                 long isTombstone = EncodingUtils.decodeUnsignedVarLong(ref, offset);
-                return ImmutableWriteReference.builder()
+                return Optional.of(ImmutableWriteReference.builder()
                         .tableRef(tableReference)
                         .cell(Cell.create(row, column))
                         .isTombstone(isTombstone == 1)
-                        .build();
+                        .build());
+            }
+
+            @Override
+            public Optional<WriteReference> visitDummy() {
+                return Optional.empty();
             }
         });
     }
 
-    public StoredWriteReference persist(WriteReference writeReference) {
-        byte[] tableId = EncodingUtils.encodeUnsignedVarLong(tableIndices.getTableId(writeReference.tableRef()));
-        byte[] row = EncodingUtils.encodeSizedBytes(writeReference.cell().getRowName());
-        byte[] column = EncodingUtils.encodeSizedBytes(writeReference.cell().getColumnName());
-        byte[] isTombstone = EncodingUtils.encodeUnsignedVarLong(writeReference.isTombstone() ? 1 : 0);
+    public StoredWriteReference persist(Optional<WriteReference> writeReference) {
+        if (writeReference.isEmpty()) {
+            return DUMMY;
+        }
+        WriteReference writeRef = writeReference.get();
+        byte[] tableId = EncodingUtils.encodeUnsignedVarLong(tableIndices.getTableId(writeRef.tableRef()));
+        byte[] row = EncodingUtils.encodeSizedBytes(writeRef.cell().getRowName());
+        byte[] column = EncodingUtils.encodeSizedBytes(writeRef.cell().getColumnName());
+        byte[] isTombstone = EncodingUtils.encodeUnsignedVarLong(writeRef.isTombstone() ? 1 : 0);
         return ImmutableStoredWriteReference.of(EncodingUtils.add(writePrefix, tableId, row, column, isTombstone));
     }
 }
