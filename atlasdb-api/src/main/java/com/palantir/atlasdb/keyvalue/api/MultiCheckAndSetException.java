@@ -26,13 +26,6 @@ public class MultiCheckAndSetException extends RuntimeException {
     private final Map<Cell, byte[]> expectedValues;
     private final Map<Cell, byte[]> actualValues;
 
-    public MultiCheckAndSetException(@CompileTimeConstant String message) {
-        super(new SafeRuntimeException(message));
-        this.rowName = null;
-        this.expectedValues = null;
-        this.actualValues = null;
-    }
-
     public MultiCheckAndSetException(
             Arg<String> tableReference,
             byte[] rowName,
