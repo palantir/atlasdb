@@ -517,10 +517,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
                 expected.put(cell, expectedVal);
                 casRequests.add(CheckAndSetRequest.singleCell(
-                        multiCheckAndSetRequest.tableRef(),
-                        cell,
-                        expectedVal,
-                        update.getValue()));
+                        multiCheckAndSetRequest.tableRef(), cell, expectedVal, update.getValue()));
 
             } else {
                 casRequests.add(CheckAndSetRequest.newCell(
@@ -529,24 +526,24 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         }
 
         boolean shouldThrow = false;
-        for(CheckAndSetRequest req : casRequests) {
-             try {
+        for (CheckAndSetRequest req : casRequests) {
+            try {
                 checkAndSet(req);
-             } catch (CheckAndSetException ex) {
-                 shouldThrow = true;
-                 if (!ex.getActualValues().isEmpty()) {
-                     actual.put(req.cell(), Iterables.getOnlyElement(ex.getActualValues()));
-                 }
-             }
-         }
+            } catch (CheckAndSetException ex) {
+                shouldThrow = true;
+                if (!ex.getActualValues().isEmpty()) {
+                    actual.put(req.cell(), Iterables.getOnlyElement(ex.getActualValues()));
+                }
+            }
+        }
 
         if (shouldThrow) {
             throw new MultiCheckAndSetException(
                     LoggingArgs.tableRef(multiCheckAndSetRequest.tableRef()),
-                    multiCheckAndSetRequest.rowName(), expected.build(),
+                    multiCheckAndSetRequest.rowName(),
+                    expected.build(),
                     actual.build());
         }
-
     }
 
     // Returns the existing contents, if any, and null otherwise

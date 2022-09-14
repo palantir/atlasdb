@@ -41,7 +41,7 @@ public interface CasRequest {
         if (expected().equals(update())) {
             return UpdateRank.TOUCH;
         }
-        if (expected().equals(MarkAndCasConsensusForgettingStore.WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
+        if (update().equals(MarkAndCasConsensusForgettingStore.WRAPPED_ABORTED_TRANSACTION_STAGING_VALUE)) {
             return UpdateRank.ABORT;
         }
         return UpdateRank.COMMIT;

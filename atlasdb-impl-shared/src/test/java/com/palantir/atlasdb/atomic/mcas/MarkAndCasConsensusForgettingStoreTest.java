@@ -90,14 +90,15 @@ public class MarkAndCasConsensusForgettingStoreTest {
         assertThat(store.get(CELL_2).get()).hasValue(elem2.argument().update().array());
     }
 
+    // todo(snanda): this actually does not make sense; the key does not exist but this should not happen in our
+    //  regular workflow anyway --- ?
     @Test
     public void cannotUpdateUnmarkedCell() throws ExecutionException, InterruptedException {
         TestBatchElement element = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         store.processBatch(kvs, TABLE, ImmutableList.of(element));
         assertThatThrownBy(() -> element.result().get())
                 .hasCauseInstanceOf(KeyAlreadyExistsException.class)
-                .hasMessageContaining(
-                        "Atomic update cannot go through as the key already exists in the KVS.");
+                .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).isEmpty();
     }
 
@@ -122,7 +123,8 @@ public class MarkAndCasConsensusForgettingStoreTest {
                 success++;
             } catch (Exception ex) {
                 Throwable cause = ex.getCause();
-                assertThat(cause).isInstanceOf(KeyAlreadyExistsException.class)
+                assertThat(cause)
+                        .isInstanceOf(KeyAlreadyExistsException.class)
                         .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
                 failures++;
             }
