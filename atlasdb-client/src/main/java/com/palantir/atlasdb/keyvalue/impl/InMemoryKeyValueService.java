@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -507,8 +506,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
         List<CheckAndSetRequest> casRequests = new ArrayList<>();
-        ImmutableMap.Builder<Cell, byte[]> expected = ImmutableMap.builder();
-        ImmutableMap.Builder<Cell, byte[]> actual = ImmutableMap.builder();
+        Map<Cell, byte[]> expected = new HashMap<>();
+        Map<Cell, byte[]> actual = new HashMap<>();
 
         for (Map.Entry<Cell, byte[]> update : multiCheckAndSetRequest.updates().entrySet()) {
             if (multiCheckAndSetRequest.expected().containsKey(update.getKey())) {
@@ -516,6 +515,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 byte[] expectedVal = multiCheckAndSetRequest.expected().get(cell);
 
                 expected.put(cell, expectedVal);
+                actual.put(cell, expectedVal);
+
                 casRequests.add(CheckAndSetRequest.singleCell(
                         multiCheckAndSetRequest.tableRef(), cell, expectedVal, update.getValue()));
 
@@ -533,6 +534,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 shouldThrow = true;
                 if (!ex.getActualValues().isEmpty()) {
                     actual.put(req.cell(), Iterables.getOnlyElement(ex.getActualValues()));
+                } else {
+                    actual.remove(req.cell());
                 }
             }
         }
@@ -541,8 +544,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             throw new MultiCheckAndSetException(
                     LoggingArgs.tableRef(multiCheckAndSetRequest.tableRef()),
                     multiCheckAndSetRequest.rowName(),
-                    expected.build(),
-                    actual.build());
+                    expected,
+                    actual);
         }
     }
 

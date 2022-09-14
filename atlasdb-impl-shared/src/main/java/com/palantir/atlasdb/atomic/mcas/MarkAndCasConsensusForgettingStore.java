@@ -153,19 +153,21 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         }
     }
 
-    private static boolean serveMcasRequest(KeyValueService kvs, CasRequestBatch casRequestBatch) {
+    @VisibleForTesting
+    static boolean serveMcasRequest(KeyValueService kvs, CasRequestBatch casRequestBatch) {
         try {
             kvs.multiCheckAndSet(casRequestBatch.getMcasRequest());
             // The above operation is atomic
             casRequestBatch.setSuccessForAllRequests();
-        } catch (MultiCheckAndSetException e) {
-            casRequestBatch.processBatchWithException(MarkAndCasConsensusForgettingStore::shouldRetry, e);
+        } catch (MultiCheckAndSetException ex) {
+            casRequestBatch.processBatchWithException(MarkAndCasConsensusForgettingStore::shouldRetry, ex);
         }
         return casRequestBatch.isBatchServed();
     }
 
     // we only want to retry the requests where the actual matches the expected.
-    private static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException e) {
+    @VisibleForTesting
+    static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException e) {
         CasRequest casRequest = req.argument();
         Cell cell = casRequest.cell();
 
@@ -192,19 +194,17 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
                     .sorted(Comparator.comparing(elem -> elem.argument().rank()))
                     .collect(Collectors.toList());
             if (!sortedPendingRequests.isEmpty()) {
-                requestsToProcess.add(sortedPendingRequests.remove(0));
+                requestsToProcess.add(sortedPendingRequests.get(0));
 
                 // we want to fail the requests that will never be tried eagerly.
-                serveUntriedRequests(sortedPendingRequests);
+                BatchElement<CasRequest, Void> elem;
+                for (int i = 1; i < sortedPendingRequests.size(); i++) {
+                    elem = sortedPendingRequests.get(i);
+                    elem.result().setException(CasRequest.failureUntried(elem.argument()));
+                }
             }
         }
 
         return requestsToProcess.build();
-    }
-
-    private static void serveUntriedRequests(List<BatchElement<CasRequest, Void>> sortedPendingRequests) {
-        for (BatchElement<CasRequest, Void> req : sortedPendingRequests) {
-            req.result().setException(CasRequest.failureUntried(req.argument()));
-        }
     }
 }

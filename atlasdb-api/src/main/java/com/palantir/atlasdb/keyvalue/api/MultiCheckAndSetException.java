@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;

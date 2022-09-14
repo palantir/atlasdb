@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
@@ -30,8 +31,10 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -44,11 +47,12 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
     private static final byte[] HAPPY = PtBytes.toBytes("happy");
 
+    private static final byte[] ROW = PtBytes.toBytes("r");
     private static final ByteBuffer BUFFERED_SAD = ByteBuffer.wrap(SAD);
     private static final ByteBuffer BUFFERED_HAPPY = ByteBuffer.wrap(HAPPY);
 
-    private static final Cell CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("col1"));
-    private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("col2"));
+    private static final Cell CELL = Cell.create(ROW, PtBytes.toBytes("col1"));
+    private static final Cell CELL_2 = Cell.create(ROW, PtBytes.toBytes("col2"));
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
     private static final byte[] IN_PROGRESS_MARKER = new byte[] {1};
@@ -88,8 +92,6 @@ public class MarkAndCasConsensusForgettingStoreTest {
         assertThat(store.get(CELL_2).get()).hasValue(elem2.argument().update().array());
     }
 
-    // todo(snanda): this actually does not make sense; the key does not exist but this should not happen in our
-    //  regular workflow anyway --- ?
     @Test
     public void cannotUpdateUnmarkedCell() throws ExecutionException, InterruptedException {
         TestBatchElement element = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
@@ -108,7 +110,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
         List<BatchElement<CasRequest, Void>> requests = IntStream.range(0, totalRequests)
                 .mapToObj(_idx -> TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY))
                 .collect(Collectors.toList());
-        store.processBatch(kvs, TABLE, requests);
+        MarkAndCasConsensusForgettingStore.processBatch(kvs, TABLE, requests);
         verify(kvs).multiCheckAndSet(any());
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
 
@@ -130,6 +132,68 @@ public class MarkAndCasConsensusForgettingStoreTest {
 
         assertThat(success).isEqualTo(1);
         assertThat(failures).isEqualTo(totalRequests - 1);
+    }
+
+    @Test
+    public void canServeMultipleRequestsForSameRowWithOneQuery() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        store.mark(CELL_2);
+
+        TestBatchElement req1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+        TestBatchElement req2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+
+        CasRequestBatch casRequestBatch =
+                new CasRequestBatch(TABLE, ByteBuffer.wrap(ROW), ImmutableList.of(req1, req2));
+
+        MarkAndCasConsensusForgettingStore.serveMcasRequest(kvs, casRequestBatch);
+
+        verify(kvs).multiCheckAndSet(any());
+
+        assertThatCode(() -> req1.result().get()).doesNotThrowAnyException();
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        assertThatCode(() -> req2.result().get()).doesNotThrowAnyException();
+        assertThat(store.get(CELL_2).get()).hasValue(HAPPY);
+
+        assertThat(casRequestBatch.isBatchServed()).isTrue();
+    }
+
+    @Test
+    public void correctlyJudgesIfReqShouldBeRetried() {
+        store.mark(CELL);
+        store.mark(CELL_2);
+        TestBatchElement reqShouldBeRetried = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+        TestBatchElement reqShouldNotBeRetried =
+                TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+
+        MultiCheckAndSetException ex = new MultiCheckAndSetException(
+                LoggingArgs.tableRef(TABLE),
+                ROW,
+                ImmutableMap.of(CELL, BUFFERED_IN_PROGRESS_MARKER.array(), CELL_2, BUFFERED_IN_PROGRESS_MARKER.array()),
+                ImmutableMap.of(CELL, BUFFERED_IN_PROGRESS_MARKER.array()));
+
+        assertThat(MarkAndCasConsensusForgettingStore.shouldRetry(reqShouldBeRetried, ex))
+                .isTrue();
+        assertThat(MarkAndCasConsensusForgettingStore.shouldRetry(reqShouldNotBeRetried, ex))
+                .isFalse();
+    }
+
+    // todo(snanda): this does not work as InMemoryKvs does not quite work.
+    @Test
+    public void retriesRequestsIfCanBeRetried() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        TestBatchElement req1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+        TestBatchElement req2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
+
+        MarkAndCasConsensusForgettingStore.processBatch(kvs, TABLE, ImmutableList.of(req1, req2));
+        // first try will fail as cell_2 has not been marked
+        verify(kvs, times(2)).multiCheckAndSet(any());
+
+        assertThatCode(() -> req1.result().get()).doesNotThrowAnyException();
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        assertThatThrownBy(() -> req2.result().get()).isInstanceOf(KeyAlreadyExistsException.class);
+        assertThat(store.get(CELL_2).get()).isEmpty();
     }
 
     @Test
