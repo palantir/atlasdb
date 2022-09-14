@@ -1,156 +1,46 @@
+# Java Gradle CircleCI 2.0 configuration file
+# See: https://circleci.com/docs/2.0/language-java/
 version: 2
 
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
   build:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
-    environment:
-      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      # specify the version you desire here
+      - image: circleci/openjdk:8-jdk
 
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    environment:
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - checkout
-      - restore_cache:
-          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
-      - restore_cache:
-          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
 
-      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
-      - run: ./gradlew --profile --parallel --stacktrace classes testClasses
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: gradle dependencies
 
       - save_cache:
-          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
           paths:
-            - ~/.gradle/wrapper
-      - save_cache:
-          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
-          paths:
-            - ~/.gradle/caches
-      - persist_to_workspace:
-          root: .
-          paths: [ . ]
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
 
-  test:
-    parallelism: 12
-    machine:
-      image: ubuntu-2004:202111-02
-    resource_class: xlarge
-    environment:
-      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      JAVA_HOME: /opt/java8
-      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
-      CIRCLE_TEST_REPORTS: /home/circleci/junit
-      CIRCLE_ARTIFACTS: /home/circleci/artifacts
-
-    steps:
-      - attach_workspace: { at: . }
-      - restore_cache:
-          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
-      - restore_cache:
-          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
-      - run: mkdir -p $CIRCLE_ARTIFACTS
-      - run:
-          command: ./scripts/circle-ci/pull-all-images.sh
-          background: true
-      - run:
-          command: ./scripts/circle-ci/track-memory-usage.sh
-          background: true
-      - run:
-          command: ./scripts/circle-ci/monitor-all-processes.sh
-          background: true
-      - run:
-          name: Install Java
-          command: |
-              sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
-              curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
-              sudo ln -s /opt/java/zulu*/ /opt/java8
-      - run:
-          command: ./scripts/circle-ci/run-circle-tests.sh
-          no_output_timeout: 900
-      - run: ./scripts/circle-ci/ensure-repo-clean.sh
-      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
-      - run:
-          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
-          when: always
-      - store_test_results:
-          path: /home/circleci/junit # Circle doesn't do substitution in this path
-      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
-      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
-      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
-      - store_artifacts:
-          path: /home/circleci/artifacts
-      - persist_to_workspace:
-          root: .
-          paths: [ . ]
-
-  trial-publish:
-    docker:
-      - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
-    environment:
-      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
-      CIRCLE_TEST_REPORTS: /tmp/test-reports
-      CIRCLE_ARTIFACTS: /tmp/artifacts
-    steps:
-      - attach_workspace: { at: . }
-      - run: ./gradlew --profile --stacktrace --continue publishToMavenLocal
-
-  deploy:
-    docker:
-      - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
-    environment:
-      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
-      CIRCLE_TEST_REPORTS: /tmp/test-reports
-      CIRCLE_ARTIFACTS: /tmp/artifacts
-    steps:
-      - attach_workspace: { at: . }
-      - add_ssh_keys:
-          fingerprints:
-            - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
-      - run: sudo apt-get update
-      - run: sudo apt-get install python python3-pip
-      - run:
-          command: |
-            # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              git status
-              ./gradlew --profile --stacktrace --continue publish
-            fi
-      - run:
-          command: |
-            # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ -z $CIRCLE_TAG ]; then
-              ./scripts/circle-ci/publish-github-page.sh
-              # Internal publishing from an external CircleCI is... not a thing.
-              # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
-            fi
-
-workflows:
-  version: 2
-  check:
-    jobs:
-      - build:
-          filters:
-            tags:
-              only: /.*/
-      - test:
-          requires: [build]
-          filters:
-            tags:
-              only: /.*/
-      - trial-publish:
-          requires: [build]
-          filters:
-            branches:
-              ignore: [develop]
-      - deploy:
-          requires: [build, test]
-          filters:
-            branches:
-              only: develop
-            tags:
-              only: /.*/
+      # run tests!
+      - run: gradle test
