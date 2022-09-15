@@ -98,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -259,6 +260,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected volatile boolean hasReads;
 
+    protected final TimestampCache timestampCache;
+
+    protected final TransactionKnowledgeComponents knowledge;
+
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
      *                           lock for it because we know that no writers exist.
@@ -290,7 +295,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            Supplier<Long> lastSeenCommitTs) {
+            TransactionKnowledgeComponents knowledge) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -320,6 +325,8 @@ public class SnapshotTransaction extends AbstractTransaction
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
+        this.timestampCache = timestampValidationReadCache;
+        this.knowledge = knowledge;
         this.commitTimestampLoader = new CommitTimestampLoader(
                 timestampValidationReadCache,
                 immutableTimestampLock,
@@ -328,7 +335,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
-                lastSeenCommitTs);
+                knowledge);
     }
 
     protected TransactionScopedCache getCache() {

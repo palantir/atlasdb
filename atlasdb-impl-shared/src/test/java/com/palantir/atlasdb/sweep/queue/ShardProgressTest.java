@@ -295,7 +295,7 @@ public class ShardProgressTest {
         assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(150L);
 
         progress.updateLastSeenCommitTimestamp(NON_SWEEPABLE, 200L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(200L);
+        assertThat(progress.getLastSeenCommitTimestamp()).isEqualTo(200L);
     }
 
     @Test

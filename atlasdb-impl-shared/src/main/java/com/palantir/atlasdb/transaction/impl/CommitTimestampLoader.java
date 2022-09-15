@@ -22,12 +22,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -64,6 +65,8 @@ public final class CommitTimestampLoader {
     private final long immutableTimestamp;
     private final Supplier<Long> lastSeenCommitTs;
 
+    private final KnownAbortedTransactions knownAbortedTransactions;
+
     public CommitTimestampLoader(
             TimestampCache timestampCache,
             Optional<LockToken> immutableTimestampLock,
@@ -72,7 +75,7 @@ public final class CommitTimestampLoader {
             MetricsManager metricsManager,
             TimelockService timelockService,
             long immutableTimestamp,
-            Supplier<Long> lastSeenCommitTs) {
+            TransactionKnowledgeComponents knowledge) {
         this.timestampCache = timestampCache;
         this.immutableTimestampLock = immutableTimestampLock;
         this.startTimestampSupplier = startTimestampSupplier;
@@ -80,7 +83,8 @@ public final class CommitTimestampLoader {
         this.metricsManager = metricsManager;
         this.timelockService = timelockService;
         this.immutableTimestamp = immutableTimestamp;
-        this.lastSeenCommitTs = lastSeenCommitTs;
+        this.lastSeenCommitTs = knowledge.getLastSeenCommitSupplier();
+        this.knownAbortedTransactions = knowledge.aborted();
     }
 
     /**
@@ -140,7 +144,8 @@ public final class CommitTimestampLoader {
             if (commitStatus.equals(TransactionStatuses.inProgress())) continue;
 
             // todo(snanda): this is grim - we are maintain two types of cache
-            long commitTs = KnowledgeableTimestampExtractingAtomicTable.getCommitTsFromStatus(start, commitStatus);
+            long commitTs = TransactionStatusUtils.getCommitTsFromStatus(
+                    start, commitStatus, knownAbortedTransactions::isKnownAborted);
             if (commitStatus.equals(TransactionStatuses.unknown())) {
                 shouldValidate = true;
             } else {

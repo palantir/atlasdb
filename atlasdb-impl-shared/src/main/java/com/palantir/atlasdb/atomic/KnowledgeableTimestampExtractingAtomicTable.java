@@ -22,12 +22,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Comparator;
 import java.util.Map;
@@ -91,32 +89,15 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     ListenableFuture<Long> getInternal(long startTimestamp) {
         if (knownConcludedTransactions.isKnownConcluded(
                 startTimestamp, KnownConcludedTransactions.Consistency.LOCAL_READ)) {
-            return Futures.immediateFuture(getCommitTsForConcludedTransaction(startTimestamp, knownAbortedTransactions));
+            return Futures.immediateFuture(TransactionStatusUtils.getCommitTsForConcludedTransaction(
+                    startTimestamp, knownAbortedTransactions::isKnownAborted));
         } else {
             ListenableFuture<TransactionStatus> presentValueFuture = delegate.get(startTimestamp);
             return Futures.transform(
                     presentValueFuture,
-                    presentValue -> getCommitTsFromStatus(startTimestamp, presentValue, knownAbortedTransactions),
+                    presentValue -> TransactionStatusUtils.getCommitTsFromStatus(
+                            startTimestamp, presentValue, knownAbortedTransactions::isKnownAborted),
                     MoreExecutors.directExecutor());
         }
-    }
-
-    public static long getCommitTsFromStatus(long startTs,
-            TransactionStatus status,
-            KnownAbortedTransactions knownAbortedTransactions) {
-        return TransactionStatuses.caseOf(status)
-                .unknown(() -> getCommitTsForConcludedTransaction(startTs, knownAbortedTransactions))
-                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
-    }
-
-    private static long getCommitTsForConcludedTransaction(long startTs,
-            KnownAbortedTransactions knownAbortedTransactions) {
-        return knownAbortedTransactions.isKnownAborted(startTs)
-                ? TransactionConstants.FAILED_COMMIT_TS
-                : getCommitTsForNonAbortedUnknownTransaction(startTs);
-    }
-
-    public static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
-        return startTs;
     }
 }

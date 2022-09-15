@@ -19,19 +19,19 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public final class TransactionServices {
@@ -43,27 +43,26 @@ public final class TransactionServices {
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         // Should only be used for testing, or in contexts where users are not concerned about metrics
         return createTransactionService(
-                keyValueService,
-                transactionSchemaManager,
-                new DefaultTaggedMetricRegistry(),
-                () -> false,
-                Optional.empty());
+                keyValueService, transactionSchemaManager, null, null, new DefaultTaggedMetricRegistry(), () -> false);
     }
 
+    // todo(snanda); not loving these signatures
     public static TransactionService createTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
+            KnownConcludedTransactions concluded,
+            KnownAbortedTransactions aborted,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsOnVersionThree,
-            Optional<InternalSchemaInstallConfig> schemaInstallConfig) {
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return createSplitKeyTransactionService(
                     keyValueService,
                     transactionSchemaManager,
+                    concluded,
+                    aborted,
                     metricRegistry,
-                    acceptStagingReadsOnVersionThree,
-                    schemaInstallConfig);
+                    acceptStagingReadsOnVersionThree);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -71,9 +70,10 @@ public final class TransactionServices {
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
+            KnownConcludedTransactions concluded,
+            KnownAbortedTransactions aborted,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsOnVersionThree,
-            Optional<InternalSchemaInstallConfig> schemaInstallConfig) {
+            Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
@@ -87,9 +87,10 @@ public final class TransactionServices {
                         TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION,
                         createV4TransactionService(
                                 keyValueService,
+                                concluded,
+                                aborted,
                                 metricRegistry,
-                                acceptStagingReadsOnVersionThree,
-                                schemaInstallConfig))));
+                                acceptStagingReadsOnVersionThree))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -111,11 +112,12 @@ public final class TransactionServices {
 
     private static TransactionService createV4TransactionService(
             KeyValueService keyValueService,
+            KnownConcludedTransactions concluded,
+            KnownAbortedTransactions aborted,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsAsCommitted,
-            Optional<InternalSchemaInstallConfig> config) {
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
         return new PreStartHandlingTransactionService(SimpleTransactionService.createV4(
-                keyValueService, metricRegistry, acceptStagingReadsAsCommitted, config));
+                keyValueService, concluded, aborted, metricRegistry, acceptStagingReadsAsCommitted));
     }
 
     /**

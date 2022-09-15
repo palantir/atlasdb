@@ -25,7 +25,6 @@ import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.TimestampExtractingAtomicTable;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
@@ -35,15 +34,10 @@ import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrate
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.DefaultAbandonedTimestampStore;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactionsImpl;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
 
@@ -84,19 +78,21 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     public static SimpleTransactionService createV4(
             KeyValueService kvs,
+            KnownConcludedTransactions concluded,
+            KnownAbortedTransactions aborted,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsAsCommitted,
-            Optional<InternalSchemaInstallConfig> schemaInstallConfig) {
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
             return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
         }
         return createResilientV4(
                 kvs,
+                concluded,
+                aborted,
                 TransactionConstants.TRANSACTIONS2_TABLE,
                 new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),
                 metricRegistry,
-                acceptStagingReadsAsCommitted,
-                schemaInstallConfig);
+                acceptStagingReadsAsCommitted);
     }
 
     private static SimpleTransactionService createSimple(
@@ -125,20 +121,16 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     private static SimpleTransactionService createResilientV4(
             KeyValueService kvs,
+            KnownConcludedTransactions knownConcludedTransactions,
+            KnownAbortedTransactions knownAbortedTransactions,
             TableReference tableRef,
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry,
-            Supplier<Boolean> acceptStagingReadsAsCommitted,
-            Optional<InternalSchemaInstallConfig> config) {
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
         AtomicTable<Long, TransactionStatus> delegate = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
-
-        KnownConcludedTransactions knownConcludedTransactions =
-                KnownConcludedTransactionsImpl.create(KnownConcludedTransactionsStore.create(kvs), metricRegistry);
-        KnownAbortedTransactions knownAbortedTransactions = KnownAbortedTransactionsImpl.create(
-                knownConcludedTransactions, new DefaultAbandonedTimestampStore(kvs), metricRegistry, config);
         AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(
                 delegate, knownConcludedTransactions, knownAbortedTransactions);
         return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);

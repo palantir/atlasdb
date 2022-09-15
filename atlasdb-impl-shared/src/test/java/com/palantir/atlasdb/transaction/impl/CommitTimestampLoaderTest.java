@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -67,7 +66,7 @@ public class CommitTimestampLoaderTest {
     public void throwIfTTSBeyondReadOnlyForSweptTTSCell() {
         long transactionTs = 27l;
         long startTs = 5l;
-        long commitTs = KnowledgeableTimestampExtractingAtomicTable.getCommitTsForNonAbortedUnknownTransaction(startTs);
+        long commitTs = TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTs);
 
         setup(startTs, commitTs);
 
@@ -102,7 +101,7 @@ public class CommitTimestampLoaderTest {
     public void doNotThrowIfTTSBeyondReadWriteTxnForTTSCell() throws ExecutionException, InterruptedException {
         long transactionTs = 27l;
         long startTs = 5l;
-        long commitTs = KnowledgeableTimestampExtractingAtomicTable.getCommitTsForNonAbortedUnknownTransaction(startTs);
+        long commitTs = TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTs);
 
         setup(startTs, commitTs);
 
@@ -140,8 +139,7 @@ public class CommitTimestampLoaderTest {
         long commitTsKnown = startTsKnown + 1;
 
         long startTsUnknown = 7l;
-        long commitTsUnknown =
-                KnowledgeableTimestampExtractingAtomicTable.getCommitTsForNonAbortedUnknownTransaction(startTsUnknown);
+        long commitTsUnknown = TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTsUnknown);
 
         CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTsUnknown);
 
@@ -181,7 +179,7 @@ public class CommitTimestampLoaderTest {
                 metricsManager,
                 timelockService,
                 1l,
-                () -> lastSeenCommitTs);
+                null); // todo(snanda)
         return commitTimestampLoader;
     }
 }

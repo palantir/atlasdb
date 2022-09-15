@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
@@ -42,10 +43,29 @@ public final class TransactionStatusUtils {
                 });
     }
 
+    // todo(snanda): too many methods
     public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
                 .otherwiseEmpty();
+    }
+
+    public static long getCommitTsFromStatus(
+            long startTs, TransactionStatus status, Function<Long, Boolean> isAborted) {
+        return TransactionStatuses.caseOf(status)
+                .unknown(() -> getCommitTsForConcludedTransaction(startTs, isAborted))
+                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
+    }
+
+    public static long getCommitTsForConcludedTransaction(long startTs, Function<Long, Boolean> isAborted) {
+        return isAborted.apply(startTs)
+                ? TransactionConstants.FAILED_COMMIT_TS
+                : getCommitTsForNonAbortedUnknownTransaction(startTs);
+    }
+
+    @VisibleForTesting
+    static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
+        return startTs;
     }
 }

@@ -451,8 +451,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController,
-                        SweepQueueFactory.getGetLastSeenCommitTsSupplier(kvs)),
+                        tableLevelMetricsController),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 

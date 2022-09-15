@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -119,6 +120,8 @@ public abstract class TransactionTestSetup {
     protected TransactionManager txMgr;
 
     protected TimestampCache timestampCache;
+
+    protected TransactionKnowledgeComponents knowledge;
 
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
@@ -207,6 +210,7 @@ public abstract class TransactionTestSetup {
                 sweepStrategyManager,
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
+                knowledge,
                 MoreExecutors.newDirectExecutorService());
     }
 
