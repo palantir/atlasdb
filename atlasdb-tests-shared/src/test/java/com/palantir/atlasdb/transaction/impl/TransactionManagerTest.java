@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -120,10 +119,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TimelockService mockTimeLockService = mock(TimelockService.class);
         TimestampManagementService mockTimestampManagementService = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
-        KeyValueService kvs = getKeyValueService();
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
-                kvs,
+                getKeyValueService(),
                 mockTimeLockService,
                 mockTimestampManagementService,
                 mockLockService,
@@ -136,7 +134,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry()));
+                knowledge);
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimeLockService.getImmutableTimestamp()).thenReturn(1L);
@@ -269,7 +267,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry()));
+                knowledge);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp())

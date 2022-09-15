@@ -29,7 +29,13 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.LockToken;
@@ -47,6 +53,21 @@ public class CommitTimestampLoaderTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
     private final AsyncTransactionService transactionService = mock(AsyncTransactionService.class);
+
+    private final KnownAbortedTransactions knownAbortedTransactions = mock(KnownAbortedTransactions.class);
+
+    private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
+
+    private void setup(long startTs, long commitTs) {
+        TransactionStatus commitStatus = TransactionStatuses.committed(commitTs);
+        setup(startTs, commitStatus, false);
+    }
+
+    private void setup(long startTs, TransactionStatus commitStatus, boolean isAborted) {
+        when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
+        when(knownAbortedTransactions.isKnownAborted(anyLong())).thenReturn(isAborted);
+        when(transactionService.getAsyncV2(startTs)).thenReturn(Futures.immediateFuture(commitStatus));
+    }
 
     @Test
     public void readOnlyDoesNotThrowForUnsweptTTSCell() throws ExecutionException, InterruptedException {
@@ -66,9 +87,9 @@ public class CommitTimestampLoaderTest {
     public void throwIfTTSBeyondReadOnlyForSweptTTSCell() {
         long transactionTs = 27l;
         long startTs = 5l;
-        long commitTs = TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTs);
+        TransactionStatus commitStatus = TransactionStatuses.unknown();
 
-        setup(startTs, commitTs);
+        setup(startTs, commitStatus, true);
 
         // no immutableTs lock for read-only transaction
         CommitTimestampLoader commitTimestampLoader =
@@ -139,9 +160,10 @@ public class CommitTimestampLoaderTest {
         long commitTsKnown = startTsKnown + 1;
 
         long startTsUnknown = 7l;
-        long commitTsUnknown = TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTsUnknown);
+        TransactionStatus commitUnknown = TransactionStatuses.unknown();
 
-        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTsUnknown);
+        CommitTimestampLoader commitTimestampLoader =
+                commitTsLoader(Optional.empty(), transactionTs, transactionTs - 1);
 
         setup(startTsKnown, commitTsKnown);
         // the transaction will eventually throw at commit time. In this test we are only concerned with per read
@@ -150,15 +172,13 @@ public class CommitTimestampLoaderTest {
         verify(timestampCache).getCommitTimestampIfPresent(startTsKnown);
         verify(timestampCache).putAlreadyCommittedTransaction(startTsKnown, commitTsKnown);
 
-        setup(startTsUnknown, commitTsUnknown);
-        assertCanGetCommitTs(startTsUnknown, commitTsUnknown, commitTimestampLoader);
+        setup(startTsUnknown, commitUnknown, false);
+        assertCanGetCommitTs(
+                startTsUnknown,
+                TransactionStatusUtils.getCommitTsForNonAbortedUnknownTransaction(startTsUnknown),
+                commitTimestampLoader);
         verify(timestampCache).getCommitTimestampIfPresent(startTsUnknown);
         verifyNoMoreInteractions(timestampCache);
-    }
-
-    private void setup(long startTs, long commitTs) {
-        when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
-        when(transactionService.getAsync(startTs)).thenReturn(Futures.immediateFuture(commitTs));
     }
 
     private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)
@@ -171,6 +191,7 @@ public class CommitTimestampLoaderTest {
     }
 
     private CommitTimestampLoader commitTsLoader(Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
+        getKnowledgeComponents(lastSeenCommitTs);
         CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(
                 timestampCache,
                 lock, // commitTsLoader does not care if the lock expires.
@@ -179,7 +200,15 @@ public class CommitTimestampLoaderTest {
                 metricsManager,
                 timelockService,
                 1l,
-                null); // todo(snanda)
+                getKnowledgeComponents(lastSeenCommitTs));
         return commitTimestampLoader;
+    }
+
+    private TransactionKnowledgeComponents getKnowledgeComponents(long lastSeenCommitTs) {
+        return ImmutableTransactionKnowledgeComponents.builder()
+                .aborted(knownAbortedTransactions)
+                .concluded(knownConcludedTransactions)
+                .lastSeenCommitSupplier(() -> lastSeenCommitTs)
+                .build();
     }
 }
