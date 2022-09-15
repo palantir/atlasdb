@@ -715,7 +715,6 @@ public abstract class TransactionManagers {
                                 keyValueService,
                                 transactionSchemaManager,
                                 knowledgeCache.concluded(),
-                                knowledgeCache.aborted(),
                                 metricsManager.getTaggedRegistry(),
                                 () -> runtimeConfigSupplier
                                         .get()

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Comparator;
@@ -37,12 +38,10 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     private final KnownAbortedTransactions knownAbortedTransactions;
 
     public KnowledgeableTimestampExtractingAtomicTable(
-            AtomicTable<Long, TransactionStatus> delegate,
-            KnownConcludedTransactions knownConcludedTransactions,
-            KnownAbortedTransactions knownAbortedTransactions) {
+            AtomicTable<Long, TransactionStatus> delegate, TransactionKnowledgeComponents knowledge) {
         this.delegate = delegate;
-        this.knownConcludedTransactions = knownConcludedTransactions;
-        this.knownAbortedTransactions = knownAbortedTransactions;
+        this.knownConcludedTransactions = knowledge.concluded();
+        this.knownAbortedTransactions = knowledge.aborted();
     }
 
     @Override

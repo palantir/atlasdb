@@ -34,8 +34,7 @@ import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrate
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -78,8 +77,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     public static SimpleTransactionService createV4(
             KeyValueService kvs,
-            KnownConcludedTransactions concluded,
-            KnownAbortedTransactions aborted,
+            TransactionKnowledgeComponents knowledge,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
@@ -87,8 +85,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
         }
         return createResilientV4(
                 kvs,
-                concluded,
-                aborted,
+                knowledge,
                 TransactionConstants.TRANSACTIONS2_TABLE,
                 new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE),
                 metricRegistry,
@@ -121,8 +118,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     private static SimpleTransactionService createResilientV4(
             KeyValueService kvs,
-            KnownConcludedTransactions knownConcludedTransactions,
-            KnownAbortedTransactions knownAbortedTransactions,
+            TransactionKnowledgeComponents knowledge,
             TableReference tableRef,
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry,
@@ -131,8 +127,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
         AtomicTable<Long, TransactionStatus> delegate = new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
-        AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(
-                delegate, knownConcludedTransactions, knownAbortedTransactions);
+        AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(delegate, knowledge);
         return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
     }
 
