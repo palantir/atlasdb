@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Reduce Value Caching Validation by default to 10%.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6230
