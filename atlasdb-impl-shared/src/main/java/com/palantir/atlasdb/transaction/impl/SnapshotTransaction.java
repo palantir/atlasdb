@@ -77,7 +77,7 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -1486,18 +1486,16 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
-        sweepQueue.getSweepStrategy(table).ifPresent(strategy -> {
-            if (strategy == SweeperStrategy.THOROUGH) {
-                SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
-                        .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                        .collectToSetMultimap();
-                try {
-                    runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
-                } catch (Throwable th) {
-                    // best effort
-                }
+        if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
+            SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
+                    .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
+                    .collectToSetMultimap();
+            try {
+                runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
+            } catch (Throwable th) {
+                // best effort
             }
-        });
+        }
     }
 
     /**

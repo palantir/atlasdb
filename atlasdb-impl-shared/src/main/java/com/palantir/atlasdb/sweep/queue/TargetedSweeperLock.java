@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;

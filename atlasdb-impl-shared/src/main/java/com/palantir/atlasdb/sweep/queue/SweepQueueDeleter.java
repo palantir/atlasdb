@@ -54,6 +54,9 @@ public class SweepQueueDeleter {
      * sentinels or not.
      */
     public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
+        if (!sweeper.shouldDeleteCells()) {
+            return;
+        }
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
         Map<TableReference, Map<Cell, TimestampRangeDelete>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, TimestampRangeDelete>> entry : maxTimestampByCell.entrySet()) {
@@ -90,6 +93,7 @@ public class SweepQueueDeleter {
             Collection<WriteInfo> writes, Sweeper sweeper) {
         return writes.stream()
                 .collect(Collectors.groupingBy(
-                        WriteInfo::tableRef, Collectors.toMap(WriteInfo::cell, write -> write.toDelete(sweeper))));
+                        info -> info.writeRef().get().tableRef(),
+                        Collectors.toMap(info -> info.writeRef().get().cell(), write -> write.toDelete(sweeper))));
     }
 }

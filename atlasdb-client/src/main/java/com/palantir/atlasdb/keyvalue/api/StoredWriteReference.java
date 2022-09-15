@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Arrays;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Parameter;
 
@@ -26,6 +28,9 @@ public interface StoredWriteReference extends Persistable {
 
     default <T> T accept(Visitor<T> visitor) {
         byte[] data = data();
+        if (Arrays.equals(data, PtBytes.EMPTY_BYTE_ARRAY)) {
+            return visitor.visitDummy();
+        }
         switch (data[0]) {
             case 0:
                 return visitor.visitTableNameAsStringBinary(data);
@@ -53,5 +58,7 @@ public interface StoredWriteReference extends Persistable {
         T visitTableNameAsStringBinary(byte[] ref);
 
         T visitTableIdBinary(byte[] ref);
+
+        T visitDummy();
     }
 }

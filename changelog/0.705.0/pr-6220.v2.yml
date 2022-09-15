@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: AtlasDB now persists information about transactions that only write
+    to non swept tables to the queue. This is necessary for `_transactions4`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6199

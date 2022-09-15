@@ -21,15 +21,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -133,27 +130,6 @@ public final class TransactionServices {
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
-    public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            KeyValueService keyValueService, MetricsManager metricsManager) {
-        if (keyValueService.supportsCheckAndSet()) {
-            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                    keyValueService,
-                    () -> {
-                        throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
-                                + " transaction service! This is probably a product bug. Please contact"
-                                + " support.");
-                    },
-                    metricsManager,
-                    false);
-            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager =
-                    new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
-                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
-        }
-        return createV1TransactionService(keyValueService);
-    }
-
     /**
      * Constructs an {@link AsyncTransactionService} such that methods are blocking and return immediate futures.
      *
@@ -163,13 +139,25 @@ public final class TransactionServices {
     public static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
         return new AsyncTransactionService() {
             @Override
+            @Deprecated
             public ListenableFuture<Long> getAsync(long startTimestamp) {
                 return Futures.immediateFuture(transactionService.get(startTimestamp));
             }
 
             @Override
+            @Deprecated
             public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
                 return Futures.immediateFuture(transactionService.get(startTimestamps));
+            }
+
+            @Override
+            public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+                return transactionService.getAsyncV2(startTimestamp);
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+                return transactionService.getAsyncV2(startTimestamps);
             }
         };
     }
