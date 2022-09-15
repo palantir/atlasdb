@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -89,11 +89,11 @@ public class WriteInfoPartitionerTest {
     @Test
     public void getStrategyReturnsCorrectStrategy() {
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(NOTHING, 0, numShards)))
-                .isEmpty();
+                .isEqualTo(SweeperStrategy.NON_SWEEPABLE);
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(CONSERVATIVE, 10, numShards)))
-                .contains(SweeperStrategy.CONSERVATIVE);
+                .isEqualTo(SweeperStrategy.CONSERVATIVE);
         assertThat(partitioner.getStrategy(getWriteInfoWithFixedShard(THOROUGH, 100, numShards)))
-                .contains(SweeperStrategy.THOROUGH);
+                .isEqualTo(SweeperStrategy.THOROUGH);
     }
 
     @Test
@@ -117,12 +117,20 @@ public class WriteInfoPartitionerTest {
                 getWriteInfoWithFixedShard(THOROUGH, 2, numShards),
                 getWriteInfoWithFixedShard(NOTHING, 0, numShards));
 
-        assertThat(partitioner.filterOutUnsweepableTables(writes))
-                .containsExactly(
+        assertThat(partitioner.filterAndPartition(writes).values().stream().flatMap(List::stream))
+                .containsExactlyInAnyOrder(
                         getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
                                 getWriteInfoWithFixedShard(CONSERVATIVE, 0, numShards),
                         getWriteInfoWithFixedShard(CONSERVATIVE2, 1, numShards),
                                 getWriteInfoWithFixedShard(THOROUGH, 2, numShards));
+    }
+
+    @Test
+    public void onlyUnsweepableWrites() {
+        List<WriteInfo> writes = ImmutableList.of(
+                getWriteInfoWithFixedShard(NOTHING, 1, numShards), getWriteInfoWithFixedShard(NOTHING, 2, numShards));
+        assertThat(partitioner.filterAndPartition(writes))
+                .containsExactly(Map.entry(SweepQueueUtils.nonSweepable(1L), ImmutableList.of(WriteInfo.of(1L))));
     }
 
     @Test
@@ -131,12 +139,11 @@ public class WriteInfoPartitionerTest {
                 getWriteInfo(CONSERVATIVE, 0, 0, 100L),
                 getWriteInfo(CONSERVATIVE, 1, 0, 100L),
                 getWriteInfo(CONSERVATIVE, 0, 3, 100L),
-                getWriteInfo(CONSERVATIVE, 0, 0, 200L),
                 getWriteInfo(CONSERVATIVE2, 0, 0, 100L),
                 getWriteInfo(THOROUGH, 0, 0, 100L));
 
-        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
-        assertThat(partitions).hasSize(6);
+        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.filterAndPartition(writes);
+        assertThat(partitions).hasSize(5);
     }
 
     @Test
@@ -145,26 +152,26 @@ public class WriteInfoPartitionerTest {
         for (int i = 0; i <= numShards; i++) {
             writes.add(getWriteInfoWithFixedShard(CONSERVATIVE, i, numShards));
         }
-        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
+        Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.filterAndPartition(writes);
         assertThat(partitions.keySet())
-                .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
+                .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), SweeperStrategy.CONSERVATIVE, 1L));
         assertThat(Iterables.getOnlyElement(partitions.values())).containsExactlyElementsOf(writes);
     }
 
     @Test
     public void changingNumberOfPartitionsIsReflectedInPartitionInfo() {
         WriteInfo write = getWriteInfo(CONSERVATIVE, 1, 1, 100L);
-        PartitionInfo partition1 = Iterables.getOnlyElement(partitioner
-                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
-                .keySet());
+        PartitionInfo partition1 = Iterables.getOnlyElement(
+                partitioner.filterAndPartition(ImmutableList.of(write)).keySet());
         numShards += 1;
-        PartitionInfo partition2 = Iterables.getOnlyElement(partitioner
-                .partitionWritesByShardStrategyTimestamp(ImmutableList.of(write))
-                .keySet());
+        PartitionInfo partition2 = Iterables.getOnlyElement(
+                partitioner.filterAndPartition(ImmutableList.of(write)).keySet());
 
-        assertThat(partition1.isConservative()).isEqualTo(partition2.isConservative());
+        assertThat(partition1.shardAndStrategy().strategy())
+                .isEqualTo(partition2.shardAndStrategy().strategy());
         assertThat(partition1.timestamp()).isEqualTo(partition2.timestamp());
-        assertThat(partition1.shard()).isNotEqualTo(partition2.shard());
+        assertThat(partition1.shardAndStrategy().shard())
+                .isNotEqualTo(partition2.shardAndStrategy().shard());
     }
 
     @Test

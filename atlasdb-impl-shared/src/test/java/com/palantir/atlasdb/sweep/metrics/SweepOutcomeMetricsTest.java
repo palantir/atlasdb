@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
-import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.CONSERVATIVE;
-import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.THOROUGH;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 class SweepBatchAccumulator {
     private final List<WriteInfo> accumulatedWrites = new ArrayList<>();
+    private final Set<Long> abortedTimestamps = new HashSet<>();
     private final Set<Long> finePartitions = new HashSet<>();
     private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = new ArrayList<>();
     private final long sweepTimestamp;
@@ -56,6 +57,7 @@ class SweepBatchAccumulator {
                 sweepTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
+        abortedTimestamps.addAll(sweepBatch.abortedTimestamps());
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
         addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
@@ -72,6 +74,7 @@ class SweepBatchAccumulator {
     SweepBatchWithPartitionInfo toSweepBatch() {
         SweepBatch sweepBatch = SweepBatch.of(
                 getLatestWritesByCellReference(),
+                abortedTimestamps,
                 DedicatedRows.of(accumulatedDedicatedRows),
                 getLastSweptTimestamp(),
                 lastSeenCommitTimestamp,
@@ -88,7 +91,9 @@ class SweepBatchAccumulator {
 
     private List<WriteInfo> getLatestWritesByCellReference() {
         return ImmutableList.copyOf(accumulatedWrites.stream()
-                .collect(Collectors.toMap(info -> info.writeRef().cellReference(), x -> x, WriteInfo::higherTimestamp))
+                .filter(info -> info.writeRef().isPresent())
+                .collect(Collectors.toMap(
+                        info -> info.writeRef().get().cellReference(), x -> x, WriteInfo::higherTimestamp))
                 .values());
     }
 

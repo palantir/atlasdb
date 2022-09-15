@@ -26,6 +26,8 @@ import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -46,7 +48,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 public final class LockWatchEventLogTest {
     private static final int MIN_EVENTS = 1;
@@ -106,6 +110,9 @@ public final class LockWatchEventLogTest {
 
     private final LockWatchEventLog eventLog =
             LockWatchEventLog.create(CacheMetrics.create(MetricsManagers.createForTests()), MIN_EVENTS, MAX_EVENTS);
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Test
     public void doesNotHaveInitialVersion() {
@@ -427,17 +434,18 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
+    @ShouldRetry
     public void eventLogDoesNotDeadlockUnderConcurrentLoad() throws InterruptedException {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
         AtomicInteger exceptionsSeen = new AtomicInteger(0);
-        for (int count = 0; count < 200_000; ++count) {
+        for (int count = 0; count < 20_000; ++count) {
             executor.execute(() -> randomEventLogTask(exceptionsSeen));
         }
 
         executor.shutdown();
-        assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(executor.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
         assertThat(exceptionsSeen).hasValue(0);
     }
 

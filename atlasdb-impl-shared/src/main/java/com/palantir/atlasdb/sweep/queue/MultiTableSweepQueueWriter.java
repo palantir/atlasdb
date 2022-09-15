@@ -18,11 +18,10 @@ package com.palantir.atlasdb.sweep.queue;
 import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +65,7 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackIniti
         // noop
     }
 
-    default Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
-        return Optional.empty();
+    default SweeperStrategy getSweepStrategy(TableReference tableReference) {
+        return SweeperStrategy.NON_SWEEPABLE;
     }
 }

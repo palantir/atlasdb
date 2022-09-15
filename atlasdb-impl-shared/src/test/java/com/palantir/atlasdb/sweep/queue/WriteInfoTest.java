@@ -33,8 +33,8 @@ public class WriteInfoTest {
     @Test
     public void cellReferenceIgnoresTombstoneStatus() {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
-        assertThat(getWriteAt(ONE).writeRef().cellReference())
-                .isEqualTo(getTombstoneAt(ONE).writeRef().cellReference());
+        assertThat(getWriteAt(ONE).writeRef().get().cellReference())
+                .isEqualTo(getTombstoneAt(ONE).writeRef().get().cellReference());
     }
 
     @Test

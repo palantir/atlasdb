@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.junit.Test;
 
 public final class WriteReferencePersisterTest {
@@ -41,7 +42,7 @@ public final class WriteReferencePersisterTest {
                 + "rowName\":\"P7du\",\"columnName\":\"dg==\"},\"d\":true}";
         StoredWriteReference stored =
                 StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(original.getBytes(StandardCharsets.UTF_8));
-        assertThat(persister.unpersist(stored)).isEqualTo(WRITE_REFERENCE);
+        assertThat(persister.unpersist(stored)).hasValue(WRITE_REFERENCE);
     }
 
     @Test
@@ -53,13 +54,18 @@ public final class WriteReferencePersisterTest {
                 EncodingUtils.encodeSizedBytes(column),
                 EncodingUtils.encodeVarLong(1));
         StoredWriteReference stored = StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(data);
-        assertThat(persister.unpersist(stored)).isEqualTo(WRITE_REFERENCE);
+        assertThat(persister.unpersist(stored)).hasValue(WRITE_REFERENCE);
     }
 
     @Test
     public void testCanUnpersistBinary_id() {
         assertThat(persister.unpersist(StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(
-                        persister.persist(WRITE_REFERENCE).persistToBytes())))
-                .isEqualTo(WRITE_REFERENCE);
+                        persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes())))
+                .hasValue(WRITE_REFERENCE);
+    }
+
+    @Test
+    public void canUnpersistEmpty() {
+        assertThat(persister.unpersist(persister.persist(Optional.empty()))).isEmpty();
     }
 }

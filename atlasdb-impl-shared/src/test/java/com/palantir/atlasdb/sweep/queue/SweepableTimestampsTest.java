@@ -189,18 +189,56 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         assertThat(readConservative(shardCons)).contains(tsPartitionFine(2L * TS_FINE_GRANULARITY + 1000L));
     }
 
+    @Test
+    public void canReadNonSweepable() {
+        writeToDefaultCellCommitted(sweepableTimestamps, 100L, TABLE_NOTH);
+        assertThat(readNonSweepable()).hasValue(0L);
+    }
+
+    @Test
+    public void noClashWithNonSweepable() {
+        writeToDefaultCellCommitted(sweepableTimestamps, 250L, TABLE_CONS);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 50_250L, TABLE_THOR);
+        writeToDefaultCellAborted(sweepableTimestamps, 100_250L, TABLE_NOTH);
+
+        assertThat(readConservative(shardCons)).hasValue(0L);
+        assertThat(readNonSweepable()).hasValue(2L);
+        assertThat(readThorough(shardThor)).hasValue(1L);
+    }
+
+    @Test
+    public void nonSweepableRespectsProgress() {
+        writeToDefaultCellUncommitted(sweepableTimestamps, 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 50_250L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 150_250L, TABLE_NOTH);
+
+        setSweepTimestampAndGet(100_000L);
+
+        assertThat(readNonSweepable()).hasValue(0L);
+        assertThat(readNonSweepable()).hasValue(0L);
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), 49_999L);
+        assertThat(readNonSweepable()).hasValue(1L);
+    }
+
     private Optional<Long> readConservative(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(
+        return sweepableTimestamps.nextTimestampPartition(
                 conservative(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.conservative(shardNumber)),
                 Sweeper.CONSERVATIVE.getSweepTimestamp(timestampsSupplier));
     }
 
     private Optional<Long> readThorough(int shardNumber) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(
+        return sweepableTimestamps.nextTimestampPartition(
                 thorough(shardNumber),
                 progress.getLastSweptTimestamp(ShardAndStrategy.thorough(shardNumber)),
                 Sweeper.THOROUGH.getSweepTimestamp(timestampsSupplier));
+    }
+
+    private Optional<Long> readNonSweepable() {
+        return sweepableTimestamps.nextTimestampPartition(
+                ShardAndStrategy.nonSweepable(),
+                progress.getLastSweptTimestamp(ShardAndStrategy.nonSweepable()),
+                Sweeper.NO_OP.getSweepTimestamp(timestampsSupplier));
     }
 
     private long setSweepTimestampAndGet(long timestamp) {
