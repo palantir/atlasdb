@@ -232,6 +232,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(getSweepTsCons());
+        sweepQueue.updateLastSweptTs(CONSERVATIVE);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
 
         setTimelockTime(5_000L);
@@ -420,6 +421,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any());
 
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
+        sweepQueue.updateLastSweptTs(CONSERVATIVE);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(readBatchSize - 1));
 
         setTimelockTime(10_000L);
@@ -487,6 +489,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, lastSweepableTimestamp);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(3);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(2 * readBatchSize + 2);
+        sweepQueue.updateLastSweptTs(CONSERVATIVE);
         assertThat(metricsManager)
                 .hasLastSweptTimestampConservativeEqualTo(
                         maxTsForFinePartition(permittedPartitions.get(2 * readBatchSize)));
@@ -651,6 +654,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp + 5);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
+        sweepQueue.updateLastSweptTs(CONSERVATIVE);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(sweepTimestamp - 1);
     }
 

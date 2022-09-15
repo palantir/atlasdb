@@ -254,33 +254,34 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 : runtime.get().maximumPartitionsToBatchInSingleRead();
     }
 
+    @VisibleForTesting
+    Void updateLastSweptTs(SweeperStrategy sweeperStrategy){
+        int shards = queue.getNumShards();
+
+        Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
+                .mapToObj(shard -> ShardAndStrategy.of(shard, sweeperStrategy))
+                .collect(Collectors.toSet());
+
+        Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
+
+        KeyedStream.stream(shardAndStrategyToTimestamp)
+                .filter(lastSweptTimestamp -> lastSweptTimestamp != -1L)
+                .forEach(metrics::updateProgressForShard);
+
+        return null;
+    }
+
     private class LastSweptTsUpdateTask implements AutoCloseable {
-        private final SweeperStrategy sweepStrategy;
+        private final SweeperStrategy sweeperStrategy;
         private LastSweptTsUpdateScheduler scheduler;
 
         private LastSweptTsUpdateTask(SweeperStrategy sweeperStrategy){
-            this.sweepStrategy = sweeperStrategy;
-        }
-
-        private Void updateLastSweptTs(){
-            int shards = queue.getNumShards();
-
-            Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
-                    .mapToObj(shard -> ShardAndStrategy.of(shard, sweepStrategy))
-                    .collect(Collectors.toSet());
-
-            Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
-
-            KeyedStream.stream(shardAndStrategyToTimestamp)
-                    .filter(lastSweptTimestamp -> lastSweptTimestamp != -1L)
-                    .forEach(metrics::updateProgressForShard);
-
-            return null;
+            this.sweeperStrategy = sweeperStrategy;
         }
 
         private void scheduleBackgroundThread(){
             if (scheduler == null) {
-                scheduler = LastSweptTsUpdateScheduler.createStarted(this::updateLastSweptTs);
+                scheduler = LastSweptTsUpdateScheduler.createStarted(() -> updateLastSweptTs(sweeperStrategy));
             }
         }
 
