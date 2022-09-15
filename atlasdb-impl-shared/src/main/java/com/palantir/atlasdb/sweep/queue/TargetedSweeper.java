@@ -270,7 +270,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                     .collect(Collectors.toSet());
 
             Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
-            KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
+
+            KeyedStream.stream(shardAndStrategyToTimestamp)
+                    .filter(lastSweptTimestamp -> lastSweptTimestamp != -1L)
+                    .forEach(metrics::updateProgressForShard);
+
             return null;
         }
 
