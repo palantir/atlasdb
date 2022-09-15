@@ -91,23 +91,26 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     ListenableFuture<Long> getInternal(long startTimestamp) {
         if (knownConcludedTransactions.isKnownConcluded(
                 startTimestamp, KnownConcludedTransactions.Consistency.LOCAL_READ)) {
-            return Futures.immediateFuture(getCommitTsForConcludedTransaction(startTimestamp));
+            return Futures.immediateFuture(getCommitTsForConcludedTransaction(startTimestamp, knownAbortedTransactions));
         } else {
             ListenableFuture<TransactionStatus> presentValueFuture = delegate.get(startTimestamp);
             return Futures.transform(
                     presentValueFuture,
-                    presentValue -> getCommitTsFromStatus(startTimestamp, presentValue),
+                    presentValue -> getCommitTsFromStatus(startTimestamp, presentValue, knownAbortedTransactions),
                     MoreExecutors.directExecutor());
         }
     }
 
-    private Long getCommitTsFromStatus(long startTs, TransactionStatus status) {
+    public static long getCommitTsFromStatus(long startTs,
+            TransactionStatus status,
+            KnownAbortedTransactions knownAbortedTransactions) {
         return TransactionStatuses.caseOf(status)
-                .unknown(() -> getCommitTsForConcludedTransaction(startTs))
+                .unknown(() -> getCommitTsForConcludedTransaction(startTs, knownAbortedTransactions))
                 .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
     }
 
-    private long getCommitTsForConcludedTransaction(long startTs) {
+    private static long getCommitTsForConcludedTransaction(long startTs,
+            KnownAbortedTransactions knownAbortedTransactions) {
         return knownAbortedTransactions.isKnownAborted(startTs)
                 ? TransactionConstants.FAILED_COMMIT_TS
                 : getCommitTsForNonAbortedUnknownTransaction(startTs);
@@ -115,9 +118,5 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
 
     public static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
         return startTs;
-    }
-
-    public static boolean isUnknownCommittedTransaction(long startTs, long commitTs) {
-        return startTs == commitTs;
     }
 }

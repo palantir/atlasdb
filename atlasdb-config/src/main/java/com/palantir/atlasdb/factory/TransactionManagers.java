@@ -25,6 +25,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -972,6 +973,8 @@ public abstract class TransactionManagers {
     @Value.Immutable
     public interface TransactionComponents {
         TransactionService transactionService();
+
+        KnowledgeableTimestampExtractingAtomicTable
 
         Optional<TransactionSchemaInstaller> schemaInstaller();
     }

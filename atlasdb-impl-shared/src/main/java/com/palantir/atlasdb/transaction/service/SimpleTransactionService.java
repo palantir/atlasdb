@@ -141,7 +141,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 knownConcludedTransactions, new DefaultAbandonedTimestampStore(kvs), metricRegistry, config);
         AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(
                 delegate, knownConcludedTransactions, knownAbortedTransactions);
-        return new SimpleTransactionService(atomicTable, encodingStrategy);
+        return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
     }
 
     @Override

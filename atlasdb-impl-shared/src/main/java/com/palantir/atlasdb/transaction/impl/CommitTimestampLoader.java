@@ -29,6 +29,8 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -126,18 +128,20 @@ public final class CommitTimestampLoader {
     }
 
     // We do not cache unknown transactions as they are already being cached at a lower level.
-    private Map<Long, Long> cacheKnownLoadedValuesAndValidate(Map<Long, Long> rawResults) {
+    private Map<Long, Long> cacheKnownLoadedValuesAndValidate(Map<Long, TransactionStatus> rawResults) {
         Map<Long, Long> results = new HashMap<>();
         boolean shouldValidate = false;
 
         // The method is written this way to avoid multiple scans on the result set as it is on a hot path.
-        for (Map.Entry<Long, Long> entry : rawResults.entrySet()) {
-            Long start = entry.getKey();
-            Long commitTs = entry.getValue();
+        for (Map.Entry<Long, TransactionStatus> entry : rawResults.entrySet()) {
+            long start = entry.getKey();
+            TransactionStatus commitStatus = entry.getValue();
 
-            if (commitTs == null) continue;
+            if (commitStatus.equals(TransactionStatuses.inProgress())) continue;
 
-            if (KnowledgeableTimestampExtractingAtomicTable.isUnknownCommittedTransaction(start, commitTs)) {
+            // todo(snanda): this is grim - we are maintain two types of cache
+            long commitTs = KnowledgeableTimestampExtractingAtomicTable.getCommitTsFromStatus(start, commitStatus);
+            if (commitStatus.equals(TransactionStatuses.unknown())) {
                 shouldValidate = true;
             } else {
                 timestampCache.putAlreadyCommittedTransaction(start, commitTs);
@@ -212,18 +216,18 @@ public final class CommitTimestampLoader {
         return metricsManager.registerOrGetTimer(CommitTimestampLoader.class, name);
     }
 
-    private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
+    private static ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(
             AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             Long singleTs = startTimestamps.iterator().next();
             return Futures.transform(
-                    asyncTransactionService.getAsync(singleTs),
+                    asyncTransactionService.getAsyncV2(singleTs),
                     commitTsOrNull ->
                             commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsync(startTimestamps);
+            return asyncTransactionService.getAsyncV2(startTimestamps);
         }
     }
 
