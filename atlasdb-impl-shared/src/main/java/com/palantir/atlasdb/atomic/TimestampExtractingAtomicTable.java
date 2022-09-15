@@ -61,7 +61,7 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
         return Futures.transform(
                 delegate.get(keys),
                 statuses -> KeyedStream.stream(statuses)
-                        .map(TransactionStatusUtils::maybeGetCommitTs)
+                        .map(TransactionStatusUtils::maybeGetCommitTsNonTts)
                         .flatMap(Optional::stream)
                         .collectToMap(),
                 MoreExecutors.directExecutor());

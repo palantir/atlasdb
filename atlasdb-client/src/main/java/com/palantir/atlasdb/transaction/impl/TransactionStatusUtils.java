@@ -34,7 +34,11 @@ public final class TransactionStatusUtils {
         return TransactionStatuses.committed(timestamp);
     }
 
-    public static long getCommitTimestampOrThrow(TransactionStatus status) {
+    /**
+     * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
+     * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
+     * */
+    public static long getCommitTimestampOrThrowNonTTS(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
@@ -43,8 +47,11 @@ public final class TransactionStatusUtils {
                 });
     }
 
-    // todo(snanda): too many methods
-    public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
+    /**
+     * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
+     * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
+     * */
+    public static Optional<Long> maybeGetCommitTsNonTts(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
@@ -55,7 +62,8 @@ public final class TransactionStatusUtils {
             long startTs, TransactionStatus status, Function<Long, Boolean> isAborted) {
         return TransactionStatuses.caseOf(status)
                 .unknown(() -> getCommitTsForConcludedTransaction(startTs, isAborted))
-                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
+                .otherwise(() ->
+                        TransactionStatusUtils.maybeGetCommitTsNonTts(status).orElse(null));
     }
 
     public static long getCommitTsForConcludedTransaction(long startTs, Function<Long, Boolean> isAborted) {
