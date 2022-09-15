@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.LastSweptTsUpdateScheduler;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -43,9 +45,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
@@ -64,6 +69,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private TimelockService timeLock;
     private BackgroundSweepScheduler conservativeScheduler;
     private BackgroundSweepScheduler thoroughScheduler;
+    private LastSweptTsUpdateTask conservativeLastSweptTsTask;
+    private LastSweptTsUpdateTask thoroughLastSweptTsTask;
 
     private volatile boolean isInitialized = false;
 
@@ -77,6 +84,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.conservativeScheduler =
                 new BackgroundSweepScheduler(install.conservativeThreads(), SweeperStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(), SweeperStrategy.THOROUGH);
+        this.conservativeLastSweptTsTask = new LastSweptTsUpdateTask(SweeperStrategy.CONSERVATIVE);
+        this.thoroughLastSweptTsTask = new LastSweptTsUpdateTask(SweeperStrategy.THOROUGH);
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
@@ -185,6 +194,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         } else {
             conservativeScheduler.scheduleBackgroundThreads();
             thoroughScheduler.scheduleBackgroundThreads();
+            conservativeLastSweptTsTask.scheduleBackgroundThread();
+            thoroughLastSweptTsTask.scheduleBackgroundThread();
         }
     }
 
@@ -217,6 +228,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     public void close() {
         conservativeScheduler.close();
         thoroughScheduler.close();
+        conservativeLastSweptTsTask.close();
+        thoroughLastSweptTsTask.close();
     }
 
     @Override
@@ -239,6 +252,40 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         return runtime.get().enableAutoTuning()
                 ? Integer.MAX_VALUE
                 : runtime.get().maximumPartitionsToBatchInSingleRead();
+    }
+
+    private class LastSweptTsUpdateTask implements AutoCloseable {
+        private final SweeperStrategy sweepStrategy;
+        private LastSweptTsUpdateScheduler scheduler;
+
+        private LastSweptTsUpdateTask(SweeperStrategy sweeperStrategy){
+            this.sweepStrategy = sweeperStrategy;
+        }
+
+        private Void updateLastSweptTs(){
+            int shards = queue.getNumShards();
+
+            Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
+                    .mapToObj(shard -> ShardAndStrategy.of(shard, sweepStrategy))
+                    .collect(Collectors.toSet());
+
+            Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
+            KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
+            return null;
+        }
+
+        private void scheduleBackgroundThread(){
+            if (scheduler == null) {
+                scheduler = LastSweptTsUpdateScheduler.createStarted(this::updateLastSweptTs);
+            }
+        }
+
+        @Override
+        public void close() {
+            if (scheduler != null) {
+                scheduler.close();
+            }
+        }
     }
 
     private class BackgroundSweepScheduler implements AutoCloseable {

@@ -34,7 +34,9 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -158,7 +160,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 sweepBatch.dedicatedRows());
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
-        metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
 
         if (sweepBatch.isEmpty()) {
             metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.NOTHING_TO_SWEEP);
@@ -188,6 +189,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      */
     public int getNumShards() {
         return numShards.get();
+    }
+
+    public Map<ShardAndStrategy, Long> getLastSweptTimestamps(Set<ShardAndStrategy> shardAndStrategies) {
+        return progress.getLastSweptTimestamps(shardAndStrategies);
     }
 
     private static final class SweepQueueFactory {
