@@ -578,7 +578,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                knowledge);
     }
 
     @VisibleForTesting

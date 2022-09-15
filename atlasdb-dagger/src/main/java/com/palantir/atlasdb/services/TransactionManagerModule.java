@@ -38,6 +38,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -115,7 +116,8 @@ public class TransactionManagerModule {
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            @Internal DerivedSnapshotConfig derivedSnapshotConfig) {
+            @Internal DerivedSnapshotConfig derivedSnapshotConfig,
+            TransactionKnowledgeComponents knowledge) {
         // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
@@ -141,6 +143,7 @@ public class TransactionManagerModule {
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty());
+                Optional.empty(),
+                knowledge);
     }
 }

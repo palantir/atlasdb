@@ -72,7 +72,6 @@ import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -356,7 +355,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
     }
 
     @Test
@@ -451,7 +451,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
+                        tableLevelMetricsController,
+                        knowledge),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -482,7 +483,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -968,7 +970,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -2280,7 +2283,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                SweepQueueFactory.getGetLastSeenCommitTsSupplier(keyValueService));
+                knowledge);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

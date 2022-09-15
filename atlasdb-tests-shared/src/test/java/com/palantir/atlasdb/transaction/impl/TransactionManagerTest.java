@@ -39,6 +39,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -119,9 +120,10 @@ public class TransactionManagerTest extends TransactionTestSetup {
         TimelockService mockTimeLockService = mock(TimelockService.class);
         TimestampManagementService mockTimestampManagementService = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
+        KeyValueService kvs = getKeyValueService();
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
-                getKeyValueService(),
+                kvs,
                 mockTimeLockService,
                 mockTimestampManagementService,
                 mockLockService,
@@ -133,7 +135,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP);
+                MultiTableSweepQueueWriter.NO_OP,
+                TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry()));
 
         // fetch an immutable timestamp once so it's cached
         when(mockTimeLockService.getImmutableTimestamp()).thenReturn(1L);
@@ -265,7 +268,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty());
+                Optional.empty(),
+                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry()));
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp())

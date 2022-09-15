@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -74,6 +75,8 @@ public class AtlasDbTestCase {
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
     protected int sweepQueueShards = 128;
 
+    protected TransactionKnowledgeComponents knowledge;
+
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
@@ -94,6 +97,7 @@ public class AtlasDbTestCase {
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
                 () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
+        knowledge = TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
     }
 
     private void setUpTransactionManagers() {
@@ -117,6 +121,7 @@ public class AtlasDbTestCase {
                 sweepStrategyManager,
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
+                knowledge,
                 MoreExecutors.newDirectExecutorService());
     }
 
@@ -155,7 +160,8 @@ public class AtlasDbTestCase {
                 lockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
-                mode);
+                mode,
+                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry()));
     }
 
     protected void clearTablesWrittenTo() {

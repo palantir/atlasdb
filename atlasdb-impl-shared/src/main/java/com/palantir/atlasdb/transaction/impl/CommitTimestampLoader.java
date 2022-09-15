@@ -65,7 +65,7 @@ public final class CommitTimestampLoader {
     private final long immutableTimestamp;
     private final Supplier<Long> lastSeenCommitTs;
 
-    private final KnownAbortedTransactions knownAbortedTransactions;
+    private final KnownAbortedTransactions abortedTransactionsCache;
 
     public CommitTimestampLoader(
             TimestampCache timestampCache,
@@ -84,7 +84,7 @@ public final class CommitTimestampLoader {
         this.timelockService = timelockService;
         this.immutableTimestamp = immutableTimestamp;
         this.lastSeenCommitTs = knowledge.getLastSeenCommitSupplier();
-        this.knownAbortedTransactions = knowledge.aborted();
+        this.abortedTransactionsCache = knowledge.aborted();
     }
 
     /**
@@ -143,9 +143,8 @@ public final class CommitTimestampLoader {
 
             if (commitStatus.equals(TransactionStatuses.inProgress())) continue;
 
-            // todo(snanda): this is grim - we are maintain two types of cache
             long commitTs = TransactionStatusUtils.getCommitTsFromStatus(
-                    start, commitStatus, knownAbortedTransactions::isKnownAborted);
+                    start, commitStatus, abortedTransactionsCache::isKnownAborted);
             if (commitStatus.equals(TransactionStatuses.unknown())) {
                 shouldValidate = true;
             } else {

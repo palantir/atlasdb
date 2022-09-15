@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -39,13 +40,14 @@ public final class TransactionServices {
     }
 
     public static TransactionService createTransactionService(
-            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            TransactionKnowledgeComponents knowledge) {
         // Should only be used for testing, or in contexts where users are not concerned about metrics
         return createTransactionService(
-                keyValueService, transactionSchemaManager, null, new DefaultTaggedMetricRegistry(), () -> false);
+                keyValueService, transactionSchemaManager, knowledge, new DefaultTaggedMetricRegistry(), () -> false);
     }
 
-    // todo(snanda); not loving these signatures
     public static TransactionService createTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
@@ -118,9 +120,12 @@ public final class TransactionServices {
      */
     public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
-        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        TransactionKnowledgeComponents knowledge =
+                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, initializeAsync);
+        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
     }
 
     /**

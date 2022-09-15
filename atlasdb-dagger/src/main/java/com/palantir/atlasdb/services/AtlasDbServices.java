@@ -17,10 +17,10 @@ package com.palantir.atlasdb.services;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
@@ -61,7 +61,7 @@ public abstract class AtlasDbServices implements AutoCloseable {
 
     public abstract TransactionService getTransactionService();
 
-    public abstract TransactionSchemaManager getTransactionSchemaManager();
+    public abstract TransactionKnowledgeComponents getTransactionKnowledgeComponents();
 
     @Override
     public void close() {

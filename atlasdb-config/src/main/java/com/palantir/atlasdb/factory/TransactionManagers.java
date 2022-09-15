@@ -50,7 +50,6 @@ import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbRemotingConstants;
-import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -83,7 +82,6 @@ import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -106,11 +104,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.DefaultAbandonedTimestampStore;
-import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactionsImpl;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -433,8 +426,8 @@ public abstract class TransactionManagers {
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
-        TransactionKnowledgeComponents knowledge =
-                createKnowledgeCache(keyValueService, metricsManager.getTaggedRegistry(), config().internalSchema());
+        TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
+                keyValueService, metricsManager.getTaggedRegistry(), config().internalSchema());
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, knowledge, lockAndTimestampServices, keyValueService, runtime);
@@ -681,22 +674,6 @@ public abstract class TransactionManagers {
         return runtime.get().targetedSweep().enabled();
     }
 
-    private TransactionKnowledgeComponents createKnowledgeCache(
-            KeyValueService kvs, TaggedMetricRegistry metricRegistry, InternalSchemaInstallConfig config) {
-
-        return ImmutableTransactionKnowledgeComponents.builder()
-                .concluded(KnownConcludedTransactionsImpl.create(
-                        KnownConcludedTransactionsStore.create(kvs), metricRegistry))
-                .aborted(KnownAbortedTransactionsImpl.create(
-                        KnownConcludedTransactionsImpl.create(
-                                KnownConcludedTransactionsStore.create(kvs), metricRegistry),
-                        new DefaultAbandonedTimestampStore(kvs),
-                        metricRegistry,
-                        config))
-                .lastSeenCommitSupplier(SweepQueueFactory.getGetLastSeenCommitTsSupplier(kvs))
-                .build();
-    }
-
     private TransactionComponents createTransactionComponents(
             @Output List<AutoCloseable> closeables,
             MetricsManager metricsManager,
@@ -714,7 +691,7 @@ public abstract class TransactionManagers {
                         TransactionServices.createTransactionService(
                                 keyValueService,
                                 transactionSchemaManager,
-                                knowledgeCache.concluded(),
+                                knowledgeCache,
                                 metricsManager.getTaggedRegistry(),
                                 () -> runtimeConfigSupplier
                                         .get()

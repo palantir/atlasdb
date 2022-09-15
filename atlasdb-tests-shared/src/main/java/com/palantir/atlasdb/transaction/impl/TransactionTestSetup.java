@@ -24,6 +24,7 @@ import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
@@ -179,7 +180,11 @@ public abstract class TransactionTestSetup {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        transactionService = createTransactionService(keyValueService, transactionSchemaManager);
+        knowledge = TransactionKnowledgeComponents.create(
+                keyValueService,
+                metricsManager.getTaggedRegistry(),
+                ImmutableInternalSchemaInstallConfig.builder().build());
+        transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = createAndRegisterManager();

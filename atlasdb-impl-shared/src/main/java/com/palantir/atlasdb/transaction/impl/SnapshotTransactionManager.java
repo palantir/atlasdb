@@ -109,7 +109,7 @@ import javax.validation.constraints.NotNull;
 
     private final ConflictTracer conflictTracer;
 
-    private final TransactionKnowledgeComponents knowledge;
+    protected final TransactionKnowledgeComponents knowledge;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,

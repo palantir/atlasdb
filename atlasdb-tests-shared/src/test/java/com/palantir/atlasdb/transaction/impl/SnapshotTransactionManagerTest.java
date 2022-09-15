@@ -41,6 +41,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -81,6 +82,9 @@ public class SnapshotTransactionManagerTest {
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
 
+    private final TransactionKnowledgeComponents knowledge =
+            TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+
     @Before
     public void setUp() {
         timestampService = services.getManagedTimestampService();
@@ -106,7 +110,8 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty());
+                Optional.empty(),
+                knowledge);
     }
 
     @Test
@@ -162,7 +167,8 @@ public class SnapshotTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty());
+                Optional.empty(),
+                knowledge);
         newTransactionManager.close(); // should not throw
     }
 
@@ -292,6 +298,7 @@ public class SnapshotTransactionManagerTest {
                         .build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty());
+                Optional.empty(),
+                knowledge);
     }
 }
