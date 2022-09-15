@@ -167,15 +167,15 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
 
     // we only want to retry the requests where the actual matches the expected.
     @VisibleForTesting
-    static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException e) {
+    static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException ex) {
         CasRequest casRequest = req.argument();
         Cell cell = casRequest.cell();
 
-        if (!e.getActualValues().containsKey(cell)) {
+        if (!ex.getActualValues().containsKey(cell)) {
             return false;
         }
 
-        return casRequest.expected().equals(ByteBuffer.wrap(e.getActualValues().get(cell)));
+        return casRequest.expected().equals(ByteBuffer.wrap(ex.getActualValues().get(cell)));
     }
 
     // Every request with a lower rank will never be tried. Requests for touch will fail with
