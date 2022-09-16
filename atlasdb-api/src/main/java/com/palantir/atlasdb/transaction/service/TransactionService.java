@@ -42,14 +42,37 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
      * least at some point between the request being made and it returning.
      *
      * @param startTimestamp start timestamp of the transaction being looked up
-     * @return timestamp which the transaction committed at, or null if the transaction had not committed yet
+     * @return timestamp which the transaction committed at, or null if the transaction had not committed yet.
+     *
+     * @deprecated use {@link #getV2(long)}
      */
     @CheckForNull
     @Timed
+    @Deprecated
     Long get(long startTimestamp);
 
+    /**
+     * @deprecated use {@link #getV2(Iterable)}
+     * */
     @Timed
+    @Deprecated
     Map<Long, Long> get(Iterable<Long> startTimestamps);
+
+    /**
+     * Gets the commit status associated with a given start timestamp. Known responses may be cached on the client-side.
+     *
+     * Future result may return unknown transaction status, which means that the transaction in question has been
+     * concluded i.e. its status cannot change.
+     *
+     * @param startTimestamp start timestamp of the transaction being looked up
+     * @return the status of the transaction.
+     */
+    @CheckForNull
+    @Timed
+    TransactionStatus getV2(long startTimestamp);
+
+    @Timed
+    Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps);
 
     /**
      * In practice, a transaction on schema version >= 4 must call this method before any information about its start

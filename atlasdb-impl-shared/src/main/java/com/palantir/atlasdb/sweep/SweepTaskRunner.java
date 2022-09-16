@@ -36,6 +36,7 @@ import com.palantir.atlasdb.sweep.CellsToSweepPartitioningIterator.ExaminedCellL
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -154,7 +155,7 @@ public class SweepTaskRunner {
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH
-                && sweepStrategy.getSweeperStrategy().equals(Optional.of(SweepStrategy.SweeperStrategy.CONSERVATIVE))) {
+                && sweepStrategy.getSweeperStrategy().equals(Optional.of(SweeperStrategy.CONSERVATIVE))) {
             log.info(
                     "Attempted to run an iteration of leaky sweep on a conservatively swept table. This is "
                             + "not supported with the current implementation, we will instead run a full conservative "

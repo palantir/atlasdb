@@ -19,7 +19,6 @@ package com.palantir.atlasdb.transaction.service;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -29,18 +28,19 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.CheckForNull;
 
 /**
- * This service handles queries for timestamps before {@link AtlasDbConstants#STARTING_TS}
+ * This service handles queries for timestamps before {@link TransactionConstants#LOWEST_POSSIBLE_START_TS}
  * as follows:
  *
- * - Gets of timestamps before {@link AtlasDbConstants#STARTING_TS} will return
- *   {@link AtlasDbConstants#STARTING_TS - 1}; in an AtlasDB context these correspond to
+ * - Gets of timestamps before {@link TransactionConstants#LOWEST_POSSIBLE_START_TS} will return
+ *   {@link TransactionConstants#PRE_START_COMMITTED}; in an AtlasDB context these correspond to
  *   deletion sentinels that are written non-transactionally and thus always committed.
- * - putUnlessExists to timestamps before {@link AtlasDbConstants#STARTING_TS} will throw an
+ * - putUnlessExists to timestamps before {@link TransactionConstants#PRE_START_COMMITTED} will throw an
  *   exception.
  *
  * Queries for legitimate timestamps are routed to the delegate.
@@ -56,13 +56,38 @@ public class PreStartHandlingTransactionService implements TransactionService {
 
     @CheckForNull
     @Override
+    @Deprecated
     public Long get(long startTimestamp) {
-        return AtlasFutures.getUnchecked(getFromDelegate(startTimestamp, synchronousAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamp,
+                synchronousAsyncTransactionService::getAsync,
+                TransactionConstants.PRE_START_COMMITTED_TS));
     }
 
     @Override
+    @Deprecated
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        return AtlasFutures.getUnchecked(getFromDelegate(startTimestamps, synchronousAsyncTransactionService));
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamps,
+                synchronousAsyncTransactionService::getAsync,
+                TransactionConstants.PRE_START_COMMITTED_TS));
+    }
+
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamp,
+                synchronousAsyncTransactionService::getAsyncV2,
+                TransactionConstants.PRE_START_COMMITTED));
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getFromDelegate(
+                startTimestamps,
+                synchronousAsyncTransactionService::getAsyncV2,
+                TransactionConstants.PRE_START_COMMITTED));
     }
 
     @Override
@@ -71,13 +96,25 @@ public class PreStartHandlingTransactionService implements TransactionService {
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
-        return getFromDelegate(startTimestamp, delegate);
+        return getFromDelegate(startTimestamp, delegate::getAsync, TransactionConstants.PRE_START_COMMITTED_TS);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
-        return getFromDelegate(startTimestamps, delegate);
+        return getFromDelegate(startTimestamps, delegate::getAsync, TransactionConstants.PRE_START_COMMITTED_TS);
+    }
+
+    @Override
+    public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+        return getFromDelegate(startTimestamp, delegate::getAsyncV2, TransactionConstants.PRE_START_COMMITTED);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+        return getFromDelegate(startTimestamps, delegate::getAsyncV2, TransactionConstants.PRE_START_COMMITTED);
     }
 
     @Override
@@ -96,27 +133,29 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.close();
     }
 
-    private ListenableFuture<Long> getFromDelegate(
-            long startTimestamp, AsyncTransactionService asyncTransactionService) {
+    private <T> ListenableFuture<T> getFromDelegate(
+            long startTimestamp, Function<Long, ListenableFuture<T>> getter, T commitValueForInvalidStart) {
         if (!isTimestampValid(startTimestamp)) {
-            return Futures.immediateFuture(TransactionConstants.LOWEST_POSSIBLE_START_TS - 1);
+            return Futures.immediateFuture(commitValueForInvalidStart);
         }
-        return asyncTransactionService.getAsync(startTimestamp);
+        return getter.apply(startTimestamp);
     }
 
-    private ListenableFuture<Map<Long, Long>> getFromDelegate(
-            Iterable<Long> startTimestamps, AsyncTransactionService asyncTransactionService) {
+    private <T> ListenableFuture<Map<Long, T>> getFromDelegate(
+            Iterable<Long> startTimestamps,
+            Function<Iterable<Long>, ListenableFuture<Map<Long, T>>> getter,
+            T invalidCommit) {
         Map<Boolean, List<Long>> classifiedTimestamps = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
-        Map<Long, Long> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
-                .map(_ignore -> TransactionConstants.LOWEST_POSSIBLE_START_TS - 1)
+        Map<Long, T> result = KeyedStream.of(classifiedTimestamps.get(false).stream())
+                .map(_ignore -> invalidCommit)
                 .collectTo(HashMap::new);
 
         List<Long> validTimestamps = classifiedTimestamps.get(true);
         if (!validTimestamps.isEmpty()) {
             return Futures.transform(
-                    asyncTransactionService.getAsync(validTimestamps),
+                    getter.apply(validTimestamps),
                     timestampMap -> {
                         result.putAll(timestampMap);
                         return result;

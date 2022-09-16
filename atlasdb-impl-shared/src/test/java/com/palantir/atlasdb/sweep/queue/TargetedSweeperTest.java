@@ -25,8 +25,8 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForCoarsePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFinePartition;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
-import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.CONSERVATIVE;
-import static com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy.THOROUGH;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -1237,13 +1237,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private void assertLowestFinePartitionInSweepableTimestampsEquals(long partitionFine) {
-        assertThat(sweepableTimestamps.nextSweepableTimestampPartition(
+        assertThat(sweepableTimestamps.nextTimestampPartition(
                         ShardAndStrategy.conservative(CONS_SHARD), -1L, getSweepTsCons()))
                 .contains(partitionFine);
     }
 
     private void assertNoEntriesInSweepableTimestampsBeforeSweepTimestamp() {
-        assertThat(sweepableTimestamps.nextSweepableTimestampPartition(
+        assertThat(sweepableTimestamps.nextTimestampPartition(
                         ShardAndStrategy.conservative(CONS_SHARD), -1L, getSweepTsCons()))
                 .isEmpty();
     }

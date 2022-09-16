@@ -36,15 +36,20 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
+import javax.annotation.CheckForNull;
 
 public final class SimpleTransactionService implements EncodingTransactionService {
     private final AtomicTable<Long, Long> txnTable;
+    private final AtomicTable<Long, TransactionStatus> txnTableV2;
     private final TransactionStatusEncodingStrategy<?> encodingStrategy;
 
     private SimpleTransactionService(
-            AtomicTable<Long, Long> txnTable, TransactionStatusEncodingStrategy<?> encodingStrategy) {
+            AtomicTable<Long, Long> txnTable,
+            AtomicTable<Long, TransactionStatus> txnTableV2,
+            TransactionStatusEncodingStrategy<?> encodingStrategy) {
         this.encodingStrategy = encodingStrategy;
         this.txnTable = txnTable;
+        this.txnTableV2 = txnTableV2;
     }
 
     public static SimpleTransactionService createV1(KeyValueService kvs) {
@@ -72,9 +77,10 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             KeyValueService kvs,
             TableReference tableRef,
             TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
-        AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(
-                new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy));
-        return new SimpleTransactionService(pueTable, encodingStrategy);
+        SimpleCommitTimestampAtomicTable delegate =
+                new SimpleCommitTimestampAtomicTable(kvs, tableRef, encodingStrategy);
+        AtomicTable<Long, Long> pueTable = new TimestampExtractingAtomicTable(delegate);
+        return new SimpleTransactionService(pueTable, delegate, encodingStrategy);
     }
 
     private static SimpleTransactionService createResilient(
@@ -85,20 +91,33 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        AtomicTable<Long, Long> atomicTable =
-                new TimestampExtractingAtomicTable(new ResilientCommitTimestampAtomicTable(
-                        store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry));
-        return new SimpleTransactionService(atomicTable, encodingStrategy);
+        ResilientCommitTimestampAtomicTable delegate = new ResilientCommitTimestampAtomicTable(
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
+        AtomicTable<Long, Long> atomicTable = new TimestampExtractingAtomicTable(delegate);
+        return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
     }
 
     @Override
+    @Deprecated
     public Long get(long startTimestamp) {
         return AtlasFutures.getUnchecked(getAsync(startTimestamp));
     }
 
     @Override
+    @Deprecated
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         return AtlasFutures.getUnchecked(getAsync(startTimestamps));
+    }
+
+    @CheckForNull
+    @Override
+    public TransactionStatus getV2(long startTimestamp) {
+        return AtlasFutures.getUnchecked(getAsyncV2(startTimestamp));
+    }
+
+    @Override
+    public Map<Long, TransactionStatus> getV2(Iterable<Long> startTimestamps) {
+        return AtlasFutures.getUnchecked(getAsyncV2(startTimestamps));
     }
 
     @Override
@@ -112,13 +131,25 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Long> getAsync(long startTimestamp) {
         return txnTable.get(startTimestamp);
     }
 
     @Override
+    @Deprecated
     public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
         return txnTable.get(startTimestamps);
+    }
+
+    @Override
+    public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+        return txnTableV2.get(startTimestamp);
+    }
+
+    @Override
+    public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+        return txnTableV2.get(startTimestamps);
     }
 
     @Override

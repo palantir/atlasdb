@@ -15,21 +15,18 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.util.PersistableBoolean;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PartitionInfo {
-    int shard();
-
-    PersistableBoolean isConservative();
+    ShardAndStrategy shardAndStrategy();
 
     long timestamp();
 
-    static PartitionInfo of(int shard, boolean isConservative, long timestamp) {
+    static PartitionInfo of(int shard, SweeperStrategy strategy, long timestamp) {
         return ImmutablePartitionInfo.builder()
-                .shard(shard)
-                .isConservative(PersistableBoolean.of(isConservative))
+                .shardAndStrategy(ShardAndStrategy.of(shard, strategy))
                 .timestamp(timestamp)
                 .build();
     }
