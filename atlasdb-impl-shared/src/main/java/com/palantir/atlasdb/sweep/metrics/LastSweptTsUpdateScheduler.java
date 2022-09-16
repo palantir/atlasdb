@@ -43,10 +43,6 @@ public class LastSweptTsUpdateScheduler implements Closeable {
     }
 
     private void start() {
-        scheduleAfterDelay();
-    }
-
-    private void scheduleAfterDelay() {
         executorService.schedule(() -> retryingTask(task), DELAY, TimeUnit.MILLISECONDS);
     }
 
