@@ -29,31 +29,28 @@ public class LastSweptTsUpdateScheduler implements Closeable {
     private final ScheduledExecutorService executorService;
     private final Callable<Void> task;
 
-    LastSweptTsUpdateScheduler(
-            ScheduledExecutorService executorService,
-            Callable<Void> task) {
+    LastSweptTsUpdateScheduler(ScheduledExecutorService executorService, Callable<Void> task) {
         this.executorService = executorService;
         this.task = task;
     }
 
-    public static LastSweptTsUpdateScheduler createStarted(Callable<Void> task){
-        ScheduledExecutorService executorService =
-                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Last Swept Timestamp Metric "
-                        + "Update", true));
+    public static LastSweptTsUpdateScheduler createStarted(Callable<Void> task) {
+        ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
+                new NamedThreadFactory("Last Swept Timestamp Metric " + "Update", true));
         LastSweptTsUpdateScheduler scheduler = new LastSweptTsUpdateScheduler(executorService, task);
         scheduler.start();
         return scheduler;
     }
 
-    private void start(){
+    private void start() {
         scheduleAfterDelay();
     }
 
-    private void  scheduleAfterDelay(){
+    private void scheduleAfterDelay() {
         executorService.schedule(() -> retryingTask(task), DELAY, TimeUnit.MILLISECONDS);
     }
 
-    private void retryingTask(Callable<Void> callable){
+    private void retryingTask(Callable<Void> callable) {
         try {
             callable.call();
             scheduleAfterDelay();
@@ -66,5 +63,4 @@ public class LastSweptTsUpdateScheduler implements Closeable {
     public void close() {
         executorService.shutdown();
     }
-
 }

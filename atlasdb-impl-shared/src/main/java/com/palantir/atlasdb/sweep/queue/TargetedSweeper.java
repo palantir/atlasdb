@@ -255,7 +255,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     @VisibleForTesting
-    Void updateLastSweptTs(SweeperStrategy sweeperStrategy){
+    Void updateLastSweptTs(SweeperStrategy sweeperStrategy) {
         int shards = queue.getNumShards();
 
         Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
@@ -275,11 +275,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         private final SweeperStrategy sweeperStrategy;
         private LastSweptTsUpdateScheduler scheduler;
 
-        private LastSweptTsUpdateTask(SweeperStrategy sweeperStrategy){
+        private LastSweptTsUpdateTask(SweeperStrategy sweeperStrategy) {
             this.sweeperStrategy = sweeperStrategy;
         }
 
-        private void scheduleBackgroundThread(){
+        private void scheduleBackgroundThread() {
             if (scheduler == null) {
                 scheduler = LastSweptTsUpdateScheduler.createStarted(() -> updateLastSweptTs(sweeperStrategy));
             }
