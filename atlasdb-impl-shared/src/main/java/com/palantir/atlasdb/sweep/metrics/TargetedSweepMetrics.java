@@ -98,6 +98,14 @@ public class TargetedSweepMetrics {
                 shards);
     }
 
+    @VisibleForTesting
+    public long getLastSweptTsForShardAndStrategy(int shard, SweeperStrategy strategy) {
+        return getMetrics(strategy)
+                .lastSweptTsWithShard
+                .getLastValueForKey(shard)
+                .timestamp();
+    }
+
     private static MillisAndMaybeTimestamp getMillisForTimestamp(
             KeyValueService kvs, long ts, Clock clock, MillisAndMaybeTimestamp previous) {
         return KeyValueServicePuncherStore.getMillisForTimestampWithinBounds(kvs, ts, previous, clock.getTimeMillis())

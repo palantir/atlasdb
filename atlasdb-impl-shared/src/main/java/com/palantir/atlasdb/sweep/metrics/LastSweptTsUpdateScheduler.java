@@ -20,39 +20,29 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class LastSweptTsUpdateScheduler implements Closeable {
     static final long DELAY = Duration.ofSeconds(30).toMillis();
     private final ScheduledExecutorService executorService;
-    private final Callable<Void> task;
+    private final Runnable task;
 
-    LastSweptTsUpdateScheduler(ScheduledExecutorService executorService, Callable<Void> task) {
+    private LastSweptTsUpdateScheduler(ScheduledExecutorService executorService, Runnable task) {
         this.executorService = executorService;
         this.task = task;
     }
 
-    public static LastSweptTsUpdateScheduler createStarted(Callable<Void> task) {
+    public static LastSweptTsUpdateScheduler createStarted(Runnable task) {
         ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory("Last Swept Timestamp Metric " + "Update", true));
+                new NamedThreadFactory("Last Swept Timestamp Metric Update", true));
         LastSweptTsUpdateScheduler scheduler = new LastSweptTsUpdateScheduler(executorService, task);
         scheduler.start();
         return scheduler;
     }
 
     private void start() {
-        executorService.schedule(() -> retryingTask(task), DELAY, TimeUnit.MILLISECONDS);
-    }
-
-    private void retryingTask(Callable<Void> callable) {
-        try {
-            callable.call();
-            scheduleAfterDelay();
-        } catch (Exception e) {
-            scheduleAfterDelay();
-        }
+        executorService.scheduleWithFixedDelay(task, DELAY, DELAY, TimeUnit.MILLISECONDS);
     }
 
     @Override

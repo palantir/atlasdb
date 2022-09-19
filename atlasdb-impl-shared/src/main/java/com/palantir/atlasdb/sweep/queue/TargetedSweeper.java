@@ -224,6 +224,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         return sweepNextBatch(shardAndStrategy, maxTsExclusive);
     }
 
+    @VisibleForTesting
+    long getLastSweptTimestampForShardAndStrategy(int shard, SweeperStrategy strategy) {
+        return metrics.getLastSweptTsForShardAndStrategy(shard, strategy);
+    }
+
     @Override
     public void close() {
         conservativeScheduler.close();
@@ -255,7 +260,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     @VisibleForTesting
-    Void updateLastSweptTs(SweeperStrategy sweeperStrategy) {
+    void updateLastSweptTsMetric(SweeperStrategy sweeperStrategy) {
         int shards = queue.getNumShards();
 
         Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
@@ -264,11 +269,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
 
-        KeyedStream.stream(shardAndStrategyToTimestamp)
-                .filter(lastSweptTimestamp -> lastSweptTimestamp != -1L)
-                .forEach(metrics::updateProgressForShard);
-
-        return null;
+        KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
 
     private class LastSweptTsUpdateTask implements AutoCloseable {
@@ -281,7 +282,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void scheduleBackgroundThread() {
             if (scheduler == null) {
-                scheduler = LastSweptTsUpdateScheduler.createStarted(() -> updateLastSweptTs(sweeperStrategy));
+                scheduler = LastSweptTsUpdateScheduler.createStarted(() -> updateLastSweptTsMetric(sweeperStrategy));
             }
         }
 
