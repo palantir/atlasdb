@@ -76,9 +76,8 @@ class OracleTableNameUnmapper {
 
         SqlConnection conn = connectionSupplier.get();
         AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                "SELECT table_name "
-                        + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                        + " WHERE LOWER(short_table_name) IN (" + placeHolders + ")",
+                "SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
+                        + " LOWER(short_table_name) IN (" + placeHolders + ")",
                 shortTableNames.stream().map(String::toLowerCase).toArray());
         if (results.size() != shortTableNames.size()) {
             throw new TableMappingNotFoundException("Some of the tables " + String.join(", ", shortTableNames)

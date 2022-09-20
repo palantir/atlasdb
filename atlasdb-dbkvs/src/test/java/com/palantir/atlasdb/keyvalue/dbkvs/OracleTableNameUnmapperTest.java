@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -135,11 +136,11 @@ public class OracleTableNameUnmapperTest {
         Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
 
-        assertThat(longNames).hasSize(shortNamesToLongNames.size());
-        assertThat(longNames).hasSameElementsAs(shortNamesToLongNames.values());
+        assertThat(longNames).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.values());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
-                        eq("SELECT table_name FROM atlasdb_table_names WHERE short_table_name IN (?,?,?)"), any());
+                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN (?,?,?)"),
+                        any());
         verifyNoMoreInteractions(sqlConnection);
     }
 
@@ -154,7 +155,9 @@ public class OracleTableNameUnmapperTest {
 
     private void setupShortToLongTableMappingMock(Collection<String> longTableNames) {
         when(sqlConnection.selectResultSetUnregisteredQuery(
-                        startsWith("SELECT table_name FROM atlasdb_table_names WHERE short_table_name"), any()))
+                        startsWith("SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
+                                + " LOWER(short_table_name)"),
+                        any()))
                 .thenReturn(new AgnosticResultSetImpl(
                         longTableNames.stream()
                                 .map(x -> (Object) x)
