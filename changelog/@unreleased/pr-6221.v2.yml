@@ -1,5 +1,0 @@
-type: improvement
-improvement:
-  description: '[TTS] Kill `FutileTimestampStore` interface in favor of `AbandonedTimestampStore`.'
-  links:
-  - https://github.com/palantir/atlasdb/pull/6221
