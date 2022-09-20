@@ -95,3 +95,8 @@ org.apache.thrift:libthrift = 0.12.0
 
 # Large internal product uses 2.x
 org.codehaus.groovy:* = 2.5.14
+
+# Specify versions of Jakarta and glassfish
+jakarta.xml.bind:jakarta.xml.bind-api = 2.3.3
+jakarta.validation:jakarta.validation-api = 2.0.2
+org.glassfish.jersey.core:jersey-common = 2.34
