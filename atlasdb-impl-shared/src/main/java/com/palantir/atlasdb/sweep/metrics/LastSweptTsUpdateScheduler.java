@@ -23,7 +23,7 @@ import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public final class LastSweptTsUpdateScheduler implements Closeable {
+public class LastSweptTsUpdateScheduler implements Closeable {
     static final long DELAY = Duration.ofSeconds(30).toMillis();
     private final ScheduledExecutorService executorService;
     private final Runnable task;

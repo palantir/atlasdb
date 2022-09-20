@@ -21,7 +21,6 @@ import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -82,7 +81,6 @@ public final class Throwables {
                 .anyMatch(causeClass::isInstance);
     }
 
-    @Unsafe
     private static String extractMessageSafely(Throwable ex) {
         if (ex instanceof SafeLoggable) {
             return ((SafeLoggable) ex).getLogMessage();
