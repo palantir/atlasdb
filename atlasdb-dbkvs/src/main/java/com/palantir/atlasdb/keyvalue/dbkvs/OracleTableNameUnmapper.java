@@ -27,7 +27,10 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 class OracleTableNameUnmapper {
     private static final SafeLogger log = SafeLoggerFactory.get(OracleTableNameUnmapper.class);
@@ -61,6 +64,29 @@ class OracleTableNameUnmapper {
         } catch (ExecutionException e) {
             throw new TableMappingNotFoundException(e.getCause());
         }
+    }
+
+    public Set<String> getLongTableNamesFromMappingTable(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+        if (shortTableNames.isEmpty()) {
+            return Set.of();
+        }
+
+        String placeHolders = String.join(",", Collections.nCopies(shortTableNames.size(), "?"));
+
+        SqlConnection conn = connectionSupplier.get();
+        AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                "SELECT table_name "
+                        + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                        + " WHERE LOWER(short_table_name) IN (" + placeHolders + ")",
+                shortTableNames.stream().map(String::toLowerCase).toArray());
+        if (results.size() != shortTableNames.size()) {
+            throw new TableMappingNotFoundException("Some of the tables " + String.join(", ", shortTableNames)
+                    + " do not have a mapping. This might be because these tables do not exist.");
+        }
+        return results.rows().stream()
+                .map(result -> result.getString("table_name"))
+                .collect(Collectors.toSet());
     }
 
     public void clearCacheForTable(String fullTableName) {
