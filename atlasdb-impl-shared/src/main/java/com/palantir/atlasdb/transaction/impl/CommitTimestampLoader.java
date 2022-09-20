@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -63,7 +64,7 @@ public final class CommitTimestampLoader {
     private final MetricsManager metricsManager;
     private final TimelockService timelockService;
     private final long immutableTimestamp;
-    private final Supplier<Long> lastSeenCommitTs;
+    private final LongSupplier lastSeenCommitTsSupplier;
 
     private final KnownAbortedTransactions abortedTransactionsCache;
 
@@ -83,7 +84,7 @@ public final class CommitTimestampLoader {
         this.metricsManager = metricsManager;
         this.timelockService = timelockService;
         this.immutableTimestamp = immutableTimestamp;
-        this.lastSeenCommitTs = knowledge.getLastSeenCommitSupplier();
+        this.lastSeenCommitTsSupplier = knowledge.lastSeenCommitSupplier();
         this.abortedTransactionsCache = knowledge.aborted();
     }
 
@@ -141,7 +142,9 @@ public final class CommitTimestampLoader {
             long start = entry.getKey();
             TransactionStatus commitStatus = entry.getValue();
 
-            if (commitStatus.equals(TransactionStatuses.inProgress())) continue;
+            if (commitStatus.equals(TransactionStatuses.inProgress())) {
+                continue;
+            }
 
             long commitTs = TransactionStatusUtils.getCommitTsFromStatus(
                     start, commitStatus, abortedTransactionsCache::isKnownAborted);
@@ -224,11 +227,10 @@ public final class CommitTimestampLoader {
             AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
-            Long singleTs = startTimestamps.iterator().next();
+            Long singleTs = Iterables.getOnlyElement(startTimestamps);
             return Futures.transform(
                     asyncTransactionService.getAsyncV2(singleTs),
-                    commitTsOrNull ->
-                            commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
+                    commitState -> ImmutableMap.of(singleTs, commitState),
                     MoreExecutors.directExecutor());
         } else {
             return asyncTransactionService.getAsyncV2(startTimestamps);
@@ -243,10 +245,11 @@ public final class CommitTimestampLoader {
 
         if (immutableTimestampLock.isEmpty()) {
             Preconditions.checkState(
-                    lastSeenCommitTs.get() < startTs,
-                    "Transactions table has been swept beyond current start timestamp, therefore, we cannot"
-                            + " consistently values accessible to this transactions. This can happen if the transaction"
-                            + " has been alive for more than an hour and is expected to be transient.");
+                    lastSeenCommitTsSupplier.getAsLong() < startTs,
+                    "Sweep has swept some entries with a commit TS after us, and now we cannot know the commit TS for"
+                            + " a timestamp that has been TTSd, but it is greater than our start timestamp. This can "
+                            + "happen if the transaction has been alive for more than an hour and is expected to be "
+                            + "transient.");
         }
     }
 }

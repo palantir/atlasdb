@@ -83,7 +83,7 @@ public class SnapshotTransactionManagerTest {
     private SnapshotTransactionManager snapshotTransactionManager;
 
     private final TransactionKnowledgeComponents knowledge =
-            TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+            TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
 
     @Before
     public void setUp() {

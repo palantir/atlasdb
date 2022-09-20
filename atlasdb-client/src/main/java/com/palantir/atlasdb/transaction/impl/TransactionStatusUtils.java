@@ -38,7 +38,7 @@ public final class TransactionStatusUtils {
      * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
      * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
      * */
-    public static long getCommitTimestampOrThrowNonTTS(TransactionStatus status) {
+    public static long getCommitTimestampIfKnown(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
@@ -51,7 +51,7 @@ public final class TransactionStatusUtils {
      * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
      * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
      * */
-    public static Optional<Long> maybeGetCommitTsNonTts(TransactionStatus status) {
+    public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
@@ -59,11 +59,10 @@ public final class TransactionStatusUtils {
     }
 
     public static long getCommitTsFromStatus(
-            long startTs, TransactionStatus status, Function<Long, Boolean> isAborted) {
+            long startTs, TransactionStatus status, Function<Long, Boolean> abortedCheck) {
         return TransactionStatuses.caseOf(status)
-                .unknown(() -> getCommitTsForConcludedTransaction(startTs, isAborted))
-                .otherwise(() ->
-                        TransactionStatusUtils.maybeGetCommitTsNonTts(status).orElse(null));
+                .unknown(() -> getCommitTsForConcludedTransaction(startTs, abortedCheck))
+                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
     }
 
     public static long getCommitTsForConcludedTransaction(long startTs, Function<Long, Boolean> isAborted) {

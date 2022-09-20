@@ -74,7 +74,7 @@ public class TableTasksTest {
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
 
-        knowledge = TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry());
+        knowledge = TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
 
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(

@@ -75,7 +75,7 @@ public final class SweepTestUtils {
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry());
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,

@@ -351,7 +351,7 @@ public class KeyValueServiceMigratorsTest {
 
         TransactionTables.createTables(kvs);
         TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry());
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);

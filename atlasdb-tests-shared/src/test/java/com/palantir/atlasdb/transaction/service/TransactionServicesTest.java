@@ -76,7 +76,7 @@ public class TransactionServicesTest {
         timestampService = services.getTimestampService();
         coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
-        knowledge = TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         transactionService = TransactionServices.createTransactionService(
                 keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
     }

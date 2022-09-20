@@ -79,7 +79,7 @@ public class SerializableTransactionManagerTest {
         executorService = new DeterministicSchedulerWithShutdownFlag();
         manager = getManagerWithCallback(true, mockCallback, executorService);
         when(mockKvs.getClusterAvailabilityStatus()).thenReturn(ClusterAvailabilityStatus.ALL_AVAILABLE);
-        knowledge = TransactionKnowledgeComponents.create(mockKvs, metricsManager.getTaggedRegistry());
+        knowledge = TransactionKnowledgeComponents.createForTests(mockKvs, metricsManager.getTaggedRegistry());
     }
 
     @Test

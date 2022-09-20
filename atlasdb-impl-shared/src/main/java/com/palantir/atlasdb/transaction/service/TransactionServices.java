@@ -122,7 +122,7 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, initializeAsync);
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService), knowledge);

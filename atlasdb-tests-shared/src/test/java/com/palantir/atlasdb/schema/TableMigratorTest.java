@@ -101,7 +101,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 ssm2,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.create(kvs2, metricsManager.getTaggedRegistry()),
+                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 MoreExecutors.newDirectExecutorService());
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
@@ -139,7 +139,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 verifySsm,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.create(kvs2, metricsManager.getTaggedRegistry()),
+                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 MoreExecutors.newDirectExecutorService());
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {

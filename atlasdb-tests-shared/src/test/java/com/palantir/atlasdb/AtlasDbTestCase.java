@@ -97,7 +97,7 @@ public class AtlasDbTestCase {
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
                 () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
-        knowledge = TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry());
+        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
     }
 
     private void setUpTransactionManagers() {
@@ -161,7 +161,7 @@ public class AtlasDbTestCase {
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
                 mode,
-                TransactionKnowledgeComponents.create(keyValueService, metricsManager.getTaggedRegistry()));
+                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry()));
     }
 
     protected void clearTablesWrittenTo() {

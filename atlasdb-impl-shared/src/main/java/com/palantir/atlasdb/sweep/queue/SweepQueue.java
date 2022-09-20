@@ -35,6 +35,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -260,7 +261,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     readBatchingRuntimeContext);
         }
 
-        public static Supplier<Long> getGetLastSeenCommitTsSupplier(KeyValueService kvs) {
+        public static LongSupplier getGetLastSeenCommitTsSupplier(KeyValueService kvs) {
             init(kvs);
             return new ShardProgress(kvs)::getLastSeenCommitTimestamp;
         }
