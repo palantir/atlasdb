@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
@@ -109,14 +108,10 @@ public final class DbKvsOracleTestSuite {
     }
 
     public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
-        ReentrantManagedConnectionSupplier connSupplier =
-                new ReentrantManagedConnectionSupplier(getConnectionManager(kvs));
-        return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
-    }
-
-    public static ConnectionManager getConnectionManager(KeyValueService kvs) {
         ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
-        return castKvs.getConnectionManager();
+        ReentrantManagedConnectionSupplier connSupplier =
+                new ReentrantManagedConnectionSupplier(castKvs.getConnectionManager());
+        return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
