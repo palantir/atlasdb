@@ -26,13 +26,13 @@ import com.palantir.nexus.db.sql.SQL;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.nexus.db.sql.SqlConnectionHelper;
 
-public class SimpleTimedSqlConnectionSupplier implements SqlConnectionSupplier {
+public final class SimpleTimedSqlConnectionSupplier implements SqlConnectionSupplier {
     private final ConnectionSupplier connectionSupplier;
     private final SQL sql;
 
     public SimpleTimedSqlConnectionSupplier(ConnectionSupplier connectionSupplier) {
         this.connectionSupplier = connectionSupplier;
-        this.sql = createSql();
+        this.sql = new SimpleSql();
     }
 
     @Override
@@ -50,26 +50,24 @@ public class SimpleTimedSqlConnectionSupplier implements SqlConnectionSupplier {
         connectionSupplier.close();
     }
 
-    private static SQL createSql() {
-        return new SQL() {
-            @Override
-            protected SqlConfig getSqlConfig() {
-                return new SqlConfig() {
-                    @Override
-                    public boolean isSqlCancellationDisabled() {
-                        return false;
-                    }
+    private static class SimpleSql extends SQL {
+        @Override
+        protected SqlConfig getSqlConfig() {
+            return new SqlConfig() {
+                @Override
+                public boolean isSqlCancellationDisabled() {
+                    return false;
+                }
 
-                    private Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
-                    }
+                private Iterable<SqlTimer> getSqlTimers() {
+                    return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
+                }
 
-                    @Override
-                    public SqlTimer getSqlTimer() {
-                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
-                    }
-                };
-            }
-        };
+                @Override
+                public SqlTimer getSqlTimer() {
+                    return SqlTimers.createCombinedSqlTimer(getSqlTimers());
+                }
+            };
+        }
     }
 }
