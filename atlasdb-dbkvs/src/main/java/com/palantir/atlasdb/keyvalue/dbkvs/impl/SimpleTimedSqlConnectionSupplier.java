@@ -50,7 +50,7 @@ public final class SimpleTimedSqlConnectionSupplier implements SqlConnectionSupp
         connectionSupplier.close();
     }
 
-    private static class SimpleSql extends SQL {
+    private static final class SimpleSql extends SQL {
         @Override
         protected SqlConfig getSqlConfig() {
             return new SqlConfig() {
