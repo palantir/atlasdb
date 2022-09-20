@@ -24,17 +24,26 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,27 +58,28 @@ public class OracleTableNameUnmapperTest {
     private static final TableReference TABLE_REF_2 = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "2");
 
     private OracleTableNameUnmapper oracleTableNameUnmapper;
-    private AgnosticResultSet resultSet;
+    private AgnosticResultSet shortNameResultSet;
     private ConnectionSupplier connectionSupplier;
+    private SqlConnection sqlConnection;
 
     @Before
     public void setup() {
         connectionSupplier = mock(ConnectionSupplier.class);
         oracleTableNameUnmapper = new OracleTableNameUnmapper();
-        SqlConnection sqlConnection = mock(SqlConnection.class);
+        sqlConnection = mock(SqlConnection.class);
         Connection connection = mock(Connection.class);
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
 
-        resultSet = mock(AgnosticResultSet.class);
+        shortNameResultSet = mock(AgnosticResultSet.class);
         when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), any()))
-                .thenReturn(resultSet);
+                .thenReturn(shortNameResultSet);
     }
 
     @Test
     public void shouldThrowIfTableMappingDoesNotExist() throws TableMappingNotFoundException {
-        when(resultSet.size()).thenReturn(0);
+        when(shortNameResultSet.size()).thenReturn(0);
         assertThatThrownBy(() -> oracleTableNameUnmapper.getShortTableNameFromMappingTable(
                         connectionSupplier, TEST_PREFIX, TABLE_REF))
                 .isInstanceOf(TableMappingNotFoundException.class)
@@ -78,11 +88,11 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void shouldReturnIfTableMappingExists() throws TableMappingNotFoundException {
-        when(resultSet.size()).thenReturn(1);
+        when(shortNameResultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
-        doReturn(ImmutableList.of(row)).when(resultSet).rows();
+        doReturn(ImmutableList.of(row)).when(shortNameResultSet).rows();
 
         String shortName =
                 oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
@@ -92,11 +102,11 @@ public class OracleTableNameUnmapperTest {
     @Test
     public void cacheIsActuallyUsed() throws TableMappingNotFoundException {
         // do a normal read
-        when(resultSet.size()).thenReturn(1);
+        when(shortNameResultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
-        doReturn(ImmutableList.of(row)).when(resultSet).rows();
+        doReturn(ImmutableList.of(row)).when(shortNameResultSet).rows();
 
         String shortName =
                 oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
@@ -110,5 +120,47 @@ public class OracleTableNameUnmapperTest {
 
         // verify that cache was hit and underlying datastore was _still_ only called once
         verify(row, times(1)).getString("short_table_name");
+    }
+
+    @Test
+    public void getLongTableNamesFromMappingTableReturnsLongNames() throws TableMappingNotFoundException {
+        Map<String, String> shortNamesToLongNames = ImmutableMap.<String, String>builder()
+                .put("shortNameOne", "superLongNameOne")
+                .put("shortNameTwo", "superLongNameTwo")
+                .put("shortNameThree", "superLongNameThree")
+                .build();
+
+        setupShortToLongTableMappingMock(shortNamesToLongNames.values());
+
+        Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
+                connectionSupplier, shortNamesToLongNames.keySet());
+
+        assertThat(longNames).hasSize(shortNamesToLongNames.size());
+        assertThat(longNames).hasSameElementsAs(shortNamesToLongNames.values());
+        verify(sqlConnection)
+                .selectResultSetUnregisteredQuery(
+                        eq("SELECT table_name FROM atlasdb_table_names WHERE short_table_name IN (?,?,?)"), any());
+        verifyNoMoreInteractions(sqlConnection);
+    }
+
+    @Test
+    public void getLongTableNamesThrowsIfPartialResultsReturned() {
+        setupShortToLongTableMappingMock(Set.of("test"));
+
+        assertThatThrownBy(() -> oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
+                        connectionSupplier, Set.of("test", "test_2")))
+                .isInstanceOf(TableMappingNotFoundException.class);
+    }
+
+    private void setupShortToLongTableMappingMock(Collection<String> longTableNames) {
+        when(sqlConnection.selectResultSetUnregisteredQuery(
+                        startsWith("SELECT table_name FROM atlasdb_table_names WHERE short_table_name"), any()))
+                .thenReturn(new AgnosticResultSetImpl(
+                        longTableNames.stream()
+                                .map(x -> (Object) x)
+                                .map(List::of)
+                                .collect(Collectors.toList()),
+                        DBType.ORACLE,
+                        Map.of("table_name", 0)));
     }
 }
