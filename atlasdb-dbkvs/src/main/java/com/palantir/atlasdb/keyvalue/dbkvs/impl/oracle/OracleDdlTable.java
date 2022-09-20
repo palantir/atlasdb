@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.SafeArg;
@@ -198,18 +199,24 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
-        try {
-            dropTableInternal(
-                    oracleTableNameGetter.getPrefixedTableName(tableRef),
-                    oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
-            dropTableInternal(
-                    oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
-                    oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
-        } catch (TableMappingNotFoundException ex) {
-            // If table does not exist, do nothing
-        }
+        executeIgnoringTableMappingNotFound(() -> dropTableInternal(
+                oracleTableNameGetter.getPrefixedTableName(tableRef),
+                oracleTableNameGetter.getInternalShortTableName(conns, tableRef)));
+
+        executeIgnoringTableMappingNotFound(() -> dropTableInternal(
+                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
+                oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef)));
 
         clearTableSizeCacheAndDropTableMetadata();
+    }
+
+    private static void executeIgnoringTableMappingNotFound(
+            RunnableCheckedException<TableMappingNotFoundException> runnable) {
+        try {
+            runnable.run();
+        } catch (TableMappingNotFoundException ex) {
+            // Do nothing
+        }
     }
 
     private void clearTableSizeCacheAndDropTableMetadata() {
