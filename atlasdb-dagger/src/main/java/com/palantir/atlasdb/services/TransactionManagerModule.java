@@ -111,7 +111,6 @@ public class TransactionManagerModule {
             ServicesConfig config,
             @Named("kvs") KeyValueService kvs,
             LockAndTimestampServices lts,
-            LockClient lockClient,
             TransactionService transactionService,
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
