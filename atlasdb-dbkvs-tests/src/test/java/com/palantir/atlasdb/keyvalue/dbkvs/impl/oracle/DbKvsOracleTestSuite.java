@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
@@ -23,20 +22,16 @@ import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimers;
+import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
-import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
-import com.palantir.nexus.db.sql.SQL;
-import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.nexus.db.sql.SqlConnectionHelper;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.time.Duration;
@@ -57,7 +52,8 @@ import org.junit.runners.Suite.SuiteClasses;
     DbKvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,
-    OracleEmbeddedDbTimestampBoundStoreTest.class
+    OracleEmbeddedDbTimestampBoundStoreTest.class,
+    OracleNamespaceCleanerIntegrationTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final String LOCALHOST = "0.0.0.0";
@@ -114,52 +110,19 @@ public final class DbKvsOracleTestSuite {
     }
 
     public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
-        ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
         ReentrantManagedConnectionSupplier connSupplier =
-                new ReentrantManagedConnectionSupplier(castKvs.getConnectionManager());
+                new ReentrantManagedConnectionSupplier(getConnectionManager(kvs));
         return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
+    }
+
+    public static ConnectionManager getConnectionManager(KeyValueService kvs) {
+        ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
+        return castKvs.getConnectionManager();
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
             ReentrantManagedConnectionSupplier connectionSupplier) {
-        SQL sql = new SQL() {
-            @Override
-            protected SqlConfig getSqlConfig() {
-                return new SqlConfig() {
-                    @Override
-                    public boolean isSqlCancellationDisabled() {
-                        return false;
-                    }
-
-                    protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
-                    }
-
-                    @Override
-                    public SqlTimer getSqlTimer() {
-                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
-                    }
-                };
-            }
-        };
-
-        return new SqlConnectionSupplier() {
-            @Override
-            public SqlConnection get() {
-                return new ConnectionBackedSqlConnectionImpl(
-                        connectionSupplier.get(),
-                        () -> {
-                            throw new UnsupportedOperationException(
-                                    "This SQL connection does not provide reliable timestamp.");
-                        },
-                        new SqlConnectionHelper(sql));
-            }
-
-            @Override
-            public void close() {
-                connectionSupplier.close();
-            }
-        };
+        return new SimpleTimedSqlConnectionSupplier(connectionSupplier);
     }
 
     private static Callable<Boolean> canCreateKeyValueService() {
