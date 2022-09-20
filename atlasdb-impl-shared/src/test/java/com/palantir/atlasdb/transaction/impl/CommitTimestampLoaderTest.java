@@ -78,7 +78,7 @@ public class CommitTimestampLoaderTest {
         setup(startTs, commitTs);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
+        CommitTimestampLoader commitTimestampLoader = getCommitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
@@ -93,7 +93,7 @@ public class CommitTimestampLoaderTest {
 
         // no immutableTs lock for read-only transaction
         CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
+                getCommitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(() -> commitTimestampLoader
@@ -113,7 +113,7 @@ public class CommitTimestampLoaderTest {
 
         // no immutableTs lock for read-only transaction
         CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
+                getCommitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
@@ -130,7 +130,7 @@ public class CommitTimestampLoaderTest {
 
         // no immutableTs lock for read-only transaction
         CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.of(lock), transactionTs, transactionTs + 1);
+                getCommitTsLoader(Optional.of(lock), transactionTs, transactionTs + 1);
 
         // the transaction will eventually throw at commit time. In this test we are only concerned with per read
         // validation.
@@ -148,7 +148,7 @@ public class CommitTimestampLoaderTest {
         LockToken lock = mock(LockToken.class);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader = commitTsLoader(Optional.of(lock), transactionTs, commitTs + 1);
+        CommitTimestampLoader commitTimestampLoader = getCommitTsLoader(Optional.of(lock), transactionTs, commitTs + 1);
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
 
@@ -163,7 +163,7 @@ public class CommitTimestampLoaderTest {
         TransactionStatus commitUnknown = TransactionStatuses.unknown();
 
         CommitTimestampLoader commitTimestampLoader =
-                commitTsLoader(Optional.empty(), transactionTs, transactionTs - 1);
+                getCommitTsLoader(Optional.empty(), transactionTs, transactionTs - 1);
 
         setup(startTsKnown, commitTsKnown);
         // the transaction will eventually throw at commit time. In this test we are only concerned with per read
@@ -190,8 +190,8 @@ public class CommitTimestampLoaderTest {
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
     }
 
-    private CommitTimestampLoader commitTsLoader(Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
-        getKnowledgeComponents(lastSeenCommitTs);
+    private CommitTimestampLoader getCommitTsLoader(Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
+        createKnowledgeComponents(lastSeenCommitTs);
         CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(
                 timestampCache,
                 lock, // commitTsLoader does not care if the lock expires.
@@ -200,11 +200,11 @@ public class CommitTimestampLoaderTest {
                 metricsManager,
                 timelockService,
                 1l,
-                getKnowledgeComponents(lastSeenCommitTs));
+                createKnowledgeComponents(lastSeenCommitTs));
         return commitTimestampLoader;
     }
 
-    private TransactionKnowledgeComponents getKnowledgeComponents(long lastSeenCommitTs) {
+    private TransactionKnowledgeComponents createKnowledgeComponents(long lastSeenCommitTs) {
         return ImmutableTransactionKnowledgeComponents.builder()
                 .aborted(knownAbortedTransactions)
                 .concluded(knownConcludedTransactions)

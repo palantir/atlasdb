@@ -58,12 +58,12 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
 
     /**
      * Returns commit timestamp for the start timestamp supplied as arg.
-     * For transactions with a known commit timestamp, returns the respective commit timestamps.
-     * For transactions that are aborted, returns -1.
-     * For transactions that are known ot be committed but have unknown commitTs, returns startTs as commitTs for
-     * read-write transactions.
-     * For read-only transactions, only returns if the greatestSeenCommitTS < startTs, otherwise throws.
-     * Start timestamps for transactions that are in progress return a void future.
+     * For transaction with a known commit timestamp, returns the respective commit timestamp.
+     * For transaction that is aborted, returns -1.
+     * For transaction that is known to be committed but have unknown commitTs, returns startTs as commitTs for
+     * read-write transaction. For read-only transactions, only returns if the greatestSeenCommitTS < startTs,
+     * otherwise throws.
+     * For transactions that are in-progress, returns a void future.
      * */
     @Override
     public ListenableFuture<Long> get(Long startTimestamp) {
