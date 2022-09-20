@@ -22,9 +22,12 @@ import java.io.Closeable;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class LastSweptTsUpdateScheduler implements Closeable {
-    static final long DELAY = Duration.ofSeconds(30).toMillis();
+public final class LastSweptTsUpdateScheduler implements Closeable {
+    private static final Logger log = LoggerFactory.getLogger(LastSweptTsUpdateScheduler.class);
+    private static final long DELAY = Duration.ofSeconds(30).toMillis();
     private final ScheduledExecutorService executorService;
     private final Runnable task;
 
@@ -41,8 +44,16 @@ public class LastSweptTsUpdateScheduler implements Closeable {
         return scheduler;
     }
 
+    private void runOnce() {
+        try {
+            task.run();
+        } catch (Exception exception) {
+            log.info("Last Swept Timestamp Scheduler task failed ", exception);
+        }
+    }
+
     private void start() {
-        executorService.scheduleWithFixedDelay(task, DELAY, DELAY, TimeUnit.MILLISECONDS);
+        executorService.scheduleWithFixedDelay(this::runOnce, DELAY, DELAY, TimeUnit.MILLISECONDS);
     }
 
     @Override
