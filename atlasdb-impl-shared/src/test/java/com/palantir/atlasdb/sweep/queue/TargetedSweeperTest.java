@@ -83,7 +83,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.eclipse.jetty.util.ConcurrentHashSet;
@@ -117,24 +117,25 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TargetedSweepFollower mockFollower;
     private TimelockService timelockService;
     private PuncherStore puncherStore;
-    private boolean enabled = true;
-    private boolean enableAutoTuning = false;
 
     public TargetedSweeperTest(int readBatchSize) {
         this.readBatchSize = readBatchSize;
     }
 
+    private AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier = new AtomicReference<>();
+
     @Before
     @Override
     public void setup() {
         super.setup();
-        Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
-                .enabled(enabled)
-                .enableAutoTuning(enableAutoTuning)
+        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
+                .enabled(true)
+                .enableAutoTuning(false)
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
                 .shards(DEFAULT_SHARDS)
-                .build();
-        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
+                .build());
+
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtimeSupplier::get);
         mockFollower = mock(TargetedSweepFollower.class);
 
         timelockService = mock(TimelockService.class);
@@ -432,7 +433,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void enableAutoTuningOverridesEffectivelySetsLargeReadBatchSize() {
-        enableAutoTuning = true;
+        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeSupplier.get())
+                .enableAutoTuning(true)
+                .build());
 
         for (int partition = 0; partition < readBatchSize * 5; partition++) {
             enqueueWriteCommitted(TABLE_CONS, minTsForFinePartition(partition + 1));
@@ -1093,7 +1097,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void enableAutoTuningSweepsMultipleFinePartitions() {
-        enableAutoTuning = true;
+        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeSupplier.get())
+                .enableAutoTuning(true)
+                .build());
 
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueTombstone(TABLE_CONS, LOW_TS + 2);

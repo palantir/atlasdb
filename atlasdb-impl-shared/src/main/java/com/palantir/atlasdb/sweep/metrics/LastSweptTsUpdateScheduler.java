@@ -18,15 +18,15 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class LastSweptTsUpdateScheduler implements Closeable {
-    private static final Logger log = LoggerFactory.getLogger(LastSweptTsUpdateScheduler.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTsUpdateScheduler.class);
     private static final long DELAY = Duration.ofSeconds(30).toMillis();
     private final ScheduledExecutorService executorService;
     private final Runnable task;
