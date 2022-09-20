@@ -58,7 +58,7 @@ public final class TransactionStatusUtils {
                 .otherwiseEmpty();
     }
 
-    public static long getCommitTsFromStatus(
+    public static Long getCommitTsFromStatus(
             long startTs, TransactionStatus status, Function<Long, Boolean> abortedCheck) {
         return TransactionStatuses.caseOf(status)
                 .unknown(() -> getCommitTsForConcludedTransaction(startTs, abortedCheck))

@@ -100,7 +100,7 @@ public class CommitTimestampLoaderTest {
                         .getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs), false, transactionService)
                         .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
-                .withMessageContaining("Transactions table has been swept beyond current start timestamp");
+                .withMessageContaining("Sweep has swept some entries with a commit TS after us");
     }
 
     @Test
@@ -190,7 +190,8 @@ public class CommitTimestampLoaderTest {
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
     }
 
-    private CommitTimestampLoader getCommitTsLoader(Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
+    private CommitTimestampLoader getCommitTsLoader(
+            Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
         createKnowledgeComponents(lastSeenCommitTs);
         CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(
                 timestampCache,
