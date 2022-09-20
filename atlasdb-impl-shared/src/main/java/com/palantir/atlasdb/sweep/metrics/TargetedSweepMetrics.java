@@ -98,6 +98,7 @@ public class TargetedSweepMetrics {
                 shards);
     }
 
+    @VisibleForTesting
     public long getLastSweptTsForShardAndStrategy(int shard, SweeperStrategy strategy) {
         return getMetrics(strategy)
                 .lastSweptTsWithShard

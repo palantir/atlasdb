@@ -21,7 +21,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -139,7 +138,6 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    @Unsafe
     private static Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
