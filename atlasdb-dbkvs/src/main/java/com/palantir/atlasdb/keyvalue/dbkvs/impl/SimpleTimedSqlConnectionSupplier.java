@@ -59,13 +59,13 @@ public final class SimpleTimedSqlConnectionSupplier implements SqlConnectionSupp
                     return false;
                 }
 
-                private Iterable<SqlTimer> getSqlTimers() {
-                    return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
-                }
-
                 @Override
                 public SqlTimer getSqlTimer() {
                     return SqlTimers.createCombinedSqlTimer(getSqlTimers());
+                }
+
+                private Iterable<SqlTimer> getSqlTimers() {
+                    return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
                 }
             };
         }
