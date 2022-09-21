@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
@@ -26,9 +27,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.common.exception.TableMappingNotFoundException;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.SafeArg;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -113,21 +115,23 @@ public class OracleTableNameGetterTest {
     @Test
     public void getTableReferencesFromShortTableNamesThrowsIfMappingDoesNotExist()
             throws TableMappingNotFoundException {
+        TableMappingNotFoundException tableMappingNotFoundException = new TableMappingNotFoundException("Propagated!");
         when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenThrow(TableMappingNotFoundException.class);
+                .thenThrow(tableMappingNotFoundException);
         assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(TableMappingNotFoundException.class);
+                .isEqualTo(tableMappingNotFoundException);
     }
 
     @Test
     public void getTableReferencesFromShortOverflowTableNamesThrowsIfMappingDoesNotExist()
             throws TableMappingNotFoundException {
+        TableMappingNotFoundException tableMappingNotFoundException = new TableMappingNotFoundException("Propagated!");
         when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenThrow(TableMappingNotFoundException.class);
+                .thenThrow(tableMappingNotFoundException);
         assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(TableMappingNotFoundException.class);
+                .isEqualTo(tableMappingNotFoundException);
     }
 
     @Test
@@ -135,9 +139,10 @@ public class OracleTableNameGetterTest {
             throws TableMappingNotFoundException {
         when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
                 .thenReturn(SHORT_TABLE_NAMES);
-        assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
+                () -> tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
+                        connectionSupplier, SHORT_TABLE_NAMES),
+                TABLE_MAPPING_DDL_CONFIG.tablePrefix());
     }
 
     @Test
@@ -145,23 +150,26 @@ public class OracleTableNameGetterTest {
             throws TableMappingNotFoundException {
         when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
                 .thenReturn(SHORT_TABLE_NAMES);
-        assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
+                () -> tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
+                        connectionSupplier, SHORT_TABLE_NAMES),
+                TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix());
     }
 
     @Test
     public void getTableReferencesFromShortTableNamesThrowsIfLongNameDoesNotBeginWithPrefix() {
-        assertThatThrownBy(() -> nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
+                () -> nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
+                        connectionSupplier, SHORT_TABLE_NAMES),
+                NON_TABLE_MAPPING_DDL_CONFIG.tablePrefix());
     }
 
     @Test
     public void getTableReferencesFromShortOverflowTableNamesThrowsIfLongNameDoesNotBeginWithPrefix() {
-        assertThatThrownBy(() -> nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
+                () -> nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
+                        connectionSupplier, SHORT_TABLE_NAMES),
+                NON_TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix());
     }
 
     private Set<String> getLongOverflowTableNames() {
@@ -174,5 +182,12 @@ public class OracleTableNameGetterTest {
         return TABLE_REFERENCES.stream()
                 .map(tableMappingTableNameGetter::getPrefixedTableName)
                 .collect(Collectors.toSet());
+    }
+
+    private static void assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
+            ThrowingCallable callable, String prefix) {
+        assertThatLoggableExceptionThrownBy(callable)
+                .hasLogMessage("Long table name does not begin with prefix")
+                .containsArgs(SafeArg.of("prefix", prefix));
     }
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -186,7 +189,21 @@ public class OracleTableNameUnmapperTest {
 
         assertThatThrownBy(() -> oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                         connectionSupplier, Set.of("test", "test_2")))
-                .isInstanceOf(TableMappingNotFoundException.class);
+                .isInstanceOf(TableMappingNotFoundException.class)
+                .hasMessageContaining("Some of the tables")
+                .hasMessageContaining("do not have a mapping. This might be because these tables do not exist.");
+    }
+
+    @Test
+    public void getLongTableNamesThrowsIfTooManyResultsReturned() {
+        mockShortNamesToLongNamesQuery(Set.of("test", "test_2"));
+
+        assertThatLoggableExceptionThrownBy(() ->
+                        oracleTableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, Set.of("test")))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("There are more returned long table names than provided short table names. This likely"
+                        + " indicates a bug in AtlasDB")
+                .hasExactlyArgs(SafeArg.of("numLongTables", 2), SafeArg.of("numShortTables", 1));
     }
 
     private void mockShortNamesToLongNamesQuery(Collection<String> longTableNames) {
