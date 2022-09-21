@@ -201,4 +201,6 @@ public final class AtlasDbConstants {
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 
     public static final long ABORTED_TIMESTAMPS_BUCKET_SIZE = 1_000_000;
+
+    public static final int IN_CLAUSE_EXPRESSION_LIMIT = 900;
 }

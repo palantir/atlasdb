@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -41,12 +42,16 @@ import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.stubbing.OngoingStubbing;
 
 public class OracleTableNameUnmapperTest {
 
@@ -125,13 +130,13 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getLongTableNamesFromMappingTableReturnsLongNames() throws TableMappingNotFoundException {
+        ArgumentCaptor<Object> tableNameCaptor = ArgumentCaptor.forClass(Object.class);
         Map<String, String> shortNamesToLongNames = ImmutableMap.<String, String>builder()
                 .put("shortNameOne", "superLongNameOne")
                 .put("shortNameTwo", "superLongNameTwo")
                 .put("shortNameThree", "superLongNameThree")
                 .build();
-
-        setupShortToLongTableMappingMock(shortNamesToLongNames.values());
+        mockShortNamesToLongNamesQuery(shortNamesToLongNames.values());
 
         Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
@@ -139,31 +144,65 @@ public class OracleTableNameUnmapperTest {
         assertThat(longNames).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.values());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
-                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN (?,?,?)"),
+                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
+                                + generatePlaceholders(3) + ")"),
+                        tableNameCaptor);
+
+        assertThat(tableNameCaptor.getAllValues()).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.keySet());
+        verifyNoMoreInteractions(sqlConnection);
+    }
+
+    @Test
+    public void getLongTableNamesFromMappingTableDoesMultipleQueriesIfMoreTablesThanThreshold()
+            throws TableMappingNotFoundException {
+        int numberOfEntries = AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT + 100;
+        Map<String, String> shortNamesToLongNames = IntStream.range(0, numberOfEntries)
+                .boxed()
+                .collect(Collectors.toMap(i -> "shortName" + i, i -> "longName" + i));
+        mockShortNamesToLongNamesQuery(shortNamesToLongNames.values());
+
+        Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
+                connectionSupplier, shortNamesToLongNames.keySet());
+
+        assertThat(longNames).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.values());
+        verify(sqlConnection)
+                .selectResultSetUnregisteredQuery(
+                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
+                                + generatePlaceholders(AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT) + ")"),
+                        any());
+        verify(sqlConnection)
+                .selectResultSetUnregisteredQuery(
+                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
+                                + generatePlaceholders(numberOfEntries - AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT)
+                                + ")"),
                         any());
         verifyNoMoreInteractions(sqlConnection);
     }
 
     @Test
     public void getLongTableNamesThrowsIfPartialResultsReturned() {
-        setupShortToLongTableMappingMock(Set.of("test"));
+        mockShortNamesToLongNamesQuery(Set.of("test"));
 
         assertThatThrownBy(() -> oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                         connectionSupplier, Set.of("test", "test_2")))
                 .isInstanceOf(TableMappingNotFoundException.class);
     }
 
-    private void setupShortToLongTableMappingMock(Collection<String> longTableNames) {
-        when(sqlConnection.selectResultSetUnregisteredQuery(
-                        startsWith("SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
-                                + " LOWER(short_table_name)"),
-                        any()))
-                .thenReturn(new AgnosticResultSetImpl(
-                        longTableNames.stream()
-                                .map(x -> (Object) x)
-                                .map(List::of)
-                                .collect(Collectors.toList()),
-                        DBType.ORACLE,
-                        Map.of("table_name", 0)));
+    private void mockShortNamesToLongNamesQuery(Collection<String> longTableNames) {
+        OngoingStubbing<AgnosticResultSet> ongoingStubbing = when(sqlConnection.selectResultSetUnregisteredQuery(
+                startsWith("SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
+                        + " LOWER(short_table_name)"),
+                any()));
+
+        for (List<String> batch : Iterables.partition(longTableNames, AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT)) {
+            ongoingStubbing = ongoingStubbing.thenReturn(new AgnosticResultSetImpl(
+                    batch.stream().map(x -> (Object) x).map(List::of).collect(Collectors.toList()),
+                    DBType.ORACLE,
+                    Map.of("table_name", 0, "TABLE_NAME", 0)));
+        }
+    }
+
+    private String generatePlaceholders(int numberOfPlaceholders) {
+        return String.join(",", Collections.nCopies(numberOfPlaceholders, "LOWER(?)"));
     }
 }
