@@ -63,12 +63,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.ImmutableMetricsConfiguration;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
@@ -107,6 +111,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS = 10L;
     private static final long LOW_TS2 = 2 * LOW_TS;
     private static final long LOW_TS3 = 3 * LOW_TS;
+    private static final long SMALL_REFRESH_MILLIS = 2L;
 
     private final int readBatchSize;
 
@@ -118,11 +123,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TimelockService timelockService;
     private PuncherStore puncherStore;
 
+    private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier = new AtomicReference<>();
+
     public TargetedSweeperTest(int readBatchSize) {
         this.readBatchSize = readBatchSize;
     }
-
-    private AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier = new AtomicReference<>();
 
     @Before
     @Override
@@ -135,11 +140,21 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .shards(DEFAULT_SHARDS)
                 .build());
 
-        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtimeSupplier::get);
-        mockFollower = mock(TargetedSweepFollower.class);
+        // Passing a refresh duration that will be used to update the aggregated lastSweptTimestampForShard
+        sweepQueue = TargetedSweeper.createUninitializedForTest(
+                metricsManager,
+                runtimeSupplier::get,
+                ImmutableMetricsConfiguration.builder()
+                        .from(TargetedSweepMetricsConfigurations.DEFAULT)
+                        .millisBetweenRecomputingMetrics(SMALL_REFRESH_MILLIS)
+                        .build());
 
+        mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
-        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
+
+        // Passing a refresh duration that will be used to update the shard count
+        sweepQueue.initializeWithoutRunningForTests(
+                timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower, SMALL_REFRESH_MILLIS);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -156,6 +171,57 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepableTimestamps = null;
         sweepableCells = null;
         puncherStore = null;
+    }
+
+    private void waitToForceRefresh() throws InterruptedException {
+        Thread.sleep(2 * SMALL_REFRESH_MILLIS);
+    }
+
+    private int getShardCountFromRuntime() {
+        return runtimeSupplier.get().shards();
+    }
+
+    @Test
+    public void secondaryQueueReadsFirstQueueLastSweptTimestamp() {
+        // Second queue creation and initialization
+        MetricsManager secondQueueManager = MetricsManagers.createForTests();
+        TargetedSweeper secondQueue =
+                TargetedSweeper.createUninitializedForTest(secondQueueManager, runtimeSupplier::get);
+        secondQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
+
+        // First queue's enqueue/sweep
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        sweepNextBatchForAllShards(CONSERVATIVE);
+
+        // Second queue Last Swept TS metric update
+        secondQueue.updateLastSweptTsMetric(CONSERVATIVE);
+
+        assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
+    }
+
+    @Test
+    public void increaseInShardsReflectedOnLastSweptTimestamp() throws InterruptedException {
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        sweepNextBatchForAllShards(CONSERVATIVE);
+        sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
+
+        // Add one shard
+        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeSupplier.get())
+                .shards(getShardCountFromRuntime() + 1)
+                .build());
+        waitToForceRefresh();
+
+        // Update metric and wait for memoized value to be refreshed
+        sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
+        waitToForceRefresh();
+
+        assertThat(sweepQueue.getLastSweptTimestampForShardAndStrategy(0, CONSERVATIVE))
+                .isEqualTo(maxTsForFinePartition(0));
+        assertThat(sweepQueue.getLastSweptTimestampForShardAndStrategy(getShardCountFromRuntime() - 1, CONSERVATIVE))
+                .isEqualTo(-1L);
+        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(-1L);
     }
 
     @Test
@@ -185,10 +251,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void enqueueUpdatesNumberOfShards() {
-        assertThat(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS).isLessThan(DEFAULT_SHARDS);
+        assertThat(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS).isLessThan(getShardCountFromRuntime());
         assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
-        assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS);
+        assertThat(progress.getNumberOfShards()).isEqualTo(getShardCountFromRuntime());
     }
 
     @Test
@@ -915,7 +981,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         putTimestampIntoTransactionTable(50, 200);
         Map<Integer, Integer> largeWriteDistribution = enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, 50);
         int writesInDedicated = largeWriteDistribution.get(CONS_SHARD);
-        int otherShard = IntMath.mod(CONS_SHARD + 1, DEFAULT_SHARDS);
+        int otherShard = IntMath.mod(CONS_SHARD + 1, getShardCountFromRuntime());
         int writesInOther = largeWriteDistribution.get(otherShard);
 
         assertThat(writesInOther).isGreaterThan(0);
@@ -1117,7 +1183,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private void sweepNextBatchForAllShards(SweeperStrategy sweeperStrategy) {
-        for (int shard = 0; shard < DEFAULT_SHARDS; shard++) {
+        int shards = getShardCountFromRuntime();
+        for (int shard = 0; shard < shards; shard++) {
             sweepNextBatch(ShardAndStrategy.of(shard, sweeperStrategy));
         }
     }
@@ -1342,17 +1409,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
+        int shards = getShardCountFromRuntime();
         List<WriteInfo> writeInfos = new ArrayList<>();
         int counter = 0;
         while (writeInfos.stream()
-                        .filter(write -> write.toShard(DEFAULT_SHARDS) == CONS_SHARD)
+                        .filter(write -> write.toShard(shards) == CONS_SHARD)
                         .count()
                 < threshold) {
             writeInfos.addAll(generateHundredWrites(counter++, startTs));
         }
         sweepQueue.enqueue(writeInfos);
-        return writeInfos.stream()
-                .collect(Collectors.toMap(write -> write.toShard(DEFAULT_SHARDS), write -> 1, Integer::sum));
+        return writeInfos.stream().collect(Collectors.toMap(write -> write.toShard(shards), write -> 1, Integer::sum));
     }
 
     private List<WriteInfo> generateHundredWrites(int startCol, long startTs) {

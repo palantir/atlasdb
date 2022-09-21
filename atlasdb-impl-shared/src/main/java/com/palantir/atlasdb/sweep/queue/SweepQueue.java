@@ -72,6 +72,20 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         return new SweepQueue(factory, follower);
     }
 
+    public static SweepQueue create(
+            TargetedSweepMetrics metrics,
+            KeyValueService kvs,
+            TimelockService timelock,
+            Supplier<Integer> shardsConfig,
+            TransactionService transaction,
+            TargetedSweepFollower follower,
+            ReadBatchingRuntimeContext readBatchingRuntimeContext,
+            long refreshMillis) {
+        SweepQueueFactory factory = SweepQueueFactory.create(
+                metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext, refreshMillis);
+        return new SweepQueue(factory, follower);
+    }
+
     /**
      * Creates a SweepQueueWriter, performing all the necessary initialization.
      */
@@ -246,10 +260,27 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Supplier<Integer> shardsConfig,
                 TransactionService transaction,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+            return create(
+                    metrics,
+                    kvs,
+                    timelock,
+                    shardsConfig,
+                    transaction,
+                    readBatchingRuntimeContext,
+                    SweepQueueUtils.REFRESH_TIME);
+        }
+
+        static SweepQueueFactory create(
+                TargetedSweepMetrics metrics,
+                KeyValueService kvs,
+                TimelockService timelock,
+                Supplier<Integer> shardsConfig,
+                TransactionService transaction,
+                ReadBatchingRuntimeContext readBatchingRuntimeContext,
+                long refreshTimeMillis) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
-            Supplier<Integer> shards =
-                    createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
+            Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, shardProgress, refreshTimeMillis);
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);

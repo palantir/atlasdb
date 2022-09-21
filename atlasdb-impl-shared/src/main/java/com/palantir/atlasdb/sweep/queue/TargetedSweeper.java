@@ -27,6 +27,8 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.LastSweptTsUpdateScheduler;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.MetricsConfiguration;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
@@ -63,14 +65,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final MetricsManager metricsManager;
     private final TargetedSweepMetrics.MetricsConfiguration metricsConfiguration;
 
+    private final BackgroundSweepScheduler conservativeScheduler;
+    private final BackgroundSweepScheduler thoroughScheduler;
+    private final LastSweptTsUpdateTask conservativeLastSweptTsTask;
+    private final LastSweptTsUpdateTask thoroughLastSweptTsTask;
+
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
     private TimelockService timeLock;
-    private BackgroundSweepScheduler conservativeScheduler;
-    private BackgroundSweepScheduler thoroughScheduler;
-    private LastSweptTsUpdateTask conservativeLastSweptTsTask;
-    private LastSweptTsUpdateTask thoroughLastSweptTsTask;
 
     private volatile boolean isInitialized = false;
 
@@ -112,9 +115,17 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     public static TargetedSweeper createUninitializedForTest(
             MetricsManager metricsManager, Supplier<TargetedSweepRuntimeConfig> runtime) {
+        return createUninitializedForTest(metricsManager, runtime, TargetedSweepMetricsConfigurations.DEFAULT);
+    }
+
+    public static TargetedSweeper createUninitializedForTest(
+            MetricsManager metricsManager,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            MetricsConfiguration metricsConfiguration) {
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(0)
                 .thoroughThreads(0)
+                .metricsConfiguration(metricsConfiguration)
                 .build();
         return createUninitialized(metricsManager, runtime, install, ImmutableList.of());
     }
@@ -178,6 +189,42 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
                         .build());
+        timestampsSupplier = timestamps;
+        timeLock = timelockService;
+        isInitialized = true;
+    }
+
+    @VisibleForTesting
+    void initializeWithoutRunningForTests(
+            SpecialTimestampsSupplier timestamps,
+            TimelockService timelockService,
+            KeyValueService kvs,
+            TransactionService transaction,
+            TargetedSweepFollower follower,
+            long refreshMillis) {
+        if (isInitialized) {
+            return;
+        }
+        Preconditions.checkState(
+                kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
+        metrics = TargetedSweepMetrics.create(
+                metricsManager,
+                timelockService,
+                kvs,
+                metricsConfiguration,
+                runtime.get().shards());
+        queue = SweepQueue.create(
+                metrics,
+                kvs,
+                timelockService,
+                Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
+                transaction,
+                follower,
+                ReadBatchingRuntimeContext.builder()
+                        .maximumPartitions(this::getPartitionBatchLimit)
+                        .cellsThreshold(() -> runtime.get().batchCellThreshold())
+                        .build(),
+                refreshMillis);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;
