@@ -16,27 +16,12 @@
 
 package com.palantir.atlasdb.timelock.batch;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
-import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
-import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
-import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
-import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
-import com.palantir.atlasdb.timelock.api.LeaderTimes;
-import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.*;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
@@ -44,24 +29,23 @@ import com.palantir.conjure.java.api.errors.QosException.RetryOther;
 import com.palantir.conjure.java.api.errors.QosException.Throttle;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
-import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.v2.LeadershipId;
-import com.palantir.lock.v2.Lease;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.lock.v2.*;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
-import java.net.URL;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.net.URL;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MultiClientConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
@@ -166,7 +150,7 @@ public class MultiClientConjureTimelockResourceTest {
                 Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests));
         for (Map.Entry<Namespace, ConjureUnlockRequestV2> request : requests.entrySet()) {
             assertThat(responses.get(request.getKey()).get())
-                    .containsExactlyInAnyOrderElementsOf(request.getValue().get());
+                    .containsExactlyElementsOf(request.getValue().get());
         }
     }
 
