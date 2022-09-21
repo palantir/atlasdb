@@ -206,14 +206,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
 
-        // Add one shard
         runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
                 .from(runtimeSupplier.get())
                 .shards(getShardCountFromRuntime() + 1)
                 .build());
         waitToForceRefresh();
 
-        // Update metric and wait for memoized value to be refreshed
         sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
         waitToForceRefresh();
 
@@ -561,13 +559,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(3);
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(2 * readBatchSize + 2);
         sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
-        // Checking if last swept timestamp for the given shard is equal to the expected value
+
         assertThat(sweepQueue.getLastSweptTimestampForShardAndStrategy(CONS_SHARD, CONSERVATIVE))
                 .isEqualTo(maxTsForFinePartition(permittedPartitions.get(2 * readBatchSize)));
         assertThat(metricsManager).containsEntriesReadInBatchConservative(readBatchSize, readBatchSize, 2L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo((2 * readBatchSize + 2) / 3.0);
 
-        // MillisSinceLastSwept is not per shard (default configuration), we sweep/update TS for all shards
         sweepNextBatchForAllShards(CONSERVATIVE);
         sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
         setTimelockTime(finalValueWallClockTime * 3);
