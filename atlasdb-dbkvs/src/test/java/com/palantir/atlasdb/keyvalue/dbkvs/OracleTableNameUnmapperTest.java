@@ -146,7 +146,7 @@ public class OracleTableNameUnmapperTest {
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
                                 + generatePlaceholders(3) + ")"),
-                        tableNameCaptor);
+                        tableNameCaptor.capture());
 
         assertThat(tableNameCaptor.getAllValues()).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.keySet());
         verifyNoMoreInteractions(sqlConnection);
