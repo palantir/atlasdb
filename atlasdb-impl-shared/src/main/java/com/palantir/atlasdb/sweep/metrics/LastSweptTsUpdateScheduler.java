@@ -20,12 +20,11 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.io.Closeable;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public final class LastSweptTsUpdateScheduler implements Closeable {
+public final class LastSweptTsUpdateScheduler implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTsUpdateScheduler.class);
     private static final long DELAY = Duration.ofSeconds(30).toMillis();
     private final ScheduledExecutorService executorService;

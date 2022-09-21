@@ -319,7 +319,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
 
-    private class LastSweptTsUpdateTask implements AutoCloseable {
+    private final class LastSweptTsUpdateTask implements AutoCloseable {
         private final SweeperStrategy sweeperStrategy;
         private LastSweptTsUpdateScheduler scheduler;
 
