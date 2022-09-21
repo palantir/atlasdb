@@ -110,9 +110,8 @@ public class OracleTableNameGetter {
             ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
         if (useTableMapping) {
             return oracleTableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, shortTableNames);
-        } else {
-            return shortTableNames;
         }
+        return shortTableNames;
     }
 
     public String getPrefixedTableName(TableReference tableRef) {
