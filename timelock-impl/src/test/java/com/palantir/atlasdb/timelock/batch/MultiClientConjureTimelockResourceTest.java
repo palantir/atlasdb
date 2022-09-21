@@ -16,6 +16,13 @@
 
 package com.palantir.atlasdb.timelock.batch;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
@@ -45,9 +52,6 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.tokens.auth.AuthHeader;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
@@ -56,13 +60,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.Before;
+import org.junit.Test;
 
 public class MultiClientConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
