@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
-public class OracleTableNameGetter {
+public final class OracleTableNameGetter {
     private final String tablePrefix;
     private final String overflowTablePrefix;
     private final OracleTableNameMapper oracleTableNameMapper;
