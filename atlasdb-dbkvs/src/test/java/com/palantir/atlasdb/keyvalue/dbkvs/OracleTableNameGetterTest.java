@@ -66,9 +66,9 @@ public class OracleTableNameGetterTest {
     @Before
     public void before() {
         tableMappingTableNameGetter =
-                new OracleTableNameGetter(TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
+                OracleTableNameGetter.createForTests(TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
         nonTableMappingTableNameGetter =
-                new OracleTableNameGetter(NON_TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
+                OracleTableNameGetter.createForTests(NON_TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
     }
 
     @Test

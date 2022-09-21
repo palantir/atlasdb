@@ -33,11 +33,7 @@ public class OracleTableNameGetter {
     private final OracleTableNameUnmapper oracleTableNameUnmapper;
     private final boolean useTableMapping;
 
-    public OracleTableNameGetter(OracleDdlConfig config) {
-        this(config, new OracleTableNameMapper(), new OracleTableNameUnmapper());
-    }
-
-    public OracleTableNameGetter(
+    private OracleTableNameGetter(
             OracleDdlConfig config, OracleTableNameMapper tableNameMapper, OracleTableNameUnmapper tableNameUnmapper) {
         this.tablePrefix = config.tablePrefix();
         this.overflowTablePrefix = config.overflowTablePrefix();
@@ -45,6 +41,15 @@ public class OracleTableNameGetter {
 
         this.oracleTableNameMapper = tableNameMapper;
         this.oracleTableNameUnmapper = tableNameUnmapper;
+    }
+
+    public static OracleTableNameGetter createDefault(OracleDdlConfig config) {
+        return new OracleTableNameGetter(config, new OracleTableNameMapper(), new OracleTableNameUnmapper());
+    }
+
+    public static OracleTableNameGetter createForTests(
+            OracleDdlConfig config, OracleTableNameMapper tableNameMapper, OracleTableNameUnmapper tableNameUnmapper) {
+        return new OracleTableNameGetter(config, tableNameMapper, tableNameUnmapper);
     }
 
     public String generateShortTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
