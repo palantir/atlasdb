@@ -155,7 +155,7 @@ public class OracleTableNameUnmapperTest {
     @Test
     public void getLongTableNamesFromMappingTableDoesMultipleQueriesIfMoreTablesThanThreshold()
             throws TableMappingNotFoundException {
-        int numberOfEntries = AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT + 100;
+        int numberOfEntries = AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT + 100;
         Map<String, String> shortNamesToLongNames = IntStream.range(0, numberOfEntries)
                 .boxed()
                 .collect(Collectors.toMap(i -> "shortName" + i, i -> "longName" + i));
@@ -168,12 +168,13 @@ public class OracleTableNameUnmapperTest {
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
-                                + generatePlaceholders(AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT) + ")"),
+                                + generatePlaceholders(AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT) + ")"),
                         any());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
-                                + generatePlaceholders(numberOfEntries - AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT)
+                                + generatePlaceholders(
+                                        numberOfEntries - AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)
                                 + ")"),
                         any());
         verifyNoMoreInteractions(sqlConnection);
@@ -194,7 +195,8 @@ public class OracleTableNameUnmapperTest {
                         + " LOWER(short_table_name)"),
                 any()));
 
-        for (List<String> batch : Iterables.partition(longTableNames, AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT)) {
+        for (List<String> batch :
+                Iterables.partition(longTableNames, AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
             ongoingStubbing = ongoingStubbing.thenReturn(new AgnosticResultSetImpl(
                     batch.stream().map(x -> (Object) x).map(List::of).collect(Collectors.toList()),
                     DBType.ORACLE,

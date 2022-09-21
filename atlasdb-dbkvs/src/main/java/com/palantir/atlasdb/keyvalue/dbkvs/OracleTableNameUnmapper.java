@@ -77,7 +77,8 @@ class OracleTableNameUnmapper {
             return Set.of();
         }
         ImmutableSet.Builder<String> longTableNames = ImmutableSet.builder();
-        for (List<String> batch : Iterables.partition(shortTableNames, AtlasDbConstants.IN_CLAUSE_EXPRESSION_LIMIT)) {
+        for (List<String> batch :
+                Iterables.partition(shortTableNames, AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
             longTableNames.addAll(getBatchOfLongTableNamesFromMappingTable(connectionSupplier, batch));
         }
         return longTableNames.build();
