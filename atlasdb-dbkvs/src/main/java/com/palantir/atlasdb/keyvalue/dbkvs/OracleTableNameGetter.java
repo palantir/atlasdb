@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -97,7 +98,7 @@ public class OracleTableNameGetter {
                     if (!StringUtils.startsWithIgnoreCase(tableName, tablePrefixToStrip)) {
                         throw new SafeIllegalArgumentException(
                                 "Long table name does not begin with prefix",
-                                SafeArg.of("tableName", tableName),
+                                UnsafeArg.of("tableName", tableName),
                                 SafeArg.of("prefix", tablePrefixToStrip));
                     }
                 })
