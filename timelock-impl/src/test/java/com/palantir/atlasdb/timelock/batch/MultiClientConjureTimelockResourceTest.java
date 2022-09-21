@@ -166,7 +166,7 @@ public class MultiClientConjureTimelockResourceTest {
                 Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests));
         for (Map.Entry<Namespace, ConjureUnlockRequestV2> request : requests.entrySet()) {
             assertThat(responses.get(request.getKey()).get())
-                    .isEqualTo(request.getValue().get());
+                    .containsExactlyInAnyOrderElementsOf(request.getValue().get());
         }
     }
 

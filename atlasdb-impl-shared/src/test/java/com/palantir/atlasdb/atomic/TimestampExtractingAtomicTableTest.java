@@ -45,7 +45,7 @@ public class TimestampExtractingAtomicTableTest {
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         Map<Long, Long> expected = KeyedStream.of(keys).map(this::commitTs).collectToMap();
-        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class TimestampExtractingAtomicTableTest {
         Map<Long, Long> expected = KeyedStream.of(keys)
                 .map(_unused -> TransactionConstants.FAILED_COMMIT_TS)
                 .collectToMap();
-        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class TimestampExtractingAtomicTableTest {
 
         Map<Long, Long> expected =
                 ImmutableMap.of(committedTs, commitTs(committedTs), abortedTs, TransactionConstants.FAILED_COMMIT_TS);
-        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEqualTo(expected);
+        assertThat(timestampExtractingAtomicTable.get(keys).get()).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
