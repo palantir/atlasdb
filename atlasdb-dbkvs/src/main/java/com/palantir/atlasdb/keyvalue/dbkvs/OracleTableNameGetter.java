@@ -19,21 +19,37 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
-public class OracleTableNameGetter {
+public final class OracleTableNameGetter {
     private final String tablePrefix;
     private final String overflowTablePrefix;
     private final OracleTableNameMapper oracleTableNameMapper;
     private final OracleTableNameUnmapper oracleTableNameUnmapper;
     private final boolean useTableMapping;
 
-    public OracleTableNameGetter(OracleDdlConfig config) {
+    private OracleTableNameGetter(
+            OracleDdlConfig config, OracleTableNameMapper tableNameMapper, OracleTableNameUnmapper tableNameUnmapper) {
         this.tablePrefix = config.tablePrefix();
         this.overflowTablePrefix = config.overflowTablePrefix();
         this.useTableMapping = config.useTableMapping();
 
-        this.oracleTableNameMapper = new OracleTableNameMapper();
-        this.oracleTableNameUnmapper = new OracleTableNameUnmapper();
+        this.oracleTableNameMapper = tableNameMapper;
+        this.oracleTableNameUnmapper = tableNameUnmapper;
+    }
+
+    public static OracleTableNameGetter createDefault(OracleDdlConfig config) {
+        return new OracleTableNameGetter(config, new OracleTableNameMapper(), new OracleTableNameUnmapper());
+    }
+
+    public static OracleTableNameGetter createForTests(
+            OracleDdlConfig config, OracleTableNameMapper tableNameMapper, OracleTableNameUnmapper tableNameUnmapper) {
+        return new OracleTableNameGetter(config, tableNameMapper, tableNameUnmapper);
     }
 
     public String generateShortTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
@@ -65,6 +81,43 @@ public class OracleTableNameGetter {
                     connectionSupplier, overflowTablePrefix, tableRef);
         }
         return getPrefixedOverflowTableName(tableRef);
+    }
+
+    public Set<TableReference> getTableReferencesFromShortTableNames(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+        return getTableReferencesFromShortTableNamesWithPrefix(connectionSupplier, shortTableNames, tablePrefix);
+    }
+
+    public Set<TableReference> getTableReferencesFromShortOverflowTableNames(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+        return getTableReferencesFromShortTableNamesWithPrefix(
+                connectionSupplier, shortTableNames, overflowTablePrefix);
+    }
+
+    private Set<TableReference> getTableReferencesFromShortTableNamesWithPrefix(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames, String tablePrefixToStrip)
+            throws TableMappingNotFoundException {
+        Set<String> longTableNames = getLongTableNamesFromTableNames(connectionSupplier, shortTableNames);
+        return longTableNames.stream()
+                .peek(tableName -> {
+                    if (!StringUtils.startsWithIgnoreCase(tableName, tablePrefixToStrip)) {
+                        throw new SafeIllegalArgumentException(
+                                "Long table name does not begin with prefix",
+                                UnsafeArg.of("tableName", tableName),
+                                SafeArg.of("prefix", tablePrefixToStrip));
+                    }
+                })
+                .map(tableName -> StringUtils.removeStartIgnoreCase(tableName, tablePrefixToStrip))
+                .map(TableReference::fromInternalTableName)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getLongTableNamesFromTableNames(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+        if (useTableMapping) {
+            return oracleTableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, shortTableNames);
+        }
+        return shortTableNames;
     }
 
     public String getPrefixedTableName(TableReference tableRef) {
