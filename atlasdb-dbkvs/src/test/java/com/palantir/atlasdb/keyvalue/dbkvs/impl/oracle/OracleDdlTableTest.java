@@ -121,6 +121,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDropsOnlyNonOverflowTableWithoutThrowing() throws TableMappingNotFoundException {
         createTable();
         tableMappingDdlTable.drop();
+
         verifyTableDeleted(INTERNAL_TABLE_NAME);
     }
 
@@ -128,6 +129,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDropsOnlyOverflowTableWithoutThrowing() throws TableMappingNotFoundException {
         createOverflowTable();
         tableMappingDdlTable.drop();
+
         verifyTableDeleted(INTERNAL_OVERFLOW_TABLE_NAME);
     }
 
@@ -136,6 +138,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
         tableMappingDdlTable.drop();
+
         verify(sqlConnection)
                 .executeUnregisteredQuery(
                         "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
@@ -151,6 +154,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
         nonTableMappingDdlTable.drop();
+
         verify(sqlConnection, never())
                 .executeUnregisteredQuery(contains(AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE), any());
     }
@@ -160,6 +164,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
         tableMappingDdlTable.drop();
+
         verify(sqlConnection)
                 .executeUnregisteredQuery(
                         "DELETE FROM " + TABLE_MAPPING_DEFAULT_CONFIG.metadataTable() + " WHERE table_name = ?",
