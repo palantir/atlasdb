@@ -68,7 +68,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
-                SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
+                SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction,
+                        readBatchingRuntimeContext, SweepQueueUtils.REFRESH_TIME);
         return new SweepQueue(factory, follower);
     }
 
@@ -245,28 +246,13 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 KeyValueService kvs,
                 TimelockService timelock,
                 Supplier<Integer> shardsConfig,
-                ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+                ReadBatchingRuntimeContext readBatchingRuntimeContext
+                ) {
             // It is OK that the transaction service is different from the one used by the transaction manager,
             // as transaction services must not hold any local state in them that would affect correctness.
             TransactionService transaction =
                     TransactionServices.createRaw(kvs, new TimelockTimestampServiceAdapter(timelock), false);
-            return create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        }
-
-        static SweepQueueFactory create(
-                TargetedSweepMetrics metrics,
-                KeyValueService kvs,
-                TimelockService timelock,
-                Supplier<Integer> shardsConfig,
-                TransactionService transaction,
-                ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-            return create(
-                    metrics,
-                    kvs,
-                    timelock,
-                    shardsConfig,
-                    transaction,
-                    readBatchingRuntimeContext,
+            return create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext,
                     SweepQueueUtils.REFRESH_TIME);
         }
 
