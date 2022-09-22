@@ -111,6 +111,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDropsAllPhysicalTablesWithPurge() throws TableMappingNotFoundException {
         createTable();
         createOverflowTable();
+
         tableMappingDdlTable.drop();
 
         verifyTableDeleted(INTERNAL_TABLE_NAME);
@@ -120,6 +121,9 @@ public final class OracleDdlTableTest {
     @Test
     public void dropTablesDropsOnlyNonOverflowTableWithoutThrowing() throws TableMappingNotFoundException {
         createTable();
+        when(tableNameGetter.getInternalShortOverflowTableName(connectionSupplier, TEST_TABLE))
+                .thenThrow(TableMappingNotFoundException.class);
+
         tableMappingDdlTable.drop();
 
         verifyTableDeleted(INTERNAL_TABLE_NAME);
@@ -128,6 +132,9 @@ public final class OracleDdlTableTest {
     @Test
     public void dropTablesDropsOnlyOverflowTableWithoutThrowing() throws TableMappingNotFoundException {
         createOverflowTable();
+        when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
+                .thenThrow(TableMappingNotFoundException.class);
+
         tableMappingDdlTable.drop();
 
         verifyTableDeleted(INTERNAL_OVERFLOW_TABLE_NAME);
@@ -137,6 +144,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDeletesTableMappingIfTableMappingConfigured() throws TableMappingNotFoundException {
         createTable();
         createOverflowTable();
+
         tableMappingDdlTable.drop();
 
         verify(sqlConnection)
@@ -153,6 +161,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDoesNotDeleteTableMappingIfTableMappingNotConfigured() throws TableMappingNotFoundException {
         createTable();
         createOverflowTable();
+
         nonTableMappingDdlTable.drop();
 
         verify(sqlConnection, never())
@@ -163,6 +172,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDeletesTableMetadata() throws TableMappingNotFoundException {
         createTable();
         createOverflowTable();
+
         tableMappingDdlTable.drop();
 
         verify(sqlConnection)
