@@ -215,10 +215,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepQueue.updateLastSweptTsMetric(CONSERVATIVE);
         waitToForceRefresh();
 
-        assertThat(sweepQueue.getLastSweptTimestampForShardAndStrategy(0, CONSERVATIVE))
-                .isEqualTo(maxTsForFinePartition(0));
-        assertThat(sweepQueue.getLastSweptTimestampForShardAndStrategy(getShardCountFromRuntime() - 1, CONSERVATIVE))
-                .isEqualTo(-1L);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(-1L);
     }
 
