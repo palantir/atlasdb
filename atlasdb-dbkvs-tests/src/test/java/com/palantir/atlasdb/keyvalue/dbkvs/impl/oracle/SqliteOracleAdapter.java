@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.common.base.FunctionCheckedException;
@@ -48,18 +51,18 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
-public final class SqliteOracleAdapter implements ConnectionSupplier {
+final class SqliteOracleAdapter implements ConnectionSupplier {
     public static final TableReference METADATA_TABLE = AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE;
-
     private final File sqliteFileLocation;
 
     SqliteOracleAdapter() throws IOException {
-        sqliteFileLocation = TempFileUtils.createTempFile("sqlite", "db");
+        sqliteFileLocation = TempFileUtils.createTempFile("sqlite", ".db");
     }
 
     @Override
     public Connection get() throws PalantirSqlException {
         try {
+            // As with all connection supplier things, clients are expected to close connections.
             return applyPragma(DriverManager.getConnection(getConnectionUrl()));
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -87,25 +90,41 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
         runWithConnection(connection -> {
             Statement statement = connection.createStatement();
 
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS all_tables (table_name VARCHAR(128) NOT NULL, "
-                    + "owner VARCHAR(32) NOT NULL, PRIMARY KEY (table_name, owner))");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS all_tables (table_name VARCHAR(128) NOT NULL,"
+                    + " owner VARCHAR(32) NOT NULL, PRIMARY KEY (table_name, owner))");
 
+            // Creating our own equivalent table is much simpler than trying to wrangle the OracleTableInitializer
+            // create types and tables queries into sqlite.
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                    + "(table_name VARCHAR(128) NOT NULL, "
-                    + "short_table_name VARCHAR(128) NOT NULL, PRIMARY KEY (table_name))");
+                    + " (table_name VARCHAR(128) NOT NULL, "
+                    + " short_table_name VARCHAR(128) NOT NULL, PRIMARY KEY (table_name))");
 
             return null;
         });
-        OracleTableInitializer oti = new OracleTableInitializer(
-                new com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier(createSqlConnectionSupplier()), null);
-        oti.createMetadataTable(METADATA_TABLE.getQualifiedName());
+
+        // OracleTableInitializer requires a config for initialization, but creating the metadata table requires no
+        // configuration elements. Thus, the config is just to satisfy the initializer.
+        OracleDdlConfig unusedConfig = ImmutableOracleDdlConfig.builder()
+                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .build();
+
+        // We don't need to close the newly created sqlconnectionsupplier, since that just closes the sqlite oracle
+        // adapter!
+        OracleTableInitializer tableInitializer = new OracleTableInitializer(
+                new com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier(createSqlConnectionSupplier()),
+                unusedConfig);
+        tableInitializer.createMetadataTable(METADATA_TABLE.getQualifiedName());
     }
 
     public TableDetails createTable(String prefix, String tableName, String owner) {
+        // This is so that unique table metadata is created for different prefixes and owners
+        // While Oracle doesn't handle the first case (it creates tables then throws when adding metadata!), tables
+        // are scoped to owners. The below attempts to mimic that.
         Namespace namespace = Namespace.create(prefix + owner);
         TableReference tableReference = TableReference.create(namespace, tableName);
 
-        String reversibleTableName = prefix + DbKvs.internalTableName(tableReference);
+        // Equivalent to prefixed table name. Since we want control over
+        String reversibleTableName = generatePrefixedTableName(prefix, tableReference);
 
         // We don't actually shrink it, but we do add a unique identifier to mimic the counting that ddltable does
         String physicalTableName =
@@ -131,7 +150,7 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
             ps.executeUpdate();
 
             PreparedStatement tableNameMapping = connection.prepareStatement("INSERT INTO "
-                    + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + "(table_name, short_table_name) VALUES (?, ?)");
+                    + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)");
             tableNameMapping.setString(1, reversibleTableName);
             tableNameMapping.setString(2, physicalTableName);
             tableNameMapping.executeUpdate();
@@ -147,9 +166,8 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
         runWithConnection(connection -> {
             connection
                     .createStatement()
-                    .executeUpdate("DELETE FROM all_tables WHERE lower(table_name) "
-                            + "NOT IN"
-                            + " (SELECT lower(name) as table_name FROM sqlite_schema WHERE type = 'table')");
+                    .executeUpdate("DELETE FROM all_tables WHERE lower(table_name)"
+                            + " NOT IN (SELECT lower(name) as table_name FROM sqlite_schema WHERE type = 'table')");
             return null;
         });
     }
@@ -157,9 +175,8 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
     public Set<String> listAllTables() {
         return runWithConnection(connection -> {
             PreparedStatement statement = connection.prepareStatement("SELECT name FROM "
-                    + "sqlite_schema WHERE "
-                    + "type ='table' AND name NOT LIKE 'sqlite_%' AND name != 'all_tables' AND name != ? AND name != "
-                    + "?");
+                    + " sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name != 'all_tables' AND"
+                    + " name != ? AND name != ?");
             statement.setString(1, METADATA_TABLE.getQualifiedName());
             statement.setString(2, AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE);
             ResultSet resultSet = statement.executeQuery();
@@ -200,6 +217,7 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
     }
 
     private Connection applyPragma(Connection connection) throws SQLException {
+        // Oracle likes are case-sensitive. This pragma ensures that we mimic that behaviour with our sqlite queries
         connection.createStatement().executeUpdate("PRAGMA case_sensitive_like = true;");
         return connection;
     }
@@ -208,6 +226,20 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
         return "jdbc:sqlite:" + sqliteFileLocation.getAbsolutePath();
     }
 
+    private String generatePrefixedTableName(String prefix, TableReference tableReference) {
+        OracleDdlConfig config = ImmutableOracleDdlConfig.builder()
+                .tablePrefix(prefix)
+                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .build();
+
+        OracleTableNameGetter tableNameGetter = OracleTableNameGetter.createDefault(config);
+        return tableNameGetter.getPrefixedTableName(tableReference);
+    }
+
+    /**
+     * A lightweight wrapper around {@link SimpleTimedSqlConnectionSupplier} that marshals some queries containing
+     * Oracle specific keywords such as PURGE to sqlite compatible queries
+     */
     private static class SqliteSqlConnectionSupplier implements SqlConnectionSupplier {
         private final SqlConnectionSupplier delegate;
 
@@ -239,6 +271,14 @@ public final class SqliteOracleAdapter implements ConnectionSupplier {
         }
     }
 
+    /**
+     * TableDetails enables us to provide tests with sufficient physical information such that they can verify that
+     * everything that _should_ be cleaned up has been cleaned up.
+     *
+     * Generally, tests will be working on a collection of tables and will want to compare against the currently
+     * persisted table names. Thus, this also provides some utility methods for mapping from a collection of
+     * TableDetails down to a set of a particular constituent part
+     */
     @Value.Immutable
     interface TableDetails {
         String reversibleTableName();
