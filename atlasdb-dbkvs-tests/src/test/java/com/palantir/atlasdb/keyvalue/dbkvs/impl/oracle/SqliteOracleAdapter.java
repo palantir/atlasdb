@@ -143,17 +143,17 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
             Statement createNewTable = connection.createStatement();
             createNewTable.executeUpdate(String.format(createTableSql, physicalTableName));
 
-            PreparedStatement ps = connection.prepareStatement(
+            PreparedStatement insertMetadata = connection.prepareStatement(
                     "INSERT INTO " + METADATA_TABLE.getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
-            ps.setString(1, tableReference.getQualifiedName());
-            ps.setInt(2, 1);
-            ps.executeUpdate();
+            insertMetadata.setString(1, tableReference.getQualifiedName());
+            insertMetadata.setInt(2, 1);
+            insertMetadata.executeUpdate();
 
-            PreparedStatement tableNameMapping = connection.prepareStatement("INSERT INTO "
+            PreparedStatement insertTableMapping = connection.prepareStatement("INSERT INTO "
                     + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)");
-            tableNameMapping.setString(1, reversibleTableName);
-            tableNameMapping.setString(2, physicalTableName);
-            tableNameMapping.executeUpdate();
+            insertTableMapping.setString(1, reversibleTableName);
+            insertTableMapping.setString(2, physicalTableName);
+            insertTableMapping.executeUpdate();
             return TableDetails.builder()
                     .tableReference(tableReference)
                     .physicalTableName(physicalTableName)
@@ -162,20 +162,11 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         });
     }
 
-    public void refreshTableList() {
-        runWithConnection(connection -> {
-            connection
-                    .createStatement()
-                    .executeUpdate("DELETE FROM all_tables WHERE lower(table_name)"
-                            + " NOT IN (SELECT lower(name) as table_name FROM sqlite_schema WHERE type = 'table')");
-            return null;
-        });
-    }
-
     public Set<String> listAllTables() {
+        refreshTableList();
         return runWithConnection(connection -> {
-            PreparedStatement statement = connection.prepareStatement("SELECT name FROM "
-                    + " sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%' AND name != 'all_tables' AND"
+            PreparedStatement statement = connection.prepareStatement("SELECT name FROM sqlite_schema WHERE"
+                    + " type ='table' AND name NOT LIKE 'sqlite_%' AND name != 'all_tables' AND"
                     + " name != ? AND name != ?");
             statement.setString(1, METADATA_TABLE.getQualifiedName());
             statement.setString(2, AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE);
@@ -186,6 +177,18 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
                 tableNames.add(resultSet.getString("name"));
             }
             return tableNames.build();
+        });
+    }
+
+    // all_tables is not a native sqlite concept, unlike Oracle. Thus, if we perform deletes, we don't cascade and
+    // delete from all_tables. This method does not insert tables created outside the create_table method
+    private void refreshTableList() {
+        runWithConnection(connection -> {
+            connection
+                    .createStatement()
+                    .executeUpdate("DELETE FROM all_tables WHERE lower(table_name) NOT IN (SELECT lower(name) as"
+                            + " table_name FROM sqlite_schema WHERE type = 'table')");
+            return null;
         });
     }
 
