@@ -61,6 +61,7 @@ public final class OracleDdlTableTest {
 
     private static final String PREFIXED_OVERFLOW_TABLE_NAME =
             TABLE_MAPPING_DEFAULT_CONFIG.overflowTablePrefix() + DbKvs.internalTableName(TEST_TABLE);
+
     private static final String INTERNAL_TABLE_NAME = "iaminternal";
     private static final String INTERNAL_OVERFLOW_TABLE_NAME = "iaminternaloverflow";
 
