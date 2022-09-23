@@ -184,7 +184,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void secondaryQueueReadsFirstQueueLastSweptTimestamp() {
-        // Second queue creation and initialization
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue =
                 TargetedSweeper.createUninitializedForTest(secondQueueManager, runtimeSupplier::get);
