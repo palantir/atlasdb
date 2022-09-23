@@ -16,8 +16,8 @@
 package com.palantir.flake.example;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -36,10 +36,10 @@ public class BeforeAndAfterTest {
     private static final AtomicInteger attemptCount = new AtomicInteger();
     private static final int SEVENTY_SEVEN = 77;
 
-    private static Runnable beforeRunnable = mock(Runnable.class);
-    private static Runnable afterRunnable = mock(Runnable.class);
-    private static Runnable beforeClassRunnable = mock(Runnable.class);
-    private static Runnable afterClassRunnable = mock(Runnable.class);
+    private static Runnable beforeRunnable = spy(() -> {});
+    private static Runnable afterRunnable = spy(() -> {});
+    private static Runnable beforeClassRunnable = spy(() -> {});
+    private static Runnable afterClassRunnable = spy(() -> {});
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();

@@ -61,7 +61,9 @@ public class ShouldRunBackgroundSweepSupplierTest {
                 .isFalse();
     }
 
-    @SuppressWarnings("unchecked") // Mock assignment known to be safe
+    // Mock assignment known to be safe
+    // Direct mock invocation is safe here as we're using it as a convenient way to create a supplier
+    @SuppressWarnings({"unchecked", "DirectInvocationOnMock"})
     @Test
     public void liveReload() {
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier = mock(Supplier.class);
