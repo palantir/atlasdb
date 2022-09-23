@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +35,14 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.OngoingStubbing;
+
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -60,13 +59,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.OngoingStubbing;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -272,7 +273,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
-        setThriftServers(ImmutableSet.of());
+        setupThriftServers(ImmutableSet.of());
         CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
@@ -293,7 +294,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(CASS_SERVER_1);
@@ -304,7 +305,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
@@ -319,7 +320,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
@@ -330,7 +331,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
@@ -345,7 +346,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(CASS_SERVER_1);
@@ -359,7 +360,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
-        setThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
         when(config.autoRefreshNodes()).thenReturn(false);
 
         setCassandraServersTo(CASS_SERVER_1);
@@ -477,7 +478,7 @@ public class CassandraClientPoolTest {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
     private CassandraClientPoolImpl clientPoolWith(
             Set<InetSocketAddress> servers, Set<CassandraServer> serversInPool, Optional<Exception> failureMode) {
-        setThriftServers(servers);
+        setupThriftServers(servers);
         when(config.timeoutOnConnectionClose()).thenReturn(Duration.ofSeconds(10));
         when(config.timeoutOnConnectionBorrow()).thenReturn(HumanReadableDuration.minutes(10));
         when(config.consecutiveAbsencesBeforePoolRemoval()).thenReturn(1);
@@ -570,7 +571,7 @@ public class CassandraClientPoolTest {
         return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
     }
 
-    private void setThriftServers(Set<InetSocketAddress> servers) {
+    private void setupThriftServers(Set<InetSocketAddress> servers) {
         CassandraServersConfigs.CassandraServersConfig config =
                 ImmutableDefaultConfig.builder().addAllThriftHosts(servers).build();
         when(runtimeConfig.servers()).thenReturn(config);
