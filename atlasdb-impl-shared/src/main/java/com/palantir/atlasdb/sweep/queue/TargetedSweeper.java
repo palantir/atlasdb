@@ -67,7 +67,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
-    private LastSweptTimestampUpdater lastSweptTimestampUpdateTask;
+    private LastSweptTimestampUpdater lastSweptTimestampUpdater;
 
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -188,7 +188,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .build());
         timestampsSupplier = timestamps;
         timeLock = timelockService;
-        lastSweptTimestampUpdateTask = new LastSweptTimestampUpdater(
+        lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
                 queue,
                 metrics,
                 PTExecutors.newSingleThreadScheduledExecutor(
@@ -203,7 +203,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             KeyValueService kvs,
             TransactionService transaction,
             TargetedSweepFollower follower,
-            ScheduledExecutorService lastSweptTimestampTaskExecutorService,
+            ScheduledExecutorService lastSweptTimestampUpdaterExecutorService,
             long refreshMillis) {
         if (isInitialized) {
             return;
@@ -230,10 +230,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 refreshMillis);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
-        lastSweptTimestampUpdateTask =
-                new LastSweptTimestampUpdater(queue, metrics, lastSweptTimestampTaskExecutorService);
+        lastSweptTimestampUpdater =
+                new LastSweptTimestampUpdater(queue, metrics, lastSweptTimestampUpdaterExecutorService);
         isInitialized = true;
-        lastSweptTimestampUpdateTask.schedule(refreshMillis);
+        lastSweptTimestampUpdater.schedule(refreshMillis);
     }
 
     @Override
@@ -247,7 +247,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         } else {
             conservativeScheduler.scheduleBackgroundThreads();
             thoroughScheduler.scheduleBackgroundThreads();
-            lastSweptTimestampUpdateTask.schedule(Duration.ofSeconds(30).toMillis());
+            lastSweptTimestampUpdater.schedule(Duration.ofSeconds(30).toMillis());
         }
     }
 
@@ -280,7 +280,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     public void close() {
         conservativeScheduler.close();
         thoroughScheduler.close();
-        lastSweptTimestampUpdateTask.close();
+        lastSweptTimestampUpdater.close();
     }
 
     @Override
