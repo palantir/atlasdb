@@ -2,6 +2,8 @@ type: fix
 fix:
   description: |-
     See PDS-293157.
-    Presently, as sweep progresses on each host, the lastSweptTimestamp metric is updated lazily per shard. This PR makes it so we update that metric periodically for all shards by reading from the persisted shard progress table.
+    Presently, on each host, the `lastSweptTimestamp` metric is updated lazily per shard as sweep progresses. If a particular host, for some reason, is sweeping with a low frequency, its `lastSweptTimestamp` metric will be out of sync with `shardProgress` and its `millisSinceLastSwept` will show sweep falling behind.
+
+    This PR makes it so we update that metric periodically for all shards by reading and updating from one source: the persisted `shardProgress` table.
   links:
   - https://github.com/palantir/atlasdb/pull/6232
