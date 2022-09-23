@@ -65,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.H2DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.AccumulatorStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
@@ -222,7 +223,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     private static DbKvs createOracle(
             ExecutorService executor, OracleDdlConfig oracleDdlConfig, SqlConnectionSupplier connections) {
-        OracleTableNameGetter tableNameGetter = OracleTableNameGetter.createDefault(oracleDdlConfig);
+        OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(oracleDdlConfig);
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
         TableValueStyleCache valueStyleCache = new TableValueStyleCache();
         DbTableFactory tableFactory = new OracleDbTableFactory(

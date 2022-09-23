@@ -38,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class OracleTableNameGetterTest {
+public class OracleTableNameGetterImplTest {
     private static final OracleDdlConfig TABLE_MAPPING_DDL_CONFIG = ImmutableOracleDdlConfig.builder()
             .overflowMigrationState(OverflowMigrationState.UNSTARTED)
             .useTableMapping(true)
@@ -68,9 +68,9 @@ public class OracleTableNameGetterTest {
     @Before
     public void before() {
         tableMappingTableNameGetter =
-                OracleTableNameGetter.createForTests(TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
-        nonTableMappingTableNameGetter =
-                OracleTableNameGetter.createForTests(NON_TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
+                OracleTableNameGetterImpl.createForTests(TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
+        nonTableMappingTableNameGetter = OracleTableNameGetterImpl.createForTests(
+                NON_TABLE_MAPPING_DDL_CONFIG, tableNameMapper, tableNameUnmapper);
     }
 
     @Test
