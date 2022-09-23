@@ -31,14 +31,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public final class LastSweptTimestampUpdateTask implements AutoCloseable {
-    private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTimestampUpdateTask.class);
+public final class LastSweptTimestampUpdater implements AutoCloseable {
+    private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTimestampUpdater.class);
     private final SweepQueue queue;
     private final TargetedSweepMetrics metrics;
     private final ScheduledExecutorService executorService;
     private boolean isScheduled;
 
-    public LastSweptTimestampUpdateTask(
+    public LastSweptTimestampUpdater(
             SweepQueue queue, TargetedSweepMetrics metrics, ScheduledExecutorService executorService) {
         this.queue = queue;
         this.metrics = metrics;

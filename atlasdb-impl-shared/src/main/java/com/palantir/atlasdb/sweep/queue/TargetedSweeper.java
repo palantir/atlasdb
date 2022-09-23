@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdateTask;
+import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.MetricsConfiguration;
@@ -67,7 +67,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
-    private LastSweptTimestampUpdateTask lastSweptTimestampUpdateTask;
+    private LastSweptTimestampUpdater lastSweptTimestampUpdateTask;
 
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -188,7 +188,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .build());
         timestampsSupplier = timestamps;
         timeLock = timelockService;
-        lastSweptTimestampUpdateTask = new LastSweptTimestampUpdateTask(
+        lastSweptTimestampUpdateTask = new LastSweptTimestampUpdater(
                 queue,
                 metrics,
                 PTExecutors.newSingleThreadScheduledExecutor(
@@ -231,7 +231,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdateTask =
-                new LastSweptTimestampUpdateTask(queue, metrics, lastSweptTimestampTaskExecutorService);
+                new LastSweptTimestampUpdater(queue, metrics, lastSweptTimestampTaskExecutorService);
         isInitialized = true;
         lastSweptTimestampUpdateTask.schedule(refreshMillis);
     }
