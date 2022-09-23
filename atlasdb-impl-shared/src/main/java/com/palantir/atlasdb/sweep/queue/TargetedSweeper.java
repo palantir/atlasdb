@@ -247,8 +247,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         } else {
             conservativeScheduler.scheduleBackgroundThreads();
             thoroughScheduler.scheduleBackgroundThreads();
-            // conservativeLastSweptTsTask.scheduleBackgroundThread();
-            // thoroughLastSweptTsTask.scheduleBackgroundThread();
             lastSweptTimestampUpdateTask.schedule(Duration.ofSeconds(30).toMillis());
         }
     }
