@@ -71,6 +71,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConf
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
@@ -190,10 +191,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         DeterministicScheduler secondQueueScheduler = new DeterministicScheduler();
         secondQueue.initializeForTests(
                 timestampsSupplier,
-                timelockService,
+                mock(TimelockService.class),
                 spiedKvs,
-                txnService,
-                mockFollower,
+                TransactionServices.createV1TransactionService(spiedKvs),
+                mock(TargetedSweepFollower.class),
                 secondQueueScheduler,
                 SMALL_REFRESH_MILLIS);
 
