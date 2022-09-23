@@ -203,6 +203,10 @@ public final class OracleDdlTable implements DbDdlTable {
                 oracleTableNameGetter.getPrefixedTableName(tableRef),
                 oracleTableNameGetter.getInternalShortTableName(conns, tableRef)));
 
+        // It's possible to end up in a situation where the base table was deleted (above), but we failed to delete
+        // the corresponding overflow table due to some transient failure.
+        // To ensure we fully clean up, we delete each table in a separate block so the overflow table is deleted even
+        // if the base table was deleted in a previous call.
         executeIgnoringTableMappingNotFound(() -> dropTableInternal(
                 oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
                 oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef)));
