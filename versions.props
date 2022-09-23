@@ -1,4 +1,3 @@
-ch.qos.logback:* = 1.4.1
 com.boundary:high-scale-lib = 1.0.6
 com.ea.agentloader:ea-agent-loader = 1.0.3
 com.fasterxml.jackson.*:* = 2.13.3
@@ -86,6 +85,11 @@ uk.org.lidalia:slf4j-test = 1.1.0
 
 # Manually upgraded versions
 # dependency-upgrader:OFF
+
+# Dropwizard 2.1.x has hard dependency on jakarta servlet 4.x.x
+# Whereas logback has a hard dependency on jakarta servlet >= 5.x.x
+# Thus we cannot upgrade logback until dropwizard supports jakarta servlet 5.x.x
+ch.qos.logback:* = 1.2.11
 
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
