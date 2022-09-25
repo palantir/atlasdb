@@ -25,8 +25,10 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -58,12 +60,21 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
         KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
 
-    public void schedule(long delayMillis) {
+    public Optional<ScheduledFuture<?>> schedule(long delayMillis) {
         Preconditions.checkArgument(
                 delayMillis > 0, "Last swept timestamp metric update delay must be strictly positive.");
-        if (!isScheduled) {
-            executorService.scheduleWithFixedDelay(this::run, delayMillis, delayMillis, TimeUnit.MILLISECONDS);
+
+        if (isScheduled) {
+            return Optional.empty();
         }
+
+        Optional<ScheduledFuture<?>> optionalFuture = Optional.of(executorService.scheduleWithFixedDelay(this::run,
+                delayMillis,
+                delayMillis,
+                TimeUnit.MILLISECONDS));
+
+        isScheduled = true;
+        return optionalFuture;
     }
 
     private void run() {
@@ -77,11 +88,11 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
             log.info(
                     "Last Swept Timestamp Update Task ran successfully for ",
                     SafeArg.of("sweeperStrategy", sweeperStrategy));
-        } catch (Exception exception) {
+        } catch (Throwable throwable) {
             log.warn(
                     "Last Swept Timestamp Update Task failed for ",
                     SafeArg.of("sweeperStrategy", sweeperStrategy),
-                    exception);
+                    throwable);
         }
     }
 
