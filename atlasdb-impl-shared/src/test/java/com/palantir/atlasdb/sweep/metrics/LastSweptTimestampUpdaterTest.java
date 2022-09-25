@@ -64,10 +64,13 @@ public class LastSweptTimestampUpdaterTest {
     private Set<ShardAndStrategy> thoroughShardAndStrategySet;
     private Map<ShardAndStrategy, Long> thoroughShardAndStrategyMap;
     private final int shards;
+
     @Mock
     private SweepQueue queue;
+
     @Mock
     private TargetedSweepMetrics metrics;
+
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private DeterministicScheduler executorService;
 
@@ -101,11 +104,12 @@ public class LastSweptTimestampUpdaterTest {
     @Test
     public void scheduleCallSubmitsRunnableToExecutorService() {
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
-        Mockito.verify(executorService, Mockito.times(1)).scheduleWithFixedDelay(
-                Mockito.any(),
-                Mockito.eq(REFRESH_MILLIS),
-                Mockito.eq(REFRESH_MILLIS),
-                Mockito.eq(TimeUnit.MILLISECONDS));
+        Mockito.verify(executorService, Mockito.times(1))
+                .scheduleWithFixedDelay(
+                        Mockito.any(),
+                        Mockito.eq(REFRESH_MILLIS),
+                        Mockito.eq(REFRESH_MILLIS),
+                        Mockito.eq(TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -138,11 +142,10 @@ public class LastSweptTimestampUpdaterTest {
         Mockito.verify(queue, Mockito.times(1)).getLastSweptTimestamps(conservativeShardAndStrategySet);
         Mockito.verify(queue, Mockito.times(1)).getLastSweptTimestamps(thoroughShardAndStrategySet);
 
-        for (int shard = 0; shard < shards; shard++){
-            Mockito.verify(metrics, Mockito.times(1)).updateProgressForShard(ShardAndStrategy.conservative(shard),
-                    CONS_TS);
-            Mockito.verify(metrics, Mockito.times(1)).updateProgressForShard(ShardAndStrategy.thorough(shard),
-                    THOR_TS);
+        for (int shard = 0; shard < shards; shard++) {
+            Mockito.verify(metrics, Mockito.times(1))
+                    .updateProgressForShard(ShardAndStrategy.conservative(shard), CONS_TS);
+            Mockito.verify(metrics, Mockito.times(1)).updateProgressForShard(ShardAndStrategy.thorough(shard), THOR_TS);
         }
         Mockito.verifyNoMoreInteractions(queue, metrics);
     }
@@ -157,18 +160,18 @@ public class LastSweptTimestampUpdaterTest {
         Mockito.verify(queue, Mockito.times(TICK_COUNT)).getLastSweptTimestamps(conservativeShardAndStrategySet);
         Mockito.verify(queue, Mockito.times(TICK_COUNT)).getLastSweptTimestamps(thoroughShardAndStrategySet);
 
-        for (int shard = 0; shard < shards; shard++){
-            Mockito.verify(metrics, Mockito.times(TICK_COUNT)).updateProgressForShard(ShardAndStrategy.conservative(shard),
-                    CONS_TS);
-            Mockito.verify(metrics, Mockito.times(TICK_COUNT)).updateProgressForShard(ShardAndStrategy.thorough(shard),
-                    THOR_TS);
+        for (int shard = 0; shard < shards; shard++) {
+            Mockito.verify(metrics, Mockito.times(TICK_COUNT))
+                    .updateProgressForShard(ShardAndStrategy.conservative(shard), CONS_TS);
+            Mockito.verify(metrics, Mockito.times(TICK_COUNT))
+                    .updateProgressForShard(ShardAndStrategy.thorough(shard), THOR_TS);
         }
         Mockito.verifyNoMoreInteractions(queue, metrics);
     }
 
     @Test
-    public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails() throws ExecutionException,
-            InterruptedException {
+    public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails()
+            throws ExecutionException, InterruptedException {
         Mockito.when(queue.getLastSweptTimestamps(Mockito.anySet()))
                 .thenReturn(Collections.singletonMap(CONS_SHARD, CONS_TS));
 
@@ -180,7 +183,8 @@ public class LastSweptTimestampUpdaterTest {
                 .when(metrics)
                 .updateProgressForShard(Mockito.any(), Mockito.anyLong());
 
-        ScheduledFuture<?> future = lastSweptTimestampUpdater.schedule(REFRESH_MILLIS).orElseThrow();
+        ScheduledFuture<?> future =
+                lastSweptTimestampUpdater.schedule(REFRESH_MILLIS).orElseThrow();
 
         executorService.tick(REFRESH_MILLIS, TimeUnit.MILLISECONDS);
         future.get();
@@ -202,19 +206,15 @@ public class LastSweptTimestampUpdaterTest {
     }
 
     private void stubWithRealisticReturnValues() {
-        Mockito.when(queue.getNumShards())
-                .thenReturn(shards);
+        Mockito.when(queue.getNumShards()).thenReturn(shards);
         Mockito.when(queue.getLastSweptTimestamps(conservativeShardAndStrategySet))
                 .thenReturn(conservativeShardAndStrategyMap);
-        Mockito.when(queue.getLastSweptTimestamps(thoroughShardAndStrategySet))
-                .thenReturn(thoroughShardAndStrategyMap);
+        Mockito.when(queue.getLastSweptTimestamps(thoroughShardAndStrategySet)).thenReturn(thoroughShardAndStrategyMap);
     }
 
-    private static Map<ShardAndStrategy, Long> buildShardAndStrategyMap(Set<ShardAndStrategy> shardAndStrategySet,
-            long timestamp) {
-        return KeyedStream.of(shardAndStrategySet)
-                .map(_unused -> timestamp)
-                .collectToMap();
+    private static Map<ShardAndStrategy, Long> buildShardAndStrategyMap(
+            Set<ShardAndStrategy> shardAndStrategySet, long timestamp) {
+        return KeyedStream.of(shardAndStrategySet).map(_unused -> timestamp).collectToMap();
     }
 
     private Set<ShardAndStrategy> buildShardAndStrategySet(SweeperStrategy sweeperStrategy) {
@@ -222,5 +222,4 @@ public class LastSweptTimestampUpdaterTest {
                 .mapToObj(shard -> ShardAndStrategy.of(shard, sweeperStrategy))
                 .collect(Collectors.toSet());
     }
-
 }

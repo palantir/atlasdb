@@ -68,10 +68,8 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
             return Optional.empty();
         }
 
-        Optional<ScheduledFuture<?>> optionalFuture = Optional.of(executorService.scheduleWithFixedDelay(this::run,
-                delayMillis,
-                delayMillis,
-                TimeUnit.MILLISECONDS));
+        Optional<ScheduledFuture<?>> optionalFuture = Optional.of(
+                executorService.scheduleWithFixedDelay(this::run, delayMillis, delayMillis, TimeUnit.MILLISECONDS));
 
         isScheduled = true;
         return optionalFuture;
