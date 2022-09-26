@@ -1533,7 +1533,7 @@ public class SnapshotTransaction extends AbstractTransaction
         Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                commitTimestampLoader.getCommitTimestamps(
+                getCommitTimestamps(
                         tableRef, valuesStartTimestamps, true, asyncTransactionService),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
@@ -2410,8 +2410,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private Map<Long, Long> getCommitTimestampsSync(
             @Nullable TableReference tableRef, Iterable<Long> startTimestamps, boolean waitForCommitterToComplete) {
-        return AtlasFutures.getUnchecked(commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
+        return AtlasFutures.getUnchecked(getCommitTimestamps(tableRef, startTimestamps,
+                waitForCommitterToComplete, immediateTransactionService));
     }
 
     /**
