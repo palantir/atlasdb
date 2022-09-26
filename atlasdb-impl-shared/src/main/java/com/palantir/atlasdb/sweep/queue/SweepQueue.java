@@ -35,6 +35,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -189,7 +190,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         return numShards.get();
     }
 
-    private static final class SweepQueueFactory {
+    public static final class SweepQueueFactory {
         private final ShardProgress progress;
         private final Supplier<Integer> numShards;
         private final SweepableCells cells;
@@ -241,7 +242,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Supplier<Integer> shardsConfig,
                 TransactionService transaction,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+            init(kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
@@ -258,6 +259,15 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     kvs,
                     timelock,
                     readBatchingRuntimeContext);
+        }
+
+        public static LongSupplier getGetLastSeenCommitTsSupplier(KeyValueService kvs) {
+            init(kvs);
+            return new ShardProgress(kvs)::getLastSeenCommitTimestamp;
+        }
+
+        private static void init(KeyValueService kvs) {
+            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         }
 
         private SweepQueueWriter createWriter() {

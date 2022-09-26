@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -74,6 +75,8 @@ public class AtlasDbTestCase {
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
     protected int sweepQueueShards = 128;
 
+    protected TransactionKnowledgeComponents knowledge;
+
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
@@ -88,8 +91,8 @@ public class AtlasDbTestCase {
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
@@ -117,6 +120,7 @@ public class AtlasDbTestCase {
                 sweepStrategyManager,
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
+                knowledge,
                 MoreExecutors.newDirectExecutorService());
     }
 
@@ -155,7 +159,8 @@ public class AtlasDbTestCase {
                 lockService,
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
-                mode);
+                mode,
+                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry()));
     }
 
     protected void clearTablesWrittenTo() {
