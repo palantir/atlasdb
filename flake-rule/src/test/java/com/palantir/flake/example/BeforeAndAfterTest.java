@@ -15,15 +15,8 @@
  */
 package com.palantir.flake.example;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -32,14 +25,22 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 public class BeforeAndAfterTest {
     private static final AtomicInteger attemptCount = new AtomicInteger();
     private static final int SEVENTY_SEVEN = 77;
 
-    private static Runnable beforeRunnable = spy(() -> {});
-    private static Runnable afterRunnable = spy(() -> {});
-    private static Runnable beforeClassRunnable = spy(() -> {});
-    private static Runnable afterClassRunnable = spy(() -> {});
+    private static Runnable beforeRunnable = spy(new NoOpRunnable());
+    private static Runnable afterRunnable = spy(new NoOpRunnable());
+    private static Runnable beforeClassRunnable = spy(new NoOpRunnable());
+    private static Runnable afterClassRunnable = spy(new NoOpRunnable());
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -75,5 +76,10 @@ public class BeforeAndAfterTest {
         verify(afterClassRunnable, never()).run();
 
         assertThat(attemptNumber).isEqualTo(SEVENTY_SEVEN);
+    }
+
+    public static class NoOpRunnable implements Runnable {
+        @Override
+        public void run() {}
     }
 }
