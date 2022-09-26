@@ -107,7 +107,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void callsSupplierAgainAfterTimeElapses() {
-        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS - 1, CACHE_INTERVAL_NANOS + 1);
+        when(mockClock.getTick()).thenReturn(0L, 0L, CACHE_INTERVAL_NANOS - 1, CACHE_INTERVAL_NANOS + 1);
         AtomicLong timestampValue = new AtomicLong(0L);
         TimestampTracker.registerTimestampForTracking(
                 mockClock, metricsManager, FAKE_METRIC, timestampValue::incrementAndGet);
@@ -119,7 +119,7 @@ public class TimestampTrackerTest {
 
     @Test
     public void doesNotCallSupplierUnlessGaugeIsQueried() {
-        when(mockClock.getTick()).thenReturn(0L, CACHE_INTERVAL_NANOS * 50000);
+        when(mockClock.getTick()).thenReturn(0L, 0L, CACHE_INTERVAL_NANOS * 50000);
         AtomicLong timestampValue = new AtomicLong(0L);
         TimestampTracker.registerTimestampForTracking(
                 mockClock, metricsManager, FAKE_METRIC, timestampValue::incrementAndGet);
