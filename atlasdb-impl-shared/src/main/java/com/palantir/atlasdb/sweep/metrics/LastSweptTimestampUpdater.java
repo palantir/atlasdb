@@ -25,11 +25,10 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,14 +37,13 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     private final SweepQueue queue;
     private final TargetedSweepMetrics metrics;
     private final ScheduledExecutorService executorService;
-    private boolean isScheduled;
+    private AtomicBoolean isScheduled = new AtomicBoolean(false);
 
     public LastSweptTimestampUpdater(
             SweepQueue queue, TargetedSweepMetrics metrics, ScheduledExecutorService executorService) {
         this.queue = queue;
         this.metrics = metrics;
         this.executorService = executorService;
-        this.isScheduled = false;
     }
 
     private void updateLastSweptTimestampMetric(SweeperStrategy sweeperStrategy) {
@@ -60,19 +58,12 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
         KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
 
-    public Optional<ScheduledFuture<?>> schedule(long delayMillis) {
+    public void schedule(long delayMillis) {
         Preconditions.checkArgument(
                 delayMillis > 0, "Last swept timestamp metric update delay must be strictly positive.");
-
-        if (isScheduled) {
-            return Optional.empty();
+        if (!isScheduled.compareAndExchange(false, true)) {
+            executorService.scheduleWithFixedDelay(this::run, delayMillis, delayMillis, TimeUnit.MILLISECONDS);
         }
-
-        Optional<ScheduledFuture<?>> optionalFuture = Optional.of(
-                executorService.scheduleWithFixedDelay(this::run, delayMillis, delayMillis, TimeUnit.MILLISECONDS));
-
-        isScheduled = true;
-        return optionalFuture;
     }
 
     private void run() {
@@ -83,9 +74,6 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     private void run(SweeperStrategy sweeperStrategy) {
         try {
             updateLastSweptTimestampMetric(sweeperStrategy);
-            log.info(
-                    "Last Swept Timestamp Update Task ran successfully for ",
-                    SafeArg.of("sweeperStrategy", sweeperStrategy));
         } catch (Throwable throwable) {
             log.warn(
                     "Last Swept Timestamp Update Task failed for ",
@@ -96,7 +84,7 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
 
     @Override
     public void close() {
+        isScheduled.set(true);
         executorService.shutdown();
-        isScheduled = false;
     }
 }

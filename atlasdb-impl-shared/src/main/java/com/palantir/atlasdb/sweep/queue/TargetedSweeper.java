@@ -67,6 +67,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
+    private final ScheduledExecutorService executorService;
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
 
     private TargetedSweepMetrics metrics;
@@ -80,7 +81,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
-            List<Follower> followers) {
+            List<Follower> followers,
+            ScheduledExecutorService executorService) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -89,6 +91,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
+        this.executorService = executorService;
     }
 
     /**
@@ -107,7 +110,18 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers) {
-        return new TargetedSweeper(metrics, runtime, install, followers);
+        // todo(gmaretic): fix
+        return createUninitialized(
+                metrics, runtime, install, followers, PTExecutors.newSingleThreadScheduledExecutor());
+    }
+
+    public static TargetedSweeper createUninitialized(
+            MetricsManager metrics,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            TargetedSweepInstallConfig install,
+            List<Follower> followers,
+            ScheduledExecutorService executorService) {
+        return new TargetedSweeper(metrics, runtime, install, followers, executorService);
     }
 
     public static TargetedSweeper createUninitializedForTest(

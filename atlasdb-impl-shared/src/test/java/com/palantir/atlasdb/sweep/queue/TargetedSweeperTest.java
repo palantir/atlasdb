@@ -143,14 +143,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
                 .shards(DEFAULT_SHARDS)
                 .build());
-
-        sweepQueue = TargetedSweeper.createUninitializedForTest(
-                metricsManager,
-                runtimeSupplier::get,
-                ImmutableMetricsConfiguration.builder()
+        TargetedSweepInstallConfig installConfig = ImmutableTargetedSweepInstallConfig.builder()
+                .conservativeThreads(0)
+                .thoroughThreads(0)
+                .metricsConfiguration(ImmutableMetricsConfiguration.builder()
                         .from(TargetedSweepMetricsConfigurations.DEFAULT)
                         .millisBetweenRecomputingMetrics(SMALL_REFRESH_MILLIS)
-                        .build());
+                        .build())
+                .build();
+        sweepQueue = TargetedSweeper.createUninitialized(
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
@@ -205,7 +207,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void increaseInShardsReflectedOnLastSweptTimestamp() throws InterruptedException {
+    public void increaseInShardsReflectedOnLastSweptTimestamp() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
         lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
