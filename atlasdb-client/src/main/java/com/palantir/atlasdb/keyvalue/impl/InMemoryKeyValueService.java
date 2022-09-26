@@ -111,40 +111,27 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-
-        return runWithReadLock(tableRef, table -> {
-            Map<Cell, Value> result = new HashMap<>();
-            for (byte[] row : rows) {
-                Cell rowBegin = Cells.createSmallestCellForRow(row);
-                Cell rowEnd = Cells.createLargestCellForRow(row);
-                PeekingIterator<Map.Entry<Key, byte[]>> entries = Iterators.peekingIterator(
-                        table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
-                                .entrySet()
-                                .iterator());
-                while (entries.hasNext()) {
-                    Map.Entry<Key, byte[]> entry = entries.peek();
-                    Key key = entry.getKey();
-                    Iterator<Map.Entry<Key, byte[]>> cellIter = takeCell(entries, key);
-                    if (columnSelection.contains(key.col)) {
-                        getLatestVersionOfCell(row, key, cellIter, timestamp, result);
-                    }
-                    Iterators.size(cellIter);
+        Map<Cell, Value> result = new HashMap<>();
+        ConcurrentNavigableMap<Key, byte[]> table = getTableMap(tableRef).entries;
+        for (byte[] row : rows) {
+            Cell rowBegin = Cells.createSmallestCellForRow(row);
+            Cell rowEnd = Cells.createLargestCellForRow(row);
+            PeekingIterator<Map.Entry<Key, byte[]>> entries = Iterators.peekingIterator(
+                    table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
+                            .entrySet()
+                            .iterator());
+            while (entries.hasNext()) {
+                Map.Entry<Key, byte[]> entry = entries.peek();
+                Key key = entry.getKey();
+                Iterator<Map.Entry<Key, byte[]>> cellIter = takeCell(entries, key);
+                if (columnSelection.contains(key.col)) {
+                    getLatestVersionOfCell(row, key, cellIter, timestamp, result);
                 }
+                Iterators.size(cellIter);
             }
-
-            return result;
-        });
-    }
-
-    private <T> T runWithReadLock(TableReference tableRef, Function<ConcurrentSkipListMap<Key, byte[]>, T> task) {
-        Table tableEntry = getTableMap(tableRef);
-        Lock lock = tableEntry.lock.readLock();
-        lock.lock();
-        try {
-            return task.apply(tableEntry.entries);
-        } finally {
-            lock.unlock();
         }
+
+        return result;
     }
 
     private void getLatestVersionOfCell(
@@ -170,30 +157,26 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return runWithReadLock(tableRef, table -> {
-            Map<Cell, Value> result = new HashMap<>();
-            for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
-                Cell cell = e.getKey();
-                Map.Entry<Key, byte[]> lastEntry = table.lowerEntry(new Key(cell, e.getValue()));
-                if (lastEntry != null) {
-                    Key key = lastEntry.getKey();
-                    if (key.matchesCell(cell)) {
-                        long ts = lastEntry.getKey().ts;
-                        result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
-                    }
+        Map<Cell, Value> result = new HashMap<>();
+        ConcurrentNavigableMap<Key, byte[]> table = getTableMap(tableRef).entries;
+        for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
+            Cell cell = e.getKey();
+            Map.Entry<Key, byte[]> lastEntry = table.lowerEntry(new Key(cell, e.getValue()));
+            if (lastEntry != null) {
+                Key key = lastEntry.getKey();
+                if (key.matchesCell(cell)) {
+                    long ts = lastEntry.getKey().ts;
+                    result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
                 }
             }
-            return result;
-        });
+        }
+        return result;
     }
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        return runWithReadLock(
-                tableRef,
-                _unused ->
-                        KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp));
+        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
     }
 
     @MustBeClosed
@@ -450,7 +433,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     private void putInternal(
             TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, OverwriteBehaviour overwriteBehaviour) {
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
             for (Map.Entry<Cell, Value> entry : values) {
                 byte[] contents = entry.getValue().getContents();
@@ -503,7 +486,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         TableReference tableRef = request.table();
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             Cell cell = request.cell();
             Optional<byte[]> oldValue = request.oldValue();
             byte[] contents = request.newValue();
@@ -592,7 +575,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             for (Map.Entry<Cell, Long> e : keys.entries()) {
                 table.remove(new Key(e.getKey(), e.getValue()));
             }
@@ -602,7 +585,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             deletes.forEach((cell, delete) -> table.subMap(
                             new Key(cell, delete.minTimestampToDelete()), true,
                             new Key(cell, delete.maxTimestampToDelete()), true)
@@ -614,15 +597,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         Multimap<Cell, Long> multimap = HashMultimap.create();
-        return runWithReadLock(tableRef, table -> {
-            for (Cell key : cells) {
-                for (Key entry : table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts))
-                        .keySet()) {
-                    multimap.put(key, entry.ts);
-                }
+        ConcurrentNavigableMap<Key, byte[]> table = getTableMap(tableRef).entries;
+        for (Cell key : cells) {
+            for (Key entry :
+                    table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts)).keySet()) {
+                multimap.put(key, entry.ts);
             }
-            return multimap;
-        });
+        }
+        return multimap;
     }
 
     @Override
@@ -638,7 +620,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             if (table != null) {
                 table.clear();
             } else {
@@ -702,7 +684,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
-        runWithReadLock(tableRef, table -> {
+        runWithLockForWrites(tableRef, table -> {
             for (Cell cell : cells) {
                 table.put(new Key(cell, Value.INVALID_VALUE_TIMESTAMP), ArrayUtils.EMPTY_BYTE_ARRAY);
             }
@@ -748,6 +730,21 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return Futures.immediateFuture(get(tableRef, timestampByCell));
+    }
+
+    /**
+     * This takes out a reentrant read lock. It is only exclusive specifically with
+     * {@link #multiCheckAndSet(MultiCheckAndSetRequest)}.
+     */
+    private <T> T runWithLockForWrites(TableReference tableRef, Function<ConcurrentSkipListMap<Key, byte[]>, T> task) {
+        Table tableEntry = getTableMap(tableRef);
+        Lock lock = tableEntry.lock.readLock();
+        lock.lock();
+        try {
+            return task.apply(tableEntry.entries);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private static class Key implements Comparable<Key> {
