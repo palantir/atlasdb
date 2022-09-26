@@ -91,13 +91,12 @@ public class AtlasDbTestCase {
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
                 () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
-        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
     }
 
     private void setUpTransactionManagers() {
