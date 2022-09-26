@@ -18,7 +18,7 @@ Cutting for Release
 ===================
 
 From a PR, add the `autorelease` tag. When your PR is merged, the `autorelease` bot will automatically trigger a release and determine a version based on all change types since the previous release.
-If the PR has already merged and you are an AtlasDB maintainer, head to `the autorelease page <https://autorelease.general.dmz.palantir.tech/palantir/atlasdb>`__ and trigger a release.
+If the PR has already merged and you are an AtlasDB maintainer, head to the internal autorelease page and trigger a release.
 
 After a short wait (when the build at circleCI is successful) the artifacts will be published to Maven Central Repository.
 View them at `the Maven Central AtlasDB page <https://search.maven.org/search?q=g:com.palantir.atlasdb>`__.
