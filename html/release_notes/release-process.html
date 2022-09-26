@@ -18,6 +18,7 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -88,27 +89,20 @@
 <h1>Release Process<a class="headerlink" href="#release-process" title="Permalink to this heading"></a></h1>
 <section id="release-notes">
 <h2>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this heading"></a></h2>
-<p>When you make a PR to Atlas, a release notes change must be made to record your change or an explicit reason given why it is unnecessary. At the same time, you should consider whether your change is breaking or not and update the version number appropriately based on the previous release number.</p>
+<p>When you make a PR to Atlas, a release notes change must be made to record your change or an explicit reason given why it is unnecessary.
+Unless the <cite>no changelog</cite> tag is present, the <cite>changelog-bot</cite> will leave an interactive comment on your PR. Please select the appropriate change type as listed in the comment.</p>
 </section>
 <section id="release-schedule">
 <h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this heading"></a></h2>
-<p>We aim to release once a week, but may release faster to patch bugs or slower if there is low code churn.
-We also publish snapshot builds to <a class="reference external" href="https://oss.jfrog.org/webapp/#/artifacts/browse/simple/General/oss-snapshot-local/com/palantir/atlasdb">JFrog</a> after every PR merges, so if you want to begin testing your changes immediately, you can do so with the snapshot builds rather than waiting until the next release.</p>
+<p>We aim to release as often as we can, so that the change set between releases is small.
+If you’d like a release candidate published for testing, please leave a comment on your PR.</p>
 </section>
 <section id="cutting-for-release">
 <h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this heading"></a></h2>
-<ol class="arabic simple">
-<li><p>Checkout the commit to tag for release (probably <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
-Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal notranslate"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</p></li>
-<li><p>Tag the commit: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p></li>
-<li><p>Push the tag to Github:
-<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p></li>
-<li><p>After a short wait (when the build at circleCI is successful) the artifacts will be published on BinTray
-to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
-page</a>.</p></li>
-<li><p>Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
-page</a>.</p></li>
-</ol>
+<p>From a PR, add the <cite>autorelease</cite> tag. When your PR is merged, the <cite>autorelease</cite> bot will automatically trigger a release and determine a version based on all change types since the previous release.
+If the PR has already merged and you are an AtlasDB maintainer, head to the internal autorelease page and trigger a release.</p>
+<p>After a short wait (when the build at circleCI is successful) the artifacts will be published to Maven Central Repository.
+View them at <a class="reference external" href="https://search.maven.org/search?q=g:com.palantir.atlasdb">the Maven Central AtlasDB page</a>.</p>
 </section>
 </section>
 

@@ -18,6 +18,7 @@
         <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -128,15 +129,12 @@ directory</a>.</p>
 </section>
 <section id="depending-on-published-artifacts">
 <h2>Depending on Published Artifacts<a class="headerlink" href="#depending-on-published-artifacts" title="Permalink to this heading"></a></h2>
-<p>AtlasDB is <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">hosted on
-bintray</a>. To
+<p>AtlasDB is <a class="reference external" href="https://search.maven.org/search?q=g:com.palantir.atlasdb">hosted on Maven Central</a>. To
 include in a gradle project:</p>
 <ol class="arabic">
-<li><p>Add bintray to your repository list:</p>
+<li><p>Add Maven Central to your repository list:</p>
 <div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">repositories</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nx">maven</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nx">url</span><span class="w"> </span><span class="s1">&#39;https://dl.bintray.com/palantir/releases/&#39;</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="nx">mavenCentral</span><span class="p">()</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
