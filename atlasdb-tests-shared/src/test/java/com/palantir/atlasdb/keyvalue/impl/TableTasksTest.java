@@ -73,7 +73,7 @@ public class TableTasksTest {
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-
+        metricsManager = MetricsManagers.createForTests();
         knowledge = TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
 
         LockClient lockClient = LockClient.of("sweep client");
@@ -85,7 +85,6 @@ public class TableTasksTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        metricsManager = MetricsManagers.createForTests();
         txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
