@@ -31,7 +31,10 @@ public interface CheckAndSetCompatibility {
      */
     boolean supportsCheckAndSetOperations();
 
-    boolean supportsMultiCheckAndSetOperations();
+    @Value.Default
+    default boolean supportsMultiCheckAndSetOperations() {
+        return false;
+    }
 
     /**
      * If false, there are no guarantees that a {@link CheckAndSetException#getActualValues()} or
