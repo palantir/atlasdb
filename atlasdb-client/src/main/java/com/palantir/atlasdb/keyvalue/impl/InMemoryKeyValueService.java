@@ -52,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -76,6 +77,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -106,28 +111,40 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
-        Map<Cell, Value> result = new HashMap<>();
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
-        for (byte[] row : rows) {
-            Cell rowBegin = Cells.createSmallestCellForRow(row);
-            Cell rowEnd = Cells.createLargestCellForRow(row);
-            PeekingIterator<Map.Entry<Key, byte[]>> entries = Iterators.peekingIterator(
-                    table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
-                            .entrySet()
-                            .iterator());
-            while (entries.hasNext()) {
-                Map.Entry<Key, byte[]> entry = entries.peek();
-                Key key = entry.getKey();
-                Iterator<Map.Entry<Key, byte[]>> cellIter = takeCell(entries, key);
-                if (columnSelection.contains(key.col)) {
-                    getLatestVersionOfCell(row, key, cellIter, timestamp, result);
+        return runWithReadLock(tableRef, table -> {
+            Map<Cell, Value> result = new HashMap<>();
+            for (byte[] row : rows) {
+                Cell rowBegin = Cells.createSmallestCellForRow(row);
+                Cell rowEnd = Cells.createLargestCellForRow(row);
+                PeekingIterator<Map.Entry<Key, byte[]>> entries = Iterators.peekingIterator(
+                        table.subMap(new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp))
+                                .entrySet()
+                                .iterator());
+                while (entries.hasNext()) {
+                    Map.Entry<Key, byte[]> entry = entries.peek();
+                    Key key = entry.getKey();
+                    Iterator<Map.Entry<Key, byte[]>> cellIter = takeCell(entries, key);
+                    if (columnSelection.contains(key.col)) {
+                        getLatestVersionOfCell(row, key, cellIter, timestamp, result);
+                    }
+                    Iterators.size(cellIter);
                 }
-                Iterators.size(cellIter);
             }
-        }
 
-        return result;
+            return result;
+        });
+    }
+
+    private <T> T runWithReadLock(TableReference tableRef, Function<ConcurrentSkipListMap<Key, byte[]>, T> task) {
+        Table tableEntry = getTableMap(tableRef);
+        Lock lock = tableEntry.lock.readLock();
+        lock.lock();
+        try {
+            return task.apply(tableEntry.entries);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void getLatestVersionOfCell(
@@ -153,26 +170,30 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        Map<Cell, Value> result = new HashMap<>();
-        for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
-            Cell cell = e.getKey();
-            Map.Entry<Key, byte[]> lastEntry = table.lowerEntry(new Key(cell, e.getValue()));
-            if (lastEntry != null) {
-                Key key = lastEntry.getKey();
-                if (key.matchesCell(cell)) {
-                    long ts = lastEntry.getKey().ts;
-                    result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
+        return runWithReadLock(tableRef, table -> {
+            Map<Cell, Value> result = new HashMap<>();
+            for (Map.Entry<Cell, Long> e : timestampByCell.entrySet()) {
+                Cell cell = e.getKey();
+                Map.Entry<Key, byte[]> lastEntry = table.lowerEntry(new Key(cell, e.getValue()));
+                if (lastEntry != null) {
+                    Key key = lastEntry.getKey();
+                    if (key.matchesCell(cell)) {
+                        long ts = lastEntry.getKey().ts;
+                        result.put(cell, Value.createWithCopyOfData(lastEntry.getValue(), ts));
+                    }
                 }
             }
-        }
-        return result;
+            return result;
+        });
     }
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
+        return runWithReadLock(
+                tableRef,
+                _unused ->
+                        KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp));
     }
 
     @MustBeClosed
@@ -429,26 +450,28 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     private void putInternal(
             TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, OverwriteBehaviour overwriteBehaviour) {
-        Table table = getTableMap(tableRef);
-        List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
-        for (Map.Entry<Cell, Value> entry : values) {
-            byte[] contents = entry.getValue().getContents();
-            long timestamp = entry.getValue().getTimestamp();
+        runWithReadLock(tableRef, table -> {
+            List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
+            for (Map.Entry<Cell, Value> entry : values) {
+                byte[] contents = entry.getValue().getContents();
+                long timestamp = entry.getValue().getTimestamp();
 
-            Key key = getKey(table, entry.getKey(), timestamp);
-            if (overwriteBehaviour == OverwriteBehaviour.OVERWRITE) {
-                table.entries.put(key, copyOf(contents));
-            } else {
-                byte[] oldContents = putIfAbsent(table, key, contents);
-                if (shouldThrow(overwriteBehaviour, contents, oldContents)) {
-                    throw new KeyAlreadyExistsException(
-                            "We already have a value for this timestamp",
-                            ImmutableList.of(entry.getKey()),
-                            knownSuccessfullyCommittedKeys);
+                Key key = getKey(table, entry.getKey(), timestamp);
+                if (overwriteBehaviour == OverwriteBehaviour.OVERWRITE) {
+                    table.put(key, copyOf(contents));
+                } else {
+                    byte[] oldContents = putIfAbsent(table, key, contents);
+                    if (shouldThrow(overwriteBehaviour, contents, oldContents)) {
+                        throw new KeyAlreadyExistsException(
+                                "We already have a value for this timestamp",
+                                ImmutableList.of(entry.getKey()),
+                                knownSuccessfullyCommittedKeys);
+                    }
+                    knownSuccessfullyCommittedKeys.add(entry.getKey());
                 }
-                knownSuccessfullyCommittedKeys.add(entry.getKey());
             }
-        }
+            return null;
+        });
     }
 
     private boolean shouldThrow(OverwriteBehaviour overwriteBehaviour, byte[] contents, byte[] oldContents) {
@@ -471,6 +494,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         // We advertise inconsistency on failure, for the purposes of test re-usability.
         return CheckAndSetCompatibility.supportedBuilder()
+                .supportsMultiCheckAndSetOperations(true)
                 .supportsDetailOnFailure(true)
                 .consistentOnFailure(false)
                 .build();
@@ -479,43 +503,81 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         TableReference tableRef = request.table();
-        Table table = getTableMap(tableRef);
-        Cell cell = request.cell();
-        Optional<byte[]> oldValue = request.oldValue();
-        byte[] contents = request.newValue();
+        runWithReadLock(tableRef, table -> {
+            Cell cell = request.cell();
+            Optional<byte[]> oldValue = request.oldValue();
+            byte[] contents = request.newValue();
 
-        Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
-        if (oldValue.isPresent()) {
-            byte[] storedValue = table.entries.get(key);
-            boolean succeeded = Arrays.equals(storedValue, oldValue.get())
-                    && table.entries.replace(key, storedValue, copyOf(contents));
-            if (!succeeded) {
-                byte[] actual = table.entries.get(key); // Re-fetch, something may have happened between get and replace
-                throwCheckAndSetException(cell, tableRef, oldValue.get(), actual);
+            Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
+            if (oldValue.isPresent()) {
+                byte[] storedValue = table.get(key);
+                boolean succeeded =
+                        Arrays.equals(storedValue, oldValue.get()) && table.replace(key, storedValue, copyOf(contents));
+                if (!succeeded) {
+                    byte[] actual = table.get(key); // Re-fetch, something may have happened between get and replace
+                    throwCheckAndSetException(cell, tableRef, oldValue.get(), actual);
+                }
+            } else {
+                byte[] oldContents = putIfAbsent(table, key, contents);
+                if (oldContents != null) {
+                    throwCheckAndSetException(cell, tableRef, null, oldContents);
+                }
             }
-        } else {
-            byte[] oldContents = putIfAbsent(table, key, contents);
-            if (oldContents != null) {
-                throwCheckAndSetException(cell, tableRef, null, oldContents);
+            return null;
+        });
+    }
+
+    /**
+     * This operation ensures atomicity by locking down the table. This ensures that there are no conflicts with other
+     * writes, and that reads see a consistent view of the world. The exception are reads that return iterators, which
+     * may see a partially applied multiCAS.
+     */
+    @Override
+    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
+        TableReference tableRef = multiCheckAndSetRequest.tableRef();
+        Table tableEntry = getTableMap(tableRef);
+        Lock lock = tableEntry.lock.writeLock();
+        lock.lock();
+        try {
+            Map<Cell, byte[]> actualValues = new HashMap<>();
+            for (Map.Entry<Cell, byte[]> entry :
+                    multiCheckAndSetRequest.expected().entrySet()) {
+                Cell cell = entry.getKey();
+                Key key = getKey(tableEntry, cell, AtlasDbConstants.TRANSACTION_TS);
+                byte[] actual = tableEntry.entries.get(key);
+                actualValues.put(cell, actual);
+                if (!Arrays.equals(actual, entry.getValue())) {
+                    throw new MultiCheckAndSetException(
+                            LoggingArgs.tableRef(tableRef),
+                            multiCheckAndSetRequest.rowName(),
+                            multiCheckAndSetRequest.expected(),
+                            actualValues);
+                }
             }
+            putInternal(
+                    tableRef,
+                    KeyValueServices.toConstantTimestampValues(
+                            multiCheckAndSetRequest.updates().entrySet(), AtlasDbConstants.TRANSACTION_TS),
+                    OverwriteBehaviour.OVERWRITE);
+        } finally {
+            lock.unlock();
         }
     }
 
-    @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        throw new UnsupportedOperationException("InMemoryKvs does not support multi-checkAndSet operation!");
-    }
-
     // Returns the existing contents, if any, and null otherwise
-    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
-        return table.entries.putIfAbsent(key, copyOf(contents));
+    private byte[] putIfAbsent(ConcurrentSkipListMap<Key, byte[]> table, Key key, final byte[] contents) {
+        return table.putIfAbsent(key, copyOf(contents));
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {
+        return getKey(table.entries, cell, timestamp);
+    }
+
+    private Key getKey(ConcurrentSkipListMap<Key, byte[]> table, Cell cell, long timestamp) {
         byte[] row = cell.getRowName();
         byte[] col = cell.getColumnName();
 
-        Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
+        Key nextKey = table.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
         if (nextKey != null && nextKey.matchesRow(row)) {
             // Save memory by sharing rows.
             row = nextKey.row;
@@ -530,32 +592,37 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        for (Map.Entry<Cell, Long> e : keys.entries()) {
-            table.remove(new Key(e.getKey(), e.getValue()));
-        }
+        runWithReadLock(tableRef, table -> {
+            for (Map.Entry<Cell, Long> e : keys.entries()) {
+                table.remove(new Key(e.getKey(), e.getValue()));
+            }
+            return null;
+        });
     }
 
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        deletes.forEach((cell, delete) -> table.subMap(
-                        new Key(cell, delete.minTimestampToDelete()), true,
-                        new Key(cell, delete.maxTimestampToDelete()), true)
-                .clear());
+        runWithReadLock(tableRef, table -> {
+            deletes.forEach((cell, delete) -> table.subMap(
+                            new Key(cell, delete.minTimestampToDelete()), true,
+                            new Key(cell, delete.maxTimestampToDelete()), true)
+                    .clear());
+            return null;
+        });
     }
 
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         Multimap<Cell, Long> multimap = HashMultimap.create();
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        for (Cell key : cells) {
-            for (Key entry :
-                    table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts)).keySet()) {
-                multimap.put(key, entry.ts);
+        return runWithReadLock(tableRef, table -> {
+            for (Cell key : cells) {
+                for (Key entry : table.subMap(new Key(key, Long.MIN_VALUE), new Key(key, ts))
+                        .keySet()) {
+                    multimap.put(key, entry.ts);
+                }
             }
-        }
-        return multimap;
+            return multimap;
+        });
     }
 
     @Override
@@ -571,12 +638,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        Table table = tables.get(tableRef);
-        if (table != null) {
-            table.entries.clear();
-        } else {
-            throw tableMappingException(tableRef);
-        }
+        runWithReadLock(tableRef, table -> {
+            if (table != null) {
+                table.clear();
+            } else {
+                throw tableMappingException(tableRef);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -613,6 +682,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     static class Table {
         final ConcurrentSkipListMap<Key, byte[]> entries;
+        final ReadWriteLock lock = new ReentrantReadWriteLock(true);
 
         Table() {
             this.entries = new ConcurrentSkipListMap<>();
@@ -632,10 +702,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
-        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
-        for (Cell cell : cells) {
-            table.put(new Key(cell, Value.INVALID_VALUE_TIMESTAMP), ArrayUtils.EMPTY_BYTE_ARRAY);
-        }
+        runWithReadLock(tableRef, table -> {
+            for (Cell cell : cells) {
+                table.put(new Key(cell, Value.INVALID_VALUE_TIMESTAMP), ArrayUtils.EMPTY_BYTE_ARRAY);
+            }
+            return null;
+        });
     }
 
     @Override

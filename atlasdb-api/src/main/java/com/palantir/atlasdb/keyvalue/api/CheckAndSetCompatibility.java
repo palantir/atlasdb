@@ -31,6 +31,8 @@ public interface CheckAndSetCompatibility {
      */
     boolean supportsCheckAndSetOperations();
 
+    boolean supportsMultiCheckAndSetOperations();
+
     /**
      * If false, there are no guarantees that a {@link CheckAndSetException#getActualValues()} or
      * {@link KeyAlreadyExistsException#getExistingKeys()} from exceptions thrown by the the {@link KeyValueService}
@@ -61,10 +63,13 @@ public interface CheckAndSetCompatibility {
         if (!supported) {
             return Unsupported.INSTANCE;
         }
+        boolean multiCas =
+                presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsMultiCheckAndSetOperations);
         boolean detail = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsDetailOnFailure);
         boolean consistency = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::consistentOnFailure);
 
         return supportedBuilder()
+                .supportsMultiCheckAndSetOperations(multiCas)
                 .supportsDetailOnFailure(detail)
                 .consistentOnFailure(consistency)
                 .build();
@@ -83,6 +88,11 @@ public interface CheckAndSetCompatibility {
 
         @Override
         public boolean supportsCheckAndSetOperations() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsMultiCheckAndSetOperations() {
             return false;
         }
 

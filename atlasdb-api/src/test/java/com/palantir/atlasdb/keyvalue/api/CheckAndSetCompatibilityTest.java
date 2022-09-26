@@ -23,21 +23,32 @@ import java.util.stream.Stream;
 import org.junit.Test;
 
 public class CheckAndSetCompatibilityTest {
-    private static final CheckAndSetCompatibility SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE =
-            CheckAndSetCompatibility.supportedBuilder()
-                    .supportsDetailOnFailure(true)
-                    .consistentOnFailure(false)
-                    .build();
-    private static final CheckAndSetCompatibility NO_DETAIL_CONSISTENT_ON_FAILURE =
-            CheckAndSetCompatibility.supportedBuilder()
-                    .supportsDetailOnFailure(false)
-                    .consistentOnFailure(true)
-                    .build();
-    private static final CheckAndSetCompatibility SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE =
-            CheckAndSetCompatibility.supportedBuilder()
-                    .supportsDetailOnFailure(true)
-                    .consistentOnFailure(true)
-                    .build();
+    private static final CheckAndSetCompatibility DETAIL_ONLY = CheckAndSetCompatibility.supportedBuilder()
+            .supportsMultiCheckAndSetOperations(false)
+            .supportsDetailOnFailure(true)
+            .consistentOnFailure(false)
+            .build();
+    private static final CheckAndSetCompatibility CONSISTENT_ONLY = CheckAndSetCompatibility.supportedBuilder()
+            .supportsMultiCheckAndSetOperations(false)
+            .supportsDetailOnFailure(false)
+            .consistentOnFailure(true)
+            .build();
+    private static final CheckAndSetCompatibility MCAS_ONLY = CheckAndSetCompatibility.supportedBuilder()
+            .supportsMultiCheckAndSetOperations(true)
+            .supportsDetailOnFailure(false)
+            .consistentOnFailure(false)
+            .build();
+    private static final CheckAndSetCompatibility DETAIL_AND_CONSISTENT = CheckAndSetCompatibility.supportedBuilder()
+            .supportsMultiCheckAndSetOperations(false)
+            .supportsDetailOnFailure(true)
+            .consistentOnFailure(true)
+            .build();
+
+    private static final CheckAndSetCompatibility MCAS_DETAIL_CONSISTENT = CheckAndSetCompatibility.supportedBuilder()
+            .supportsMultiCheckAndSetOperations(true)
+            .supportsDetailOnFailure(true)
+            .consistentOnFailure(true)
+            .build();
 
     @Test
     public void checkingDetailSupportedOnUnsupportedThrows() {
@@ -60,8 +71,15 @@ public class CheckAndSetCompatibilityTest {
     }
 
     @Test
+    public void unsupportedDoesNotSupportMultiCheckAndSetOperations() {
+        assertThat(CheckAndSetCompatibility.unsupported().supportsMultiCheckAndSetOperations())
+                .isFalse();
+    }
+
+    @Test
     public void supportedBuilderSupportsCheckAndSetOperations() {
         assertThat(CheckAndSetCompatibility.supportedBuilder()
+                        .supportsMultiCheckAndSetOperations(false)
                         .supportsDetailOnFailure(false)
                         .consistentOnFailure(false)
                         .build()
@@ -73,44 +91,53 @@ public class CheckAndSetCompatibilityTest {
     public void intersectReturnsLeastRestrictiveWhenNoCompatibilitiesProvided() {
         CheckAndSetCompatibility intersection = intersectCompatibility();
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isTrue();
         assertThat(intersection.supportsDetailOnFailure()).isTrue();
         assertThat(intersection.consistentOnFailure()).isTrue();
     }
 
     @Test
-    public void intersectAppliesToBothProperties() {
+    public void intersectAppliesToAllProperties() {
         CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE,
-                NO_DETAIL_CONSISTENT_ON_FAILURE,
-                SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+                DETAIL_ONLY, CONSISTENT_ONLY, MCAS_ONLY, DETAIL_AND_CONSISTENT, MCAS_DETAIL_CONSISTENT);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isFalse();
         assertThat(intersection.supportsDetailOnFailure()).isFalse();
         assertThat(intersection.consistentOnFailure()).isFalse();
     }
 
     @Test
     public void intersectReturnsDetailSupportedWhenAllSupport() {
-        CheckAndSetCompatibility intersection = intersectCompatibility(
-                SUPPORTS_DETAIL_NOT_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+        CheckAndSetCompatibility intersection = intersectCompatibility(DETAIL_ONLY, DETAIL_AND_CONSISTENT);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isFalse();
         assertThat(intersection.supportsDetailOnFailure()).isTrue();
         assertThat(intersection.consistentOnFailure()).isFalse();
     }
 
     @Test
     public void intersectReturnsConsistentWhenAllConsistent() {
-        CheckAndSetCompatibility intersection =
-                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, NO_DETAIL_CONSISTENT_ON_FAILURE);
+        CheckAndSetCompatibility intersection = intersectCompatibility(DETAIL_AND_CONSISTENT, CONSISTENT_ONLY);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isFalse();
         assertThat(intersection.supportsDetailOnFailure()).isFalse();
         assertThat(intersection.consistentOnFailure()).isTrue();
     }
 
     @Test
-    public void intersectDoesNotRestrictUnnecessarily() {
-        CheckAndSetCompatibility intersection =
-                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE);
+    public void intersectReturnsMultiCheckAndSetOperationsSupportedWhenAllSupport() {
+        CheckAndSetCompatibility intersection = intersectCompatibility(MCAS_ONLY, MCAS_DETAIL_CONSISTENT);
         assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsDetailOnFailure()).isFalse();
+        assertThat(intersection.consistentOnFailure()).isFalse();
+    }
+
+    @Test
+    public void intersectDoesNotRestrictUnnecessarily() {
+        CheckAndSetCompatibility intersection = intersectCompatibility(MCAS_DETAIL_CONSISTENT, MCAS_DETAIL_CONSISTENT);
+        assertThat(intersection.supportsCheckAndSetOperations()).isTrue();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isTrue();
         assertThat(intersection.supportsDetailOnFailure()).isTrue();
         assertThat(intersection.consistentOnFailure()).isTrue();
     }
@@ -118,8 +145,9 @@ public class CheckAndSetCompatibilityTest {
     @Test
     public void intersectWithUnsupportedIsUnsupported() {
         CheckAndSetCompatibility intersection =
-                intersectCompatibility(SUPPORTS_DETAIL_CONSISTENT_ON_FAILURE, CheckAndSetCompatibility.unsupported());
+                intersectCompatibility(DETAIL_AND_CONSISTENT, CheckAndSetCompatibility.unsupported());
         assertThat(intersection.supportsCheckAndSetOperations()).isFalse();
+        assertThat(intersection.supportsMultiCheckAndSetOperations()).isFalse();
     }
 
     private CheckAndSetCompatibility intersectCompatibility(CheckAndSetCompatibility... compatibilities) {

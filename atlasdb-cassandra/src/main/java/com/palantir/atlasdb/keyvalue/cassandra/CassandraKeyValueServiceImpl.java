@@ -1936,6 +1936,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.supportedBuilder()
+                .supportsMultiCheckAndSetOperations(true)
                 .supportsDetailOnFailure(true)
                 .consistentOnFailure(false)
                 .build();

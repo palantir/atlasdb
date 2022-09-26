@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -1929,6 +1930,33 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void clusterAvailabilityStatusShouldBeAllAvailable() {
         assertThat(keyValueService.getClusterAvailabilityStatus()).isEqualTo(ClusterAvailabilityStatus.ALL_AVAILABLE);
+    }
+
+    @Test
+    public void multiCheckAndSetTest() {
+        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        byte[] first = TEST_CELL.getColumnName();
+        byte[] second = PtBytes.toBytes("second");
+        byte[] update = PtBytes.toBytes("update");
+        Cell secondCell = Cell.create(TEST_CELL.getRowName(), second);
+        Cell thirdCell = Cell.create(TEST_CELL.getRowName(), PtBytes.toBytes("third"));
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, first, secondCell, second));
+
+        ImmutableMap<Cell, byte[]> updateMap =
+                ImmutableMap.of(TEST_CELL, update, secondCell, update, thirdCell, update);
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
+                .tableRef(TEST_TABLE)
+                .expected(ImmutableMap.of(TEST_CELL, first, secondCell, second, thirdCell, PtBytes.EMPTY_BYTE_ARRAY))
+                .updates(updateMap)
+                .build();
+        keyValueService.multiCheckAndSet(request);
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, 1L)))
+                .containsExactly(Map.entry(TEST_CELL, Value.create(update, 0L)));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(secondCell, 1L)))
+                .containsExactly(Map.entry(secondCell, Value.create(update, 0L)));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(thirdCell, 1L)))
+                .containsExactly(Map.entry(thirdCell, Value.create(update, 0L)));
     }
 
     protected static byte[] row(int number) {
