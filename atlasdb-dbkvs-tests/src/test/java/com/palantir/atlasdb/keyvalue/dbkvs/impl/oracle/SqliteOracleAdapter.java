@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.endsWith;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 
@@ -35,9 +36,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.ConnectionSupplier;
 import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.util.file.TempFileUtils;
 import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -50,13 +49,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
+import org.mockito.AdditionalMatchers;
 
 final class SqliteOracleAdapter implements ConnectionSupplier {
     public static final TableReference METADATA_TABLE = AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE;
     private final File sqliteFileLocation;
 
-    SqliteOracleAdapter() throws IOException {
-        sqliteFileLocation = TempFileUtils.createTempFile("sqlite", ".db");
+    SqliteOracleAdapter(File sqliteFileLocation) {
+        this.sqliteFileLocation = sqliteFileLocation;
     }
 
     @Override
@@ -65,13 +65,13 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
             // As with all connection supplier things, clients are expected to close connections.
             return applyPragma(DriverManager.getConnection(getConnectionUrl()));
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw PalantirSqlException.create(e);
         }
     }
 
     @Override
     public void close() {
-        sqliteFileLocation.delete();
+        // no-op, client should ensure the file is cleaned up!
     }
 
     public <T> T runWithConnection(FunctionCheckedException<Connection, T, SQLException> task) {
@@ -105,7 +105,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         // OracleTableInitializer requires a config for initialization, but creating the metadata table requires no
         // configuration elements. Thus, the config is just to satisfy the initializer.
         OracleDdlConfig unusedConfig = ImmutableOracleDdlConfig.builder()
-                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .build();
 
         // We don't need to close the newly created sqlconnectionsupplier, since that just closes the sqlite oracle
@@ -123,18 +123,17 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         Namespace namespace = Namespace.create(prefix + owner);
         TableReference tableReference = TableReference.create(namespace, tableName);
 
-        // Equivalent to prefixed table name. Since we want control over
-        String reversibleTableName = generatePrefixedTableName(prefix, tableReference);
+        String prefixedTableName = generatePrefixedTableName(prefix, tableReference);
 
         // We don't actually shrink it, but we do add a unique identifier to mimic the counting that ddltable does
         String physicalTableName =
-                reversibleTableName + UUID.randomUUID().toString().replace("-", "");
+                prefixedTableName + UUID.randomUUID().toString().replace("-", "");
 
         // We don't use ddlTable createTable since we want the table name to insert into allTables, and extracting
         // that is quite painful
         return runWithConnection(connection -> {
             PreparedStatement insertAllTables =
-                    connection.prepareStatement("INSERT INTO all_tables VALUES (upper(?), " + "upper(?))");
+                    connection.prepareStatement("INSERT INTO all_tables VALUES (upper(?), upper(?))");
             insertAllTables.setString(1, physicalTableName);
             insertAllTables.setString(2, owner);
             insertAllTables.executeUpdate();
@@ -151,13 +150,13 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
 
             PreparedStatement insertTableMapping = connection.prepareStatement("INSERT INTO "
                     + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)");
-            insertTableMapping.setString(1, reversibleTableName);
+            insertTableMapping.setString(1, prefixedTableName);
             insertTableMapping.setString(2, physicalTableName);
             insertTableMapping.executeUpdate();
             return TableDetails.builder()
                     .tableReference(tableReference)
                     .physicalTableName(physicalTableName)
-                    .reversibleTableName(reversibleTableName)
+                    .prefixedTableName(prefixedTableName)
                     .build();
         });
     }
@@ -232,7 +231,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
     private String generatePrefixedTableName(String prefix, TableReference tableReference) {
         OracleDdlConfig config = ImmutableOracleDdlConfig.builder()
                 .tablePrefix(prefix)
-                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .build();
 
         OracleTableNameGetter tableNameGetter = OracleTableNameGetter.createDefault(config);
@@ -269,7 +268,8 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
                         return null;
                     })
                     .when(spy)
-                    .executeUnregisteredQuery(endsWith("PURGE"), any());
+                    .executeUnregisteredQuery(
+                            AdditionalMatchers.and(startsWith("DROP TABLE"), endsWith("PURGE")), any());
             return spy;
         }
     }
@@ -280,11 +280,12 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
      *
      * Generally, tests will be working on a collection of tables and will want to compare against the currently
      * persisted table names. Thus, this also provides some utility methods for mapping from a collection of
-     * TableDetails down to a set of a particular constituent part
+     * TableDetails down to a set of a particular constituent part (e.g collection of TableDetails to a set of strings
+     * representing the prefixed table names).
      */
     @Value.Immutable
     interface TableDetails {
-        String reversibleTableName();
+        String prefixedTableName();
 
         String physicalTableName();
 
@@ -294,8 +295,8 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
             return ImmutableTableDetails.builder();
         }
 
-        static Set<String> mapToReversibleTableNames(Collection<TableDetails> tableDetails) {
-            return tableDetails.stream().map(TableDetails::reversibleTableName).collect(Collectors.toSet());
+        static Set<String> mapToPrefixedTableNames(Collection<TableDetails> tableDetails) {
+            return tableDetails.stream().map(TableDetails::prefixedTableName).collect(Collectors.toSet());
         }
 
         static Set<String> mapToPhysicalTableNames(Collection<TableDetails> tableDetails) {
