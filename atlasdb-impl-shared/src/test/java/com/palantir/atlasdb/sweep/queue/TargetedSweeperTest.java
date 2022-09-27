@@ -129,7 +129,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier =
             new AtomicReference<>(ImmutableTargetedSweepRuntimeConfig.builder()
                     .enabled(true)
-                    .enableAutoTuning(true)
+                    .enableAutoTuning(false)
                     .shards(DEFAULT_SHARDS)
                     .build());
     private final TargetedSweepInstallConfig installConfig = ImmutableTargetedSweepInstallConfig.builder()
