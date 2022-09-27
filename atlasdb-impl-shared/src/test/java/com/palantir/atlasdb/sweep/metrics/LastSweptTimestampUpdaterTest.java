@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,8 +79,7 @@ public class LastSweptTimestampUpdaterTest {
     private final Set<ShardAndStrategy> thoroughShardAndStrategySet;
     private final Map<ShardAndStrategy, Long> thoroughShardAndStrategyMap;
     private final DeterministicScheduler executorService = spy(new DeterministicScheduler());
-    private final LastSweptTimestampUpdater lastSweptTimestampUpdater =
-            new LastSweptTimestampUpdater(queue, metrics, executorService);
+    private LastSweptTimestampUpdater lastSweptTimestampUpdater;
 
     public LastSweptTimestampUpdaterTest(int shards) {
         this.shards = shards;
@@ -87,6 +87,11 @@ public class LastSweptTimestampUpdaterTest {
         this.conservativeShardAndStrategyMap = buildShardAndStrategyMap(conservativeShardAndStrategySet, CONS_TS);
         this.thoroughShardAndStrategySet = buildShardAndStrategySet(SweeperStrategy.THOROUGH);
         this.thoroughShardAndStrategyMap = buildShardAndStrategyMap(thoroughShardAndStrategySet, THOR_TS);
+    }
+
+    @Before
+    public void setUp() {
+        lastSweptTimestampUpdater = new LastSweptTimestampUpdater(queue, metrics, executorService);
     }
 
     @Test
@@ -153,6 +158,7 @@ public class LastSweptTimestampUpdaterTest {
     @Test
     public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails() {
         when(queue.getLastSweptTimestamps(anySet())).thenReturn(Collections.singletonMap(CONS_SHARD, CONS_TS));
+        lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
 
         doThrow(RuntimeException.class)
                 .doThrow(RuntimeException.class)
