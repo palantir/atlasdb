@@ -93,8 +93,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ThrowingRunnable;
 import org.eclipse.jetty.util.ConcurrentHashSet;
-import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -126,8 +126,21 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TargetedSweepFollower mockFollower;
     private TimelockService timelockService;
     private PuncherStore puncherStore;
-    private DeterministicScheduler lastSweptTimestampTaskExecutorService;
-    private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier = new AtomicReference<>();
+    private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier =
+            new AtomicReference<>(ImmutableTargetedSweepRuntimeConfig.builder()
+                    .enabled(true)
+                    .enableAutoTuning(true)
+                    .shards(DEFAULT_SHARDS)
+                    .build());
+    private final TargetedSweepInstallConfig installConfig = ImmutableTargetedSweepInstallConfig.builder()
+            .conservativeThreads(0)
+            .thoroughThreads(0)
+            .metricsConfiguration(ImmutableMetricsConfiguration.builder()
+                    .from(TargetedSweepMetricsConfigurations.DEFAULT)
+                    .millisBetweenRecomputingMetrics(SMALL_REFRESH_MILLIS)
+                    .lastSweptTimestampUpdaterDelayMillis(SMALL_REFRESH_MILLIS)
+                    .build())
+            .build();
 
     public TargetedSweeperTest(int readBatchSize) {
         this.readBatchSize = readBatchSize;
@@ -137,35 +150,20 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Override
     public void setup() {
         super.setup();
+
         runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
-                .enabled(true)
-                .enableAutoTuning(false)
+                .from(runtimeSupplier.get())
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
-                .shards(DEFAULT_SHARDS)
                 .build());
-        TargetedSweepInstallConfig installConfig = ImmutableTargetedSweepInstallConfig.builder()
-                .conservativeThreads(0)
-                .thoroughThreads(0)
-                .metricsConfiguration(ImmutableMetricsConfiguration.builder()
-                        .from(TargetedSweepMetricsConfigurations.DEFAULT)
-                        .millisBetweenRecomputingMetrics(SMALL_REFRESH_MILLIS)
-                        .build())
-                .build();
+
         sweepQueue = TargetedSweeper.createUninitialized(
                 metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
-        lastSweptTimestampTaskExecutorService = new DeterministicScheduler();
 
-        sweepQueue.initializeForTests(
-                timestampsSupplier,
-                timelockService,
-                spiedKvs,
-                txnService,
-                mockFollower,
-                lastSweptTimestampTaskExecutorService,
-                SMALL_REFRESH_MILLIS);
+        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
+        sweepQueue.runInBackground();
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -187,45 +185,46 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void secondaryQueueReadsFirstQueueLastSweptTimestamp() {
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
-        TargetedSweeper secondQueue =
-                TargetedSweeper.createUninitializedForTest(secondQueueManager, runtimeSupplier::get);
-        DeterministicScheduler secondQueueScheduler = new DeterministicScheduler();
-        secondQueue.initializeForTests(
+        TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
+                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+        secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
                 spiedKvs,
                 TransactionServices.createV1TransactionService(spiedKvs),
-                mock(TargetedSweepFollower.class),
-                secondQueueScheduler,
-                SMALL_REFRESH_MILLIS);
+                mock(TargetedSweepFollower.class));
+        secondQueue.runInBackground();
 
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
-
-        secondQueueScheduler.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
+        await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
     }
 
     @Test
     public void increaseInShardsReflectedOnLastSweptTimestamp() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
-        lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
+        await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
 
         runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
                 .from(runtimeSupplier.get())
                 .shards(DEFAULT_SHARDS + 1)
                 .build());
 
-        Awaitility.await()
-                .atMost(100L, TimeUnit.MILLISECONDS)
-                .with()
-                .pollInterval(5L, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> {
-                    lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-                    assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(-1L);
-                });
+        // Using a second queue to check instead of the first.
+        // Sweep queue caches the shard count for a long period.
+        // This is preferable to creating prod-useless code duplication.
+        MetricsManager secondQueueManager = MetricsManagers.createForTests();
+        TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
+                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+        secondQueue.initializeWithoutRunning(
+                timestampsSupplier,
+                mock(TimelockService.class),
+                spiedKvs,
+                TransactionServices.createV1TransactionService(spiedKvs),
+                mock(TargetedSweepFollower.class));
+        secondQueue.runInBackground();
+        await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
     }
 
     @Test
@@ -304,8 +303,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(getSweepTsCons());
-        lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0));
+
+        await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
 
         setTimelockTime(5_000L);
         punchTimeAtTimestamp(2_000, LOW_TS);
@@ -493,8 +492,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any());
 
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
-        lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(readBatchSize - 1));
+
+        await(() -> assertThat(metricsManager)
+                .hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(readBatchSize - 1)));
 
         setTimelockTime(10_000L);
         punchTimeAtTimestamp(5_000L, LOW_TS + 8);
@@ -571,8 +571,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
         setTimelockTime(finalValueWallClockTime * 3);
-        lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(finalValueWallClockTime * 2L);
+
+        await(() ->
+                assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(finalValueWallClockTime * 2L));
     }
 
     @Test
@@ -728,8 +729,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp + 5);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
-        lastSweptTimestampTaskExecutorService.tick(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS);
-        assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(sweepTimestamp - 1);
+
+        await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(sweepTimestamp - 1));
     }
 
     @Test
@@ -1442,5 +1443,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private void setSweepTimestamp(long timestamp) {
         immutableTs = timestamp;
         unreadableTs = timestamp;
+    }
+
+    private void await(final ThrowingRunnable assertion) {
+        Awaitility.await()
+                .atMost(2L, TimeUnit.SECONDS)
+                .with()
+                .pollInterval(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS)
+                .untilAsserted(assertion);
     }
 }

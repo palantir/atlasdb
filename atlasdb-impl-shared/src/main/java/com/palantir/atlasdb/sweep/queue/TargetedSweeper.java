@@ -27,8 +27,6 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
-import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.MetricsConfiguration;
-import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
@@ -47,10 +45,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -67,9 +63,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
-    private final ScheduledExecutorService executorService;
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
-
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
@@ -81,8 +75,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
-            List<Follower> followers,
-            ScheduledExecutorService executorService) {
+            List<Follower> followers) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -91,7 +84,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
-        this.executorService = executorService;
     }
 
     /**
@@ -110,33 +102,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers) {
-        // todo(gmaretic): fix
-        return createUninitialized(
-                metrics, runtime, install, followers, PTExecutors.newSingleThreadScheduledExecutor());
-    }
-
-    public static TargetedSweeper createUninitialized(
-            MetricsManager metrics,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
-            TargetedSweepInstallConfig install,
-            List<Follower> followers,
-            ScheduledExecutorService executorService) {
-        return new TargetedSweeper(metrics, runtime, install, followers, executorService);
+        return new TargetedSweeper(metrics, runtime, install, followers);
     }
 
     public static TargetedSweeper createUninitializedForTest(
             MetricsManager metricsManager, Supplier<TargetedSweepRuntimeConfig> runtime) {
-        return createUninitializedForTest(metricsManager, runtime, TargetedSweepMetricsConfigurations.DEFAULT);
-    }
-
-    public static TargetedSweeper createUninitializedForTest(
-            MetricsManager metricsManager,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
-            MetricsConfiguration metricsConfiguration) {
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(0)
                 .thoroughThreads(0)
-                .metricsConfiguration(metricsConfiguration)
                 .build();
         return createUninitialized(metricsManager, runtime, install, ImmutableList.of());
     }
@@ -210,46 +183,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         isInitialized = true;
     }
 
-    @VisibleForTesting
-    void initializeForTests(
-            SpecialTimestampsSupplier timestamps,
-            TimelockService timelockService,
-            KeyValueService kvs,
-            TransactionService transaction,
-            TargetedSweepFollower follower,
-            ScheduledExecutorService lastSweptTimestampUpdaterExecutorService,
-            long refreshMillis) {
-        if (isInitialized) {
-            return;
-        }
-        Preconditions.checkState(
-                kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
-        metrics = TargetedSweepMetrics.create(
-                metricsManager,
-                timelockService,
-                kvs,
-                metricsConfiguration,
-                runtime.get().shards());
-        queue = SweepQueue.create(
-                metrics,
-                kvs,
-                timelockService,
-                Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
-                transaction,
-                follower,
-                ReadBatchingRuntimeContext.builder()
-                        .maximumPartitions(this::getPartitionBatchLimit)
-                        .cellsThreshold(() -> runtime.get().batchCellThreshold())
-                        .build(),
-                refreshMillis);
-        timestampsSupplier = timestamps;
-        timeLock = timelockService;
-        lastSweptTimestampUpdater =
-                new LastSweptTimestampUpdater(queue, metrics, lastSweptTimestampUpdaterExecutorService);
-        isInitialized = true;
-        lastSweptTimestampUpdater.schedule(refreshMillis);
-    }
-
     @Override
     public void runInBackground() {
         assertInitialized();
@@ -261,7 +194,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         } else {
             conservativeScheduler.scheduleBackgroundThreads();
             thoroughScheduler.scheduleBackgroundThreads();
-            lastSweptTimestampUpdater.schedule(Duration.ofSeconds(30).toMillis());
+            lastSweptTimestampUpdater.schedule(metricsConfiguration.lastSweptTimestampUpdaterDelayMillis());
         }
     }
 
