@@ -76,7 +76,7 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
             updateLastSweptTimestampMetric(sweeperStrategy);
         } catch (Throwable throwable) {
             log.warn(
-                    "Last Swept Timestamp Update Task failed for ",
+                    "Last Swept Timestamp Update Task failed for {} sweeper strategy",
                     SafeArg.of("sweeperStrategy", sweeperStrategy),
                     throwable);
         }
