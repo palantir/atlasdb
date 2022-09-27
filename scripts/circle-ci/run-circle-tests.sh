@@ -75,16 +75,15 @@ export CASSANDRA_HEAP_NEWSIZE=64m
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
-    1) ./gradlew $BASE_GRADLE_ARGS :atlasdb-cassandra-multinode-tests:check;;
-#    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-#    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
-#    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
-#    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
-#    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
-#    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
-#    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
-#    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
-#    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
-#    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
-#    11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
+    3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
+    4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
+    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
+    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
+    9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
+    10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
+    11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
