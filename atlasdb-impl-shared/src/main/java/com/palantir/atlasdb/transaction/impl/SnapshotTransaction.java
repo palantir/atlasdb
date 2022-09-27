@@ -137,6 +137,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
+import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -196,6 +197,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
+    private static final RateLimitedLogger deleteExecutorRateLimitedLogger = new RateLimitedLogger(log, 1.0);
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
@@ -2242,12 +2244,12 @@ public class SnapshotTransaction extends AbstractTransaction
         try {
             runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
-            log.info(
+            deleteExecutorRateLimitedLogger.log(logger -> logger.info(
                     "Could not delete keys {} for table {}, because the delete executor's queue was full."
                             + " Sweep should eventually clean these values.",
                     SafeArg.of("numKeysToDelete", keysToDelete.size()),
                     LoggingArgs.tableRef(tableRef),
-                    rejected);
+                    rejected));
         }
         return true;
     }
