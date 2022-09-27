@@ -47,7 +47,6 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     }
 
     private void updateLastSweptTimestampMetric(SweeperStrategy sweeperStrategy) {
-        System.out.println("Is queue null? " + (queue == null));
         int shards = queue.getNumShards();
 
         Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
