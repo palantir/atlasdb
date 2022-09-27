@@ -37,8 +37,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -175,11 +173,12 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .build());
         timestampsSupplier = timestamps;
         timeLock = timelockService;
-        lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
-                queue,
-                metrics,
-                PTExecutors.newSingleThreadScheduledExecutor(
-                        new NamedThreadFactory("last-swept-timestamp-metric-update", true)));
+        //lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
+        //        queue,
+        //        metrics,
+        //        PTExecutors.newSingleThreadScheduledExecutor(
+        //                new NamedThreadFactory("last-swept-timestamp-metric-update", true)));
+        lastSweptTimestampUpdater = new LastSweptTimestampUpdater(queue, metrics, null);
         isInitialized = true;
     }
 
