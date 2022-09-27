@@ -163,7 +163,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         timelockService = mock(TimelockService.class);
 
         sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
-        sweepQueue.runInBackground();
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -175,6 +174,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Override
     public void tearDown() {
         // This is required because of JUnit memory issues
+        sweepQueue.close();
         sweepQueue = null;
         progress = null;
         sweepableTimestamps = null;
@@ -202,6 +202,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void increaseInShardsReflectedOnLastSweptTimestamp() {
+        sweepQueue.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
         await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
@@ -298,6 +299,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepWithSingleEntryUpdatesMetrics() {
+        sweepQueue.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
 
@@ -470,6 +472,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepHandlesSequencesOfDeletesAndReadditionsInOneShot() {
+        sweepQueue.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueTombstone(TABLE_CONS, LOW_TS + 2);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 4);
@@ -523,6 +526,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepProgressesAndSkipsEmptyFinePartitions() {
+        sweepQueue.runInBackground();
         setSweepTimestamp(minTsForFinePartition(2 * (2 * readBatchSize) + 2));
         List<Integer> permittedPartitions = new ArrayList<>();
         for (int index = 0; index <= 2 * readBatchSize; index++) {
@@ -720,6 +724,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void doesNotTransitivelyRetainWritesFromBeforeSweepTimestamp() {
+        sweepQueue.runInBackground();
         long sweepTimestamp = getSweepTsCons();
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueTombstone(TABLE_CONS, sweepTimestamp - 5);
