@@ -20,7 +20,7 @@ CONTAINER_2=(':atlasdb-ete-tests:check')
 CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
 
 #CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
-CONTAINER_4=(':atlasdb-ete-tests:dbkvsTest' ':atlasdb-perf:check' ':atlasdb-tests-shared:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-multinode-tests:check')
+CONTAINER_4=(':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
