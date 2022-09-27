@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '`OracleDdlTable#drop` can be retried after an arbitrary failure to
+    cleanup overflow tables'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6239
