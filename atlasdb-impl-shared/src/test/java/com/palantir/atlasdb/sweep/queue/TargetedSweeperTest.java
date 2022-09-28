@@ -194,8 +194,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 TransactionServices.createV1TransactionService(spiedKvs),
                 mock(TargetedSweepFollower.class));
         secondQueue.runInBackground();
-                await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
-
+        await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
 
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
