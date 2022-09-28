@@ -20,6 +20,7 @@ dependencies {
     implementation 'com.palantir.conjure.java.runtime:client-config'
     implementation 'com.palantir.conjure.java.runtime:keystores'
     implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+    implementation 'com.palantir.conjure.java:conjure-undertow-annotations'
     implementation 'com.palantir.dialogue:dialogue-clients'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'

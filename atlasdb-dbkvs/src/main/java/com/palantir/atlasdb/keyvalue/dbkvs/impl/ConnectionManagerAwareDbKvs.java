@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
@@ -23,19 +22,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.spi.LocalConnectionConfig;
-import com.palantir.nexus.db.monitoring.timer.SqlTimer;
-import com.palantir.nexus.db.monitoring.timer.SqlTimers;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
-import com.palantir.nexus.db.sql.ConnectionBackedSqlConnectionImpl;
-import com.palantir.nexus.db.sql.SQL;
-import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.nexus.db.sql.SqlConnectionHelper;
 import com.palantir.refreshable.Refreshable;
-import java.sql.Connection;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 // This class should be removed and replaced by DbKvs when InDbTimestampStore depends directly on DbKvs
 public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
@@ -79,7 +70,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
         }
         runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
         ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
-        SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
+        SqlConnectionSupplier sqlConnSupplier = new SimpleTimedSqlConnectionSupplier(connSupplier);
         return new ConnectionManagerAwareDbKvs(
                 DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
     }
@@ -95,49 +86,6 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
             // no runtime config (or wrong type), use the password from the install config
             connManager.setPassword(config.connection().getDbPassword().unmasked());
         }
-    }
-
-    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
-            ReentrantManagedConnectionSupplier connectionSupplier) {
-        Supplier<Connection> supplier = connectionSupplier;
-        SQL sql = new SQL() {
-            @Override
-            protected SqlConfig getSqlConfig() {
-                return new SqlConfig() {
-                    @Override
-                    public boolean isSqlCancellationDisabled() {
-                        return false;
-                    }
-
-                    protected Iterable<SqlTimer> getSqlTimers() {
-                        return ImmutableList.of(SqlTimers.createDurationSqlTimer(), SqlTimers.createSqlStatsSqlTimer());
-                    }
-
-                    @Override
-                    public SqlTimer getSqlTimer() {
-                        return SqlTimers.createCombinedSqlTimer(getSqlTimers());
-                    }
-                };
-            }
-        };
-
-        return new SqlConnectionSupplier() {
-            @Override
-            public SqlConnection get() {
-                return new ConnectionBackedSqlConnectionImpl(
-                        supplier.get(),
-                        () -> {
-                            throw new UnsupportedOperationException(
-                                    "This SQL connection does not provide reliable timestamp.");
-                        },
-                        new SqlConnectionHelper(sql));
-            }
-
-            @Override
-            public void close() {
-                connectionSupplier.close();
-            }
-        };
     }
 
     private ConnectionManagerAwareDbKvs(

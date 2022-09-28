@@ -49,6 +49,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsC
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -108,6 +109,8 @@ import javax.validation.constraints.NotNull;
 
     private final ConflictTracer conflictTracer;
 
+    protected final TransactionKnowledgeComponents knowledge;
+
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -130,7 +133,8 @@ import javax.validation.constraints.NotNull;
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize) {
+            Optional<Integer> sharedGetRangesPoolSize,
+            TransactionKnowledgeComponents knowledge) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -159,6 +163,7 @@ import javax.validation.constraints.NotNull;
                         metricsManager, metricsFilterEvaluationContext));
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
+        this.knowledge = knowledge;
     }
 
     @Override
@@ -324,7 +329,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                knowledge);
     }
 
     @Override
@@ -366,7 +372,8 @@ import javax.validation.constraints.NotNull;
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                knowledge);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

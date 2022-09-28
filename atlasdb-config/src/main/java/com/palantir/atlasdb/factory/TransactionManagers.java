@@ -104,6 +104,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -425,8 +426,11 @@ public abstract class TransactionManagers {
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
+        TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
+                keyValueService, metricsManager.getTaggedRegistry(), config().internalSchema());
+
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, lockAndTimestampServices, keyValueService, runtime);
+                closeables, metricsManager, knowledge, lockAndTimestampServices, keyValueService, runtime);
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -502,7 +506,8 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier,
                         conflictTracer,
                         metricsFilterEvaluationContext(),
-                        installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize)),
+                        installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
+                        knowledge),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
@@ -672,13 +677,13 @@ public abstract class TransactionManagers {
     private TransactionComponents createTransactionComponents(
             @Output List<AutoCloseable> closeables,
             MetricsManager metricsManager,
+            TransactionKnowledgeComponents knowledgeCache,
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
@@ -686,6 +691,7 @@ public abstract class TransactionManagers {
                         TransactionServices.createTransactionService(
                                 keyValueService,
                                 transactionSchemaManager,
+                                knowledgeCache,
                                 metricsManager.getTaggedRegistry(),
                                 () -> runtimeConfigSupplier
                                         .get()

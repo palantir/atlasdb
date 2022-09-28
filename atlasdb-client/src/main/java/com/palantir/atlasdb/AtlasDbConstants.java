@@ -201,4 +201,17 @@ public final class AtlasDbConstants {
     public static final String SCHEMA_V2_TABLE_NAME = "V2Table";
 
     public static final long ABORTED_TIMESTAMPS_BUCKET_SIZE = 1_000_000;
+
+    /**
+     * Oracle has a limit of 1000 expressions within a single IN (...) clause.
+     * See
+     * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/IN-Condition.html">these docs</a>
+     *
+     * SQLite (used for tests) also has a limit of 999 in versions prior to 3.32.0 - see
+     * <a href="https://www.sqlite.org/limits.html">here</a>
+     *
+     * In the interest of not running too close to DB limits, we're capping a little earlier than both of the
+     * aforementioned limits.
+     */
+    public static final int MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT = 900;
 }

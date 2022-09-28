@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Pin libthrift dependency to 0.9.2
+  links:
+  - https://github.com/palantir/atlasdb/pull/6237

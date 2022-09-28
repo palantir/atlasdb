@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.services;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -85,8 +87,18 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public TransactionService provideTransactionService(
-            @Named("kvs") KeyValueService kvs, CoordinationService<InternalSchemaMetadata> coordinationService) {
-        return TransactionServices.createTransactionService(kvs, new TransactionSchemaManager(coordinationService));
+            @Named("kvs") KeyValueService kvs,
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            TransactionKnowledgeComponents knowledge) {
+        return TransactionServices.createTransactionService(
+                kvs, new TransactionSchemaManager(coordinationService), knowledge);
+    }
+
+    @Provides
+    @Singleton
+    public TransactionKnowledgeComponents provideTransactionKnowledgeComponents(
+            @Named("kvs") KeyValueService kvs, MetricsManager metricsManager, AtlasDbConfig config) {
+        return TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry(), config.internalSchema());
     }
 
     @Provides
