@@ -194,6 +194,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 TransactionServices.createV1TransactionService(spiedKvs),
                 mock(TargetedSweepFollower.class));
         secondQueue.runInBackground();
+                await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
+
 
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
@@ -212,12 +214,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .shards(DEFAULT_SHARDS + 1)
                 .build());
 
-        // Using a second queue to check instead of the first.
-        // Sweep queue caches the shard count for a long period.
-        // This is preferable to creating prod-useless code duplication.
-        MetricsManager secondQueueManager = MetricsManagers.createForTests();
+        // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -225,7 +224,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 TransactionServices.createV1TransactionService(spiedKvs),
                 mock(TargetedSweepFollower.class));
         secondQueue.runInBackground();
-        await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
+        await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(-1L));
     }
 
     @Test

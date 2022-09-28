@@ -37,7 +37,7 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     private final SweepQueue queue;
     private final TargetedSweepMetrics metrics;
     private final ScheduledExecutorService executorService;
-    private AtomicBoolean isScheduled = new AtomicBoolean(false);
+    private final AtomicBoolean isScheduled = new AtomicBoolean(false);
 
     public LastSweptTimestampUpdater(
             SweepQueue queue, TargetedSweepMetrics metrics, ScheduledExecutorService executorService) {
