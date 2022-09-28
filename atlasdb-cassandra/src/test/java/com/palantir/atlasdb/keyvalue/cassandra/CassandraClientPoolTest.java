@@ -15,15 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +35,14 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.OngoingStubbing;
+
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -60,13 +59,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.OngoingStubbing;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
@@ -353,29 +354,6 @@ public class CassandraClientPoolTest {
         assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
-        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
-    }
-
-    @Test
-    public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
-        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
-        when(config.autoRefreshNodes()).thenReturn(false);
-
-        setCassandraServersTo(CASS_SERVER_1);
-        createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
-
-        poolServers.add(CASS_SERVER_3);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
-
-        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
-
-        setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
-        poolServers.remove(CASS_SERVER_1);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_2);
-
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
         assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
     }
