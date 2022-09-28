@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.policies.RetryPolicy;
 import com.google.common.collect.Range;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.atomic.AtomicValue;
@@ -53,8 +52,6 @@ public class Transactions3TableInteractionTest {
             new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
 
     private static final String KEYSPACE = "keyspace";
-
-    private final RetryPolicy mockPolicy = mock(RetryPolicy.class);
     private final TransactionsTableInteraction interaction = new Transactions3TableInteraction(RANGE);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 

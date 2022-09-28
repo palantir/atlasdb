@@ -55,6 +55,7 @@ public class MetricPublicationArbiterTest {
     }
 
     @Test
+    @SuppressWarnings("DistinctVarargsChecker")
     public void metricsWithMultipleFiltersAreAcceptedOnlyIfAllFiltersPermit() {
         MetricPublicationArbiter arbiter = createArbiter(ImmutableMap.of(
                 METRIC_NAME_1, ImmutableSet.of(trueFilter(), falseFilter(), trueFilter()),
@@ -100,7 +101,14 @@ public class MetricPublicationArbiterTest {
     }
 
     private static MetricPublicationFilter trueFilter() {
-        return () -> true;
+        // Depending on the JDK, identical lambdas may share the same hashcode
+        // As a result, we cannot use this method to create a set of filters
+        return new MetricPublicationFilter() {
+            @Override
+            public boolean shouldPublish() {
+                return true;
+            }
+        };
     }
 
     private static MetricPublicationFilter falseFilter() {
