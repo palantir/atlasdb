@@ -61,6 +61,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.streams.KeyedStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -76,6 +77,7 @@ import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.assertj.core.data.MapEntry;
@@ -1933,53 +1935,70 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(keyValueService.getClusterAvailabilityStatus()).isEqualTo(ClusterAvailabilityStatus.ALL_AVAILABLE);
     }
 
+    /**
+     * 0->0 ---- 2->2 ---- 4->4
+     * =>
+     * 0,1,2,3,4 -> update
+     */
     @Test
     public void multiCheckAndSetSuccessTest() {
         assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        byte[] first = TEST_CELL.getColumnName();
-        byte[] second = PtBytes.toBytes("second");
-        byte[] update = PtBytes.toBytes("update");
-        Cell secondCell = Cell.create(TEST_CELL.getRowName(), second);
-        Cell thirdCell = Cell.create(TEST_CELL.getRowName(), PtBytes.toBytes("third"));
-        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, first, secondCell, second));
 
-        ImmutableMap<Cell, byte[]> updateMap =
-                ImmutableMap.of(TEST_CELL, update, secondCell, update, thirdCell, update);
+        List<Cell> cells = IntStream.range(0, 5)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .collect(Collectors.toList());
+        byte[] update = PtBytes.toBytes("update");
+        ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
+                cells.get(0), cells.get(0).getColumnName(),
+                cells.get(2), cells.get(2).getColumnName(),
+                cells.get(4), cells.get(4).getColumnName());
+        Map<Cell, byte[]> updateMap = cells.stream().collect(Collectors.toMap(x -> x, _ignore -> update));
+
+        keyValueService.putUnlessExists(TEST_TABLE, actualMap);
+
         MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
                 .tableRef(TEST_TABLE)
-                .rowName(TEST_CELL.getRowName())
-                .expected(ImmutableMap.of(TEST_CELL, first, secondCell, second))
+                .rowName(cells.get(0).getRowName())
+                .expected(actualMap)
                 .updates(updateMap)
                 .build();
         keyValueService.multiCheckAndSet(request);
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, 1L)))
-                .containsExactly(Map.entry(TEST_CELL, Value.create(update, 0L)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(secondCell, 1L)))
-                .containsExactly(Map.entry(secondCell, Value.create(update, 0L)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(thirdCell, 1L)))
-                .containsExactly(Map.entry(thirdCell, Value.create(update, 0L)));
+        assertThat(keyValueService.get(TEST_TABLE, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> 1L))))
+                .containsExactlyInAnyOrderEntriesOf(KeyedStream.stream(updateMap)
+                        .map(val -> Value.create(val, 0L))
+                        .collectToMap());
     }
 
+    /**
+     * 0->0 1->2 2->2 3->2 4->4
+     * fail check for
+     * 0->0 1->1 2->2 3->3 4->4
+     */
     @Test
-    public void multiCheckAndSetFailureTest() {
+    public void multiCheckAndSetFailureOnMismatchTest() {
         assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        byte[] first = TEST_CELL.getColumnName();
-        byte[] second = PtBytes.toBytes("second");
-        byte[] third = PtBytes.toBytes("third");
+
+        List<Cell> cells = IntStream.range(0, 5)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
-        Cell secondCell = Cell.create(TEST_CELL.getRowName(), second);
-        Cell thirdCell = Cell.create(TEST_CELL.getRowName(), PtBytes.toBytes("third"));
-        ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(TEST_CELL, first, secondCell, second, thirdCell, third);
+        ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
+                cells.get(0), cells.get(0).getColumnName(),
+                cells.get(1), cells.get(2).getColumnName(),
+                cells.get(2), cells.get(2).getColumnName(),
+                cells.get(3), cells.get(2).getColumnName(),
+                cells.get(4), cells.get(4).getColumnName());
+        Map<Cell, byte[]> expectedMap = cells.stream().collect(Collectors.toMap(x -> x, Cell::getColumnName));
+        Map<Cell, byte[]> updateMap = cells.stream().collect(Collectors.toMap(x -> x, _ignore -> update));
+
         keyValueService.putUnlessExists(TEST_TABLE, actualMap);
 
-        ImmutableMap<Cell, byte[]> updateMap =
-                ImmutableMap.of(TEST_CELL, update, secondCell, update, thirdCell, update);
         MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
                 .tableRef(TEST_TABLE)
-                .rowName(TEST_CELL.getRowName())
-                .expected(ImmutableMap.of(TEST_CELL, first, secondCell, second, thirdCell, second))
+                .rowName(cells.get(0).getRowName())
+                .expected(expectedMap)
                 .updates(updateMap)
                 .build();
 
@@ -1987,16 +2006,58 @@ public abstract class AbstractKeyValueServiceTest {
                 .isInstanceOf(MultiCheckAndSetException.class)
                 .satisfies(exception -> {
                     MultiCheckAndSetException mcasException = (MultiCheckAndSetException) exception;
-                    Map<Cell, byte[]> actualValues = mcasException.getActualValues();
-                    assertThat(actualValues).containsOnly(actualMap.entrySet().toArray(new Map.Entry[0]));
-                    assertThat(actualValues).contains(Map.entry(thirdCell, third));
+                    assertThat(mcasException.getActualValues()).containsExactlyInAnyOrderEntriesOf(actualMap);
                 });
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, 1L)))
-                .containsExactly(Map.entry(TEST_CELL, Value.create(first, 0L)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(secondCell, 1L)))
-                .containsExactly(Map.entry(secondCell, Value.create(second, 0L)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(thirdCell, 1L)))
-                .containsExactly(Map.entry(thirdCell, Value.create(third, 0L)));
+        assertThat(keyValueService.get(TEST_TABLE, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> 1L))))
+                .containsExactlyInAnyOrderEntriesOf(KeyedStream.stream(actualMap)
+                        .map(val -> Value.create(val, 0L))
+                        .collectToMap());
+    }
+
+    /**
+     * 0->0 ---- 2->2 ---- 4->4
+     * fail check for
+     * 0->0 1->1 2->2 3->3 4->4
+     */
+    @Test
+    public void multiCheckAndSetFailureOnAbsentTest() {
+        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        List<Cell> cells = IntStream.range(0, 5)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .collect(Collectors.toList());
+        byte[] update = PtBytes.toBytes("update");
+        ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
+                cells.get(0), cells.get(0).getColumnName(),
+                cells.get(2), cells.get(2).getColumnName(),
+                cells.get(4), cells.get(4).getColumnName());
+        Map<Cell, byte[]> expectedMap = cells.stream().collect(Collectors.toMap(x -> x, Cell::getColumnName));
+        Map<Cell, byte[]> updateMap = cells.stream().collect(Collectors.toMap(x -> x, _ignore -> update));
+
+        keyValueService.putUnlessExists(TEST_TABLE, actualMap);
+
+        MultiCheckAndSetRequest request = MultiCheckAndSetRequest.builder()
+                .tableRef(TEST_TABLE)
+                .rowName(cells.get(0).getRowName())
+                .expected(expectedMap)
+                .updates(updateMap)
+                .build();
+
+        assertThatThrownBy(() -> keyValueService.multiCheckAndSet(request))
+                .isInstanceOf(MultiCheckAndSetException.class)
+                .satisfies(exception -> {
+                    MultiCheckAndSetException mcasException = (MultiCheckAndSetException) exception;
+                    assertThat(mcasException.getActualValues()).containsExactlyInAnyOrderEntriesOf(actualMap);
+                });
+        assertThat(keyValueService.get(TEST_TABLE, cells.stream().collect(Collectors.toMap(x -> x, _ignore -> 1L))))
+                .containsExactlyInAnyOrderEntriesOf(KeyedStream.stream(actualMap)
+                        .map(val -> Value.create(val, 0L))
+                        .collectToMap());
+    }
+
+    private static Cell cell(int index) {
+        return Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes(index));
     }
 
     protected static byte[] row(int number) {

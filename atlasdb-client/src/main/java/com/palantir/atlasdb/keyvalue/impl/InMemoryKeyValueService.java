@@ -80,6 +80,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -514,37 +515,39 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
      * This operation ensures atomicity by locking down the table. This ensures that there are no conflicts with other
      * writes, and that reads see a consistent view of the world. The exception are reads that return iterators, which
      * may see a partially applied multiCAS.
+     *
+     * In case of failure, updates will not be partially applied.
+     * Reads concurrent with this operation may see a partially applied update.
      */
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
         TableReference tableRef = multiCheckAndSetRequest.tableRef();
-        Table tableEntry = getTableMap(tableRef);
-        Lock lock = tableEntry.lock.writeLock();
-        lock.lock();
-        try {
+        runWithExclusiveLock(tableRef, tableEntry -> {
             Map<Cell, byte[]> actualValues = new HashMap<>();
+            boolean success = true;
             for (Map.Entry<Cell, byte[]> entry :
                     multiCheckAndSetRequest.expected().entrySet()) {
                 Cell cell = entry.getKey();
                 Key key = getKey(tableEntry, cell, AtlasDbConstants.TRANSACTION_TS);
                 byte[] actual = tableEntry.entries.get(key);
-                actualValues.put(cell, actual);
-                if (!Arrays.equals(actual, entry.getValue())) {
-                    throw new MultiCheckAndSetException(
-                            LoggingArgs.tableRef(tableRef),
-                            multiCheckAndSetRequest.rowName(),
-                            multiCheckAndSetRequest.expected(),
-                            actualValues);
+                if (actual != null) {
+                    actualValues.put(cell, actual);
                 }
+                success &= Arrays.equals(actual, entry.getValue());
+            }
+            if (!success) {
+                throw new MultiCheckAndSetException(
+                        LoggingArgs.tableRef(tableRef),
+                        multiCheckAndSetRequest.rowName(),
+                        multiCheckAndSetRequest.expected(),
+                        actualValues);
             }
             putInternal(
                     tableRef,
                     KeyValueServices.toConstantTimestampValues(
                             multiCheckAndSetRequest.updates().entrySet(), AtlasDbConstants.TRANSACTION_TS),
                     OverwriteBehaviour.OVERWRITE);
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     // Returns the existing contents, if any, and null otherwise
@@ -742,6 +745,21 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         lock.lock();
         try {
             return task.apply(tableEntry.entries);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * This takes out a reentrant write lock. This ensures that {@link #multiCheckAndSet(MultiCheckAndSetRequest)}
+     * does not contend with other writes.
+     */
+    private void runWithExclusiveLock(TableReference tableRef, Consumer<Table> task) {
+        Table table = getTableMap(tableRef);
+        Lock lock = table.lock.writeLock();
+        lock.lock();
+        try {
+            task.accept(table);
         } finally {
             lock.unlock();
         }

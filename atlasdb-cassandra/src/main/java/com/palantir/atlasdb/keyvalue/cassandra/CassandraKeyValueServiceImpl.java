@@ -1981,6 +1981,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * In this case, you can be sure that all your cells have been updated to their new values.
      * If the old cells initially did not have the values you expected, none of the cells will be updated and
      * {@link MultiCheckAndSetException} will be thrown.
+     * Reads concurrent with this operation will not see a partial update.
      *
      * Another thing to note is that the check operation will **only be performed on values of cells that are declared
      * in the set of expected values** i.e. the check operation DOES NOT take updates into account.

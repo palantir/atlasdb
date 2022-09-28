@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +58,13 @@ public interface CheckAndSetCompatibility {
      * If it is not true, behaviour is undefined.
      */
     boolean consistentOnFailure();
+
+    @Value.Check
+    default void cannotOnlySupportMultiCheckAndSet() {
+        Preconditions.checkArgument(
+                supportsCheckAndSetOperations() || !supportsMultiCheckAndSetOperations(),
+                "Support for MultiCAS implies support for CAS.");
+    }
 
     static CheckAndSetCompatibility intersect(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
