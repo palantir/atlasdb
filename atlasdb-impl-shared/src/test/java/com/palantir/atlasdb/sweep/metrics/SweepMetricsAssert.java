@@ -260,7 +260,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
     }
 
-    private <T, N> Gauge<N> getGauge(String metricNamespace, String name, Map<String, String> tag) {
+    private <N> Gauge<N> getGauge(String metricNamespace, String name, Map<String, String> tag) {
         MetricName metricName = MetricName.builder()
                 .safeName(metricNamespace + "." + name)
                 .safeTags(tag)

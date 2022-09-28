@@ -24,7 +24,6 @@ import com.datastax.driver.core.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
@@ -56,6 +55,11 @@ public final class BackupTestUtils {
     static final Range<LightweightOppToken> RANGE_2_TO_3 = Range.openClosed(TOKEN_2, TOKEN_3);
     static final Range<LightweightOppToken> RANGE_GREATER_THAN_3 = Range.greaterThan(TOKEN_3);
 
+    static final CassandraServersConfigs.CqlCapableConfig CASSANDRA_SERVERS_CONFIG = ImmutableCqlCapableConfig.builder()
+            .addAllCqlHosts(HOSTS)
+            .addAllThriftHosts(HOSTS)
+            .build();
+
     private BackupTestUtils() {
         // utility
     }
@@ -77,14 +81,6 @@ public final class BackupTestUtils {
         when(cqlMetadata.getTokenRanges())
                 .thenReturn(ImmutableSet.of(RANGE_AT_MOST_1, RANGE_1_TO_2, RANGE_2_TO_3, RANGE_GREATER_THAN_3));
         when(cqlSession.getMetadata()).thenReturn(cqlMetadata);
-    }
-
-    static void mockConfig(CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
-        CassandraServersConfigs.CqlCapableConfig cqlCapableConfig = ImmutableCqlCapableConfig.builder()
-                .addAllCqlHosts(HOSTS)
-                .addAllThriftHosts(HOSTS)
-                .build();
-        when(runtimeConfig.servers()).thenReturn(cqlCapableConfig);
     }
 
     static List<TableMetadata> mockTableMetadatas(KeyspaceMetadata keyspaceMetadata, String... tableNames) {

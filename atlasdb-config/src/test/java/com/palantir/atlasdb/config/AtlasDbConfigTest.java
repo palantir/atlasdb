@@ -34,7 +34,6 @@ public class AtlasDbConfigTest {
     private static final KeyValueServiceConfig KVS_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_OTHER_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig KVS_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
-    private static final KeyValueServiceConfig CASSANDRA_CONFIG_WITHOUT_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final KeyValueServiceConfig CASSANDRA_CONFIG_WITH_NAMESPACE = mock(KeyValueServiceConfig.class);
     private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
             .quorumSize(1)
@@ -72,13 +71,11 @@ public class AtlasDbConfigTest {
         when(KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(KVS_CONFIG_WITH_OTHER_NAMESPACE.namespace()).thenReturn(Optional.of(OTHER_CLIENT));
         when(KVS_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
-        when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(CASSANDRA_CONFIG_WITH_NAMESPACE.namespace()).thenReturn(Optional.of(TEST_NAMESPACE));
 
         when(KVS_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn("type");
         when(KVS_CONFIG_WITH_OTHER_NAMESPACE.type()).thenReturn("type");
         when(KVS_CONFIG_WITH_NAMESPACE.type()).thenReturn("type");
-        when(CASSANDRA_CONFIG_WITHOUT_NAMESPACE.type()).thenReturn(CASSANDRA);
         when(CASSANDRA_CONFIG_WITH_NAMESPACE.type()).thenReturn(CASSANDRA);
     }
 

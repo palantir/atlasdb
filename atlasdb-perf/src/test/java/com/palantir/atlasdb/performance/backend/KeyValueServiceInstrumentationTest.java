@@ -18,8 +18,11 @@ package com.palantir.atlasdb.performance.backend;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import java.net.InetSocketAddress;
+import java.util.Optional;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class KeyValueServiceInstrumentationTest {
 
@@ -47,18 +50,40 @@ public class KeyValueServiceInstrumentationTest {
 
     @Test
     public void canAddNewBackendType() {
-        KeyValueServiceInstrumentation mockKeyValueServiceInstrumentation =
-                Mockito.mock(KeyValueServiceInstrumentation.class);
-        Mockito.when(mockKeyValueServiceInstrumentation.toString()).thenReturn("MOCK2");
-        Mockito.when(mockKeyValueServiceInstrumentation.getClassName()).thenReturn("mock_classname");
+        DummyKeyValueServiceInstrumentation dummyKeyValueServiceInstrumentation =
+                new DummyKeyValueServiceInstrumentation(5, "foo");
+        KeyValueServiceInstrumentation.addNewBackendType(dummyKeyValueServiceInstrumentation);
+        assertThat(KeyValueServiceInstrumentation.forDatabase(DummyKeyValueServiceInstrumentation.class.getName()))
+                .isExactlyInstanceOf(DummyKeyValueServiceInstrumentation.class);
+        assertThat(KeyValueServiceInstrumentation.forDatabase(dummyKeyValueServiceInstrumentation.toString()))
+                .isExactlyInstanceOf(DummyKeyValueServiceInstrumentation.class);
+        KeyValueServiceInstrumentation.removeBackendType(dummyKeyValueServiceInstrumentation);
+    }
 
-        KeyValueServiceInstrumentation.addNewBackendType(mockKeyValueServiceInstrumentation);
+    private static class DummyKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
-        assertThat(KeyValueServiceInstrumentation.forDatabase(mockKeyValueServiceInstrumentation.getClassName()))
-                .isExactlyInstanceOf(mockKeyValueServiceInstrumentation.getClass());
-        assertThat(KeyValueServiceInstrumentation.forDatabase(mockKeyValueServiceInstrumentation.toString()))
-                .isExactlyInstanceOf(mockKeyValueServiceInstrumentation.getClass());
+        DummyKeyValueServiceInstrumentation(int kvsPort, String dockerComposeFileName) {
+            super(kvsPort, dockerComposeFileName);
+        }
 
-        KeyValueServiceInstrumentation.removeBackendType(mockKeyValueServiceInstrumentation);
+        @Override
+        public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
+            return null;
+        }
+
+        @Override
+        public Optional<KeyValueServiceRuntimeConfig> getKeyValueServiceRuntimeConfig(InetSocketAddress addr) {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean canConnect(InetSocketAddress addr) {
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return "dummy";
+        }
     }
 }
