@@ -1930,11 +1930,7 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.compactInternally(TEST_TABLE);
     }
 
-    @Test
-    public void clusterAvailabilityStatusShouldBeAllAvailable() {
-        assertThat(keyValueService.getClusterAvailabilityStatus()).isEqualTo(ClusterAvailabilityStatus.ALL_AVAILABLE);
-    }
-
+    @SuppressWarnings("JavadocStyleCheck")
     /**
      * 0->0 ---- 2->2 ---- 4->4
      * =>
@@ -1970,6 +1966,12 @@ public abstract class AbstractKeyValueServiceTest {
                         .collectToMap());
     }
 
+    @Test
+    public void clusterAvailabilityStatusShouldBeAllAvailable() {
+        assertThat(keyValueService.getClusterAvailabilityStatus()).isEqualTo(ClusterAvailabilityStatus.ALL_AVAILABLE);
+    }
+
+    @SuppressWarnings("JavadocStyleCheck")
     /**
      * 0->0 1->2 2->2 3->2 4->4
      * fail check for
@@ -2014,6 +2016,7 @@ public abstract class AbstractKeyValueServiceTest {
                         .collectToMap());
     }
 
+    @SuppressWarnings("JavadocStyleCheck")
     /**
      * 0->0 ---- 2->2 ---- 4->4
      * fail check for
