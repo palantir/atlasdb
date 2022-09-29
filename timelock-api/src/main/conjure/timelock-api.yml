@@ -282,12 +282,14 @@ services:
         returns: LeaderTime
       lock:
         http: POST /l/{namespace}
+        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureLockRequest
         returns: ConjureLockResponse
       waitForLocks:
         http: POST /wl/{namespace}
+        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureLockRequest
@@ -300,6 +302,7 @@ services:
         returns: ConjureRefreshLocksResponse
       refreshLocksV2:
         http: POST /rl2/{namespace}
+        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureRefreshLocksRequestV2
@@ -312,6 +315,7 @@ services:
         returns: ConjureUnlockResponse
       unlockV2:
         http: POST /ul2/{namespace}
+        tags: ["compress-request"]
         args:
           namespace: string
           request: ConjureUnlockRequestV2
