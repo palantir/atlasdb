@@ -36,7 +36,6 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
@@ -70,7 +69,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
-            TransactionKnowledgeComponents knowledge,
             ExecutorService deleteExecutor) {
         this(
                 metricsManager,
@@ -84,8 +82,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
-                knowledge);
+                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -97,8 +94,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockService lockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
-            AtlasDbConstraintCheckingMode constraintCheckingMode,
-            TransactionKnowledgeComponents knowledge) {
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -121,8 +117,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
+                Optional.empty());
         this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -140,8 +135,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -164,8 +158,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
+                Optional.empty());
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -223,8 +216,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         validateLocksOnReads,
                         transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController,
-                        knowledge),
+                        tableLevelMetricsController),
                 pathTypeTracker);
     }
 

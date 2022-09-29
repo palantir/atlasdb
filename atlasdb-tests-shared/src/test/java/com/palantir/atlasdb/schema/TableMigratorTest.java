@@ -40,9 +40,9 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
@@ -101,7 +101,6 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 ssm2,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 MoreExecutors.newDirectExecutorService());
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
@@ -139,20 +138,23 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 verifySsm,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 MoreExecutors.newDirectExecutorService());
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
                 BatchingVisitable<RowResult<byte[]>> bv = txn.getRange(name, RangeRequest.all());
-                bv.batchAccept(1000, AbortingVisitors.batching(item -> {
-                    Iterable<Map.Entry<Cell, byte[]>> cells = item.getCells();
-                    Map.Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
-                    assertThat(entry.getKey()).isEqualTo(theCell);
-                    assertThat(entry.getValue()).isEqualTo(theValue);
-                    count.increment();
-                    return true;
-                }));
+                bv.batchAccept(
+                        1000, AbortingVisitors.batching(new AbortingVisitor<RowResult<byte[]>, RuntimeException>() {
+                            @Override
+                            public boolean visit(RowResult<byte[]> item) throws RuntimeException {
+                                Iterable<Map.Entry<Cell, byte[]>> cells = item.getCells();
+                                Map.Entry<Cell, byte[]> entry = Iterables.getOnlyElement(cells);
+                                assertThat(entry.getKey()).isEqualTo(theCell);
+                                assertThat(entry.getValue()).isEqualTo(theValue);
+                                count.increment();
+                                return true;
+                            }
+                        }));
                 return null;
             });
         }

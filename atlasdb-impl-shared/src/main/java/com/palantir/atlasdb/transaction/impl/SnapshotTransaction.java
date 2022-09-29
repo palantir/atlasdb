@@ -98,7 +98,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -120,10 +119,13 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -248,6 +250,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
     protected final boolean allowHiddenTableAccess;
+    protected final TimestampCache timestampValidationReadCache;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = ConcurrentHashMap.newKeySet();
@@ -258,13 +261,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
-    private final CommitTimestampLoader commitTimestampLoader;
 
     protected volatile boolean hasReads;
-
-    protected final TimestampCache timestampCache;
-
-    protected final TransactionKnowledgeComponents knowledge;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -296,8 +294,7 @@ public class SnapshotTransaction extends AbstractTransaction
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -318,6 +315,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.timestampValidationReadCache = timestampValidationReadCache;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
@@ -327,17 +325,6 @@ public class SnapshotTransaction extends AbstractTransaction
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
-        this.timestampCache = timestampValidationReadCache;
-        this.knowledge = knowledge;
-        this.commitTimestampLoader = new CommitTimestampLoader(
-                timestampValidationReadCache,
-                immutableTimestampLock,
-                this::getStartTimestamp,
-                transactionConfig,
-                metricsManager,
-                timelockService,
-                immutableTimestamp,
-                knowledge);
     }
 
     protected TransactionScopedCache getCache() {
@@ -1097,9 +1084,10 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef, long timestamp) {
-        if (isValidationNecessaryOnReads(tableRef)) {
-            throwIfPreCommitRequirementsNotMet(null, timestamp);
+        if (!isValidationNecessaryOnReads(tableRef)) {
+            return;
         }
+        throwIfPreCommitRequirementsNotMet(null, timestamp);
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
@@ -2325,7 +2313,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // TODO(fdesouza): Revert this once PDS-95791 is resolved.
         long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
-        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
+        LockRequest request = ImmutableLockRequest.of(
+                lockDescriptors,
+                lockAcquireTimeoutMillis,
+                Optional.ofNullable(getStartTimestampAsClientDescription(currentTransactionConfig)));
 
         RuntimeException stackTraceSnapshot = new SafeRuntimeException("I exist to show you the stack trace");
         LockResponse lockResponse = timelockService.lock(
@@ -2346,15 +2337,6 @@ public class SnapshotTransaction extends AbstractTransaction
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
         return lockResponse.getToken();
-    }
-
-    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
-            TableReference tableRef,
-            Iterable<Long> startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
-        return commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
     }
 
     private void logCommitLockTenureExceeded(
@@ -2397,6 +2379,62 @@ public class SnapshotTransaction extends AbstractTransaction
         return result;
     }
 
+    /**
+     * We will block here until the passed transactions have released their lock.  This means that the committing
+     * transaction is either complete or it has failed and we are allowed to roll it back.
+     */
+    private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
+        Set<LockDescriptor> lockDescriptors = new HashSet<>();
+        for (long start : startTimestamps) {
+            if (start < immutableTimestamp) {
+                // We don't need to block in this case because this transaction is already complete
+                continue;
+            }
+            lockDescriptors.add(AtlasRowLockDescriptor.of(
+                    TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                    TransactionConstants.getValueForTimestamp(start)));
+        }
+
+        if (lockDescriptors.isEmpty()) {
+            return;
+        }
+
+        waitFor(lockDescriptors);
+    }
+
+    private void waitFor(Set<LockDescriptor> lockDescriptors) {
+        TransactionConfig currentTransactionConfig = transactionConfig.get();
+        String startTimestampAsDescription = getStartTimestampAsClientDescription(currentTransactionConfig);
+
+        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
+        WaitForLocksRequest request =
+                WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMillis, startTimestampAsDescription);
+        WaitForLocksResponse response = timelockService.waitForLocks(request);
+        if (!response.wasSuccessful()) {
+            log.error(
+                    "Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+                    SafeArg.of("requestId", request.getRequestId()),
+                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
+                    SafeArg.of("numberOfDescriptors", lockDescriptors.size()),
+                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+        }
+    }
+
+    /**
+     * TODO(fdesouza): Remove this once PDS-95791 is resolved.
+     *
+     * @deprecated Remove this once PDS-95791 is resolved.
+     */
+    @Deprecated
+    @Nullable
+    private String getStartTimestampAsClientDescription(TransactionConfig currentTransactionConfig) {
+        return currentTransactionConfig.attachStartTimestampToLockRequestDescriptions()
+                ? Long.toString(getStartTimestamp())
+                : null;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     /// Commit timestamp management
     ///////////////////////////////////////////////////////////////////////////
@@ -2413,6 +2451,109 @@ public class SnapshotTransaction extends AbstractTransaction
             @Nullable TableReference tableRef, Iterable<Long> startTimestamps, boolean waitForCommitterToComplete) {
         return AtlasFutures.getUnchecked(getCommitTimestamps(
                 tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
+    }
+
+    /**
+     * Returns a map from start timestamp to commit timestamp.  If a start timestamp wasn't committed, then it will be
+     * missing from the map.  This method will block until the transactions for these start timestamps are complete.
+     */
+    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            @Nullable TableReference tableRef,
+            Iterable<Long> startTimestamps,
+            boolean shouldWaitForCommitterToComplete,
+            AsyncTransactionService asyncTransactionService) {
+        if (Iterables.isEmpty(startTimestamps)) {
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+        Map<Long, Long> startToCommitTimestamps = new HashMap<>();
+        Set<Long> gets = new HashSet<>();
+        for (Long startTs : startTimestamps) {
+            Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
+            if (cached != null) {
+                startToCommitTimestamps.put(startTs, cached);
+            } else {
+                gets.add(startTs);
+            }
+        }
+
+        if (gets.isEmpty()) {
+            return Futures.immediateFuture(startToCommitTimestamps);
+        }
+
+        // Before we do the reads, we need to make sure the committer is done writing.
+        if (shouldWaitForCommitterToComplete) {
+            waitForCommitterToComplete(tableRef, startTimestamps);
+        }
+
+        traceGetCommitTimestamps(tableRef, gets);
+
+        if (gets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
+            logLargeNumberOfTransactions(tableRef, gets);
+        }
+
+        return Futures.transform(
+                loadCommitTimestamps(asyncTransactionService, gets),
+                rawResults -> {
+                    for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
+                        if (e.getValue() != null) {
+                            Long startTs = e.getKey();
+                            Long commitTs = e.getValue();
+                            startToCommitTimestamps.put(startTs, commitTs);
+                            timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                        }
+                    }
+                    return startToCommitTimestamps;
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    private void waitForCommitterToComplete(@Nullable TableReference tableRef, Iterable<Long> startTimestamps) {
+        Timer.Context timer = getTimer("waitForCommitTsMillis").time();
+        waitForCommitToComplete(startTimestamps);
+        long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+
+        if (tableRef != null) {
+            perfLogger.debug(
+                    "Waited to get commit timestamps when reading from a known table.",
+                    SafeArg.of("commitTsMillis", waitForCommitTsMillis),
+                    LoggingArgs.tableRef(tableRef));
+        } else {
+            perfLogger.debug("Waited to get commit timestamps.", SafeArg.of("commitTsMillis", waitForCommitTsMillis));
+        }
+    }
+
+    private void traceGetCommitTimestamps(@Nullable TableReference tableRef, Set<Long> gets) {
+        if (tableRef != null) {
+            log.trace(
+                    "Getting commit timestamps for a read while reading table.",
+                    SafeArg.of("numTimestamps", gets.size()),
+                    LoggingArgs.tableRef(tableRef));
+            return;
+        }
+
+        log.trace("Getting commit timestamps.", SafeArg.of("numTimestamps", gets.size()));
+    }
+
+    private void logLargeNumberOfTransactions(@Nullable TableReference tableRef, Set<Long> gets) {
+        log.info(
+                "Looking up a large number of transactions.",
+                SafeArg.of("numberOfTransactionIds", gets.size()),
+                tableRef == null ? SafeArg.of("tableRef", "no_table") : LoggingArgs.tableRef(tableRef));
+    }
+
+    private static ListenableFuture<Map<Long, Long>> loadCommitTimestamps(
+            AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
+        // distinguish between a single timestamp and a batch, for more granular metrics
+        if (startTimestamps.size() == 1) {
+            Long singleTs = startTimestamps.iterator().next();
+            return Futures.transform(
+                    asyncTransactionService.getAsync(singleTs),
+                    commitTsOrNull ->
+                            commitTsOrNull == null ? ImmutableMap.of() : ImmutableMap.of(singleTs, commitTsOrNull),
+                    MoreExecutors.directExecutor());
+        } else {
+            return asyncTransactionService.getAsync(startTimestamps);
+        }
     }
 
     /**

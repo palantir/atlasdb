@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -112,12 +111,12 @@ public class TestTransactionManagerModule {
             ServicesConfig config,
             @Named("kvs") KeyValueService kvs,
             LockAndTimestampServices lts,
+            LockClient lockClient,
             TransactionService transactionService,
             ConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
-            @Internal DerivedSnapshotConfig derivedSnapshotConfig,
-            TransactionKnowledgeComponents knowledge) {
+            @Internal DerivedSnapshotConfig derivedSnapshotConfig) {
         return new SerializableTransactionManager(
                 metricsManager,
                 kvs,
@@ -141,7 +140,6 @@ public class TestTransactionManagerModule {
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
+                Optional.empty());
     }
 }

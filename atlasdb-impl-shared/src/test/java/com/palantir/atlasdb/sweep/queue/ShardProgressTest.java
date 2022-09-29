@@ -235,13 +235,13 @@ public class ShardProgressTest {
 
     @Test
     public void initialLastSeenCommitTimestampIsEmpty() {
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
     }
 
     @Test
     public void canUpdateLastCommitTimestamp() {
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
     }
 
     @Test
@@ -253,26 +253,26 @@ public class ShardProgressTest {
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
         // checkAndSet is only called the one time
         verify(kvs).checkAndSet(any());
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
     }
 
     @Test
     public void updatingLastSeenTimestampForOneShardUpdatesGlobalValue() {
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 2048L);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(2048L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(2048L);
     }
 
     @Test
     public void onlyUpdatesLastSeenCommitTsForConservative() {
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(128L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
 
         progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 256L);
     }
@@ -280,13 +280,13 @@ public class ShardProgressTest {
     @Test
     public void updatingLastSeenCommitTimestampsDoesNotAffectShardsAndViceVersa() {
         assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateNumberOfShards(64);
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 32L);
 
         assertThat(progress.getNumberOfShards()).isEqualTo(64);
-        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(32L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(32L);
     }
 
     @Test
@@ -295,7 +295,7 @@ public class ShardProgressTest {
         assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(150L);
 
         progress.updateLastSeenCommitTimestamp(NON_SWEEPABLE, 200L);
-        assertThat(progress.getLastSeenCommitTimestamp()).isEqualTo(200L);
+        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(200L);
     }
 
     @Test

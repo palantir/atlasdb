@@ -24,7 +24,6 @@ import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
@@ -45,7 +44,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -122,8 +120,6 @@ public abstract class TransactionTestSetup {
 
     protected TimestampCache timestampCache;
 
-    protected TransactionKnowledgeComponents knowledge;
-
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
@@ -180,11 +176,7 @@ public abstract class TransactionTestSetup {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        knowledge = TransactionKnowledgeComponents.create(
-                keyValueService,
-                metricsManager.getTaggedRegistry(),
-                ImmutableInternalSchemaInstallConfig.builder().build());
-        transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
+        transactionService = createTransactionService(keyValueService, transactionSchemaManager);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = createAndRegisterManager();
@@ -215,7 +207,6 @@ public abstract class TransactionTestSetup {
                 sweepStrategyManager,
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
-                knowledge,
                 MoreExecutors.newDirectExecutorService());
     }
 

@@ -39,13 +39,13 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
 import java.util.Optional;
@@ -70,16 +70,12 @@ public class SerializableTransactionManagerTest {
     private DeterministicScheduler executorService;
     private TransactionManager manager;
 
-    private MetricsManager metricsManager = MetricsManagers.createForTests();
-    private TransactionKnowledgeComponents knowledge;
-
     @Before
     public void setUp() {
         nothingInitialized();
         executorService = new DeterministicSchedulerWithShutdownFlag();
         manager = getManagerWithCallback(true, mockCallback, executorService);
         when(mockKvs.getClusterAvailabilityStatus()).thenReturn(ClusterAvailabilityStatus.ALL_AVAILABLE);
-        knowledge = TransactionKnowledgeComponents.createForTests(mockKvs, metricsManager.getTaggedRegistry());
     }
 
     @Test
@@ -273,8 +269,9 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
+        LockWatchEventCache lockWatchEventCache = NoOpLockWatchEventCache.create();
         return SerializableTransactionManager.create(
-                metricsManager,
+                MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
                 NoOpLockWatchManager.create(),
@@ -298,8 +295,7 @@ public class SerializableTransactionManagerTest {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
+                Optional.empty());
     }
 
     private void nothingInitialized() {

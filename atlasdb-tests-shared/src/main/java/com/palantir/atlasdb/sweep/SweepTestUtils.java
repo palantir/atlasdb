@@ -33,7 +33,6 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -74,8 +73,6 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
-        TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
@@ -90,8 +87,7 @@ public final class SweepTestUtils {
                 cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                writer,
-                knowledge);
+                writer);
         setupTables(kvs);
         writer.initialize(txManager);
         return txManager;
