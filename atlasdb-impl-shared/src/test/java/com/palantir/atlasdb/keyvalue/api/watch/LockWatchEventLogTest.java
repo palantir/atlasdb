@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public final class LockWatchEventLogTest {
@@ -427,6 +428,7 @@ public final class LockWatchEventLogTest {
     }
 
     @Test
+    @Ignore
     public void eventLogDoesNotDeadlockUnderConcurrentLoad() throws InterruptedException {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
 
