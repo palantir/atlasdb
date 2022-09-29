@@ -84,6 +84,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.supportedBuilder()
+                .supportsMultiCheckAndSetOperations(false)
                 .consistentOnFailure(true)
                 .supportsDetailOnFailure(false)
                 .build();
