@@ -43,6 +43,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
@@ -400,6 +401,14 @@ public class TargetedSweepMetrics {
         @Value.Default
         default long millisBetweenRecomputingMetrics() {
             return SweepQueueUtils.REFRESH_TIME;
+        }
+
+        /**
+         * Milliseconds to pause between consecutive updates to the last swept timestamp metric.
+         */
+        @Value.Default
+        default long lastSweptTimestampUpdaterDelayMillis() {
+            return Duration.ofSeconds(30L).toMillis();
         }
 
         /**
