@@ -21,17 +21,17 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -41,10 +41,10 @@ public class WriteInfoPartitioner {
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
 
-    private final LoadingCache<TableReference, Optional<SweeperStrategy>> cache = CacheBuilder.newBuilder()
-            .build(new CacheLoader<TableReference, Optional<SweeperStrategy>>() {
+    private final LoadingCache<TableReference, SweeperStrategy> cache = CacheBuilder.newBuilder()
+            .build(new CacheLoader<>() {
                 @Override
-                public Optional<SweeperStrategy> load(TableReference key) throws Exception {
+                public SweeperStrategy load(TableReference key) {
                     return getStrategyFromKvs(key);
                 }
             });
@@ -55,52 +55,57 @@ public class WriteInfoPartitioner {
     }
 
     /**
-     * Filters out all writes made into tables with SweepStrategy NOTHING, then partitions the writes according to
-     * shard, strategy, and start timestamp of the transaction that performed the write.
+     * If all writes are made into tables with SweepStrategy NOTHING, then the write info is just the start
+     * timestamp, otherwise filters out all writes made into tables with SweepStrategy NOTHING and then partitions the
+     * writes according to shard and strategy.
      */
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
-        return partitionWritesByShardStrategyTimestamp(filterOutUnsweepableTables(writes));
+        return writes.stream().collect(Collectors.groupingBy(WriteInfo::timestamp)).values().stream()
+                .map(this::filterAndPartitionForSingleTimestamp)
+                .map(Map::entrySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    @VisibleForTesting
-    List<WriteInfo> filterOutUnsweepableTables(List<WriteInfo> writes) {
-        return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo).isPresent())
-                .collect(Collectors.toList());
+    private Map<PartitionInfo, List<WriteInfo>> filterAndPartitionForSingleTimestamp(List<WriteInfo> writes) {
+        if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo) == SweeperStrategy.NON_SWEEPABLE)) {
+            long startTs = writes.stream().findFirst().get().timestamp();
+            return SweepQueueUtils.partitioningForNonSweepable(startTs);
+        }
+        return partitionWritesByShardStrategyTimestamp(writes);
     }
 
-    @VisibleForTesting
-    Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
+    private Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
         int shards = numShards.get();
         return writes.stream()
+                .filter(writeInfo -> getStrategy(writeInfo) != SweeperStrategy.NON_SWEEPABLE)
                 .collect(Collectors.groupingBy(write -> getPartitionInfo(write, shards), Collectors.toList()));
     }
 
     private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(write.toShard(shards), isConservative(write), write.timestamp());
-    }
-
-    private boolean isConservative(WriteInfo write) {
-        Optional<SweeperStrategy> strategy = getStrategy(write);
-        Preconditions.checkState(strategy.isPresent(), "Was not expecting empty strategy at this point");
-        return strategy.get() == SweeperStrategy.CONSERVATIVE;
+        return PartitionInfo.of(write.toShard(shards), getStrategy(write), write.timestamp());
     }
 
     @VisibleForTesting
-    Optional<SweeperStrategy> getStrategy(WriteInfo writeInfo) {
-        return getStrategyForTable(writeInfo.tableRef());
+    SweeperStrategy getStrategy(WriteInfo writeInfo) {
+        return writeInfo
+                .writeRef()
+                .map(WriteReference::tableRef)
+                .map(this::getStrategyForTable)
+                .orElse(SweeperStrategy.NON_SWEEPABLE);
     }
 
-    Optional<SweeperStrategy> getStrategyForTable(TableReference tableRef) {
+    SweeperStrategy getStrategyForTable(TableReference tableRef) {
         return cache.getUnchecked(tableRef);
     }
 
-    private Optional<SweeperStrategy> getStrategyFromKvs(TableReference tableRef) {
+    private SweeperStrategy getStrategyFromKvs(TableReference tableRef) {
         try {
             return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR
                             .hydrateFromBytes(kvs.getMetadataForTable(tableRef))
                             .getSweepStrategy())
-                    .getSweeperStrategy();
+                    .getSweeperStrategy()
+                    .orElse(SweeperStrategy.NON_SWEEPABLE);
         } catch (Exception e) {
             log.warn("Failed to obtain sweep strategy for table {}.", LoggingArgs.tableRef(tableRef), e);
             throw Throwables.rewrapAndThrowUncheckedException(e);

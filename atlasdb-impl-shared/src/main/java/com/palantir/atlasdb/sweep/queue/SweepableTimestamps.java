@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.util.PersistableBoolean;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +49,7 @@ public class SweepableTimestamps extends SweepQueueTable {
     @Override
     Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes) {
         SweepableTimestampsTable.SweepableTimestampsRow row = computeRow(info);
-        SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info);
+        SweepableTimestampsTable.SweepableTimestampsColumn col = computeColumn(info.timestamp());
 
         SweepableTimestampsTable.SweepableTimestampsColumnValue colVal =
                 SweepableTimestampsTable.SweepableTimestampsColumnValue.of(col, DUMMY);
@@ -60,13 +59,13 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     private SweepableTimestampsTable.SweepableTimestampsRow computeRow(PartitionInfo partitionInfo) {
         return SweepableTimestampsTable.SweepableTimestampsRow.of(
-                partitionInfo.shard(),
+                partitionInfo.shardAndStrategy().shard(),
                 SweepQueueUtils.tsPartitionCoarse(partitionInfo.timestamp()),
-                partitionInfo.isConservative().persistToBytes());
+                partitionInfo.shardAndStrategy().strategy().persistToBytes());
     }
 
-    private SweepableTimestampsTable.SweepableTimestampsColumn computeColumn(PartitionInfo info) {
-        return SweepableTimestampsTable.SweepableTimestampsColumn.of(SweepQueueUtils.tsPartitionFine(info.timestamp()));
+    private SweepableTimestampsTable.SweepableTimestampsColumn computeColumn(long startTimestamp) {
+        return SweepableTimestampsTable.SweepableTimestampsColumn.of(SweepQueueUtils.tsPartitionFine(startTimestamp));
     }
 
     /**
@@ -78,7 +77,7 @@ public class SweepableTimestamps extends SweepQueueTable {
      * @return Optional containing the fine partition, or Optional.empty() if there are no more candidates before
      * sweepTs
      */
-    Optional<Long> nextSweepableTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
@@ -124,9 +123,7 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     private byte[] computeRowBytes(ShardAndStrategy shardStrategy, long coarsePartition) {
         SweepableTimestampsTable.SweepableTimestampsRow row = SweepableTimestampsTable.SweepableTimestampsRow.of(
-                shardStrategy.shard(),
-                coarsePartition,
-                PersistableBoolean.of(shardStrategy.isConservative()).persistToBytes());
+                shardStrategy.shard(), coarsePartition, shardStrategy.strategy().persistToBytes());
         return row.persistToBytes();
     }
 

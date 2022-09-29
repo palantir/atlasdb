@@ -46,6 +46,7 @@ public final class TransactionConflictDetectionManagerTest {
     private TransactionConflictDetectionManager conflictDetectionManager;
 
     @Before
+    @SuppressWarnings("DirectInvocationOnMock") // Safe usage which is hard to replicate otherwise
     public void before() {
         conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate) {
             @Override

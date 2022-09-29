@@ -27,7 +27,7 @@ import com.palantir.atlasdb.cleaner.MillisAndMaybeTimestamp;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -43,6 +43,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
@@ -163,6 +164,8 @@ public class TargetedSweepMetrics {
                 return AtlasDbMetricNames.TAG_CONSERVATIVE;
             case THOROUGH:
                 return AtlasDbMetricNames.TAG_THOROUGH;
+            case NON_SWEEPABLE:
+                return AtlasDbMetricNames.TAG_NON_SWEEPABLE;
             default:
                 throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
         }
@@ -400,6 +403,14 @@ public class TargetedSweepMetrics {
         @Value.Default
         default long millisBetweenRecomputingMetrics() {
             return SweepQueueUtils.REFRESH_TIME;
+        }
+
+        /**
+         * Milliseconds to pause between consecutive updates to the last swept timestamp metric.
+         */
+        @Value.Default
+        default long lastSweptTimestampUpdaterDelayMillis() {
+            return Duration.ofSeconds(30L).toMillis();
         }
 
         /**

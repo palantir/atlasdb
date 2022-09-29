@@ -36,6 +36,7 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlResultType;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.SliceRange;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Test;
@@ -89,14 +90,16 @@ public class ProfilingCassandraClientTest {
         List<ColumnOrSuperColumn> columns =
                 ImmutableList.of(new ColumnOrSuperColumn().setColumn(new Column(byteBuffer)));
         ImmutableMap<ByteBuffer, List<ColumnOrSuperColumn>> resultMap = ImmutableMap.of(byteBuffer, columns);
+        SlicePredicate slicePredicate = new SlicePredicate();
+        slicePredicate.setSlice_range(new SliceRange());
 
         when(delegate.multiget_slice(any(), any(), any(), any(), any())).thenReturn(resultMap);
 
-        assertThat(delegate.multiget_slice(
+        assertThat(profilingClient.multiget_slice(
                         "getRows",
                         TableReference.createFromFullyQualifiedName("a.b"),
                         ImmutableList.of(byteBuffer),
-                        new SlicePredicate(),
+                        slicePredicate,
                         ConsistencyLevel.QUORUM))
                 .containsExactlyInAnyOrderEntriesOf(resultMap);
 
@@ -105,7 +108,7 @@ public class ProfilingCassandraClientTest {
                         "getRows",
                         TableReference.createFromFullyQualifiedName("a.b"),
                         ImmutableList.of(byteBuffer),
-                        new SlicePredicate(),
+                        slicePredicate,
                         ConsistencyLevel.QUORUM);
     }
 

@@ -20,15 +20,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -41,21 +40,28 @@ public final class TransactionServices {
     }
 
     public static TransactionService createTransactionService(
-            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
+            KeyValueService keyValueService,
+            TransactionSchemaManager transactionSchemaManager,
+            TransactionKnowledgeComponents knowledge) {
         // Should only be used for testing, or in contexts where users are not concerned about metrics
         return createTransactionService(
-                keyValueService, transactionSchemaManager, new DefaultTaggedMetricRegistry(), () -> false);
+                keyValueService, transactionSchemaManager, knowledge, new DefaultTaggedMetricRegistry(), () -> false);
     }
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
+            TransactionKnowledgeComponents knowledge,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
         if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
             return createSplitKeyTransactionService(
-                    keyValueService, transactionSchemaManager, metricRegistry, acceptStagingReadsOnVersionThree);
+                    keyValueService,
+                    transactionSchemaManager,
+                    knowledge,
+                    metricRegistry,
+                    acceptStagingReadsOnVersionThree);
         }
         return createV1TransactionService(keyValueService);
     }
@@ -63,6 +69,7 @@ public final class TransactionServices {
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager,
+            TransactionKnowledgeComponents knowledge,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsOnVersionThree) {
         // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
@@ -74,8 +81,10 @@ public final class TransactionServices {
                         TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
                         createV2TransactionService(keyValueService),
                         TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
-                        createV3TransactionService(
-                                keyValueService, metricRegistry, acceptStagingReadsOnVersionThree))));
+                        createV3TransactionService(keyValueService, metricRegistry, acceptStagingReadsOnVersionThree),
+                        TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION,
+                        createV4TransactionService(
+                                keyValueService, knowledge, metricRegistry, acceptStagingReadsOnVersionThree))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -95,6 +104,15 @@ public final class TransactionServices {
                 SimpleTransactionService.createV3(keyValueService, metricRegistry, acceptStagingReadsAsCommitted)));
     }
 
+    private static TransactionService createV4TransactionService(
+            KeyValueService keyValueService,
+            TransactionKnowledgeComponents knowledge,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        return new PreStartHandlingTransactionService(SimpleTransactionService.createV4(
+                keyValueService, knowledge, metricRegistry, acceptStagingReadsAsCommitted));
+    }
+
     /**
      * This method should only be used to create {@link TransactionService}s for testing, because in production there
      * are intermediate services like the {@link CoordinationService} this creates where metrics or other forms of
@@ -102,30 +120,12 @@ public final class TransactionServices {
      */
     public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
-        CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                keyValueService, timestampService, MetricsManagers.createForTests(), initializeAsync);
-        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
-    }
-
-    public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            KeyValueService keyValueService, MetricsManager metricsManager) {
-        if (keyValueService.supportsCheckAndSet()) {
-            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
-                    keyValueService,
-                    () -> {
-                        throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
-                                + " transaction service! This is probably a product bug. Please contact"
-                                + " support.");
-                    },
-                    metricsManager,
-                    false);
-            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager =
-                    new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new PreStartHandlingTransactionService(new SplitKeyDelegatingTransactionService<>(
-                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService))));
-        }
-        return createV1TransactionService(keyValueService);
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        TransactionKnowledgeComponents knowledge =
+                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, initializeAsync);
+        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
     }
 
     /**
@@ -137,13 +137,25 @@ public final class TransactionServices {
     public static AsyncTransactionService synchronousAsAsyncTransactionService(TransactionService transactionService) {
         return new AsyncTransactionService() {
             @Override
+            @Deprecated
             public ListenableFuture<Long> getAsync(long startTimestamp) {
                 return Futures.immediateFuture(transactionService.get(startTimestamp));
             }
 
             @Override
+            @Deprecated
             public ListenableFuture<Map<Long, Long>> getAsync(Iterable<Long> startTimestamps) {
                 return Futures.immediateFuture(transactionService.get(startTimestamps));
+            }
+
+            @Override
+            public ListenableFuture<TransactionStatus> getAsyncV2(long startTimestamp) {
+                return transactionService.getAsyncV2(startTimestamp);
+            }
+
+            @Override
+            public ListenableFuture<Map<Long, TransactionStatus>> getAsyncV2(Iterable<Long> startTimestamps) {
+                return transactionService.getAsyncV2(startTimestamps);
             }
         };
     }

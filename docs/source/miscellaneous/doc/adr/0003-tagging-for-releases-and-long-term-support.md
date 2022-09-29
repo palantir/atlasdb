@@ -13,7 +13,7 @@ Atlas needs to provide long-term support (LTS) to internal users and also iterat
 
 ## Decision
 
-Atlas is versioned with tags of the form X.Y.Z.  For the purpose of discussion let A.B.C be the lexigraphically largest version of atlas and let a.b.c be them most recent version of atlas on your branch (these are the same if you are on **develop** but are different if you are working on an **LTS branch**).
+Atlas is versioned with tags of the form X.Y.Z.  For the purpose of discussion let A.B.C be the lexicographically largest version of atlas and let a.b.c be them most recent version of atlas on your branch (these are the same if you are on **develop** but are different if you are working on an **LTS branch**).
 
 ### To Publish A New Release of AtlasDB
 

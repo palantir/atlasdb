@@ -31,6 +31,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+// Mock is used as a convenient supplier, alternatives are rather verbose
+@SuppressWarnings("DirectInvocationOnMock")
 @RunWith(MockitoJUnitRunner.class)
 public class ReplaceIfExceptionMatchingProxyTest {
     @Mock

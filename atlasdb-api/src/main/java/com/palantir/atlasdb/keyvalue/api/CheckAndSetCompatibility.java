@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,6 +31,11 @@ public interface CheckAndSetCompatibility {
      * If false, this {@link KeyValueService} does not support check and set operations.
      */
     boolean supportsCheckAndSetOperations();
+
+    @Value.Default
+    default boolean supportsMultiCheckAndSetOperations() {
+        return false;
+    }
 
     /**
      * If false, there are no guarantees that a {@link CheckAndSetException#getActualValues()} or
@@ -53,6 +59,13 @@ public interface CheckAndSetCompatibility {
      */
     boolean consistentOnFailure();
 
+    @Value.Check
+    default void cannotOnlySupportMultiCheckAndSet() {
+        Preconditions.checkArgument(
+                supportsCheckAndSetOperations() || !supportsMultiCheckAndSetOperations(),
+                "Support for MultiCAS implies support for CAS.");
+    }
+
     static CheckAndSetCompatibility intersect(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
 
@@ -61,10 +74,13 @@ public interface CheckAndSetCompatibility {
         if (!supported) {
             return Unsupported.INSTANCE;
         }
+        boolean multiCas =
+                presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsMultiCheckAndSetOperations);
         boolean detail = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::supportsDetailOnFailure);
         boolean consistency = presentCompatibilities.stream().allMatch(CheckAndSetCompatibility::consistentOnFailure);
 
         return supportedBuilder()
+                .supportsMultiCheckAndSetOperations(multiCas)
                 .supportsDetailOnFailure(detail)
                 .consistentOnFailure(consistency)
                 .build();
@@ -83,6 +99,11 @@ public interface CheckAndSetCompatibility {
 
         @Override
         public boolean supportsCheckAndSetOperations() {
+            return false;
+        }
+
+        @Override
+        public boolean supportsMultiCheckAndSetOperations() {
             return false;
         }
 

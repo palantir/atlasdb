@@ -16,10 +16,14 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -75,6 +79,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
             .maxCellTsPairsToExamine(1000)
             .build();
     protected TransactionService txService;
+    protected TransactionSchemaManager txSchemaManager = mock(TransactionSchemaManager.class);
     SpecificTableSweeper specificTableSweeper;
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
@@ -126,6 +131,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 SweepOutcomeMetrics.registerLegacy(metricsManager),
                 new CountDownLatch(1),
                 0);
+        when(txSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(1);
     }
 
     @After

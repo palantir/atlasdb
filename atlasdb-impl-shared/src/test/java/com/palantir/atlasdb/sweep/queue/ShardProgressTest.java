@@ -49,6 +49,7 @@ public class ShardProgressTest {
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
     private static final ShardAndStrategy CONSERVATIVE_TWENTY = ShardAndStrategy.conservative(20);
+    private static final ShardAndStrategy NON_SWEEPABLE = ShardAndStrategy.nonSweepable();
 
     private static final Cell DUMMY = Cell.create(new byte[] {0}, new byte[] {0});
 
@@ -234,13 +235,13 @@ public class ShardProgressTest {
 
     @Test
     public void initialLastSeenCommitTimestampIsEmpty() {
-        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
     }
 
     @Test
     public void canUpdateLastCommitTimestamp() {
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
     }
 
     @Test
@@ -252,26 +253,26 @@ public class ShardProgressTest {
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 512L);
         // checkAndSet is only called the one time
         verify(kvs).checkAndSet(any());
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
     }
 
     @Test
     public void updatingLastSeenTimestampForOneShardUpdatesGlobalValue() {
-        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 1024L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(1024L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(1024L);
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TWENTY, 2048L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(2048L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(2048L);
     }
 
     @Test
     public void onlyUpdatesLastSeenCommitTsForConservative() {
-        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 128L);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(128L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(128L);
 
         progress.updateLastSeenCommitTimestamp(THOROUGH_TEN, 256L);
     }
@@ -279,13 +280,38 @@ public class ShardProgressTest {
     @Test
     public void updatingLastSeenCommitTimestampsDoesNotAffectShardsAndViceVersa() {
         assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
-        assertThat(progress.getLastSeenCommitTimestamp()).isEmpty();
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).isEmpty();
 
         progress.updateNumberOfShards(64);
         progress.updateLastSeenCommitTimestamp(CONSERVATIVE_TEN, 32L);
 
         assertThat(progress.getNumberOfShards()).isEqualTo(64);
-        assertThat(progress.getLastSeenCommitTimestamp()).hasValue(32L);
+        assertThat(progress.getMaybeLastSeenCommitTimestamp()).hasValue(32L);
+    }
+
+    @Test
+    public void canUpdateProgressForNonSweepable() {
+        progress.updateLastSweptTimestamp(NON_SWEEPABLE, 150L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(150L);
+
+        progress.updateLastSeenCommitTimestamp(NON_SWEEPABLE, 200L);
+        assertThat(progress.getLastSeenCommitTimestamp()).isEqualTo(200L);
+    }
+
+    @Test
+    public void nonSweepableDoesNotInterfereWithConservative() {
+        ShardAndStrategy conservativeZero = ShardAndStrategy.conservative(0);
+
+        assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(-1L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(-1L);
+
+        progress.updateLastSweptTimestamp(conservativeZero, 150L);
+        assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(150L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(-1L);
+
+        progress.updateLastSweptTimestamp(NON_SWEEPABLE, 250L);
+        assertThat(progress.getLastSweptTimestamp(conservativeZero)).isEqualTo(150L);
+        assertThat(progress.getLastSweptTimestamp(NON_SWEEPABLE)).isEqualTo(250L);
     }
 
     private Value createValue(long num) {

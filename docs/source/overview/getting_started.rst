@@ -49,18 +49,15 @@ Mac users will need to install `docker-machine` and a virtualization environment
 Depending on Published Artifacts
 ================================
 
-AtlasDB is `hosted on
-bintray <https://bintray.com/palantir/releases/atlasdb/view>`__. To
+AtlasDB is `hosted on Maven Central <https://search.maven.org/search?q=g:com.palantir.atlasdb>`__. To
 include in a gradle project:
 
-1. Add bintray to your repository list:
+1. Add Maven Central to your repository list:
 
    .. code:: javascript
 
        repositories {
-           maven {
-               url 'https://dl.bintray.com/palantir/releases/'
-           }
+           mavenCentral()
        }
 
 2. Add the atlasdb-client dependency to projects using AtlasDB:

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
@@ -31,11 +32,13 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConf
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -58,12 +61,13 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final MetricsManager metricsManager;
     private final TargetedSweepMetrics.MetricsConfiguration metricsConfiguration;
 
+    private final BackgroundSweepScheduler conservativeScheduler;
+    private final BackgroundSweepScheduler thoroughScheduler;
+    private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
     private SpecialTimestampsSupplier timestampsSupplier;
     private TimelockService timeLock;
-    private BackgroundSweepScheduler conservativeScheduler;
-    private BackgroundSweepScheduler thoroughScheduler;
 
     private volatile boolean isInitialized = false;
 
@@ -171,6 +175,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .build());
         timestampsSupplier = timestamps;
         timeLock = timelockService;
+        lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
+                queue,
+                metrics,
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("last-swept-timestamp-metric-update", true)));
         isInitialized = true;
     }
 
@@ -185,6 +194,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         } else {
             conservativeScheduler.scheduleBackgroundThreads();
             thoroughScheduler.scheduleBackgroundThreads();
+            lastSweptTimestampUpdater.schedule(metricsConfiguration.lastSweptTimestampUpdaterDelayMillis());
         }
     }
 
@@ -217,10 +227,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     public void close() {
         conservativeScheduler.close();
         thoroughScheduler.close();
+        lastSweptTimestampUpdater.close();
     }
 
     @Override
-    public Optional<SweeperStrategy> getSweepStrategy(TableReference tableReference) {
+    public SweeperStrategy getSweepStrategy(TableReference tableReference) {
         return queue.getSweepStrategy(tableReference);
     }
 

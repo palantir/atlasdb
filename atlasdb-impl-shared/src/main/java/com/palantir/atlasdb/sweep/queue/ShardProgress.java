@@ -32,7 +32,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.PersistableBoolean;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -122,28 +121,30 @@ public class ShardProgress {
         tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }
 
-    public Optional<Long> getLastSeenCommitTimestamp() {
+    public long getLastSeenCommitTimestamp() {
+        return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
+    }
+
+    public Optional<Long> getMaybeLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
 
     private void tryUpdateLastSeenCommitTimestamp(ShardAndStrategy shardAndStrategy, long lastSeenCommitTs) {
-        if (!shardAndStrategy.isConservative()) {
+        if (!shardAndStrategy.conservativeFlag()) {
             return;
         }
 
-        Optional<Long> previous = getLastSeenCommitTimestamp();
-        boolean updateNeeded =
-                previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+        long previous = getLastSeenCommitTimestamp();
+        boolean updateNeeded = previous < lastSeenCommitTs;
         while (updateNeeded) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
-            CheckAndSetRequest casRequest = createRequest(
-                    LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
+            CheckAndSetRequest casRequest = createRequest(LAST_SEEN_COMMIT_TIMESTAMP, previous, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 updateNeeded = false;
             } catch (CheckAndSetException exception) {
-                Optional<Long> current = getLastSeenCommitTimestamp();
-                if (current.equals(previous)) {
+                long current = getLastSeenCommitTimestamp();
+                if (current == previous) {
                     log.warn(
                             "Failed to update last seen commit timestamp. Values before and after CAS match.",
                             SafeArg.of("previous", previous),
@@ -153,8 +154,7 @@ public class ShardProgress {
                     throw exception;
                 }
                 previous = current;
-                updateNeeded =
-                        previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
+                updateNeeded = previous < lastSeenCommitTs;
             }
         }
     }
@@ -181,8 +181,7 @@ public class ShardProgress {
 
     private static Cell cellForShard(ShardAndStrategy shardAndStrategy) {
         SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
-                shardAndStrategy.shard(),
-                PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes());
+                shardAndStrategy.shard(), shardAndStrategy.strategy().persistToBytes());
         return Cell.create(
                 row.persistToBytes(), SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }

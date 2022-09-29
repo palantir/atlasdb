@@ -45,7 +45,7 @@ Clear with CLI
 --------------
 
 One runs the CLIs as a separate distribution. These distributions are published on
-`Bintray <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/>`__ - please make
+`Maven Central <https://search.maven.org/artifact/com.palantir.atlasdb/atlasdb-cli-distribution>`__ - please make
 sure to use the corresponding version of the CLIs with your service. The command can then be invoked as
 
 .. code-block:: bash

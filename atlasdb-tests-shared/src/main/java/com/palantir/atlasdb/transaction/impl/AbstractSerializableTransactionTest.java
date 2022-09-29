@@ -124,7 +124,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                sweepQueue);
+                sweepQueue,
+                knowledge);
         sweepQueue.initialize(txManager);
         return txManager;
     }
@@ -165,7 +166,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager)) {
+                new SimpleTableLevelMetricsController(metricsManager),
+                knowledge) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

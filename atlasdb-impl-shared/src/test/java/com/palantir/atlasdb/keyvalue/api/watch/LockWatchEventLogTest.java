@@ -440,7 +440,7 @@ public final class LockWatchEventLogTest {
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
         AtomicInteger exceptionsSeen = new AtomicInteger(0);
-        for (int count = 0; count < 200_000; ++count) {
+        for (int count = 0; count < 20_000; ++count) {
             executor.execute(() -> randomEventLogTask(exceptionsSeen));
         }
 

@@ -21,7 +21,7 @@ import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
-import com.palantir.atlasdb.table.description.SweepStrategy.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.common.streams.KeyedStream;
@@ -260,7 +260,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
     }
 
-    private <T, N> Gauge<N> getGauge(String metricNamespace, String name, Map<String, String> tag) {
+    private <N> Gauge<N> getGauge(String metricNamespace, String name, Map<String, String> tag) {
         MetricName metricName = MetricName.builder()
                 .safeName(metricNamespace + "." + name)
                 .safeTags(tag)
