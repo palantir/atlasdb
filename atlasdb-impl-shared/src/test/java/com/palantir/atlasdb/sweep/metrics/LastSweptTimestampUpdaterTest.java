@@ -19,9 +19,9 @@ package com.palantir.atlasdb.sweep.metrics;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -122,14 +122,14 @@ public class LastSweptTimestampUpdaterTest {
     }
 
     @Test
-    public void scheduledTaskInteractsWithMetricsAndQueueAsExpectedAfterOneDelay() {
+    public void scheduledTaskUpdatesProgressForShardsOnceAfterOneDelay() {
         stubWithRealisticReturnValues();
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
         executorService.tick(REFRESH_MILLIS, TimeUnit.MILLISECONDS);
 
-        verify(queue, atLeast(1)).getNumShards();
-        verify(queue, atLeast(1)).getLastSweptTimestamps(conservativeShardAndStrategySet);
-        verify(queue, atLeast(1)).getLastSweptTimestamps(thoroughShardAndStrategySet);
+        verify(queue, atLeastOnce()).getNumShards();
+        verify(queue, atLeastOnce()).getLastSweptTimestamps(conservativeShardAndStrategySet);
+        verify(queue, atLeastOnce()).getLastSweptTimestamps(thoroughShardAndStrategySet);
 
         for (int shard = 0; shard < shards; shard++) {
             verify(metrics, times(1)).updateProgressForShard(ShardAndStrategy.conservative(shard), CONS_TS);
@@ -157,12 +157,13 @@ public class LastSweptTimestampUpdaterTest {
 
     @Test
     public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails() {
-        when(queue.getLastSweptTimestamps(anySet())).thenReturn(Collections.singletonMap(CONS_SHARD, CONS_TS));
+        when(queue.getNumShards()).thenReturn(1);
+        when(queue.getLastSweptTimestamps(Collections.singleton(CONS_SHARD)))
+                .thenReturn(Collections.singletonMap(CONS_SHARD, CONS_TS));
+
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
 
         doThrow(RuntimeException.class)
-                .doThrow(RuntimeException.class)
-                .doThrow(Error.class)
                 .doThrow(Error.class)
                 .doNothing()
                 .when(metrics)
@@ -170,7 +171,7 @@ public class LastSweptTimestampUpdaterTest {
 
         executorService.tick(3 * REFRESH_MILLIS, TimeUnit.MILLISECONDS);
 
-        verify(metrics, times(2 * 3)).updateProgressForShard(CONS_SHARD, CONS_TS);
+        verify(metrics, times(3)).updateProgressForShard(CONS_SHARD, CONS_TS);
     }
 
     private void stubWithRealisticReturnValues() {

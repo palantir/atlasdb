@@ -189,10 +189,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
-                mock(TimelockService.class),
+                timelockService,
                 spiedKvs,
                 TransactionServices.createV1TransactionService(spiedKvs),
-                mock(TargetedSweepFollower.class));
+                mockFollower);
         secondQueue.runInBackground();
         await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(-1L));
 
