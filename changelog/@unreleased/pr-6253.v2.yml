@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`lock`, `unlockV2`, `waitForLocks`, and `refreshLocksV2` endpoints
+    will have the `compress-request` tag set, enabling more locks to be sent in a
+    request without hitting the 50MB limit. This should not impact performance.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6253
