@@ -33,7 +33,6 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Set<TableReference> lockWatchEnabledTables();
 
     // The tables from these row refs may or may not be listed in lockWatchEnabledTables
-    // TODO(gs): populate these
     Set<RowReference> lockWatchEnabledRows();
 
     java.util.Set<TableReference> allowedTablesFromSchema();
@@ -75,11 +74,12 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     static ValueCacheSnapshot of(
             Map<CellReference, CacheEntry> values,
             Set<TableReference> enabledTables,
-            Set<RowReference> snapshot,
+            Set<RowReference> enabledRows,
             java.util.Set<TableReference> allowedTables) {
         return ImmutableValueCacheSnapshotImpl.builder()
                 .values(values)
                 .lockWatchEnabledTables(enabledTables)
+                .lockWatchEnabledRows(enabledRows)
                 .allowedTablesFromSchema(allowedTables)
                 .build();
     }
