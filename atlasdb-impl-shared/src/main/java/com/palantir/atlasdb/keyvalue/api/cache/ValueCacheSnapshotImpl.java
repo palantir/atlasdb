@@ -19,9 +19,11 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.RowReference;
 import io.vavr.collection.Map;
 import io.vavr.collection.Set;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -30,11 +32,22 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
 
     Set<TableReference> lockWatchEnabledTables();
 
+    // The tables from these row refs may or may not be listed in lockWatchEnabledTables
+    // TODO(gs): populate these
+    Set<RowReference> lockWatchEnabledRows();
+
     java.util.Set<TableReference> allowedTablesFromSchema();
 
     @Value.Derived
     default java.util.Set<TableReference> enabledTables() {
         return Sets.intersection(lockWatchEnabledTables().toJavaSet(), allowedTablesFromSchema());
+    }
+
+    @Value.Derived
+    default java.util.Set<RowReference> enabledRows() {
+        return lockWatchEnabledRows().toJavaSet().stream()
+                .filter(rowReference -> allowedTablesFromSchema().contains(rowReference.tableRef()))
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -48,14 +61,15 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
                 && getValue(tableAndCell).map(CacheEntry::isUnlocked).orElse(true);
     }
 
+    // TODO(gs): handle the case of the row being watched but not the entire table
     @Override
     default boolean isWatched(TableReference tableReference) {
         return enabledTables().contains(tableReference);
     }
 
     @Override
-    default boolean hasAnyTablesWatched() {
-        return !enabledTables().isEmpty();
+    default boolean hasAnyCellsWatched() {
+        return !enabledTables().isEmpty() || !enabledRows().isEmpty();
     }
 
     static ValueCacheSnapshot of(

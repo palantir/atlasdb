@@ -28,6 +28,7 @@ import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import org.junit.Test;
 
+// TODO(gs): add comprehensive tests here
 public final class FilteringValueCacheSnapshotTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table1");
     private static final Cell CELL_1 = createCell(1);

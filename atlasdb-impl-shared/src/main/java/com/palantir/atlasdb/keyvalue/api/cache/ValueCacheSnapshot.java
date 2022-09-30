@@ -27,6 +27,5 @@ public interface ValueCacheSnapshot {
 
     boolean isWatched(TableReference tableReference);
 
-    // rename?
-    boolean hasAnyTablesWatched();
+    boolean hasAnyCellsWatched();
 }
