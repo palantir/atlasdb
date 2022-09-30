@@ -24,11 +24,12 @@ import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.watch.WatchedCellRanges;
+import com.palantir.atlasdb.transaction.api.RowReference;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
@@ -51,6 +52,7 @@ final class ValueStoreImpl implements ValueStore {
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
+    private final StructureHolder<io.vavr.collection.Set<RowReference>> watchedRows;
     private final Set<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
@@ -60,6 +62,7 @@ final class ValueStoreImpl implements ValueStore {
         this.allowedTables = allowedTables;
         this.values = StructureHolder.create(HashMap::empty);
         this.watchedTables = StructureHolder.create(HashSet::empty);
+        this.watchedRows = StructureHolder.create(HashSet::empty);
         this.loadedValues = Caffeine.newBuilder()
                 .maximumWeight(maxCacheSize)
                 .weigher(EntryWeigher.INSTANCE)
@@ -79,6 +82,7 @@ final class ValueStoreImpl implements ValueStore {
     public void reset() {
         values.resetToInitialValue();
         watchedTables.resetToInitialValue();
+        watchedRows.resetToInitialValue();
         loadedValues.invalidateAll();
 
         // Forcing the cache to run cleanup here guarantees that the metrics are not affected after they have been reset
@@ -139,11 +143,6 @@ final class ValueStoreImpl implements ValueStore {
         lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
     }
 
-    private TableReference extractTableReference(LockWatchReference lockWatchReference) {
-        // TODO(gs): handle row references correctly
-        return lockWatchReference.accept(LockWatchReferencesVisitor.INSTANCE).tableReference();
-    }
-
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
         @Override
         public Void visit(LockEvent lockEvent) {
@@ -159,14 +158,31 @@ final class ValueStoreImpl implements ValueStore {
             return null;
         }
 
-        // TODO
         @Override
         public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             lockWatchCreatedEvent.references().stream()
-                    .map(ValueStoreImpl.this::extractTableReference)
-                    .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
+                    .map(ref -> ref.accept(LockWatchReferencesVisitor.INSTANCE))
+                    .forEach(this::addWatchedCellRange);
+
+            // TODO(gs): think through locked descriptors
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
+        }
+
+        private void addWatchedCellRange(WatchedCellRanges.WatchedCellRange range) {
+            range.accept(new WatchedCellRanges.Visitor<Void>() {
+                @Override
+                public Void visit(WatchedCellRanges.WatchedTableReference tableReference) {
+                    watchedTables.with(tables -> tables.add(tableReference.tableReference()));
+                    return null;
+                }
+
+                @Override
+                public Void visit(WatchedCellRanges.WatchedRowReference rowReference) {
+                    watchedRows.with(rows -> rows.add(rowReference.rowReference()));
+                    return null;
+                }
+            });
         }
     }
 
