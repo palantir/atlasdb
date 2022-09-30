@@ -246,7 +246,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Supplier<Integer> shardsConfig,
                 TransactionService transaction,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-            init(kvs);
+            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
@@ -263,18 +263,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     kvs,
                     timelock,
                     readBatchingRuntimeContext);
-        }
-
-        public static long getGetLastSeenCommitTs(KeyValueService kvs) {
-            if (kvs.isInitialized()) {
-                init(kvs);
-                return new ShardProgress(kvs).getLastSeenCommitTimestamp();
-            }
-            return SweepQueueUtils.INITIAL_TIMESTAMP;
-        }
-
-        private static void init(KeyValueService kvs) {
-            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         }
 
         private SweepQueueWriter createWriter() {

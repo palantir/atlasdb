@@ -17,12 +17,10 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
+import com.palantir.atlasdb.sweep.queue.LastSeenCommitTsLoader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -39,7 +37,7 @@ public interface TransactionKnowledgeComponents {
 
     static TransactionKnowledgeComponents create(
             KeyValueService kvs, TaggedMetricRegistry metricRegistry, InternalSchemaInstallConfig config) {
-
+        LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(kvs);
         return ImmutableTransactionKnowledgeComponents.builder()
                 .concluded(KnownConcludedTransactionsImpl.create(
                         KnownConcludedTransactionsStore.create(kvs), metricRegistry))
@@ -49,8 +47,7 @@ public interface TransactionKnowledgeComponents {
                         new DefaultAbandonedTimestampStore(kvs),
                         metricRegistry,
                         config))
-                .lastSeenCommitSupplier(Suppliers.memoizeWithExpiration(
-                        () -> SweepQueueFactory.getGetLastSeenCommitTs(kvs), 20, TimeUnit.SECONDS))
+                .lastSeenCommitSupplier(lastSeenCommitTsLoader::getLastSeenCommitTs)
                 .build();
     }
 }
