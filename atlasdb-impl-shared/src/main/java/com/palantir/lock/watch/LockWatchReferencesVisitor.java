@@ -43,6 +43,7 @@ public final class LockWatchReferencesVisitor implements LockWatchReferences.Vis
 
     @Override
     public TableReference visit(ExactRow reference) {
+        // TODO
         throw new UnsupportedOperationException("Exact row watches are not yet supported");
     }
 

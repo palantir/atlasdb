@@ -158,6 +158,7 @@ final class ValueStoreImpl implements ValueStore {
             return null;
         }
 
+        // TODO
         @Override
         public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             lockWatchCreatedEvent.references().stream()

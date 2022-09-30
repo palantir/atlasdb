@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
+// timelock - prob doesn't matter, prob already implemented
 public interface LockEventLog {
     LockWatchStateUpdate getLogDiff(Optional<LockWatchVersion> fromVersion);
 
