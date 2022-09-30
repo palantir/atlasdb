@@ -247,7 +247,7 @@ public final class OracleDdlTable implements DbDdlTable {
         try {
             conns.get()
                     .executeUnregisteredQuery(
-                            "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
+                            "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef) + " DROP STORAGE");
         } catch (TableMappingNotFoundException | RuntimeException e) {
             throw new IllegalStateException(
                     String.format(
