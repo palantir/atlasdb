@@ -165,7 +165,6 @@ final class ValueStoreImpl implements ValueStore {
                     .map(ref -> ref.accept(LockWatchReferencesVisitor.INSTANCE))
                     .forEach(this::addWatchedCellRange);
 
-            // TODO(gs): think through locked descriptors
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
         }

@@ -58,7 +58,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
 
     @Override
     public void cacheRemoteReads(TableReference table, Map<Cell, byte[]> remoteReadValues) {
-        // TODO - also catch if row is watched (also in other places where this is called)
+        // TODO(gs): [RLLW2] also cache if row is watched (also in other places where this is called)
         if (snapshot.isWatched(table)) {
             KeyedStream.stream(remoteReadValues)
                     .mapKeys(cell -> CellReference.of(table, cell))
