@@ -135,6 +135,7 @@ public final class TransactionScopedCacheImplTest {
                 ValueCacheSnapshotImpl.of(
                         HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.locked()),
                         HashSet.of(TABLE),
+                        HashSet.empty(),
                         ImmutableSet.of(TABLE)),
                 metrics);
 
@@ -243,6 +244,7 @@ public final class TransactionScopedCacheImplTest {
                                         ? CacheEntry.unlocked(CacheValue.empty())
                                         : CacheEntry.unlocked(createValue(cell)))),
                 HashSet.of(TABLE),
+                HashSet.empty(),
                 ImmutableSet.of(TABLE));
         return TransactionScopedCacheImpl.create(snapshot, metrics);
     }
@@ -415,6 +417,7 @@ public final class TransactionScopedCacheImplTest {
         return ValueCacheSnapshotImpl.of(
                 HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
+                HashSet.empty(),
                 ImmutableSet.of(TABLE));
     }
 

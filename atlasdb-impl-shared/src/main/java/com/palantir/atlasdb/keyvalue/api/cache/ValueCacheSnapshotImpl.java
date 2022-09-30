@@ -75,6 +75,7 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     static ValueCacheSnapshot of(
             Map<CellReference, CacheEntry> values,
             Set<TableReference> enabledTables,
+            Set<RowReference> snapshot,
             java.util.Set<TableReference> allowedTables) {
         return ImmutableValueCacheSnapshotImpl.builder()
                 .values(values)

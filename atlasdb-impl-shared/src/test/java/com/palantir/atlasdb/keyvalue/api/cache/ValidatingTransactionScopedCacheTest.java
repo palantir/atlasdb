@@ -142,6 +142,7 @@ public final class ValidatingTransactionScopedCacheTest {
         ValueCacheSnapshot snapshot = ValueCacheSnapshotImpl.of(
                 HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
+                HashSet.empty(),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
@@ -171,6 +172,7 @@ public final class ValidatingTransactionScopedCacheTest {
         ValueCacheSnapshot snapshot = ValueCacheSnapshotImpl.of(
                 HashMap.of(CellReference.of(TABLE, createCell(1, 1)), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
+                HashSet.empty(),
                 ImmutableSet.of(TABLE));
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshot, metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 1.0, () -> {});
@@ -195,6 +197,7 @@ public final class ValidatingTransactionScopedCacheTest {
         return ValueCacheSnapshotImpl.of(
                 HashMap.of(CellReference.of(TABLE, CELL_1), CacheEntry.unlocked(VALUE_1)),
                 HashSet.of(TABLE),
+                HashSet.empty(),
                 ImmutableSet.of(TABLE));
     }
 

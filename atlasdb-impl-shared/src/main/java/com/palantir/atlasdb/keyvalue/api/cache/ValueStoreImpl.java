@@ -115,7 +115,8 @@ final class ValueStoreImpl implements ValueStore {
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
+        return ValueCacheSnapshotImpl.of(
+                values.getSnapshot(), watchedTables.getSnapshot(), watchedRows.getSnapshot(), allowedTables);
     }
 
     private void putLockedCell(CellReference cellReference) {

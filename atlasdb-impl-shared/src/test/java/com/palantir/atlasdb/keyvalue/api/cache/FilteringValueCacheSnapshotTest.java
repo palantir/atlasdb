@@ -41,6 +41,7 @@ public final class FilteringValueCacheSnapshotTest {
     private final ValueCacheSnapshot delegate = ValueCacheSnapshotImpl.of(
             HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1), TABLE_CELL_2, CacheEntry.unlocked(VALUE_2)),
             HashSet.of(TABLE),
+            HashSet.empty(),
             ImmutableSet.of(TABLE));
 
     @Test
