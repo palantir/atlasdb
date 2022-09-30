@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.SweepQueue.SweepQueueFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.function.LongSupplier;
+import java.util.concurrent.TimeUnit;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -29,7 +31,7 @@ public interface TransactionKnowledgeComponents {
 
     KnownAbortedTransactions aborted();
 
-    LongSupplier lastSeenCommitSupplier();
+    Supplier<Long> lastSeenCommitSupplier();
 
     static TransactionKnowledgeComponents createForTests(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
         return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault());
@@ -37,6 +39,7 @@ public interface TransactionKnowledgeComponents {
 
     static TransactionKnowledgeComponents create(
             KeyValueService kvs, TaggedMetricRegistry metricRegistry, InternalSchemaInstallConfig config) {
+
         return ImmutableTransactionKnowledgeComponents.builder()
                 .concluded(KnownConcludedTransactionsImpl.create(
                         KnownConcludedTransactionsStore.create(kvs), metricRegistry))
@@ -46,7 +49,8 @@ public interface TransactionKnowledgeComponents {
                         new DefaultAbandonedTimestampStore(kvs),
                         metricRegistry,
                         config))
-                .lastSeenCommitSupplier(SweepQueueFactory.getGetLastSeenCommitTsSupplier(kvs))
+                .lastSeenCommitSupplier(Suppliers.memoizeWithExpiration(
+                        () -> SweepQueueFactory.getGetLastSeenCommitTs(kvs), 20, TimeUnit.SECONDS))
                 .build();
     }
 }

@@ -50,7 +50,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -64,7 +63,7 @@ public final class CommitTimestampLoader {
     private final MetricsManager metricsManager;
     private final TimelockService timelockService;
     private final long immutableTimestamp;
-    private final LongSupplier lastSeenCommitTsSupplier;
+    private final Supplier<Long> lastSeenCommitTsSupplier;
 
     private final KnownAbortedTransactions abortedTransactionsCache;
 
@@ -245,7 +244,7 @@ public final class CommitTimestampLoader {
 
         if (immutableTimestampLock.isEmpty()) {
             Preconditions.checkState(
-                    lastSeenCommitTsSupplier.getAsLong() < startTs,
+                    lastSeenCommitTsSupplier.get() < startTs,
                     "Sweep has swept some entries with a commit TS after us, and now we cannot know the commit TS for"
                             + " a timestamp that has been TTSd, but it is greater than our start timestamp. This can "
                             + "happen if the transaction has been alive for more than an hour and is expected to be "

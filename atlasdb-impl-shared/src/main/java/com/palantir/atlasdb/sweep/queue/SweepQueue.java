@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -266,9 +265,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     readBatchingRuntimeContext);
         }
 
-        public static LongSupplier getGetLastSeenCommitTsSupplier(KeyValueService kvs) {
-            init(kvs);
-            return new ShardProgress(kvs)::getLastSeenCommitTimestamp;
+        public static long getGetLastSeenCommitTs(KeyValueService kvs) {
+            if (kvs.isInitialized()) {
+                init(kvs);
+                return new ShardProgress(kvs).getLastSeenCommitTimestamp();
+            }
+            return SweepQueueUtils.INITIAL_TIMESTAMP;
         }
 
         private static void init(KeyValueService kvs) {
