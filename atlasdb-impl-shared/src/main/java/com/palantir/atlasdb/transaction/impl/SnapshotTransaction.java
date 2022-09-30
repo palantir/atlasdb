@@ -392,6 +392,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
+        // todo aalouane: log data read size
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
@@ -1612,6 +1613,7 @@ public class SnapshotTransaction extends AbstractTransaction
             return Futures.transform(
                     asyncKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
+                        // todo aalouane: log data read size
                         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },

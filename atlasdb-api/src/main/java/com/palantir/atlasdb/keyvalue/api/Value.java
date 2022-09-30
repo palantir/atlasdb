@@ -52,6 +52,10 @@ public final class Value implements Serializable {
         return contents;
     }
 
+    public int getByteCount() {
+        return contents.length;
+    }
+
     public boolean isEmpty() {
         return contents.length == 0;
     }
