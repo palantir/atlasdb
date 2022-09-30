@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
@@ -32,7 +34,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
 
     @Test
     public void syncInitKvs() {
-        KeyValueService kvs = createRawKeyValueService(false);
+        KeyValueService kvs = createRawKeyValueService(false, true);
 
         assertThat(kvs.isInitialized()).isTrue();
         assertThat(kvs.getAllTableNames()).isEmpty();
@@ -40,15 +42,23 @@ public class InMemoryAsyncAtlasDbFactoryTest {
 
     @Test
     public void asyncInitKvs() {
-        KeyValueService kvs = createRawKeyValueService(true);
+        KeyValueService kvs = createRawKeyValueService(true, true);
 
         Awaitility.await().atMost(Duration.ofSeconds(2)).until(kvs::isInitialized);
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
 
     @Test
+    public void asyncInitKvsAlwaysFail() {
+        KeyValueService kvs = createRawKeyValueService(true, false);
+
+        Awaitility.await().during(Duration.ofSeconds(2)).until(() -> !kvs.isInitialized());
+        assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
+    }
+
+    @Test
     public void syncInitTimestampService() {
-        KeyValueService kvs = createRawKeyValueService(false);
+        KeyValueService kvs = createRawKeyValueService(false, true);
         TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), false);
 
         assertThat(timestampService.isInitialized()).isTrue();
@@ -57,17 +67,17 @@ public class InMemoryAsyncAtlasDbFactoryTest {
 
     @Test
     public void asyncInitTimestampService() {
-        KeyValueService kvs = createRawKeyValueService(false);
+        KeyValueService kvs = createRawKeyValueService(false, true);
         TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), true);
 
         Awaitility.await().atMost(Duration.ofSeconds(2)).until(timestampService::isInitialized);
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }
 
-    private KeyValueService createRawKeyValueService(boolean initializeAsync) {
+    private KeyValueService createRawKeyValueService(boolean initializeAsync, boolean eventuallySucceed) {
         return factory.createRawKeyValueService(
                 null,
-                null,
+                new InMemoryAsyncAtlasDbConfig(eventuallySucceed),
                 Refreshable.only(Optional.empty()),
                 Optional.empty(),
                 Optional.empty(),
