@@ -44,14 +44,15 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             MetricsManager unusedMetricsManager,
-            KeyValueServiceConfig unusedConfig,
+            KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> unusedRuntimeConfig,
             Optional<LeaderConfig> unusedLeaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync);
+        InMemoryAsyncAtlasDbConfig asyncConfig = (InMemoryAsyncAtlasDbConfig) config;
+        return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync, asyncConfig.eventuallySucceed());
     }
 
     @Override

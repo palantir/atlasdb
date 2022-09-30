@@ -25,16 +25,20 @@ import java.time.Duration;
 
 public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer implements AutoDelegate_KeyValueService {
     private final InMemoryKeyValueService delegate;
+    private final boolean eventuallySucceed;
     volatile boolean initializationShouldSucceed;
 
-    private AsyncInitializeableInMemoryKvs(InMemoryKeyValueService delegate, boolean initializationShouldSucceed) {
+    private AsyncInitializeableInMemoryKvs(
+            InMemoryKeyValueService delegate, boolean initializationShouldSucceed, boolean eventuallySucceed) {
         this.delegate = delegate;
         this.initializationShouldSucceed = initializationShouldSucceed;
+        this.eventuallySucceed = eventuallySucceed;
     }
 
-    public static KeyValueService createAndStartInit(boolean initializeAsync) {
+    public static KeyValueService createAndStartInit(boolean initializeAsync, boolean eventuallySucceed) {
         InMemoryKeyValueService kvs = new InMemoryKeyValueService(false);
-        AsyncInitializeableInMemoryKvs wrapper = new AsyncInitializeableInMemoryKvs(kvs, !initializeAsync);
+        AsyncInitializeableInMemoryKvs wrapper =
+                new AsyncInitializeableInMemoryKvs(kvs, !initializeAsync, eventuallySucceed);
         wrapper.initialize(initializeAsync);
         return wrapper.isInitialized() ? wrapper.delegate() : wrapper;
     }
@@ -52,7 +56,7 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
 
     @Override
     protected void cleanUpOnInitFailure() {
-        initializationShouldSucceed = true;
+        initializationShouldSucceed = eventuallySucceed;
     }
 
     @Override
