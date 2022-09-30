@@ -355,8 +355,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper,
-                knowledge);
+                keyValueServiceWrapper);
     }
 
     @Test
@@ -424,11 +423,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        KeyValueService kvs = keyValueServiceWrapper.apply(kvMock, pathTypeTracker);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        kvs,
+                        keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
                         inMemoryTimeLockRule.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
@@ -451,8 +449,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController,
-                        knowledge),
+                        tableLevelMetricsController),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -483,8 +480,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper,
-                knowledge);
+                keyValueServiceWrapper);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -970,8 +966,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper,
-                knowledge);
+                keyValueServiceWrapper);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -2282,8 +2277,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
-                tableLevelMetricsController,
-                knowledge);
+                tableLevelMetricsController);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

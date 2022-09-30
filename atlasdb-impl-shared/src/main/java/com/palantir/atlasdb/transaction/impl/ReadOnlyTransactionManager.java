@@ -31,7 +31,6 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
@@ -59,9 +58,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final int defaultGetRangesConcurrency;
     private final Supplier<TransactionConfig> transactionConfig;
 
-    private final TransactionKnowledgeComponents knowledge;
-
-    // Todo(snanda): breaking change
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -72,8 +68,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
-            Supplier<TransactionConfig> transactionConfig,
-            TransactionKnowledgeComponents knowledge) {
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -84,7 +79,6 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.transactionConfig = transactionConfig;
-        this.knowledge = knowledge;
     }
 
     @Override
@@ -228,8 +222,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 timestampValidationReadCache,
                 MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency,
-                transactionConfig,
-                knowledge);
+                transactionConfig);
         return runTaskThrowOnConflictWithCallback(
                 transaction -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager),

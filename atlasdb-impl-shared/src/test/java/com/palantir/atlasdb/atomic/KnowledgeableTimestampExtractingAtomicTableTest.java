@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -36,12 +35,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     private final KnownAbortedTransactions knownAbortedTransactions = mock(KnownAbortedTransactions.class);
     private final KnowledgeableTimestampExtractingAtomicTable tsExtractingTable =
             new KnowledgeableTimestampExtractingAtomicTable(
-                    delegate,
-                    ImmutableTransactionKnowledgeComponents.builder()
-                            .concluded(knownConcludedTransactions)
-                            .aborted(knownAbortedTransactions)
-                            .lastSeenCommitSupplier(() -> Long.MAX_VALUE)
-                            .build());
+                    delegate, knownConcludedTransactions, knownAbortedTransactions);
 
     @Test
     public void canGetTsOfConcludedTxn() throws ExecutionException, InterruptedException {

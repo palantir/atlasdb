@@ -121,11 +121,7 @@ public class ShardProgress {
         tryUpdateLastSeenCommitTimestamp(shardAndStrategy, commitTimestamp);
     }
 
-    public long getLastSeenCommitTimestamp() {
-        return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP).orElse(SweepQueueUtils.INITIAL_TIMESTAMP);
-    }
-
-    public Optional<Long> getMaybeLastSeenCommitTimestamp() {
+    public Optional<Long> getLastSeenCommitTimestamp() {
         return maybeGet(LAST_SEEN_COMMIT_TIMESTAMP);
     }
 
@@ -134,17 +130,19 @@ public class ShardProgress {
             return;
         }
 
-        long previous = getLastSeenCommitTimestamp();
-        boolean updateNeeded = previous < lastSeenCommitTs;
+        Optional<Long> previous = getLastSeenCommitTimestamp();
+        boolean updateNeeded =
+                previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
         while (updateNeeded) {
             byte[] colValNew = createColumnValue(lastSeenCommitTs);
-            CheckAndSetRequest casRequest = createRequest(LAST_SEEN_COMMIT_TIMESTAMP, previous, colValNew);
+            CheckAndSetRequest casRequest = createRequest(
+                    LAST_SEEN_COMMIT_TIMESTAMP, previous.orElse(SweepQueueUtils.INITIAL_TIMESTAMP), colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 updateNeeded = false;
             } catch (CheckAndSetException exception) {
-                long current = getLastSeenCommitTimestamp();
-                if (current == previous) {
+                Optional<Long> current = getLastSeenCommitTimestamp();
+                if (current.equals(previous)) {
                     log.warn(
                             "Failed to update last seen commit timestamp. Values before and after CAS match.",
                             SafeArg.of("previous", previous),
@@ -154,7 +152,8 @@ public class ShardProgress {
                     throw exception;
                 }
                 previous = current;
-                updateNeeded = previous < lastSeenCommitTs;
+                updateNeeded =
+                        previous.map(persisted -> persisted < lastSeenCommitTs).orElse(true);
             }
         }
     }

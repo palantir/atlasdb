@@ -39,8 +39,6 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampManagementService;
@@ -60,8 +58,6 @@ public class TransactionServicesTest {
     private CoordinationService<InternalSchemaMetadata> coordinationService;
     private TransactionService transactionService;
 
-    private TransactionKnowledgeComponents knowledge;
-
     private long startTs;
     private long commitTs;
 
@@ -71,14 +67,11 @@ public class TransactionServicesTest {
     @Before
     public void setUp() {
         TransactionTables.createTables(keyValueService);
-        MetricsManager metricsManager = MetricsManagers.createForTests();
-
         timestampService = services.getTimestampService();
-        coordinationService =
-                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
-        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+        coordinationService = CoordinationServices.createDefault(
+                keyValueService, timestampService, MetricsManagers.createForTests(), false);
         transactionService = TransactionServices.createTransactionService(
-                keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
+                keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     @Test

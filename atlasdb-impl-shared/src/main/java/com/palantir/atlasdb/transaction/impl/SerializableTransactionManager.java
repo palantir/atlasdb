@@ -34,7 +34,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -241,8 +240,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            Optional<Integer> sharedGetRangesPoolSize) {
+
         return create(
                 metricsManager,
                 keyValueService,
@@ -270,8 +269,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 true,
                 conflictTracer,
                 metricsFilterEvaluationContext,
-                sharedGetRangesPoolSize,
-                knowledge);
+                sharedGetRangesPoolSize);
     }
 
     public static TransactionManager create(
@@ -298,8 +296,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            Optional<Integer> sharedGetRangesPoolSize) {
+
         return create(
                 metricsManager,
                 keyValueService,
@@ -326,8 +324,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 metricsFilterEvaluationContext,
-                sharedGetRangesPoolSize,
-                knowledge);
+                sharedGetRangesPoolSize);
     }
 
     public static TransactionManager create(
@@ -355,8 +352,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            Optional<Integer> sharedGetRangesPoolSize) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -383,8 +379,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 false,
                 conflictTracer,
                 metricsFilterEvaluationContext,
-                sharedGetRangesPoolSize,
-                knowledge);
+                sharedGetRangesPoolSize);
     }
 
     private static TransactionManager create(
@@ -413,8 +408,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean shouldInstrument,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            Optional<Integer> sharedGetRangesPoolSize) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -437,8 +431,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 metricsFilterEvaluationContext,
-                sharedGetRangesPoolSize,
-                knowledge);
+                sharedGetRangesPoolSize);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -468,8 +461,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueue,
-            TransactionKnowledgeComponents knowledge) {
+            MultiTableSweepQueueWriter sweepQueue) {
         return new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -492,8 +484,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
+                Optional.empty());
     }
 
     public SerializableTransactionManager(
@@ -518,8 +509,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
-            Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            Optional<Integer> sharedGetRangesPoolSize) {
         super(
                 metricsManager,
                 keyValueService,
@@ -542,8 +532,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 metricsFilterEvaluationContext,
-                sharedGetRangesPoolSize,
-                knowledge);
+                sharedGetRangesPoolSize);
         this.conflictTracer = conflictTracer;
     }
 
@@ -578,8 +567,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController,
-                knowledge);
+                tableLevelMetricsController);
     }
 
     @VisibleForTesting
