@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.SafeArg;
@@ -33,7 +34,11 @@ public final class TransactionStatusUtils {
         return TransactionStatuses.committed(timestamp);
     }
 
-    public static long getCommitTimestampOrThrow(TransactionStatus status) {
+    /**
+     * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
+     * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
+     * */
+    public static long getCommitTimestampIfKnown(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
@@ -42,10 +47,32 @@ public final class TransactionStatusUtils {
                 });
     }
 
+    /**
+     * This helper is only meant to be used for transactions with schema < 4. For schemas >= 4,
+     * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
+     * */
     public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
         return TransactionStatuses.caseOf(status)
                 .committed(Function.identity())
                 .aborted_(TransactionConstants.FAILED_COMMIT_TS)
                 .otherwiseEmpty();
+    }
+
+    public static Long getCommitTsFromStatus(
+            long startTs, TransactionStatus status, Function<Long, Boolean> abortedCheck) {
+        return TransactionStatuses.caseOf(status)
+                .unknown(() -> getCommitTsForConcludedTransaction(startTs, abortedCheck))
+                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
+    }
+
+    public static long getCommitTsForConcludedTransaction(long startTs, Function<Long, Boolean> isAborted) {
+        return isAborted.apply(startTs)
+                ? TransactionConstants.FAILED_COMMIT_TS
+                : getCommitTsForNonAbortedUnknownTransaction(startTs);
+    }
+
+    @VisibleForTesting
+    static long getCommitTsForNonAbortedUnknownTransaction(long startTs) {
+        return startTs;
     }
 }

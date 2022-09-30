@@ -50,8 +50,10 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -345,8 +347,11 @@ public class KeyValueServiceMigratorsTest {
 
     private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLockRule timeLock) {
         ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
+        MetricsManager metricsManager = MetricsManagers.createForTests();
 
         TransactionTables.createTables(kvs);
+        TransactionKnowledgeComponents knowledge =
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
@@ -355,7 +360,7 @@ public class KeyValueServiceMigratorsTest {
         when(mockServices.getKeyValueService()).thenReturn(kvs);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
-                MetricsManagers.createForTests(),
+                metricsManager,
                 kvs,
                 timeLock.getLegacyTimelockService(),
                 timestampService,
@@ -368,7 +373,8 @@ public class KeyValueServiceMigratorsTest {
                 new NoOpCleaner(),
                 16,
                 4,
-                sweeper);
+                sweeper,
+                knowledge);
         sweeper.initialize(txManager);
         when(mockServices.getTransactionManager()).thenReturn(txManager);
         return mockServices;

@@ -64,6 +64,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
@@ -160,7 +161,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
-            TableLevelMetricsController tableLevelMetricsController) {
+            TableLevelMetricsController tableLevelMetricsController,
+            TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
                 keyValueService,
@@ -186,7 +188,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                knowledge);
     }
 
     @Override
@@ -265,7 +268,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sortedColumnRangeEnds.computeIfAbsent(request, _key -> new AtomicReference<>());
         ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(tableRef);
 
-        return new AbstractIterator<Map.Entry<Cell, byte[]>>() {
+        return new AbstractIterator<>() {
             @Override
             protected Map.Entry<Cell, byte[]> computeNext() {
                 if (!sortedColumns.hasNext()) {
@@ -858,7 +861,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
-                timestampValidationReadCache,
+                timestampCache,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueue,
@@ -866,7 +869,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
-                tableLevelMetricsController) {
+                tableLevelMetricsController,
+                knowledge) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
