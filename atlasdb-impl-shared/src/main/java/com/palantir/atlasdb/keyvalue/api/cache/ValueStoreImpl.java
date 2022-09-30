@@ -140,7 +140,8 @@ final class ValueStoreImpl implements ValueStore {
     }
 
     private TableReference extractTableReference(LockWatchReference lockWatchReference) {
-        return lockWatchReference.accept(LockWatchReferencesVisitor.INSTANCE);
+        // TODO(gs): handle row references correctly
+        return lockWatchReference.accept(LockWatchReferencesVisitor.INSTANCE).tableReference();
     }
 
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
