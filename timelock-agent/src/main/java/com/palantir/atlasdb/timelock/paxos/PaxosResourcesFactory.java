@@ -154,7 +154,6 @@ public final class PaxosResourcesFactory {
 
         LeaderAcceptorResource leaderAcceptorResource =
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
-
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())

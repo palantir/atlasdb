@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -65,16 +64,12 @@ public class TableTasksTest {
     private TransactionManager txManager;
     private TransactionService txService;
 
-    private TransactionKnowledgeComponents knowledge;
-
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        metricsManager = MetricsManagers.createForTests();
-        knowledge = TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
 
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
@@ -85,6 +80,7 @@ public class TableTasksTest {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         Cleaner cleaner = new NoOpCleaner();
+        metricsManager = MetricsManagers.createForTests();
         txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
@@ -99,8 +95,7 @@ public class TableTasksTest {
                 cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                knowledge);
+                MultiTableSweepQueueWriter.NO_OP);
     }
 
     @After

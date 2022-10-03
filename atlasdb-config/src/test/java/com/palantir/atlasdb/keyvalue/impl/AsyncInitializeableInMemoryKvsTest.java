@@ -28,19 +28,29 @@ import org.junit.Test;
 public class AsyncInitializeableInMemoryKvsTest {
 
     @Test
-    public void createSyncInitializationTest() {
-        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(false);
+    public void createSyncIgnoresEventuallySucceed() {
+        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(false, false);
         assertThat(kvs.isInitialized()).isTrue();
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
 
     @Test
-    public void createAsyncInitializationTest() {
-        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(true);
+    public void createAsyncCanEventuallySucceed() {
+        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(true, true);
         assertThat(kvs.isInitialized()).isFalse();
         assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
 
         Awaitility.await().atMost(Duration.ofSeconds(2)).until(kvs::isInitialized);
+        assertThat(kvs.isInitialized()).isTrue();
         assertThat(kvs.getAllTableNames()).isEmpty();
+    }
+
+    @Test
+    public void createAsyncCanAlwaysFail() {
+        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(true, false);
+        assertThat(kvs.isInitialized()).isFalse();
+        assertThatThrownBy(kvs::getAllTableNames).isInstanceOf(NotInitializedException.class);
+
+        Awaitility.await().during(Duration.ofSeconds(2)).until(() -> !kvs.isInitialized());
     }
 }

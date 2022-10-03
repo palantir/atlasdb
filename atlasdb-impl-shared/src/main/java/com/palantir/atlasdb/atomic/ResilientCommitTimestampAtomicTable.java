@@ -210,7 +210,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             }
             try {
                 Instant startTime = clock.instant();
-                long commitTs = TransactionStatusUtils.getCommitTimestampIfKnown(commitStatus);
+                long commitTs = TransactionStatusUtils.getCommitTimestampOrThrow(commitStatus);
                 resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
