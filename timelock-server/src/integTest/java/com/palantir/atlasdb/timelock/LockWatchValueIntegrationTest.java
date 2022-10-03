@@ -72,7 +72,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-// TODO - add tests for row references
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);

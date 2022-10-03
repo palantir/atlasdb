@@ -44,9 +44,8 @@ import javax.annotation.concurrent.NotThreadSafe;
  * execution.
  */
 @NotThreadSafe
-// atlas side, more interesting - agnostic of underlying events?
 final class LockWatchEventLog {
-    private final ClientLockWatchSnapshot snapshot; // maybe funky
+    private final ClientLockWatchSnapshot snapshot;
     private final VersionedEventStore eventStore;
     private final ReadWriteLock eventLock;
     private volatile Optional<LockWatchVersion> latestVersion = Optional.empty();
