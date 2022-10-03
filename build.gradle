@@ -86,9 +86,9 @@ allprojects {
             it.substitute it.module('javax.ws.rs:javax.ws.rs-api') with it.module('jakarta.ws.rs:jakarta.ws.rs-api:2.1.6')
             it.substitute it.module('javax.servlet:javax.servlet-api') with it.module('jakarta.servlet:jakarta.servlet-api:4.0.4')
 
-            it.substitute it.module('javax.inject:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
-            it.substitute it.module('org.glassfish.hk2.external:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
-            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
+            it.substitute it.module('javax.inject:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
+            it.substitute it.module('org.glassfish.hk2.external:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
+            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
 
             // See internal migration plugin PR 26: this direction is intentional.
             it.substitute it.module('javax.el:javax.el-api') with it.module('org.glassfish:jakarta.el:3.0.3')
