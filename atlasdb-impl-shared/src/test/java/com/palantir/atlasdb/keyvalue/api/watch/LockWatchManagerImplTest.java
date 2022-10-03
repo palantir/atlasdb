@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import java.time.Duration;
 import java.util.Set;
 import org.awaitility.Awaitility;
@@ -75,6 +77,9 @@ public final class LockWatchManagerImplTest {
     @Test
     public void createMethodParsesTablesFromSchema() {
         when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
+        when(fromSchema.accept(LockWatchReferencesVisitor.INSTANCE))
+                .thenReturn(WatchedCellRanges.WatchedTableReference.of(
+                        TableReference.createFromFullyQualifiedName("t.table")));
         manager = LockWatchManagerImpl.create(
                 MetricsManagers.createForTests(),
                 ImmutableSet.of(schema),
