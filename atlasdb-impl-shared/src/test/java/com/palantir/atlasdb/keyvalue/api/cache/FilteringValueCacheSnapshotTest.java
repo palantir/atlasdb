@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.RowReference;
 import com.palantir.lock.AtlasCellLockDescriptor;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
@@ -39,10 +40,14 @@ public final class FilteringValueCacheSnapshotTest {
     private static final CacheValue VALUE_2 = createValue(20);
 
     private static final TableReference ROW_TABLE = TableReference.createFromFullyQualifiedName("t.table2");
-    private static final Cell ROW_CELL = createCell(4);
-    private static final RowReference ROW_REFERENCE = RowReference.of(ROW_TABLE, ROW_CELL.getRowName());
-    private static final CellReference ROW_CELL_REF = CellReference.of(ROW_TABLE, ROW_CELL);
-    private static final CacheValue ROW_VALUE = createValue(40);
+    private static final Cell ROW_CELL_1 = createCell(11);
+    private static final Cell ROW_CELL_2 = createCell(12);
+    private static final RowReference ROW_REFERENCE_1 = RowReference.of(ROW_TABLE, ROW_CELL_1.getRowName());
+    private static final CellReference ROW_CELL_REF_1 = CellReference.of(ROW_TABLE, ROW_CELL_1);
+    private static final RowReference ROW_REFERENCE_2 = RowReference.of(ROW_TABLE, ROW_CELL_2.getRowName());
+    private static final CellReference ROW_CELL_REF_2 = CellReference.of(ROW_TABLE, ROW_CELL_2);
+    private static final CacheValue ROW_VALUE_1 = createValue(16);
+    private static final CacheValue ROW_VALUE_2 = createValue(17);
 
     private final ValueCacheSnapshot delegate = ValueCacheSnapshotImpl.of(
             HashMap.of(
@@ -50,10 +55,12 @@ public final class FilteringValueCacheSnapshotTest {
                     CacheEntry.unlocked(VALUE_1),
                     TABLE_CELL_2,
                     CacheEntry.unlocked(VALUE_2),
-                    ROW_CELL_REF,
-                    CacheEntry.unlocked(ROW_VALUE)),
+                    ROW_CELL_REF_1,
+                    CacheEntry.unlocked(ROW_VALUE_1),
+                    ROW_CELL_REF_2,
+                    CacheEntry.unlocked(ROW_VALUE_2)),
             HashSet.of(TABLE),
-            HashSet.of(ROW_REFERENCE),
+            HashSet.of(ROW_REFERENCE_1, ROW_REFERENCE_2),
             ImmutableSet.of(TABLE, ROW_TABLE));
 
     @Test
@@ -64,30 +71,46 @@ public final class FilteringValueCacheSnapshotTest {
         assertThatValueIsUnlocked(delegate, TABLE_CELL_1, VALUE_1);
         assertThatValueIsUnlocked(delegate, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(delegate, TABLE_CELL_3);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF, ROW_VALUE);
+        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_1, ROW_VALUE_1);
+        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_2, ROW_VALUE_2);
 
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_1);
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_2);
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_3);
-        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF);
+        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_1);
+        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_2);
     }
 
     @Test
     public void invalidateSomeReturnsLockedOnlyWhenCommitUpdateHasLocked() {
+        LockDescriptor tableDescriptor =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName());
+        LockDescriptor rowTableDescriptor = AtlasCellLockDescriptor.of(
+                ROW_TABLE.getQualifiedName(), ROW_CELL_1.getRowName(), ROW_CELL_1.getColumnName());
+
         ValueCacheSnapshot filteredSnapshot = FilteringValueCacheSnapshot.create(
-                delegate,
-                CommitUpdate.invalidateSome(ImmutableSet.of(AtlasCellLockDescriptor.of(
-                        TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName()))));
+                delegate, CommitUpdate.invalidateSome(ImmutableSet.of(tableDescriptor, rowTableDescriptor)));
 
         assertThatValueIsUnlocked(delegate, TABLE_CELL_1, VALUE_1);
         assertThatValueIsUnlocked(delegate, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(delegate, TABLE_CELL_3);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF, ROW_VALUE);
+        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_1, ROW_VALUE_1);
+        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_2, ROW_VALUE_2);
 
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_1);
         assertThatValueIsUnlocked(filteredSnapshot, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(filteredSnapshot, TABLE_CELL_3);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF, ROW_VALUE);
+        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_1);
+        assertThatValueIsUnlocked(filteredSnapshot, ROW_CELL_REF_2, ROW_VALUE_2);
+    }
+
+    @Test
+    public void unwatchedRowsAreNotLocked() {
+        Cell rowCell3 = createCell(13);
+        CellReference rowCellRef3 = CellReference.of(ROW_TABLE, rowCell3);
+
+        assertThat(delegate.isUnlocked(rowCellRef3)).isFalse();
+        assertThat(delegate.getValue(rowCellRef3)).isEmpty();
     }
 
     private static void assertThatValueIsEmpty(ValueCacheSnapshot delegate, CellReference cell) {
