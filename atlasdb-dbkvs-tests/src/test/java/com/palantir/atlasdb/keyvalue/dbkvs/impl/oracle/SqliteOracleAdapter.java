@@ -43,7 +43,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +50,54 @@ import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 import org.mockito.AdditionalMatchers;
 
+/**
+ * This adapter aims to mimic some behaviour of an Oracle database using a Sqlite database within the DbKvs context.
+ *
+ * Goals:
+ * <ul>
+ *     <li>Enable faster unit tests - standing up an Oracle DB requires a docker container which may not work
+ *     depending on the developer's laptop, which is in stark contrast to Sqlite which is represented by a single
+ *     file.</li>
+ *     <li>Additional flexibility in manipulating internal "Oracle" tables, such as all_tables.</li>
+ * </ul>
+ *
+ * Explicit non-goals:
+ * <ul>
+ *     <li>Perfect replica of all Oracle behaviour - this is infeasible, and generally not really applicable in the
+ *     test use cases.</li>
+ *     <li>Production use - an extension of the above, this adapter should <b>not</b> be used in production to
+ *     replace a real Oracle database if your code is Oracle specific!</li>
+ * </ul>
+ *
+ * Behaviours that this class adds parity for + limitations:
+ * <ul>
+ *     <li>Case sensitive LIKE queries -
+ *     <a href="https://docs.oracle.com/cd/B13789_01/server.101/b10759/conditions016.htm">Oracle has case sensitive LIKEs</a>, whereas
+ *     <a href="https://www.sqlite.org/lang_expr.html#:~:text=5.%20The-,LIKE,-%2C%20GLOB%2C%20REGEXP%2C%20MATCH">Sqlite is case-insensitive for ASCII characters</a>
+ *     This adapter adds the `PRAGMA case_sensitive_like = true` to ensure that LIKE is case sensitive.
+ *     </li>
+ *     <li>all_tables - Oracle uses an all_tables internal table that contains metadata on all tables created.
+ *     Sqlite does not use the same table name, so this adapter exposes a {@link #createTable} method that appends some
+ *     metadata to a custom all_tables. Table names and owners are stored in upper case. This table can be updated to
+ *     account for deleted tables by calling the {@link #refreshTableList} method. <b>Limitations:</b> This table
+ *     does not contain all the metadata that Oracle stores - only table name and owner. This table is only appended
+ *     to when using the create table method exposed in this adapter. CREATE TABLE sql queries are not currently
+ *     intercepted. There is no ability to control the casing of entries in this table - it is always upper case.
+ *     Oracle does allow case sensitive entries via table name escaping, but this adapter does not support that.</li>
+ *     <li>Stripping PURGE from DROP TABLE commands - Oracle supports the PURGE keyword to explicitly reclaim space
+ *     previously used by the table. Sqlite does not, and so this adapter intercepts the DROP TABLE queries that end
+ *     with PURGE and strips the PURGE keyword off. <b>Limitations:</b> PURGE is only removed if it is at the end of
+ *     the command.</li>
+ *     <li>Atlas internal metadata and mapping tables - the {@link #createTable} appends entries to the internal
+ *     metadata table and the mapping table, as DbKVS would do. This is because CREATE TABLE is not intercepted, so
+ *     using DbKVS to create a table would result in all_tables not being updated. <b>Limitations: </b> Short table
+ *     names are not generated in an identical format - this adapter simply appends a UUID. The metadata is generic,
+ *     and is not table specific. The namespace is just prefix + owner, since Sqlite doesn't allow the same table
+ *     names for different "owners". The created table has an arbitrary schema, unrelated to a real DbKVS table.
+ *     </li>
+ * </ul>
+ *
+ */
 final class SqliteOracleAdapter implements ConnectionSupplier {
     public static final TableReference METADATA_TABLE = AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE;
     private final File sqliteFileLocation;
@@ -86,6 +133,9 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         return new SqliteSqlConnectionSupplier(this);
     }
 
+    /**
+     * Creates a representation of the internal Oracle and AtlasDB tables.
+     */
     public void initializeMetadataAndMappingTables() {
         runWithConnection(connection -> {
             Statement statement = connection.createStatement();
@@ -116,6 +166,18 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         tableInitializer.createMetadataTable(METADATA_TABLE.getQualifiedName());
     }
 
+    /**
+     * Creates a table matching how Oracle DBKvs creates tables. Please use this method to ensure that all_tables is
+     * correctly updated.
+     *
+     * This method provides additional flexibility over the standard Oracle DDL create table - namely specifying the
+     * owner and prefix directly.
+     *
+     * <b>Limitations: </b> Short table names are not generated in an identical format - this adapter simply appends
+     * a UUID. The metadata is generic, and is not table specific. The namespace is just prefix + owner, since Sqlite
+     * doesn't allow the same table names for different "owners". The created table has an arbitrary schema,
+     * unrelated to a real DbKVS table.
+     */
     public TableDetails createTable(String prefix, String tableName, String owner) {
         // This is so that unique table metadata is created for different prefixes and owners
         // While Oracle doesn't handle the first case (it creates tables then throws when adding metadata!), tables
@@ -129,7 +191,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         String physicalTableName =
                 prefixedTableName + UUID.randomUUID().toString().replace("-", "");
 
-        // We don't use ddlTable createTable since we want the table name to insert into allTables, and extracting
+        // We don't use ddlTable createTable since we want the table name to insert into all_tables, and extracting
         // that is quite painful
         return runWithConnection(connection -> {
             PreparedStatement insertAllTables =
@@ -161,7 +223,10 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         });
     }
 
-    public Set<String> listAllTables() {
+    /**
+     * Returns the set of all non-sqlite physical table names.
+     */
+    public Set<String> listAllPhysicalTableNames() {
         refreshTableList();
         return runWithConnection(connection -> {
             PreparedStatement statement = connection.prepareStatement("SELECT name FROM sqlite_schema WHERE"
@@ -179,8 +244,10 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         });
     }
 
-    // all_tables is not a native sqlite concept, unlike Oracle. Thus, if we perform deletes, we don't cascade and
-    // delete from all_tables. This method does not insert tables created outside the create_table method
+    /**
+     * all_tables is not a native sqlite concept, unlike Oracle. Thus, if we perform deletes, we don't cascade and
+     * delete from all_tables. This method does not insert tables created outside the createTable method.
+     */
     private void refreshTableList() {
         runWithConnection(connection -> {
             connection
@@ -191,6 +258,9 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         });
     }
 
+    /**
+     * Returns the set of all table references stored in the AtlasDB metadata table.
+     */
     public Set<TableReference> listAllTablesWithMetadata() {
         return runWithConnection(connection -> {
             PreparedStatement statement = connection.prepareStatement("SELECT table_name FROM " + METADATA_TABLE);
@@ -204,6 +274,9 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         });
     }
 
+    /**
+     * Returns the set of all long table names stored in the AtlasDB name mapping table.
+     */
     public Set<String> listAllTablesWithMapping() {
         return runWithConnection(connection -> {
             PreparedStatement statement =
@@ -240,7 +313,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
 
     /**
      * A lightweight wrapper around {@link SimpleTimedSqlConnectionSupplier} that marshals some queries containing
-     * Oracle specific keywords such as PURGE to sqlite compatible queries
+     * Oracle specific keywords such as PURGE to sqlite compatible queries.
      */
     private static class SqliteSqlConnectionSupplier implements SqlConnectionSupplier {
         private final SqlConnectionSupplier delegate;
@@ -280,7 +353,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
      *
      * Generally, tests will be working on a collection of tables and will want to compare against the currently
      * persisted table names. Thus, this also provides some utility methods for mapping from a collection of
-     * TableDetails down to a set of a particular constituent part (e.g collection of TableDetails to a set of strings
+     * TableDetails down to a set of a particular constituent part (e.g set of TableDetails to a set of strings
      * representing the prefixed table names).
      */
     @Value.Immutable
@@ -295,15 +368,15 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
             return ImmutableTableDetails.builder();
         }
 
-        static Set<String> mapToPrefixedTableNames(Collection<TableDetails> tableDetails) {
+        static Set<String> mapToPrefixedTableNames(Set<TableDetails> tableDetails) {
             return tableDetails.stream().map(TableDetails::prefixedTableName).collect(Collectors.toSet());
         }
 
-        static Set<String> mapToPhysicalTableNames(Collection<TableDetails> tableDetails) {
+        static Set<String> mapToPhysicalTableNames(Set<TableDetails> tableDetails) {
             return tableDetails.stream().map(TableDetails::physicalTableName).collect(Collectors.toSet());
         }
 
-        static Set<TableReference> mapToTableReferences(Collection<TableDetails> tableDetails) {
+        static Set<TableReference> mapToTableReferences(Set<TableDetails> tableDetails) {
             return tableDetails.stream().map(TableDetails::tableReference).collect(Collectors.toSet());
         }
     }
