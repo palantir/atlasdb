@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] | Batching atomicUpdates in `MarkAndCasConsensusForgettingStore`.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6193
