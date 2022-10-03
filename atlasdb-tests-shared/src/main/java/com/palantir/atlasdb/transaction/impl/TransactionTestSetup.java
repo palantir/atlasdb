@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static com.palantir.atlasdb.transaction.service.TransactionServices.createTransactionService;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -183,7 +184,8 @@ public abstract class TransactionTestSetup {
         knowledge = TransactionKnowledgeComponents.create(
                 keyValueService,
                 metricsManager.getTaggedRegistry(),
-                ImmutableInternalSchemaInstallConfig.builder().build());
+                ImmutableInternalSchemaInstallConfig.builder().build(),
+                Suppliers.ofInstance(true));
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.services;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.SweepConfig;
@@ -98,7 +99,8 @@ public class KeyValueServiceModule {
     @Singleton
     public TransactionKnowledgeComponents provideTransactionKnowledgeComponents(
             @Named("kvs") KeyValueService kvs, MetricsManager metricsManager, AtlasDbConfig config) {
-        return TransactionKnowledgeComponents.create(kvs, metricsManager.getTaggedRegistry(), config.internalSchema());
+        return TransactionKnowledgeComponents.create(
+                kvs, metricsManager.getTaggedRegistry(), config.internalSchema(), Suppliers.ofInstance(true));
     }
 
     @Provides

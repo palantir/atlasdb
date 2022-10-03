@@ -426,16 +426,22 @@ public abstract class TransactionManagers {
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
 
+        CleanupFollower follower = CleanupFollower.create(schemas());
+        TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
+                metricsManager, config().targetedSweep(), follower, runtime.map(AtlasDbRuntimeConfig::targetedSweep));
+
         TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
-                keyValueService, metricsManager.getTaggedRegistry(), config().internalSchema());
+                keyValueService,
+                metricsManager.getTaggedRegistry(),
+                config().internalSchema(),
+                targetedSweeper::isInitialized);
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, knowledge, lockAndTimestampServices, keyValueService, runtime);
+
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-
-        CleanupFollower follower = CleanupFollower.create(schemas());
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
@@ -454,13 +460,7 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
-        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedTargetedSweeper(
-                        metricsManager,
-                        config().targetedSweep(),
-                        follower,
-                        runtime.map(AtlasDbRuntimeConfig::targetedSweep)),
-                closeables);
+        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(() -> targetedSweeper, closeables);
 
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction).map(this::withConsolidatedGrabImmutableTsLockFlag);
@@ -960,7 +960,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private static MultiTableSweepQueueWriter uninitializedTargetedSweeper(
+    private static TargetedSweeper uninitializedTargetedSweeper(
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
             Follower follower,

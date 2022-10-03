@@ -17,27 +17,19 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.table.description.Schemas;
+import java.util.function.Supplier;
 
 public final class LastSeenCommitTsLoader {
     private final ShardProgress shardProgress;
-    private final KeyValueService kvs;
-    private volatile boolean isInitialized = false;
+    private final Supplier<Boolean> isInitializedSupplier;
 
-    public LastSeenCommitTsLoader(KeyValueService kvs) {
-        this.kvs = kvs;
+    public LastSeenCommitTsLoader(KeyValueService kvs, Supplier<Boolean> isInitializedSupplier) {
+        this.isInitializedSupplier = isInitializedSupplier;
         this.shardProgress = new ShardProgress(kvs);
     }
 
     public long getLastSeenCommitTs() {
-        if (isInitialized) {
-            return shardProgress.getLastSeenCommitTimestamp();
-        }
-
-        if (kvs.isInitialized()) {
-            Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
-            isInitialized = true;
+        if (isInitializedSupplier.get()) {
             return shardProgress.getLastSeenCommitTimestamp();
         }
 
