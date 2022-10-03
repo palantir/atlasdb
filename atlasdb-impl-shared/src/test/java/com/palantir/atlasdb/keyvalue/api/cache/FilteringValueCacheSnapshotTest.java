@@ -106,11 +106,11 @@ public final class FilteringValueCacheSnapshotTest {
 
     @Test
     public void unwatchedRowsAreNotLocked() {
-        Cell rowCell3 = createCell(13);
-        CellReference rowCellRef3 = CellReference.of(ROW_TABLE, rowCell3);
+        Cell unwatchedRow = createCell(13);
+        CellReference unwatchedCellReference = CellReference.of(ROW_TABLE, unwatchedRow);
 
-        assertThat(delegate.isUnlocked(rowCellRef3)).isFalse();
-        assertThat(delegate.getValue(rowCellRef3)).isEmpty();
+        assertThat(delegate.isUnlocked(unwatchedCellReference)).isFalse();
+        assertThat(delegate.getValue(unwatchedCellReference)).isEmpty();
     }
 
     private static void assertThatValueIsEmpty(ValueCacheSnapshot delegate, CellReference cell) {
