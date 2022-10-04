@@ -24,34 +24,24 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class TrackingKeyValueService implements KeyValueService {
+public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
     private final AtomicLong bytesRead = new AtomicLong(0);
 
@@ -60,12 +50,13 @@ public class TrackingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public KeyValueService delegate() {
+        return delegate;
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        // todo aalouane:
-        //      should i use transformAsync instead?
-        //      is directExecutor safe here, the java doc has warnings?
-        //      this looks ugly, is there a more concise way to: from future F,
-        //      create a new future than intercepts the result of F, runs some procedure then returns the result
+        // todo aalouane: check if directExecutor here is safe to use
 
         return Futures.transform(
                 delegate.getAsync(tableRef, timestampByCell),
@@ -73,22 +64,10 @@ public class TrackingKeyValueService implements KeyValueService {
                     cellToValue.values()
                             .stream()
                             .map(Value::getByteCount)
-                            .forEach(bytes -> bytesRead.addAndGet(bytes));
+                            .forEach(bytesRead::addAndGet);
                     return cellToValue;
                 },
                 MoreExecutors.directExecutor());
-    }
-
-    @Override
-    public void close() {
-        delegate.close();
-    }
-
-    @Override
-    public Collection<? extends KeyValueService> getDelegates() {
-        // todo aalouane: this should be fine as the javadoc for KeyValueService says this should return *direct*
-        //  delegates
-        return Collections.singleton(delegate);
     }
 
     @Override
@@ -101,7 +80,7 @@ public class TrackingKeyValueService implements KeyValueService {
         cellToValue.values()
                 .stream()
                 .map(Value::getByteCount)
-                .forEach(bytes -> bytesRead.addAndGet(bytes));
+                .forEach(bytesRead::addAndGet);
         return cellToValue;
     }
 
@@ -112,11 +91,9 @@ public class TrackingKeyValueService implements KeyValueService {
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
 
+        Map<byte[], RowColumnRangeIterator> results = delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
 
-        
-
-
-        return delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        return null;
     }
 
     @Override
@@ -137,80 +114,6 @@ public class TrackingKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate.getLatestTimestamps(tableRef, timestampByCell);
-    }
-
-    @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
-            throws KeyAlreadyExistsException {
-        delegate.put(tableRef, values, timestamp);
-    }
-
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
-            throws KeyAlreadyExistsException {
-        delegate.multiPut(valuesByTable, timestamp);
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
-            throws KeyAlreadyExistsException {
-        delegate.putWithTimestamps(tableRef, cellValues);
-    }
-
-    @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.putUnlessExists(tableRef, values);
-    }
-
-    @Override
-    public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
-        delegate.setOnce(tableRef, values);
-    }
-
-    @Override
-    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        delegate.getCheckAndSetCompatibility();
-    }
-
-    @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
-        delegate.checkAndSet(checkAndSetRequest);
-    }
-
-    @Override
-    public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
-        delegate.multiCheckAndSet(multiCheckAndSetRequest);
-    }
-
-    @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        delegate.delete(tableRef, keys);
-    }
-
-    @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
-        delegate.deleteRange(tableRef, range);
-    }
-
-    @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
-        delegate.deleteRows(tableRef, rows);
-    }
-
-    @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
-            throws InsufficientConsistencyException {
-        delegate.deleteAllTimestamps(tableRef, deletes);
-    }
-
-    @Override
-    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
-        delegate.truncateTable(tableRef);
-    }
-
-    @Override
-    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
-        delegate.truncateTables(tableRefs);
     }
 
     @Override
@@ -245,27 +148,6 @@ public class TrackingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
-        delegate.dropTable(tableRef);
-    }
-
-    @Override
-    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
-        delegate.dropTables(tableRefs);
-    }
-
-    @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
-        delegate.createTable(tableRef, tableMetadata);
-    }
-
-    @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
-            throws InsufficientConsistencyException {
-        delegate.createTables(tableRefToTableMetadata);
-    }
-
-    @Override
     public Set<TableReference> getAllTableNames() {
         return delegate.getAllTableNames();
     }
@@ -281,35 +163,11 @@ public class TrackingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        delegate.putMetadataForTable(tableRef, metadata);
-    }
-
-    @Override
-    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        delegate.putMetadataForTables(tableRefToMetadata);
-    }
-
-    @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
-        delegate.addGarbageCollectionSentinelValues(tableRef, cells);
-    }
-
-    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
             throws AtlasDbDependencyException {
         return delegate.getAllTimestamps(tableRef, cells, timestamp);
     }
 
-    @Override
-    public void compactInternally(TableReference tableRef) {
-        delegate.compactInternally(tableRef);
-    }
-
-    @Override
-    public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return delegate.getClusterAvailabilityStatus();
-    }
 
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
