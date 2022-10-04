@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.RowReference;
 import io.vavr.collection.Map;
 import io.vavr.collection.Set;
 import java.util.Optional;
@@ -31,21 +30,11 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
 
     Set<TableReference> lockWatchEnabledTables();
 
-    // The tables from these row refs may or may not be listed in lockWatchEnabledTables
-    // Note that we *do* need to keep a set of enabled rows here, even though the values themselves won't be cached
-    // TODO(gs): decouple "watching" from "caching"
-    Set<RowReference> lockWatchEnabledRows();
-
     java.util.Set<TableReference> allowedTablesFromSchema();
 
     @Value.Derived
     default java.util.Set<TableReference> enabledTables() {
         return Sets.intersection(lockWatchEnabledTables().toJavaSet(), allowedTablesFromSchema());
-    }
-
-    @Value.Derived
-    default java.util.Set<RowReference> enabledRows() {
-        return lockWatchEnabledRows().toJavaSet();
     }
 
     @Override
@@ -65,19 +54,17 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     }
 
     @Override
-    default boolean hasAnyCellsWatched() {
-        return !enabledTables().isEmpty() || !enabledRows().isEmpty();
+    default boolean hasAnyTablesWatched() {
+        return !enabledTables().isEmpty();
     }
 
     static ValueCacheSnapshot of(
             Map<CellReference, CacheEntry> values,
             Set<TableReference> enabledTables,
-            Set<RowReference> enabledRows,
             java.util.Set<TableReference> allowedTables) {
         return ImmutableValueCacheSnapshotImpl.builder()
                 .values(values)
                 .lockWatchEnabledTables(enabledTables)
-                .lockWatchEnabledRows(enabledRows)
                 .allowedTablesFromSchema(allowedTables)
                 .build();
     }

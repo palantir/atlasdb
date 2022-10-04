@@ -49,7 +49,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_2),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), HashSet.empty(), ImmutableSet.of()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
         cacheStore.createCache(TIMESTAMP_2);
         assertThat(cacheStore.getCache(TIMESTAMP_2)).isExactlyInstanceOf(ValidatingTransactionScopedCache.class);
         assertThat(getTransactionCacheInstanceCount()).isEqualTo(1);
@@ -62,7 +62,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), HashSet.empty(), ImmutableSet.of()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         cacheStore.createCache(TIMESTAMP_1);
         cacheStore.createCache(TIMESTAMP_2);
@@ -82,7 +82,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1, TIMESTAMP_2, timestamp),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), HashSet.empty(), ImmutableSet.of()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         cacheStore.createCache(TIMESTAMP_1);
         cacheStore.createCache(timestamp);
@@ -100,7 +100,7 @@ public final class CacheStoreImplTest {
         snapshotStore.storeSnapshot(
                 Sequence.of(5L),
                 ImmutableSet.of(TIMESTAMP_1),
-                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), HashSet.empty(), ImmutableSet.of()));
+                ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of()));
 
         assertThat(cacheStore.getCache(TIMESTAMP_1)).isExactlyInstanceOf(NoOpTransactionScopedCache.class);
         cacheStore.createCache(TIMESTAMP_1);

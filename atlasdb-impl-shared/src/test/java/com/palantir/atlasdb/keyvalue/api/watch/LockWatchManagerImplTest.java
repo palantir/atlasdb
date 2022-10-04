@@ -34,6 +34,7 @@ import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import org.awaitility.Awaitility;
 import org.junit.Before;
@@ -78,8 +79,7 @@ public final class LockWatchManagerImplTest {
     public void createMethodParsesTablesFromSchema() {
         when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
         when(fromSchema.accept(LockWatchReferencesVisitor.INSTANCE))
-                .thenReturn(WatchedCellRanges.WatchedTableReference.of(
-                        TableReference.createFromFullyQualifiedName("t.table")));
+                .thenReturn(Optional.of(TableReference.createFromFullyQualifiedName("t.table")));
         manager = LockWatchManagerImpl.create(
                 MetricsManagers.createForTests(),
                 ImmutableSet.of(schema),

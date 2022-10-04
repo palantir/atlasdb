@@ -17,42 +17,38 @@
 package com.palantir.lock.watch;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.WatchedCellRanges;
-import com.palantir.atlasdb.transaction.api.RowReference;
 import com.palantir.lock.watch.LockWatchReferences.EntireTable;
 import com.palantir.lock.watch.LockWatchReferences.ExactCell;
 import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
 import com.palantir.lock.watch.LockWatchReferences.RowRange;
+import java.util.Optional;
 
-public final class LockWatchReferencesVisitor
-        implements LockWatchReferences.Visitor<WatchedCellRanges.WatchedCellRange> {
+public final class LockWatchReferencesVisitor implements LockWatchReferences.Visitor<Optional<TableReference>> {
     public static final LockWatchReferencesVisitor INSTANCE = new LockWatchReferencesVisitor();
 
     @Override
-    public WatchedCellRanges.WatchedCellRange visit(EntireTable reference) {
-        return WatchedCellRanges.WatchedTableReference.of(
-                TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef()));
+    public Optional<TableReference> visit(EntireTable reference) {
+        return Optional.of(TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef()));
     }
 
     @Override
-    public WatchedCellRanges.WatchedCellRange visit(RowPrefix reference) {
+    public Optional<TableReference> visit(RowPrefix reference) {
         throw new UnsupportedOperationException("Row prefix watches are not yet supported");
     }
 
     @Override
-    public WatchedCellRanges.WatchedCellRange visit(RowRange reference) {
+    public Optional<TableReference> visit(RowRange reference) {
         throw new UnsupportedOperationException("Row range watches are not yet supported");
     }
 
     @Override
-    public WatchedCellRanges.WatchedCellRange visit(ExactRow reference) {
-        return WatchedCellRanges.WatchedRowReference.of(RowReference.of(
-                TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef()), reference.row()));
+    public Optional<TableReference> visit(ExactRow reference) {
+        return Optional.empty();
     }
 
     @Override
-    public WatchedCellRanges.WatchedCellRange visit(ExactCell reference) {
+    public Optional<TableReference> visit(ExactCell reference) {
         throw new UnsupportedOperationException("Exact cell watches are not yet supported");
     }
 }

@@ -48,7 +48,7 @@ public final class SnapshotStoreImplTest {
     private static final StartTimestamp TIMESTAMP_4 = StartTimestamp.of(10110101L);
     private static final StartTimestamp TIMESTAMP_5 = StartTimestamp.of(500);
     private static final ValueCacheSnapshot SNAPSHOT_1 =
-            ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), HashSet.empty(), ImmutableSet.of());
+            ValueCacheSnapshotImpl.of(HashMap.empty(), HashSet.empty(), ImmutableSet.of());
     private static final ValueCacheSnapshot SNAPSHOT_2 = createSnapshot(2);
     private static final ValueCacheSnapshot SNAPSHOT_3 = createSnapshot(3);
     private static final ValueCacheSnapshot SNAPSHOT_4 = createSnapshot(4);
@@ -230,7 +230,6 @@ public final class SnapshotStoreImplTest {
                                         TableReference.createFromFullyQualifiedName("t.table"),
                                         Cell.create(new byte[] {byteValue}, new byte[] {byteValue})),
                                 CacheEntry.locked()),
-                HashSet.empty(),
                 HashSet.empty(),
                 ImmutableSet.of());
     }

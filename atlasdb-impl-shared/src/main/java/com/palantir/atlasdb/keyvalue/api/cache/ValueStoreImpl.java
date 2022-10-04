@@ -24,8 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.WatchedCellRanges;
-import com.palantir.atlasdb.transaction.api.RowReference;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -36,6 +34,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -52,7 +51,6 @@ final class ValueStoreImpl implements ValueStore {
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
-    private final StructureHolder<io.vavr.collection.Set<RowReference>> watchedRows;
     private final Set<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
@@ -62,7 +60,6 @@ final class ValueStoreImpl implements ValueStore {
         this.allowedTables = allowedTables;
         this.values = StructureHolder.create(HashMap::empty);
         this.watchedTables = StructureHolder.create(HashSet::empty);
-        this.watchedRows = StructureHolder.create(HashSet::empty);
         this.loadedValues = Caffeine.newBuilder()
                 .maximumWeight(maxCacheSize)
                 .weigher(EntryWeigher.INSTANCE)
@@ -82,7 +79,6 @@ final class ValueStoreImpl implements ValueStore {
     public void reset() {
         values.resetToInitialValue();
         watchedTables.resetToInitialValue();
-        watchedRows.resetToInitialValue();
         loadedValues.invalidateAll();
 
         // Forcing the cache to run cleanup here guarantees that the metrics are not affected after they have been reset
@@ -115,8 +111,7 @@ final class ValueStoreImpl implements ValueStore {
 
     @Override
     public ValueCacheSnapshot getSnapshot() {
-        return ValueCacheSnapshotImpl.of(
-                values.getSnapshot(), watchedTables.getSnapshot(), watchedRows.getSnapshot(), allowedTables);
+        return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
     }
 
     private void putLockedCell(CellReference cellReference) {
@@ -174,26 +169,11 @@ final class ValueStoreImpl implements ValueStore {
         public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             lockWatchCreatedEvent.references().stream()
                     .map(ref -> ref.accept(LockWatchReferencesVisitor.INSTANCE))
-                    .forEach(this::addWatchedCellRange);
+                    .flatMap(Optional::stream)
+                    .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
 
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());
             return null;
-        }
-
-        private void addWatchedCellRange(WatchedCellRanges.WatchedCellRange range) {
-            range.accept(new WatchedCellRanges.Visitor<Void>() {
-                @Override
-                public Void visit(WatchedCellRanges.WatchedTableReference tableReference) {
-                    watchedTables.with(tables -> tables.add(tableReference.tableReference()));
-                    return null;
-                }
-
-                @Override
-                public Void visit(WatchedCellRanges.WatchedRowReference rowReference) {
-                    watchedRows.with(rows -> rows.add(rowReference.rowReference()));
-                    return null;
-                }
-            });
         }
     }
 

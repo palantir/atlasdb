@@ -211,7 +211,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .keySet()
                 .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
 
-        if (valueStore.getSnapshot().hasAnyCellsWatched()) {
+        if (valueStore.getSnapshot().hasAnyTablesWatched()) {
             assertNoSnapshotsMissing(reversedMap);
         }
     }
