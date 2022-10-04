@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -90,34 +91,26 @@ public final class ValueStoreImplTest {
     }
 
     @Test
-    public void lockEventInvalidatesValueForRowLevelReference() {
+    public void rowLevelReferencesExcludedFromValueStore() {
         valueStore.applyEvent(WATCH_EVENTS);
-        valueStore.putValue(ROW_LEVEL_CELL_REFERENCE, VALUE_1);
-        int expectedSize = EntryWeigher.INSTANCE.weigh(ROW_LEVEL_CELL_REFERENCE, 1);
-
-        verify(metrics).increaseCacheSize(expectedSize);
-
-        assertExpectedValue(ROW_WATCHED_TABLE, ROW_LEVEL_CELL, CacheEntry.unlocked(VALUE_1));
-
         valueStore.applyEvent(ROW_LOCK_EVENT);
-        assertExpectedValue(ROW_WATCHED_TABLE, ROW_LEVEL_CELL, CacheEntry.locked());
 
-        verify(metrics).decreaseCacheSize(expectedSize);
+        verify(metrics, never()).increaseCacheSize(anyLong());
+
+        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
+        assertThatCode(() -> valueStore.putValue(ROW_LEVEL_CELL_REFERENCE, VALUE_1))
+                .doesNotThrowAnyException();
     }
 
     @Test
     public void unlockEventsClearLockedEntries() {
         valueStore.applyEvent(WATCH_EVENTS);
         valueStore.applyEvent(LOCK_EVENT);
-        valueStore.applyEvent(ROW_LOCK_EVENT);
 
         assertExpectedValue(CELL_1, CacheEntry.locked());
-        assertExpectedValue(ROW_WATCHED_TABLE, ROW_LEVEL_CELL, CacheEntry.locked());
 
         valueStore.applyEvent(UNLOCK_EVENT);
-        valueStore.applyEvent(ROW_UNLOCK_EVENT);
         assertThat(valueStore.getSnapshot().getValue(TABLE_CELL)).isEmpty();
-        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
     }
 
     @Test
@@ -127,7 +120,7 @@ public final class ValueStoreImplTest {
         valueStore.applyEvent(ROW_LOCK_EVENT);
 
         assertExpectedValue(CELL_1, CacheEntry.locked());
-        assertExpectedValue(ROW_WATCHED_TABLE, ROW_LEVEL_CELL, CacheEntry.locked());
+        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
 
         valueStore.reset();
         assertThat(valueStore.getSnapshot().getValue(TABLE_CELL)).isEmpty();
@@ -138,19 +131,12 @@ public final class ValueStoreImplTest {
     public void putValueThrowsIfCurrentValueDiffers() {
         valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
-        valueStore.putValue(ROW_LEVEL_CELL_REFERENCE, VALUE_1);
 
         assertThatCode(() -> valueStore.putValue(TABLE_CELL, VALUE_1)).doesNotThrowAnyException();
-        assertThatCode(() -> valueStore.putValue(ROW_LEVEL_CELL_REFERENCE, VALUE_1))
-                .doesNotThrowAnyException();
         assertPutThrows(VALUE_2);
-        assertPutThrows(ROW_LEVEL_CELL_REFERENCE, VALUE_2);
 
         valueStore.applyEvent(LOCK_EVENT);
         assertPutThrows(VALUE_1);
-
-        valueStore.applyEvent(ROW_LOCK_EVENT);
-        assertPutThrows(ROW_LEVEL_CELL_REFERENCE, VALUE_1);
     }
 
     @Test
