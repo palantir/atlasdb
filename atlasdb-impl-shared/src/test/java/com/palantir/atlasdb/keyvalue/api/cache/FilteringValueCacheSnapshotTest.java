@@ -43,22 +43,10 @@ public final class FilteringValueCacheSnapshotTest {
     private static final Cell ROW_CELL_1 = createCell(11);
     private static final Cell ROW_CELL_2 = createCell(12);
     private static final RowReference ROW_REFERENCE_1 = RowReference.of(ROW_TABLE, ROW_CELL_1.getRowName());
-    private static final CellReference ROW_CELL_REF_1 = CellReference.of(ROW_TABLE, ROW_CELL_1);
     private static final RowReference ROW_REFERENCE_2 = RowReference.of(ROW_TABLE, ROW_CELL_2.getRowName());
-    private static final CellReference ROW_CELL_REF_2 = CellReference.of(ROW_TABLE, ROW_CELL_2);
-    private static final CacheValue ROW_VALUE_1 = createValue(16);
-    private static final CacheValue ROW_VALUE_2 = createValue(17);
 
     private final ValueCacheSnapshot delegate = ValueCacheSnapshotImpl.of(
-            HashMap.of(
-                    TABLE_CELL_1,
-                    CacheEntry.unlocked(VALUE_1),
-                    TABLE_CELL_2,
-                    CacheEntry.unlocked(VALUE_2),
-                    ROW_CELL_REF_1,
-                    CacheEntry.unlocked(ROW_VALUE_1),
-                    ROW_CELL_REF_2,
-                    CacheEntry.unlocked(ROW_VALUE_2)),
+            HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1), TABLE_CELL_2, CacheEntry.unlocked(VALUE_2)),
             HashSet.of(TABLE),
             HashSet.of(ROW_REFERENCE_1, ROW_REFERENCE_2),
             ImmutableSet.of(TABLE, ROW_TABLE));
@@ -71,46 +59,27 @@ public final class FilteringValueCacheSnapshotTest {
         assertThatValueIsUnlocked(delegate, TABLE_CELL_1, VALUE_1);
         assertThatValueIsUnlocked(delegate, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(delegate, TABLE_CELL_3);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_1, ROW_VALUE_1);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_2, ROW_VALUE_2);
 
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_1);
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_2);
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_3);
-        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_1);
-        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_2);
     }
 
     @Test
     public void invalidateSomeReturnsLockedOnlyWhenCommitUpdateHasLocked() {
         LockDescriptor tableDescriptor =
                 AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName());
-        LockDescriptor rowTableDescriptor = AtlasCellLockDescriptor.of(
-                ROW_TABLE.getQualifiedName(), ROW_CELL_1.getRowName(), ROW_CELL_1.getColumnName());
 
         ValueCacheSnapshot filteredSnapshot = FilteringValueCacheSnapshot.create(
-                delegate, CommitUpdate.invalidateSome(ImmutableSet.of(tableDescriptor, rowTableDescriptor)));
+                delegate, CommitUpdate.invalidateSome(ImmutableSet.of(tableDescriptor)));
 
         assertThatValueIsUnlocked(delegate, TABLE_CELL_1, VALUE_1);
         assertThatValueIsUnlocked(delegate, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(delegate, TABLE_CELL_3);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_1, ROW_VALUE_1);
-        assertThatValueIsUnlocked(delegate, ROW_CELL_REF_2, ROW_VALUE_2);
 
         assertThatValueIsLocked(filteredSnapshot, TABLE_CELL_1);
         assertThatValueIsUnlocked(filteredSnapshot, TABLE_CELL_2, VALUE_2);
         assertThatValueIsEmpty(filteredSnapshot, TABLE_CELL_3);
-        assertThatValueIsLocked(filteredSnapshot, ROW_CELL_REF_1);
-        assertThatValueIsUnlocked(filteredSnapshot, ROW_CELL_REF_2, ROW_VALUE_2);
-    }
-
-    @Test
-    public void unwatchedRowsAreNotLocked() {
-        Cell unwatchedRow = createCell(13);
-        CellReference unwatchedCellReference = CellReference.of(ROW_TABLE, unwatchedRow);
-
-        assertThat(delegate.isUnlocked(unwatchedCellReference)).isFalse();
-        assertThat(delegate.getValue(unwatchedCellReference)).isEmpty();
     }
 
     private static void assertThatValueIsEmpty(ValueCacheSnapshot delegate, CellReference cell) {
