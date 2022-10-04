@@ -33,6 +33,8 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Set<TableReference> lockWatchEnabledTables();
 
     // The tables from these row refs may or may not be listed in lockWatchEnabledTables
+    // Note that we *do* need to keep a set of enabled rows here, even though the values themselves won't be cached
+    // TODO(gs): decouple "watching" from "caching"
     Set<RowReference> lockWatchEnabledRows();
 
     java.util.Set<TableReference> allowedTablesFromSchema();
@@ -63,14 +65,6 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     @Override
     default boolean isWatched(TableReference tableReference) {
         return enabledTables().contains(tableReference);
-    }
-
-    @Override
-    default boolean isWatched(CellReference tableAndCell) {
-        return enabledTables().contains(tableAndCell.tableRef())
-                || enabledRows()
-                        .contains(RowReference.of(
-                                tableAndCell.tableRef(), tableAndCell.cell().getRowName()));
     }
 
     @Override

@@ -25,10 +25,7 @@ public interface ValueCacheSnapshot {
 
     boolean isUnlocked(CellReference cellReference);
 
-    // TODO(gs) [RLLW2]: Use isWatched(CellReference) in favour of this
     boolean isWatched(TableReference tableReference);
-
-    boolean isWatched(CellReference cellReference);
 
     boolean hasAnyCellsWatched();
 }

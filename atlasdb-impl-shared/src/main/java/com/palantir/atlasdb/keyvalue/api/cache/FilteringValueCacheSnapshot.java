@@ -61,11 +61,6 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     }
 
     @Override
-    public boolean isWatched(CellReference cellReference) {
-        return delegate.isWatched(cellReference);
-    }
-
-    @Override
     public boolean hasAnyCellsWatched() {
         return delegate.hasAnyCellsWatched();
     }
