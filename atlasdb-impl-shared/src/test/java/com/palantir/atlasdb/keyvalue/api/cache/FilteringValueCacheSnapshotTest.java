@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.AtlasCellLockDescriptor;
-import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
@@ -59,11 +58,10 @@ public final class FilteringValueCacheSnapshotTest {
 
     @Test
     public void invalidateSomeReturnsLockedOnlyWhenCommitUpdateHasLocked() {
-        LockDescriptor tableDescriptor =
-                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName());
-
         ValueCacheSnapshot filteredSnapshot = FilteringValueCacheSnapshot.create(
-                delegate, CommitUpdate.invalidateSome(ImmutableSet.of(tableDescriptor)));
+                delegate,
+                CommitUpdate.invalidateSome(ImmutableSet.of(AtlasCellLockDescriptor.of(
+                        TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName()))));
 
         assertThatValueIsUnlocked(delegate, TABLE_CELL_1, VALUE_1);
         assertThatValueIsUnlocked(delegate, TABLE_CELL_2, VALUE_2);
