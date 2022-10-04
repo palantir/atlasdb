@@ -56,7 +56,7 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
 
     @Override
     default boolean isUnlocked(CellReference tableAndCell) {
-        return isWatched(tableAndCell)
+        return isWatched(tableAndCell.tableRef())
                 && getValue(tableAndCell).map(CacheEntry::isUnlocked).orElse(true);
     }
 
