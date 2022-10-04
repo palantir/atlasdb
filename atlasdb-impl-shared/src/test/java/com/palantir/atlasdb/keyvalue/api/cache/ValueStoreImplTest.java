@@ -43,7 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class ValueStoreImplTest {
-    private static final TableReference ENTIRELY_WATCHED_TABLE = TableReference.createFromFullyQualifiedName("t.table");
+    private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
     private static final TableReference ROW_WATCHED_TABLE = TableReference.createFromFullyQualifiedName("t.row-level");
     private static final byte[] ROW_NAME = createBytes(73);
 
@@ -51,7 +51,7 @@ public final class ValueStoreImplTest {
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);
     private static final Cell ROW_LEVEL_CELL = Cell.create(ROW_NAME, createBytes(42));
-    private static final CellReference TABLE_CELL = CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_1);
+    private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL_1);
     private static final CellReference ROW_LEVEL_CELL_REFERENCE = CellReference.of(ROW_WATCHED_TABLE, ROW_LEVEL_CELL);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
@@ -60,7 +60,6 @@ public final class ValueStoreImplTest {
     private static final LockWatchEvent ROW_LOCK_EVENT = createRowLockEvent();
     private static final LockWatchEvent WATCH_EVENTS = createWatchEvents();
     private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
-    private static final LockWatchEvent ROW_UNLOCK_EVENT = createRowUnlockEvent();
     private static final int EXPECTED_SIZE = EntryWeigher.INSTANCE.weigh(TABLE_CELL, 1);
 
     private final CacheMetrics metrics = mock(CacheMetrics.class);
@@ -69,14 +68,14 @@ public final class ValueStoreImplTest {
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(ENTIRELY_WATCHED_TABLE, ROW_WATCHED_TABLE), 1_000, metrics);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE, ROW_WATCHED_TABLE), 1_000, metrics);
     }
 
     @Test
     public void lockEventInvalidatesValue() {
         valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_2), VALUE_3);
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_3);
 
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
 
@@ -141,10 +140,10 @@ public final class ValueStoreImplTest {
 
     @Test
     public void watchEventUpdatesWatchableTables() {
-        assertThat(valueStore.getSnapshot().isWatched(ENTIRELY_WATCHED_TABLE)).isFalse();
+        assertThat(valueStore.getSnapshot().isWatched(TABLE)).isFalse();
         //        assertThat(valueStore.getSnapshot().isWatched(ROW_LEVEL_CELL_REFERENCE)).isFalse();
         valueStore.applyEvent(WATCH_EVENTS);
-        assertThat(valueStore.getSnapshot().isWatched(ENTIRELY_WATCHED_TABLE)).isTrue();
+        assertThat(valueStore.getSnapshot().isWatched(TABLE)).isTrue();
         assertThat(valueStore.getSnapshot().isWatched(ROW_WATCHED_TABLE)).isFalse();
         //        assertThat(valueStore.getSnapshot().isWatched(ROW_LEVEL_CELL_REFERENCE)).isTrue();
     }
@@ -152,15 +151,15 @@ public final class ValueStoreImplTest {
     @Test
     public void valuesEvictedOnceMaxSizeReached() {
         // size is in bytes; with overhead, this should keep 2 but not three values
-        valueStore = new ValueStoreImpl(ImmutableSet.of(ENTIRELY_WATCHED_TABLE), 300, metrics);
-        CellReference tableCell2 = CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_2);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
+        CellReference tableCell2 = CellReference.of(TABLE, CELL_2);
 
         valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(tableCell2, VALUE_2);
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
 
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_3), VALUE_3);
+        valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
         verify(metrics, times(3)).increaseCacheSize(anyLong());
         verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
 
@@ -170,12 +169,12 @@ public final class ValueStoreImplTest {
 
     @Test
     public void lockedValuesDoNotCountToCacheSize() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(ENTIRELY_WATCHED_TABLE), 300, metrics);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         valueStore.applyEvent(WATCH_EVENTS);
         valueStore.applyEvent(LOCK_EVENT);
 
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_2), VALUE_2);
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_3), VALUE_3);
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_3), VALUE_3);
         assertExpectedValue(CELL_2, CacheEntry.unlocked(VALUE_2));
         assertExpectedValue(CELL_3, CacheEntry.unlocked(VALUE_3));
 
@@ -184,22 +183,21 @@ public final class ValueStoreImplTest {
 
     @Test
     public void metricsCorrectlyCountOverlappingPuts() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(ENTIRELY_WATCHED_TABLE), 300, metrics);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         valueStore.applyEvent(WATCH_EVENTS);
 
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_2), VALUE_2);
-        valueStore.putValue(CellReference.of(ENTIRELY_WATCHED_TABLE, CELL_2), VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
+        valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
         verify(metrics).decreaseCacheSize(EXPECTED_SIZE);
     }
 
     @Test
     public void metricsCalculateSize() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(ENTIRELY_WATCHED_TABLE), 300, metrics);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         valueStore.applyEvent(WATCH_EVENTS);
 
-        CellReference cellRef =
-                CellReference.of(ENTIRELY_WATCHED_TABLE, Cell.create(new byte[] {1, 2}, new byte[] {3, 4, 5}));
+        CellReference cellRef = CellReference.of(TABLE, Cell.create(new byte[] {1, 2}, new byte[] {3, 4, 5}));
 
         valueStore.putValue(cellRef, CacheValue.of(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}));
         int expectedSize = ValueStoreImpl.CACHE_OVERHEAD + 7 + 2 + 3 + 8;
@@ -218,7 +216,7 @@ public final class ValueStoreImplTest {
     }
 
     private void assertExpectedValue(Cell cell, CacheEntry entry) {
-        assertExpectedValue(ENTIRELY_WATCHED_TABLE, cell, entry);
+        assertExpectedValue(TABLE, cell, entry);
     }
 
     private void assertExpectedValue(TableReference tableRef, Cell cell, CacheEntry entry) {
@@ -227,8 +225,7 @@ public final class ValueStoreImplTest {
     }
 
     private static LockWatchEvent createWatchEvents() {
-        LockWatchReferences.LockWatchReference entireTable =
-                LockWatchReferences.entireTable(ENTIRELY_WATCHED_TABLE.getQualifiedName());
+        LockWatchReferences.LockWatchReference entireTable = LockWatchReferences.entireTable(TABLE.getQualifiedName());
         LockWatchReferences.LockWatchReference exactRow =
                 LockWatchReferences.exactRow(ROW_WATCHED_TABLE.getQualifiedName(), ROW_NAME);
         return LockWatchCreatedEvent.builder(ImmutableSet.of(entireTable, exactRow), ImmutableSet.of())
@@ -240,15 +237,7 @@ public final class ValueStoreImplTest {
     }
 
     private static LockWatchEvent createLockEvent() {
-        return createLockEvent(ENTIRELY_WATCHED_TABLE, CELL_1.getRowName());
-    }
-
-    private static LockWatchEvent createLockEvent(TableReference table, byte[] rowName) {
-        return LockEvent.builder(
-                        ImmutableSet.of(
-                                AtlasCellLockDescriptor.of(table.getQualifiedName(), rowName, CELL_1.getColumnName())),
-                        LockToken.of(UUID.randomUUID()))
-                .build(1L);
+        return createLockEvent(TABLE, CELL_1);
     }
 
     private static LockWatchEvent createLockEvent(TableReference table, Cell cell) {
@@ -259,17 +248,9 @@ public final class ValueStoreImplTest {
                 .build(1L);
     }
 
-    private static LockWatchEvent createRowUnlockEvent() {
-        return createUnlockEvent(ROW_WATCHED_TABLE, ROW_LEVEL_CELL);
-    }
-
     private static LockWatchEvent createUnlockEvent() {
-        return createUnlockEvent(ENTIRELY_WATCHED_TABLE, CELL_1);
-    }
-
-    private static LockWatchEvent createUnlockEvent(TableReference tableReference, Cell cell) {
         return UnlockEvent.builder(ImmutableSet.of(AtlasCellLockDescriptor.of(
-                        tableReference.getQualifiedName(), cell.getRowName(), cell.getColumnName())))
+                        TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())))
                 .build(1L);
     }
 
