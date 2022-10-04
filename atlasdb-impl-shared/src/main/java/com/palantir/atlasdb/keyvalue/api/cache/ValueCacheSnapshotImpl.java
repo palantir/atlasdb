@@ -23,7 +23,6 @@ import com.palantir.atlasdb.transaction.api.RowReference;
 import io.vavr.collection.Map;
 import io.vavr.collection.Set;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -46,9 +45,7 @@ public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
 
     @Value.Derived
     default java.util.Set<RowReference> enabledRows() {
-        return lockWatchEnabledRows().toJavaSet().stream()
-                .filter(rowReference -> allowedTablesFromSchema().contains(rowReference.tableRef()))
-                .collect(Collectors.toSet());
+        return lockWatchEnabledRows().toJavaSet();
     }
 
     @Override

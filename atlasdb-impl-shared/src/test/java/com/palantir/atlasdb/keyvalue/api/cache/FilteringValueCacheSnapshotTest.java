@@ -49,7 +49,7 @@ public final class FilteringValueCacheSnapshotTest {
             HashMap.of(TABLE_CELL_1, CacheEntry.unlocked(VALUE_1), TABLE_CELL_2, CacheEntry.unlocked(VALUE_2)),
             HashSet.of(TABLE),
             HashSet.of(ROW_REFERENCE_1, ROW_REFERENCE_2),
-            ImmutableSet.of(TABLE, ROW_TABLE));
+            ImmutableSet.of(TABLE));
 
     @Test
     public void invalidateAllReturnsAllLockedValues() {
