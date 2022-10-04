@@ -141,7 +141,18 @@ final class ValueStoreImpl implements ValueStore {
     }
 
     private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream().flatMap(this::extractCandidateCells).forEach(this::putLockedCell);
+        lockDescriptors.stream()
+                // Explicitly exclude descriptors corresponding to watched rows from non-watched tables
+                .filter(this::isTableWatched)
+                .flatMap(this::extractCandidateCells)
+                .forEach(this::putLockedCell);
+    }
+
+    private boolean isTableWatched(LockDescriptor lockDescriptor) {
+        return AtlasLockDescriptorUtils.tryParseTableRef(lockDescriptor)
+                .map(AtlasLockDescriptorUtils.TableRefAndRemainder::tableRef)
+                .map(tableReference -> watchedTables.getSnapshot().contains(tableReference))
+                .orElse(false);
     }
 
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
