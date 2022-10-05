@@ -47,7 +47,6 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -92,7 +91,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         ConnectionSupplier connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(keyValueService);
 
         OracleTableNameGetter oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(oracleDdlConfig);
-        Function<TableReference, OracleDdlTable> ddlTableFactory = (tableReference) -> OracleDdlTable.create(
+        Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,
                 oracleDdlConfig,
@@ -119,7 +118,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
                 OracleTableNameGetterImpl.createDefault(ddlConfigForAnotherPrefix);
 
         Function<TableReference, OracleDdlTable> ddlTableFactoryForAnotherPrefix =
-                (tableReference) -> OracleDdlTable.create(
+                tableReference -> OracleDdlTable.create(
                         tableReference,
                         connectionSupplier,
                         ddlConfigForAnotherPrefix,
@@ -304,23 +303,6 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
             } else {
                 return 0;
             }
-        });
-    }
-
-    private void runArbitrarySql(String sql) { // Personal testing! Won't be in the final PR :)
-        runWithConnection(connection -> {
-            PreparedStatement statement = connection.prepareStatement(sql);
-            ResultSet resultSet = statement.executeQuery();
-            ResultSetMetaData rsmd = resultSet.getMetaData();
-            int columnsNumber = rsmd.getColumnCount();
-            for (int row = 0; resultSet.next(); row++) {
-                for (int i = 1; i <= columnsNumber; i++) {
-                    String columnValue = resultSet.getString(i);
-                    System.out.printf(
-                            "rowNumber %d, columnName %s, columnValue %s%n", row, rsmd.getColumnName(i), columnValue);
-                }
-            }
-            return null;
         });
     }
 

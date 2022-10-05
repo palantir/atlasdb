@@ -319,7 +319,7 @@ public final class OracleNamespaceCleanerTests {
     private ImmutableOracleNamespaceCleanerParameters.Builder createNamespaceCleanerParameters(
             OracleDdlConfig ddlConfig, ConnectionSupplier connectionSupplier) {
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
-        Function<TableReference, OracleDdlTable> ddlTableFactory = (tableReference) -> OracleDdlTable.create(
+        Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,
                 ddlConfig,
