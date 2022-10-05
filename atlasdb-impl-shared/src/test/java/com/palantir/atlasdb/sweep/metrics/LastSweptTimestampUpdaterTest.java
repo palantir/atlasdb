@@ -30,6 +30,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
@@ -78,6 +80,11 @@ public class LastSweptTimestampUpdaterTest {
     private final Map<ShardAndStrategy, Long> conservativeShardAndStrategyMap;
     private final Set<ShardAndStrategy> thoroughShardAndStrategySet;
     private final Map<ShardAndStrategy, Long> thoroughShardAndStrategyMap;
+
+    private final Set<ShardAndStrategy> noneShardAndStrategySet = ImmutableSet.of(ShardAndStrategy.nonSweepable());
+
+    private final Map<ShardAndStrategy, Long> noneShardAndStrategyMap =
+            ImmutableMap.of(ShardAndStrategy.nonSweepable(), CONS_TS);
     private final DeterministicScheduler executorService = spy(new DeterministicScheduler());
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
 
@@ -127,14 +134,16 @@ public class LastSweptTimestampUpdaterTest {
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
         executorService.tick(REFRESH_MILLIS, TimeUnit.MILLISECONDS);
 
-        verify(queue, atLeastOnce()).getNumShards();
+        verify(queue, atLeastOnce()).getNumShards(any());
         verify(queue, atLeastOnce()).getLastSweptTimestamps(conservativeShardAndStrategySet);
         verify(queue, atLeastOnce()).getLastSweptTimestamps(thoroughShardAndStrategySet);
+        verify(queue, atLeastOnce()).getLastSweptTimestamps(noneShardAndStrategySet);
 
         for (int shard = 0; shard < shards; shard++) {
             verify(metrics, times(1)).updateProgressForShard(ShardAndStrategy.conservative(shard), CONS_TS);
             verify(metrics, times(1)).updateProgressForShard(ShardAndStrategy.thorough(shard), THOR_TS);
         }
+        verify(metrics, times(1)).updateProgressForShard(ShardAndStrategy.nonSweepable(), CONS_TS);
         verifyNoMoreInteractions(queue, metrics);
     }
 
@@ -144,20 +153,23 @@ public class LastSweptTimestampUpdaterTest {
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
         executorService.tick(TICK_COUNT * REFRESH_MILLIS, TimeUnit.MILLISECONDS);
 
-        verify(queue, atLeast(TICK_COUNT)).getNumShards();
+        verify(queue, atLeast(TICK_COUNT)).getNumShards(any());
         verify(queue, atLeast(TICK_COUNT)).getLastSweptTimestamps(conservativeShardAndStrategySet);
         verify(queue, atLeast(TICK_COUNT)).getLastSweptTimestamps(thoroughShardAndStrategySet);
+        verify(queue, atLeast(TICK_COUNT)).getLastSweptTimestamps(noneShardAndStrategySet);
 
         for (int shard = 0; shard < shards; shard++) {
             verify(metrics, times(TICK_COUNT)).updateProgressForShard(ShardAndStrategy.conservative(shard), CONS_TS);
             verify(metrics, times(TICK_COUNT)).updateProgressForShard(ShardAndStrategy.thorough(shard), THOR_TS);
         }
+        verify(metrics, times(TICK_COUNT)).updateProgressForShard(ShardAndStrategy.nonSweepable(), CONS_TS);
+
         verifyNoMoreInteractions(queue, metrics);
     }
 
     @Test
     public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails() {
-        when(queue.getNumShards()).thenReturn(1);
+        setNumShardsMock(1);
         when(queue.getLastSweptTimestamps(Collections.singleton(CONS_SHARD)))
                 .thenReturn(Collections.singletonMap(CONS_SHARD, CONS_TS));
 
@@ -175,9 +187,10 @@ public class LastSweptTimestampUpdaterTest {
     }
 
     private void stubWithRealisticReturnValues() {
-        when(queue.getNumShards()).thenReturn(shards);
+        setNumShardsMock(shards);
         when(queue.getLastSweptTimestamps(conservativeShardAndStrategySet)).thenReturn(conservativeShardAndStrategyMap);
         when(queue.getLastSweptTimestamps(thoroughShardAndStrategySet)).thenReturn(thoroughShardAndStrategyMap);
+        when(queue.getLastSweptTimestamps(noneShardAndStrategySet)).thenReturn(noneShardAndStrategyMap);
     }
 
     private static Map<ShardAndStrategy, Long> buildShardAndStrategyMap(
@@ -189,5 +202,14 @@ public class LastSweptTimestampUpdaterTest {
         return IntStream.range(0, shards)
                 .mapToObj(shard -> ShardAndStrategy.of(shard, sweeperStrategy))
                 .collect(Collectors.toSet());
+    }
+
+    private void setNumShardsMock(int num) {
+        when(queue.getNumShards(any())).thenAnswer(invocation -> {
+            if (invocation.getArguments()[0] == SweeperStrategy.NON_SWEEPABLE) {
+                return 1;
+            }
+            return num;
+        });
     }
 }
