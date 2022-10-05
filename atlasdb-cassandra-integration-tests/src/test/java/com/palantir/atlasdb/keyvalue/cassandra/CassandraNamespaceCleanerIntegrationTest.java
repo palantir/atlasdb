@@ -78,6 +78,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
         namespaceCleaner = new CassandraNamespaceCleaner(keyValueServiceConfig, () -> client);
         namespaceCleanerForAnotherKeyspace =
                 new CassandraNamespaceCleaner(keyValueServiceConfigForDifferentKeyspace, () -> client);
+        kvs.isInitialized();
     }
 
     @After
