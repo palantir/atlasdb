@@ -30,10 +30,14 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -42,7 +46,7 @@ import org.junit.Test;
 public class CassandraNamespaceCleanerIntegrationTest {
 
     @ClassRule
-    private static final CassandraResource CASSANDRA = new CassandraResource();
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> keyValueServiceRuntimeConfig =
             CASSANDRA.getRuntimeConfig();
@@ -56,6 +60,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
                     .keyspace(differentNamespace.getName())
                     .build();
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
     private NamespaceCleaner namespaceCleaner;
     private NamespaceCleaner namespaceCleanerForAnotherKeyspace;
@@ -67,7 +72,9 @@ public class CassandraNamespaceCleanerIntegrationTest {
                 keyValueServiceRuntimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
                         .findFirst()
                         .orElseThrow();
-        client = CassandraClientFactory.getClientInternal(host, CassandraClientConfig.of(keyValueServiceConfig));
+        CassandraClientFactory cassandraClientFactory =
+                new CassandraClientFactory(metricsManager, host, CassandraClientConfig.of(keyValueServiceConfig));
+        client = cassandraClientFactory.create();
         namespaceCleaner = new CassandraNamespaceCleaner(keyValueServiceConfig, () -> client);
         namespaceCleanerForAnotherKeyspace =
                 new CassandraNamespaceCleaner(keyValueServiceConfigForDifferentKeyspace, () -> client);
@@ -123,11 +130,15 @@ public class CassandraNamespaceCleanerIntegrationTest {
     // TODO (awaitility)
 
     private void assertNamespaceExists(Namespace namespace) {
-        assertThatCode(() -> client.describe_keyspace(namespace.getName())).doesNotThrowAnyException();
+        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThatCode(
+                        () -> client.describe_keyspace(namespace.getName()))
+                .doesNotThrowAnyException());
     }
 
     private void assertNamespaceDoesNotExist(Namespace namespace) {
-        assertThatThrownBy(() -> client.describe_keyspace(namespace.getName())).isInstanceOf(NotFoundException.class);
+        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThatThrownBy(
+                        () -> client.describe_keyspace(namespace.getName()))
+                .isInstanceOf(NotFoundException.class));
     }
 
     private void createDifferentKeyspace() {
