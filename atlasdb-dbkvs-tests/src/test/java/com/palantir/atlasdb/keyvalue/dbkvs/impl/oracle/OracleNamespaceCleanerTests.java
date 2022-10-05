@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.ImmutableOracleNamespaceCleanerParameters;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner.OracleNamespaceCleanerParameters;
@@ -36,19 +37,24 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.TableDetails;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class OracleNamespaceCleanerTests {
+    @ClassRule
+    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+
     private static final String TABLE_PREFIX = "a_";
     private static final String OVERFLOW_TABLE_PREFIX = "ao_";
     private static final String ANOTHER_TABLE_PREFIX = "test_";
@@ -64,7 +70,7 @@ public final class OracleNamespaceCleanerTests {
     @Before
     public void before() throws IOException {
         executorService = MoreExecutors.newDirectExecutorService();
-        sqliteOracleAdapter = new SqliteOracleAdapter();
+        sqliteOracleAdapter = new SqliteOracleAdapter(TEMPORARY_FOLDER.newFile());
         sqliteOracleAdapter.initializeMetadataAndMappingTables();
     }
 
@@ -87,10 +93,10 @@ public final class OracleNamespaceCleanerTests {
                 // In most SQL implementations, _ is the single character wildcard (so a_ matches ab too).
                 // We obviously do not want to drop a table named abc when the prefix is a_, so the following explicitly
                 // tests that case.
-                createTable("", TABLE_NAME_1, TEST_USER));
+                createTable("ab_", TABLE_NAME_1, TEST_USER));
 
         assertThatTableDetailsMatchPersistedData(Sets.union(tablesToDelete, tablesThatShouldNotBeDeleted));
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tablesThatShouldNotBeDeleted);
     }
 
@@ -102,9 +108,9 @@ public final class OracleNamespaceCleanerTests {
         createTable(ANOTHER_OVERFLOW_TABLE_PREFIX, TABLE_NAME_2, TEST_USER);
         createTable(TABLE_PREFIX, TABLE_NAME_3, TEST_USER_2);
 
-        createTable("", TABLE_NAME_1, TEST_USER);
+        createTable("ab_", TABLE_NAME_1, TEST_USER);
 
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isTrue();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     @Test
@@ -112,7 +118,7 @@ public final class OracleNamespaceCleanerTests {
         NamespaceCleaner namespaceCleaner = createDefaultNamespaceCleaner();
 
         createTable(TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
@@ -120,7 +126,7 @@ public final class OracleNamespaceCleanerTests {
         NamespaceCleaner namespaceCleaner = createDefaultNamespaceCleaner();
 
         createTable(OVERFLOW_TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
@@ -128,7 +134,7 @@ public final class OracleNamespaceCleanerTests {
         NamespaceCleaner namespaceCleaner = createDefaultNamespaceCleaner();
 
         createDefaultTable(TABLE_NAME_1);
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
@@ -141,9 +147,9 @@ public final class OracleNamespaceCleanerTests {
             createDefaultTable(TABLE_NAME_1 + i);
         }
 
-        assertThat(listAllTables()).hasSize(20);
-        assertThatThrownBy(namespaceCleaner::dropAllTables);
-        assertThat(listAllTables()).hasSizeLessThan(20);
+        assertThat(listAllPhysicalTableNames()).hasSize(20);
+        assertThatThrownBy(namespaceCleaner::deleteAllDataFromNamespace);
+        assertThat(listAllPhysicalTableNames()).hasSizeLessThan(20);
     }
 
     @Test
@@ -156,13 +162,12 @@ public final class OracleNamespaceCleanerTests {
             createDefaultTable(TABLE_NAME_1 + i);
         }
 
-        assertThat(listAllTables()).hasSize(20);
-        assertThatThrownBy(namespaceCleaner::dropAllTables);
-        assertThat(listAllTables()).hasSizeBetween(1, 19);
+        assertThat(listAllPhysicalTableNames()).hasSize(20);
+        assertThatThrownBy(namespaceCleaner::deleteAllDataFromNamespace);
+        assertThat(listAllPhysicalTableNames()).hasSizeBetween(1, 19);
 
-        sqliteOracleAdapter.refreshTableList();
-        namespaceCleaner.dropAllTables();
-        assertThat(listAllTables()).isEmpty();
+        namespaceCleaner.deleteAllDataFromNamespace();
+        assertThat(listAllPhysicalTableNames()).isEmpty();
     }
 
     @Test
@@ -172,30 +177,36 @@ public final class OracleNamespaceCleanerTests {
                 .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.areAllTablesSuccessfullyDropped();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
     @Test
     public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnTablePrefix() {
         NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
-                .tablePrefix("1'); CREATE TABLE mwahahaha (evil" + " VARCHAR(128) PRIMARY KEY); --_")
+                .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.areAllTablesSuccessfullyDropped();
-        assertThatTableDetailsMatchPersistedData(tables);
+        namespaceCleaner.deleteAllDataFromNamespace();
+        // deleteAllDataFromNamespace will not clean up the table with the standard table prefix
+        assertThatTableDetailsMatchPersistedData(tables.stream()
+                .filter(tableDetails -> tableDetails.prefixedTableName().startsWith(TABLE_PREFIX))
+                .collect(Collectors.toSet()));
     }
 
     @Test
     public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
         NamespaceCleaner namespaceCleaner = new OracleNamespaceCleaner(createDefaultNamespaceCleanerParameters()
-                .overflowTablePrefix("1'); CREATE TABLE mwahahaha (evil" + " VARCHAR(128) PRIMARY KEY); --_")
+                .overflowTablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.areAllTablesSuccessfullyDropped();
-        assertThatTableDetailsMatchPersistedData(tables);
+        namespaceCleaner.deleteAllDataFromNamespace();
+        // deleteAllDataFromNamespace will not clean up the table with the standard overflow table prefix
+        assertThatTableDetailsMatchPersistedData(tables.stream()
+                .filter(tableDetails -> tableDetails.prefixedTableName().startsWith(OVERFLOW_TABLE_PREFIX))
+                .collect(Collectors.toSet()));
     }
 
     @Test
@@ -205,7 +216,7 @@ public final class OracleNamespaceCleanerTests {
                 .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
@@ -219,7 +230,7 @@ public final class OracleNamespaceCleanerTests {
                         .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
@@ -231,7 +242,7 @@ public final class OracleNamespaceCleanerTests {
                 .build());
         Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
         assertThatTableDetailsMatchPersistedData(tables);
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
@@ -253,17 +264,17 @@ public final class OracleNamespaceCleanerTests {
         return sqliteOracleAdapter.createTable(prefix, tableName, owner);
     }
 
-    private void assertThatTableDetailsMatchPersistedData(Collection<TableDetails> tableDetails) {
-        assertThat(listAllTables())
+    private void assertThatTableDetailsMatchPersistedData(Set<TableDetails> tableDetails) {
+        assertThat(listAllPhysicalTableNames())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPhysicalTableNames(tableDetails));
         assertThat(listAllTablesWithMapping())
-                .containsExactlyInAnyOrderElementsOf(TableDetails.mapToReversibleTableNames(tableDetails));
+                .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPrefixedTableNames(tableDetails));
         assertThat(listAllTablesWithMetadata())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToTableReferences(tableDetails));
     }
 
-    private Set<String> listAllTables() {
-        return sqliteOracleAdapter.listAllTables();
+    private Set<String> listAllPhysicalTableNames() {
+        return sqliteOracleAdapter.listAllPhysicalTableNames();
     }
 
     private Set<TableReference> listAllTablesWithMetadata() {
@@ -307,7 +318,7 @@ public final class OracleNamespaceCleanerTests {
 
     private ImmutableOracleNamespaceCleanerParameters.Builder createNamespaceCleanerParameters(
             OracleDdlConfig ddlConfig, ConnectionSupplier connectionSupplier) {
-        OracleTableNameGetter tableNameGetter = new OracleTableNameGetter(ddlConfig);
+        OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
         Function<TableReference, OracleDdlTable> ddlTableFactory = (tableReference) -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,

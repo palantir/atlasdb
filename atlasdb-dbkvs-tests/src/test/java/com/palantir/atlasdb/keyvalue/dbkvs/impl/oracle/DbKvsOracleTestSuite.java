@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
@@ -51,7 +52,8 @@ import org.junit.runners.Suite.SuiteClasses;
     DbKvsOracleGetCandidateCellsForSweepingTest.class,
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,
-    OracleEmbeddedDbTimestampBoundStoreTest.class
+    OracleEmbeddedDbTimestampBoundStoreTest.class,
+    OracleNamespaceCleanerIntegrationTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final String LOCALHOST = "0.0.0.0";
@@ -108,10 +110,14 @@ public final class DbKvsOracleTestSuite {
     }
 
     public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
-        ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
         ReentrantManagedConnectionSupplier connSupplier =
-                new ReentrantManagedConnectionSupplier(castKvs.getConnectionManager());
+                new ReentrantManagedConnectionSupplier(getConnectionManager(kvs));
         return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
+    }
+
+    public static ConnectionManager getConnectionManager(KeyValueService kvs) {
+        ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
+        return castKvs.getConnectionManager();
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(

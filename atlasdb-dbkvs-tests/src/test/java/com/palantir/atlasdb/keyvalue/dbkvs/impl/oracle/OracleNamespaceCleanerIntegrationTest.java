@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceCleaner.OracleNamespaceCleanerParameters;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
@@ -57,8 +58,8 @@ import org.junit.Test;
 
 public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup {
     private static final String LIST_ALL_TABLES =
-            "SELECT COUNT(table_name) AS total FROM all_tables WHERE owner = upper(?) AND table_name LIKE upper(?) "
-                    + "ESCAPE '\\'";
+            "SELECT COUNT(table_name) AS total FROM all_tables WHERE owner = upper(?) AND table_name LIKE upper(?)"
+                    + " ESCAPE '\\'";
     private static final String TABLE_NAME_ONE = "tablenameone";
     private static final String TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH = "tableNameOne";
     private static final String TABLE_NAME_TWO = "tablenametwo";
@@ -90,7 +91,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         connectionManager = DbKvsOracleTestSuite.getConnectionManager(keyValueService);
         ConnectionSupplier connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(keyValueService);
 
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(oracleDdlConfig);
+        OracleTableNameGetter oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(oracleDdlConfig);
         Function<TableReference, OracleDdlTable> ddlTableFactory = (tableReference) -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,
@@ -115,7 +116,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
                 .build();
 
         OracleTableNameGetter oracleTableNameGetterForAnotherPrefix =
-                new OracleTableNameGetter(ddlConfigForAnotherPrefix);
+                OracleTableNameGetterImpl.createDefault(ddlConfigForAnotherPrefix);
 
         Function<TableReference, OracleDdlTable> ddlTableFactoryForAnotherPrefix =
                 (tableReference) -> OracleDdlTable.create(
@@ -143,8 +144,8 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
 
     @After
     public void after() {
-        namespaceCleaner.dropAllTables();
-        namespaceCleanerWithAnotherPrefix.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
+        namespaceCleanerWithAnotherPrefix.deleteAllDataFromNamespace();
         executorService.shutdown();
     }
 
@@ -155,7 +156,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         createTableAndOverflowTable(TABLE_NAME_TWO);
         assertThat(getNumberOfTables() - kvsTables).isEqualTo(4);
 
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
 
         assertThat(getNumberOfTables()).isEqualTo(0);
         assertThat(areMetadataAndMappingTablesAreEmpty()).isTrue();
@@ -170,7 +171,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         assertThatThrownBy(() -> createTableAndOverflowTable(TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH));
         assertThat(getNumberOfTables() - kvsTables).isEqualTo(4);
 
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
 
         assertThat(getNumberOfTables()).isEqualTo(0);
         assertThat(areMetadataAndMappingTablesAreEmpty()).isTrue();
@@ -179,10 +180,10 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
     @Test
     public void dropAllTablesDoesNotThrowWhenNoTablesToDelete() {
         // Oracle throws on an empty IN () clause, where as sqlite does not.
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThat(getNumberOfTables()).isEqualTo(0);
 
-        assertThatNoException().isThrownBy(namespaceCleaner::dropAllTables);
+        assertThatNoException().isThrownBy(namespaceCleaner::deleteAllDataFromNamespace);
     }
 
     @Test
@@ -199,7 +200,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
 
         int numberOfTables =
                 getNumberOfTables(NON_DEFAULT_TABLE_PREFIX) + getNumberOfTables(NON_DEFAULT_OVERFLOW_TABLE_PREFIX);
-        namespaceCleaner.dropAllTables();
+        namespaceCleaner.deleteAllDataFromNamespace();
         assertThat(getNumberOfTables(NON_DEFAULT_TABLE_PREFIX) + getNumberOfTables(NON_DEFAULT_OVERFLOW_TABLE_PREFIX))
                 .isEqualTo(numberOfTables);
     }
@@ -207,7 +208,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
     @Test
     public void hasNamespaceSuccessfullyDroppedReturnsFalseIfTablesRemain() {
         createTableAndOverflowTable(TABLE_NAME_ONE);
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isFalse();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
@@ -217,14 +218,14 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         createTableAndOverflowTable(TABLE_NAME_TWO);
         assertThat(getNumberOfTables() - kvsTables).isEqualTo(4);
 
-        namespaceCleaner.dropAllTables();
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isTrue();
+        namespaceCleaner.deleteAllDataFromNamespace();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     @Test
     public void hasNamespaceSuccessfullyDroppedReturnsTrueEvenIfOtherPrefixExists() {
-        namespaceCleaner.dropAllTables();
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isTrue();
+        namespaceCleaner.deleteAllDataFromNamespace();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
         keyValueServiceWithAnotherPrefix.createTable(
                 TableReference.create(Namespace.create("other"), TABLE_NAME_ONE),
                 TableMetadata.builder()
@@ -232,7 +233,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
                         .columns(new ColumnMetadataDescription())
                         .build()
                         .persistToBytes());
-        assertThat(namespaceCleaner.areAllTablesSuccessfullyDropped()).isTrue();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     private void createTableAndOverflowTable(String tableName) {
@@ -256,7 +257,7 @@ public class OracleNamespaceCleanerIntegrationTest extends TransactionTestSetup 
         return getNumberOfTables(oracleDdlConfig.tablePrefix())
                 + getNumberOfTables(oracleDdlConfig.overflowTablePrefix());
     }
-
+    // TODO: List the tables and compare sets (since equal number of tables doesn't mean the right tables are deleted)
     private int getNumberOfTables(String prefix) {
         String escapedPrefix = escapeString(prefix);
         return runWithConnection(connection -> {

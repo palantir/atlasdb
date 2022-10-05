@@ -29,6 +29,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
+/**
+ * Drops all Oracle Tables associated with the table and overflow table prefixes provided in the config.
+ * This does _not_ clean up the AtlasDB metadata and name mapping tables, as these can be shared across multiple
+ * prefixes.
+ */
 public class OracleNamespaceCleaner implements NamespaceCleaner {
     private static final String LIST_ALL_TABLES =
             "SELECT table_name FROM all_tables WHERE owner = upper(?) AND table_name LIKE upper(?) ESCAPE '\\'";
@@ -50,7 +55,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     }
 
     @Override
-    public void dropAllTables() {
+    public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
         tableNamesToDrop.stream().map(oracleDdlTableFactory).forEach(OracleDdlTable::drop);
         // There is no IF EXISTS. DDL commands perform an implicit commit. If we fail, we should just retry by
@@ -58,7 +63,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     }
 
     @Override
-    public boolean areAllTablesSuccessfullyDropped() {
+    public boolean isNamespaceDeletedSuccessfully() {
         return getAllNonOverflowTables().size() == 0 && getAllOverflowTables().size() == 0;
     }
 
