@@ -69,14 +69,23 @@ public class CassandraNamespaceCleanerIntegrationTest {
     private Supplier<CassandraClient> clientFactory;
 
     @Before
-    public void before() throws TException {
-        InetSocketAddress host =
-                keyValueServiceRuntimeConfig.get().servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
-                        .findFirst()
-                        .orElseThrow();
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(metricsManager, host, CassandraClientConfig.of(keyValueServiceConfig));
-        clientFactory = cassandraClientFactory::create;
+    public void before() {
+
+        clientFactory = () -> {
+            try {
+                InetSocketAddress host =
+                        keyValueServiceRuntimeConfig
+                                .get()
+                                .servers()
+                                .accept(ThriftHostsExtractingVisitor.INSTANCE)
+                                .stream()
+                                .findFirst()
+                                .orElseThrow();
+                return CassandraClientFactory.getClientInternal(host, CassandraClientConfig.of(keyValueServiceConfig));
+            } catch (TException e) {
+                throw new RuntimeException(e);
+            }
+        };
         namespaceCleaner = new CassandraNamespaceCleaner(keyValueServiceConfig, clientFactory);
         namespaceCleanerForAnotherKeyspace =
                 new CassandraNamespaceCleaner(keyValueServiceConfigForDifferentKeyspace, clientFactory);
