@@ -69,23 +69,4 @@ class TaskRunner {
             }
         }
     }
-
-    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan, ListenableFuture<V> future, Executor tracingExecutorService) {
-        Futures.addCallback(
-                future,
-                new FutureCallback<V>() {
-                    @Override
-                    public void onSuccess(V result) {
-                        detachedSpan.complete();
-                    }
-
-                    @Override
-                    public void onFailure(Throwable throwable) {
-                        detachedSpan.complete();
-                    }
-                },
-                tracingExecutorService);
-        return future;
-    }
 }
