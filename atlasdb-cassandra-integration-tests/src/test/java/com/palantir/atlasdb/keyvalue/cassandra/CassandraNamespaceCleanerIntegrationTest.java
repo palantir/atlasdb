@@ -131,13 +131,13 @@ public class CassandraNamespaceCleanerIntegrationTest {
     // TODO (awaitility)
 
     private void assertNamespaceExists(Namespace namespace) {
-        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThatCode(
+        Awaitility.await().atMost(Duration.ofMinutes(1)).untilAsserted(() -> assertThatCode(
                         () -> client.describe_keyspace(namespace.getName()))
                 .doesNotThrowAnyException());
     }
 
     private void assertNamespaceDoesNotExist(Namespace namespace) {
-        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThatThrownBy(
+        Awaitility.await().atMost(Duration.ofMinutes(1)).untilAsserted(() -> assertThatThrownBy(
                         () -> client.describe_keyspace(namespace.getName()))
                 .isInstanceOf(NotFoundException.class));
     }
