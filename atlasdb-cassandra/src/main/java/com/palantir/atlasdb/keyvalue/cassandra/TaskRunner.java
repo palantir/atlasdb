@@ -53,9 +53,7 @@ class TaskRunner {
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
         for (Callable<V> task : tasks) {
-            DetachedSpan detachedSpan = DetachedSpan.start("task");
-            ListenableFuture<V> future = listeningExecutor.submit(task);
-            futures.add(attachDetachedSpanCompletion(detachedSpan, future, listeningExecutor));
+            futures.add(listeningExecutor.submit(task));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
