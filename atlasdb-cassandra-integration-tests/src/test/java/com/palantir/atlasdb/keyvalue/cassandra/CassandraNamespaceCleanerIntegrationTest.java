@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.fail;
 
 import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -37,6 +38,7 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 import org.awaitility.Awaitility;
@@ -136,7 +138,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
     public void isNamespaceDeletedSuccessfullyReturnsTrueIfKeyspaceNeverCreated() {
         assertNamespaceDoesNotExist(differentNamespace);
         assertThat(namespaceCleanerForAnotherKeyspace.isNamespaceDeletedSuccessfully())
-                .isFalse();
+                .isTrue();
     }
 
     private void assertNamespaceExists(Namespace namespace) {
@@ -152,10 +154,17 @@ public class CassandraNamespaceCleanerIntegrationTest {
     }
 
     private void createDifferentKeyspace() {
-        runWithClient(client -> CassandraVerifier.createKsDefForFresh(
-                client,
-                CassandraVerifierConfig.of(
-                        keyValueServiceConfigForDifferentKeyspace, keyValueServiceRuntimeConfig.get())));
+        runWithClient(client -> {
+            KsDef ksDef = CassandraVerifier.createKsDefForFresh(
+                    client,
+                    CassandraVerifierConfig.of(
+                            keyValueServiceConfigForDifferentKeyspace, keyValueServiceRuntimeConfig.get()));
+            try {
+                client.system_add_keyspace(ksDef);
+            } catch (TException e) {
+                fail("failed to create keyspace");
+            }
+        });
     }
 
     private void runWithClient(Consumer<CassandraClient> task) {
