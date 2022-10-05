@@ -27,6 +27,7 @@ import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStore;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
@@ -47,6 +48,9 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
+
+    // todo(snanda): Should probably use transaction components
+    private final AbandonedTimestampStore abandonedTimestampStore;
     private final TargetedSweepMetrics metrics;
 
     private SweepQueue(SweepQueueFactory factory, TargetedSweepFollower follower) {
@@ -140,6 +144,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
 
         // The order must not be changed without considering correctness of txn4
+        abandonedTimestampStore.markAbandoned(sweepBatch.abortedTimestamps());
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());

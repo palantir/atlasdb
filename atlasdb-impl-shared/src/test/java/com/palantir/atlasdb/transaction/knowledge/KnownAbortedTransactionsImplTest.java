@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,7 +36,7 @@ import org.junit.Test;
 
 public final class KnownAbortedTransactionsImplTest {
     private final AbandonedTimestampStore abandonedTimestampStore = mock(AbandonedTimestampStore.class);
-    private final AbortedTransactionSoftCache softCache = mock(AbortedTransactionSoftCache.class);
+    private final AbandonedTransactionSoftCache softCache = mock(AbandonedTransactionSoftCache.class);
     private final KnownAbortedTransactionsImpl knownAbortedTransactions = new KnownAbortedTransactionsImpl(
             abandonedTimestampStore,
             softCache,
@@ -66,7 +66,7 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testIsKnownAbortedLoadsFromReliableCache() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestamp = 27L;
         Bucket bucket = Bucket.forTimestamp(abortedTimestamp);
@@ -88,7 +88,7 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testIsKnownAbortedLoadsFromRemoteIfBucketNotInReliableCache() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestampBucket1 = 27L;
         Bucket bucket1 = Bucket.forTimestamp(abortedTimestampBucket1);
@@ -123,7 +123,7 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testReliableCacheEvictsIfWeightLimitReached() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long numAbortedTimestampsInBucket = Math.min(
                 AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);

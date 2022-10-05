@@ -24,11 +24,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.transaction.encoding.TicketsCellEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.common.streams.KeyedStream;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
+public class AbandonedTimestampStoreImpl implements AbandonedTimestampStore {
     // DO NOT change the following without a migration of the known aborted timestamps table!
     // These values were chosen on the basis that unlike in transactions2, values provided are markers and so we can
     // store more values per row (because we don't have a commit timestamp that we also need to store).
@@ -43,7 +45,7 @@ public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
 
     private final KeyValueService keyValueService;
 
-    public DefaultAbandonedTimestampStore(KeyValueService keyValueService) {
+    public AbandonedTimestampStoreImpl(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
     }
 
@@ -76,6 +78,16 @@ public class DefaultAbandonedTimestampStore implements AbandonedTimestampStore {
                 TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE,
                 ImmutableMap.of(getTargetCell(timestampToAbort), MARKER_VALUE),
                 AtlasDbConstants.TRANSACTION_TS);
+    }
+
+    @Override
+    public void markAbandoned(Set<Long> timestampsToAbort) {
+        Map<Cell, byte[]> updates = KeyedStream.of(timestampsToAbort)
+                .mapKeys(AbandonedTimestampStoreImpl::getTargetCell)
+                .map(_unused -> MARKER_VALUE)
+                .collectToMap();
+        keyValueService.put(
+                TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE, updates, AtlasDbConstants.TRANSACTION_TS);
     }
 
     private static Cell getTargetCell(long timestamp) {

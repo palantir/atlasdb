@@ -21,7 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
-import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -40,13 +40,13 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
      */
     private final Cache<Bucket, Set<Long>> reliableCache;
 
-    private final AbortedTransactionSoftCache softCache;
+    private final AbandonedTransactionSoftCache softCache;
     private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
     KnownAbortedTransactionsImpl(
             AbandonedTimestampStore abandonedTimestampStore,
-            AbortedTransactionSoftCache softCache,
+            AbandonedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
             int maxCacheWeight) {
         this.abandonedTimestampStore = abandonedTimestampStore;
@@ -68,8 +68,8 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
             AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
             Optional<InternalSchemaInstallConfig> config) {
-        AbortedTransactionSoftCache softCache =
-                new AbortedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+        AbandonedTransactionSoftCache softCache =
+                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
         return new KnownAbortedTransactionsImpl(
                 abandonedTimestampStore,
                 softCache,
