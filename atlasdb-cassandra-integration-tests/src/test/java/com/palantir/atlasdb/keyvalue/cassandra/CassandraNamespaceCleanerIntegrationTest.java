@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.fail;
 
 import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -162,7 +161,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
             try {
                 client.system_add_keyspace(ksDef);
             } catch (TException e) {
-                fail("failed to create keyspace");
+                throw new RuntimeException("failed to create keyspace", e);
             }
         });
     }
