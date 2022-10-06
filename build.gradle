@@ -112,6 +112,7 @@ allprojects {
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable'
+        options.errorprone.error 'SafeLoggingPropagation'
     }
 }
 
