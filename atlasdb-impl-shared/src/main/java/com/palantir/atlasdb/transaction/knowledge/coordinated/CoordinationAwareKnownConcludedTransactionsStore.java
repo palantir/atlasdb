@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.knowledge;
+package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
+import com.palantir.atlasdb.transaction.knowledge.TimestampRangeSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;

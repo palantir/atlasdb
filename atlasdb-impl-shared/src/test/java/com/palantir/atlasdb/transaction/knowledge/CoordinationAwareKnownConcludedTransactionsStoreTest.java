@@ -29,6 +29,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.junit.Test;
