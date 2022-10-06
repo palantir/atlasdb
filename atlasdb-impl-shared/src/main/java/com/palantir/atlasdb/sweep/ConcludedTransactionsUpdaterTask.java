@@ -45,6 +45,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
     private final ScheduledExecutorService executor;
     private Set<ShardAndStrategy> shardsAndStrategies;
+
     private int lastKnownNumShards = -1;
 
     @VisibleForTesting

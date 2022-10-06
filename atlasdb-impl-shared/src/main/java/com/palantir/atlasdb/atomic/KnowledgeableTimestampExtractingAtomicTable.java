@@ -23,7 +23,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -35,13 +35,13 @@ import java.util.stream.StreamSupport;
 public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final KnownConcludedTransactions knownConcludedTransactions;
-    private final KnownAbortedTransactions knownAbortedTransactions;
+    private final KnownAbandonedTransactions knownAbandonedTransactions;
 
     public KnowledgeableTimestampExtractingAtomicTable(
             AtomicTable<Long, TransactionStatus> delegate, TransactionKnowledgeComponents knowledge) {
         this.delegate = delegate;
         this.knownConcludedTransactions = knowledge.concluded();
-        this.knownAbortedTransactions = knowledge.aborted();
+        this.knownAbandonedTransactions = knowledge.aborted();
     }
 
     @Override
@@ -89,13 +89,13 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
         if (knownConcludedTransactions.isKnownConcluded(
                 startTimestamp, KnownConcludedTransactions.Consistency.LOCAL_READ)) {
             return Futures.immediateFuture(TransactionStatusUtils.getCommitTsForConcludedTransaction(
-                    startTimestamp, knownAbortedTransactions::isKnownAborted));
+                    startTimestamp, knownAbandonedTransactions::isKnownAbandoned));
         } else {
             ListenableFuture<TransactionStatus> presentValueFuture = delegate.get(startTimestamp);
             return Futures.transform(
                     presentValueFuture,
                     presentValue -> TransactionStatusUtils.getCommitTsFromStatus(
-                            startTimestamp, presentValue, knownAbortedTransactions::isKnownAborted),
+                            startTimestamp, presentValue, knownAbandonedTransactions::isKnownAbandoned),
                     MoreExecutors.directExecutor());
         }
     }

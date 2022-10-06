@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
@@ -33,13 +33,13 @@ import org.junit.Test;
 public class KnowledgeableTimestampExtractingAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> delegate = mock(AtomicTable.class);
     private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
-    private final KnownAbortedTransactions knownAbortedTransactions = mock(KnownAbortedTransactions.class);
+    private final KnownAbandonedTransactions knownAbandonedTransactions = mock(KnownAbandonedTransactions.class);
     private final KnowledgeableTimestampExtractingAtomicTable tsExtractingTable =
             new KnowledgeableTimestampExtractingAtomicTable(
                     delegate,
                     ImmutableTransactionKnowledgeComponents.builder()
                             .concluded(knownConcludedTransactions)
-                            .aborted(knownAbortedTransactions)
+                            .aborted(knownAbandonedTransactions)
                             .lastSeenCommitSupplier(() -> Long.MAX_VALUE)
                             .build());
 
@@ -48,7 +48,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(true);
-        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(false);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(startTs);
     }
@@ -58,7 +58,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(true);
-        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }
@@ -100,7 +100,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
         when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.unknown()));
-        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(false);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(startTs);
     }
@@ -111,7 +111,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
         when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.unknown()));
-        when(knownAbortedTransactions.isKnownAborted(startTs)).thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }

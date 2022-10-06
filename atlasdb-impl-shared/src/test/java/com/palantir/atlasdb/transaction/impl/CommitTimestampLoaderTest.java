@@ -30,7 +30,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -54,7 +54,7 @@ public class CommitTimestampLoaderTest {
     private final TimelockService timelockService = mock(TimelockService.class);
     private final AsyncTransactionService transactionService = mock(AsyncTransactionService.class);
 
-    private final KnownAbortedTransactions knownAbortedTransactions = mock(KnownAbortedTransactions.class);
+    private final KnownAbandonedTransactions knownAbandonedTransactions = mock(KnownAbandonedTransactions.class);
 
     private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
 
@@ -65,7 +65,7 @@ public class CommitTimestampLoaderTest {
 
     private void setup(long startTs, TransactionStatus commitStatus, boolean isAborted) {
         when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
-        when(knownAbortedTransactions.isKnownAborted(anyLong())).thenReturn(isAborted);
+        when(knownAbandonedTransactions.isKnownAbandoned(anyLong())).thenReturn(isAborted);
         when(transactionService.getAsyncV2(startTs)).thenReturn(Futures.immediateFuture(commitStatus));
     }
 
@@ -207,7 +207,7 @@ public class CommitTimestampLoaderTest {
 
     private TransactionKnowledgeComponents createKnowledgeComponents(long lastSeenCommitTs) {
         return ImmutableTransactionKnowledgeComponents.builder()
-                .aborted(knownAbortedTransactions)
+                .aborted(knownAbandonedTransactions)
                 .concluded(knownConcludedTransactions)
                 .lastSeenCommitSupplier(() -> lastSeenCommitTs)
                 .build();

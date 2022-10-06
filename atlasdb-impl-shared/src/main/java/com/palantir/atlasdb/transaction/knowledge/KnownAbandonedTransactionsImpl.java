@@ -28,7 +28,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
-public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
+public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransactions {
 
     public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
 
@@ -43,7 +43,7 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
     private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
-    KnownAbortedTransactionsImpl(
+    KnownAbandonedTransactionsImpl(
             AbandonedTimestampStore abandonedTimestampStore,
             AbandonedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
@@ -62,19 +62,19 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
                 .build();
     }
 
-    public static KnownAbortedTransactionsImpl create(
+    public static KnownAbandonedTransactionsImpl create(
             KnownConcludedTransactions knownConcludedTransactions,
             AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
             InternalSchemaInstallConfig config) {
         AbandonedTransactionSoftCache softCache =
                 new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
-        return new KnownAbortedTransactionsImpl(
+        return new KnownAbandonedTransactionsImpl(
                 abandonedTimestampStore, softCache, registry, config.versionFourAbortedTransactionsCacheSize());
     }
 
     @Override
-    public boolean isKnownAborted(long startTimestamp) {
+    public boolean isKnownAbandoned(long startTimestamp) {
         Bucket bucketForTimestamp = Bucket.forTimestamp(startTimestamp);
         TransactionSoftCacheStatus softCacheTransactionStatus = softCache.getSoftCacheTransactionStatus(startTimestamp);
 
@@ -93,8 +93,8 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
     }
 
     @Override
-    public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        abortedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
+    public void addAbandonedTimestamps(Set<Long> abandonedTimestamps) {
+        abandonedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
     }
 
     @VisibleForTesting
