@@ -50,8 +50,11 @@ public final class CoordinationAwareKnownAbandonedTransactionsStore {
                             .orElse(false);
                 })
                 .collect(Collectors.toSet());
-        // todo(snanda): metric/logs?
-        delegate.markAbandoned(abandonedTsOnSchema4);
+
+        if (!abandonedTsOnSchema4.isEmpty()) {
+            // todo(snanda): metric/logs
+            delegate.markAbandoned(abandonedTsOnSchema4);
+        }
     }
 
     private RangeMap<Long, Integer> latestTimestampRangesSnapshot(long lastSweptTimestamp) {
