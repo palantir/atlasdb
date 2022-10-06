@@ -40,4 +40,8 @@ public abstract class InternalSchemaInstallConfig {
     public int versionFourAbortedTransactionsCacheSize() {
         return KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT;
     }
+
+    public static InternalSchemaInstallConfig getDefault() {
+        return ImmutableInternalSchemaInstallConfig.builder().build();
+    }
 }

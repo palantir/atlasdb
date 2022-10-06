@@ -25,7 +25,6 @@ import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
@@ -67,15 +66,11 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
             KnownConcludedTransactions knownConcludedTransactions,
             AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
-            Optional<InternalSchemaInstallConfig> config) {
+            InternalSchemaInstallConfig config) {
         AbandonedTransactionSoftCache softCache =
                 new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
         return new KnownAbortedTransactionsImpl(
-                abandonedTimestampStore,
-                softCache,
-                registry,
-                config.map(InternalSchemaInstallConfig::versionFourAbortedTransactionsCacheSize)
-                        .orElse(MAXIMUM_CACHE_WEIGHT));
+                abandonedTimestampStore, softCache, registry, config.versionFourAbortedTransactionsCacheSize());
     }
 
     @Override
@@ -99,7 +94,6 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
 
     @Override
     public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        // todo(snanda): batching?
         abortedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
     }
 
