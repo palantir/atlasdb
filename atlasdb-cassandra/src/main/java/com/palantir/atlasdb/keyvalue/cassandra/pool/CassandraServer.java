@@ -42,7 +42,8 @@ public interface CassandraServer {
     /**
      * The only proxy that will be used to reach the Cassandra host.
      * */
-    @DoNotLog @Value.Lazy
+    @DoNotLog
+    @Value.Lazy
     @Value.Redacted // exclude from toString for thread names & logs
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element

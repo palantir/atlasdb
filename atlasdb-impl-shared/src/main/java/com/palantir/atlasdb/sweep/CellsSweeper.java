@@ -79,7 +79,8 @@ public class CellsSweeper {
         keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 
-    @Unsafe private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
+    @Unsafe
+    private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
         return UnsafeArg.of("cellTsPairsToSweep", getMessage(cellTsPairsToSweep));
     }
 

@@ -82,7 +82,8 @@ public final class Throwables {
                 .anyMatch(causeClass::isInstance);
     }
 
-    @Unsafe private static String extractMessageSafely(Throwable ex) {
+    @Unsafe
+    private static String extractMessageSafely(Throwable ex) {
         if (ex instanceof SafeLoggable) {
             return ((SafeLoggable) ex).getLogMessage();
         }

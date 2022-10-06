@@ -209,7 +209,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         return ~PtBytes.toLong(flippedTimestampAsBytes);
     }
 
-    @Unsafe private static Arg<String> key(byte[] row) {
+    @Unsafe
+    private static Arg<String> key(byte[] row) {
         return UnsafeArg.of("key", getKey(row));
     }
 
@@ -217,7 +218,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         return CassandraKeyValueServices.encodeAsHex(row);
     }
 
-    @Unsafe private static Arg<String> column1(byte[] column) {
+    @Unsafe
+    private static Arg<String> column1(byte[] column) {
         return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
     }
 
@@ -229,7 +231,8 @@ public class CqlExecutorImpl implements CqlExecutor {
         return SafeArg.of("limit", limit);
     }
 
-    @Unsafe private static Arg<String> quotedTableName(TableReference tableRef) {
+    @Unsafe
+    private static Arg<String> quotedTableName(TableReference tableRef) {
         String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }

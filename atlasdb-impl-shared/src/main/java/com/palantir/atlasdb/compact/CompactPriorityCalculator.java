@@ -139,7 +139,8 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    @Unsafe private static Arg<String> safeTableRef(String fullyQualifiedName) {
+    @Unsafe
+    private static Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
 }

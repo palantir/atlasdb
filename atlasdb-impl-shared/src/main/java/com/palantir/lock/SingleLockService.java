@@ -95,7 +95,8 @@ public class SingleLockService implements AutoCloseable {
         }
     }
 
-    @Unsafe private Arg<String> getLockIdLoggingArg() {
+    @Unsafe
+    private Arg<String> getLockIdLoggingArg() {
         return isLockIdSafeForLogging ? SafeArg.of("lockId", lockId) : UnsafeArg.of("lockId", lockId);
     }
 }

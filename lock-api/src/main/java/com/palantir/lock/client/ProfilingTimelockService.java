@@ -241,7 +241,8 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         }
     }
 
-    @Unsafe @Value.Immutable
+    @Unsafe
+    @Value.Immutable
     interface ActionProfile {
         @Value.Parameter
         String actionName();

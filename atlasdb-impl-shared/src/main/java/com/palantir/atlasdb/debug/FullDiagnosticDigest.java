@@ -34,7 +34,8 @@ import org.immutables.value.Value;
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
-@Unsafe @Deprecated
+@Unsafe
+@Deprecated
 @Value.Immutable
 @JsonDeserialize(as = ImmutableFullDiagnosticDigest.class)
 @JsonSerialize(as = ImmutableFullDiagnosticDigest.class)
@@ -50,7 +51,8 @@ public interface FullDiagnosticDigest<T> {
 
     List<LocalLockTracker.TrackedLockEvent> trackedLockEvents();
 
-    @Unsafe @Value.Immutable
+    @Unsafe
+    @Value.Immutable
     @JsonDeserialize(as = ImmutableRawData.class)
     @JsonSerialize(as = ImmutableRawData.class)
     interface RawData<T> {
@@ -64,7 +66,8 @@ public interface FullDiagnosticDigest<T> {
         Map<Long, ClientLockDiagnosticDigest> clientSideDiagnosticInfo();
     }
 
-    @Unsafe @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
+    @Unsafe
+    @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
     @JsonSerialize(as = ImmutableCompletedTransactionDigest.class)
     @Value.Immutable
     interface CompletedTransactionDigest<T> {
@@ -83,7 +86,8 @@ public interface FullDiagnosticDigest<T> {
         List<ConflictTrace> conflictTrace();
     }
 
-    @Unsafe @JsonDeserialize(as = ImmutableLockDigest.class)
+    @Unsafe
+    @JsonDeserialize(as = ImmutableLockDigest.class)
     @JsonSerialize(as = ImmutableLockDigest.class)
     @Value.Immutable
     interface LockDigest {

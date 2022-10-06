@@ -50,7 +50,8 @@ public final class LoggingArgs {
     public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
-    @Unsafe @Value.Immutable
+    @Unsafe
+    @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
 
@@ -91,7 +92,8 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
-    @Unsafe public static Arg<String> internalTableName(TableReference tableReference) {
+    @Unsafe
+    public static Arg<String> internalTableName(TableReference tableReference) {
         return safeInternalTableName(AbstractKeyValueService.internalTableName(tableReference));
     }
 
@@ -121,7 +123,8 @@ public final class LoggingArgs {
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    @Unsafe public static Arg<String> tableRef(TableReference tableReference) {
+    @Unsafe
+    public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 
@@ -151,7 +154,8 @@ public final class LoggingArgs {
         }
     }
 
-    @Unsafe public static Arg<String> safeInternalTableName(String internalTableReference) {
+    @Unsafe
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
         if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
             return SafeArg.of("tableRef", internalTableReference);
         } else {
@@ -159,62 +163,76 @@ public final class LoggingArgs {
         }
     }
 
-    @Unsafe public static Arg<String> tableRef(String argName, TableReference tableReference) {
+    @Unsafe
+    public static Arg<String> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    @Unsafe public static Arg<String> customTableName(TableReference tableReference, String tableName) {
+    @Unsafe
+    public static Arg<String> customTableName(TableReference tableReference, String tableName) {
         return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    @Unsafe public static Arg<Long> durationMillis(Stopwatch stopwatch) {
+    @Unsafe
+    public static Arg<Long> durationMillis(Stopwatch stopwatch) {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
-    @Unsafe public static Arg<Long> startTimeMillis(long startTime) {
+    @Unsafe
+    public static Arg<Long> startTimeMillis(long startTime) {
         return getArg("startTimeMillis", startTime, true);
     }
 
-    @Unsafe public static Arg<String> method(String method) {
+    @Unsafe
+    public static Arg<String> method(String method) {
         return getArg("method", method, true);
     }
 
-    @Unsafe public static Arg<Integer> cellCount(int cellCount) {
+    @Unsafe
+    public static Arg<Integer> cellCount(int cellCount) {
         return getArg("cellCount", cellCount, true);
     }
 
-    @Unsafe public static Arg<Integer> tableCount(int tableCount) {
+    @Unsafe
+    public static Arg<Integer> tableCount(int tableCount) {
         return getArg("tableCount", tableCount, true);
     }
 
-    @Unsafe public static Arg<Integer> keyCount(int keyCount) {
+    @Unsafe
+    public static Arg<Integer> keyCount(int keyCount) {
         return getArg("keyCount", keyCount, true);
     }
 
-    @Unsafe public static Arg<Integer> rowCount(int rowCount) {
+    @Unsafe
+    public static Arg<Integer> rowCount(int rowCount) {
         return getArg("rowCount", rowCount, true);
     }
 
-    @Unsafe public static Arg<Long> sizeInBytes(long sizeInBytes) {
+    @Unsafe
+    public static Arg<Long> sizeInBytes(long sizeInBytes) {
         return getArg("sizeInBytes", sizeInBytes, true);
     }
 
-    @Unsafe public static Arg<?> columnCount(ColumnSelection columnSelection) {
+    @Unsafe
+    public static Arg<?> columnCount(ColumnSelection columnSelection) {
         return getArg(
                 "columnCount",
                 columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
                 true);
     }
 
-    @Unsafe public static Arg<?> columnCount(int numberOfColumns) {
+    @Unsafe
+    public static Arg<?> columnCount(int numberOfColumns) {
         return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
     }
 
-    @Unsafe public static Arg<Integer> batchHint(int batchHint) {
+    @Unsafe
+    public static Arg<Integer> batchHint(int batchHint) {
         return getArg("batchHint", batchHint, true);
     }
 
-    @Unsafe public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
+    @Unsafe
+    public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
         return getArg(
                 "range",
                 range,
@@ -223,16 +241,19 @@ public final class LoggingArgs {
                                 logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 
-    @Unsafe public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
+    @Unsafe
+    public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
             BatchColumnRangeSelection batchColumnRangeSelection) {
         return getArg("batchColumnRangeSelection", batchColumnRangeSelection, false);
     }
 
-    @Unsafe public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
+    @Unsafe
+    public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
         return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 
-    @Unsafe private static <T> Arg<T> getArg(String name, T value, boolean safe) {
+    @Unsafe
+    private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }
 }

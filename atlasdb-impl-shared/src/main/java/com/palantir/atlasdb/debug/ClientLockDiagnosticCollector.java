@@ -45,7 +45,8 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
      */
-    @Unsafe @Deprecated
+    @Unsafe
+    @Deprecated
     @Value.Immutable
     @JsonDeserialize(as = ImmutableClientLockDiagnosticDigest.class)
     @JsonSerialize(as = ImmutableClientLockDiagnosticDigest.class)

@@ -30,7 +30,8 @@ import org.immutables.value.Value;
  *
  * Note that the {@link ClusterConfiguration} is an exception to above rule.
  */
-@DoNotLog @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
+@DoNotLog
+@JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @Value.Immutable
 @JsonIgnoreProperties({"targeted-sweep-locks", "test-only-lock-watches"})

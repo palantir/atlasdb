@@ -23,7 +23,8 @@ import org.immutables.value.Value;
  * A TransactionManagerConsistencyResult may be returned from a consistency check, which AtlasDB can execute to
  * determine that it is safe (or, at least, not obviously unsafe) to service requests.
  */
-@Unsafe @Value.Immutable
+@Unsafe
+@Value.Immutable
 @SuppressWarnings("ClassInitializationDeadlock")
 public interface TransactionManagerConsistencyResult {
     @Deprecated
