@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
-import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.logsafe.Preconditions;
@@ -34,7 +33,9 @@ import java.util.Comparator;
 import javax.annotation.Nonnull;
 
 /**
- * Represents a cell in the key-value store.
+ * Represents a cell in the key-value store. A cell consists of a non-empty row and column name that each individually
+ * have length at most {@link #MAX_NAME_LENGTH}.
+ *
  * @see Value
  * @see Bytes
  */
