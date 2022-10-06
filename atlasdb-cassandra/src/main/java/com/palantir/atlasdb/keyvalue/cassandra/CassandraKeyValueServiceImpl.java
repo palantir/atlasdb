@@ -107,7 +107,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -808,16 +807,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
                 StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
-                try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
-                    cellLoader.loadWithTs(
-                            "get",
-                            tableRef,
-                            cellsByTs.get(ts),
-                            ts,
-                            false,
-                            collector,
-                            readConsistencyProvider.getConsistency(tableRef));
-                }
+                cellLoader.loadWithTs(
+                        "get",
+                        tableRef,
+                        cellsByTs.get(ts),
+                        ts,
+                        false,
+                        collector,
+                        readConsistencyProvider.getConsistency(tableRef));
                 builder.putAll(collector.getCollectedResults());
             }
             return builder.buildOrThrow();
@@ -829,16 +826,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private Map<Cell, Value> get(
             String kvsMethodName, TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
-        try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs")) {
-            cellLoader.loadWithTs(
-                    kvsMethodName,
-                    tableRef,
-                    cells,
-                    maxTimestampExclusive,
-                    false,
-                    collector,
-                    readConsistencyProvider.getConsistency(tableRef));
-        }
+        cellLoader.loadWithTs(
+                kvsMethodName,
+                tableRef,
+                cells,
+                maxTimestampExclusive,
+                false,
+                collector,
+                readConsistencyProvider.getConsistency(tableRef));
         return collector.getCollectedResults();
     }
 
