@@ -91,7 +91,7 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
-    public static Arg<String> internalTableName(TableReference tableReference) {
+    @Unsafe public static Arg<String> internalTableName(TableReference tableReference) {
         return safeInternalTableName(AbstractKeyValueService.internalTableName(tableReference));
     }
 
@@ -159,62 +159,62 @@ public final class LoggingArgs {
         }
     }
 
-    public static Arg<String> tableRef(String argName, TableReference tableReference) {
+    @Unsafe public static Arg<String> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    public static Arg<String> customTableName(TableReference tableReference, String tableName) {
+    @Unsafe public static Arg<String> customTableName(TableReference tableReference, String tableName) {
         return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    public static Arg<Long> durationMillis(Stopwatch stopwatch) {
+    @Unsafe public static Arg<Long> durationMillis(Stopwatch stopwatch) {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
-    public static Arg<Long> startTimeMillis(long startTime) {
+    @Unsafe public static Arg<Long> startTimeMillis(long startTime) {
         return getArg("startTimeMillis", startTime, true);
     }
 
-    public static Arg<String> method(String method) {
+    @Unsafe public static Arg<String> method(String method) {
         return getArg("method", method, true);
     }
 
-    public static Arg<Integer> cellCount(int cellCount) {
+    @Unsafe public static Arg<Integer> cellCount(int cellCount) {
         return getArg("cellCount", cellCount, true);
     }
 
-    public static Arg<Integer> tableCount(int tableCount) {
+    @Unsafe public static Arg<Integer> tableCount(int tableCount) {
         return getArg("tableCount", tableCount, true);
     }
 
-    public static Arg<Integer> keyCount(int keyCount) {
+    @Unsafe public static Arg<Integer> keyCount(int keyCount) {
         return getArg("keyCount", keyCount, true);
     }
 
-    public static Arg<Integer> rowCount(int rowCount) {
+    @Unsafe public static Arg<Integer> rowCount(int rowCount) {
         return getArg("rowCount", rowCount, true);
     }
 
-    public static Arg<Long> sizeInBytes(long sizeInBytes) {
+    @Unsafe public static Arg<Long> sizeInBytes(long sizeInBytes) {
         return getArg("sizeInBytes", sizeInBytes, true);
     }
 
-    public static Arg<?> columnCount(ColumnSelection columnSelection) {
+    @Unsafe public static Arg<?> columnCount(ColumnSelection columnSelection) {
         return getArg(
                 "columnCount",
                 columnSelection.allColumnsSelected() ? "all" : Iterables.size(columnSelection.getSelectedColumns()),
                 true);
     }
 
-    public static Arg<?> columnCount(int numberOfColumns) {
+    @Unsafe public static Arg<?> columnCount(int numberOfColumns) {
         return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
     }
 
-    public static Arg<Integer> batchHint(int batchHint) {
+    @Unsafe public static Arg<Integer> batchHint(int batchHint) {
         return getArg("batchHint", batchHint, true);
     }
 
-    public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
+    @Unsafe public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
         return getArg(
                 "range",
                 range,
@@ -223,12 +223,12 @@ public final class LoggingArgs {
                                 logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 
-    public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
+    @Unsafe public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
             BatchColumnRangeSelection batchColumnRangeSelection) {
         return getArg("batchColumnRangeSelection", batchColumnRangeSelection, false);
     }
 
-    public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
+    @Unsafe public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
         return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 

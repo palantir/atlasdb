@@ -50,7 +50,7 @@ public interface FullDiagnosticDigest<T> {
 
     List<LocalLockTracker.TrackedLockEvent> trackedLockEvents();
 
-    @Value.Immutable
+    @Unsafe @Value.Immutable
     @JsonDeserialize(as = ImmutableRawData.class)
     @JsonSerialize(as = ImmutableRawData.class)
     interface RawData<T> {
@@ -64,7 +64,7 @@ public interface FullDiagnosticDigest<T> {
         Map<Long, ClientLockDiagnosticDigest> clientSideDiagnosticInfo();
     }
 
-    @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
+    @Unsafe @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
     @JsonSerialize(as = ImmutableCompletedTransactionDigest.class)
     @Value.Immutable
     interface CompletedTransactionDigest<T> {
