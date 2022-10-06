@@ -121,7 +121,7 @@ public final class LoggingArgs {
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
-    public static Arg<String> tableRef(TableReference tableReference) {
+    @Unsafe public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
 

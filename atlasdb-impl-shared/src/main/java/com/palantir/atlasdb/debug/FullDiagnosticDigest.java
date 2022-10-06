@@ -34,7 +34,7 @@ import org.immutables.value.Value;
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
-@Deprecated
+@Unsafe @Deprecated
 @Value.Immutable
 @JsonDeserialize(as = ImmutableFullDiagnosticDigest.class)
 @JsonSerialize(as = ImmutableFullDiagnosticDigest.class)

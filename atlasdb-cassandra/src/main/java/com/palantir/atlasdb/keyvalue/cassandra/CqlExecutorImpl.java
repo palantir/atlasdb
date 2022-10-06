@@ -229,7 +229,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         return SafeArg.of("limit", limit);
     }
 
-    private static Arg<String> quotedTableName(TableReference tableRef) {
+    @Unsafe private static Arg<String> quotedTableName(TableReference tableRef) {
         String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
     }
