@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: 'Revert Revert "[TTS] Readonly transactions on TTS (#6212)" #6254.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6257

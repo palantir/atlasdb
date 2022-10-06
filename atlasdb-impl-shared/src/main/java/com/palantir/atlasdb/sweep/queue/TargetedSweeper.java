@@ -86,6 +86,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsConfiguration = install.metricsConfiguration();
     }
 
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
      * {@link #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService,
