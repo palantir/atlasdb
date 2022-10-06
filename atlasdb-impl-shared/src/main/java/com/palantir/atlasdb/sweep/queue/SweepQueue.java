@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -29,8 +27,6 @@ import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStoreImpl;
-import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownAbandonedTransactionsStore;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
@@ -73,15 +69,13 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
             TransactionService transaction,
-            CoordinationService<InternalSchemaMetadata> coordinationService,
+            Consumer<Set<Long>> abortedTransactionConsumer,
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
                 SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
-                new CoordinationAwareKnownAbandonedTransactionsStore(
-                        coordinationService, new AbandonedTimestampStoreImpl(kvs));
-        return new SweepQueue(factory, follower, abandonedTxnStore::addAbandonedTimestamps);
+        ;
+        return new SweepQueue(factory, follower, abortedTransactionConsumer);
     }
 
     /**

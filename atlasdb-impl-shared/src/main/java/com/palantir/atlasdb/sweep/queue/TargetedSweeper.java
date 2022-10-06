@@ -19,8 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
-import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -49,7 +47,9 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -66,8 +66,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
 
-    // Todo(snanda): this design is shit
-    private final CoordinationService<InternalSchemaMetadata> coordinationService;
+    // Todo(snanda): this design is still shit
+    private final Consumer<Set<Long>> abortedTransactionConsumer;
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -81,7 +81,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
+            Consumer<Set<Long>> abortedTransactionConsumer) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -90,7 +90,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
-        this.coordinationService = coordinationService;
+        this.abortedTransactionConsumer = abortedTransactionConsumer;
     }
 
     public boolean isInitialized() {
@@ -113,8 +113,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
-        return new TargetedSweeper(metrics, runtime, install, followers, coordinationService);
+            Consumer<Set<Long>> abortedTransactionConsumer) {
+        return new TargetedSweeper(metrics, runtime, install, followers, abortedTransactionConsumer);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -123,7 +123,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 .conservativeThreads(0)
                 .thoroughThreads(0)
                 .build();
-        return createUninitialized(metricsManager, runtime, install, ImmutableList.of());
+        return createUninitialized(metricsManager, runtime, install, ImmutableList.of(), _unused -> {});
     }
 
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
@@ -180,7 +180,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 timelockService,
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 transaction,
-                coordinationService,
+                abortedTransactionConsumer,
                 follower,
                 ReadBatchingRuntimeContext.builder()
                         .maximumPartitions(this::getPartitionBatchLimit)
