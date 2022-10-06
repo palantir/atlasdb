@@ -66,7 +66,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
 
-    // Todo(snanda): this design is still shit
     private final Consumer<Set<Long>> abortedTransactionConsumer;
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;

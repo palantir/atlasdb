@@ -74,7 +74,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
                 SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        ;
         return new SweepQueue(factory, follower, abortedTransactionConsumer);
     }
 
