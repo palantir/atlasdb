@@ -48,7 +48,7 @@ public interface TransactionKnowledgeComponents {
                 .aborted(KnownAbortedTransactionsImpl.create(
                         KnownConcludedTransactionsImpl.create(
                                 KnownConcludedTransactionsStore.create(kvs), metricRegistry),
-                        new DefaultAbandonedTimestampStore(kvs),
+                        new AbandonedTimestampStoreImpl(kvs),
                         metricRegistry,
                         config))
                 .lastSeenCommitSupplier(lastSeenCommitTsLoader::getLastSeenCommitTs)

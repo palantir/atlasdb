@@ -27,7 +27,7 @@ import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStore;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStoreImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -48,15 +49,15 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
-
-    // todo(snanda): Should probably use transaction components
-    private final AbandonedTimestampStore abandonedTimestampStore;
+    private final Consumer<Set<Long>> abortedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
 
-    private SweepQueue(SweepQueueFactory factory, TargetedSweepFollower follower) {
+    private SweepQueue(
+            SweepQueueFactory factory, TargetedSweepFollower follower, Consumer<Set<Long>> abortedTransactionConsumer) {
         this.progress = factory.progress;
         this.writer = factory.createWriter();
         this.reader = factory.createReader();
+        this.abortedTransactionConsumer = abortedTransactionConsumer;
         this.deleter = factory.createDeleter(follower);
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
@@ -73,7 +74,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
                 SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        return new SweepQueue(factory, follower);
+        return new SweepQueue(factory, follower, new AbandonedTimestampStoreImpl(kvs)::markAbandoned);
     }
 
     /**
@@ -144,7 +145,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
 
         // The order must not be changed without considering correctness of txn4
-        abandonedTimestampStore.markAbandoned(sweepBatch.abortedTimestamps());
+        abortedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
