@@ -107,7 +107,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.Pair;
@@ -480,12 +479,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int numberOfThriftHosts = serversConfig.numberOfThriftHosts();
             int corePoolSize = poolSize * numberOfThriftHosts;
             int maxPoolSize = maxConnectionBurstSize * numberOfThriftHosts;
-            return Tracers.wrap(
-                    "Atlas Cassandra KVS",
-                    MetricRegistries.instrument(
-                            registry,
-                            createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
-                            "Atlas Cassandra KVS"));
+            return MetricRegistries.instrument(
+                    registry,
+                    createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
+                    "Atlas Cassandra KVS");
         };
     }
 
