@@ -238,7 +238,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 throw e;
             }
         }
-        return resultBuilder.build();
+        return resultBuilder.buildOrThrow();
     }
 
     private boolean shouldTouch() {

@@ -100,7 +100,7 @@ public class LocalBatchPaxosLearnerTests {
         Map<Client, Long> request = ImmutableMap.<Client, Long>builder()
                 .put(CLIENT_1, 1L)
                 .put(CLIENT_2, 2L)
-                .build();
+                .buildOrThrow();
 
         SetMultimap<Client, PaxosValue> expected = ImmutableSetMultimap.<Client, PaxosValue>builder()
                 .putAll(CLIENT_1, paxosValue1)

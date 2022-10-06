@@ -147,7 +147,7 @@ public final class Cells {
                             mapBuilder.put(peek.getKey().getColumnName(), peek.getValue());
                             it.next();
                         }
-                        map = mapBuilder.build();
+                        map = mapBuilder.buildOrThrow();
                         return Maps.immutableEntry(row, map);
                     }
                 };

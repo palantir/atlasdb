@@ -903,7 +903,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                         .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
                                         .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
                                         .putAll(partitionedTimestamps.myCommittedTransaction())
-                                        .build(),
+                                        .buildOrThrow(),
                                 MoreExecutors.directExecutor());
             }
 

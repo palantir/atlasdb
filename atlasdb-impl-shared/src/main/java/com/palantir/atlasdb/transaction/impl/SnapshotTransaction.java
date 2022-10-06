@@ -415,7 +415,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(result.build().keySet());
+        rawResults.keySet().removeAll(result.buildOrThrow().keySet());
 
         NavigableMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
@@ -483,7 +483,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
             postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
         }
-        SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = postFilteredResultsBuilder.build();
+        SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
+                postFilteredResultsBuilder.buildOrThrow();
         // validate requirements here as the first batch for each of the above iterators will not check
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return postFilteredResults;
@@ -790,7 +791,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
         ImmutableMap<Cell, byte[]> collected = resultCollector
                 .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
-                .build();
+                .buildOrThrow();
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }

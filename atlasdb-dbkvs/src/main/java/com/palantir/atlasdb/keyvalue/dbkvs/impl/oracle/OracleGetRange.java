@@ -343,7 +343,7 @@ public class OracleGetRange implements DbKvsGetRange {
             byte[] rowName = sqlRow.cell.getRowName();
             if (currentRowName == null || !Arrays.equals(rowName, currentRowName)) {
                 if (currentRowName != null) {
-                    rowResults.add(RowResult.create(currentRowName, currentRowCells.build()));
+                    rowResults.add(RowResult.create(currentRowName, currentRowCells.buildOrThrow()));
                 }
                 currentRowCells = ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator());
                 currentRowName = rowName;
@@ -358,7 +358,7 @@ public class OracleGetRange implements DbKvsGetRange {
             TraceStatistics.incBytesRead(value);
         }
         if (currentRowName != null) {
-            rowResults.add(RowResult.create(currentRowName, currentRowCells.build()));
+            rowResults.add(RowResult.create(currentRowName, currentRowCells.buildOrThrow()));
         }
         return rowResults;
     }

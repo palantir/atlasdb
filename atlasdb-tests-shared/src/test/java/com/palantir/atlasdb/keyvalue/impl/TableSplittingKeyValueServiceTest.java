@@ -166,6 +166,6 @@ public class TableSplittingKeyValueServiceTest {
         return ImmutableMap.<TableReference, byte[]>builder()
                 .putAll(left)
                 .putAll(right)
-                .build();
+                .buildOrThrow();
     }
 }

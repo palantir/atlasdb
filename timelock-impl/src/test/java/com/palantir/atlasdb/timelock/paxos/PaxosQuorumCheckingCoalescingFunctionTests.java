@@ -68,7 +68,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
                         .put(1L, responsesFor(entry(node1, 2L), entry(node2, 6L), entry(node3, 3L)))
                         .put(2L, responsesFor(entry(node1, 23L), entry(node2, 23L), entry(node3, 65L)))
                         .put(5L, responsesFor(entry(node1, 65L), entry(node2, 32L), entry(node3, 32L)))
-                        .build();
+                        .buildOrThrow();
 
         Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
@@ -92,7 +92,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
                         .put(1L, responsesFor(entry(node1, 2L)))
                         .put(2L, responsesFor(entry(node1, 23L), entry(node2, 23L), entry(node3, 65L)))
                         .put(5L, responsesFor(entry(node2, 32L)))
-                        .build();
+                        .buildOrThrow();
 
         Map<Long, PaxosResponsesWithRemote<TestFunction, PaxosLong>> results =
                 paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));

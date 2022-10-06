@@ -64,7 +64,7 @@ public abstract class PaxosRemoteClients {
                             executorIndex));
             executorIndex++;
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     @Value.Derived
@@ -82,7 +82,7 @@ public abstract class PaxosRemoteClients {
                             executorIndex));
             executorIndex++;
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     @Value.Derived

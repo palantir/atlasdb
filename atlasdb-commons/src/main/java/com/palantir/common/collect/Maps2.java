@@ -32,7 +32,7 @@ public final class Maps2 {
         for (Map.Entry<K, V> e : it) {
             builder.put(e.getKey(), e.getValue());
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     public static <K1, K2, V> ImmutableMap<K2, V> transformKeys(Map<K1, V> map, Function<K1, K2> f) {

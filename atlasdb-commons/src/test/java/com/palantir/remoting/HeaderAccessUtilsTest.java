@@ -39,7 +39,7 @@ public class HeaderAccessUtilsTest {
                     .put(KEY_1, VALUE_1)
                     .put(KEY_2, VALUE_2)
                     .put(KEY_3, VALUE_3)
-                    .build();
+                    .buildOrThrow();
 
     @Test
     public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {
