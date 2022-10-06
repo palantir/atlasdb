@@ -26,7 +26,9 @@ types:
           expirationDateMs: Long
       ConjureLockV1Request:
         fields:
-          lockClient: string
+          lockClient:
+            type: string
+            safety: unsafe
           lockRequest: LockRequest
       ConjureSimpleHeldLocksToken:
         fields:
@@ -44,18 +46,24 @@ services:
       lockAndGetHeldLocks:
         http: POST /laghl/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureLockV1Request
         returns: optional<HeldLocksToken>
       refreshLockRefreshTokens:
         http: POST /rlrt/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: list<ConjureLockRefreshToken>
         returns: set<ConjureLockRefreshToken>
       unlockSimple:
         http: POST /us/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureSimpleHeldLocksToken
         returns: boolean
