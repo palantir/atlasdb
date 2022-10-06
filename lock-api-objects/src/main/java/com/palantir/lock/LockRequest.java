@@ -474,7 +474,7 @@ public final class LockRequest implements Serializable {
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
-            this.lockMap = LockCollections.of(localLockMapBuilder.build());
+            this.lockMap = LockCollections.of(localLockMapBuilder.buildOrThrow());
             this.lockTimeout = lockTimeout;
             this.lockGroupBehavior = lockGroupBehavior;
             this.blockingMode = blockingMode;

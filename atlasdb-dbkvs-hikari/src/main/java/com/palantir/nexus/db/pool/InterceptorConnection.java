@@ -38,7 +38,7 @@ public final class InterceptorConnection extends AbstractInvocationHandler imple
                     .put("createStatement", Statement.class)
                     .put("prepareCall", CallableStatement.class)
                     .put("prepareStatement", PreparedStatement.class)
-                    .build();
+                    .buildOrThrow();
 
     private InterceptorConnection(final Connection delegate) {
         this.delegate = delegate;

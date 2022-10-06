@@ -737,7 +737,7 @@ public abstract class AbstractKeyValueServiceTest {
                             ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(column(0), Value.create(val(1, 0), TEST_TIMESTAMP))
                                     .put(column(2), Value.create(val(1, 2), TEST_TIMESTAMP))
-                                    .build()));
+                                    .buildOrThrow()));
             assertThat(rangeResult).hasNext();
             assertThat(rangeResult.next())
                     .isEqualTo(RowResult.create(
@@ -745,7 +745,7 @@ public abstract class AbstractKeyValueServiceTest {
                             ImmutableSortedMap.orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(column(1), Value.create(val(2, 1), TEST_TIMESTAMP))
                                     .put(column(2), Value.create(val(2, 2), TEST_TIMESTAMP))
-                                    .build()));
+                                    .buildOrThrow()));
         }
     }
 
@@ -775,7 +775,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .put(Cell.create(PtBytes.toBytes("04"), RangeRequests.getLastRowName()), PtBytes.toBytes("h"))
                 .put(Cell.create(PtBytes.toBytes("05"), PtBytes.toBytes("c1")), PtBytes.toBytes("i"))
                 .put(Cell.create(RangeRequests.getLastRowName(), PtBytes.toBytes("c1")), PtBytes.toBytes("j"))
-                .build();
+                .buildOrThrow();
         keyValueService.put(tableRef, values, TEST_TIMESTAMP);
 
         RangeRequest request =
@@ -788,25 +788,25 @@ public abstract class AbstractKeyValueServiceTest {
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("a"), TEST_TIMESTAMP))
                                     .put(PtBytes.toBytes("c2"), Value.create(PtBytes.toBytes("b"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             PtBytes.toBytes("01"),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(
                                             RangeRequests.getFirstRowName(),
                                             Value.create(PtBytes.toBytes("c"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             PtBytes.toBytes("02"),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("d"), TEST_TIMESTAMP))
                                     .put(PtBytes.toBytes("c2"), Value.create(PtBytes.toBytes("e"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             PtBytes.toBytes("03"),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("f"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             PtBytes.toBytes("04"),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
@@ -814,17 +814,17 @@ public abstract class AbstractKeyValueServiceTest {
                                     .put(
                                             RangeRequests.getLastRowName(),
                                             Value.create(PtBytes.toBytes("h"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             PtBytes.toBytes("05"),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("i"), TEST_TIMESTAMP))
-                                    .build()),
+                                    .buildOrThrow()),
                     RowResult.create(
                             RangeRequests.getLastRowName(),
                             ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                                     .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("j"), TEST_TIMESTAMP))
-                                    .build()));
+                                    .buildOrThrow()));
 
             if (reverse) {
                 assertThat(results).containsExactlyElementsOf(Lists.reverse(expected));
@@ -861,7 +861,7 @@ public abstract class AbstractKeyValueServiceTest {
                     ImmutableSortedMap.<byte[], Value>orderedBy(UnsignedBytes.lexicographicalComparator())
                             .put(PtBytes.toBytes("c1"), Value.create(PtBytes.toBytes("a"), TEST_TIMESTAMP))
                             .put(last, Value.create(PtBytes.toBytes("b"), TEST_TIMESTAMP))
-                            .build()));
+                            .buildOrThrow()));
             assertThat(results).containsExactlyElementsOf(expected);
         }
     }
@@ -934,7 +934,7 @@ public abstract class AbstractKeyValueServiceTest {
                 byte[] colName = PtBytes.toBytes(Long.MIN_VALUE ^ col);
                 builder.put(colName, Value.create(PtBytes.toBytes(row + "," + col), TEST_TIMESTAMP));
             }
-            SortedMap<byte[], Value> columns = builder.build();
+            SortedMap<byte[], Value> columns = builder.buildOrThrow();
             if (!columns.isEmpty()) {
                 byte[] rowName = PtBytes.toBytes(Long.MIN_VALUE ^ row);
                 expected.add(RowResult.create(rowName, columns));

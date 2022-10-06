@@ -257,7 +257,7 @@ public final class HeldLocksToken implements ExpiringToken, Serializable {
             for (LockWithMode lock : locks) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
-            this.lockMap = LockCollections.of(localLockMapBuilder.build());
+            this.lockMap = LockCollections.of(localLockMapBuilder.buildOrThrow());
             this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId");
             this.client = Preconditions.checkNotNull(client, "client");
             this.creationDateMs = creationDateMs;

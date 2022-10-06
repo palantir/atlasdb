@@ -55,7 +55,7 @@ public class AdvisoryLocksConditionTest {
                                     TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                                     TransactionConstants.getValueForTimestamp(0L)),
                             LockMode.WRITE)
-                    .build());
+                    .buildOrThrow());
     private static final LockRequest LOCK_REQUEST =
             LockRequest.builder(LOCK_DESCRIPTORS).build();
     private static final Supplier<LockRequest> LOCK_REQUEST_SUPPLIER = () -> LOCK_REQUEST;

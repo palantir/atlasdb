@@ -158,7 +158,7 @@ public class OracleConnectionConfigTest {
                 .put("\"tcp\"", ConnectionProtocol.TCP)
                 .put("\"TCPS\"", ConnectionProtocol.TCPS)
                 .put("\"tcps\"", ConnectionProtocol.TCPS)
-                .build();
+                .buildOrThrow();
 
         for (Map.Entry<String, ConnectionProtocol> entry : serializedProtocols.entrySet()) {
             ConnectionProtocol protocol = mapper.readValue(entry.getKey(), ConnectionProtocol.class);

@@ -199,7 +199,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             ImmutableMap.<String, ExpectationFactory>builder()
                     .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
-                    .build();
+                    .buildOrThrow();
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -2320,7 +2320,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 lockClient,
                 creationDateMs,
                 expirationDateMs,
-                LockCollections.of(builder.build()),
+                LockCollections.of(builder.buildOrThrow()),
                 lockTimeout,
                 versionId,
                 "Dummy thread");
