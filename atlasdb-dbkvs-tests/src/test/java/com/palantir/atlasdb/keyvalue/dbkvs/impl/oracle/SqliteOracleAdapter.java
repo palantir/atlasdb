@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
@@ -307,7 +308,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
                 .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .build();
 
-        OracleTableNameGetter tableNameGetter = OracleTableNameGetter.createDefault(config);
+        OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(config);
         return tableNameGetter.getPrefixedTableName(tableReference);
     }
 
