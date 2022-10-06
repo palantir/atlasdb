@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ConflictTrace;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.logsafe.Unsafe;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +83,7 @@ public interface FullDiagnosticDigest<T> {
         List<ConflictTrace> conflictTrace();
     }
 
-    @JsonDeserialize(as = ImmutableLockDigest.class)
+    @Unsafe @JsonDeserialize(as = ImmutableLockDigest.class)
     @JsonSerialize(as = ImmutableLockDigest.class)
     @Value.Immutable
     interface LockDigest {

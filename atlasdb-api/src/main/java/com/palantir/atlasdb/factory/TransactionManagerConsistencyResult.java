@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -22,7 +23,7 @@ import org.immutables.value.Value;
  * A TransactionManagerConsistencyResult may be returned from a consistency check, which AtlasDB can execute to
  * determine that it is safe (or, at least, not obviously unsafe) to service requests.
  */
-@Value.Immutable
+@Unsafe @Value.Immutable
 @SuppressWarnings("ClassInitializationDeadlock")
 public interface TransactionManagerConsistencyResult {
     @Deprecated
