@@ -19,6 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -63,6 +65,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
+
+    // Todo(snanda): this design is shit
+    private final CoordinationService<InternalSchemaMetadata> coordinationService;
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -75,7 +80,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
-            List<Follower> followers) {
+            List<Follower> followers,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -84,6 +90,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
+        this.coordinationService = coordinationService;
     }
 
     public boolean isInitialized() {
@@ -105,8 +112,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             MetricsManager metrics,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
-            List<Follower> followers) {
-        return new TargetedSweeper(metrics, runtime, install, followers);
+            List<Follower> followers,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return new TargetedSweeper(metrics, runtime, install, followers, coordinationService);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -172,6 +180,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 timelockService,
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 transaction,
+                coordinationService,
                 follower,
                 ReadBatchingRuntimeContext.builder()
                         .maximumPartitions(this::getPartitionBatchLimit)

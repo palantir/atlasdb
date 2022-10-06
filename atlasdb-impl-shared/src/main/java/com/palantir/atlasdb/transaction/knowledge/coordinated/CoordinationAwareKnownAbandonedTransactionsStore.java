@@ -18,26 +18,23 @@ package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.RangeMap;
-import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStore;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class CoordinationAwareKnownAbandonedTransactionsStore {
-    private static final SafeLogger log = SafeLoggerFactory.get(CoordinationAwareKnownConcludedTransactionsStore.class);
-    private final Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter;
-    private final KnownAbandonedTransactions delegate;
+    private final CoordinationService<InternalSchemaMetadata> coordinationService;
+    private final AbandonedTimestampStore delegate;
 
     public CoordinationAwareKnownAbandonedTransactionsStore(
-            Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter,
-            KnownAbandonedTransactions delegate) {
-        this.internalSchemaSnapshotGetter = internalSchemaSnapshotGetter;
+            CoordinationService<InternalSchemaMetadata> coordinationService, AbandonedTimestampStore delegate) {
+        this.coordinationService = coordinationService;
         this.delegate = delegate;
     }
 
@@ -53,10 +50,15 @@ public final class CoordinationAwareKnownAbandonedTransactionsStore {
                             .orElse(false);
                 })
                 .collect(Collectors.toSet());
-        delegate.addAbandonedTimestamps(abandonedTsOnSchema4);
+        // todo(snanda): metric/logs?
+        delegate.markAbandoned(abandonedTsOnSchema4);
     }
 
     private RangeMap<Long, Integer> latestTimestampRangesSnapshot(long lastSweptTimestamp) {
-        return internalSchemaSnapshotGetter.apply(lastSweptTimestamp).rangeMapView();
+        InternalSchemaMetadata internalSchemaMeta = coordinationService
+                .getValueForTimestamp(lastSweptTimestamp)
+                .flatMap(ValueAndBound::value)
+                .orElseGet(InternalSchemaMetadata::defaultValue);
+        return internalSchemaMeta.timestampToTransactionsTableSchemaVersion().rangeMapView();
     }
 }

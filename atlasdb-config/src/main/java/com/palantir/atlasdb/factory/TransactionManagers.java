@@ -425,10 +425,19 @@ public abstract class TransactionManagers {
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
-
         CleanupFollower follower = CleanupFollower.create(schemas());
+
+        // todo(snanda): shit design
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
-                metricsManager, config().targetedSweep(), follower, runtime.map(AtlasDbRuntimeConfig::targetedSweep));
+                metricsManager,
+                config().targetedSweep(),
+                follower,
+                runtime.map(AtlasDbRuntimeConfig::targetedSweep),
+                coordinationService);
 
         TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
                 keyValueService,
@@ -437,7 +446,7 @@ public abstract class TransactionManagers {
                 targetedSweeper::isInitialized);
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, knowledge, lockAndTimestampServices, keyValueService, runtime);
+                closeables, metricsManager, knowledge, transactionSchemaManager, keyValueService, runtime);
 
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
@@ -678,12 +687,9 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             MetricsManager metricsManager,
             TransactionKnowledgeComponents knowledgeCache,
-            LockAndTimestampServices lockAndTimestampServices,
+            TransactionSchemaManager transactionSchemaManager,
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        CoordinationService<InternalSchemaMetadata> coordinationService =
-                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
-        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
@@ -964,8 +970,10 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
             Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime) {
-        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return TargetedSweeper.createUninitialized(
+                metricsManager, runtime, install, ImmutableList.of(follower), coordinationService);
     }
 
     @Value.Immutable
