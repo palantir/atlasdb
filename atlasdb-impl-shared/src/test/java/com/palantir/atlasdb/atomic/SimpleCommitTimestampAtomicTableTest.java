@@ -114,6 +114,20 @@ public class SimpleCommitTimestampAtomicTableTest {
         assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
     }
 
+    @Test
+    public void doesNotThrowForDuplicateValues() throws ExecutionException, InterruptedException {
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.committed(2L));
+        atomicTable.updateMultiple(inputs);
+
+        // does not throw any exception
+        Map<Long, TransactionStatus> result =
+                atomicTable.get(ImmutableList.of(1L, 1L, 3L)).get();
+
+        assertThat(result).hasSize(2);
+        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
+        assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
+    }
+
     private AtomicTable<Long, TransactionStatus> createPueTable() {
         return new SimpleCommitTimestampAtomicTable(
                 new InMemoryKeyValueService(true),
