@@ -52,7 +52,7 @@ public final class AllNodesDisabledNamespacesUpdaterFactory {
                                 .mapKeys(WithDedicatedExecutor::service)
                                 .map(WithDedicatedExecutor::executor)
                                 .collectToMap())
-                        .build();
+                        .buildOrThrow();
 
         ImmutableList<DisabledNamespacesUpdaterService> remoteServices = ImmutableList.copyOf(
                 remoteUpdaters.stream().map(WithDedicatedExecutor::service).collect(Collectors.toList()));

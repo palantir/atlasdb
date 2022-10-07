@@ -199,7 +199,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             ImmutableMap.<String, ExpectationFactory>builder()
                     .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
-                    .build();
+                    .buildOrThrow();
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -355,7 +355,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
     }
 
     @Test
@@ -423,10 +424,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        KeyValueService kvs = keyValueServiceWrapper.apply(kvMock, pathTypeTracker);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(kvMock, pathTypeTracker),
+                        kvs,
                         inMemoryTimeLockRule.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
@@ -449,7 +451,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
-                        tableLevelMetricsController),
+                        tableLevelMetricsController,
+                        knowledge),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -480,7 +483,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -966,7 +970,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper);
+                keyValueServiceWrapper,
+                knowledge);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -2277,7 +2282,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
-                tableLevelMetricsController);
+                tableLevelMetricsController,
+                knowledge);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 
@@ -2314,7 +2320,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 lockClient,
                 creationDateMs,
                 expirationDateMs,
-                LockCollections.of(builder.build()),
+                LockCollections.of(builder.buildOrThrow()),
                 lockTimeout,
                 versionId,
                 "Dummy thread");

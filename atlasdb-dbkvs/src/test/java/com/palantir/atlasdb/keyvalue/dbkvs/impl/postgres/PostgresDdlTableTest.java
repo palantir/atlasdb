@@ -142,7 +142,7 @@ public class PostgresDdlTableTest {
                                 .put("LAST", 0)
                                 .put("current", 1)
                                 .put("CURRENT", 1)
-                                .build()));
+                                .buildOrThrow()));
         return sqlConnection;
     }
 

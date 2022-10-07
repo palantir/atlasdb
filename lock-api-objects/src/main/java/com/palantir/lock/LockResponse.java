@@ -208,7 +208,7 @@ public final class LockResponse implements Serializable {
                 for (LockWithClient lock : lockWithClients) {
                     lockHoldersBuilder.put(lock.getLockDescriptor(), lock.getLockClient());
                 }
-                this.lockHolders = lockHoldersBuilder.build();
+                this.lockHolders = lockHoldersBuilder.buildOrThrow();
             }
             this.token = token;
             this.isBlockAndRelease = isBlockAndRelease;

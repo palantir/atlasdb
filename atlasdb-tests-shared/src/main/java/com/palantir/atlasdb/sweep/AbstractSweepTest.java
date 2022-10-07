@@ -527,6 +527,6 @@ public abstract class AbstractSweepTest {
     }
 
     protected Optional<Long> getLastSeenCommitTimestamp() {
-        return shardProgress.getLastSeenCommitTimestamp();
+        return shardProgress.getMaybeLastSeenCommitTimestamp();
     }
 }

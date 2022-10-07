@@ -88,6 +88,6 @@ public final class ToplistDeltaFilteringTableLevelMetricsController implements T
         return ImmutableMap.<String, String>builder()
                 .putAll(metricsManager.getTableNameTagFor(tableReference))
                 .put(CONTROLLER_GENERATED, TRUE)
-                .build();
+                .buildOrThrow();
     }
 }

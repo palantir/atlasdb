@@ -371,7 +371,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                         com.palantir.lock.LockRequest.builder(
                                         ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
                                                 .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                                                .build())
+                                                .buildOrThrow())
                                 .build());
         ConjureLockRefreshToken conjureAnalogue =
                 ConjureLockRefreshToken.of(token.getTokenId(), token.getExpirationDateMs());
@@ -407,7 +407,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
                         ImmutableSortedMap.<LockDescriptor, LockMode>naturalOrder()
                                 .put(StringLockDescriptor.of("lock"), LockMode.WRITE)
-                                .build())
+                                .buildOrThrow())
                 .doNotBlock()
                 .build();
         String anonymousId = LockClient.ANONYMOUS.getClientId();

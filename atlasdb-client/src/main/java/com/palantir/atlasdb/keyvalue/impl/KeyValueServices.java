@@ -170,7 +170,7 @@ public final class KeyValueServices {
 
         IdentityHashMap<byte[], RowColumnRangeIterator> results = new IdentityHashMap<>();
         for (Map.Entry<Sha256Hash, ImmutableSortedMap.Builder<byte[], Value>> row : rowsToColumns.entrySet()) {
-            SortedMap<byte[], Value> map = row.getValue().build();
+            SortedMap<byte[], Value> map = row.getValue().buildOrThrow();
             Set<Map.Entry<byte[], Value>> subMap;
             if ((columnRangeSelection.getStartCol().length == 0) && (columnRangeSelection.getEndCol().length == 0)) {
                 subMap = map.entrySet();
