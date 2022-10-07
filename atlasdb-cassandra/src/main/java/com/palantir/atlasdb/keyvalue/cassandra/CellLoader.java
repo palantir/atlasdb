@@ -133,15 +133,17 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            tasks.addAll(getLoadWithTsTasksForSingleHost(
-                    kvsMethodName,
-                    hostAndCells.getKey(),
-                    tableRef,
-                    hostAndCells.getValue(),
-                    startTs,
-                    loadAllTs,
-                    visitor,
-                    consistency));
+            try (CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
+                tasks.addAll(getLoadWithTsTasksForSingleHost(
+                        kvsMethodName,
+                        hostAndCells.getKey(),
+                        tableRef,
+                        hostAndCells.getValue(),
+                        startTs,
+                        loadAllTs,
+                        visitor,
+                        consistency));
+            }
         }
 
         taskRunner.runAllTasksCancelOnFailure(tasks);
