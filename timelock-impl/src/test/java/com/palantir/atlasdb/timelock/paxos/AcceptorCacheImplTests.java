@@ -47,7 +47,7 @@ public class AcceptorCacheImplTests {
                 .put(Client.of("client1"), 5L)
                 .put(Client.of("client2"), 6L)
                 .put(Client.of("client3"), 7L)
-                .build();
+                .buildOrThrow();
         AcceptorCache cache = cache(before);
 
         AcceptorCacheDigest digest = cache.getAllUpdates();
@@ -69,7 +69,7 @@ public class AcceptorCacheImplTests {
                 .put(Client.of("client1"), 5L)
                 .put(Client.of("client2"), 6L)
                 .put(Client.of("client3"), 7L)
-                .build();
+                .buildOrThrow();
         AcceptorCache cache = cache(before);
         AcceptorCacheDigest digest = cache.getAllUpdates();
 
@@ -129,7 +129,7 @@ public class AcceptorCacheImplTests {
         Map<Client, Long> diffAfterFirstUpdate = ImmutableMap.<Client, Long>builder()
                 .put(Client.of("client1"), 20L)
                 .put(Client.of("client4"), 25L)
-                .build();
+                .buildOrThrow();
 
         assertThat(cache.updatesSinceCacheKey(cacheKey))
                 .map(AcceptorCacheDigest::updates)
@@ -143,7 +143,7 @@ public class AcceptorCacheImplTests {
                 .put(Client.of("client1"), 20L)
                 .put(Client.of("client4"), 30L)
                 .put(Client.of("client3"), 50L)
-                .build();
+                .buildOrThrow();
 
         assertThat(cache.updatesSinceCacheKey(cacheKey))
                 .map(AcceptorCacheDigest::updates)

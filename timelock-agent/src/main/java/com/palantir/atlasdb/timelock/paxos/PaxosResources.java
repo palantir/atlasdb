@@ -56,7 +56,7 @@ public abstract class PaxosResources {
                 ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
                         .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestampPaxosComponents()))
                         .putAll(leadershipBatchResources())
-                        .build();
+                        .buildOrThrow();
 
         UseCaseAwareBatchPaxosResource combinedBatchResource =
                 new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));

@@ -83,7 +83,7 @@ public final class RowResults {
         colBuilder.putAll(overwrite.getColumns());
         colBuilder.putAll(
                 Maps.difference(base.getColumns(), overwrite.getColumns()).entriesOnlyOnLeft());
-        return RowResult.create(base.getRowName(), colBuilder.build());
+        return RowResult.create(base.getRowName(), colBuilder.buildOrThrow());
     }
 
     public static long getApproximateSizeOfRowResult(RowResult<byte[]> rr) {

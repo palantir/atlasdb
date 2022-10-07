@@ -17,12 +17,14 @@
 package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.factory.ImmutableTransactionManagers.BuildFinal;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -48,7 +50,7 @@ public class TransactionManagersAsyncInitializationTest {
     @Test
     public void asyncInitializationEventuallySucceeds() {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAsyncAtlasDbConfig())
+                .keyValueService(new InMemoryAsyncAtlasDbConfig(true))
                 .initializeAsync(true)
                 .build();
 
@@ -68,6 +70,24 @@ public class TransactionManagersAsyncInitializationTest {
         Awaitility.await().atMost(Duration.ofSeconds(12)).until(manager::isInitialized);
 
         performTransaction(manager);
+    }
+
+    @Test
+    public void transactionManagersBuilderDoesNotThrowIfAsyncInitialisationFailsRepeatedly() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAsyncAtlasDbConfig(false))
+                .initializeAsync(true)
+                .build();
+
+        BuildFinal build = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent(USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .addSchemas(GenericTestSchema.getSchema());
+
+        assertThatCode(() -> build.build().serializable()).doesNotThrowAnyException();
     }
 
     private static void performTransaction(TransactionManager manager) {

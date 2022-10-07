@@ -51,7 +51,7 @@ public final class MapEntries {
         for (Map.Entry<K, V> e : it) {
             builder.put(e.getKey(), e.getValue());
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     public static <L, F, T> Function<Map.Entry<L, F>, Map.Entry<L, T>> applyValue(final Function<F, T> f) {

@@ -38,6 +38,8 @@ public final class TwoPhaseEncodingStrategy
             AtomicValue.committed(TransactionConstants.IN_PROGRESS);
     public static final byte[] ABORTED_TRANSACTION_COMMITTED_VALUE =
             EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, COMMITTED);
+    public static final byte[] ABORTED_TRANSACTION_STAGING_VALUE =
+            EncodingUtils.add(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE, STAGING);
     private final ProgressEncodingStrategy progressEncodingStrategy;
 
     public TwoPhaseEncodingStrategy(ProgressEncodingStrategy progressEncodingStrategy) {

@@ -209,7 +209,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         return ImmutableMap.<Cell, byte[]>builder()
                 .putAll(remoteReadValues)
                 .putAll(filterEmptyValues(cacheHits))
-                .build();
+                .buildOrThrow();
     }
 
     private synchronized NavigableMap<byte[], RowResult<byte[]>> processUncachedRows(

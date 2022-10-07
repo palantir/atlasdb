@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import java.util.List;
@@ -80,7 +81,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
             TimestampCache timestampCache,
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
                 keyValueService,
@@ -106,7 +108,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 true,
                 transactionConfig,
                 ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager));
+                new SimpleTableLevelMetricsController(metricsManager),
+                knowledge);
     }
 
     @Override
