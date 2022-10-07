@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashMap;
@@ -41,17 +42,12 @@ public class AbortingCommitTsLoader implements CacheLoader<Long, Long> {
 
     @Override
     public Long load(Long startTs) {
-        Optional<Long> maybeCommitTs = tryGetFromTransactionService(startTs);
-
-        if (!maybeCommitTs.isPresent()) {
-            maybeCommitTs = tryToAbort(startTs);
-        }
-
-        if (!maybeCommitTs.isPresent()) {
-            maybeCommitTs = tryGetFromTransactionService(startTs);
-        }
-
-        return maybeCommitTs.orElse(TransactionConstants.FAILED_COMMIT_TS);
+        return tryGetFromTransactionService(startTs)
+                .or(() -> tryToAbort(startTs))
+                .or(() -> tryGetFromTransactionService(startTs))
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "failed to abort transaction, but no entry found in the _transactions table",
+                        SafeArg.of("start timestamp", startTs)));
     }
 
     @Override
