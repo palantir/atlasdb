@@ -10,7 +10,7 @@ atlasdb:
   sweep:
     enabled: true
   targetedSweep:
-    enabled: true
+    enabled: false
   compact:
     enableCompaction: true
   keyValueService:
