@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -200,7 +201,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             case CONSERVATIVE:
                 return getNumShards();
             case NON_SWEEPABLE:
-                return 1;
+                return AtlasDbConstants.TARGETED_SWEEP_NONE_SHARDS;
             default:
                 throw new SafeIllegalArgumentException("Unknown sweep strategy", SafeArg.of("strategy", strategy));
         }

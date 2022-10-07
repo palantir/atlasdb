@@ -68,15 +68,6 @@ public class TargetedSweepInstallConfig {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
-    /**
-     * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy NONE. This
-     * value should almost always be 0 or 1.
-     */
-    @Value.Default
-    public int noneThreads() {
-        return 1;
-    }
-
     @Value.Check
     void checkThoroughThreads() {
         Preconditions.checkArgument(
@@ -84,6 +75,15 @@ public class TargetedSweepInstallConfig {
                 "Number of thorough targeted sweep threads must be between 0 and %s inclusive, but is %s instead.",
                 AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS,
                 thoroughThreads());
+    }
+
+    /**
+     * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy NONE. Do not
+     * modify this value unless you know exactly why this makes sense.
+     */
+    @Value.Default
+    public int noneThreads() {
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
     /**
