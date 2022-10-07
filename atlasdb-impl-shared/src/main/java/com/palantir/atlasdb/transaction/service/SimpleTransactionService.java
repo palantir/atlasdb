@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicTable;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.InstrumentedConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.KnowledgeableTimestampExtractingAtomicTable;
 import com.palantir.atlasdb.atomic.PueConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
@@ -32,7 +33,9 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.V4ProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -73,6 +76,23 @@ public final class SimpleTransactionService implements EncodingTransactionServic
                 acceptStagingReadsAsCommitted);
     }
 
+    public static SimpleTransactionService createV4(
+            KeyValueService kvs,
+            TransactionKnowledgeComponents knowledge,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        if (kvs.getCheckAndSetCompatibility().consistentOnFailure()) {
+            return createSimple(kvs, TransactionConstants.TRANSACTIONS2_TABLE, TicketsEncodingStrategy.INSTANCE);
+        }
+        return createKnowledgeableResilient(
+                kvs,
+                metricRegistry,
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE),
+                acceptStagingReadsAsCommitted,
+                knowledge);
+    }
+
     private static SimpleTransactionService createSimple(
             KeyValueService kvs,
             TableReference tableRef,
@@ -89,12 +109,35 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TwoPhaseEncodingStrategy encodingStrategy,
             TaggedMetricRegistry metricRegistry,
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
-        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
-                new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
-        ResilientCommitTimestampAtomicTable delegate = new ResilientCommitTimestampAtomicTable(
-                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
+        ResilientCommitTimestampAtomicTable delegate =
+                getDelegate(kvs, tableRef, encodingStrategy, metricRegistry, acceptStagingReadsAsCommitted);
         AtomicTable<Long, Long> atomicTable = new TimestampExtractingAtomicTable(delegate);
         return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
+    }
+
+    private static SimpleTransactionService createKnowledgeableResilient(
+            KeyValueService kvs,
+            TaggedMetricRegistry metricRegistry,
+            TableReference tableRef,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            Supplier<Boolean> acceptStagingReadsAsCommitted,
+            TransactionKnowledgeComponents knowledge) {
+        AtomicTable<Long, TransactionStatus> delegate =
+                getDelegate(kvs, tableRef, encodingStrategy, metricRegistry, acceptStagingReadsAsCommitted);
+        AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(delegate, knowledge);
+        return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
+    }
+
+    private static ResilientCommitTimestampAtomicTable getDelegate(
+            KeyValueService kvs,
+            TableReference tableRef,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
+        return new ResilientCommitTimestampAtomicTable(
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
     }
 
     @Override

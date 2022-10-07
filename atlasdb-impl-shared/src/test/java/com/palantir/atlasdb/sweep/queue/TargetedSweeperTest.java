@@ -81,13 +81,13 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -1450,9 +1450,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void await(final ThrowingRunnable assertion) {
         Awaitility.await()
-                .atMost(2L, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(2L))
                 .with()
-                .pollInterval(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS)
+                .pollInterval(Duration.ofMillis(SMALL_REFRESH_MILLIS))
                 .untilAsserted(assertion);
     }
 }

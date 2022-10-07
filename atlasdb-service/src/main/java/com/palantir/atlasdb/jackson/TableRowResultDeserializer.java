@@ -68,7 +68,7 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
                     }
                 }
             }
-            rowResults.add(RowResult.create(row, cols.build()));
+            rowResults.add(RowResult.create(row, cols.buildOrThrow()));
         }
         return new TableRowResult(tableName, rowResults);
     }

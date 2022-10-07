@@ -94,7 +94,7 @@ final class ColumnFamilyDefinitions {
                 .put(
                         CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
                         Integer.toString(actualCompressionBlockSizeKb))
-                .build();
+                .buildOrThrow();
     }
 
     /**

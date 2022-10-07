@@ -85,7 +85,7 @@ public final class TransactionScopedCacheImplTest {
             .put(CELL_3, VALUE_3.value().get())
             .put(CELL_4, VALUE_4.value().get())
             .put(CELL_5, VALUE_5.value().get())
-            .build();
+            .buildOrThrow();
     private static final CacheValue VALUE_EMPTY = CacheValue.empty();
 
     private final CacheMetrics metrics = mock(CacheMetrics.class);
