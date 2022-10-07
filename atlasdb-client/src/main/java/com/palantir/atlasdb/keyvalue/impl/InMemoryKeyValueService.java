@@ -284,7 +284,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                         cellIter = takeCell(it, key);
                         collectValueForTimestamp(key.col, cellIter, result, range, resultProducer);
                     }
-                    SortedMap<byte[], T> columns = result.build();
+                    SortedMap<byte[], T> columns = result.buildOrThrow();
                     if (!columns.isEmpty()) {
                         return RowResult.create(row, columns);
                     }

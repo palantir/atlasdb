@@ -45,7 +45,7 @@ public class HttpBenchmarks {
                     .put(HttpHeaders.USER_AGENT.toLowerCase(), ImmutableList.of("atlasdb/atlasdb-atlasdb"))
                     .put(HttpHeaders.SET_COOKIE.toLowerCase(), ImmutableList.of("cookie"))
                     .put(HttpHeaders.EXPECT.toLowerCase(), ImmutableList.of("12391572384129734"))
-                    .build();
+                    .buildOrThrow();
 
     @Benchmark
     @Threads(1)

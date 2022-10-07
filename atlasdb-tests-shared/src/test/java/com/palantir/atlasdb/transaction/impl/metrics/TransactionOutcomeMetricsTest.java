@@ -72,7 +72,7 @@ public class TransactionOutcomeMetricsTest {
                 .put(4, transactionOutcomeMetrics::markPutUnlessExistsFailed)
                 .put(5, transactionOutcomeMetrics::markRollbackOtherTransaction)
                 .put(6, transactionOutcomeMetrics::markPreCommitCheckFailed)
-                .build();
+                .buildOrThrow();
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey())
                 .forEach(unused -> entry.getValue().run()));

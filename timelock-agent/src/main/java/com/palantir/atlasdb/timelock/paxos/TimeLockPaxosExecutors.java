@@ -56,7 +56,7 @@ final class TimeLockPaxosExecutors {
         }
         remoteExecutors.put(
                 localAndRemotes.local(), new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()));
-        return remoteExecutors.build();
+        return remoteExecutors.buildOrThrow();
     }
 
     /**

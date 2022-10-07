@@ -81,7 +81,7 @@ public class OracleTableNameGetterImplTest {
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                 connectionSupplier, SHORT_TABLE_NAMES);
 
-        assertThat(tableReferences).isEqualTo(TABLE_REFERENCES);
+        assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test
@@ -92,7 +92,7 @@ public class OracleTableNameGetterImplTest {
 
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                 connectionSupplier, SHORT_TABLE_NAMES);
-        assertThat(tableReferences).isEqualTo(TABLE_REFERENCES);
+        assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test
@@ -100,7 +100,7 @@ public class OracleTableNameGetterImplTest {
             throws TableMappingNotFoundException {
         Set<TableReference> tableReferences = nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                 connectionSupplier, getLongTableNames());
-        assertThat(tableReferences).isEqualTo(TABLE_REFERENCES);
+        assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test
@@ -109,7 +109,7 @@ public class OracleTableNameGetterImplTest {
         Set<TableReference> tableReferences =
                 nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, getLongOverflowTableNames());
-        assertThat(tableReferences).isEqualTo(TABLE_REFERENCES);
+        assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test

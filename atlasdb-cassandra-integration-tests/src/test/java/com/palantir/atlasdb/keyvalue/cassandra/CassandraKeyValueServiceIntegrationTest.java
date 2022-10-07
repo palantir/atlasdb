@@ -829,7 +829,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .setCompression_options(ImmutableMap.<String, String>builder()
                         .put("sstable_compression", "org.apache.cassandra.io.compress.LZ4Compressor")
                         .put("chunk_length_kb", "4")
-                        .build())
+                        .buildOrThrow())
                 .setBloom_filter_fp_chance(0.1)
                 .setCaching("KEYS_ONLY")
                 .setDclocal_read_repair_chance(0.0)
