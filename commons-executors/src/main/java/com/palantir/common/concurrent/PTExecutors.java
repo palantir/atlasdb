@@ -119,6 +119,19 @@ public final class PTExecutors {
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available. These pools will typically improve the
+     * performance of programs that execute many short-lived asynchronous tasks. Calls to
+     * <tt>execute</tt> will reuse previously constructed threads if available. If no existing
+     * thread is available, a new thread will be created and added to the pool. Threads that have
+     * not been used for sixty seconds are terminated and removed from the cache. Thus, a pool that
+     * remains idle for long enough will not consume any resources. Note that pools with similar
+     * properties but different details (for example, timeout parameters) may be created using
+     * {@link ThreadPoolExecutor} constructors.  This does not create a new span.
+     *
+     * @return the newly created thread pool with no new span
+     */
     public static ExecutorService newCachedThreadPoolNoSpan(String name) {
         Preconditions.checkNotNull(name, "Name is required");
         Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
@@ -185,6 +198,12 @@ public final class PTExecutors {
                 .build();
     }
 
+    /** Specialized cached executor which throws
+     * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.  This does not
+     * create a new span.
+     *
+     * If you have any doubt, this probably isn't what you're looking for. Best of luck, friend.
+     */
     @Beta
     public static ExecutorService newCachedThreadPoolWithMaxThreadsNoSpan(int maxThreads, String name) {
         Preconditions.checkNotNull(name, "Name is required");
