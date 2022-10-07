@@ -119,6 +119,12 @@ public final class PTExecutors {
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
+    public static ExecutorService newCachedThreadPoolNoSpan(String name) {
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        return newCachedThreadPoolWithMaxThreadsNoSpan(Short.MAX_VALUE, name);
+    }
+
     /**
      * Creates a thread pool that creates new threads as needed, but will reuse previously
      * constructed threads when they are available, and uses the provided ThreadFactory to create
@@ -174,6 +180,20 @@ public final class PTExecutors {
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
                 .executor(PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
+                // Unhelpful for cached executors
+                .reportQueuedDuration(false)
+                .build();
+    }
+
+    @Beta
+    public static ExecutorService newCachedThreadPoolWithMaxThreadsNoSpan(int maxThreads, String name) {
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
+        return MetricRegistries.executor()
+                .registry(SharedTaggedMetricRegistries.getSingleton())
+                .name(name)
+                .executor(PTExecutors.wrap(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
@@ -623,8 +643,12 @@ public final class PTExecutors {
         };
     }
 
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.  This does not create a span on the thread.
+     */
     public static ExecutorService wrap(final ExecutorService executorService) {
-        return wrap("PTExecutor", executorService);
+        return Tracers.wrap(executorService);
     }
 
     /**
