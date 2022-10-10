@@ -36,6 +36,7 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -83,9 +84,9 @@ public class TransactionPostMortemRunner {
         WritesDigest<String> digest = writesDigestEmitter.getDigest(row, columnName);
         log.info("raw digest", SafeArg.of("rawDigest", digest));
         Map<Long, ClientLockDiagnosticDigest> snapshot = clientLockDiagnosticCollector.getSnapshot();
-        log.info("client lock diagnostic digest", SafeArg.of("clientLockDiagnosticDigest", snapshot));
+        log.info("client lock diagnostic digest", UnsafeArg.of("clientLockDiagnosticDigest", snapshot));
         Optional<LockDiagnosticInfo> lockDiagnosticInfo = getTimelockDiagnostics(snapshot);
-        log.info("lock diagnostic info", SafeArg.of("timelockLockDiagnosticInfo", lockDiagnosticInfo));
+        log.info("lock diagnostic info", UnsafeArg.of("timelockLockDiagnosticInfo", lockDiagnosticInfo));
         Set<UUID> lockRequestIdsEvictedMidLockRequest = lockDiagnosticInfo
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
