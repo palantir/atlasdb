@@ -30,8 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -62,9 +60,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
                     .from(CASSANDRA.getConfig())
                     .keyspace(differentNamespace.getName())
                     .build();
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
+    private KeyValueService kvs;
     private NamespaceCleaner namespaceCleaner;
     private NamespaceCleaner namespaceCleanerForAnotherKeyspace;
     private Supplier<CassandraClient> clientFactory;
@@ -90,7 +86,8 @@ public class CassandraNamespaceCleanerIntegrationTest {
         namespaceCleaner = new CassandraNamespaceCleaner(keyValueServiceConfig, clientFactory);
         namespaceCleanerForAnotherKeyspace =
                 new CassandraNamespaceCleaner(keyValueServiceConfigForDifferentKeyspace, clientFactory);
-        kvs.isInitialized();
+        // We must make a fresh KVS and re-initialise since getDefaultKvs() uses the same KVS for all tests...
+        kvs = CassandraKeyValueServiceImpl.createForTesting(keyValueServiceConfig, keyValueServiceRuntimeConfig);
     }
 
     @After
@@ -130,7 +127,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
         namespaceCleaner.deleteAllDataFromNamespace();
 
         assertNamespaceDoesNotExist(namespace);
-        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
+        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     @Test
