@@ -1909,6 +1909,11 @@ public class SnapshotTransaction extends AbstractTransaction
                         "commitCheckingForConflicts",
                         () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
 
+                // Before doing any remote writes, we mark that the transaction is in progress. Until this point, all
+                // writes are buffered in memory.
+                timedAndTraced(
+                        "markingTransactionInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
+
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
                 timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));

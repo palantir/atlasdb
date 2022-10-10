@@ -70,6 +70,11 @@ public interface CoordinationResource {
     @Produces(MediaType.APPLICATION_JSON)
     long resetStateAndGetFreshTimestamp();
 
+    @POST
+    @Path("/write-unsafe")
+    @Produces(MediaType.APPLICATION_JSON)
+    void writeToKvsUnsafe(long timestamp);
+
     @Path("/fresh-timestamp")
     @POST // POST because we can't allow caching
     @Produces(MediaType.APPLICATION_JSON)
