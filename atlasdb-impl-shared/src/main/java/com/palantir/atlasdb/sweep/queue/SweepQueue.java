@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -194,6 +196,21 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      */
     public int getNumShards() {
         return numShards.get();
+    }
+
+    /**
+     * Returns the most recently known number of shards for the given strategy.
+     */
+    public int getNumShards(SweeperStrategy strategy) {
+        switch (strategy) {
+            case THOROUGH:
+            case CONSERVATIVE:
+                return getNumShards();
+            case NON_SWEEPABLE:
+                return AtlasDbConstants.TARGETED_SWEEP_NONE_SHARDS;
+            default:
+                throw new SafeIllegalArgumentException("Unknown sweep strategy", SafeArg.of("strategy", strategy));
+        }
     }
 
     public Map<ShardAndStrategy, Long> getLastSweptTimestamps(Set<ShardAndStrategy> shardAndStrategies) {

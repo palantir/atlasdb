@@ -67,6 +67,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler thoroughScheduler;
 
     private final Consumer<Set<Long>> abortedTransactionConsumer;
+    private final BackgroundSweepScheduler noneScheduler;
+
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -86,6 +88,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.conservativeScheduler =
                 new BackgroundSweepScheduler(install.conservativeThreads(), SweeperStrategy.CONSERVATIVE);
         this.thoroughScheduler = new BackgroundSweepScheduler(install.thoroughThreads(), SweeperStrategy.THOROUGH);
+        this.noneScheduler = new BackgroundSweepScheduler(install.noneThreads(), SweeperStrategy.NON_SWEEPABLE);
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
@@ -319,7 +322,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
-            return IntStream.range(0, queue.getNumShards())
+            return IntStream.range(0, queue.getNumShards(sweepStrategy))
                     .map(ignore -> getShardAndIncrement())
                     .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timeLock))
                     .filter(Optional::isPresent)
