@@ -104,7 +104,7 @@ public class TransactionPostMortemRunner {
                                 snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
                         .collect(Collectors.toSet());
 
-        log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
+        log.info("transaction digests", UnsafeArg.of("transactionDigests", transactionDigests));
 
         List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents = localLockTracker.getLocalLockHistory();
 
