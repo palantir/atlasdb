@@ -28,7 +28,7 @@ types:
         fields:
           lockClient:
             type: string
-            safety: unsafe
+            safety: safe
           lockRequest: LockRequest
       ConjureSimpleHeldLocksToken:
         fields:
