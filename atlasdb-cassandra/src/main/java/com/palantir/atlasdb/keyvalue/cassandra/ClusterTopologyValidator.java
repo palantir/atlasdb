@@ -17,20 +17,20 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TException;
 import org.immutables.value.Value;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public final class ClusterTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(ClusterTopologyValidator.class);
@@ -81,32 +81,38 @@ public final class ClusterTopologyValidator {
 
     private static ClusterTopologyResult getClusterTopology(
             Map<CassandraServer, CassandraClientPoolingContainer> hosts) {
-        Map<CassandraServer, Set<String>> fetchHostIdsForServers = fetchHostIdsForServers(hosts);
-        if (fetchHostIdsForServers.isEmpty()) {
-            return ImmutableUniqueHostIds.of(ClusterTopologyResult.Consensus.HAS_CONSENSUS, Set.of());
+        Map<CassandraServer, Set<String>> hostIdsByServer = fetchHostIdsForServers(hosts);
+        if (hostIdsByServer.isEmpty()) {
+            return ClusterTopologyResult.of(ClusterTopologyResult.Consensus.HAS_CONSENSUS, Set.of(), hosts.keySet());
         }
 
-        Map<Set<String>, Long> uniqueCountOfHostIdSets = EntryStream.of(fetchHostIdsForServers)
-                .values()
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Map<CassandraServer, Set<String>> hostIdsWithValues =
+                EntryStream.of(hostIdsByServer).removeValues(Set::isEmpty).toMap();
 
-        long expectedCount = (fetchHostIdsForServers.size() + 1) / 2;
+        int quorum = (hostIdsByServer.size() + 1) / 2;
 
-        Optional<Set<String>> maybeUniqueHostIds = EntryStream.of(uniqueCountOfHostIdSets)
-                .filterValues(count -> count.equals(expectedCount))
-                .keys()
-                .findFirst();
+        if (hostIdsWithValues.size() < quorum) {
+            return ClusterTopologyResult.of(ClusterTopologyResult.Consensus.NO_CONSENSUS, Set.of(), Set.of());
+        }
 
-        return maybeUniqueHostIds
-                .map(uniqueHostIds -> ImmutableUniqueHostIds.of(
-                        ClusterTopologyResult.Consensus.HAS_CONSENSUS,
-                        uniqueHostIds,
-                        EntryStream.of(fetchHostIdsForServers)
-                                .filterValues(hostIds -> hostIds.equals(uniqueHostIds))
-                                .keys()
-                                .toSet()))
-                .orElseGet(() ->
-                        ImmutableUniqueHostIds.of(ClusterTopologyResult.Consensus.NO_CONSENSUS, Set.of(), Set.of()));
+        Set<Set<String>> uniqueSetsOfHostIds =
+                EntryStream.of(hostIdsWithValues).values().toImmutableSet();
+
+        if (uniqueSetsOfHostIds.size() == 1) {
+            Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
+            Set<CassandraServer> cassandraServersWithMatchingHostIds = EntryStream.of(hostIdsByServer)
+                    .filterValues(hostIds -> hostIds.equals(uniqueHostIds))
+                    .keys()
+                    .toSet();
+            Set<CassandraServer> cassandraServerWithoutHostIdEndpoint =
+                    Sets.difference(hosts.keySet(), hostIdsByServer.keySet());
+            return ClusterTopologyResult.of(
+                    ClusterTopologyResult.Consensus.HAS_CONSENSUS,
+                    uniqueHostIds,
+                    Sets.union(cassandraServersWithMatchingHostIds, cassandraServerWithoutHostIdEndpoint));
+        }
+
+        return ClusterTopologyResult.of(ClusterTopologyResult.Consensus.NO_CONSENSUS, Set.of(), Set.of());
     }
 
     private static Map<CassandraServer, Set<String>> fetchHostIdsForServers(
@@ -148,5 +154,13 @@ public final class ClusterTopologyValidator {
         Set<String> hostIds();
 
         Set<CassandraServer> servers();
+
+        static ClusterTopologyResult of(Consensus consensus, Set<String> hostIds, Set<CassandraServer> servers) {
+            return ImmutableClusterTopologyResult.builder()
+                    .consensus(consensus)
+                    .hostIds(hostIds)
+                    .servers(servers)
+                    .build();
+        }
     }
 }

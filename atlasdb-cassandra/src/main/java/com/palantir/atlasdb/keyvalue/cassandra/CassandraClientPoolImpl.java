@@ -37,6 +37,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import one.util.streamex.StreamEx;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -44,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import one.util.streamex.StreamEx;
 
 /**
  * Feature breakdown:
@@ -331,7 +332,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             Set<CassandraServer> invalidServers =
                     ClusterTopologyValidator.getNewHostsWithInconsistentTopologies(serversToAdd, getCurrentPools());
-            StreamEx.of(invalidServers).forEach(server -> cassandra.removePool(server));
+            StreamEx.of(invalidServers).forEach(cassandra::removePool);
             if (invalidServers.size() != serversToAdd.size()) {
                 cassandra.refreshTokenRangesAndGetServers();
             }
