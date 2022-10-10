@@ -28,7 +28,7 @@ import org.immutables.value.Value;
 public interface TransactionKnowledgeComponents {
     KnownConcludedTransactions concluded();
 
-    KnownAbandonedTransactions aborted();
+    KnownAbandonedTransactions abandoned();
 
     Supplier<Long> lastSeenCommitSupplier();
 
@@ -45,7 +45,7 @@ public interface TransactionKnowledgeComponents {
         return ImmutableTransactionKnowledgeComponents.builder()
                 .concluded(KnownConcludedTransactionsImpl.create(
                         KnownConcludedTransactionsStore.create(kvs), metricRegistry))
-                .aborted(KnownAbandonedTransactionsImpl.create(
+                .abandoned(KnownAbandonedTransactionsImpl.create(
                         KnownConcludedTransactionsImpl.create(
                                 KnownConcludedTransactionsStore.create(kvs), metricRegistry),
                         new AbandonedTimestampStoreImpl(kvs),

@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStore;
-import java.util.List;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,14 +38,18 @@ public final class CoordinationAwareKnownAbandonedTransactionsStore {
     }
 
     public void addAbandonedTimestamps(Set<Long> abandonedTimestamps) {
-        List<Long> sortedTs = abandonedTimestamps.stream().sorted().collect(Collectors.toList());
-        Long greatestAbandonedTs = Iterables.getLast(sortedTs);
-        RangeMap<Long, Integer> transactionsSchemaMap = latestTimestampRangesSnapshot(greatestAbandonedTs);
-        Set<Long> abandonedTsOnSchema4 = sortedTs.stream()
+        if (abandonedTimestamps.isEmpty()) {
+            return;
+        }
+
+        RangeMap<Long, Integer> transactionsSchemaMap = latestTimestampRangesSnapshot(
+                abandonedTimestamps.stream().max(Comparator.naturalOrder()).get());
+
+        Set<Long> abandonedTsOnSchema4 = abandonedTimestamps.stream()
                 .filter(ts -> {
                     Optional<Integer> maybeSchema = Optional.ofNullable(transactionsSchemaMap.get(ts));
                     return maybeSchema
-                            .map(integer -> integer.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
+                            .map(schema -> schema >= TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
                             .orElse(false);
                 })
                 .collect(Collectors.toSet());

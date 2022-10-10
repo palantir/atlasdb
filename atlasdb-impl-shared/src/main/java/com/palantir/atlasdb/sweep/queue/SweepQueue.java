@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -50,15 +49,17 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
-    private final Consumer<Set<Long>> abortedTransactionConsumer;
+    private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
 
     private SweepQueue(
-            SweepQueueFactory factory, TargetedSweepFollower follower, Consumer<Set<Long>> abortedTransactionConsumer) {
+            SweepQueueFactory factory,
+            TargetedSweepFollower follower,
+            AbandonedTransactionConsumer abandonedTransactionConsumer) {
         this.progress = factory.progress;
         this.writer = factory.createWriter();
         this.reader = factory.createReader();
-        this.abortedTransactionConsumer = abortedTransactionConsumer;
+        this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.deleter = factory.createDeleter(follower);
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
@@ -71,7 +72,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
             TransactionService transaction,
-            Consumer<Set<Long>> abortedTransactionConsumer,
+            AbandonedTransactionConsumer abortedTransactionConsumer,
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
@@ -147,7 +148,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
 
         // The order must not be changed without considering correctness of txn4
-        abortedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
+        abandonedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());

@@ -84,7 +84,7 @@ public final class CommitTimestampLoader {
         this.timelockService = timelockService;
         this.immutableTimestamp = immutableTimestamp;
         this.lastSeenCommitTsSupplier = knowledge.lastSeenCommitSupplier();
-        this.abortedTransactionsCache = knowledge.aborted();
+        this.abortedTransactionsCache = knowledge.abandoned();
     }
 
     /**

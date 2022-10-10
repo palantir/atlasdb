@@ -39,7 +39,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
                     delegate,
                     ImmutableTransactionKnowledgeComponents.builder()
                             .concluded(knownConcludedTransactions)
-                            .aborted(knownAbandonedTransactions)
+                            .abandoned(knownAbandonedTransactions)
                             .lastSeenCommitSupplier(() -> Long.MAX_VALUE)
                             .build());
 

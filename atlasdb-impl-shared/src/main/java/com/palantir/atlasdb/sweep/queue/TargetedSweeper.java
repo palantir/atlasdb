@@ -47,9 +47,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -66,7 +64,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler conservativeScheduler;
     private final BackgroundSweepScheduler thoroughScheduler;
 
-    private final Consumer<Set<Long>> abortedTransactionConsumer;
+    private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final BackgroundSweepScheduler noneScheduler;
 
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
@@ -82,7 +80,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            Consumer<Set<Long>> abortedTransactionConsumer) {
+            AbandonedTransactionConsumer abandonedTransactionConsumer) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -92,7 +90,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
-        this.abortedTransactionConsumer = abortedTransactionConsumer;
+        this.abandonedTransactionConsumer = abandonedTransactionConsumer;
     }
 
     public boolean isInitialized() {
@@ -115,8 +113,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            Consumer<Set<Long>> abortedTransactionConsumer) {
-        return new TargetedSweeper(metrics, runtime, install, followers, abortedTransactionConsumer);
+            AbandonedTransactionConsumer abandonedTransactionConsumer) {
+        return new TargetedSweeper(metrics, runtime, install, followers, abandonedTransactionConsumer);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -182,7 +180,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 timelockService,
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 transaction,
-                abortedTransactionConsumer,
+                abandonedTransactionConsumer,
                 follower,
                 ReadBatchingRuntimeContext.builder()
                         .maximumPartitions(this::getPartitionBatchLimit)

@@ -19,10 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -207,7 +204,7 @@ public class CommitTimestampLoaderTest {
 
     private TransactionKnowledgeComponents createKnowledgeComponents(long lastSeenCommitTs) {
         return ImmutableTransactionKnowledgeComponents.builder()
-                .aborted(knownAbandonedTransactions)
+                .abandoned(knownAbandonedTransactions)
                 .concluded(knownConcludedTransactions)
                 .lastSeenCommitSupplier(() -> lastSeenCommitTs)
                 .build();

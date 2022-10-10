@@ -41,7 +41,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
             AtomicTable<Long, TransactionStatus> delegate, TransactionKnowledgeComponents knowledge) {
         this.delegate = delegate;
         this.knownConcludedTransactions = knowledge.concluded();
-        this.knownAbandonedTransactions = knowledge.aborted();
+        this.knownAbandonedTransactions = knowledge.abandoned();
     }
 
     @Override

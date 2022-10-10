@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -74,10 +74,7 @@ public class AbandonedTimestampStoreImpl implements AbandonedTimestampStore {
 
     @Override
     public void markAbandoned(long timestampToAbort) {
-        keyValueService.put(
-                TransactionConstants.KNOWN_ABANDONED_TIMESTAMPS_TABLE,
-                ImmutableMap.of(getTargetCell(timestampToAbort), MARKER_VALUE),
-                AtlasDbConstants.TRANSACTION_TS);
+        markAbandoned(ImmutableSet.of(timestampToAbort));
     }
 
     @Override
