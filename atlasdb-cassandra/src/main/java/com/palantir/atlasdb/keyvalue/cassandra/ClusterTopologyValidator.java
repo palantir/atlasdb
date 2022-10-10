@@ -24,13 +24,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import one.util.streamex.EntryStream;
-import org.apache.thrift.TException;
-import org.immutables.value.Value;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import one.util.streamex.EntryStream;
+import org.apache.thrift.TException;
+import org.immutables.value.Value;
 
 public final class ClusterTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(ClusterTopologyValidator.class);

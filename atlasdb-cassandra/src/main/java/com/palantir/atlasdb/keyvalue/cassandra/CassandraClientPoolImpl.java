@@ -37,8 +37,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
-import one.util.streamex.StreamEx;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import one.util.streamex.StreamEx;
 
 /**
  * Feature breakdown:
