@@ -56,7 +56,7 @@ public class CassandraNamespaceCleanerIntegrationTest {
     private final CassandraKeyValueServiceConfig keyValueServiceConfig = CASSANDRA.getConfig();
 
     private final Namespace namespace = Namespace.create(keyValueServiceConfig.getKeyspaceOrThrow());
-    private final Namespace differentNamespace = Namespace.create(keyValueServiceConfig.getKeyspaceOrThrow());
+    private final Namespace differentNamespace = Namespace.create("test_keyspace");
     private final CassandraKeyValueServiceConfig keyValueServiceConfigForDifferentKeyspace =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .from(CASSANDRA.getConfig())
