@@ -19,7 +19,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
-import com.palantir.tracing.Tracers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +49,7 @@ class TaskRunner {
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
         for (Callable<V> task : tasks) {
-            futures.add(listeningExecutor.submit(Tracers.wrap(task)));
+            futures.add(listeningExecutor.submit(task));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
