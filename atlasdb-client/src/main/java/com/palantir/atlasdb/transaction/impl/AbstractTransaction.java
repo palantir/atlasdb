@@ -21,8 +21,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
+import java.util.Optional;
+import org.apache.commons.lang3.NotImplementedException;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
@@ -30,6 +33,7 @@ public abstract class AbstractTransaction implements Transaction {
                     .buildOrThrow();
 
     private TransactionType transactionType = TransactionType.DEFAULT;
+    private Optional<String> transactionUserName = Optional.empty();
 
     @Override
     @Idempotent
@@ -48,5 +52,21 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void commit(TransactionService txService) throws TransactionFailedException {
         commit();
+    }
+
+    @Override
+    public void setName(String texName) {
+        if (texName.length() < 256) {
+            this.transactionUserName = Optional.of(texName);
+        }
+    }
+
+    public Optional<String> getName() {
+        return transactionUserName;
+    }
+
+    @Override
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig) {
+        throw new NotImplementedException();
     }
 }

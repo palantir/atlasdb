@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.metrics;
+package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.base.Preconditions;
 import org.immutables.value.Value;
@@ -24,22 +24,26 @@ public class TransactionalExpectationsConfig {
     @Value.Default
     long maximumBytesRead() {
         return 10737418240L;
-    };
+    }
+    ;
 
     @Value.Default
     long maximumBytesReadInOneCall() {
         return 5368709120L;
-    };
+    }
+    ;
 
     @Value.Default
     long maximumReadCallsMade() {
         return 1000L;
-    };
+    }
+    ;
 
     @Value.Check
     protected void check() {
         Preconditions.checkArgument(maximumBytesRead() > 0, "'maximumBytesRead' should be strictly positive");
-        Preconditions.checkArgument(maximumBytesReadInOneCall() > 0, "'maximumBytesReadInOneCall' should be strictly positive");
+        Preconditions.checkArgument(
+                maximumBytesReadInOneCall() > 0, "'maximumBytesReadInOneCall' should be strictly positive");
         Preconditions.checkArgument(maximumReadCallsMade() > 0, "'maximumReadCallsMade' should be strictly positive");
     }
 }

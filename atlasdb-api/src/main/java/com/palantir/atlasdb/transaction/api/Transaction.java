@@ -404,12 +404,12 @@ public interface Transaction {
     }
 
     /**
-     * Tags transaction with the given name for tracking purposes. We should enforce a limit on the size.
+     * Tags transaction with the given name (ignored if the size > 255) for tracking purposes.
      */
     void setName(String name);
 
     /**
      * Modifies the default transactional expectations thresholds.
      */
-    //void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig);
+    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig);
 }
