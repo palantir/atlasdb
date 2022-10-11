@@ -402,4 +402,14 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Tags transaction with the given name for tracking purposes. We should enforce a limit on the size.
+     */
+    void setName(String name);
+
+    /**
+     * Modifies the default transactional expectations thresholds.
+     */
+    //void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig);
 }

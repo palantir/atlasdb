@@ -16,27 +16,23 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.collect.Multimap;
+import static com.palantir.atlasdb.keyvalue.impl.Cells.getApproxSizeOfCell;
+
+import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.util.List;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.streams.KeyedStream;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,8 +40,12 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
     private final AtomicLong bytesRead = new AtomicLong(0);
+    private final AtomicLong readCallsMade = new AtomicLong(0);
+    private final AtomicLong maxBytesReadInOneReadCall = new AtomicLong(0);
+    private final Set<TableReference> tablesReadFrom = Sets.newConcurrentHashSet();
 
-    public TrackingKeyValueService(KeyValueService delegate) {
+
+    public TrackingKeyValueService(KeyValueService delegate, MetricsManager metricsManager) {
         this.delegate = delegate;
     }
 
@@ -56,15 +56,15 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        // todo aalouane: check if directExecutor here is safe to use
-
+        tablesReadFrom.add(tableRef);
+        readCallsMade.incrementAndGet();
         return Futures.transform(
                 delegate.getAsync(tableRef, timestampByCell),
                 cellToValue -> {
-                    cellToValue.values()
-                            .stream()
-                            .map(Value::getByteCount)
-                            .forEach(bytesRead::addAndGet);
+                    long mapBytes = getApproximateMapBytes(cellToValue);
+                    bytesRead.addAndGet(mapBytes);
+                    maxBytesReadInOneReadCall.accumulateAndGet(mapBytes, Long::max);
+
                     return cellToValue;
                 },
                 MoreExecutors.directExecutor());
@@ -76,11 +76,15 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             long timestamp) {
+        tablesReadFrom.add(tableRef);
+        readCallsMade.incrementAndGet();
+
         Map<Cell, Value> cellToValue = delegate.getRows(tableRef, rows, columnSelection, timestamp);
-        cellToValue.values()
-                .stream()
-                .map(Value::getByteCount)
-                .forEach(bytesRead::addAndGet);
+
+        long mapBytes = getApproximateMapBytes(cellToValue);
+        bytesRead.addAndGet(mapBytes);
+        maxBytesReadInOneReadCall.accumulateAndGet(mapBytes, Long::max);
+
         return cellToValue;
     }
 
@@ -90,87 +94,38 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-
+        tablesReadFrom.add(tableRef);
         Map<byte[], RowColumnRangeIterator> results = delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
-
-        return null;
+        results.replaceAll((unused, iterator) -> new ForwardingRowColumnRangeIterator(iterator));
+        return results;
     }
 
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
-            int cellBatchHint,
-            long timestamp) {
-        return getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+    private long getApproximateMapBytes(Map<Cell, Value> cellToValue) {
+        return KeyedStream.stream(cellToValue)
+                .map((cell, value) -> getApproxSizeOfCell(cell) + value.getByteCount())
+                .values()
+                .mapToLong(i -> i)
+                .sum();
     }
 
-    @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return delegate.get(tableRef, timestampByCell);
-    }
+    class ForwardingRowColumnRangeIterator extends ForwardingIterator<Map.Entry<Cell, Value>> implements RowColumnRangeIterator {
+        // keep tally and max that as we go
+        Iterator<Map.Entry<Cell, Value>> delegate;
 
-    @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return delegate.getLatestTimestamps(tableRef, timestampByCell);
-    }
+        private ForwardingRowColumnRangeIterator(Iterator<Map.Entry<Cell, Value>> delegate) {
+            this.delegate = delegate;
+        }
 
-    @Override
-    public ClosableIterator<RowResult<Value>> getRange(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
-        return delegate.getRange(tableRef, rangeRequest, timestamp);
-    }
+        @Override
+        protected Iterator<Map.Entry<Cell, Value>> delegate() {
+            return delegate;
+        }
 
-    @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) throws InsufficientConsistencyException {
-        return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-            TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
-        return delegate.getCandidateCellsForSweeping(tableRef, request);
-    }
-
-    @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
-       return delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
-    }
-
-    @Override
-    public Set<TableReference> getAllTableNames() {
-        return delegate.getAllTableNames();
-    }
-
-    @Override
-    public byte[] getMetadataForTable(TableReference tableRef) {
-        return delegate.getMetadataForTable(tableRef);
-    }
-
-    @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
-        delegate.getMetadataForTables();
-    }
-
-    @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
-            throws AtlasDbDependencyException {
-        return delegate.getAllTimestamps(tableRef, cells, timestamp);
-    }
-
-
-    @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
-        return delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
+        @Override
+        public Map.Entry<Cell, Value> next() {
+            Map.Entry<Cell, Value> entry = delegate().next();
+            bytesRead.addAndGet(getApproxSizeOfCell(entry.getKey()) + entry.getValue().getByteCount());
+            return entry;
+        }
     }
 }
