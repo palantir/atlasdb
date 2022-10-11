@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -96,17 +95,16 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     }
 
     @Test
-    public void throwsIfUnknownSchemaVersionFound() {
+    public void canSupplementForNewerSchemas() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
-                .put(Range.atLeast(1L), 5)
+                .put(Range.atLeast(1L), 7)
                 .build();
         CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
-        Range<Long> rangeToSupplement = Range.closedOpen(1L, 100L);
-        assertThatThrownBy(() -> coordinationAwareStore.supplement(rangeToSupplement))
-                .isInstanceOf(SafeIllegalStateException.class);
-        verifyNoMoreInteractions(delegate);
+        Range<Long> rangeToSupplement = Range.closedOpen(1L, 350L);
+        assertThatCode(() -> coordinationAwareStore.supplement(rangeToSupplement)).doesNotThrowAnyException();
+        verify(delegate).supplement(ImmutableSet.of(rangeToSupplement));
     }
 
     private CoordinationAwareKnownConcludedTransactionsStore getDefaultCoordinationAwareStore() {
