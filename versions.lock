@@ -313,7 +313,7 @@ org.wildfly.client:wildfly-client-config:1.0.1.Final (1 constraints: 940c6308)
 org.wildfly.common:wildfly-common:1.6.0.Final (3 constraints: 94236ea3)
 org.xerial:sqlite-jdbc:3.36.0 (1 constraints: 3e054f3b)
 org.xerial.snappy:snappy-java:1.1.8 (2 constraints: 011529cb)
-org.yaml:snakeyaml:1.33 (5 constraints: 044cf56f)
+org.yaml:snakeyaml:1.31 (5 constraints: 024c636e)
 
 [Test dependencies]
 cglib:cglib:3.2.8 (1 constraints: 1f0a62b5)
