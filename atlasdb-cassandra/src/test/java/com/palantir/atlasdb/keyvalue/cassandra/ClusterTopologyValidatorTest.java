@@ -16,27 +16,26 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
-import org.junit.Test;
-
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
+import org.junit.Test;
 
 public class ClusterTopologyValidatorTest {
 

@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import one.util.streamex.EntryStream;
-import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.immutables.value.Value;
 
 public final class ClusterTopologyValidator {
@@ -124,21 +124,30 @@ public final class ClusterTopologyValidator {
     }
 
     private static Optional<Set<String>> fetchHostIds(CassandraClientPoolingContainer container) {
-        return container.<Optional<Set<String>>>runWithPooledResource(client -> {
-            try {
-                return Optional.of(ImmutableSet.copyOf(client.get_host_ids()));
-            } catch (TException e) {
-                log.warn(
-                        "Failed to get host ids from host",
-                        SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
-                        SafeArg.of(
-                                "proxy",
-                                CassandraLogHelper.host(
-                                        container.getCassandraServer().proxy())),
-                        e);
-                return Optional.of(ImmutableSet.of());
-            }
-        });
+        try {
+            return container.<Optional<Set<String>>, Exception>runWithPooledResource(
+                    client -> Optional.of(ImmutableSet.copyOf(client.get_host_ids())));
+        } catch (TTransportException e) {
+            log.warn(
+                    "Failed to get host ids from host due to transport exception",
+                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
+                    SafeArg.of(
+                            "proxy",
+                            CassandraLogHelper.host(
+                                    container.getCassandraServer().proxy())),
+                    e);
+            return Optional.of(Set.of());
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to get host ids from host",
+                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
+                    SafeArg.of(
+                            "proxy",
+                            CassandraLogHelper.host(
+                                    container.getCassandraServer().proxy())),
+                    e);
+            return Optional.empty();
+        }
     }
 
     @Value.Immutable
