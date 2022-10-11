@@ -54,7 +54,7 @@ public final class CoordinationAwareKnownAbandonedTransactionsStoreTest {
     }
 
     @Test
-    public void doesNotSupplementIfRangeNotOnTransactions4() {
+    public void doesNotSupplementTsOnOlderSchemas() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
                 .put(Range.closedOpen(1L, 100L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
                 .put(Range.atLeast(100L), TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
@@ -98,15 +98,17 @@ public final class CoordinationAwareKnownAbandonedTransactionsStoreTest {
     }
 
     @Test
-    public void ignoresUnknownSchemaVersions() {
+    public void canSupplementTsOnNewerSchemas() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
-                .put(Range.atLeast(1L), 5)
+                .put(Range.closedOpen(1L, 100L), 4)
+                .put(Range.closedOpen(100L, 200L), 5)
+                .put(Range.atLeast(200L), 6)
                 .build();
         CoordinationAwareKnownAbandonedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
-        Set<Long> abandonedTs = ImmutableSet.of(1L, 3L, 5L, 7L);
+        Set<Long> abandonedTs = ImmutableSet.of(1L, 27L, 127L, 178L, 201L, 287L);
         coordinationAwareStore.addAbandonedTimestamps(abandonedTs);
-        verifyNoMoreInteractions(delegate);
+        verify(delegate).markAbandoned(abandonedTs);
     }
 
     private CoordinationAwareKnownAbandonedTransactionsStore getCoordinationAwareStore(
