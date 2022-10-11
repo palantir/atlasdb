@@ -123,40 +123,40 @@ public final class CassandraNamespaceCleanerTest {
 
     @Test
     public void areAllTablesSuccessfullyDroppedReturnsTrueIfNotFoundExceptionThrown() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenThrow(NotFoundException.class);
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(NotFoundException.class);
         assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     @Test
     public void areAllTablesSuccessfullyDroppedReturnsFalseIfKsDefReturned() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenReturn(new KsDef());
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenReturn(new KsDef());
         assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
     public void areAllTablesSuccessfullyDroppedPropagatesOtherThriftExceptions() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenThrow(TimedOutException.class);
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(TimedOutException.class);
         assertThatThrownBy(namespaceCleaner::isNamespaceDeletedSuccessfully)
                 .hasCauseInstanceOf(TimedOutException.class);
     }
 
     @Test
     public void areAllTablesSuccessfullyDroppedClosesClientWhenNotFound() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenThrow(NotFoundException.class);
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(NotFoundException.class);
         namespaceCleaner.isNamespaceDeletedSuccessfully();
         verify(cassandraClient).close();
     }
 
     @Test
     public void areAllTablesSuccessfullyDroppedClosesClientWhenKsDefReturned() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenReturn(new KsDef());
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenReturn(new KsDef());
         namespaceCleaner.isNamespaceDeletedSuccessfully();
         verify(cassandraClient).close();
     }
 
     @Test
     public void areAllTablesSuccessfullyDroppedClosesClientOnArbitraryTException() throws TException {
-        when(cassandraClient.describe_keyspace(QUOTED_KEYSPACE)).thenThrow(TException.class);
+        when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(TException.class);
         assertThatThrownBy(namespaceCleaner::isNamespaceDeletedSuccessfully);
         verify(cassandraClient).close();
     }

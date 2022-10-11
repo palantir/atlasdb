@@ -35,7 +35,7 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
             CassandraKeyValueServiceConfig config, Supplier<CassandraClient> cassandraClientSupplier) {
         this.config = config;
         this.cassandraClientSupplier = cassandraClientSupplier;
-        keyspace = wrapInQuotes(config.getKeyspaceOrThrow());
+        keyspace = config.getKeyspaceOrThrow();
         // TODO: Throw on bad keyspace - namespace create does that for me so that's nice.
     }
 
@@ -63,7 +63,9 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
 
     private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
         CqlQuery query = CqlQuery.builder()
-                .safeQueryFormat(SchemaBuilder.dropKeyspace(keyspace).ifExists().buildInternal())
+                .safeQueryFormat(SchemaBuilder.dropKeyspace(wrapInQuotes(keyspace))
+                        .ifExists()
+                        .buildInternal())
                 .build();
 
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
