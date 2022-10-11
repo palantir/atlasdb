@@ -16,26 +16,27 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
+import org.junit.Test;
+
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ClusterTopologyValidatorTest {
 
@@ -191,8 +192,14 @@ public class ClusterTopologyValidatorTest {
 
     private static void setHostIds(
             Collection<CassandraClientPoolingContainer> containers, Optional<Set<String>> hostIds) {
-        containers.forEach(container -> when(container.<Optional<Set<String>>>runWithPooledResource(any()))
-                .thenReturn(hostIds));
+        containers.forEach(container -> {
+            try {
+                when(container.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                        .thenReturn(hostIds);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private static Map<CassandraServer, CassandraClientPoolingContainer> setupHosts(Set<String> allHostNames) {
