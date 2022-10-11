@@ -30,7 +30,6 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
 import com.palantir.atlasdb.transaction.knowledge.TimestampRangeSet;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -103,7 +102,8 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
         Range<Long> rangeToSupplement = Range.closedOpen(1L, 350L);
-        assertThatCode(() -> coordinationAwareStore.supplement(rangeToSupplement)).doesNotThrowAnyException();
+        assertThatCode(() -> coordinationAwareStore.supplement(rangeToSupplement))
+                .doesNotThrowAnyException();
         verify(delegate).supplement(ImmutableSet.of(rangeToSupplement));
     }
 
