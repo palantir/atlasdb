@@ -404,12 +404,14 @@ public interface Transaction {
     }
 
     /**
-     * Tags transaction with the given name (ignored if the size > 255) for tracking purposes.
+     * Tags transaction with the given name for tracking purposes.
+     * No-op if the name size is > 255 or if the name was set previously.
+     * This method should be called before any reads are done on this table.
      */
     void setName(String name);
 
     /**
      * Modifies the default transactional expectations thresholds.
      */
-    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig);
+    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig);
 }

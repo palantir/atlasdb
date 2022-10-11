@@ -97,6 +97,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -266,6 +267,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final AtomicReference<TransactionalExpectationsConfig> transactionalExpectationsConfigReference;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -298,7 +300,8 @@ public class SnapshotTransaction extends AbstractTransaction
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -339,6 +342,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.transactionalExpectationsConfigReference = new AtomicReference<>(transactionalExpectationsConfig);
     }
 
     protected TransactionScopedCache getCache() {
@@ -379,6 +383,16 @@ public class SnapshotTransaction extends AbstractTransaction
     public void markTableInvolved(TableReference tableRef) {
         // Not setting hasReads on purpose.
         checkGetPreconditions(tableRef);
+    }
+
+    /**
+     * Modifies the default transactional expectations thresholds.
+     *
+     * @param transactionalExpectationsConfig
+     */
+    @Override
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
+        transactionalExpectationsConfigReference.set(transactionalExpectationsConfig);
     }
 
     @Override

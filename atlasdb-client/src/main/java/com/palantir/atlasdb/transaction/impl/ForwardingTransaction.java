@@ -204,7 +204,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig) {
-        delegate().setTransactionalExpectationsConfig(texConfig);
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
+        delegate().setTransactionalExpectationsConfig(transactionalExpectationsConfig);
     }
 }

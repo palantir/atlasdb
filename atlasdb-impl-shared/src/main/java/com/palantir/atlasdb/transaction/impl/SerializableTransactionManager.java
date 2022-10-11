@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -271,7 +272,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig());
     }
 
     public static TransactionManager create(
@@ -384,7 +386,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig());
     }
 
     private static TransactionManager create(
@@ -414,7 +417,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -438,7 +442,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -493,7 +498,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig());
     }
 
     public SerializableTransactionManager(
@@ -519,7 +525,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
         super(
                 metricsManager,
                 keyValueService,
@@ -543,7 +550,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
         this.conflictTracer = conflictTracer;
     }
 
@@ -553,7 +561,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Supplier<Long> startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
-        return new SerializableTransaction(
+        SerializableTransaction transaction = new SerializableTransaction(
                 metricsManager,
                 keyValueService,
                 timelockService,
@@ -579,7 +587,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
+
+        // this look wonky to me - alternative is passing the config to txn constructors
+        // that seems repetitive as we already expose a method for setting the config (implemented in an abstract class)
+        transaction.setTransactionalExpectationsConfig(transactionalExpectationsConfig);
+        return transaction;
     }
 
     @VisibleForTesting

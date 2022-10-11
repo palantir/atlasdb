@@ -44,7 +44,6 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final AtomicLong maxBytesReadInOneReadCall = new AtomicLong(0);
     private final Set<TableReference> tablesReadFrom = Sets.newConcurrentHashSet();
 
-
     public TrackingKeyValueService(KeyValueService delegate, MetricsManager metricsManager) {
         this.delegate = delegate;
     }
@@ -72,10 +71,7 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            ColumnSelection columnSelection,
-            long timestamp) {
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         tablesReadFrom.add(tableRef);
         readCallsMade.incrementAndGet();
 
@@ -95,7 +91,8 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         tablesReadFrom.add(tableRef);
-        Map<byte[], RowColumnRangeIterator> results = delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        Map<byte[], RowColumnRangeIterator> results =
+                delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         results.replaceAll((unused, iterator) -> new ForwardingRowColumnRangeIterator(iterator));
         return results;
     }
@@ -108,7 +105,8 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
                 .sum();
     }
 
-    class ForwardingRowColumnRangeIterator extends ForwardingIterator<Map.Entry<Cell, Value>> implements RowColumnRangeIterator {
+    class ForwardingRowColumnRangeIterator extends ForwardingIterator<Map.Entry<Cell, Value>>
+            implements RowColumnRangeIterator {
         // keep tally and max that as we go
         Iterator<Map.Entry<Cell, Value>> delegate;
 
@@ -124,7 +122,8 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
         @Override
         public Map.Entry<Cell, Value> next() {
             Map.Entry<Cell, Value> entry = delegate().next();
-            bytesRead.addAndGet(getApproxSizeOfCell(entry.getKey()) + entry.getValue().getByteCount());
+            bytesRead.addAndGet(
+                    getApproxSizeOfCell(entry.getKey()) + entry.getValue().getByteCount());
             return entry;
         }
     }

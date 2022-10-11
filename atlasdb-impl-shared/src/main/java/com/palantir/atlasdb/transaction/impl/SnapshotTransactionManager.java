@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -134,8 +135,11 @@ import javax.validation.constraints.NotNull;
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
-        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
+            TransactionKnowledgeComponents knowledge,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
+        super(metricsManager, timestampCache, transactionalExpectationsConfig, () -> transactionConfig
+                .get()
+                .retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -330,7 +334,8 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
     }
 
     @Override
@@ -373,7 +378,8 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

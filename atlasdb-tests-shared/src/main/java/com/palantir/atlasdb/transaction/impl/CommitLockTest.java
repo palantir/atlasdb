@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -185,7 +186,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
-                knowledge) {
+                knowledge,
+                TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig()) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

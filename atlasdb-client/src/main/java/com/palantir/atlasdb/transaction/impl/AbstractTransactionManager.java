@@ -23,6 +23,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import java.util.Optional;
@@ -34,9 +35,15 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     private final TimelockHealthCheck timelockHealthCheck;
 
-    AbstractTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
+    protected final TransactionalExpectationsConfig transactionalExpectationsConfig;
+
+    AbstractTransactionManager(
+            MetricsManager metricsManager,
+            TimestampCache timestampCache,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
         this.timelockHealthCheck = new MetricsBasedTimelockHealthCheck(metricsManager);
         this.timestampValidationReadCache = timestampCache;
+        this.transactionalExpectationsConfig = transactionalExpectationsConfig;
     }
 
     protected boolean shouldStopRetrying(@SuppressWarnings("unused") int numTimesFailed) {

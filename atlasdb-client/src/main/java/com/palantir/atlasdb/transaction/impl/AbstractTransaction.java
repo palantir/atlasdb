@@ -25,7 +25,6 @@ import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import java.util.Optional;
-import org.apache.commons.lang3.NotImplementedException;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
@@ -56,17 +55,19 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Override
     public void setName(String texName) {
-        if (texName.length() < 256) {
-            this.transactionUserName = Optional.of(texName);
+        if (transactionUserName.isPresent() || texName.length() > 255) {
+            return;
         }
+
+        this.transactionUserName = Optional.of(texName);
+    }
+
+    @Override
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
+        throw new UnsupportedOperationException();
     }
 
     public Optional<String> getName() {
         return transactionUserName;
-    }
-
-    @Override
-    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig texConfig) {
-        throw new NotImplementedException();
     }
 }

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
@@ -30,8 +31,9 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractCondit
     AbstractLockAwareTransactionManager(
             MetricsManager metricsManager,
             TimestampCache timestampCache,
+            TransactionalExpectationsConfig transactionalExpectationsConfig,
             Supplier<TransactionRetryStrategy> retryStrategy) {
-        super(metricsManager, timestampCache, retryStrategy);
+        super(metricsManager, timestampCache, transactionalExpectationsConfig, retryStrategy);
     }
 
     @Override

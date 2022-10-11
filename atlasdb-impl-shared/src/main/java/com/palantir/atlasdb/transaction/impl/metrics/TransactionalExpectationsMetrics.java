@@ -25,7 +25,4 @@ public class TransactionalExpectationsMetrics {
     public TransactionalExpectationsMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
     }
-
-
-
 }

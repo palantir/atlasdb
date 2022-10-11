@@ -19,6 +19,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import java.util.function.Supplier;
 
@@ -36,8 +37,9 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
     AbstractConditionAwareTransactionManager(
             MetricsManager metricsManager,
             TimestampCache timestampCache,
+            TransactionalExpectationsConfig transactionalExpectationsConfig,
             Supplier<TransactionRetryStrategy> retryStrategy) {
-        super(metricsManager, timestampCache);
+        super(metricsManager, timestampCache, transactionalExpectationsConfig);
         this.retryStrategy = retryStrategy;
     }
 

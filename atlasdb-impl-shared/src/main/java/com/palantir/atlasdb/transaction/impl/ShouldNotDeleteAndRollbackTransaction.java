@@ -24,6 +24,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -82,7 +83,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             Supplier<TransactionConfig> transactionConfig,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionalExpectationsConfig transactionalExpectationsConfig) {
         super(
                 metricsManager,
                 keyValueService,
@@ -109,7 +111,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 transactionConfig,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
     }
 
     @Override

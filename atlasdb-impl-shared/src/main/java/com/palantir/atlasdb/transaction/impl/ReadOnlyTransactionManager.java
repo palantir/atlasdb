@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -74,7 +75,12 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             TimestampCache timestampCache,
             Supplier<TransactionConfig> transactionConfig,
             TransactionKnowledgeComponents knowledge) {
-        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
+        // No overloading or new method here (just default TEX config) until I know where this is used
+        super(
+                metricsManager,
+                timestampCache,
+                TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig(),
+                () -> transactionConfig.get().retryStrategy());
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
@@ -229,7 +235,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 MoreExecutors.newDirectExecutorService(),
                 defaultGetRangesConcurrency,
                 transactionConfig,
-                knowledge);
+                knowledge,
+                transactionalExpectationsConfig);
         return runTaskThrowOnConflictWithCallback(
                 transaction -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager),

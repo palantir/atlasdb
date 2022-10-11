@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -37,7 +37,10 @@ public class TransactionalExpectationsConfig {
     long maximumReadCallsMade() {
         return 1000L;
     }
-    ;
+
+    public static TransactionalExpectationsConfig defaultTransactionalExpectationsConfig() {
+        return ImmutableTransactionalExpectationsConfig.builder().build();
+    }
 
     @Value.Check
     protected void check() {
