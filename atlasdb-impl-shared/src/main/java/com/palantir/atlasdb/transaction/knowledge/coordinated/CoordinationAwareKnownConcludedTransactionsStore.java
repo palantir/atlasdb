@@ -22,7 +22,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
 import com.palantir.atlasdb.transaction.knowledge.TimestampRangeSet;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -71,7 +70,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
     private static Set<Range<Long>> getRangesToSupplement(
             Range<Long> closedTsRangeToConclude, Map<Range<Long>, Integer> timestampRanges) {
         return KeyedStream.stream(timestampRanges)
-                .filter(schemaVersion -> schemaVersion.equals(TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION))
+                .filter(schemaVersion -> schemaVersion >= TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
                 .mapKeys(closedTsRangeToConclude::intersection)
                 .keys()
                 .collect(Collectors.toSet());
@@ -81,9 +80,10 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
         Optional<Integer> maybeUnknownSchema = timestampRanges.values().stream()
                 .filter(schemaVersion -> schemaVersion > TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
                 .findFirst();
-        Preconditions.checkState(
-                maybeUnknownSchema.isEmpty(),
-                "Found an unknown schema version. Will block further progress of TTS to avoid completeness issues.");
+        maybeUnknownSchema.ifPresent(unknownSchema -> log.error(
+                "Found an unknown schema version. Will block further progress of TTS to avoid"
+                        + " completeness issues.",
+                SafeArg.of("unknownSchema", unknownSchema)));
     }
 
     private Map<Range<Long>, Integer> latestTimestampRangesSnapshot(long lastSweptTimestamp) {
