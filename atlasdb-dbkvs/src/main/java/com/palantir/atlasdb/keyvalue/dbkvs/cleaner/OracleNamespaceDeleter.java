@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Set;
 import java.util.function.Function;
@@ -56,8 +57,6 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
     public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
         tableNamesToDrop.stream().map(oracleDdlTableFactory).forEach(OracleDdlTable::drop);
-        // There is no IF EXISTS. DDL commands perform an implicit commit. If we fail, we should just retry by
-        // dropping the namespace again!
     }
 
     @Override
@@ -79,7 +78,7 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
                     tableNameGetter.getTableReferencesFromShortTableNames(connectionSupplier, nonOverflowTables),
                     tableNameGetter.getTableReferencesFromShortOverflowTableNames(connectionSupplier, overflowTables));
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
