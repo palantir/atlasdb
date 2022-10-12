@@ -222,7 +222,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     // InetSocketAddress may be in an unresolved state, and if so, let's attempt to resolve it.
     @SuppressWarnings({"ReverseDnsLookup", "DnsLookup"})
-    private static Optional<InetAddress> maybeResolveAddress(InetSocketAddress inetSocketAddress) {
+    @VisibleForTesting
+    static Optional<InetAddress> maybeResolveAddress(InetSocketAddress inetSocketAddress) {
         return Optional.ofNullable(inetSocketAddress.getAddress())
                 .or(() -> Optional.ofNullable(
                         new InetSocketAddress(inetSocketAddress.getHostName(), inetSocketAddress.getPort())

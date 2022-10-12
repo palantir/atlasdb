@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.exception.SafeSSLPeerUnverifiedException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.security.cert.Certificate;
@@ -91,7 +92,8 @@ public class CassandraClientFactoryTest {
     public void verifyEndpoint_throws_onlyWhenConfigured_andHostname_orIpNotPresent()
             throws SSLPeerUnverifiedException {
         SSLSession sslSession = createSSLSession(DEFAULT_SERVER);
-        assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSession, true));
+        assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSession, true))
+                .isInstanceOf(SafeSSLPeerUnverifiedException.class);
         CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSession, false);
     }
 
@@ -105,8 +107,22 @@ public class CassandraClientFactoryTest {
         CassandraClientFactory.verifyEndpoint(cassandraServer, sslSession, true);
     }
 
+    @Test
+    public void maybeResolveAddress_emptyOnUnresolvableAddress() {
+        assertThat(CassandraClientFactory.maybeResolveAddress(DEFAULT_SERVER.proxy()))
+                .isEmpty();
+    }
+
+    @Test
+    public void maybeResolveAddress_resolvesIfUnresolved() {
+        InetSocketAddress localhostUnresolved = InetSocketAddress.createUnresolved("localhost", 80);
+        assertThat(localhostUnresolved.getAddress()).isNull();
+        assertThat(CassandraClientFactory.maybeResolveAddress(localhostUnresolved))
+                .isPresent();
+    }
+
     @SuppressWarnings("ReverseDnsLookup")
-    public InetSocketAddress mockInetSocketAddress(String hostname, String ipAddress) {
+    private InetSocketAddress mockInetSocketAddress(String hostname, String ipAddress) {
         InetAddress inetAddress = mock(InetAddress.class);
         when(inetAddress.getHostAddress()).thenReturn(ipAddress);
         when(inetAddress.getHostName()).thenReturn(hostname);
@@ -115,11 +131,11 @@ public class CassandraClientFactoryTest {
         return inetSocketAddress;
     }
 
-    public SSLSession createSSLSession(CassandraServer cassandraServer) throws SSLPeerUnverifiedException {
+    private SSLSession createSSLSession(CassandraServer cassandraServer) throws SSLPeerUnverifiedException {
         return createSSLSession(cassandraServer.cassandraHostName(), Optional.empty());
     }
 
-    public SSLSession createSSLSession(String cn, Optional<String> maybeIpAddress) throws SSLPeerUnverifiedException {
+    private SSLSession createSSLSession(String cn, Optional<String> maybeIpAddress) throws SSLPeerUnverifiedException {
         SSLSession sslSession = mock(SSLSession.class);
         X509Certificate certificate = mock(X509Certificate.class);
         X500Principal principal = mock(X500Principal.class);
