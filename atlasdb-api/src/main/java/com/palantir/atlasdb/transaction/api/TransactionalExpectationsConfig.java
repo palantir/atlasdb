@@ -60,8 +60,11 @@ public abstract class TransactionalExpectationsConfig {
 
     @Value.Check
     protected void check() {
-        Preconditions.checkArgument(transactionName().length() <= MAXIMUM_NAME_SIZE, "'transactionName' should be at most " + MAXIMUM_NAME_SIZE);
-        Preconditions.checkArgument(transactionAgeMillisLimit() > 0, "'transactionAgeMillisLimit' should be strictly positive.")
+        Preconditions.checkArgument(
+                transactionName().length() <= MAXIMUM_NAME_SIZE,
+                "'transactionName' should be at most " + MAXIMUM_NAME_SIZE);
+        Preconditions.checkArgument(
+                transactionAgeMillisLimit() > 0, "'transactionAgeMillisLimit' should be strictly positive.");
         Preconditions.checkArgument(bytesReadLimit() > 0, "'bytesReadLimit' should be strictly positive");
         Preconditions.checkArgument(
                 bytesReadInOneKvsCallLimit() > 0, "'bytesReadInOneKvsCallLimit' should be strictly positive");
