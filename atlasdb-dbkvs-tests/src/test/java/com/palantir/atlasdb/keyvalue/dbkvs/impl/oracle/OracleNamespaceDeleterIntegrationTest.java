@@ -63,15 +63,15 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
-    private static final String TABLE_NAME_ONE = "tablenameone";
-    private static final String TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH = "tableNameOne";
-    private static final String TABLE_NAME_TWO = "tablenametwo";
-
-    private static final String NON_DEFAULT_TABLE_PREFIX = "diff_";
-    private static final String NON_DEFAULT_OVERFLOW_TABLE_PREFIX = "over_";
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+
+    private static final String TABLE_NAME_ONE = "tablenameone";
+    private static final String TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH = "tableNameOne";
+    private static final String TABLE_NAME_TWO = "tablenametwo";
+    private static final String NON_DEFAULT_TABLE_PREFIX = "diff_";
+    private static final String NON_DEFAULT_OVERFLOW_TABLE_PREFIX = "over_";
 
     private DbKeyValueServiceConfig dbKeyValueServiceConfig;
     private OracleDdlConfig oracleDdlConfig;
@@ -79,8 +79,8 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     private ConnectionManager connectionManager;
     private ExecutorService executorService;
 
-    private KeyValueService keyValueServiceWithAnotherPrefix;
-    private NamespaceDeleter namespaceDeleterWithAnotherPrefix;
+    private KeyValueService keyValueServiceWithNonDefaultPrefix;
+    private NamespaceDeleter namespaceDeleterWithNonDefaultPrefix;
 
     public OracleNamespaceDeleterIntegrationTest() {
         super(TRM, TRM);
@@ -99,21 +99,22 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
                 DbKvsOracleTestSuite.getConnectionSupplier(keyValueService),
                 executorService);
 
-        OracleDdlConfig ddlConfigForAnotherPrefix = ImmutableOracleDdlConfig.builder()
+        OracleDdlConfig ddlConfigWithNonDefaultPrefix = ImmutableOracleDdlConfig.builder()
                 .from(oracleDdlConfig)
                 .tablePrefix(NON_DEFAULT_TABLE_PREFIX)
                 .overflowTablePrefix(NON_DEFAULT_OVERFLOW_TABLE_PREFIX)
                 .build();
 
-        keyValueServiceWithAnotherPrefix = ConnectionManagerAwareDbKvs.create(ImmutableDbKeyValueServiceConfig.builder()
-                .from(dbKeyValueServiceConfig)
-                .ddl(ddlConfigForAnotherPrefix)
-                .build());
+        keyValueServiceWithNonDefaultPrefix =
+                ConnectionManagerAwareDbKvs.create(ImmutableDbKeyValueServiceConfig.builder()
+                        .from(dbKeyValueServiceConfig)
+                        .ddl(ddlConfigWithNonDefaultPrefix)
+                        .build());
 
-        namespaceDeleterWithAnotherPrefix = createNamespaceDeleter(
-                ddlConfigForAnotherPrefix,
+        namespaceDeleterWithNonDefaultPrefix = createNamespaceDeleter(
+                ddlConfigWithNonDefaultPrefix,
                 dbKeyValueServiceConfig.connection(),
-                DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithAnotherPrefix),
+                DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithNonDefaultPrefix),
                 executorService);
     }
 
@@ -122,24 +123,22 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
             ConnectionConfig connectionConfig,
             ConnectionSupplier connectionSupplier,
             ExecutorService executorService) {
-        OracleTableNameGetter oracleTableNameGetterForAnotherPrefix =
-                OracleTableNameGetterImpl.createDefault(ddlConfig);
+        OracleTableNameGetter oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
 
-        Function<TableReference, OracleDdlTable> ddlTableFactoryForAnotherPrefix =
-                tableReference -> OracleDdlTable.create(
-                        tableReference,
-                        connectionSupplier,
-                        ddlConfig,
-                        oracleTableNameGetterForAnotherPrefix,
-                        new TableValueStyleCache(),
-                        executorService);
+        Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
+                tableReference,
+                connectionSupplier,
+                ddlConfig,
+                oracleTableNameGetter,
+                new TableValueStyleCache(),
+                executorService);
 
         return new OracleNamespaceDeleter(OracleNamespaceDeleterParameters.builder()
                 .tablePrefix(ddlConfig.tablePrefix())
                 .overflowTablePrefix(ddlConfig.overflowTablePrefix())
                 .connectionSupplier(connectionSupplier)
-                .tableNameGetter(oracleTableNameGetterForAnotherPrefix)
-                .oracleDdlTableFactory(ddlTableFactoryForAnotherPrefix)
+                .tableNameGetter(oracleTableNameGetter)
+                .oracleDdlTableFactory(ddlTableFactory)
                 .userId(connectionConfig.getDbLogin())
                 .build());
     }
@@ -147,12 +146,12 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     @After
     public void after() {
         namespaceDeleter.deleteAllDataFromNamespace();
-        namespaceDeleterWithAnotherPrefix.deleteAllDataFromNamespace();
+        namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();
         executorService.shutdown();
     }
 
     @Test
-    public void dropNamespaceDropsAllTablesAndOverflowTablesWithConfigPrefix() {
+    public void deleteAllDataFromNamespaceDropsAllTablesAndOverflowTablesWithConfigPrefix() {
         createTwoLogicalTablesWithDefaultPrefix();
 
         namespaceDeleter.deleteAllDataFromNamespace();
@@ -161,7 +160,7 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     @Test
-    public void dropNamespaceDropsAllTablesAndOverflowTablesDespiteCaseInsensitiveMatchingNames() {
+    public void deleteAllDataFromNamespaceDropsAllTablesAndOverflowTablesDespiteCaseInsensitiveMatchingNames() {
         AllTableDetailsSnapshot kvsTablesSnapshot = getTableDetailsForDefaultPrefixes();
 
         createTableAndOverflowTable(TABLE_NAME_ONE);
@@ -169,9 +168,9 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
         // when adding to the metadata table. We must still clear this up!
         assertThatThrownBy(() -> createTableAndOverflowTable(TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH));
         AllTableDetailsSnapshot newTables =
-                AllTableDetailsSnapshot.difference(kvsTablesSnapshot, getTableDetailsForDefaultPrefixes());
-        assertThat(newTables.physicalTableNames()).hasSize(2);
-        assertThat(newTables.prefixedTableNames()).hasSize(2);
+                AllTableDetailsSnapshot.difference(getTableDetailsForDefaultPrefixes(), kvsTablesSnapshot);
+        assertThat(newTables.physicalTableNames()).hasSize(4);
+        assertThat(newTables.prefixedTableNames()).hasSize(4);
         assertThat(newTables.tableReferences()).hasSize(1);
 
         namespaceDeleter.deleteAllDataFromNamespace();
@@ -180,7 +179,7 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     @Test
-    public void dropAllTablesDoesNotThrowWhenNoTablesToDelete() {
+    public void deleteAllDataFromNamespaceDoesNotThrowWhenNoTablesToDelete() {
         // Oracle throws on an empty IN () clause, whereas sqlite does not.
         namespaceDeleter.deleteAllDataFromNamespace();
         assertSnapshotIsEmpty(getTableDetailsForDefaultPrefixes());
@@ -189,9 +188,9 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     @Test
-    public void dropAllTablesDoesNotDropTablesFromADifferentPrefix() {
+    public void deleteAllDataFromNamespaceDoesNotDropTablesFromADifferentPrefix() {
         createTableAndOverflowTable(TABLE_NAME_ONE);
-        createTableAndOverflowTableForAnotherPrefix(TABLE_NAME_ONE);
+        createTableAndOverflowTableWithNonDefaultPrefix(TABLE_NAME_ONE);
 
         Set<String> allTablesWithNonDefaultPrefix =
                 listAllPhysicalTableNames(NON_DEFAULT_TABLE_PREFIX, NON_DEFAULT_OVERFLOW_TABLE_PREFIX);
@@ -202,13 +201,13 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     @Test
-    public void hasNamespaceSuccessfullyDroppedReturnsFalseIfTablesRemain() {
+    public void isNamespaceDeletedSuccessfullyReturnsFalseIfTablesRemain() {
         createTableAndOverflowTable(TABLE_NAME_ONE);
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
-    public void hasNamespaceSuccessfullyDroppedReturnsTrueIfNoTablesRemain() {
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfNoTablesRemain() {
         createTwoLogicalTablesWithDefaultPrefix();
 
         namespaceDeleter.deleteAllDataFromNamespace();
@@ -216,10 +215,10 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     @Test
-    public void hasNamespaceSuccessfullyDroppedReturnsTrueEvenIfOtherPrefixExists() {
+    public void isNamespaceDeletedSuccessfullyReturnsTrueEvenIfOtherPrefixExists() {
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
-        createTableAndOverflowTableForAnotherPrefix(TABLE_NAME_ONE);
+        createTableAndOverflowTableWithNonDefaultPrefix(TABLE_NAME_ONE);
 
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
     }
@@ -229,8 +228,8 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
         assertSnapshotIsNotEmpty(kvsTablesSnapshot);
         createTableAndOverflowTable(TABLE_NAME_ONE);
         createTableAndOverflowTable(TABLE_NAME_TWO);
-        assertThatSnapshotContainsEqualNumberOfElementsFromEachInternalTable(
-                AllTableDetailsSnapshot.difference(kvsTablesSnapshot, getTableDetailsForDefaultPrefixes()), 2);
+        assertSnapshotContainsNewLogicalTables(
+                AllTableDetailsSnapshot.difference(getTableDetailsForDefaultPrefixes(), kvsTablesSnapshot), 2);
     }
 
     private void createTableAndOverflowTable(String tableName) {
@@ -250,8 +249,8 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
                 .orElseGet(() -> TableReference.createWithEmptyNamespace(tableName));
     }
 
-    private void createTableAndOverflowTableForAnotherPrefix(String tableName) {
-        keyValueServiceWithAnotherPrefix.createTable(
+    private void createTableAndOverflowTableWithNonDefaultPrefix(String tableName) {
+        keyValueServiceWithNonDefaultPrefix.createTable(
                 TableReference.create(Namespace.create("other"), tableName),
                 TableMetadata.builder()
                         .nameLogSafety(LogSafety.SAFE)
@@ -292,7 +291,7 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
                     "SELECT table_name from " + AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE);
             ResultSet resultSet = statement.executeQuery();
             return getTableNamesFromResultSet(resultSet).stream()
-                    .map(TableReference::createFromFullyQualifiedName)
+                    .map(TableReference::createUnsafe)
                     .collect(Collectors.toSet());
         });
     }
@@ -330,12 +329,10 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
         return s + "%";
     }
 
-    private static void assertThatSnapshotContainsEqualNumberOfElementsFromEachInternalTable(
-            AllTableDetailsSnapshot snapshot, int expectedSize) {
-        assertThat(snapshot.prefixedTableNames())
-                .hasSameSizeAs(snapshot.physicalTableNames())
-                .hasSameSizeAs(snapshot.tableReferences())
-                .hasSize(expectedSize);
+    private static void assertSnapshotContainsNewLogicalTables(AllTableDetailsSnapshot snapshot, int expectedSize) {
+        assertThat(snapshot.prefixedTableNames()).hasSize(expectedSize * 2);
+        assertThat(snapshot.physicalTableNames()).hasSize(expectedSize * 2);
+        assertThat(snapshot.tableReferences()).hasSize(expectedSize);
     }
 
     private static void assertSnapshotIsEmpty(AllTableDetailsSnapshot snapshot) {
@@ -346,10 +343,9 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
     }
 
     private static void assertSnapshotIsNotEmpty(AllTableDetailsSnapshot snapshot) {
-        assertThat(snapshot.prefixedTableNames())
-                .hasSameSizeAs(snapshot.physicalTableNames())
-                .hasSameSizeAs(snapshot.tableReferences())
-                .isNotEmpty();
+        assertThat(snapshot.prefixedTableNames()).isNotEmpty();
+        assertThat(snapshot.physicalTableNames()).isNotEmpty();
+        assertThat(snapshot.tableReferences()).isNotEmpty();
     }
 
     @Value.Immutable
@@ -364,13 +360,13 @@ public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup 
             return ImmutableAllTableDetailsSnapshot.builder();
         }
 
-        static AllTableDetailsSnapshot difference(AllTableDetailsSnapshot initial, AllTableDetailsSnapshot secondary) {
+        static AllTableDetailsSnapshot difference(AllTableDetailsSnapshot newest, AllTableDetailsSnapshot initial) {
             return builder()
-                    .addAllTableReferences(Sets.difference(initial.tableReferences(), secondary.tableReferences()))
+                    .addAllTableReferences(Sets.difference(newest.tableReferences(), initial.tableReferences()))
                     .addAllPrefixedTableNames(
-                            Sets.difference(initial.prefixedTableNames(), secondary.prefixedTableNames()))
+                            Sets.difference(newest.prefixedTableNames(), initial.prefixedTableNames()))
                     .addAllPhysicalTableNames(
-                            Sets.difference(initial.physicalTableNames(), secondary.physicalTableNames()))
+                            Sets.difference(newest.physicalTableNames(), initial.physicalTableNames()))
                     .build();
         }
     }
