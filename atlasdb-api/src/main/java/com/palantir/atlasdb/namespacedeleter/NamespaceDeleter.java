@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.namespacecleaner;
+package com.palantir.atlasdb.namespacedeleter;
 
 import java.io.Closeable;
 
 /**
  * Allows for deleting all data from a namespace (e.g., dropping the keyspace for a Cassandra KVS) programmatically,
- * and determining when that cleanup is complete.
+ * and determining when that deletion is complete.
  */
-public interface NamespaceCleaner extends Closeable {
+public interface NamespaceDeleter extends Closeable {
     /**
      * Deletes all data associated with a specific namespace. In Cassandra, this is done by dropping the keyspace.
      *
