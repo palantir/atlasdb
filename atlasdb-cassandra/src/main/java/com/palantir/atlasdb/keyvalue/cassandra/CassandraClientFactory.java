@@ -38,7 +38,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.time.Duration;
@@ -46,7 +45,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import one.util.streamex.StreamEx;
@@ -182,7 +180,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                verifyEndpoint(cassandraServer, socket.getSession(), clientConfig.enableEndpointVerification());
+                verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
                 thriftSocket = tSocketFactory.create(socket);
                 success = true;
             } catch (IOException e) {
@@ -220,41 +218,25 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         client.login(new AuthenticationRequest(credsMap));
     }
 
-    // InetSocketAddress may be in an unresolved state, and if so, let's attempt to resolve it.
-    @SuppressWarnings({"ReverseDnsLookup", "DnsLookup"})
-    @VisibleForTesting
-    static Optional<InetAddress> maybeResolveAddress(InetSocketAddress inetSocketAddress) {
-        return Optional.ofNullable(inetSocketAddress.getAddress())
-                .or(() -> Optional.ofNullable(
-                        new InetSocketAddress(inetSocketAddress.getHostName(), inetSocketAddress.getPort())
-                                .getAddress()));
-    }
-
     /**
      * Verifies that the current SSL connection hostname/ip address matches what the certificate has served.
      * This will check both ip address/hostname, and perform (reverse) dns lookups respectively, if hostname
      * or ip address are not present when supplied.
      */
     @VisibleForTesting
-    static void verifyEndpoint(CassandraServer cassandraServer, SSLSession session, boolean throwOnFailure)
+    static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
             throws SafeSSLPeerUnverifiedException {
-        InetSocketAddress proxySocketAddress = cassandraServer.proxy();
-        Optional<InetAddress> proxy = maybeResolveAddress(proxySocketAddress);
-        Set<String> validAddresses = proxy.map(
-                        address -> Set.of(address.getHostAddress(), cassandraServer.cassandraHostName()))
-                .orElseGet(() -> Set.of(cassandraServer.cassandraHostName()));
+        Set<String> validAddresses =
+                Set.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
         boolean endpointVerified =
-                StreamEx.of(validAddresses).anyMatch(address -> hostnameVerifier.verify(address, session));
+                StreamEx.of(validAddresses).anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
 
-        if (!endpointVerified && throwOnFailure) {
-            log.error(
-                    "Endpoint verification failed for host, closing connection.",
-                    UnsafeArg.of("cassandraServer", cassandraServer));
-            throw new SafeSSLPeerUnverifiedException(
-                    "Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
-        }
         if (!endpointVerified) {
             log.warn("Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+            if (throwOnFailure) {
+                throw new SafeSSLPeerUnverifiedException(
+                        "Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+            }
         }
     }
 

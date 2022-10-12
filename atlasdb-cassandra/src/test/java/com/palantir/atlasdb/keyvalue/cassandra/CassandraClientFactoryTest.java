@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,7 @@ import java.time.Duration;
 import java.util.Optional;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.security.auth.x500.X500Principal;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -67,6 +69,9 @@ public class CassandraClientFactoryTest {
                     .timeoutOnConnectionClose(Duration.ZERO)
                     .build());
 
+    private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
+    ;
+
     private CassandraClient client = mock(CassandraClient.class);
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
 
@@ -83,64 +88,62 @@ public class CassandraClientFactoryTest {
     }
 
     @Test
-    public void verifyEndpoint_doesNotThrow_whenHostnameInCertificate() throws SSLPeerUnverifiedException {
-        SSLSession sslSession = createSSLSession(DEFAULT_SERVER);
-        CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSession, true);
+    public void verifyEndpoint_doesNotThrow_whenHostnameInCertificate() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSocket, true))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    public void verifyEndpoint_throws_onlyWhenConfigured_andHostname_orIpNotPresent()
-            throws SSLPeerUnverifiedException {
-        SSLSession sslSession = createSSLSession(DEFAULT_SERVER);
-        assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSession, true))
+    public void verifyEndpoint_throws_onlyWhenConfiguredAndHostnameOrIpNotPresent() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSocket, true))
                 .isInstanceOf(SafeSSLPeerUnverifiedException.class);
-        CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSession, false);
+        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSocket, false))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    public void verifyEndpoint_doesNotThrow_whenHostnameNotPresentButIpIs() throws SSLPeerUnverifiedException {
+    public void verifyEndpoint_doesNotThrow_whenHostnameNotPresentButIpIs() {
         String ipAddress = "1.1.1.1";
         String hostname = "foo-bar";
-        InetSocketAddress inetSocketAddress = mockInetSocketAddress(hostname, ipAddress);
+        InetSocketAddress inetSocketAddress = mockInetSocketAddress(ipAddress);
         CassandraServer cassandraServer = CassandraServer.of(hostname, inetSocketAddress);
-        SSLSession sslSession = createSSLSession("not-what-I-want", Optional.of(ipAddress));
-        CassandraClientFactory.verifyEndpoint(cassandraServer, sslSession, true);
-    }
-
-    @Test
-    public void maybeResolveAddress_emptyOnUnresolvableAddress() {
-        assertThat(CassandraClientFactory.maybeResolveAddress(DEFAULT_SERVER.proxy()))
-                .isEmpty();
-    }
-
-    @Test
-    public void maybeResolveAddress_resolvesIfUnresolved() {
-        InetSocketAddress localhostUnresolved = InetSocketAddress.createUnresolved("localhost", 80);
-        assertThat(localhostUnresolved.getAddress()).isNull();
-        assertThat(CassandraClientFactory.maybeResolveAddress(localhostUnresolved))
-                .isPresent();
+        SSLSocket sslSocket =
+                createSSLSocket(inetSocketAddress.getAddress(), "not-what-I-want", Optional.of(ipAddress));
+        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(cassandraServer, sslSocket, true))
+                .doesNotThrowAnyException();
     }
 
     @SuppressWarnings("ReverseDnsLookup")
-    private InetSocketAddress mockInetSocketAddress(String hostname, String ipAddress) {
-        InetAddress inetAddress = mock(InetAddress.class);
-        when(inetAddress.getHostAddress()).thenReturn(ipAddress);
-        when(inetAddress.getHostName()).thenReturn(hostname);
+    private static InetSocketAddress mockInetSocketAddress(String ipAddress) {
+        InetAddress inetAddress = mockInetAddress(ipAddress);
         InetSocketAddress inetSocketAddress = mock(InetSocketAddress.class);
         when(inetSocketAddress.getAddress()).thenReturn(inetAddress);
         return inetSocketAddress;
     }
 
-    private SSLSession createSSLSession(CassandraServer cassandraServer) throws SSLPeerUnverifiedException {
-        return createSSLSession(cassandraServer.cassandraHostName(), Optional.empty());
+    @SuppressWarnings("ReverseDnsLookup")
+    private static InetAddress mockInetAddress(String ipAddress) {
+        InetAddress inetAddress = mock(InetAddress.class);
+        when(inetAddress.getHostAddress()).thenReturn(ipAddress);
+        return inetAddress;
     }
 
-    private SSLSession createSSLSession(String cn, Optional<String> maybeIpAddress) throws SSLPeerUnverifiedException {
+    private static SSLSocket createSSLSocket(CassandraServer cassandraServer, InetAddress address) {
+        return createSSLSocket(address, cassandraServer.cassandraHostName(), Optional.empty());
+    }
+
+    private static SSLSocket createSSLSocket(
+            InetAddress inetAddressForSocket, String cnForCertificate, Optional<String> maybeIpAddressForCertificate) {
+        SSLSocket sslSocket = mock(SSLSocket.class);
+        when(sslSocket.getInetAddress()).thenReturn(inetAddressForSocket);
         SSLSession sslSession = mock(SSLSession.class);
+        when(sslSocket.getSession()).thenReturn(sslSession);
         X509Certificate certificate = mock(X509Certificate.class);
         X500Principal principal = mock(X500Principal.class);
-        when(principal.toString()).thenReturn("CN=" + cn);
-        maybeIpAddress.ifPresent(ipAddress -> {
+        when(principal.toString()).thenReturn("CN=" + cnForCertificate);
+        maybeIpAddressForCertificate.ifPresent(ipAddress -> {
             try {
                 when(certificate.getSubjectAlternativeNames())
                         .thenReturn(ImmutableList.of(ImmutableList.of(7, ipAddress)));
@@ -149,7 +152,11 @@ public class CassandraClientFactoryTest {
             }
         });
         when(certificate.getSubjectX500Principal()).thenReturn(principal);
-        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] {certificate});
-        return sslSession;
+        try {
+            when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] {certificate});
+        } catch (SSLPeerUnverifiedException e) {
+            throw new RuntimeException(e);
+        }
+        return sslSocket;
     }
 }
