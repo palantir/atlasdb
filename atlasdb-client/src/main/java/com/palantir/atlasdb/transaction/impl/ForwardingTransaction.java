@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
@@ -195,5 +196,10 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return delegate().getAsync(tableRef, cells);
+    }
+
+    @Override
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
+        delegate().setTransactionalExpectationsConfig(transactionalExpectationsConfig);
     }
 }

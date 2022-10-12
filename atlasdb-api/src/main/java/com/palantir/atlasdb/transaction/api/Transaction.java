@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -384,6 +385,10 @@ public interface Transaction {
      * </ul>
      */
     void onSuccess(Runnable callback);
+    /**
+     * @todo aalouane: javadoc like the above
+     */
+    void onSuccess(Consumer<TransactionalExpectationsStatistics> transactionalExpectationsStatisticsConsumer);
 
     /**
      * Disables read-write conflict checking for this table for the duration of this transaction only.
@@ -402,4 +407,12 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Sets transactional expectations thresholds and config.
+     * If this is not set, TransactionalExpectationsConfig::defaultTransactionalExpectationsConfig()
+     * TransactionalExpectationsConfig::transactionName() should be no longer than 255 characters.
+     * @todo aalouane: use links in docs
+     */
+    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig);
 }
