@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.common.exception.TableMappingNotFoundException;
-import com.palantir.nexus.db.sql.AgnosticResultSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,8 +34,6 @@ import org.immutables.value.Value;
  * prefixes.
  */
 public class OracleNamespaceDeleter implements NamespaceDeleter {
-    private static final String LIST_ALL_TABLES =
-            "SELECT table_name FROM all_tables WHERE owner = upper(?) AND table_name LIKE upper(?) ESCAPE '\\'";
     private final ConnectionSupplier connectionSupplier;
     private final String escapedTablePrefix;
     private final String escapedOverflowTablePrefix;
@@ -46,9 +43,9 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
     private final OracleTableNameGetter tableNameGetter;
 
     public OracleNamespaceDeleter(OracleNamespaceDeleterParameters parameters) {
-        this.escapedTablePrefix = escapeUnderscores(parameters.tablePrefix());
-        this.escapedOverflowTablePrefix = escapeUnderscores(parameters.overflowTablePrefix());
-        this.escapedUserId = escapeUnderscores(parameters.userId());
+        this.escapedTablePrefix = withEscapedUnderscores(parameters.tablePrefix());
+        this.escapedOverflowTablePrefix = withEscapedUnderscores(parameters.overflowTablePrefix());
+        this.escapedUserId = withEscapedUnderscores(parameters.userId());
         this.connectionSupplier = parameters.connectionSupplier();
         this.oracleDdlTableFactory = parameters.oracleDdlTableFactory();
         this.tableNameGetter = parameters.tableNameGetter();
@@ -64,7 +61,7 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
 
     @Override
     public boolean isNamespaceDeletedSuccessfully() {
-        return getAllNonOverflowTables().size() == 0 && getAllOverflowTables().size() == 0;
+        return getNumberOfTables() == 0;
     }
 
     @Override
@@ -73,8 +70,8 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
     }
 
     private Set<TableReference> getAllTableNamesToDrop() {
-        Set<String> nonOverflowTables = getTableNamesFromResultSet(getAllNonOverflowTables());
-        Set<String> overflowTables = getTableNamesFromResultSet(getAllOverflowTables());
+        Set<String> nonOverflowTables = getAllNonOverflowTables();
+        Set<String> overflowTables = getAllOverflowTables();
 
         try {
             return Sets.union(
@@ -85,31 +82,44 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
         }
     }
 
-    private Set<String> getTableNamesFromResultSet(AgnosticResultSet resultSet) {
-        return resultSet.rows().stream()
+    private Set<String> getAllNonOverflowTables() {
+        return getAllTablesWithPrefix(escapedTablePrefix);
+    }
+
+    private Set<String> getAllOverflowTables() {
+        return getAllTablesWithPrefix(escapedOverflowTablePrefix);
+    }
+
+    private Set<String> getAllTablesWithPrefix(String prefix) {
+        return connectionSupplier
+                .get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT table_name FROM all_tables WHERE owner = upper(?) AND"
+                                + " table_name LIKE upper(?) ESCAPE '\\'",
+                        escapedUserId,
+                        withWildcardSuffix(prefix))
+                .rows()
+                .stream()
                 .map(resultSetRow -> resultSetRow.getString("table_name"))
                 .collect(Collectors.toSet());
     }
 
-    private AgnosticResultSet getAllNonOverflowTables() {
-        return getAllTables(escapedTablePrefix);
-    }
-
-    private AgnosticResultSet getAllOverflowTables() {
-        return getAllTables(escapedOverflowTablePrefix);
-    }
-
-    private AgnosticResultSet getAllTables(String prefix) {
+    private long getNumberOfTables() {
         return connectionSupplier
                 .get()
-                .selectResultSetUnregisteredQuery(LIST_ALL_TABLES, escapedUserId, withWildcardSuffix(prefix));
+                .selectCount(
+                        "all_tables",
+                        "owner = upper(?) AND (table_name LIKE upper(?) ESCAPE '\\' OR table_name"
+                                + " LIKE upper(?) ESCAPE '\\'",
+                        withWildcardSuffix(escapedTablePrefix),
+                        withWildcardSuffix(escapedOverflowTablePrefix));
     }
 
     private static String withWildcardSuffix(String tableName) {
         return tableName + "%";
     }
 
-    private static String escapeUnderscores(String prefix) {
+    private static String withEscapedUnderscores(String prefix) {
         return prefix.replace("_", "\\_");
     }
 
