@@ -70,6 +70,6 @@ public class LockServiceTestUtils {
             LockDescriptor descriptor1 = StringLockDescriptor.of(descriptor);
             builder.put(descriptor1, LockMode.WRITE);
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 }

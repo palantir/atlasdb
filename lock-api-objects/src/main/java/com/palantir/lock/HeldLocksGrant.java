@@ -253,7 +253,7 @@ public final class HeldLocksGrant implements ExpiringToken, Serializable {
             for (LockWithMode lock : lockMap) {
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
-            this.lockMap = LockCollections.of(localLockMapBuilder.build());
+            this.lockMap = LockCollections.of(localLockMapBuilder.buildOrThrow());
             this.lockTimeout = lockTimeout;
             this.versionId = versionId;
         }

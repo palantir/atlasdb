@@ -86,7 +86,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                     tx,
                     ImmutableMap.<Long, byte[]>builder()
                             .put(streamId, reference)
-                            .build());
+                            .buildOrThrow());
             return streamId;
         }
         Pair<Long, Sha256Hash> pair = storeStream(stream);
@@ -94,7 +94,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 hash.equals(pair.rhSide), "passed hash: %s does not equal stream hash: %s", hash, pair.rhSide);
         markStreamsAsUsedInternal(
                 tx,
-                ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).build());
+                ImmutableMap.<Long, byte[]>builder().put(pair.lhSide, reference).buildOrThrow());
         return pair.lhSide;
     }
 
@@ -102,14 +102,14 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     public void unmarkStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
         unmarkStreamsAsUsed(
                 tx,
-                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).buildOrThrow());
     }
 
     @Override
     public void markStreamAsUsed(Transaction tx, long streamId, byte[] reference) {
         markStreamsAsUsed(
                 tx,
-                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).build());
+                ImmutableMap.<Long, byte[]>builder().put(streamId, reference).buildOrThrow());
     }
 
     @Override
@@ -251,7 +251,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 tx,
                 ImmutableMap.<Long, StreamMetadata>builder()
                         .put(streamId, metadata)
-                        .build());
+                        .buildOrThrow());
     }
 
     protected abstract void putMetadataAndHashIndexTask(Transaction tx, Map<Long, StreamMetadata> streamIdsToMetadata);

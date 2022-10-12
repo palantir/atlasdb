@@ -124,7 +124,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (TableReference table : getAllTableNames()) {
             builder.put(table, getMetadataForTable(table));
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     protected int getMultiPutBatchCount() {

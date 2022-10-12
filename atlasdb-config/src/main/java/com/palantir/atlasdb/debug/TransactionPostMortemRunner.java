@@ -147,7 +147,7 @@ public class TransactionPostMortemRunner {
         Map<UUID, Set<ConjureLockDescriptor>> lockRequests = ImmutableMap.<UUID, Set<ConjureLockDescriptor>>builder()
                 .putAll(clientLockDigest.lockRequests())
                 .put(clientLockDigest.immutableTimestampRequestId(), ImmutableSet.of())
-                .build();
+                .buildOrThrow();
         Map<UUID, LockDigest> lockDigests = KeyedStream.stream(lockRequests)
                 .map((requestId, descriptors) ->
                         lockDigest(descriptors, timelockLockInfo.map(info -> lockState(requestId, info))))

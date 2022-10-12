@@ -820,7 +820,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
                 builder.putAll(collector.getCollectedResults());
             }
-            return builder.build();
+            return builder.buildOrThrow();
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

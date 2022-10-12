@@ -184,7 +184,7 @@ public final class AtlasDeserializers {
                 builder.put(entry);
             }
         }
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     public static byte[] deserializeVal(ColumnValueDescription description, JsonNode node) {

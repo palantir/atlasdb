@@ -47,7 +47,7 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     }
 
     private void updateLastSweptTimestampMetric(SweeperStrategy sweeperStrategy) {
-        int shards = queue.getNumShards();
+        int shards = queue.getNumShards(sweeperStrategy);
 
         Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
                 .mapToObj(shard -> ShardAndStrategy.of(shard, sweeperStrategy))
@@ -69,6 +69,7 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
     private void run() {
         run(SweeperStrategy.CONSERVATIVE);
         run(SweeperStrategy.THOROUGH);
+        run(SweeperStrategy.NON_SWEEPABLE);
     }
 
     private void run(SweeperStrategy sweeperStrategy) {

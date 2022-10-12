@@ -47,7 +47,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
             .put(CLIENT_1, PaxosLong.of(5L))
             .put(CLIENT_2, PaxosLong.of(10L))
             .put(CLIENT_3, PaxosLong.of(15L))
-            .build();
+            .buildOrThrow();
 
     private final AtomicLong cacheTimestamp = new AtomicLong();
 
@@ -120,7 +120,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
                 .put(CLIENT_1, 52L)
                 .put(CLIENT_2, 17L)
                 .put(CLIENT_3, 1123L)
-                .build();
+                .buildOrThrow();
 
         AcceptorCacheDigest newDigest = ImmutableAcceptorCacheDigest.builder()
                 .newCacheKey(AcceptorCacheKey.newCacheKey())
