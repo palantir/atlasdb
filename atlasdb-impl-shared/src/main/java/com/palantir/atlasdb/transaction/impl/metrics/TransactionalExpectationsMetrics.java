@@ -16,13 +16,53 @@
 
 package com.palantir.atlasdb.transaction.impl.metrics;
 
+import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.tritium.metrics.registry.MetricName;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAccumulator;
 
 public class TransactionalExpectationsMetrics {
+    private static final String JAVA_VERSION = System.getProperty("java.version", "unknown");
 
-    private final MetricsManager metricsManager;
+    private static final String LIBRARY_NAME = "atlasdb";
 
-    public TransactionalExpectationsMetrics(MetricsManager metricsManager) {
-        this.metricsManager = metricsManager;
+    private static final String LIBRARY_VERSION = Objects.requireNonNullElse(
+            TransactionalExpectationsMetrics.class.getPackage().getImplementationVersion(), "unknown");
+    private final MetricsManager manager;
+
+    private final LongAccumulator maximumBytesReadAcrossTransactions = new LongAccumulator(Long::max, 0L);
+
+    public TransactionalExpectationsMetrics(MetricsManager manager) {
+        this.manager = manager;
+    }
+
+    private void registerMetrics() {
+
+        MetricName metricName = MetricName.builder()
+            .safeName("transactionalExpectationsMetrics.maximumBytesReadAcrossTransactionsInOneTransactionManager")
+            .putSafeTags("libraryName", LIBRARY_NAME)
+            .putSafeTags("libraryVersion", LIBRARY_VERSION)
+            .putSafeTags("javaVersion", JAVA_VERSION)
+            .build();
+
+        manager.getTaggedRegistry().registerWithReplacement(metricName, );
+    }
+
+    private void registerMetricsFilter() {
+        return;
+    }
+}
+
+class RunningMaximum implements Gauge<Long> {
+    private final LongAccumulator value = new LongAccumulator(Long::max, 0L);
+    @Override
+    public Long getValue() {
+        return value.get();
+    }
+
+    public void update(long newValue) {
+        value.accumulate(newValue);
     }
 }
