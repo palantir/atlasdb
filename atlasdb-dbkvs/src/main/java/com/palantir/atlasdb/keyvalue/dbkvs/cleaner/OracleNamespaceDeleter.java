@@ -35,16 +35,17 @@ import org.immutables.value.Value;
  */
 public class OracleNamespaceDeleter implements NamespaceDeleter {
     private final ConnectionSupplier connectionSupplier;
-    private final String escapedTablePrefix;
-    private final String escapedOverflowTablePrefix;
+    private final String wildcardEscapedTablePrefix;
+    private final String wildcardEscapedOverflowTablePrefix;
     private final String escapedUserId;
 
     private final Function<TableReference, OracleDdlTable> oracleDdlTableFactory;
     private final OracleTableNameGetter tableNameGetter;
 
     public OracleNamespaceDeleter(OracleNamespaceDeleterParameters parameters) {
-        this.escapedTablePrefix = withEscapedUnderscores(parameters.tablePrefix());
-        this.escapedOverflowTablePrefix = withEscapedUnderscores(parameters.overflowTablePrefix());
+        this.wildcardEscapedTablePrefix = withWildcardSuffix(withEscapedUnderscores(parameters.tablePrefix()));
+        this.wildcardEscapedOverflowTablePrefix =
+                withWildcardSuffix(withEscapedUnderscores(parameters.overflowTablePrefix()));
         this.escapedUserId = withEscapedUnderscores(parameters.userId());
         this.connectionSupplier = parameters.connectionSupplier();
         this.oracleDdlTableFactory = parameters.oracleDdlTableFactory();
@@ -83,11 +84,11 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
     }
 
     private Set<String> getAllNonOverflowTables() {
-        return getAllTablesWithPrefix(escapedTablePrefix);
+        return getAllTablesWithPrefix(wildcardEscapedTablePrefix);
     }
 
     private Set<String> getAllOverflowTables() {
-        return getAllTablesWithPrefix(escapedOverflowTablePrefix);
+        return getAllTablesWithPrefix(wildcardEscapedOverflowTablePrefix);
     }
 
     private Set<String> getAllTablesWithPrefix(String prefix) {
@@ -97,7 +98,7 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
                         "SELECT table_name FROM all_tables WHERE owner = upper(?) AND"
                                 + " table_name LIKE upper(?) ESCAPE '\\'",
                         escapedUserId,
-                        withWildcardSuffix(prefix))
+                        prefix)
                 .rows()
                 .stream()
                 .map(resultSetRow -> resultSetRow.getString("table_name"))
@@ -112,8 +113,8 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
                         "owner = upper(?) AND (table_name LIKE upper(?) ESCAPE '\\' OR table_name"
                                 + " LIKE upper(?) ESCAPE '\\')",
                         escapedUserId,
-                        withWildcardSuffix(escapedTablePrefix),
-                        withWildcardSuffix(escapedOverflowTablePrefix));
+                        wildcardEscapedTablePrefix,
+                        wildcardEscapedOverflowTablePrefix);
     }
 
     private static String withWildcardSuffix(String tableName) {
