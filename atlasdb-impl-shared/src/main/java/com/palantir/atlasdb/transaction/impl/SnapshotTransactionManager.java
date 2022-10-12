@@ -116,6 +116,8 @@ import javax.validation.constraints.NotNull;
 
     protected final TransactionKnowledgeComponents knowledge;
 
+    // unsure about if using `Transaction` as key is janky - an alternative is adding a UUID (or an ID counter) to
+    // transactions we are tracking (OpenTransactionImpl for now) and using that
     protected final ConcurrentMap<Transaction, Long> transactionClockStartTs = new ConcurrentHashMap<>();
 
     protected SnapshotTransactionManager(
