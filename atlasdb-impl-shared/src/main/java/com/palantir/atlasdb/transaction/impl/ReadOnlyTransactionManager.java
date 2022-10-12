@@ -222,6 +222,9 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        // not sure if i want to track the age of read-only transactions as well
+        // these are supposed to run for longer times no-problem
+        // implmentation would be different (would have to add stg to Abstract*TransactionManager
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 metricsManager,

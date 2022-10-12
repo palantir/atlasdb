@@ -67,9 +67,13 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -111,6 +115,8 @@ import javax.validation.constraints.NotNull;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
+
+    protected final ConcurrentMap<Transaction, Long> transactionClockStartTs = new ConcurrentHashMap<>();
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -187,6 +193,7 @@ import javax.validation.constraints.NotNull;
             condition.cleanup();
             throw e;
         }
+
         return openTransaction.finishWithCallback(
                 transaction -> task.execute(transaction, condition), condition::cleanup);
     }
@@ -205,6 +212,7 @@ import javax.validation.constraints.NotNull;
         }
 
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
+        Map<Transaction, Long> startTimes = new HashMap<>();
         try {
             long immutableTs = responses.stream()
                     .mapToLong(response -> response.immutableTimestamp().getImmutableTimestamp())
@@ -212,7 +220,6 @@ import javax.validation.constraints.NotNull;
                     .getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
-
             List<OpenTransaction> transactions = Streams.zip(
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
@@ -224,10 +231,13 @@ import javax.validation.constraints.NotNull;
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
-                                return new OpenTransactionImpl(transaction, immutableTsLock);
+                                OpenTransaction openTransaction = new OpenTransactionImpl(transaction, immutableTsLock);
+                                startTimes.putIfAbsent(openTransaction, System.currentTimeMillis());
+                                return openTransaction;
                             })
                     .collect(Collectors.toList());
             openTransactionCounter.inc(transactions.size());
+            transactionClockStartTs.putAll(startTimes);
             return transactions;
         } catch (Throwable t) {
             responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
@@ -235,6 +245,7 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
+            startTimes.keySet().forEach(transactionClockStartTs::remove);
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -277,6 +288,9 @@ import javax.validation.constraints.NotNull;
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
                 openTransactionCounter.dec();
+                // need a fix for if the user does not call finishWithCallback
+                // alta probably closes it after timeout
+                transactionClockStartTs.remove(this);
             }
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();

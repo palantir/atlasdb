@@ -20,7 +20,7 @@ import com.palantir.logsafe.Preconditions;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public class TransactionalExpectationsConfig {
+public abstract class TransactionalExpectationsConfig {
     @Value.Default
     long maximumBytesRead() {
         return 10737418240L;
