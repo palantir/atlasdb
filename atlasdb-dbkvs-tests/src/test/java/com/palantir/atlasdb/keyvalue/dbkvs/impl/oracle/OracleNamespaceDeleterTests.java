@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -81,10 +82,10 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void dropAllTablesOnlyDropsTablesWithConfigPrefixesForCurrentUser() {
+    public void deleteAllDataFromNamespaceOnlyDropsTablesWithConfigPrefixesForCurrentUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
-        Set<TableDetails> tablesToDelete =
-                Sets.union(createDefaultTable(TABLE_NAME_1), createDefaultTable(TABLE_NAME_2));
+        Set<TableDetails> tablesToDelete = Sets.union(
+                createTablesWithDefaultPrefixes(TABLE_NAME_1), createTablesWithDefaultPrefixes(TABLE_NAME_2));
 
         Set<TableDetails> tablesThatShouldNotBeDeleted = Set.of(
                 createTable(ANOTHER_TABLE_PREFIX, TABLE_NAME_1, TEST_USER),
@@ -96,14 +97,14 @@ public final class OracleNamespaceDeleterTests {
                 createTable("ab_", TABLE_NAME_1, TEST_USER));
 
         assertThatTableDetailsMatchPersistedData(Sets.union(tablesToDelete, tablesThatShouldNotBeDeleted));
+
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tablesThatShouldNotBeDeleted);
     }
 
     @Test
-    public void areAllTablesDroppedReturnsTrueIfNoTablesWithConfigPrefixAndUser() {
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfNoTablesWithConfigPrefixAndUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
-
         createTable(ANOTHER_TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
         createTable(ANOTHER_OVERFLOW_TABLE_PREFIX, TABLE_NAME_2, TEST_USER);
         createTable(TABLE_PREFIX, TABLE_NAME_3, TEST_USER_2);
@@ -114,37 +115,37 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void areAllTablesDroppedReturnsFalseIfTablePrefixExistsForConfigUser() {
+    public void isNamespaceDeletedSuccessfullyReturnsFalseIfTablePrefixExistsForConfigUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
-
         createTable(TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
+
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
-    public void areAllTablesDroppedReturnsFalseIfTableOverflowPrefixExistsForConfigUser() {
+    public void isNamespaceDeletedSuccessfullyReturnsFalseIfTableOverflowPrefixExistsForConfigUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
-
         createTable(OVERFLOW_TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
+
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
-    public void areAllTablesDroppedReturnsFalseIfTablePrefixAndOverflowTablePrefixExistsForConfigUser() {
+    public void isNamespaceDeletedSuccessfullyReturnsFalseIfTablePrefixAndOverflowTablePrefixExistsForConfigUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
+        createTablesWithDefaultPrefixes(TABLE_NAME_1);
 
-        createDefaultTable(TABLE_NAME_1);
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
-    public void dropAllTablesMakesProgressInSpiteOfFailures() {
+    public void deleteAllDataFromNamespaceMakesProgressInSpiteOfFailures() {
         NamespaceDeleter namespaceDeleter =
                 new OracleNamespaceDeleter(createNamespaceDeleterParameters(new UnstableConnectionSupplier(25))
                         .build());
 
         for (int i = 0; i < 10; i++) {
-            createDefaultTable(TABLE_NAME_1 + i);
+            createTablesWithDefaultPrefixes(TABLE_NAME_1 + i);
         }
 
         assertThat(listAllPhysicalTableNames()).hasSize(20);
@@ -153,13 +154,13 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void dropAllTablesIsRetryable() {
+    public void deleteAllDataFromNamespaceIsRetryable() {
         NamespaceDeleter namespaceDeleter =
                 new OracleNamespaceDeleter(createNamespaceDeleterParameters(new UnstableConnectionSupplier(25))
                         .build());
 
         for (int i = 0; i < 10; i++) {
-            createDefaultTable(TABLE_NAME_1 + i);
+            createTablesWithDefaultPrefixes(TABLE_NAME_1 + i);
         }
 
         assertThat(listAllPhysicalTableNames()).hasSize(20);
@@ -171,23 +172,27 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnOwner() {
+    public void isNamespaceDeletedSuccessfullyDoesNotExecuteArbitrarySqlOnOwner() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
                 .userId("1'; CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
                 .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
     @Test
-    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnTablePrefix() {
+    public void isNamespaceDeletedSuccessfullyDoesNotExecuteArbitrarySqlOnTablePrefix() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
                 .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         // deleteAllDataFromNamespace will not clean up the table with the standard table prefix
         assertThatTableDetailsMatchPersistedData(tables.stream()
@@ -196,12 +201,14 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void areAllTablesDeletedDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
+    public void isNamespaceDeletedSuccessfullyDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
                 .overflowTablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         // deleteAllDataFromNamespace will not clean up the table with the standard overflow table prefix
         assertThatTableDetailsMatchPersistedData(tables.stream()
@@ -210,38 +217,47 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
-    public void dropTablesDoesNotExecuteArbitrarySqlOnOwner() {
+    public void deleteAllDataFromNamespaceDoesNotExecuteArbitrarySqlOnOwner() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
                 .userId("1'; CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --")
                 .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
     @Test
-    public void dropTablesDoesNotExecuteArbitrarySqlOnTablePrefix() {
+    public void deleteAllDataFromNamespaceDoesNotExecuteArbitrarySqlOnTablePrefix() {
         NamespaceDeleter namespaceDeleter =
                 new OracleNamespaceDeleter(createNamespaceDeleterParameters(getDefaultDdlConfig()
                                 .overflowTablePrefix(ANOTHER_OVERFLOW_TABLE_PREFIX)
                                 .build())
+                        // The config doesn't actually let you have such a tablePrefix, so we can't build this in the
+                        // DDL config. However, in the interest of safety (i.e., not relying on the config changing
+                        // its validation, we're explicitly forcing the tablePrefix here)
                         .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                         .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
 
     @Test
-    public void dropTablesDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
+    public void deleteAllDataFromNamespaceDoesNotExecuteArbitrarySqlOnOverflowTablePrefix() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createNamespaceDeleterParameters(
                         getDefaultDdlConfig().tablePrefix(ANOTHER_TABLE_PREFIX).build())
                 .overflowTablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
-        Set<TableDetails> tables = createDefaultTable(TABLE_NAME_1);
+        Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
         assertThatTableDetailsMatchPersistedData(tables);
+
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThatTableDetailsMatchPersistedData(tables);
     }
@@ -251,10 +267,12 @@ public final class OracleNamespaceDeleterTests {
         ConnectionSupplier mockConnectionSupplier = mock(ConnectionSupplier.class);
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(
                 createNamespaceDeleterParameters(mockConnectionSupplier).build());
+
         namespaceDeleter.close();
+        verify(mockConnectionSupplier).close();
     }
 
-    private Set<TableDetails> createDefaultTable(String tableName) {
+    private Set<TableDetails> createTablesWithDefaultPrefixes(String tableName) {
         return Set.of(
                 createTable(TABLE_PREFIX, tableName, TEST_USER),
                 createTable(OVERFLOW_TABLE_PREFIX, tableName, TEST_USER));
