@@ -53,7 +53,7 @@ import org.junit.runners.Suite.SuiteClasses;
     OverflowSequenceSupplierEteTest.class,
     OracleTableNameMapperEteTest.class,
     OracleEmbeddedDbTimestampBoundStoreTest.class,
-    OracleNamespaceCleanerIntegrationTest.class
+    OracleNamespaceDeleterIntegrationTest.class
 })
 public final class DbKvsOracleTestSuite {
     private static final String LOCALHOST = "0.0.0.0";

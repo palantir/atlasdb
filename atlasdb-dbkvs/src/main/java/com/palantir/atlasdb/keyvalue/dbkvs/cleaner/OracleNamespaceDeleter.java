@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.cleaner;
 
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import java.util.Set;
@@ -34,7 +34,7 @@ import org.immutables.value.Value;
  * This does _not_ clean up the AtlasDB metadata and name mapping tables, as these can be shared across multiple
  * prefixes.
  */
-public class OracleNamespaceCleaner implements NamespaceCleaner {
+public class OracleNamespaceDeleter implements NamespaceDeleter {
     private static final String LIST_ALL_TABLES =
             "SELECT table_name FROM all_tables WHERE owner = upper(?) AND table_name LIKE upper(?) ESCAPE '\\'";
     private final ConnectionSupplier connectionSupplier;
@@ -45,7 +45,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     private final Function<TableReference, OracleDdlTable> oracleDdlTableFactory;
     private final OracleTableNameGetter tableNameGetter;
 
-    public OracleNamespaceCleaner(OracleNamespaceCleanerParameters parameters) {
+    public OracleNamespaceDeleter(OracleNamespaceDeleterParameters parameters) {
         this.escapedTablePrefix = escapeUnderscores(parameters.tablePrefix());
         this.escapedOverflowTablePrefix = escapeUnderscores(parameters.overflowTablePrefix());
         this.escapedUserId = escapeUnderscores(parameters.userId());
@@ -114,7 +114,7 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
     }
 
     @Value.Immutable
-    public interface OracleNamespaceCleanerParameters {
+    public interface OracleNamespaceDeleterParameters {
         String tablePrefix();
 
         String overflowTablePrefix();
@@ -127,8 +127,8 @@ public class OracleNamespaceCleaner implements NamespaceCleaner {
 
         Function<TableReference, OracleDdlTable> oracleDdlTableFactory();
 
-        static ImmutableOracleNamespaceCleanerParameters.Builder builder() {
-            return ImmutableOracleNamespaceCleanerParameters.builder();
+        static ImmutableOracleNamespaceDeleterParameters.Builder builder() {
+            return ImmutableOracleNamespaceDeleterParameters.builder();
         }
     }
 }
