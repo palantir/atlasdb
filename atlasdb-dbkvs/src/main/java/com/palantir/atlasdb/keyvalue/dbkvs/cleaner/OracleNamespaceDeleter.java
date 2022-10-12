@@ -110,7 +110,8 @@ public class OracleNamespaceDeleter implements NamespaceDeleter {
                 .selectCount(
                         "all_tables",
                         "owner = upper(?) AND (table_name LIKE upper(?) ESCAPE '\\' OR table_name"
-                                + " LIKE upper(?) ESCAPE '\\'",
+                                + " LIKE upper(?) ESCAPE '\\')",
+                        escapedUserId,
                         withWildcardSuffix(escapedTablePrefix),
                         withWildcardSuffix(escapedOverflowTablePrefix));
     }
