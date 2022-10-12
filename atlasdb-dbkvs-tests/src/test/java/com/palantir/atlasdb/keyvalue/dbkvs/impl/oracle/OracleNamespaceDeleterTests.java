@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.TableDetails;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
-import com.palantir.nexus.db.sql.SqlConnection;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -65,6 +64,7 @@ public final class OracleNamespaceDeleterTests {
     private static final String TABLE_NAME_3 = "world";
     private static final String TEST_USER = "testuser";
     private static final String TEST_USER_2 = "testuser2";
+
     private ExecutorService executorService;
     private SqliteOracleAdapter sqliteOracleAdapter;
 
@@ -141,8 +141,7 @@ public final class OracleNamespaceDeleterTests {
     @Test
     public void deleteAllDataFromNamespaceMakesProgressInSpiteOfFailures() {
         NamespaceDeleter namespaceDeleter =
-                new OracleNamespaceDeleter(createNamespaceDeleterParameters(new UnstableConnectionSupplier(25))
-                        .build());
+                new OracleNamespaceDeleter(createNamespaceDeleterParametersWithUnstableFactory());
 
         for (int i = 0; i < 10; i++) {
             createTablesWithDefaultPrefixes(TABLE_NAME_1 + i);
@@ -156,8 +155,7 @@ public final class OracleNamespaceDeleterTests {
     @Test
     public void deleteAllDataFromNamespaceIsRetryable() {
         NamespaceDeleter namespaceDeleter =
-                new OracleNamespaceDeleter(createNamespaceDeleterParameters(new UnstableConnectionSupplier(25))
-                        .build());
+                new OracleNamespaceDeleter(createNamespaceDeleterParametersWithUnstableFactory());
 
         for (int i = 0; i < 10; i++) {
             createTablesWithDefaultPrefixes(TABLE_NAME_1 + i);
@@ -187,6 +185,9 @@ public final class OracleNamespaceDeleterTests {
     @Test
     public void isNamespaceDeletedSuccessfullyDoesNotExecuteArbitrarySqlOnTablePrefix() {
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
+                // The config doesn't actually let you have such a tablePrefix, so we can't build this in the
+                // DDL config. However, in the interest of safety (i.e., not relying on the config changing
+                // its validation, we're explicitly forcing the tablePrefix here)
                 .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                 .build());
         Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
@@ -235,9 +236,6 @@ public final class OracleNamespaceDeleterTests {
                 new OracleNamespaceDeleter(createNamespaceDeleterParameters(getDefaultDdlConfig()
                                 .overflowTablePrefix(ANOTHER_OVERFLOW_TABLE_PREFIX)
                                 .build())
-                        // The config doesn't actually let you have such a tablePrefix, so we can't build this in the
-                        // DDL config. However, in the interest of safety (i.e., not relying on the config changing
-                        // its validation, we're explicitly forcing the tablePrefix here)
                         .tablePrefix("1'); CREATE TABLE mwahahaha (evil VARCHAR(128) PRIMARY KEY); --_")
                         .build());
         Set<TableDetails> tables = createTablesWithDefaultPrefixes(TABLE_NAME_1);
@@ -265,8 +263,9 @@ public final class OracleNamespaceDeleterTests {
     @Test
     public void closeClosesConnectionSupplier() throws IOException {
         ConnectionSupplier mockConnectionSupplier = mock(ConnectionSupplier.class);
-        NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(
-                createNamespaceDeleterParameters(mockConnectionSupplier).build());
+        NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
+                .connectionSupplier(mockConnectionSupplier)
+                .build());
 
         namespaceDeleter.close();
         verify(mockConnectionSupplier).close();
@@ -285,22 +284,14 @@ public final class OracleNamespaceDeleterTests {
     private void assertThatTableDetailsMatchPersistedData(Set<TableDetails> tableDetails) {
         assertThat(listAllPhysicalTableNames())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPhysicalTableNames(tableDetails));
-        assertThat(listAllTablesWithMapping())
+        assertThat(sqliteOracleAdapter.listAllTablesWithMapping())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPrefixedTableNames(tableDetails));
-        assertThat(listAllTablesWithMetadata())
+        assertThat(sqliteOracleAdapter.listAllTablesWithMetadata())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToTableReferences(tableDetails));
     }
 
     private Set<String> listAllPhysicalTableNames() {
         return sqliteOracleAdapter.listAllPhysicalTableNames();
-    }
-
-    private Set<TableReference> listAllTablesWithMetadata() {
-        return sqliteOracleAdapter.listAllTablesWithMetadata();
-    }
-
-    private Set<String> listAllTablesWithMapping() {
-        return sqliteOracleAdapter.listAllTablesWithMapping();
     }
 
     private NamespaceDeleter createDefaultNamespaceDeleter() {
@@ -318,25 +309,14 @@ public final class OracleNamespaceDeleterTests {
     }
 
     private ImmutableOracleNamespaceDeleterParameters.Builder createDefaultNamespaceDeleterParameters() {
-        return createNamespaceDeleterParameters(
-                getDefaultDdlConfig().build(),
-                new ConnectionSupplier(sqliteOracleAdapter.createSqlConnectionSupplier()));
-    }
-
-    private ImmutableOracleNamespaceDeleterParameters.Builder createNamespaceDeleterParameters(
-            ConnectionSupplier connectionSupplier) {
-        return createNamespaceDeleterParameters(getDefaultDdlConfig().build(), connectionSupplier);
+        return createNamespaceDeleterParameters(getDefaultDdlConfig().build());
     }
 
     private ImmutableOracleNamespaceDeleterParameters.Builder createNamespaceDeleterParameters(
             OracleDdlConfig ddlConfig) {
-        return createNamespaceDeleterParameters(
-                ddlConfig, new ConnectionSupplier(sqliteOracleAdapter.createSqlConnectionSupplier()));
-    }
-
-    private ImmutableOracleNamespaceDeleterParameters.Builder createNamespaceDeleterParameters(
-            OracleDdlConfig ddlConfig, ConnectionSupplier connectionSupplier) {
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
+        ConnectionSupplier connectionSupplier =
+                new ConnectionSupplier(sqliteOracleAdapter.createSqlConnectionSupplier());
         Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,
@@ -353,22 +333,31 @@ public final class OracleNamespaceDeleterTests {
                 .tableNameGetter(tableNameGetter);
     }
 
-    private class UnstableConnectionSupplier extends ConnectionSupplier {
-        private final AtomicInteger counter;
-        private final int numberOfConnectionsBeforeThrowingOnce;
+    private OracleNamespaceDeleterParameters createNamespaceDeleterParametersWithUnstableFactory() {
+        OracleNamespaceDeleterParameters parameters =
+                createDefaultNamespaceDeleterParameters().build();
+        return OracleNamespaceDeleterParameters.builder()
+                .from(parameters)
+                .oracleDdlTableFactory(new UnstableOracleDdlFactory(parameters.oracleDdlTableFactory()))
+                .build();
+    }
 
-        UnstableConnectionSupplier(int numberOfConnectionsBeforeThrowingOnce) {
-            super(sqliteOracleAdapter.createSqlConnectionSupplier());
-            this.numberOfConnectionsBeforeThrowingOnce = numberOfConnectionsBeforeThrowingOnce;
+    private static class UnstableOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
+        private static final int NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE = 5;
+        private final AtomicInteger counter;
+        private Function<TableReference, OracleDdlTable> factory;
+
+        UnstableOracleDdlFactory(Function<TableReference, OracleDdlTable> factory) {
+            this.factory = factory;
             this.counter = new AtomicInteger();
         }
 
         @Override
-        public SqlConnection get() {
-            if (numberOfConnectionsBeforeThrowingOnce == counter.incrementAndGet()) {
+        public OracleDdlTable apply(TableReference tableReference) {
+            if (counter.incrementAndGet() == NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE) {
                 throw new RuntimeException("induced failure");
             }
-            return super.get();
+            return factory.apply(tableReference);
         }
     }
 }
