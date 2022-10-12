@@ -432,7 +432,7 @@ public final class LockServiceImpl
             }
             HeldLocksToken token = createHeldLocksToken(
                     client,
-                    LockCollections.of(lockDescriptorMap.build()),
+                    LockCollections.of(lockDescriptorMap.buildOrThrow()),
                     LockCollections.of(locks),
                     request.getLockTimeout(),
                     request.getVersionId(),

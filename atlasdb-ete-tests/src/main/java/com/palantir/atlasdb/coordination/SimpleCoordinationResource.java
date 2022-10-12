@@ -79,7 +79,6 @@ public final class SimpleCoordinationResource implements CoordinationResource {
             return transactionManager.runTaskThrowOnConflict(tx -> {
                 KeyValueService kvs = transactionManager.getKeyValueService();
                 kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
                 tx.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, new byte[1]));
                 return true;
             });
@@ -95,6 +94,13 @@ public final class SimpleCoordinationResource implements CoordinationResource {
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
         return timestampService.getFreshTimestamp();
+    }
+
+    @Override
+    public void writeToKvsUnsafe(long timestamp) {
+        KeyValueService kvs = transactionManager.getKeyValueService();
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, new byte[1]), timestamp);
     }
 
     @Override

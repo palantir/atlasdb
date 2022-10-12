@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: Targeted sweep now also processes entries from tables that are not
+    being swept. This is needed for _transactions4.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6261

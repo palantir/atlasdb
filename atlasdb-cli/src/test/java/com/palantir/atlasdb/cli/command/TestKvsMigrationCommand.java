@@ -175,7 +175,7 @@ public class TestKvsMigrationCommand {
                     Cell cell = Cell.create(PtBytes.toBytes("row" + j), PtBytes.toBytes("col"));
                     toWrite.put(cell, PtBytes.toBytes("val" + j));
                 }
-                t.put(table, toWrite.build());
+                t.put(table, toWrite.buildOrThrow());
                 return null;
             });
         }
@@ -190,7 +190,7 @@ public class TestKvsMigrationCommand {
                     Cell cell = Cell.create(PtBytes.toBytes("row" + j), PtBytes.toBytes("col"));
                     expectedBuilder.put(cell, PtBytes.toBytes("val" + j));
                 }
-                Map<Cell, byte[]> expected = expectedBuilder.build();
+                Map<Cell, byte[]> expected = expectedBuilder.buildOrThrow();
                 Map<Cell, byte[]> result = t.get(table, expected.keySet());
                 assertThat(result.keySet()).containsExactlyInAnyOrderElementsOf(expected.keySet());
                 for (Map.Entry<Cell, byte[]> e : result.entrySet()) {

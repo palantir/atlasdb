@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Passing empty rows or columns to KVS.get() methods is now explicitly
+    called out as undefined behaviour.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6267

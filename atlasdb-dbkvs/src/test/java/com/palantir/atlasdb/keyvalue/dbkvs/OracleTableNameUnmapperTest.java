@@ -138,7 +138,7 @@ public class OracleTableNameUnmapperTest {
                 .put("shortNameOne", "superLongNameOne")
                 .put("shortNameTwo", "superLongNameTwo")
                 .put("shortNameThree", "superLongNameThree")
-                .build();
+                .buildOrThrow();
         mockShortNamesToLongNamesQuery(shortNamesToLongNames.values());
 
         Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(

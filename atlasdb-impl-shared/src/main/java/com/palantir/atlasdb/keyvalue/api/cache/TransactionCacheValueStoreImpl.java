@@ -114,7 +114,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         return ImmutableMap.<Cell, CacheValue>builder()
                 .putAll(locallyCachedReads)
                 .putAll(snapshotCachedValues)
-                .build();
+                .buildOrThrow();
     }
 
     @Override

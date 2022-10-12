@@ -80,7 +80,7 @@ public final class SweepOutcomeMetrics {
                 ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
                         .putAll(additionalTags)
                         .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
-                        .build();
+                        .buildOrThrow();
                 filter.ifPresent(presentFilter ->
                         manager.addMetricFilter(forClass, AtlasDbMetricNames.SWEEP_OUTCOME, tags, filter.get()));
                 manager.registerOrGet(
