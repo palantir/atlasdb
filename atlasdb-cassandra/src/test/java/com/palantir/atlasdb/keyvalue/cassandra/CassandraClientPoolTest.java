@@ -118,12 +118,11 @@ public class CassandraClientPoolTest {
                 .returnOrCreatePool(any(), any());
         doAnswer(invocation -> {
                     poolServers.remove(getInvocationAddress(invocation));
-                    return mock(CassandraClientPoolingContainer.class);
+                    return setupClientPoolMock();
                 })
                 .when(cassandra)
                 .removePool(any());
-        doAnswer(invocation -> poolServers.stream()
-                        .collect(Collectors.toMap(x -> x, x -> mock(CassandraClientPoolingContainer.class))))
+        doAnswer(invocation -> poolServers.stream().collect(Collectors.toMap(x -> x, _x -> setupClientPoolMock())))
                 .when(cassandra)
                 .getPools();
         when(config.socketTimeoutMillis()).thenReturn(1);
@@ -555,5 +554,16 @@ public class CassandraClientPoolTest {
                 .thenReturn(config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
                         .map(CassandraServer::of)
                         .collect(ImmutableSet.toImmutableSet()));
+    }
+
+    private CassandraClientPoolingContainer setupClientPoolMock() {
+        CassandraClientPoolingContainer mockContainer = mock(CassandraClientPoolingContainer.class);
+        try {
+            when(mockContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                    .thenReturn(Optional.empty());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return mockContainer;
     }
 }

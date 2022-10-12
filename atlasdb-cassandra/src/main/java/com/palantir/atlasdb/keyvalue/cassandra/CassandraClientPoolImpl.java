@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeMap;
@@ -329,6 +333,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
+            Map<CassandraServer, CassandraClientPoolingContainer> pools = getCurrentPools();
+            Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
+                    .retryIfResult(servers -> servers.size() == pools.size())
+                    .retryIfException()
+                    .withWaitStrategy(WaitStrategies.fixedWait(5, TimeUnit.SECONDS))
+                    .withStopStrategy(StopStrategies.stopAfterDelay(1, TimeUnit.MINUTES))
+                    .build();
+            retryer.call(() -> )
             Set<CassandraServer> invalidServers =
                     ClusterTopologyValidator.getNewHostsWithInconsistentTopologies(serversToAdd, getCurrentPools());
             StreamEx.of(invalidServers).forEach(cassandra::removePool);
