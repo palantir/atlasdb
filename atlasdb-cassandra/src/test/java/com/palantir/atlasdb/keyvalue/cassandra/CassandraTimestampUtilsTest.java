@@ -50,7 +50,7 @@ public class CassandraTimestampUtilsTest {
             ImmutableMap.<String, Pair<byte[], byte[]>>builder()
                     .put(COLUMN_NAME_1, Pair.create(EMPTY_BYTE_ARRAY, VALUE_1))
                     .put(COLUMN_NAME_2, Pair.create(EMPTY_BYTE_ARRAY, VALUE_2))
-                    .build();
+                    .buildOrThrow();
 
     @Test
     public void canGetValuesFromSelectionResult() {

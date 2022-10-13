@@ -65,7 +65,7 @@ public class SimpleCommitTimestampAtomicTable implements AtomicTable<Long, Trans
     @Override
     public ListenableFuture<Map<Long, TransactionStatus>> get(Iterable<Long> cells) {
         Map<Long, Cell> startTsToCell = StreamSupport.stream(cells.spliterator(), false)
-                .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell));
+                .collect(Collectors.toMap(x -> x, encodingStrategy::encodeStartTimestampAsCell, (val, _ignore) -> val));
 
         ListenableFuture<Map<Cell, Value>> result = kvs.getAsync(
                 tableRef, startTsToCell.values().stream().collect(Collectors.toMap(x -> x, _ignore -> Long.MAX_VALUE)));

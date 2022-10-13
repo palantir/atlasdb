@@ -96,7 +96,7 @@ abstract class SingleLeaderNetworkClientFactories
                             .put(
                                     localLearner,
                                     new CheckedRejectionExecutorService(MoreExecutors.newDirectExecutorService()))
-                            .build();
+                            .buildOrThrow();
 
             SingleLeaderLearnerNetworkClient uninstrumentedLearner = new SingleLeaderLearnerNetworkClient(
                     localLearner,

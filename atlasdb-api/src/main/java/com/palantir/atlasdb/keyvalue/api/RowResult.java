@@ -45,7 +45,7 @@ public final class RowResult<T> implements Serializable {
                 cell.getRowName(),
                 ImmutableSortedMap.<byte[], T>orderedBy(UnsignedBytes.lexicographicalComparator())
                         .put(cell.getColumnName(), value)
-                        .build());
+                        .buildOrThrow());
     }
 
     public static <T> RowResult<T> create(byte[] row, SortedMap<byte[], T> columns) {

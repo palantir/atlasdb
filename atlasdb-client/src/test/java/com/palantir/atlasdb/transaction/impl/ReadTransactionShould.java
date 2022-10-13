@@ -58,7 +58,7 @@ public class ReadTransactionShould {
             .put("getRange", new Object[] {DUMMY_THOROUGH_TABLE, RangeRequest.all()})
             .put("getRanges", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
             .put("getRangesLazy", new Object[] {DUMMY_THOROUGH_TABLE, ImmutableList.of(RangeRequest.all())})
-            .build();
+            .buildOrThrow();
 
     private ReadTransaction readTransaction;
     private CallbackAwareTransaction delegateTransaction;

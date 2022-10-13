@@ -771,7 +771,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected =
-                ImmutableList.copyOf(writes.build().entrySet());
+                ImmutableList.copyOf(writes.buildOrThrow().entrySet());
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange = tx.getRowsColumnRange(
@@ -826,7 +826,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected =
-                ImmutableList.copyOf(writes.build().entrySet());
+                ImmutableList.copyOf(writes.buildOrThrow().entrySet());
         verifyMatchingResultForIterator(expected, row, columnRange);
 
         columnRange = tx.getRowsColumnRangeIterator(
@@ -921,7 +921,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected =
-                ImmutableList.copyOf(writes.build().entrySet());
+                ImmutableList.copyOf(writes.buildOrThrow().entrySet());
         verifyMatchingResult(expected, row, columnRange);
 
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeIterator = tx.getRowsColumnRangeIterator(
@@ -960,7 +960,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 ImmutableList.of(row),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected =
-                ImmutableList.copyOf(writes.build().entrySet());
+                ImmutableList.copyOf(writes.buildOrThrow().entrySet());
         verifyMatchingResult(expected, row, columnRange);
 
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeIterator = tx.getRowsColumnRangeIterator(

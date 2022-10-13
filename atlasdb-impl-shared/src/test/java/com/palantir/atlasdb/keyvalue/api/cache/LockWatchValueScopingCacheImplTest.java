@@ -78,7 +78,7 @@ public final class LockWatchValueScopingCacheImplTest {
     private static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.<Cell, byte[]>builder()
             .put(CELL_1, VALUE_1.value().get())
             .put(CELL_2, VALUE_2.value().get())
-            .build();
+            .buildOrThrow();
 
     private static final LockWatchEvent LOCK_EVENT = createLockEvent();
     private static final LockWatchEvent WATCH_EVENT = createWatchEvent();

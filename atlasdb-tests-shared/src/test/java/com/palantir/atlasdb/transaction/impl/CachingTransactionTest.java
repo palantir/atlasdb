@@ -70,7 +70,7 @@ public class CachingTransactionTest {
             ImmutableMap.<String, BiFunction<Set<Cell>, Map<Cell, byte[]>, Expectations>>builder()
                     .put(SYNC, CachingTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, CachingTransactionTest.this::asyncGetExpectation)
-                    .build();
+                    .buildOrThrow();
 
     public CachingTransactionTest(String name, Function<Transaction, Transaction> transactionWrapper) {
         this.name = name;
@@ -85,7 +85,7 @@ public class CachingTransactionTest {
         final ColumnSelection oneColumn = ColumnSelection.create(ImmutableList.of(COL_BYTES));
         final SortedMap<byte[], RowResult<byte[]>> emptyResults =
                 ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
-                        .build();
+                        .buildOrThrow();
 
         final Set<byte[]> noRows =
                 ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
@@ -119,13 +119,13 @@ public class CachingTransactionTest {
                 ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR).build();
         final SortedMap<byte[], RowResult<byte[]>> emptyResults =
                 ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(PtBytes.BYTES_COMPARATOR)
-                        .build();
+                        .buildOrThrow();
 
         final RowResult<byte[]> rowResult = RowResult.of(Cell.create(ROW_BYTES, COL_BYTES), VALUE_BYTES);
         final SortedMap<byte[], RowResult<byte[]>> oneResult = ImmutableSortedMap.<byte[], RowResult<byte[]>>orderedBy(
                         PtBytes.BYTES_COMPARATOR)
                 .put(ROW_BYTES, rowResult)
-                .build();
+                .buildOrThrow();
 
         mockery.checking(new Expectations() {
             {
@@ -148,7 +148,7 @@ public class CachingTransactionTest {
     public void testGetCell() {
         final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
         final Map<Cell, byte[]> cellValueMap =
-                ImmutableMap.<Cell, byte[]>builder().put(cell, VALUE_BYTES).build();
+                ImmutableMap.<Cell, byte[]>builder().put(cell, VALUE_BYTES).buildOrThrow();
 
         // cell is cached after first call, so second call requests no cells
         testGetCellResults(cell, cellValueMap);

@@ -30,7 +30,9 @@ public enum DBType {
     // AJ: the oracle jdbc url is missing a final "paren" - processing in DBMgr will fix this...
     ORACLE("oracle.jdbc.driver.OracleDriver", "SELECT 1 FROM dual", true),
     POSTGRESQL("org.postgresql.Driver", "SELECT 1", true),
-    H2_MEMORY("org.h2.Driver", "SELECT 1", true);
+    H2_MEMORY("org.h2.Driver", "SELECT 1", true),
+    // Sqlite is _only_ used for tests. Please see {@link SqliteOracleAdapter}.
+    SQLITE("org.sqlite.JDBC", "SELECT 1", false);
 
     private final String driver;
     private final String testQuery;
@@ -82,6 +84,9 @@ public enum DBType {
         }
         if (url.startsWith("jdbc:h2:mem:")) {
             return H2_MEMORY;
+        }
+        if (url.startsWith("jdbc:sqlite")) {
+            return SQLITE;
         }
         throw new SafeRuntimeException("Unable to parse JDBC URL");
     }

@@ -67,7 +67,7 @@ public class LearnedValuesSinceCoalescingFunctionTests {
                 .put(CLIENT_1, 10L)
                 .put(CLIENT_2, 15L)
                 .put(CLIENT_3, 1L)
-                .build();
+                .buildOrThrow();
 
         SetMultimap<Client, PaxosValue> remoteResponse = ImmutableSetMultimap.<Client, PaxosValue>builder()
                 .putAll(CLIENT_1, paxosValue1, paxosValue2, paxosValue4)

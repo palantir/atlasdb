@@ -249,7 +249,7 @@ public class PostgresGetRange implements DbKvsGetRange {
         }
 
         private Optional<RowResult<Value>> getCurrentRowResult() {
-            ImmutableSortedMap<byte[], Value> cells = currentRowCells.build();
+            ImmutableSortedMap<byte[], Value> cells = currentRowCells.buildOrThrow();
             if (cells.isEmpty()) {
                 return Optional.empty();
             } else {
