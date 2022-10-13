@@ -77,19 +77,6 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
         return "\"" + keyspace.getName() + "\"";
     }
 
-    // private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
-    //     CqlQuery query = CqlQuery.builder()
-    //             .safeQueryFormat(SchemaBuilder.dropKeyspace("?").ifExists().buildInternal())
-    //             .build();
-    //     ByteBuffer byteQuery = ByteBuffer.wrap(query.toString().getBytes(StandardCharsets.UTF_8));
-    //
-    //     CqlPreparedResult preparedResult = client.prepare_cql3_query(byteQuery, Compression.NONE);
-    //     client.execute_prepared_cql3_query(
-    //             preparedResult.getItemId(),
-    //             List.of(ByteBuffer.wrap(keyspace.getBytes(StandardCharsets.UTF_8))),
-    //             CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
-    // }
-
     @Override
     public void close() throws IOException {
         // no-op
