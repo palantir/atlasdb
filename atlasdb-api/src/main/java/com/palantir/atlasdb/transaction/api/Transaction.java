@@ -386,7 +386,8 @@ public interface Transaction {
      */
     void onSuccess(Runnable callback);
     /**
-     * @todo aalouane: javadoc like the above
+     * Registers callback to consume tex stats
+     * todo aalouane: javadoc like the above
      */
     void onSuccess(Consumer<TransactionalExpectationsStatistics> transactionalExpectationsStatisticsConsumer);
 
@@ -412,7 +413,7 @@ public interface Transaction {
      * Sets transactional expectations thresholds and config.
      * If this is not set, TransactionalExpectationsConfig::defaultTransactionalExpectationsConfig()
      * TransactionalExpectationsConfig::transactionName() should be no longer than 255 characters.
-     * @todo aalouane: use links in docs
+     * todo aalouane: use links in docs
      */
     void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig);
 }
