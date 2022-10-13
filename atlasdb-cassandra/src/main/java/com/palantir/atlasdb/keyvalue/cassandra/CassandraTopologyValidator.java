@@ -22,6 +22,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -32,6 +33,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,16 +43,21 @@ import one.util.streamex.EntryStream;
 import org.apache.thrift.transport.TTransportException;
 import org.immutables.value.Value;
 
-public final class ClusterTopologyValidator {
-    private static final SafeLogger log = SafeLoggerFactory.get(ClusterTopologyValidator.class);
+public final class CassandraTopologyValidator {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
 
-    public ClusterTopologyValidator() {}
+    private final CassandraTopologyValidationMetrics metrics;
+
+    public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
+        this.metrics = metrics;
+    }
 
     public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
             Set<CassandraServer> newlyAddedHosts,
             Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
             HumanReadableDuration waitTimeBetweenCalls,
             HumanReadableDuration maxWaitTime) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
                 .retryIfResult(servers -> servers.size() == allHosts.size())
                 .retryIfException()
@@ -61,7 +68,15 @@ public final class ClusterTopologyValidator {
         try {
             return retryer.call(() -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts));
         } catch (ExecutionException | RetryException e) {
+            metrics.markTopologyValidationFailure();
+            log.error(
+                    "Failed to obtain consistent view of hosts from cluster.",
+                    SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
+                    SafeArg.of("allCassandraHosts", allHosts.keySet()),
+                    e);
             throw new SafeRuntimeException("Failed to obtain consistent view of hosts from cluster.", e);
+        } finally {
+            metrics.recordTopologyValidationLatency(Duration.ofMillis(stopwatch.elapsed(TimeUnit.MILLISECONDS)));
         }
     }
 

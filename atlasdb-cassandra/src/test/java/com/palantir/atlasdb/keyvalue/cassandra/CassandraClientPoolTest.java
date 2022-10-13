@@ -100,7 +100,7 @@ public class CassandraClientPoolTest {
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
-    private ClusterTopologyValidator clusterTopologyValidator;
+    private CassandraTopologyValidator cassandraTopologyValidator;
 
     @Before
     public void setup() {
@@ -130,7 +130,8 @@ public class CassandraClientPoolTest {
                 .when(cassandra)
                 .getPools();
         when(config.socketTimeoutMillis()).thenReturn(1);
-        clusterTopologyValidator = spy(new ClusterTopologyValidator());
+        CassandraTopologyValidationMetrics metrics = mock(CassandraTopologyValidationMetrics.class);
+        cassandraTopologyValidator = spy(new CassandraTopologyValidator(metrics));
     }
 
     @Test
@@ -384,7 +385,7 @@ public class CassandraClientPoolTest {
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         doReturn(Set.of(CASS_SERVER_1))
-                .when(clusterTopologyValidator)
+                .when(cassandraTopologyValidator)
                 .getNewHostsWithInconsistentTopologiesAndRetry(any(), any(), any(), any());
         CassandraClientPoolImpl pool = createClientPool();
         pool.setServersInPoolTo(ImmutableSet.of(CASS_SERVER_1, CASS_SERVER_2));
@@ -409,7 +410,7 @@ public class CassandraClientPoolTest {
                 InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
                 cassandra,
-                clusterTopologyValidator);
+                cassandraTopologyValidator);
     }
 
     private HostBuilder host(CassandraServer server) {

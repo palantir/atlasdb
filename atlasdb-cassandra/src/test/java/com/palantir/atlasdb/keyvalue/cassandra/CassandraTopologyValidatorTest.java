@@ -19,8 +19,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +32,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Iterator;
@@ -42,7 +46,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ClusterTopologyValidatorTest {
+public class CassandraTopologyValidatorTest {
 
     private static final CassandraServer newHostOneCassandraServer =
             CassandraServer.of(InetSocketAddress.createUnresolved("1.1.1.1", 80));
@@ -57,11 +61,13 @@ public class ClusterTopologyValidatorTest {
     private static final Set<String> oldHosts = ImmutableSet.of(oldHostOne, oldHostTwo, oldHostThree);
     private static final Optional<Set<String>> uuids = Optional.of(ImmutableSet.of("uuid1", "uuid2", "uuid3"));
 
-    private ClusterTopologyValidator validator;
+    private CassandraTopologyValidator validator;
+    private CassandraTopologyValidationMetrics metrics;
 
     @Before
     public void before() {
-        this.validator = spy(new ClusterTopologyValidator());
+        metrics = mock(CassandraTopologyValidationMetrics.class);
+        this.validator = spy(new CassandraTopologyValidator(metrics));
     }
 
     @Test
@@ -77,6 +83,23 @@ public class ClusterTopologyValidatorTest {
                         HumanReadableDuration.milliseconds(1),
                         HumanReadableDuration.seconds(20)))
                 .isEmpty();
+    }
+
+    @Test
+    public void retriesThrowsAndMarksFailureWhenNeverResolves() {
+        Iterator<String> uuidIterator = uuids.get().iterator();
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(newHosts);
+        EntryStream.of(allHosts)
+                .values()
+                .forEach(container -> setHostIds(Set.of(container), Optional.of(Set.of(uuidIterator.next()))));
+        assertThatThrownBy(() -> validator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        allHosts.keySet(),
+                        allHosts,
+                        HumanReadableDuration.milliseconds(1),
+                        HumanReadableDuration.milliseconds(1)))
+                .isInstanceOf(SafeRuntimeException.class);
+        verify(metrics, times(1)).markTopologyValidationFailure();
+        verify(metrics, atLeastOnce()).recordTopologyValidationLatency(any());
     }
 
     @Test
@@ -250,7 +273,7 @@ public class ClusterTopologyValidatorTest {
 
     private static Map<CassandraServer, CassandraClientPoolingContainer> setupHosts(Set<String> allHostNames) {
         return StreamEx.of(allHostNames)
-                .map(ClusterTopologyValidatorTest::createCassandraServer)
+                .map(CassandraTopologyValidatorTest::createCassandraServer)
                 .mapToEntry(server -> mock(CassandraClientPoolingContainer.class))
                 .toMap();
     }

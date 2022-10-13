@@ -99,7 +99,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolImpl.class);
 
-    private final ClusterTopologyValidator clusterTopologyValidator;
+    private final CassandraTopologyValidator cassandraTopologyValidator;
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
@@ -144,7 +144,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra,
-            ClusterTopologyValidator clusterTopologyValidator) {
+            CassandraTopologyValidator cassandraTopologyValidator) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
@@ -155,7 +155,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist,
                 cassandra,
                 new CassandraClientPoolMetrics(metricsManager),
-                clusterTopologyValidator);
+                cassandraTopologyValidator);
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -201,7 +201,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist,
                 new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
                 metrics,
-                new ClusterTopologyValidator());
+                new CassandraTopologyValidator(new CassandraTopologyValidationMetrics(metricsManager)));
     }
 
     private CassandraClientPoolImpl(
@@ -213,7 +213,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraClientPoolMetrics metrics,
-            ClusterTopologyValidator clusterTopologyValidator) {
+            CassandraTopologyValidator cassandraTopologyValidator) {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
         this.clientConfig = CassandraClientConfig.of(config);
@@ -225,7 +225,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.cassandra = cassandra;
         this.metrics = metrics;
         this.absentHostTracker = new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval());
-        this.clusterTopologyValidator = clusterTopologyValidator;
+        this.cassandraTopologyValidator = cassandraTopologyValidator;
     }
 
     private void tryInitialize() {
@@ -337,7 +337,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             Set<CassandraServer> invalidServers =
-                    clusterTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                    cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
                             serversToAdd,
                             getCurrentPools(),
                             HumanReadableDuration.seconds(5),
