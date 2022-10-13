@@ -62,7 +62,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
+public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);

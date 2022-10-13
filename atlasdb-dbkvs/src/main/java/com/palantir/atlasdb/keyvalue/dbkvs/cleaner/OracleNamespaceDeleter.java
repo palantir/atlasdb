@@ -34,7 +34,7 @@ import org.immutables.value.Value;
  * This does _not_ clean up the AtlasDB metadata and name mapping tables, as these can be shared across multiple
  * prefixes.
  */
-public class OracleNamespaceDeleter implements NamespaceDeleter {
+public final class OracleNamespaceDeleter implements NamespaceDeleter {
     private final ConnectionSupplier connectionSupplier;
     private final String wildcardEscapedTablePrefix;
     private final String wildcardEscapedOverflowTablePrefix;

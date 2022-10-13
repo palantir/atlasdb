@@ -342,10 +342,10 @@ public final class OracleNamespaceDeleterTests {
                 .build();
     }
 
-    private static class UnstableOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
+    private static final class UnstableOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
         private static final int NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE = 5;
         private final AtomicInteger counter;
-        private Function<TableReference, OracleDdlTable> factory;
+        private final Function<TableReference, OracleDdlTable> factory;
 
         UnstableOracleDdlFactory(Function<TableReference, OracleDdlTable> factory) {
             this.factory = factory;
