@@ -70,7 +70,6 @@ public class CassandraClientFactoryTest {
                     .build());
 
     private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
-    ;
 
     private CassandraClient client = mock(CassandraClient.class);
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
