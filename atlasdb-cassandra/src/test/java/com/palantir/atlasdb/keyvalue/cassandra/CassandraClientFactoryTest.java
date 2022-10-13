@@ -75,26 +75,26 @@ public class CassandraClientFactoryTest {
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
 
     @Test
-    public void validateObject_reliesOnOpennessOfUnderlyingTransport() {
+    public void validateObjectReliesOnOpennessOfUnderlyingTransport() {
         when(client.getOutputProtocol()).thenReturn(new TCompactProtocol(new TMemoryInputTransport(), 31337, 131072));
         assertThat(FACTORY.validateObject(pooledClient)).isTrue();
     }
 
     @Test
-    public void validateObject_doesNotPropagateExceptionsThrown() {
+    public void validateObjectDoesNotPropagateExceptionsThrown() {
         when(client.getOutputProtocol()).thenThrow(new RuntimeException());
         assertThat(FACTORY.validateObject(pooledClient)).isFalse();
     }
 
     @Test
-    public void verifyEndpoint_doesNotThrow_whenHostnameInCertificate() {
+    public void verifyEndpointDoesNotThrowWhenHostnameInCertificate() {
         SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
         assertThatCode(() -> CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSocket, true))
                 .doesNotThrowAnyException();
     }
 
     @Test
-    public void verifyEndpoint_throws_onlyWhenConfiguredAndHostnameOrIpNotPresent() {
+    public void verifyEndpointThrowsOnlyWhenConfiguredAndHostnameOrIpNotPresent() {
         SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
         assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(SERVER_TWO, sslSocket, true))
                 .isInstanceOf(SafeSSLPeerUnverifiedException.class);
@@ -103,7 +103,7 @@ public class CassandraClientFactoryTest {
     }
 
     @Test
-    public void verifyEndpoint_doesNotThrow_whenHostnameNotPresentButIpIs() {
+    public void verifyEndpointDoesNotThrowWhenHostnameNotPresentButIpIs() {
         String ipAddress = "1.1.1.1";
         String hostname = "foo-bar";
         InetSocketAddress inetSocketAddress = mockInetSocketAddress(ipAddress);

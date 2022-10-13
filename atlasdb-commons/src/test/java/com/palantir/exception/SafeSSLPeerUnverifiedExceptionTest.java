@@ -18,6 +18,7 @@ package com.palantir.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import org.junit.Test;
 
@@ -26,16 +27,17 @@ public class SafeSSLPeerUnverifiedExceptionTest {
     private static final String badArgKey = "bad-arg";
     private static final String badArgValue = "iamdangerous!";
     private static final UnsafeArg<String> unsafeArg = UnsafeArg.of(badArgKey, badArgValue);
+    private static final SafeArg<String> safeArg = SafeArg.of("good", "good-value");
 
     @Test
-    public void logMessage_doesNotHaveUnsafeArgs() {
+    public void getLogMessageDoesNotHaveUnsafeArgs() {
         assertThat(new SafeSSLPeerUnverifiedException("foo", unsafeArg).getLogMessage())
                 .doesNotContain(badArgValue);
     }
 
     @Test
-    public void getArgs_hasProvidedArgs() {
-        assertThat(new SafeSSLPeerUnverifiedException("foo", unsafeArg).getArgs())
-                .containsExactly(unsafeArg);
+    public void getArgsHasProvidedArgs() {
+        assertThat(new SafeSSLPeerUnverifiedException("foo", unsafeArg, safeArg).getArgs())
+                .containsExactlyInAnyOrder(unsafeArg, safeArg);
     }
 }
