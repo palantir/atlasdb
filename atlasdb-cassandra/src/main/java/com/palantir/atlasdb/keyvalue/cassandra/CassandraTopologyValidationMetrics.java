@@ -42,12 +42,12 @@ public class CassandraTopologyValidationMetrics {
     }
 
     @VisibleForTesting
-    public Counter getTopologyValidationFailures() {
+    Counter getTopologyValidationFailures() {
         return topologyValidationFailures;
     }
 
     @VisibleForTesting
-    public Histogram getTopologyValidationLatency() {
+    Histogram getTopologyValidationLatency() {
         return topologyValidationLatency;
     }
 }
