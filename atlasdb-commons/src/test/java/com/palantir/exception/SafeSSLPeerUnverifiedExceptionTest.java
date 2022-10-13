@@ -22,11 +22,20 @@ import com.palantir.logsafe.UnsafeArg;
 import org.junit.Test;
 
 public class SafeSSLPeerUnverifiedExceptionTest {
+
+    private static final String badArgKey = "bad-arg";
+    private static final String badArgValue = "iamdangerous!";
+    private static final UnsafeArg<String> unsafeArg = UnsafeArg.of(badArgKey, badArgValue);
+
     @Test
-    public void messageRemovesUnsafeArgs() {
-        String badArgKey = "bad-arg";
-        String badArgValue = "iamdangerous!";
-        assertThat(new SafeSSLPeerUnverifiedException("foo", UnsafeArg.of(badArgKey, badArgValue)).getLogMessage())
+    public void logMessage_doesNotHaveUnsafeArgs() {
+        assertThat(new SafeSSLPeerUnverifiedException("foo", unsafeArg).getLogMessage())
                 .doesNotContain(badArgValue);
+    }
+
+    @Test
+    public void getArgs_hasProvidedArgs() {
+        assertThat(new SafeSSLPeerUnverifiedException("foo", unsafeArg).getArgs())
+                .containsExactly(unsafeArg);
     }
 }

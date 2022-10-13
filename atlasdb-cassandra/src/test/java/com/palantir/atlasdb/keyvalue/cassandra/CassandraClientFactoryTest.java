@@ -76,13 +76,13 @@ public class CassandraClientFactoryTest {
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
 
     @Test
-    public void reliesOnOpennessOfUnderlyingTransport() {
+    public void validateObject_reliesOnOpennessOfUnderlyingTransport() {
         when(client.getOutputProtocol()).thenReturn(new TCompactProtocol(new TMemoryInputTransport(), 31337, 131072));
         assertThat(FACTORY.validateObject(pooledClient)).isTrue();
     }
 
     @Test
-    public void doesNotPropagateExceptionsThrown() {
+    public void validateObject_doesNotPropagateExceptionsThrown() {
         when(client.getOutputProtocol()).thenThrow(new RuntimeException());
         assertThat(FACTORY.validateObject(pooledClient)).isFalse();
     }
