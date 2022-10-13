@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -98,6 +100,8 @@ public class CassandraClientPoolTest {
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
+    private ClusterTopologyValidator clusterTopologyValidator;
+
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
@@ -126,6 +130,7 @@ public class CassandraClientPoolTest {
                 .when(cassandra)
                 .getPools();
         when(config.socketTimeoutMillis()).thenReturn(1);
+        clusterTopologyValidator = spy(new ClusterTopologyValidator());
     }
 
     @Test
@@ -373,6 +378,19 @@ public class CassandraClientPoolTest {
         verify(container1).shutdownPooling();
     }
 
+    @Test
+    public void removeHostsFromPoolWithInconsistentTopologies() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        doReturn(Set.of(CASS_SERVER_1))
+                .when(clusterTopologyValidator)
+                .getNewHostsWithInconsistentTopologiesAndRetry(any(), any(), any(), any());
+        CassandraClientPoolImpl pool = createClientPool();
+        pool.setServersInPoolTo(ImmutableSet.of(CASS_SERVER_1, CASS_SERVER_2));
+        assertThat(poolServers).containsExactly(CASS_SERVER_2);
+    }
+
     private CassandraServer getInvocationAddress(InvocationOnMock invocation) {
         return invocation.getArgument(0);
     }
@@ -390,7 +408,8 @@ public class CassandraClientPoolTest {
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
-                cassandra);
+                cassandra,
+                clusterTopologyValidator);
     }
 
     private HostBuilder host(CassandraServer server) {

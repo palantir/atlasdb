@@ -16,17 +16,27 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.transport.TTransportException;
 import org.immutables.value.Value;
@@ -34,9 +44,28 @@ import org.immutables.value.Value;
 public final class ClusterTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(ClusterTopologyValidator.class);
 
-    private ClusterTopologyValidator() {}
+    public ClusterTopologyValidator() {}
 
-    public static Set<CassandraServer> getNewHostsWithInconsistentTopologies(
+    public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
+            Set<CassandraServer> newlyAddedHosts,
+            Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
+            HumanReadableDuration waitTimeBetweenCalls,
+            HumanReadableDuration maxWaitTime) {
+        Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
+                .retryIfResult(servers -> servers.size() == allHosts.size())
+                .retryIfException()
+                .withWaitStrategy(
+                        WaitStrategies.fixedWait(waitTimeBetweenCalls.toMilliseconds(), TimeUnit.MILLISECONDS))
+                .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMilliseconds(), TimeUnit.MILLISECONDS))
+                .build();
+        try {
+            return retryer.call(() -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts));
+        } catch (ExecutionException | RetryException e) {
+            throw new SafeRuntimeException("Failed to obtain consistent view of hosts from cluster.", e);
+        }
+    }
+
+    public Set<CassandraServer> getNewHostsWithInconsistentTopologies(
             Set<CassandraServer> newlyAddedHosts, Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
 
         if (newlyAddedHosts.isEmpty()) {
@@ -78,8 +107,7 @@ public final class ClusterTopologyValidator {
                 .toSet();
     }
 
-    private static ClusterTopologyResult getClusterTopology(
-            Map<CassandraServer, CassandraClientPoolingContainer> hosts) {
+    private ClusterTopologyResult getClusterTopology(Map<CassandraServer, CassandraClientPoolingContainer> hosts) {
         Map<CassandraServer, Set<String>> hostIdsByServer = fetchHostIdsForServers(hosts);
         if (hostIdsByServer.isEmpty()) {
             return ClusterTopologyResult.of(ClusterTopologyResult.Consensus.HAS_CONSENSUS, Set.of(), hosts.keySet());
@@ -114,16 +142,8 @@ public final class ClusterTopologyValidator {
         return ClusterTopologyResult.of(ClusterTopologyResult.Consensus.NO_CONSENSUS, Set.of(), Set.of());
     }
 
-    private static Map<CassandraServer, Set<String>> fetchHostIdsForServers(
-            Map<CassandraServer, CassandraClientPoolingContainer> servers) {
-        return EntryStream.of(servers)
-                .mapValues(ClusterTopologyValidator::fetchHostIds)
-                .removeValues(Optional::isEmpty)
-                .mapValues(Optional::get)
-                .toMap();
-    }
-
-    private static Optional<Set<String>> fetchHostIds(CassandraClientPoolingContainer container) {
+    @VisibleForTesting
+    Optional<Set<String>> fetchHostIds(CassandraClientPoolingContainer container) {
         try {
             return container.<Optional<Set<String>>, Exception>runWithPooledResource(
                     client -> Optional.of(ImmutableSet.copyOf(client.get_host_ids())));
@@ -148,6 +168,15 @@ public final class ClusterTopologyValidator {
                     e);
             return Optional.empty();
         }
+    }
+
+    private Map<CassandraServer, Set<String>> fetchHostIdsForServers(
+            Map<CassandraServer, CassandraClientPoolingContainer> servers) {
+        return EntryStream.of(servers)
+                .mapValues(this::fetchHostIds)
+                .removeValues(Optional::isEmpty)
+                .mapValues(Optional::get)
+                .toMap();
     }
 
     @Value.Immutable
