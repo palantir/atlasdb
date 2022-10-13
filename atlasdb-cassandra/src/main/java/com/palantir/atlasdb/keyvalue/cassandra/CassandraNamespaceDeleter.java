@@ -17,8 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
-import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.common.base.Throwables;
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -26,17 +27,18 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 
-public final class CassandraNamespaceCleaner implements NamespaceCleaner {
+public final class CassandraNamespaceDeleter implements NamespaceDeleter {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<CassandraClient> cassandraClientSupplier;
-    private final String keyspace;
+    private final Namespace keyspace;
 
-    public CassandraNamespaceCleaner(
+    public CassandraNamespaceDeleter(
             CassandraKeyValueServiceConfig config, Supplier<CassandraClient> cassandraClientSupplier) {
         this.config = config;
         this.cassandraClientSupplier = cassandraClientSupplier;
-        keyspace = config.getKeyspaceOrThrow();
-        // TODO: Throw on bad keyspace - namespace create does that for me so that's nice.
+        // Namespace performs some handy validation that also ensures we don't allow sql injection characters in the
+        // keyspace!
+        keyspace = Namespace.create(config.getKeyspaceOrThrow());
     }
 
     @Override
@@ -52,7 +54,7 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
     @Override
     public boolean isNamespaceDeletedSuccessfully() {
         try (CassandraClient client = cassandraClientSupplier.get()) {
-            client.describe_keyspace(keyspace);
+            client.describe_keyspace(keyspace.getName());
             return false;
         } catch (NotFoundException e) {
             return true;
@@ -61,7 +63,7 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
         }
     }
 
-    private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {
+    private static void dropKeyspace(Namespace keyspace, CassandraClient client) throws TException {
         CqlQuery query = CqlQuery.builder()
                 .safeQueryFormat(SchemaBuilder.dropKeyspace(wrapInQuotes(keyspace))
                         .ifExists()
@@ -71,8 +73,8 @@ public final class CassandraNamespaceCleaner implements NamespaceCleaner {
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }
 
-    private static String wrapInQuotes(String string) {
-        return "\"" + string + "\"";
+    private static String wrapInQuotes(Namespace keyspace) {
+        return "\"" + keyspace.getName() + "\"";
     }
 
     // private static void dropKeyspace(String keyspace, CassandraClient client) throws TException {

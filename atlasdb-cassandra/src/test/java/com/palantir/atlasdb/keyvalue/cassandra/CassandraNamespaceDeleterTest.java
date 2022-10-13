@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,10 +26,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
-import com.palantir.atlasdb.NamespaceCleaner;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import java.util.List;
 import java.util.Map;
 import org.apache.cassandra.thrift.KsDef;
@@ -39,55 +39,51 @@ import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class CassandraNamespaceCleanerTest {
+public final class CassandraNamespaceDeleterTest {
     private static final String KEYSPACE = "nonreservedkeyspace";
-    private static final String QUOTED_KEYSPACE = "\"" + KEYSPACE + "\"";
+    public static final ImmutableCqlQuery DROP_KEYSPACE_QUERY = CqlQuery.builder()
+            .safeQueryFormat(SchemaBuilder.dropKeyspace("\"" + KEYSPACE + "\"")
+                    .ifExists()
+                    .buildInternal())
+            .build();
 
     @Mock
     private CassandraClient cassandraClient;
 
-    @Captor
-    ArgumentCaptor<CqlQuery> cqlQueryArgumentCaptor;
-
-    private NamespaceCleaner namespaceCleaner;
+    private NamespaceDeleter namespaceDeleter;
 
     @Before
     public void before() {
-        namespaceCleaner = new CassandraNamespaceCleaner(getConfig(), () -> cassandraClient);
+        namespaceDeleter = new CassandraNamespaceDeleter(getConfig(), () -> cassandraClient);
     }
 
     @Test
-    public void dropAllTablesDropsKeyspaceSpecifiedInConfig() throws TException {
-        prepareClientMock();
-        namespaceCleaner.deleteAllDataFromNamespace();
-        verify(cassandraClient)
-                .execute_cql3_query(
-                        eq(CqlQuery.builder()
-                                .safeQueryFormat(SchemaBuilder.dropKeyspace(QUOTED_KEYSPACE)
-                                        .ifExists()
-                                        .buildInternal())
-                                .build()),
-                        any(),
-                        any());
+    public void deleteAllDataFromNamespaceDropsKeyspaceSpecifiedInConfig() throws TException {
+        setupCassandraSchemaVersions();
+
+        namespaceDeleter.deleteAllDataFromNamespace();
+
+        verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(), any());
     }
 
     @Test
-    public void dropAllTablesDropsOnlyKeyspaceSpecified() throws TException {
-        prepareClientMock();
-        namespaceCleaner.deleteAllDataFromNamespace();
+    public void deleteAllDataFromNamespaceDropsOnlyKeyspaceSpecified() throws TException {
+        setupCassandraSchemaVersions();
+
+        namespaceDeleter.deleteAllDataFromNamespace();
+
         verify(cassandraClient, times(1)).execute_cql3_query(any(), any(), any());
     }
 
     @Test
-    public void dropAllTablesWaitsForSchemaVersionsBeforeDroppingKeyspace() throws TException {
+    public void deleteAllDataFromNamespaceWaitsForSchemaVersionsBeforeDroppingKeyspace() throws TException {
         when(cassandraClient.describe_schema_versions()).thenReturn(Map.of("hello", List.of(), "world", List.of()));
-        assertThatThrownBy(namespaceCleaner::deleteAllDataFromNamespace)
+
+        assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace)
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .cause()
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
@@ -95,89 +91,85 @@ public final class CassandraNamespaceCleanerTest {
     }
 
     @Test
-    public void dropAllTablesWaitsForSchemaVersionsAfterDroppingKeyspace() throws TException {
+    public void deleteAllDataFromNamespaceWaitsForSchemaVersionsAfterDroppingKeyspace() throws TException {
         when(cassandraClient.describe_schema_versions())
                 .thenReturn(Map.of("hello", List.of("world")))
                 .thenReturn(Map.of("hello", List.of(), "world", List.of()));
-        assertThatThrownBy(namespaceCleaner::deleteAllDataFromNamespace)
+
+        assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace)
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .cause()
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
-        verify(cassandraClient)
-                .execute_cql3_query(
-                        eq(CqlQuery.builder()
-                                .safeQueryFormat(SchemaBuilder.dropKeyspace(QUOTED_KEYSPACE)
-                                        .ifExists()
-                                        .buildInternal())
-                                .build()),
-                        any(),
-                        any());
+
+        verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(), any());
     }
 
     @Test
-    public void dropAllTablesClosesClient() throws TException {
-        prepareClientMock();
-        namespaceCleaner.deleteAllDataFromNamespace();
+    public void deleteAllDataFromNamespaceClosesClient() throws TException {
+        setupCassandraSchemaVersions();
+
+        namespaceDeleter.deleteAllDataFromNamespace();
         verify(cassandraClient).close();
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedReturnsTrueIfNotFoundExceptionThrown() throws TException {
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfNotFoundExceptionThrown() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(NotFoundException.class);
-        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isTrue();
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedReturnsFalseIfKsDefReturned() throws TException {
+    public void isNamespaceDeletedSuccessfullyReturnsFalseIfKsDefReturned() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenReturn(new KsDef());
-        assertThat(namespaceCleaner.isNamespaceDeletedSuccessfully()).isFalse();
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedPropagatesOtherThriftExceptions() throws TException {
+    public void isNamespaceDeletedSuccessfullyPropagatesOtherThriftExceptions() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(TimedOutException.class);
-        assertThatThrownBy(namespaceCleaner::isNamespaceDeletedSuccessfully)
+        assertThatThrownBy(namespaceDeleter::isNamespaceDeletedSuccessfully)
                 .hasCauseInstanceOf(TimedOutException.class);
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedClosesClientWhenNotFound() throws TException {
+    public void isNamespaceDeletedSuccessfullyClosesClientWhenNotFound() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(NotFoundException.class);
-        namespaceCleaner.isNamespaceDeletedSuccessfully();
+        namespaceDeleter.isNamespaceDeletedSuccessfully();
         verify(cassandraClient).close();
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedClosesClientWhenKsDefReturned() throws TException {
+    public void isNamespaceDeletedSuccessfullyClosesClientWhenKsDefReturned() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenReturn(new KsDef());
-        namespaceCleaner.isNamespaceDeletedSuccessfully();
+        namespaceDeleter.isNamespaceDeletedSuccessfully();
         verify(cassandraClient).close();
     }
 
     @Test
-    public void areAllTablesSuccessfullyDroppedClosesClientOnArbitraryTException() throws TException {
+    public void isNamespaceDeletedSuccessfullyClosesClientOnArbitraryTException() throws TException {
         when(cassandraClient.describe_keyspace(KEYSPACE)).thenThrow(TException.class);
-        assertThatThrownBy(namespaceCleaner::isNamespaceDeletedSuccessfully);
+        assertThatThrownBy(namespaceDeleter::isNamespaceDeletedSuccessfully);
         verify(cassandraClient).close();
     }
 
-    // @Test
-    // public void dropAllTablesCannotHaveArbitraryCqlInjected() throws TException {
-    //     namespaceCleaner = new CassandraNamespaceCleaner(
-    //             ImmutableCassandraKeyValueServiceConfig.builder()
-    //                     .from(getConfig())
-    //                     .keyspace("nonreserved; DROP KEYSPACE test;")
-    //                     .build(),
-    //             () -> cassandraClient);
-    //     prepareClientMock();
-    //     namespaceCleaner.dropAllTables();
-    //     verify(cassandraClient).execute_cql3_query(cqlQueryArgumentCaptor.capture(), any(), any());
-    //     assertThat(cqlQueryArgumentCaptor.getValue().safeQueryFormat()).isEqualTo("test");
-    // }
+    @Test
+    public void constructorThrowsOnInvalidKeyspaceName() {
+        // This test isn't strict on the exception, since we're relying on Namespace validation which uses Validate
+        // from commons-lang. This test doesn't necessarily need to be stricter, since rejecting the bad keyspace
+        // name is sufficient.
 
-    // Test that we wait for schema versions, that we're not at risk of cql injection, that we close the client
+        // Note, this validation probably should happen at the keyspace config level? But it might be too late for
+        // that...
+        assertThatThrownBy(() -> new CassandraNamespaceDeleter(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .from(getConfig())
+                                .keyspace("nonreserved; DROP KEYSPACE test;")
+                                .build(),
+                        () -> cassandraClient))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 
-    private void prepareClientMock() throws TException {
+    private void setupCassandraSchemaVersions() throws TException {
         when(cassandraClient.describe_schema_versions()).thenReturn(Map.of("hello", List.of("world")));
     }
 
