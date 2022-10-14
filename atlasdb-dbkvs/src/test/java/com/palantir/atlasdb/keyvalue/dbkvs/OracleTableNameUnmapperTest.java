@@ -88,7 +88,7 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void shouldThrowIfTableMappingDoesNotExist() throws TableMappingNotFoundException {
+    public void shouldThrowIfTableMappingDoesNotExist() {
         when(shortNameResultSet.size()).thenReturn(0);
         assertThatThrownBy(() -> oracleTableNameUnmapper.getShortTableNameFromMappingTable(
                         connectionSupplier, TEST_PREFIX, TABLE_REF))
@@ -221,7 +221,7 @@ public class OracleTableNameUnmapperTest {
                 shortTableNamesToLongTableNames.entrySet(), AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
             ongoingStubbing = ongoingStubbing.thenReturn(new AgnosticResultSetImpl(
                     batch.stream()
-                            .map(entry -> List.of((Object) entry.getKey(), (Object) entry.getValue()))
+                            .<List<Object>>map(entry -> List.of(entry.getKey(), entry.getValue()))
                             .collect(Collectors.toList()),
                     DBType.ORACLE,
                     Map.of("short_table_name", 0, "SHORT_TABLE_NAME", 0, "table_name", 1, "TABLE_NAME", 1)));
