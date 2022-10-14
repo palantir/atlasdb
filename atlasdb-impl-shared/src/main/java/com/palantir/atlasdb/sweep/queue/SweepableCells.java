@@ -297,7 +297,7 @@ public class SweepableCells extends SweepQueueTable {
             try {
                 kvs.delete(tableRef, multimap);
             } catch (Exception exception) {
-                if (tableWasDropped(tableRef)) {
+                if (SweepQueueUtils.tableWasDropped(tableRef, kvs)) {
                     // this table no longer exists, but had work to do in the sweep queue still;
                     // don't error out on this batch so that the queue cleans up and doesn't constantly retry forever
                     log.info(
@@ -325,10 +325,6 @@ public class SweepableCells extends SweepQueueTable {
                 .lastSeenCommitTs(lastSeenCommitTs)
                 .processedAll(processedAll)
                 .build();
-    }
-
-    private boolean tableWasDropped(TableReference tableRef) {
-        return !kvs.getAllTableNames().contains(tableRef);
     }
 
     private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, SortedSet<Long> startTs) {

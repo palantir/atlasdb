@@ -71,7 +71,7 @@ public class SweepQueueDeleter {
                             kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
-                if (tableWasDropped(entry.getKey())) {
+                if (SweepQueueUtils.tableWasDropped(entry.getKey(), kvs)) {
                     log.debug(
                             "Dropping sweeper work for table {}, which has been dropped.",
                             LoggingArgs.tableRef(entry.getKey()),
@@ -81,10 +81,6 @@ public class SweepQueueDeleter {
                 }
             }
         }
-    }
-
-    private boolean tableWasDropped(TableReference tableRef) {
-        return !kvs.getAllTableNames().contains(tableRef);
     }
 
     private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(
