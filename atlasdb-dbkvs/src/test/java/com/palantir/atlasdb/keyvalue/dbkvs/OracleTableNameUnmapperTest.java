@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
@@ -44,10 +45,10 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -132,14 +133,14 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void getLongTableNamesFromMappingTableReturnsLongNames() throws TableMappingNotFoundException {
+    public void getLongTableNamesFromMappingTableReturnsLongNames() {
         ArgumentCaptor<Object> tableNameCaptor = ArgumentCaptor.forClass(Object.class);
         Map<String, String> shortNamesToLongNames = ImmutableMap.<String, String>builder()
                 .put("shortNameOne", "superLongNameOne")
                 .put("shortNameTwo", "superLongNameTwo")
                 .put("shortNameThree", "superLongNameThree")
                 .buildOrThrow();
-        mockShortNamesToLongNamesQuery(shortNamesToLongNames.values());
+        mockShortNamesToLongNamesQuery(shortNamesToLongNames);
 
         Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
@@ -147,8 +148,8 @@ public class OracleTableNameUnmapperTest {
         assertThat(longNames).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.values());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
-                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
-                                + generatePlaceholders(3) + ")"),
+                        eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
+                                + "(short_table_name) IN (" + generatePlaceholders(3) + ")"),
                         tableNameCaptor.capture());
 
         assertThat(tableNameCaptor.getAllValues()).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.keySet());
@@ -156,13 +157,12 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void getLongTableNamesFromMappingTableDoesMultipleQueriesIfMoreTablesThanThreshold()
-            throws TableMappingNotFoundException {
+    public void getLongTableNamesFromMappingTableDoesMultipleQueriesIfMoreTablesThanThreshold() {
         int numberOfEntries = AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT + 100;
         Map<String, String> shortNamesToLongNames = IntStream.range(0, numberOfEntries)
                 .boxed()
                 .collect(Collectors.toMap(i -> "shortName" + i, i -> "longName" + i));
-        mockShortNamesToLongNamesQuery(shortNamesToLongNames.values());
+        mockShortNamesToLongNamesQuery(shortNamesToLongNames);
 
         Set<String> longNames = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
@@ -170,12 +170,14 @@ public class OracleTableNameUnmapperTest {
         assertThat(longNames).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.values());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
-                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
+                        eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
+                                + "(short_table_name) IN ("
                                 + generatePlaceholders(AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT) + ")"),
                         any());
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
-                        eq("SELECT table_name FROM atlasdb_table_names WHERE LOWER(short_table_name) IN ("
+                        eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
+                                + "(short_table_name) IN ("
                                 + generatePlaceholders(
                                         numberOfEntries - AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)
                                 + ")"),
@@ -184,40 +186,45 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void getLongTableNamesThrowsIfPartialResultsReturned() {
-        mockShortNamesToLongNamesQuery(Set.of("test"));
+    public void getLongTableNamesCanReturnPartialResults() {
+        mockShortNamesToLongNamesQuery(Map.of("short_test", "long_test"));
 
-        assertThatThrownBy(() -> oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
-                        connectionSupplier, Set.of("test", "test_2")))
-                .isInstanceOf(TableMappingNotFoundException.class)
-                .hasMessageContaining("Some of the tables")
-                .hasMessageContaining("do not have a mapping. This might be because these tables do not exist.");
+        Set<String> results = oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
+                connectionSupplier, Set.of("short_test", "test_2"));
+        assertThat(results).containsExactly("long_test");
     }
 
     @Test
     public void getLongTableNamesThrowsIfTooManyResultsReturned() {
-        mockShortNamesToLongNamesQuery(Set.of("test", "test_2"));
+        Map<String, String> nameMapping = Map.of("short_test", "long_test", "short_test_2", "long_test_2");
+        mockShortNamesToLongNamesQuery(nameMapping);
 
-        assertThatLoggableExceptionThrownBy(() ->
-                        oracleTableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, Set.of("test")))
+        assertThatLoggableExceptionThrownBy(() -> oracleTableNameUnmapper.getLongTableNamesFromMappingTable(
+                        connectionSupplier, Set.of("short_test")))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("There are more returned long table names than provided short table names. This likely"
                         + " indicates a bug in AtlasDB")
-                .hasExactlyArgs(SafeArg.of("numLongTables", 2), SafeArg.of("numShortTables", 1));
+                .hasExactlyArgs(
+                        SafeArg.of("numLongTables", 2),
+                        SafeArg.of("numShortTables", 1),
+                        UnsafeArg.of("returnedMapping", nameMapping),
+                        UnsafeArg.of("expectedShortTableNames", List.of("short_test")));
     }
 
-    private void mockShortNamesToLongNamesQuery(Collection<String> longTableNames) {
+    private void mockShortNamesToLongNamesQuery(Map<String, String> shortTableNamesToLongTableNames) {
         OngoingStubbing<AgnosticResultSet> ongoingStubbing = when(sqlConnection.selectResultSetUnregisteredQuery(
-                startsWith("SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
-                        + " LOWER(short_table_name)"),
+                startsWith("SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                        + " WHERE LOWER(short_table_name)"),
                 any()));
 
-        for (List<String> batch :
-                Iterables.partition(longTableNames, AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
+        for (List<Entry<String, String>> batch : Iterables.partition(
+                shortTableNamesToLongTableNames.entrySet(), AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
             ongoingStubbing = ongoingStubbing.thenReturn(new AgnosticResultSetImpl(
-                    batch.stream().map(x -> (Object) x).map(List::of).collect(Collectors.toList()),
+                    batch.stream()
+                            .map(entry -> List.of((Object) entry.getKey(), (Object) entry.getValue()))
+                            .collect(Collectors.toList()),
                     DBType.ORACLE,
-                    Map.of("table_name", 0, "TABLE_NAME", 0)));
+                    Map.of("short_table_name", 0, "SHORT_TABLE_NAME", 0, "table_name", 1, "TABLE_NAME", 1)));
         }
     }
 
