@@ -133,7 +133,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         assertThat(getLastSeenCommitTimestamp()).hasValue(150L);
     }
 
-    private Value getValue(TableReference tableRef, long ts) {
+    protected Value getValue(TableReference tableRef, long ts) {
         return kvs.get(tableRef, ImmutableMap.of(TEST_CELL, ts)).get(TEST_CELL);
     }
 }
