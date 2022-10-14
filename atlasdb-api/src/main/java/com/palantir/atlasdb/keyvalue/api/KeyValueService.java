@@ -567,7 +567,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     Set<TableReference> getAllTableNames();
 
     /**
-     * Gets the metadata for a given table. Also useful for checking to see if a table exists.
+     * Gets the metadata for a given table. This method may not be suitable to determine if a table exists.
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.

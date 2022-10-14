@@ -42,12 +42,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
-    private static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
-    private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
-    private static final String OLD_VALUE = "old_value";
-    private static final String NEW_VALUE = "new_value";
+    protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
+    protected static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
+    protected static final String OLD_VALUE = "old_value";
+    protected static final String NEW_VALUE = "new_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
-    private TargetedSweeper sweepQueue;
+    protected TargetedSweeper sweepQueue;
 
     protected AbstractTargetedSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
