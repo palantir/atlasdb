@@ -231,6 +231,11 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public boolean exists(TableReference tableRef) {
+        return delegate.exists(tableRef);
+    }
+
+    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         if (values.isEmpty()) {
             return;

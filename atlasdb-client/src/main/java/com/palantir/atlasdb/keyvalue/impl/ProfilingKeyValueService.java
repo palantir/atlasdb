@@ -364,6 +364,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean exists(TableReference tableRef) {
+        return maybeLog(() -> delegate.exists(tableRef), logTime("exists"));
+    }
+
+    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         maybeLog(
                 () -> delegate.putUnlessExists(tableRef, values),

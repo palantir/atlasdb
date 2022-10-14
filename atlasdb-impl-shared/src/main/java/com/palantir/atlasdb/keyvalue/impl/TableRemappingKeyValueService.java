@@ -353,6 +353,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public boolean exists(TableReference tableRef) {
+        try {
+            return delegate().exists(tableMapper.getMappedTableName(tableRef));
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         try {
             delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);

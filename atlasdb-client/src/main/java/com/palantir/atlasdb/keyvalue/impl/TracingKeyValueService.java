@@ -441,6 +441,14 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public boolean exists(TableReference tableRef) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.exists", tableRef)) {
+            return delegate().exists(tableRef);
+        }
+    }
+
+    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.putUnlessExists", sink -> {

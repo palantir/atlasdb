@@ -1612,6 +1612,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
+    @Override
+    public boolean exists(TableReference tableRef) {
+        try {
+            List<CfDef> knownCfs = clientPool.runWithRetry(client ->
+                    client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs());
+            return knownCfs.stream()
+                    .map(CassandraKeyValueServices::tableReferenceFromCfDef)
+                    .anyMatch(table -> table.equals(tableRef));
+        } catch (TException e) {
+            log.error("Unable to determine existence of table", LoggingArgs.tableRef(tableRef), e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     private void internalPutMetadataForTables(
             Map<TableReference, byte[]> tableRefToMetadata, boolean possiblyNeedToPerformSettingsChanges) {

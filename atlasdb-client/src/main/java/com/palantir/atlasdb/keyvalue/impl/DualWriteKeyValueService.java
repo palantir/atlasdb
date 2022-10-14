@@ -257,6 +257,15 @@ public class DualWriteKeyValueService implements KeyValueService {
         delegate2.putMetadataForTables(tableRefToMetadata);
     }
 
+    /**
+     * This is the most defensive implementation of this method. Users should be aware that this KVS implementation
+     * provides few atomicity guarantees.
+     */
+    @Override
+    public boolean exists(TableReference tableRef) {
+        return delegate1.exists(tableRef) && delegate2.exists(tableRef);
+    }
+
     @Override
     public void compactInternally(TableReference tableRef) {
         delegate1.compactInternally(tableRef);

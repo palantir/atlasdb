@@ -328,6 +328,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public boolean exists(TableReference tableRef) {
+        return getDelegate(tableRef).exists(tableRef);
+    }
+
+    @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         getDelegate(tableRef).putUnlessExists(tableRef, values);
     }

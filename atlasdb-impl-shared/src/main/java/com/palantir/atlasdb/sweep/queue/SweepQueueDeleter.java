@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,7 +24,6 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
@@ -86,7 +84,7 @@ public class SweepQueueDeleter {
     }
 
     private boolean tableWasDropped(TableReference tableRef) {
-        return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
+        return !kvs.exists(tableRef);
     }
 
     private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(

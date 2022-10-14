@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
@@ -42,12 +43,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
-    private static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
-    private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
-    private static final String OLD_VALUE = "old_value";
-    private static final String NEW_VALUE = "new_value";
+    protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
+    protected static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
+    protected static final String OLD_VALUE = "old_value";
+    protected static final String NEW_VALUE = "new_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
-    private TargetedSweeper sweepQueue;
+    protected TargetedSweeper sweepQueue;
 
     protected AbstractTargetedSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -104,7 +105,12 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     @Test
     public void targetedSweepIgnoresDroppedTablesForUncommittedWrites() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
+        kvs.createTable(
+                TABLE_TO_BE_DROPPED,
+                TableMetadata.builder()
+                        .sweepStrategy(SweepStrategy.THOROUGH)
+                        .build()
+                        .persistToBytes());
 
         sweepQueue.enqueue(
                 ImmutableMap.of(TABLE_TO_BE_DROPPED, ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
@@ -133,7 +139,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         assertThat(getLastSeenCommitTimestamp()).hasValue(150L);
     }
 
-    private Value getValue(TableReference tableRef, long ts) {
+    protected Value getValue(TableReference tableRef, long ts) {
         return kvs.get(tableRef, ImmutableMap.of(TEST_CELL, ts)).get(TEST_CELL);
     }
 }

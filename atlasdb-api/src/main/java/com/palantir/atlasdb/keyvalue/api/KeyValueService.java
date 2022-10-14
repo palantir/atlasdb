@@ -591,6 +591,13 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Idempotent
     void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata);
 
+    /**
+     * Determines if a table already exists in the underlying database. The result of this method may be inconsistent
+     * with {@link #getAllTableNames()} and {@link #getMetadataForTable(TableReference)}, where there may be metadata.
+     */
+    @Idempotent
+    boolean exists(TableReference tableRef);
+
     ////////////////////////////////////////////////////////////
     // METHODS TO SUPPORT GARBAGE COLLECTION
     ////////////////////////////////////////////////////////////

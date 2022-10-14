@@ -38,6 +38,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -140,6 +141,11 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
         }
+    }
+
+    @Override
+    public boolean exists(TableReference tableRef) {
+        return !Arrays.equals(getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     @Override
