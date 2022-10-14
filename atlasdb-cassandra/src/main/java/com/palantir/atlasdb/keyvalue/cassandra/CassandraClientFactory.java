@@ -44,10 +44,9 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import one.util.streamex.StreamEx;
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -227,10 +226,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
             throws SafeSSLPeerUnverifiedException {
-        Set<String> validAddresses =
-                Set.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
-        boolean endpointVerified =
-                StreamEx.of(validAddresses).anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
+        boolean endpointVerified = Stream.of(
+                        socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName())
+                .anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
 
         if (!endpointVerified) {
             log.warn("Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
