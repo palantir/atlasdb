@@ -1,0 +1,55 @@
+/*
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.transaction.impl;
+
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.streams.KeyedStream;
+import java.util.Map;
+
+public class TrackingKeyValueService extends ForwardingKeyValueService {
+    private final KeyValueService delegate;
+    private final MetricsManager metricsManager;
+    private final TransactionalExpectationsTracker expectationsTracker = new TransactionalExpectationsTracker();
+
+    public TrackingKeyValueService(KeyValueService delegate, MetricsManager metricsManager) {
+        this.delegate = delegate;
+        this.metricsManager = metricsManager;
+    }
+
+    @Override
+    public KeyValueService delegate() {
+        return delegate;
+    }
+
+    @Override
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
+        long bytesRead = KeyedStream.stream(result)
+                .map((cell, value) ->
+                        cell.getRowName().length + cell.getColumnName().length + value.getContents().length)
+                .values()
+                .mapToLong(i -> i)
+                .sum();
+        expectationsTracker.updateBytesRead(tableRef, bytesRead);
+        return result;
+    }
+}

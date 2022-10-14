@@ -17,11 +17,18 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TransactionalExpectationsConfig {
+    public static final long MAXIMUM_NAME_SIZE = 255;
+    public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
+
+    /**
+     * Length should not exceed {@link TransactionalExpectationsConfig::MAXIMUM_NAME_SIZE}
+     */
     @Value.Default
     String transactionName() {
         return "<un-named>";
@@ -44,30 +51,35 @@ public abstract class TransactionalExpectationsConfig {
 
     @Value.Default
     long kvsReadCallCountLimit() {
-        return 1000L;
-    }
-
-    public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
-    public static final long MAXIMUM_NAME_SIZE = 255;
-
-    public static TransactionalExpectationsConfig defaultTransactionalExpectationsConfig() {
-        return ImmutableTransactionalExpectationsConfig.builder().build();
-    }
-
-    public static long mebibytesToBytes(long mebibytes) {
-        return 1024 * 1024 * mebibytes;
+        return 100L;
     }
 
     @Value.Check
     protected void check() {
         Preconditions.checkArgument(
                 transactionName().length() <= MAXIMUM_NAME_SIZE,
-                "'transactionName' should be at most " + MAXIMUM_NAME_SIZE);
+                "transactionName should be shorter",
+                SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE),
+                SafeArg.of("transactionalExpectationsConfig", this));
         Preconditions.checkArgument(
-                transactionAgeMillisLimit() > 0, "'transactionAgeMillisLimit' should be strictly positive.");
-        Preconditions.checkArgument(bytesReadLimit() > 0, "'bytesReadLimit' should be strictly positive");
+                transactionAgeMillisLimit() > 0,
+                "transactionAgeMillisLimit should be strictly positive.",
+                SafeArg.of("transactionalExpectationsConfig", this));
         Preconditions.checkArgument(
-                bytesReadInOneKvsCallLimit() > 0, "'bytesReadInOneKvsCallLimit' should be strictly positive");
-        Preconditions.checkArgument(kvsReadCallCountLimit() > 0, "'kvsReadCallCountLimit' should be strictly positive");
+                bytesReadLimit() > 0,
+                "bytesReadLimit should be strictly positive",
+                SafeArg.of("transactionalExpectationsConfig", this));
+        Preconditions.checkArgument(
+                bytesReadInOneKvsCallLimit() > 0,
+                "bytesReadInOneKvsCallLimit should be strictly positive",
+                SafeArg.of("transactionalExpectationsConfig", this));
+        Preconditions.checkArgument(
+                kvsReadCallCountLimit() > 0,
+                "kvsReadCallCountLimit should be strictly positive",
+                SafeArg.of("transactionalExpectationsConfig", this));
+    }
+
+    public static long mebibytesToBytes(long mebibytes) {
+        return 1024 * 1024 * mebibytes;
     }
 }

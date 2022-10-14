@@ -39,4 +39,9 @@ public abstract class ForwardingCallbackAwareTransaction extends ForwardingTrans
     public void runSuccessCallbacksIfDefinitivelyCommitted() {
         delegate().runSuccessCallbacksIfDefinitivelyCommitted();
     }
+
+    @Override
+    public void runTransactionalExpectationsConsumerOperation() {
+        delegate().runTransactionalExpectationsConsumerOperation();
+    }
 }

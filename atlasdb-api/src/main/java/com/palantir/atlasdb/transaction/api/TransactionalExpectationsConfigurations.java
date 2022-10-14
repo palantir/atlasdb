@@ -16,17 +16,9 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import org.immutables.value.Value;
+public final class TransactionalExpectationsConfigurations {
+    private TransactionalExpectationsConfigurations() {}
 
-@Value.Immutable
-public abstract class TransactionalExpectationsStatistics {
-    public abstract long transactionAgeMillis();
-
-    public abstract ImmutableMap<TableReference, Long> bytesRead();
-
-    public abstract ImmutableMap<TableReference, Long> maximumBytesReadInOneKvsCall();
-
-    public abstract ImmutableMap<TableReference, Long> kvsReadCallCount();
+    public static final TransactionalExpectationsConfig DEFAULT =
+            ImmutableTransactionalExpectationsConfig.builder().build();
 }

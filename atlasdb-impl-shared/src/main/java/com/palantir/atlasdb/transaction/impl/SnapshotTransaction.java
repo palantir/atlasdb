@@ -96,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -265,6 +266,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected Optional<Consumer<TransactionalExpectationsStatistics>> transactionalExpectationsStatisticsConsumer =
+            Optional.empty();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -273,7 +276,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            KeyValueService tmKeyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -302,7 +305,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = keyValueService;
+        this.keyValueService = new TrackingKeyValueService(tmKeyValueService, metricsManager);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -1794,6 +1797,11 @@ public class SnapshotTransaction extends AbstractTransaction
         if (isDefinitivelyCommitted()) {
             successCallbackManager.runCallbacks();
         }
+    }
+
+    @Override
+    public void runTransactionalExpectationsConsumerOperation() {
+        ;
     }
 
     @Override

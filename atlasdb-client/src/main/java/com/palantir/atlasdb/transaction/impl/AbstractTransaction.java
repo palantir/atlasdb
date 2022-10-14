@@ -22,9 +22,13 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfigurations;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.logsafe.Preconditions;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
@@ -34,7 +38,10 @@ public abstract class AbstractTransaction implements Transaction {
     private TransactionType transactionType = TransactionType.DEFAULT;
 
     protected AtomicReference<TransactionalExpectationsConfig> transactionalExpectationsConfigReference =
-            new AtomicReference<>(TransactionalExpectationsConfig.defaultTransactionalExpectationsConfig());
+            new AtomicReference<>(TransactionalExpectationsConfigurations.DEFAULT);
+
+    protected TransactionalExpectationsCallbackManager expectationsCallbackManager =
+            new TransactionalExpectationsCallbackManager();
 
     @Override
     @Idempotent
@@ -58,5 +65,11 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
         transactionalExpectationsConfigReference.set(transactionalExpectationsConfig);
+    }
+
+    @Override
+    public void onCompletion(Consumer<TransactionalExpectationsStatistics> expectationsCallback) {
+        Preconditions.checkNotNull(expectationsCallback, "Transactional expectations callback cannot be null");
+        expectationsCallbackManager.registerCallback(expectationsCallback);
     }
 }

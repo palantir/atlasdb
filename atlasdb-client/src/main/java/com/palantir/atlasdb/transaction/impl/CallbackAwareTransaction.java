@@ -32,4 +32,6 @@ public interface CallbackAwareTransaction extends Transaction {
     void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException;
 
     void runSuccessCallbacksIfDefinitivelyCommitted();
+
+    void runTransactionalExpectationsConsumerOperation();
 }

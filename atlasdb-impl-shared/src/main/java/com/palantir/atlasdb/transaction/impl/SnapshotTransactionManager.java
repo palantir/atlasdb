@@ -53,6 +53,8 @@ import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.StartTransactionFailedException;
 import com.palantir.lock.v2.LockToken;
@@ -110,6 +112,7 @@ import javax.validation.constraints.NotNull;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final TransactionalExpectationsManager texManager;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -164,6 +167,11 @@ import javax.validation.constraints.NotNull;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
+        this.texManager = new TransactionalExpectationsManager(
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("transactional-expectations-metrics-updater", true)),
+                metricsManager);
+        this.texManager.scheduleMetricsUpdate(Duration.ofHours(1).toMillis());
     }
 
     @Override

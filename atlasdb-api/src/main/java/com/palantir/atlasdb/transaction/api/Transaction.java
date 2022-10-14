@@ -385,11 +385,6 @@ public interface Transaction {
      * </ul>
      */
     void onSuccess(Runnable callback);
-    /**
-     * Registers callback to consume tex stats
-     * todo aalouane: javadoc like the above
-     */
-    void onSuccess(Consumer<TransactionalExpectationsStatistics> transactionalExpectationsStatisticsConsumer);
 
     /**
      * Disables read-write conflict checking for this table for the duration of this transaction only.
@@ -411,9 +406,15 @@ public interface Transaction {
 
     /**
      * Sets transactional expectations thresholds and config.
-     * If this is not set, TransactionalExpectationsConfig::defaultTransactionalExpectationsConfig()
-     * TransactionalExpectationsConfig::transactionName() should be no longer than 255 characters.
-     * todo aalouane: use links in docs
+     * If this is not set, a default {@link TransactionalExpectationsConfig} is provided
+     * This should be called before any interactions with the data store and preferably at the start.
+     * This should be called at most once.
      */
-    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig);
+    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig config);
+
+    /**
+     * Registers a consumer of {@link Consumer<TransactionalExpectationsStatistics>} to be run after the
+     * transaction completes.
+     */
+    void onCompletion(Consumer<TransactionalExpectationsStatistics> expectationsCallback);
 }
