@@ -24,6 +24,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,6 +36,8 @@ import java.util.stream.IntStream;
 
 public final class LastSweptTimestampUpdater implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTimestampUpdater.class);
+    private static final RateLimitedLogger rateLimitedLog =
+            new RateLimitedLogger(log, 1.0 / Duration.ofMinutes(10).toSeconds());
     private final SweepQueue queue;
     private final TargetedSweepMetrics metrics;
     private final ScheduledExecutorService executorService;
@@ -54,6 +58,11 @@ public final class LastSweptTimestampUpdater implements AutoCloseable {
                 .collect(Collectors.toSet());
 
         Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
+        if (sweeperStrategy == SweeperStrategy.THOROUGH) {
+            rateLimitedLog.log(logger -> logger.info(
+                    "Updating last swept timestamp metric for thorough sweep",
+                    SafeArg.of("last swept per shard", shardAndStrategyToTimestamp)));
+        }
 
         KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
