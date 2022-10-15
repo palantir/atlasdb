@@ -68,8 +68,8 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Override
-    public void onCompletion(Consumer<TransactionalExpectationsStatistics> expectationsCallback) {
-        Preconditions.checkNotNull(expectationsCallback, "Transactional expectations callback cannot be null");
-        expectationsCallbackManager.registerCallback(expectationsCallback);
+    public void onCompletion(Consumer<TransactionalExpectationsStatistics> callback) {
+        Preconditions.checkNotNull(callback, "Transactional expectations callback cannot be null");
+        expectationsCallbackManager.registerCallback(callback);
     }
 }

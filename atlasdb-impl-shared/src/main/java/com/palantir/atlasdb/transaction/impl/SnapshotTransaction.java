@@ -1800,8 +1800,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public void runTransactionalExpectationsConsumerOperation() {
-        ;
+    public void runExpectationsCallbacks(TransactionalExpectationsStatistics stats) {
+        expectationsCallbackManager.runCallbacks(stats);
     }
 
     @Override

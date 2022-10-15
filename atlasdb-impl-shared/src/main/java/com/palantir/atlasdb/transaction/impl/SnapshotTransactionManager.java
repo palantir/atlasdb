@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -68,8 +69,10 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -112,7 +115,7 @@ import javax.validation.constraints.NotNull;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final TransactionalExpectationsManager texManager;
+    protected final TransactionalExpectationsManager expectationsManager;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -167,11 +170,11 @@ import javax.validation.constraints.NotNull;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
-        this.texManager = new TransactionalExpectationsManager(
+        this.expectationsManager = new TransactionalExpectationsManager(
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("transactional-expectations-metrics-updater", true)),
                 metricsManager);
-        this.texManager.scheduleMetricsUpdate(Duration.ofHours(1).toMillis());
+        expectationsManager.scheduleMetricsUpdate(Duration.ofHours(1).toMillis());
     }
 
     @Override
@@ -191,8 +194,15 @@ import javax.validation.constraints.NotNull;
             condition.cleanup();
             throw e;
         }
-        return openTransaction.finishWithCallback(
-                transaction -> task.execute(transaction, condition), condition::cleanup);
+
+        T result;
+        try {
+            result = openTransaction.finishWithCallback(
+                    transaction -> task.execute(transaction, condition), condition::cleanup);
+        } finally {
+            expectationsManager.markConcludedTransaction(openTransaction);
+        }
+        return result;
     }
 
     @Override
@@ -208,6 +218,7 @@ import javax.validation.constraints.NotNull;
             throw new TransactionFailedRetriableException("Failed to start a batch of transactions", e);
         }
 
+        Set<OpenTransaction> texRegisteredTransactions = new HashSet<>();
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
             long immutableTs = responses.stream()
@@ -228,7 +239,10 @@ import javax.validation.constraints.NotNull;
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
-                                return new OpenTransactionImpl(transaction, immutableTsLock);
+                                OpenTransaction openTransaction = new OpenTransactionImpl(transaction, immutableTsLock);
+                                expectationsManager.registerTransaction(openTransaction);
+                                texRegisteredTransactions.add(openTransaction);
+                                return openTransaction;
                             })
                     .collect(Collectors.toList());
             openTransactionCounter.inc(transactions.size());
@@ -239,6 +253,7 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
+            texRegisteredTransactions.stream().forEach(expectationsManager::unregisterTransaction);
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -285,6 +300,11 @@ import javax.validation.constraints.NotNull;
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();
             return result;
+        }
+
+        @Override
+        public void runExpectationsCallbacks(TransactionalExpectationsStatistics stats) {
+            delegate.runExpectationsCallbacks(stats);
         }
     }
 
@@ -355,37 +375,46 @@ import javax.validation.constraints.NotNull;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
-                timelockService,
-                NoOpLockWatchManager.create(),
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
-                conflictDetectionManager,
-                sweepStrategyManager,
-                immutableTs,
-                Optional.empty(),
-                condition,
-                constraintModeSupplier.get(),
-                cleaner.getTransactionReadTimeoutMillis(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueueWriter,
-                deleteExecutor,
-                validateLocksOnReads,
-                transactionConfig,
-                conflictTracer,
-                tableLevelMetricsController,
-                knowledge);
-        return runTaskThrowOnConflictWithCallback(
-                txn -> task.execute(txn, condition),
-                new ReadTransaction(transaction, sweepStrategyManager),
-                condition::cleanup);
+        ReadTransaction transaction = new ReadTransaction(
+                new SnapshotTransaction(
+                        metricsManager,
+                        keyValueService,
+                        timelockService,
+                        NoOpLockWatchManager.create(),
+                        transactionService,
+                        NoOpCleaner.INSTANCE,
+                        getStartTimestampSupplier(),
+                        conflictDetectionManager,
+                        sweepStrategyManager,
+                        immutableTs,
+                        Optional.empty(),
+                        condition,
+                        constraintModeSupplier.get(),
+                        cleaner.getTransactionReadTimeoutMillis(),
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        allowHiddenTableAccess,
+                        timestampValidationReadCache,
+                        getRangesExecutor,
+                        defaultGetRangesConcurrency,
+                        sweepQueueWriter,
+                        deleteExecutor,
+                        validateLocksOnReads,
+                        transactionConfig,
+                        conflictTracer,
+                        tableLevelMetricsController,
+                        knowledge),
+                sweepStrategyManager);
+
+        expectationsManager.registerTransaction(transaction);
+        T result;
+        try {
+            result = runTaskThrowOnConflictWithCallback(
+                    txn -> task.execute(txn, condition), transaction, condition::cleanup);
+        } finally {
+            expectationsManager.markConcludedTransaction(transaction);
+        }
+
+        return result;
     }
 
     @Override

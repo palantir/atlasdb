@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public abstract class ForwardingCallbackAwareTransaction extends ForwardingTransaction
@@ -41,7 +42,7 @@ public abstract class ForwardingCallbackAwareTransaction extends ForwardingTrans
     }
 
     @Override
-    public void runTransactionalExpectationsConsumerOperation() {
-        delegate().runTransactionalExpectationsConsumerOperation();
+    public void runExpectationsCallbacks(TransactionalExpectationsStatistics stats) {
+        delegate().runExpectationsCallbacks(stats);
     }
 }

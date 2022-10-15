@@ -30,6 +30,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public abstract class ForwardingTransaction extends ForwardingObject implements Transaction {
@@ -199,7 +201,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
-        delegate().setTransactionalExpectationsConfig(transactionalExpectationsConfig);
+    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig config) {
+        delegate().setTransactionalExpectationsConfig(config);
+    }
+
+    @Override
+    public void onCompletion(Consumer<TransactionalExpectationsStatistics> callback) {
+        delegate().onCompletion(callback);
     }
 }

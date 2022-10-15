@@ -24,11 +24,11 @@ import java.util.function.Consumer;
 public final class TransactionalExpectationsCallbackManager {
     private final List<Consumer<TransactionalExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
 
-    public void registerCallback(Consumer<TransactionalExpectationsStatistics> expectationsCallback) {
-        callbacks.add(expectationsCallback);
+    public void registerCallback(Consumer<TransactionalExpectationsStatistics> callback) {
+        callbacks.add(callback);
     }
 
-    public void runCallbacks(TransactionalExpectationsStatistics expectationsStatistics) {
-        callbacks.forEach(consumer -> consumer.accept(expectationsStatistics));
+    public void runCallbacks(TransactionalExpectationsStatistics stats) {
+        callbacks.forEach(consumer -> consumer.accept(stats));
     }
 }

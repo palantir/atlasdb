@@ -17,7 +17,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.base.Stopwatch;
-import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
+import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -35,7 +36,7 @@ public final class TransactionalExpectationsManager implements AutoCloseable {
     private final AtomicBoolean updateIsScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService executorService;
     private final MetricsManager metricsManager;
-    private final Map<OpenTransaction, Stopwatch> transactionClock = new ConcurrentHashMap<>();
+    private final Map<ExpectationsAwareTransaction, Stopwatch> transactionClock = new ConcurrentHashMap<>();
 
     public TransactionalExpectationsManager(ScheduledExecutorService executorService, MetricsManager metricsManager) {
         this.executorService = executorService;
@@ -50,11 +51,27 @@ public final class TransactionalExpectationsManager implements AutoCloseable {
         }
     }
 
-    private void registerTransactionStart(OpenTransaction transaction) {
+    TransactionalExpectationsStatistics statsForTransaction(ExpectationsAwareTransaction transaction) {
+        throw new NotImplementedException();
+    }
+
+    void registerTransaction(ExpectationsAwareTransaction transaction) {
         transactionClock.putIfAbsent(transaction, Stopwatch.createStarted());
     }
 
-    private void registerTransactionCompletion(OpenTransaction transaction) {
+    /*
+     * Stop tracking a given transaction.
+     */
+    void unregisterTransaction(ExpectationsAwareTransaction transaction) {
+        transactionClock.remove(transaction);
+    }
+
+    /*
+     * Cleans up state and calls expectations callbacks for successful/aborted transaction.
+     */
+    void markConcludedTransaction(ExpectationsAwareTransaction transaction) {
+        TransactionalExpectationsStatistics stats = null;
+        transaction.runExpectationsCallbacks(stats);
         transactionClock.remove(transaction);
     }
 
