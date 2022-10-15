@@ -392,6 +392,15 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return Math.min(8, concurrentGetRangesThreadPoolSize() / 2);
     }
 
+    /**
+     * Verify Cassandra hostname or ip address match any of the addresses listed in the servers certificate.
+     * Currently, this is only used by Thrift.
+     */
+    @Value.Default
+    default boolean enableEndpointVerification() {
+        return false;
+    }
+
     @JsonIgnore
     @Value.Derived
     default boolean usingSsl() {

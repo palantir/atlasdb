@@ -33,6 +33,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -221,7 +222,9 @@ public final class CassandraVerifier {
 
     private static boolean attemptToCreateIfNotExists(InetSocketAddress host, CassandraVerifierConfig verifierConfig) {
         try {
-            return keyspaceAlreadyExists(host, verifierConfig) || attemptToCreateKeyspaceOnHost(host, verifierConfig);
+            CassandraServer cassandraServer = CassandraServer.of(host);
+            return keyspaceAlreadyExists(cassandraServer, verifierConfig)
+                    || attemptToCreateKeyspaceOnHost(cassandraServer, verifierConfig);
         } catch (Exception exception) {
             log.warn(
                     "Couldn't use host {} to create keyspace."
@@ -236,7 +239,7 @@ public final class CassandraVerifier {
     }
 
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
-    private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraVerifierConfig verifierConfig)
+    private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
             client.describe_keyspace(verifierConfig.keyspace());
@@ -250,7 +253,7 @@ public final class CassandraVerifier {
         }
     }
 
-    private static boolean attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraVerifierConfig verifierConfig)
+    private static boolean attemptToCreateKeyspaceOnHost(CassandraServer host, CassandraVerifierConfig verifierConfig)
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
             KsDef ksDef = createKsDefForFresh(client, verifierConfig);
@@ -266,7 +269,7 @@ public final class CassandraVerifier {
                         "Encountered an invalid request exception {} when attempting to create a keyspace"
                                 + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
                                 + " cause issues if it recurs persistently, so logging for debugging purposes.",
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        SafeArg.of("host", CassandraLogHelper.host(host.proxy())),
                         UnsafeArg.of("exceptionMessage", e.toString()));
                 log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
             }
