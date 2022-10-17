@@ -406,7 +406,8 @@ public interface Transaction {
 
     /**
      * Sets transactional expectations thresholds and config.
-     * If this is not set, {@link ExpectationsConfigurations.DEFAULT}  is used.
+     * If this is not set,
+     * {@link com.palantir.atlasdb.transaction.api.ExpectationsConfigurations#DEFAULT} is used
      * This method should be called before any interactions with the data store and preferably at the start.
      * This method should be called at most once.
      */

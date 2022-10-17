@@ -27,7 +27,7 @@ public abstract class ExpectationsConfig {
     public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
 
     /**
-     * Length should not exceed {@link ExpectationsConfig::MAXIMUM_NAME_SIZE}
+     * Length should not exceed {@value #MAXIMUM_NAME_SIZE}
      * transactionName should be safe to log
      */
     @Value.Default
