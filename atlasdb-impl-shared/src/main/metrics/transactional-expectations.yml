@@ -1,0 +1,12 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.transaction.expectations'
+
+namespaces:
+  liveViolations:
+    docs: Metrics tracking TEX statistics for each violation type for open transactions
+    metrics:
+
+  completionStats:
+    docs: Metrics tracking TEX statistics for transactions as they conclude
+    metrics:
+

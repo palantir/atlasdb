@@ -30,7 +30,8 @@ public interface ExpectationsManager extends AutoCloseable {
     void unregisterTransaction(ExpectationsAwareTransaction transaction);
 
     /*
-     * Mark transaction as concluded (aborted/succeeded) and run expectations callbacks.
+     * Mark transaction as concluded (aborted/succeeded), update end of transaction metrics and run expectations
+     * callbacks.
      */
     void markConcludedTransaction(ExpectationsAwareTransaction transaction);
 }
