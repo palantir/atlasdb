@@ -107,7 +107,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
     }
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
-        metrics.abortedTxnCacheMiss().mark();
+        metrics.abandonedTxnCacheMiss().mark();
         return abandonedTimestampStore.getAbandonedTimestampsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }

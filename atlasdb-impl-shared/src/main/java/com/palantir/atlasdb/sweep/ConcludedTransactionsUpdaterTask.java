@@ -25,6 +25,8 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
+    private static final SafeLogger log = SafeLoggerFactory.get(ConcludedTransactionsUpdaterTask.class);
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_INITIAL_DELAY_MILLIS = 1000;
     public static final int CONCLUDED_TRANSACTIONS_UPDATE_TASK_DELAY_MILLIS = 5000;
 

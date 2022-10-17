@@ -44,11 +44,7 @@ import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 import java.time.Duration;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -62,6 +58,8 @@ public class TargetedSweepMetrics {
     private static final SafeLogger log = SafeLoggerFactory.get(TargetedSweepMetrics.class);
     private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
 
+    private final StrategyAgnosticMetrics strategyAgnosticMetrics;
+
     private TargetedSweepMetrics(
             MetricsManager metricsManager,
             BiFunction<Long, MillisAndMaybeTimestamp, MillisAndMaybeTimestamp> tsToMillis,
@@ -73,6 +71,7 @@ public class TargetedSweepMetrics {
                 .map(strategyTag -> new MetricsForStrategy(
                         metricsManager, strategyTag, tsToMillis, clock, metricsConfiguration, shards))
                 .collectToMap();
+        strategyAgnosticMetrics = new StrategyAgnosticMetrics(metricsManager);
     }
 
     public static TargetedSweepMetrics create(
@@ -154,6 +153,10 @@ public class TargetedSweepMetrics {
         Optional.ofNullable(getMetrics(strategy)).ifPresent(update);
     }
 
+    public void updateLastSeenCommitTs(long lastSeenCommitTs) {
+        strategyAgnosticMetrics.updateLastSeenCommitTs(lastSeenCommitTs);
+    }
+
     private MetricsForStrategy getMetrics(SweeperStrategy strategy) {
         return metricsForStrategyMap.get(strategy);
     }
@@ -168,6 +171,32 @@ public class TargetedSweepMetrics {
                 return AtlasDbMetricNames.TAG_NON_SWEEPABLE;
             default:
                 throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
+        }
+    }
+
+    private static final class StrategyAgnosticMetrics {
+        private final MetricsManager metricsManager;
+
+        private final TargetedSweepProgressMetrics progressMetrics;
+        private final AccumulatingValueMetric lastSeenCommitTs;
+
+        private StrategyAgnosticMetrics(MetricsManager metricsManager) {
+            this.metricsManager = metricsManager;
+            this.lastSeenCommitTs = new AccumulatingValueMetric();
+            this.progressMetrics = TargetedSweepProgressMetrics.of(metricsManager.getTaggedRegistry());
+
+            progressMetrics.lastSeenCommitTs(lastSeenCommitTs);
+        }
+
+        private void registerProgressMetricsFilter(TargetedSweepMetricPublicationFilter filter) {
+            metricsManager.addMetricFilter(TargetedSweepProgressMetrics.lastSeenCommitTsMetricName(), filter);
+        }
+
+        private void updateLastSeenCommitTs(long commitTimestamp) {
+            // This could race but accuracy is not paramount, we generally should be seeing and upward trend.
+            if (lastSeenCommitTs.getValue() < commitTimestamp) {
+                lastSeenCommitTs.setValue(commitTimestamp);
+            }
         }
     }
 
