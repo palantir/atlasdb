@@ -25,7 +25,6 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
-
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
