@@ -16,11 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -29,6 +25,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
@@ -85,13 +82,17 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     }
 
     @Override
-    public void addConcludedTimestamps(Range<Long> knownConcludedInterval) {
+    public void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals) {
         Preconditions.checkState(
-                sanityCheckConcludedRange(knownConcludedInterval),
+                sanityCheckConcludedRanges(knownConcludedIntervals),
                 "KnownConcludedInterval is expected to have closed lower and upper bounds.",
-                SafeArg.of("knownConcludedInterval", knownConcludedInterval));
-        knownConcludedTransactionsStore.supplement(knownConcludedInterval);
-        ensureRangesCached(ImmutableRangeSet.of(knownConcludedInterval));
+                SafeArg.of("knownConcludedInterval", knownConcludedIntervals));
+        knownConcludedTransactionsStore.supplement(knownConcludedIntervals);
+        ensureRangesCached(ImmutableRangeSet.copyOf(knownConcludedIntervals));
+    }
+
+    private boolean sanityCheckConcludedRanges(Set<Range<Long>> knownConcludedIntervals) {
+        return knownConcludedIntervals.stream().allMatch(this::sanityCheckConcludedRange);
     }
 
     private boolean sanityCheckConcludedRange(Range<Long> range) {

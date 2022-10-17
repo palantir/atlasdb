@@ -16,11 +16,8 @@
 
 package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
@@ -28,25 +25,11 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
-import com.palantir.atlasdb.transaction.knowledge.TimestampRangeSet;
-import java.util.Optional;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
 import org.junit.Test;
 
 public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
-    private final KnownConcludedTransactionsStore delegate = mock(KnownConcludedTransactionsStore.class);
-
-    @Test
-    public void coordinationStoreDelegatesGetToUnderlyingStore() {
-        CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore = getDefaultCoordinationAwareStore();
-
-        TimestampRangeSet expectedTimestampRangeSet = TimestampRangeSet.singleRange(Range.closedOpen(1L, 100L));
-        when(delegate.get()).thenReturn(Optional.of(expectedTimestampRangeSet));
-
-        assertThat(coordinationAwareStore.get()).hasValue(expectedTimestampRangeSet);
-        verify(delegate).get();
-        verifyNoMoreInteractions(delegate);
-    }
+    private final KnownConcludedTransactionsImpl delegate = mock(KnownConcludedTransactionsImpl.class);
 
     @Test
     public void doesNotSupplementIfRangeNotOnTransactions4() {
@@ -57,7 +40,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
         CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
-        coordinationAwareStore.supplement(Range.closedOpen(100L, 200L));
+        coordinationAwareStore.addConcludedTimestamps(Range.closedOpen(100L, 200L));
         verifyNoMoreInteractions(delegate);
     }
 
@@ -73,8 +56,8 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
         Range<Long> rangeToSupplement = Range.closedOpen(101L, 200L);
-        coordinationAwareStore.supplement(rangeToSupplement);
-        verify(delegate).supplement(ImmutableSet.of(rangeToSupplement));
+        coordinationAwareStore.addConcludedTimestamps(rangeToSupplement);
+        verify(delegate).addConcludedTimestamps(ImmutableSet.of(rangeToSupplement));
     }
 
     @Test
@@ -89,8 +72,9 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
         Range<Long> rangeToSupplement = Range.closedOpen(100L, 400L);
-        coordinationAwareStore.supplement(rangeToSupplement);
-        verify(delegate).supplement(ImmutableSet.of(Range.closedOpen(100L, 200L), Range.closedOpen(300L, 400L)));
+        coordinationAwareStore.addConcludedTimestamps(rangeToSupplement);
+        verify(delegate)
+                .addConcludedTimestamps(ImmutableSet.of(Range.closedOpen(100L, 200L), Range.closedOpen(300L, 400L)));
     }
 
     @Test
@@ -102,9 +86,9 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
                 getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
 
         Range<Long> rangeToSupplement = Range.closedOpen(1L, 350L);
-        assertThatCode(() -> coordinationAwareStore.supplement(rangeToSupplement))
+        assertThatCode(() -> coordinationAwareStore.addConcludedTimestamps(rangeToSupplement))
                 .doesNotThrowAnyException();
-        verify(delegate).supplement(ImmutableSet.of(rangeToSupplement));
+        verify(delegate).addConcludedTimestamps(ImmutableSet.of(rangeToSupplement));
     }
 
     private CoordinationAwareKnownConcludedTransactionsStore getDefaultCoordinationAwareStore() {
