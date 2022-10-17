@@ -22,26 +22,7 @@ import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlPreparedResult;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.KeyPredicate;
-import org.apache.cassandra.thrift.KeyRange;
-import org.apache.cassandra.thrift.KeySlice;
-import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.Mutation;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.SchemaDisagreementException;
-import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.TimedOutException;
-import org.apache.cassandra.thrift.TokenRange;
-import org.apache.cassandra.thrift.UnavailableException;
+import org.apache.cassandra.thrift.*;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 
@@ -133,6 +114,8 @@ public interface CassandraClient extends Closeable {
     TProtocol getInputProtocol();
 
     List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException;
+
+    List<String> get_host_ids() throws TException;
 
     String describe_version() throws TException;
 
