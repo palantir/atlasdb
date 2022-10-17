@@ -17,22 +17,23 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ExpectationsConfig {
+    public static final String DEFAULT_TRANSACTION_NAME = "<un-named>";
     public static final long MAXIMUM_NAME_SIZE = 255;
     public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}
-     * transactionName should be safe to log
      */
-    @Value.Default
-    public String transactionName() {
-        return "<un-named>";
+    public Optional<String> transactionName() {
+        return Optional.empty();
     }
 
     @Value.Default
@@ -57,11 +58,14 @@ public abstract class ExpectationsConfig {
 
     @Value.Check
     protected void check() {
-        Preconditions.checkArgument(
-                transactionName().length() <= MAXIMUM_NAME_SIZE,
-                "transactionName should be shorter",
-                SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE),
-                SafeArg.of("transactionalExpectationsConfig", this));
+        transactionName().ifPresent(name -> {
+            Preconditions.checkArgument(
+                    name.length() <= MAXIMUM_NAME_SIZE,
+                    "transactionName should be shorter"
+                    SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE),
+                    SafeArg.of("transactionalExpectationsConfig", this));
+        });
+
         Preconditions.checkArgument(
                 transactionAgeMillisLimit() > 0,
                 "transactionAgeMillisLimit should be strictly positive.",

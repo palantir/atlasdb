@@ -53,8 +53,6 @@ import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.StartTransactionFailedException;
 import com.palantir.lock.v2.LockToken;
@@ -68,10 +66,8 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -114,7 +110,6 @@ import javax.validation.constraints.NotNull;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final ExpectationsManager expectationsManager;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -169,11 +164,6 @@ import javax.validation.constraints.NotNull;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
-        this.expectationsManager = new ExpectationsManager(
-                PTExecutors.newSingleThreadScheduledExecutor(
-                        new NamedThreadFactory("transactional-expectations-metrics-updater", true)),
-                metricsManager);
-        expectationsManager.scheduleMetricsUpdate(Duration.ofHours(1).toMillis());
     }
 
     @Override
@@ -194,14 +184,9 @@ import javax.validation.constraints.NotNull;
             throw e;
         }
 
-        T result;
-        try {
-            result = openTransaction.finishWithCallback(
-                    transaction -> task.execute(transaction, condition), condition::cleanup);
-        } finally {
-            expectationsManager.markConcludedTransaction(openTransaction);
-        }
-        return result;
+        // todo aalouane TEX mark concluded transaction
+        return openTransaction.finishWithCallback(
+                transaction -> task.execute(transaction, condition), condition::cleanup);
     }
 
     @Override
@@ -217,7 +202,6 @@ import javax.validation.constraints.NotNull;
             throw new TransactionFailedRetriableException("Failed to start a batch of transactions", e);
         }
 
-        Set<OpenTransaction> texRegisteredTransactions = new HashSet<>();
         Preconditions.checkState(conditions.size() == responses.size(), "Different number of responses and conditions");
         try {
             long immutableTs = responses.stream()
@@ -226,7 +210,7 @@ import javax.validation.constraints.NotNull;
                     .getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
-
+            // todo aalouane TEX register created transactions
             List<OpenTransaction> transactions = Streams.zip(
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
@@ -239,8 +223,6 @@ import javax.validation.constraints.NotNull;
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
                                 OpenTransaction openTransaction = new OpenTransactionImpl(transaction, immutableTsLock);
-                                expectationsManager.registerTransaction(openTransaction);
-                                texRegisteredTransactions.add(openTransaction);
                                 return openTransaction;
                             })
                     .collect(Collectors.toList());
@@ -252,7 +234,7 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            texRegisteredTransactions.forEach(expectationsManager::unregisterTransaction);
+            // todo aalouane TEX unregister registered transactions
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -402,16 +384,8 @@ import javax.validation.constraints.NotNull;
                         knowledge),
                 sweepStrategyManager);
 
-        expectationsManager.registerTransaction(transaction);
-        T result;
-        try {
-            result = runTaskThrowOnConflictWithCallback(
-                    txn -> task.execute(txn, condition), transaction, condition::cleanup);
-        } finally {
-            expectationsManager.markConcludedTransaction(transaction);
-        }
-
-        return result;
+        // todo aalouane TEX mark concluded transaction
+        return runTaskThrowOnConflictWithCallback(txn -> task.execute(txn, condition), transaction, condition::cleanup);
     }
 
     @Override

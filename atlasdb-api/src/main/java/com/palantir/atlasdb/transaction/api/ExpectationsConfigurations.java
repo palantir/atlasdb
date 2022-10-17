@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 public final class ExpectationsConfigurations {
+
     private ExpectationsConfigurations() {}
 
     public static final ExpectationsConfig DEFAULT =

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.logsafe.Safe;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -411,7 +412,7 @@ public interface Transaction {
      * This method should be called before any interactions with the data store and preferably at the start.
      * This method should be called at most once.
      */
-    void setExpectationsConfig(ExpectationsConfig config);
+    void setExpectationsConfig(@Safe ExpectationsConfig config);
 
     /**
      * Registers a consumer of {@link Consumer} of {TransactionalExpectationsStatistics} to be run after
