@@ -183,7 +183,6 @@ import javax.validation.constraints.NotNull;
             condition.cleanup();
             throw e;
         }
-
         // todo aalouane TEX mark concluded transaction
         return openTransaction.finishWithCallback(
                 transaction -> task.execute(transaction, condition), condition::cleanup);
@@ -234,7 +233,7 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            // todo aalouane TEX unregister registered transactions
+            // todo aalouane TEX unregister transactions registered in try block
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -282,9 +281,6 @@ import javax.validation.constraints.NotNull;
             postTaskContext.stop();
             return result;
         }
-
-        // might have to extend ForwardingTransaction to stg like ExpectationsAwareForwardingTransaction
-        // to remove the boilerplate functions below
     }
 
     private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {
