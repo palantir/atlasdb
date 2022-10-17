@@ -27,21 +27,21 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.junit.Test;
 
-public final class KnownAbortedTransactionsImplTest {
+public final class KnownAbandonedTransactionsImplTest {
     private final AbandonedTimestampStore abandonedTimestampStore = mock(AbandonedTimestampStore.class);
-    private final AbortedTransactionSoftCache softCache = mock(AbortedTransactionSoftCache.class);
-    private final KnownAbortedTransactionsImpl knownAbortedTransactions = new KnownAbortedTransactionsImpl(
+    private final AbandonedTransactionSoftCache softCache = mock(AbandonedTransactionSoftCache.class);
+    private final KnownAbandonedTransactionsImpl knownAbortedTransactions = new KnownAbandonedTransactionsImpl(
             abandonedTimestampStore,
             softCache,
             new DefaultTaggedMetricRegistry(),
-            KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
+            KnownAbandonedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
 
     @Test
     public void testIsKnownAbortedReturnsTrueIfAbortedInSoftCache() {
@@ -49,7 +49,7 @@ public final class KnownAbortedTransactionsImplTest {
         when(softCache.getSoftCacheTransactionStatus(abortedTimestamp))
                 .thenReturn(TransactionSoftCacheStatus.IS_ABORTED);
 
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp)).isTrue();
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestamp)).isTrue();
         verifyNoMoreInteractions(abandonedTimestampStore);
     }
 
@@ -59,14 +59,14 @@ public final class KnownAbortedTransactionsImplTest {
         when(softCache.getSoftCacheTransactionStatus(abortedTimestamp))
                 .thenReturn(TransactionSoftCacheStatus.IS_NOT_ABORTED);
 
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp)).isFalse();
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestamp)).isFalse();
         verifyNoMoreInteractions(abandonedTimestampStore);
     }
 
     @Test
     public void testIsKnownAbortedLoadsFromReliableCache() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestamp = 27L;
         Bucket bucket = Bucket.forTimestamp(abortedTimestamp);
@@ -75,12 +75,12 @@ public final class KnownAbortedTransactionsImplTest {
         when(abandonedTimestampStore.getAbandonedTimestampsInRange(anyLong(), anyLong()))
                 .thenReturn(abortedTimestamps);
 
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp)).isTrue();
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestamp)).isTrue();
         verify(abandonedTimestampStore)
                 .getAbandonedTimestampsInRange(bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
 
         // a second call will load state from the cache
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestamp + 1))
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestamp + 1))
                 .isFalse();
         verifyNoMoreInteractions(abandonedTimestampStore);
     }
@@ -88,7 +88,7 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testIsKnownAbortedLoadsFromRemoteIfBucketNotInReliableCache() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long abortedTimestampBucket1 = 27L;
         Bucket bucket1 = Bucket.forTimestamp(abortedTimestampBucket1);
@@ -101,21 +101,21 @@ public final class KnownAbortedTransactionsImplTest {
                 .thenReturn(ImmutableSet.of(abortedTimestampBucket2));
 
         // First call for bucket1 loads from remote
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1))
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestampBucket1))
                 .isTrue();
         verify(abandonedTimestampStore)
                 .getAbandonedTimestampsInRange(bucket1.getMinTsInBucket(), bucket1.getMaxTsInCurrentBucket());
 
         // First call for bucket2 loads from remote
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket2))
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestampBucket2))
                 .isTrue();
         verify(abandonedTimestampStore)
                 .getAbandonedTimestampsInRange(bucket2.getMinTsInBucket(), bucket2.getMaxTsInCurrentBucket());
 
         // a second call will load state from the cache
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket1 + 1))
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestampBucket1 + 1))
                 .isFalse();
-        assertThat(knownAbortedTransactions.isKnownAborted(abortedTimestampBucket2 + 1))
+        assertThat(knownAbortedTransactions.isKnownAbandoned(abortedTimestampBucket2 + 1))
                 .isFalse();
         verifyNoMoreInteractions(abandonedTimestampStore);
     }
@@ -123,10 +123,10 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testReliableCacheEvictsIfWeightLimitReached() {
         when(softCache.getSoftCacheTransactionStatus(anyLong()))
-                .thenReturn(AbortedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
+                .thenReturn(AbandonedTransactionSoftCache.TransactionSoftCacheStatus.PENDING_LOAD_FROM_RELIABLE);
 
         long numAbortedTimestampsInBucket = Math.min(
-                AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
+                AtlasDbConstants.ABORTED_TIMESTAMPS_BUCKET_SIZE, KnownAbandonedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
         when(abandonedTimestampStore.getAbandonedTimestampsInRange(anyLong(), anyLong()))
                 .thenAnswer(invocation -> {
                     long start = invocation.getArgument(0);
@@ -139,22 +139,22 @@ public final class KnownAbortedTransactionsImplTest {
         Range<Long> rangeForBucket = Range.closed(bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
 
         // First query for bucket 1 goes to the store
-        knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
+        knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
         verify(abandonedTimestampStore)
                 .getAbandonedTimestampsInRange(rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
 
         // Subsequent queries for bucket 1 are resolved from cache
-        knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
+        knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
         verifyNoMoreInteractions(abandonedTimestampStore);
 
         Bucket bucket2 = Bucket.ofIndex(2);
         // caching a second bucket will cross the threshold weight of cache, marking first bucket for eviction
-        knownAbortedTransactions.isKnownAborted(bucket2.getMinTsInBucket());
+        knownAbortedTransactions.isKnownAbandoned(bucket2.getMinTsInBucket());
 
         knownAbortedTransactions.cleanup();
 
         // Now the query for bucket 1 will go to the futile store due to cache eviction
-        knownAbortedTransactions.isKnownAborted(rangeForBucket.lowerEndpoint());
+        knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
         verify(abandonedTimestampStore, times(2))
                 .getAbandonedTimestampsInRange(rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
     }
@@ -162,7 +162,7 @@ public final class KnownAbortedTransactionsImplTest {
     @Test
     public void testAddAbortedTransactionsDelegatesToFutileStore() {
         ImmutableSet<Long> abortedTimestamps = ImmutableSet.of(25L, 49L);
-        knownAbortedTransactions.addAbortedTimestamps(abortedTimestamps);
+        knownAbortedTransactions.addAbandonedTimestamps(abortedTimestamps);
         abortedTimestamps.forEach(ts -> verify(abandonedTimestampStore).markAbandoned(ts));
     }
 }
