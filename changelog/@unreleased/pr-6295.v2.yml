@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AtlasDB now includes an implementation dependency on `org.apache.httpcomponents`
+  links:
+  - https://github.com/palantir/atlasdb/pull/6295
