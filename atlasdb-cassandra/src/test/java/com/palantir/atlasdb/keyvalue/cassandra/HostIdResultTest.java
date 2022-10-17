@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import java.util.Set;
 import org.junit.Test;
+
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class HostIdResultTest {
 
@@ -49,5 +51,14 @@ public class HostIdResultTest {
                         .hostIds(Set.of())
                         .build())
                 .isInstanceOf(SafeIllegalArgumentException.class);
+    }
+
+    @Test
+    public void canBuildWhenHostIdsSpecifiedAndSuccess() {
+        HostIdResult.builder()
+                .type(HostIdResult.Type.SUCCESS)
+                .hostIds(Set.of("foo"))
+                .build();
+        assertThatNoException();
     }
 }
