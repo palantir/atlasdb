@@ -29,8 +29,8 @@ public abstract class ExpectationsConfig {
     public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
 
     /**
-     * Length should not exceed {@value #MAXIMUM_NAME_SIZE}
-     * This will be used for logging and will be expected to be safe to log
+     * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
+     * This will be used for logging and will be expected to be safe to log.
      */
     public abstract Optional<String> transactionName();
 
