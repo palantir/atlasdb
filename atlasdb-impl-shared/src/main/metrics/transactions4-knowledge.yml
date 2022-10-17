@@ -15,16 +15,16 @@ namespaces:
         type: meter
         docs: The number of times concluded transaction timestamp was available locally.
   abandonedTransactionsReliableCache:
-    docs: Metrics tracking aborted transactions reliable cache usage.
+    docs: Metrics tracking abandoned transactions reliable cache usage.
     metrics:
-      abortedTxnCacheMiss:
+      abandonedTxnCacheMiss:
         type: meter
-        docs: The number of times aborted transactions bucket was loaded from remote.
+        docs: The number of times abandoned transactions bucket was loaded from remote.
       reliableBucketEvictions:
         type: meter
         docs: The number of times a reliable bucket was evicted from cache.
   abandonedTransactionsSoftCache:
-    docs: Metrics tracking aborted transactions soft cache usage.
+    docs: Metrics tracking abandoned transactions soft cache usage.
     metrics:
       remoteReads:
         type: meter

@@ -24,10 +24,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.immutables.value.Value;
-
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicReference;
+import org.immutables.value.Value;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class KnownConcludedTransactionsImpl implements KnownConcludedTransactions {
