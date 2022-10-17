@@ -20,7 +20,7 @@ import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
 
 // todo aalouane TEX convert this to an implementation
 public interface ExpectationsManager extends AutoCloseable {
-    public void scheduleMetricsUpdate(long delayMillis);
+    void scheduleMetricsUpdate(long delayMillis);
 
     void registerTransaction(ExpectationsAwareTransaction transaction);
 

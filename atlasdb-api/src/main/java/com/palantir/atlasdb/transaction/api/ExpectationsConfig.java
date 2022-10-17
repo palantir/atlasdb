@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
@@ -61,7 +60,7 @@ public abstract class ExpectationsConfig {
         transactionName().ifPresent(name -> {
             Preconditions.checkArgument(
                     name.length() <= MAXIMUM_NAME_SIZE,
-                    "transactionName should be shorter"
+                    "transactionName should be shorter",
                     SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE),
                     SafeArg.of("transactionalExpectationsConfig", this));
         });
