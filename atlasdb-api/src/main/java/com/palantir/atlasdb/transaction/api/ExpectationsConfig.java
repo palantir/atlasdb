@@ -30,6 +30,7 @@ public abstract class ExpectationsConfig {
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}
+     * This will be used for logging and will be expected to be safe to log
      */
     public Optional<String> transactionName() {
         return Optional.empty();
