@@ -22,6 +22,8 @@ import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.ImmutableExpectationsStatistics;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -36,17 +38,22 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+// class is getting too big perhaps? should I separate concerns?
+// class is doing:
+//   metrics registration
+//   scheduling metrics update
+//   transaction start/end registration
 public final class ExpectationsManager implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(ExpectationsManager.class);
 
-    private final AtomicBoolean updateIsScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService executorService;
-    private final MetricsManager metricsManager;
+    private final ExpectationsMetricsTracker tracker;
     private final Map<ExpectationsAwareTransaction, Stopwatch> transactionClock = new ConcurrentHashMap<>();
+    private final AtomicBoolean updateIsScheduled = new AtomicBoolean(false);
 
     public ExpectationsManager(ScheduledExecutorService executorService, MetricsManager metricsManager) {
         this.executorService = executorService;
-        this.metricsManager = metricsManager;
+        this.tracker = new ExpectationsMetricsTracker(metricsManager);
     }
 
     public void scheduleMetricsUpdate(long delayMillis) {
@@ -96,8 +103,9 @@ public final class ExpectationsManager implements AutoCloseable {
         long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
         // todo aalouane: modify this to reflect terminology used in metrics/alert for easier grep-ing through logs
-        // todo aalouane: transactionName might not be safe to log, will add it as part of the interface contract
         if (elapsed > currentConfig.transactionAgeMillisLimit()) {
+            // too many dot accesses?
+            tracker.transactionsTooOld.increment();
             log.warn(
                     "Transaction is running for longer than expected",
                     SafeArg.of("transactionAgeMillis", elapsed),
@@ -108,6 +116,7 @@ public final class ExpectationsManager implements AutoCloseable {
         long bytesRead = transaction.getBytesRead();
 
         if (bytesRead > currentConfig.bytesReadLimit()) {
+            tracker.transactionsReadingTooMuch.increment();
             log.warn(
                     "Transaction is reading more than expected",
                     SafeArg.of("bytesRead", bytesRead),
@@ -121,5 +130,25 @@ public final class ExpectationsManager implements AutoCloseable {
     public void close() {
         updateIsScheduled.set(true);
         executorService.shutdown();
+    }
+
+    // not sure if this merits its own file. it's literally just two long adders
+    // mimicking MetricsForStrategy but not sure if that is up to current standards
+    private static final class ExpectationsMetricsTracker {
+        private final ExpectationsMetrics metrics;
+        private final AccumulatingValueMetric transactionsTooOld;
+        private final AccumulatingValueMetric transactionsReadingTooMuch;
+
+        private ExpectationsMetricsTracker(MetricsManager manager) {
+            this.transactionsTooOld = new AccumulatingValueMetric();
+            this.transactionsReadingTooMuch = new AccumulatingValueMetric();
+            this.metrics = ExpectationsMetrics.of(manager.getTaggedRegistry());
+            registerMetrics();
+        }
+
+        private void registerMetrics() {
+            metrics.transactionsTooOld(transactionsTooOld);
+            metrics.transactionsReadingTooMuch(transactionsReadingTooMuch);
+        }
     }
 }

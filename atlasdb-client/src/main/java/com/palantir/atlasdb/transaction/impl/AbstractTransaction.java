@@ -62,8 +62,8 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Override
-    public void setExpectationsConfig(ExpectationsConfig expectationsConfig) {
-        expectationsConfigReference.set(expectationsConfig);
+    public void setExpectationsConfig(ExpectationsConfig config) {
+        expectationsConfigReference.set(config);
     }
 
     public ExpectationsConfig expectationsConfig() {

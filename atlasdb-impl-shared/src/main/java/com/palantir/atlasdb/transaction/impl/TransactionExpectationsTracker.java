@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AtomicLongMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public final class ExpectationsTracker {
+public final class TransactionExpectationsTracker {
     private final AtomicLongMap<TableReference> bytesReadByTable = AtomicLongMap.create();
 
     void updateBytesRead(TableReference tableRef, long bytesRead) {

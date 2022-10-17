@@ -266,7 +266,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final ExpectationsTracker expectationsTracker = new ExpectationsTracker();
+    protected final TransactionExpectationsTracker expectationsTracker = new TransactionExpectationsTracker();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read

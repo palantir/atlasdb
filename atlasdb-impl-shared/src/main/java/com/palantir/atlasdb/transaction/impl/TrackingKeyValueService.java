@@ -26,9 +26,9 @@ import java.util.Map;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
-    private final ExpectationsTracker tracker;
+    private final TransactionExpectationsTracker tracker;
 
-    public TrackingKeyValueService(KeyValueService delegate, ExpectationsTracker tracker) {
+    public TrackingKeyValueService(KeyValueService delegate, TransactionExpectationsTracker tracker) {
         this.delegate = delegate;
         this.tracker = tracker;
     }
