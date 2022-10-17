@@ -19,24 +19,24 @@ package com.palantir.atlasdb.transaction.knowledge;
 import java.util.Set;
 
 /**
- * Represents a set of start timestamps that belong to transactions that are known to have been aborted.
+ * Represents a set of start timestamps that belong to transactions which will never commit.
  */
-public interface KnownAbortedTransactions {
+public interface KnownAbandonedTransactions {
 
     /**
      * For a concluded transaction with the given start timestamp, returns true if it is known that the transaction
-     * has been aborted. Calling this method for a transaction that has not been concluded is undefined.
+     * is abandoned. Calling this method for a transaction that has not been concluded is undefined.
      *
      * @param startTimestamp start timestamp associated with the value we are checking for
-     * @return whether the transaction that started at the provided timestamp is known to have been aborted.
+     * @return whether the transaction that started at the provided timestamp can never be committed.
      */
-    boolean isKnownAborted(long startTimestamp);
+    boolean isKnownAbandoned(long startTimestamp);
 
     /**
-     * Registers the fact that any transactions that had startTimestamp in set of timestamps provided have been
-     * aborted.
+     * Registers the fact that any transactions that had startTimestamp in set of timestamps provided are marked as
+     * abandoned.
      *
-     * @param abortedTimestamps set of timestamps for which all transactions have been aborted.
+     * @param abandonedTimestamps set of timestamps for which all transactions have been abandoned.
      */
-    void addAbortedTimestamps(Set<Long> abortedTimestamps);
+    void addAbandonedTimestamps(Set<Long> abandonedTimestamps);
 }

@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Queries to this class must only be made for a transaction timestamp that is known to have been concluded.
  * */
-public final class AbortedTransactionSoftCache implements AutoCloseable {
+public final class AbandonedTransactionSoftCache implements AutoCloseable {
     public enum TransactionSoftCacheStatus {
         PENDING_LOAD_FROM_RELIABLE,
         IS_ABORTED,
@@ -55,7 +55,7 @@ public final class AbortedTransactionSoftCache implements AutoCloseable {
     private final AbandonedTimestampStore abandonedTimestampStore;
     private final KnownConcludedTransactions knownConcludedTransactions;
 
-    public AbortedTransactionSoftCache(
+    public AbandonedTransactionSoftCache(
             AbandonedTimestampStore abandonedTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
         this.abandonedTimestampStore = abandonedTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;

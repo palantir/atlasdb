@@ -104,7 +104,9 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStoreImpl;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
+import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownAbandonedTransactionsStore;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -425,10 +427,20 @@ public abstract class TransactionManagers {
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
-
         CleanupFollower follower = CleanupFollower.create(schemas());
+
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
+
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
-                metricsManager, config().targetedSweep(), follower, runtime.map(AtlasDbRuntimeConfig::targetedSweep));
+                keyValueService,
+                metricsManager,
+                config().targetedSweep(),
+                follower,
+                runtime.map(AtlasDbRuntimeConfig::targetedSweep),
+                coordinationService);
+
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
         TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
                 keyValueService,
@@ -437,7 +449,7 @@ public abstract class TransactionManagers {
                 targetedSweeper::isInitialized);
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, knowledge, lockAndTimestampServices, keyValueService, runtime);
+                closeables, metricsManager, knowledge, transactionSchemaManager, keyValueService, runtime);
 
         TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
@@ -678,12 +690,9 @@ public abstract class TransactionManagers {
             @Output List<AutoCloseable> closeables,
             MetricsManager metricsManager,
             TransactionKnowledgeComponents knowledgeCache,
-            LockAndTimestampServices lockAndTimestampServices,
+            TransactionSchemaManager transactionSchemaManager,
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        CoordinationService<InternalSchemaMetadata> coordinationService =
-                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
-        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         TransactionService transactionService = initializeCloseable(
                 () -> AtlasDbMetrics.instrumentTimed(
                         metricsManager.getRegistry(),
@@ -961,11 +970,21 @@ public abstract class TransactionManagers {
     }
 
     private static TargetedSweeper uninitializedTargetedSweeper(
+            KeyValueService kvs,
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
             Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime) {
-        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
+                new CoordinationAwareKnownAbandonedTransactionsStore(
+                        coordinationService, new AbandonedTimestampStoreImpl(kvs));
+        return TargetedSweeper.createUninitialized(
+                metricsManager,
+                runtime,
+                install,
+                ImmutableList.of(follower),
+                abandonedTxnStore::addAbandonedTimestamps);
     }
 
     @Value.Immutable

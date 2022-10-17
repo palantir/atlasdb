@@ -49,12 +49,17 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
     private final Supplier<Integer> numShards;
+    private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
 
-    private SweepQueue(SweepQueueFactory factory, TargetedSweepFollower follower) {
+    private SweepQueue(
+            SweepQueueFactory factory,
+            TargetedSweepFollower follower,
+            AbandonedTransactionConsumer abandonedTransactionConsumer) {
         this.progress = factory.progress;
         this.writer = factory.createWriter();
         this.reader = factory.createReader();
+        this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.deleter = factory.createDeleter(follower);
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
@@ -67,11 +72,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
             TransactionService transaction,
+            AbandonedTransactionConsumer abortedTransactionConsumer,
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         SweepQueueFactory factory =
                 SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        return new SweepQueue(factory, follower);
+        return new SweepQueue(factory, follower, abortedTransactionConsumer);
     }
 
     /**
@@ -142,6 +148,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
 
         // The order must not be changed without considering correctness of txn4
+        abandonedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
