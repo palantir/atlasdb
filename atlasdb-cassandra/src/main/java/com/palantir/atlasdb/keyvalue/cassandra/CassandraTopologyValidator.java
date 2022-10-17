@@ -23,7 +23,6 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.HostIdResult.Type;
@@ -34,16 +33,17 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import one.util.streamex.EntryStream;
+import org.apache.thrift.transport.TTransportException;
+import org.immutables.value.Value;
+import org.immutables.value.Value.Check;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import one.util.streamex.EntryStream;
-import org.apache.thrift.transport.TTransportException;
-import org.immutables.value.Value;
-import org.immutables.value.Value.Check;
 
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
@@ -203,10 +203,8 @@ public final class CassandraTopologyValidator {
     @VisibleForTesting
     HostIdResult fetchHostIds(CassandraClientPoolingContainer container) {
         try {
-            return container.<HostIdResult, Exception>runWithPooledResource(client -> HostIdResult.builder()
-                    .hostIds(ImmutableSet.copyOf(client.get_host_ids()))
-                    .type(Type.SUCCESS)
-                    .build());
+            return container.<HostIdResult, Exception>runWithPooledResource(
+                    client -> HostIdResult.success(client.get_host_ids()));
         } catch (TTransportException e) {
             log.warn(
                     "Failed to get host ids from host due to networking failure.",
@@ -259,9 +257,9 @@ public final class CassandraTopologyValidator {
                 builder().type(Type.SOFT_FAILURE).hostIds(Set.of()).build();
 
         enum Type {
-            // Failure should affect quorum calculations
+            // Failure should affect quorum calculations (network failure)
             HARD_FAILURE,
-            // Failure type shouldn't affect quorum calculations
+            // Failure shouldn't affect quorum calculations (i.e. missing API in C*)
             SOFT_FAILURE,
             SUCCESS
         }
@@ -269,14 +267,6 @@ public final class CassandraTopologyValidator {
         Type type();
 
         Set<String> hostIds();
-
-        static HostIdResult hardFailure() {
-            return HARD_FAILURE;
-        }
-
-        static HostIdResult softFailure() {
-            return SOFT_FAILURE;
-        }
 
         @Check
         default void checkHostIdsStateBasedOnResultType() {
@@ -286,6 +276,18 @@ public final class CassandraTopologyValidator {
             Preconditions.checkState(
                     type().equals(Type.SUCCESS) || hostIds().isEmpty(),
                     "It is expected that no hostIds should be present when there is a failure.");
+        }
+
+        static HostIdResult success(Iterable<String> hostIds) {
+            return builder().type(Type.SUCCESS).hostIds(hostIds).build();
+        }
+
+        static HostIdResult hardFailure() {
+            return HARD_FAILURE;
+        }
+
+        static HostIdResult softFailure() {
+            return SOFT_FAILURE;
         }
 
         static ImmutableHostIdResult.Builder builder() {
