@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-public final class TransactionalExpectationsConfigurations {
-    private TransactionalExpectationsConfigurations() {}
+public final class ExpectationsConfigurations {
+    private ExpectationsConfigurations() {}
 
-    public static final TransactionalExpectationsConfig DEFAULT =
-            ImmutableTransactionalExpectationsConfig.builder().build();
+    public static final ExpectationsConfig DEFAULT =
+            ImmutableExpectationsConfig.builder().build();
 }

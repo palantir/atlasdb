@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.AtomicLongMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import org.immutables.value.Value;
 
-@Value.Immutable
-public abstract class TransactionalExpectationsStatistics {
-    public abstract long transactionAgeMillis();
+public final class ExpectationsTracker {
+    private final AtomicLongMap<TableReference> bytesReadByTable = AtomicLongMap.create();
 
-    public abstract ImmutableMap<TableReference, Long> bytesRead();
+    void updateBytesRead(TableReference tableRef, long bytesRead) {
+        bytesReadByTable.addAndGet(tableRef, bytesRead);
+    }
 
-    public abstract ImmutableMap<TableReference, Long> maximumBytesReadInOneKvsCall();
+    long getBytesRead() {
+        return bytesReadByTable.sum();
+    }
 
-    public abstract ImmutableMap<TableReference, Long> kvsReadCallCount();
+    ImmutableMap<TableReference, Long> getBytesReadByTable() {
+        return ImmutableMap.copyOf(bytesReadByTable.asMap());
+    }
 }

@@ -43,7 +43,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         return false;
     }
 
-    // this is unused internally (shouldn't be externally as well)!
+    // this is unused internally (shouldn't be externally as well), to remove as well?
     protected final <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, Transaction txn)
             throws E, TransactionFailedException {
         checkOpen();

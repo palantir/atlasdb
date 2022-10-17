@@ -45,7 +45,6 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -115,7 +114,7 @@ import javax.validation.constraints.NotNull;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final TransactionalExpectationsManager expectationsManager;
+    protected final ExpectationsManager expectationsManager;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -170,7 +169,7 @@ import javax.validation.constraints.NotNull;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
-        this.expectationsManager = new TransactionalExpectationsManager(
+        this.expectationsManager = new ExpectationsManager(
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("transactional-expectations-metrics-updater", true)),
                 metricsManager);
@@ -253,12 +252,12 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            texRegisteredTransactions.stream().forEach(expectationsManager::unregisterTransaction);
+            texRegisteredTransactions.forEach(expectationsManager::unregisterTransaction);
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
 
-    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
+    private final class OpenTransactionImpl extends ExpectationsAwareForwardingTransaction implements OpenTransaction {
 
         private final CallbackAwareTransaction delegate;
         private final LockToken immutableTsLock;
@@ -269,7 +268,7 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public Transaction delegate() {
+        public CallbackAwareTransaction delegate() {
             return delegate;
         }
 
@@ -302,10 +301,8 @@ import javax.validation.constraints.NotNull;
             return result;
         }
 
-        @Override
-        public void runExpectationsCallbacks(TransactionalExpectationsStatistics stats) {
-            delegate.runExpectationsCallbacks(stats);
-        }
+        // might have to extend ForwardingTransaction to stg like ExpectationsAwareForwardingTransaction
+        // to remove the boilerplate functions below
     }
 
     private void scrubForAggressiveHardDelete(SnapshotTransaction tx) {

@@ -25,12 +25,12 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
@@ -201,12 +201,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
-    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig config) {
-        delegate().setTransactionalExpectationsConfig(config);
+    public void setExpectationsConfig(ExpectationsConfig config) {
+        delegate().setExpectationsConfig(config);
     }
 
     @Override
-    public void onCompletion(Consumer<TransactionalExpectationsStatistics> callback) {
+    public void onCompletion(Consumer<ExpectationsStatistics> callback) {
         delegate().onCompletion(callback);
     }
 }

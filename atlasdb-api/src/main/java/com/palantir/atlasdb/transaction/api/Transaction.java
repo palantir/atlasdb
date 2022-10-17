@@ -406,15 +406,15 @@ public interface Transaction {
 
     /**
      * Sets transactional expectations thresholds and config.
-     * If this is not set, {@link TransactionalExpectationsConfigurations.DEFAULT}  is used.
+     * If this is not set, {@link ExpectationsConfigurations.DEFAULT}  is used.
      * This method should be called before any interactions with the data store and preferably at the start.
      * This method should be called at most once.
      */
-    void setTransactionalExpectationsConfig(TransactionalExpectationsConfig config);
+    void setExpectationsConfig(ExpectationsConfig config);
 
     /**
      * Registers a consumer of {@link Consumer} of {TransactionalExpectationsStatistics} to be run after
      * the transaction completes.
      */
-    void onCompletion(Consumer<TransactionalExpectationsStatistics> expectationsCallback);
+    void onCompletion(Consumer<ExpectationsStatistics> expectationsCallback);
 }

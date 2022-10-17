@@ -16,19 +16,19 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public final class TransactionalExpectationsCallbackManager {
-    private final List<Consumer<TransactionalExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
+    private final List<Consumer<ExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
 
-    public void registerCallback(Consumer<TransactionalExpectationsStatistics> callback) {
+    public void registerCallback(Consumer<ExpectationsStatistics> callback) {
         callbacks.add(callback);
     }
 
-    public void runCallbacks(TransactionalExpectationsStatistics stats) {
+    public void runCallbacks(ExpectationsStatistics stats) {
         callbacks.forEach(consumer -> consumer.accept(stats));
     }
 }

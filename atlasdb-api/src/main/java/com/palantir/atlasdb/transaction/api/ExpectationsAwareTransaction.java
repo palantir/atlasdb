@@ -16,6 +16,15 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 public interface ExpectationsAwareTransaction extends Transaction {
-    void runExpectationsCallbacks(TransactionalExpectationsStatistics stats);
+    void runExpectationsCallbacks(ExpectationsStatistics stats);
+
+    long getBytesRead();
+
+    ImmutableMap<TableReference, Long> getBytesReadByTable();
+
+    ExpectationsConfig expectationsConfig();
 }

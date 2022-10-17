@@ -19,7 +19,6 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 /**
@@ -33,6 +32,4 @@ public interface CallbackAwareTransaction extends ExpectationsAwareTransaction {
     void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException;
 
     void runSuccessCallbacksIfDefinitivelyCommitted();
-
-    void runExpectationsCallbacks(TransactionalExpectationsStatistics stats);
 }

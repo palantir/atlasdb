@@ -1,0 +1,13 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.transaction.expectations'
+
+namespaces:
+  expectations:
+    docs: Metrics tracking statistics for each violation type
+    metrics:
+        transactionsReadingTooMuch:
+          type: gauge
+          docs: Number of Atlas transactions reading more bytes than expected in read queries
+        transactionsTooOld:
+          type: gauge
+          docs: Number of Atlas transactions running for longer than expected

@@ -85,6 +85,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -96,7 +97,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -266,8 +266,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected Optional<Consumer<TransactionalExpectationsStatistics>> transactionalExpectationsStatisticsConsumer =
-            Optional.empty();
+    protected final ExpectationsTracker expectationsTracker = new ExpectationsTracker();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -305,7 +304,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueService(tmKeyValueService, metricsManager);
+        this.keyValueService = new TrackingKeyValueService(tmKeyValueService, expectationsTracker);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -1800,8 +1799,18 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public void runExpectationsCallbacks(TransactionalExpectationsStatistics stats) {
+    public void runExpectationsCallbacks(ExpectationsStatistics stats) {
         expectationsCallbackManager.runCallbacks(stats);
+    }
+
+    @Override
+    public long getBytesRead() {
+        return expectationsTracker.getBytesRead();
+    }
+
+    @Override
+    public ImmutableMap<TableReference, Long> getBytesReadByTable() {
+        return expectationsTracker.getBytesReadByTable();
     }
 
     @Override

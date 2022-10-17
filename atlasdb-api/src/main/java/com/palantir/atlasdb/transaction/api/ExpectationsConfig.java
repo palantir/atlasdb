@@ -22,35 +22,35 @@ import java.time.Duration;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class TransactionalExpectationsConfig {
+public abstract class ExpectationsConfig {
     public static final long MAXIMUM_NAME_SIZE = 255;
     public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
 
     /**
-     * Length should not exceed {@link TransactionalExpectationsConfig::MAXIMUM_NAME_SIZE}
+     * Length should not exceed {@link ExpectationsConfig ::MAXIMUM_NAME_SIZE}
      */
     @Value.Default
-    String transactionName() {
+    public String transactionName() {
         return "<un-named>";
     }
 
     @Value.Default
-    long transactionAgeMillisLimit() {
+    public long transactionAgeMillisLimit() {
         return Duration.ofHours(3).toMillis();
     }
 
     @Value.Default
-    long bytesReadLimit() {
+    public long bytesReadLimit() {
         return 10 * ONE_GIBIBYTE;
     }
 
     @Value.Default
-    long bytesReadInOneKvsCallLimit() {
+    public long bytesReadInOneKvsCallLimit() {
         return 5 * ONE_GIBIBYTE;
     }
 
     @Value.Default
-    long kvsReadCallCountLimit() {
+    public long kvsReadCallCountLimit() {
         return 100L;
     }
 

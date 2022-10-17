@@ -19,11 +19,11 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.ExpectationsConfigurations;
+import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsConfigurations;
-import com.palantir.atlasdb.transaction.api.TransactionalExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.logsafe.Preconditions;
@@ -37,8 +37,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     private TransactionType transactionType = TransactionType.DEFAULT;
 
-    protected AtomicReference<TransactionalExpectationsConfig> transactionalExpectationsConfigReference =
-            new AtomicReference<>(TransactionalExpectationsConfigurations.DEFAULT);
+    protected AtomicReference<ExpectationsConfig> expectationsConfigReference =
+            new AtomicReference<>(ExpectationsConfigurations.DEFAULT);
 
     protected TransactionalExpectationsCallbackManager expectationsCallbackManager =
             new TransactionalExpectationsCallbackManager();
@@ -63,12 +63,16 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Override
-    public void setTransactionalExpectationsConfig(TransactionalExpectationsConfig transactionalExpectationsConfig) {
-        transactionalExpectationsConfigReference.set(transactionalExpectationsConfig);
+    public void setExpectationsConfig(ExpectationsConfig expectationsConfig) {
+        expectationsConfigReference.set(expectationsConfig);
+    }
+
+    public ExpectationsConfig expectationsConfig() {
+        return expectationsConfigReference.get();
     }
 
     @Override
-    public void onCompletion(Consumer<TransactionalExpectationsStatistics> callback) {
+    public void onCompletion(Consumer<ExpectationsStatistics> callback) {
         Preconditions.checkNotNull(callback, "Transactional expectations callback cannot be null");
         expectationsCallbackManager.registerCallback(callback);
     }

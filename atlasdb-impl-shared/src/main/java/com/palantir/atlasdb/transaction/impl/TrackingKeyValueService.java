@@ -21,18 +21,16 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
-    private final MetricsManager metricsManager;
-    private final TransactionalExpectationsTracker expectationsTracker = new TransactionalExpectationsTracker();
+    private final ExpectationsTracker tracker;
 
-    public TrackingKeyValueService(KeyValueService delegate, MetricsManager metricsManager) {
+    public TrackingKeyValueService(KeyValueService delegate, ExpectationsTracker tracker) {
         this.delegate = delegate;
-        this.metricsManager = metricsManager;
+        this.tracker = tracker;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
                 .values()
                 .mapToLong(i -> i)
                 .sum();
-        expectationsTracker.updateBytesRead(tableRef, bytesRead);
+        tracker.updateBytesRead(tableRef, bytesRead);
         return result;
     }
 }
