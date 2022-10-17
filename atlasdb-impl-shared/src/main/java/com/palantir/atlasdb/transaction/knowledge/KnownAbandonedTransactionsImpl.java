@@ -40,7 +40,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
     private final Cache<Bucket, Set<Long>> reliableCache;
 
     private final AbandonedTransactionSoftCache softCache;
-    private final AbortedTransctionsCacheMetrics metrics;
+    private final AbandonedTransactionsReliableCacheMetrics metrics;
 
     @VisibleForTesting
     KnownAbandonedTransactionsImpl(
@@ -50,7 +50,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
             int maxCacheWeight) {
         this.abandonedTimestampStore = abandonedTimestampStore;
         this.softCache = softCache;
-        this.metrics = AbortedTransctionsCacheMetrics.of(registry);
+        this.metrics = AbandonedTransactionsReliableCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
                 .maximumWeight(maxCacheWeight)
                 .weigher(new AbortedTransactionBucketWeigher())
@@ -68,7 +68,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
             TaggedMetricRegistry registry,
             InternalSchemaInstallConfig config) {
         AbandonedTransactionSoftCache softCache =
-                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions, registry);
         return new KnownAbandonedTransactionsImpl(
                 abandonedTimestampStore, softCache, registry, config.versionFourAbortedTransactionsCacheSize());
     }

@@ -16,30 +16,28 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 public class AbandonedTransactionSoftCacheTest {
     private final AbandonedTimestampStore abandonedTimestampStore = mock(AbandonedTimestampStore.class);
     private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
+
+    private final TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
     private final AbandonedTransactionSoftCache abandonedTransactionSoftCache =
-            new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+            new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions, registry);
 
     @Before
     public void before() {
@@ -58,7 +56,7 @@ public class AbandonedTransactionSoftCacheTest {
         when(knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()).thenReturn(maxTsInCurrentBucket);
 
         AbandonedTransactionSoftCache abandonedTransactionSoftCache =
-                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions, registry);
         // no remote calls upon init
         verify(abandonedTimestampStore, times(0)).getAbandonedTimestampsInRange(anyLong(), anyLong());
 

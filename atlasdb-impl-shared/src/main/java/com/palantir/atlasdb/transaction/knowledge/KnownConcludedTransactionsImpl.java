@@ -58,7 +58,8 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
         this.cachedConcludedTimestampsRef = new AtomicReference<>(ImmutableCache.of(ImmutableRangeSet.of()));
         this.knownConcludedTransactionsMetrics = metrics;
-        metrics.disjointCacheIntervals(() -> cachedConcludedTimestampsRef.get().ranges().size());
+        metrics.disjointCacheIntervals(
+                () -> cachedConcludedTimestampsRef.get().ranges().size());
     }
 
     public static KnownConcludedTransactions create(
@@ -126,8 +127,8 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
             if (cachedRanges.enclosesAll(timestampRanges)) {
                 return;
             }
-            Cache targetCacheValue = ImmutableCache.of(
-                    ImmutableRangeSet.unionOf(Sets.union(cachedConcludedTimestamps.ranges(), timestampRanges.asRanges())));
+            Cache targetCacheValue = ImmutableCache.of(ImmutableRangeSet.unionOf(
+                    Sets.union(cachedConcludedTimestamps.ranges(), timestampRanges.asRanges())));
             if (cachedConcludedTimestampsRef.compareAndSet(cachedConcludedTimestamps, targetCacheValue)) {
                 return;
             }

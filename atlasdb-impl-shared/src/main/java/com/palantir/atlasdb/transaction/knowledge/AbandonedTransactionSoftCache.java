@@ -23,6 +23,7 @@ import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Con
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Map;
@@ -55,10 +56,15 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
     private final AbandonedTimestampStore abandonedTimestampStore;
     private final KnownConcludedTransactions knownConcludedTransactions;
 
+    private final AbandonedTransactionsSoftCacheMetrics metrics;
+
     public AbandonedTransactionSoftCache(
-            AbandonedTimestampStore abandonedTimestampStore, KnownConcludedTransactions knownConcludedTransactions) {
+            AbandonedTimestampStore abandonedTimestampStore,
+            KnownConcludedTransactions knownConcludedTransactions,
+            TaggedMetricRegistry registry) {
         this.abandonedTimestampStore = abandonedTimestampStore;
         this.knownConcludedTransactions = knownConcludedTransactions;
+        this.metrics = AbandonedTransactionsSoftCacheMetrics.of(registry);
         this.autobatcher = Autobatchers.coalescing(this::processBatch)
                 .safeLoggablePurpose("get-transaction-soft-cache-status")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
@@ -139,11 +145,11 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
 
         // It is possible that cache was updated by the time we reach here and refresh is not required any more.
         if (latestTs <= currentLastKnownConcluded) {
+            metrics.localReads().mark();
             return snapshot;
         }
 
-        Set<Long> newAbortedTransactions =
-                abandonedTimestampStore.getAbandonedTimestampsInRange(currentLastKnownConcluded, latestTs);
+        Set<Long> newAbortedTransactions = loadFromRemote(currentLastKnownConcluded, latestTs);
         snapshot.extend(latestTs, newAbortedTransactions);
         return snapshot;
     }
@@ -151,10 +157,14 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
     private PatchyCache loadPatchyBucket(long latestTsSeenSoFar, Bucket latestBucketSeenSoFar) {
         long maxTsInCurrentBucket = latestBucketSeenSoFar.getMaxTsInCurrentBucket();
 
-        Set<Long> abandonedTimestamps = abandonedTimestampStore.getAbandonedTimestampsInRange(
-                latestBucketSeenSoFar.getMinTsInBucket(), maxTsInCurrentBucket);
+        Set<Long> abandonedTimestamps = loadFromRemote(latestBucketSeenSoFar.getMinTsInBucket(), maxTsInCurrentBucket);
 
         return new PatchyCache(Math.min(latestTsSeenSoFar, maxTsInCurrentBucket), abandonedTimestamps);
+    }
+
+    private Set<Long> loadFromRemote(long startInclusive, long endInclusive) {
+        metrics.remoteReads().mark();
+        return abandonedTimestampStore.getAbandonedTimestampsInRange(startInclusive, endInclusive);
     }
 
     // This is a mutable snapshot, but it is guaranteed that the snapshot will not extend beyond its bucket
@@ -183,7 +193,6 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
         PatchyCache(long lastKnownConcludedTimestamp, Set<Long> abortedTransactions) {
             Set<Long> mutableAbortedTimestamps = ConcurrentHashMap.newKeySet();
             mutableAbortedTimestamps.addAll(abortedTransactions);
-
             this.lastKnownConcludedTimestamp = lastKnownConcludedTimestamp;
             this.abortedTransactions = mutableAbortedTimestamps;
             this.bucket = Bucket.forTimestamp(lastKnownConcludedTimestamp);
