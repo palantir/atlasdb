@@ -354,38 +354,38 @@ import javax.validation.constraints.NotNull;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
-        ReadTransaction transaction = new ReadTransaction(
-                new SnapshotTransaction(
-                        metricsManager,
-                        keyValueService,
-                        timelockService,
-                        NoOpLockWatchManager.create(),
-                        transactionService,
-                        NoOpCleaner.INSTANCE,
-                        getStartTimestampSupplier(),
-                        conflictDetectionManager,
-                        sweepStrategyManager,
-                        immutableTs,
-                        Optional.empty(),
-                        condition,
-                        constraintModeSupplier.get(),
-                        cleaner.getTransactionReadTimeoutMillis(),
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        allowHiddenTableAccess,
-                        timestampValidationReadCache,
-                        getRangesExecutor,
-                        defaultGetRangesConcurrency,
-                        sweepQueueWriter,
-                        deleteExecutor,
-                        validateLocksOnReads,
-                        transactionConfig,
-                        conflictTracer,
-                        tableLevelMetricsController,
-                        knowledge),
-                sweepStrategyManager);
-
-        // todo aalouane TEX mark concluded transaction
-        return runTaskThrowOnConflictWithCallback(txn -> task.execute(txn, condition), transaction, condition::cleanup);
+        SnapshotTransaction transaction = new SnapshotTransaction(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                NoOpLockWatchManager.create(),
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                getStartTimestampSupplier(),
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTs,
+                Optional.empty(),
+                condition,
+                constraintModeSupplier.get(),
+                cleaner.getTransactionReadTimeoutMillis(),
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                allowHiddenTableAccess,
+                timestampValidationReadCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                sweepQueueWriter,
+                deleteExecutor,
+                validateLocksOnReads,
+                transactionConfig,
+                conflictTracer,
+                tableLevelMetricsController,
+                knowledge);
+        // todo aalouane TEX mark registration and completion for transaction
+        return runTaskThrowOnConflictWithCallback(
+                txn -> task.execute(txn, condition),
+                new ReadTransaction(transaction, sweepStrategyManager),
+                condition::cleanup);
     }
 
     @Override
