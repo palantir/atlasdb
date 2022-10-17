@@ -25,7 +25,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.HostIdResult.Type;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
@@ -33,17 +32,15 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import one.util.streamex.EntryStream;
-import org.apache.thrift.transport.TTransportException;
-import org.immutables.value.Value;
-import org.immutables.value.Value.Check;
-
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import one.util.streamex.EntryStream;
+import org.apache.thrift.transport.TTransportException;
+import org.immutables.value.Value;
 
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
@@ -91,11 +88,16 @@ public final class CassandraTopologyValidator {
      * to ensure their topologies are matching. This is done to prevent user-led split-brain,
      * which can occur if a user accidentally provided hostnames for two different Cassandra clusters.
      *
-     * This is done by coming to a consensus (quorum) on the topology of the pre-existing hosts,
+     * This is done by coming to a consensus on the topology of the pre-existing hosts,
      * and then subsequently returning any new hosts which do not match the present topology.
      *
-     * Of course, there is the base case of all hosts will be new. In this case, we simply check for
-     * consensus on all hosts then, returning only the hosts which did not agree.
+     * Of course, there is the base case of all hosts will be new. In this case, we simply check that all
+     * new hosts are in consensus.
+     *
+     * Consensus is defined as:
+     * (1) A quorum of nodes (excluding those without `get_host_ids` support) are reachable.
+     * (2) All reachable nodes have the same set of hostIds.
+     * (3) All Cassandra nodes without get_host_ids support are considered to be matching.
      *
      * The above should be sufficient to prevent user-led split-brain as:
      * (1) The initial list of servers validate that they've at least quorum for consensus of topology.
@@ -120,7 +122,7 @@ public final class CassandraTopologyValidator {
 
         Preconditions.checkArgument(
                 Sets.difference(newlyAddedHosts, allHosts.keySet()).isEmpty(),
-                "Newly added hosts must be a subset of all hosts.",
+                "Newly added hosts must be a subset of all hosts, as otherwise we have no way to query them.",
                 SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                 SafeArg.of("allHosts", allHosts));
 
@@ -133,7 +135,7 @@ public final class CassandraTopologyValidator {
         if (currentServers.isEmpty()) {
             return maybeGetConsistentClusterTopology(newServers)
                     .map(topology ->
-                            // Do not add new servers which are not in consensus
+                            // Do not add new servers which were unreachable
                             (Set<CassandraServer>) Sets.difference(newlyAddedHosts, topology.serversInConsensus()))
                     .orElse(newlyAddedHosts);
         }
@@ -143,7 +145,8 @@ public final class CassandraTopologyValidator {
         // Otherwise, if we cannot come to consensus on the current topology, just refuse to add any new servers.
         return maybeGetConsistentClusterTopology(currentServers)
                 .map(topology -> EntryStream.of(fetchHostIdsIgnoringSoftFailures(newServers))
-                        .removeValues(hostIds -> hostIds.equals(topology.hostIds()))
+                        .mapValues(HostIdResult::hostIds)
+                        .removeValues(topology.hostIds()::equals)
                         .keys()
                         .toSet())
                 .orElse(newlyAddedHosts);
@@ -153,8 +156,9 @@ public final class CassandraTopologyValidator {
      * Obtains a consistent view of the cluster topology for the provided hosts.
      *
      * This is achieved by comparing the hostIds (list of UUIDs for each C* node) for all Cassandra nodes.
-     * A quorum of C* nodes are required to be queryable and all nodes queried must have the same value topology
-     * for this to return a valid result.
+     * A quorum of C* nodes are required to be reachable and all reachable nodes must have the same
+     * topology (hostIds) for this to return a valid result. Nodes that are reachable, but do not have
+     * support for our the get_host_ids endpoint, are simply ignored and will not be filtered out.
      *
      * @param hosts Cassandra hosts to obtain a consistent topology view from
      * @return If consensus could be reached, the topology and the list of valid hosts, otherwise empty.
@@ -162,18 +166,24 @@ public final class CassandraTopologyValidator {
     private Optional<ConsistentClusterTopology> maybeGetConsistentClusterTopology(
             Map<CassandraServer, CassandraClientPoolingContainer> hosts) {
         Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures = fetchHostIdsIgnoringSoftFailures(hosts);
+        // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
-            return Optional.empty();
+            return Optional.of(ConsistentClusterTopology.builder()
+                    .hostIds(Set.of())
+                    .serversInConsensus(hosts.keySet())
+                    .build());
         }
 
         Map<CassandraServer, Set<String>> hostIdsWithoutHardFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
-                .removeValues(result -> result.type().equals(Type.HARD_FAILURE))
+                .removeValues(result -> result.type().equals(HostIdResult.Type.HARD_FAILURE))
                 .mapValues(HostIdResult::hostIds)
                 .toMap();
 
+        // Only consider hosts that have the endpoint for quorum calculations
         int quorum = (hostIdsByServerWithoutSoftFailures.size() + 1) / 2;
 
+        // If too many hosts are unreachable, then we cannot come to a consensus
         if (hostIdsWithoutHardFailures.size() < quorum) {
             return Optional.empty();
         }
@@ -181,10 +191,12 @@ public final class CassandraTopologyValidator {
         Set<Set<String>> uniqueSetsOfHostIds =
                 EntryStream.of(hostIdsWithoutHardFailures).values().toImmutableSet();
 
+        // If we only have one set of host ids, we've consensus, otherwise fail
         if (uniqueSetsOfHostIds.size() == 1) {
             Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
             Set<CassandraServer> cassandraServersWithMatchingHostIds = EntryStream.of(
                             hostIdsByServerWithoutSoftFailures)
+                    .mapValues(HostIdResult::hostIds)
                     .filterValues(uniqueHostIds::equals)
                     .keys()
                     .toSet();
@@ -232,7 +244,7 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
         return EntryStream.of(servers)
                 .mapValues(this::fetchHostIds)
-                .removeValues(result -> Type.SOFT_FAILURE.equals(result.type()))
+                .removeValues(result -> HostIdResult.Type.SOFT_FAILURE.equals(result.type()))
                 .toMap();
     }
 
@@ -245,53 +257,6 @@ public final class CassandraTopologyValidator {
 
         static ImmutableConsistentClusterTopology.Builder builder() {
             return ImmutableConsistentClusterTopology.builder();
-        }
-    }
-
-    @Value.Immutable
-    public interface HostIdResult {
-
-        HostIdResult HARD_FAILURE =
-                builder().type(Type.HARD_FAILURE).hostIds(Set.of()).build();
-        HostIdResult SOFT_FAILURE =
-                builder().type(Type.SOFT_FAILURE).hostIds(Set.of()).build();
-
-        enum Type {
-            // Failure should affect quorum calculations (network failure)
-            HARD_FAILURE,
-            // Failure shouldn't affect quorum calculations (i.e. missing API in C*)
-            SOFT_FAILURE,
-            SUCCESS
-        }
-
-        Type type();
-
-        Set<String> hostIds();
-
-        @Check
-        default void checkHostIdsStateBasedOnResultType() {
-            Preconditions.checkState(
-                    !(type().equals(Type.SUCCESS) && hostIds().isEmpty()),
-                    "It is expected that there should be at least one host id if the result is successful.");
-            Preconditions.checkState(
-                    type().equals(Type.SUCCESS) || hostIds().isEmpty(),
-                    "It is expected that no hostIds should be present when there is a failure.");
-        }
-
-        static HostIdResult success(Iterable<String> hostIds) {
-            return builder().type(Type.SUCCESS).hostIds(hostIds).build();
-        }
-
-        static HostIdResult hardFailure() {
-            return HARD_FAILURE;
-        }
-
-        static HostIdResult softFailure() {
-            return SOFT_FAILURE;
-        }
-
-        static ImmutableHostIdResult.Builder builder() {
-            return ImmutableHostIdResult.builder();
         }
     }
 }
