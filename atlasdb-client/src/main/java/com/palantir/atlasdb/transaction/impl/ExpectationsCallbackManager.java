@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-public final class TransactionalExpectationsCallbackManager {
+public final class ExpectationsCallbackManager {
     private final List<Consumer<ExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
 
     public void registerCallback(Consumer<ExpectationsStatistics> callback) {

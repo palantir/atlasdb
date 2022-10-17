@@ -16,14 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public abstract class ForwardingCallbackAwareTransaction extends ForwardingTransaction
+public abstract class ForwardingCallbackAwareTransaction extends ExpectationsAwareForwardingTransaction
         implements CallbackAwareTransaction {
 
     @Override
@@ -42,25 +38,5 @@ public abstract class ForwardingCallbackAwareTransaction extends ForwardingTrans
     @Override
     public void runSuccessCallbacksIfDefinitivelyCommitted() {
         delegate().runSuccessCallbacksIfDefinitivelyCommitted();
-    }
-
-    @Override
-    public void runExpectationsCallbacks(ExpectationsStatistics stats) {
-        delegate().runExpectationsCallbacks(stats);
-    }
-
-    @Override
-    public long getBytesRead() {
-        return delegate().getBytesRead();
-    }
-
-    @Override
-    public ImmutableMap<TableReference, Long> getBytesReadByTable() {
-        return delegate().getBytesReadByTable();
-    }
-
-    @Override
-    public ExpectationsConfig expectationsConfig() {
-        return delegate().expectationsConfig();
     }
 }

@@ -40,8 +40,7 @@ public abstract class AbstractTransaction implements Transaction {
     protected AtomicReference<ExpectationsConfig> expectationsConfigReference =
             new AtomicReference<>(ExpectationsConfigurations.DEFAULT);
 
-    protected TransactionalExpectationsCallbackManager expectationsCallbackManager =
-            new TransactionalExpectationsCallbackManager();
+    protected ExpectationsCallbackManager expectationsCallbackManager = new ExpectationsCallbackManager();
 
     @Override
     @Idempotent

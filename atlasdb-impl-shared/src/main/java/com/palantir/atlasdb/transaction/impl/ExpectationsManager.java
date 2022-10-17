@@ -72,12 +72,11 @@ public final class ExpectationsManager implements AutoCloseable {
      * Cleans up state and calls expectations callbacks for successful/aborted transaction.
      */
     void markConcludedTransaction(ExpectationsAwareTransaction transaction) {
-        // -1 is a placeholder, might make transactionAge an optional in exepctationsStats
+        // empty maps are placeholders for now
         ExpectationsStatistics stats = ImmutableExpectationsStatistics.builder()
                 .transactionAgeMillis(Optional.ofNullable(transactionClock.get(transaction))
                         .map(Stopwatch::elapsed)
-                        .map(Duration::toMillis)
-                        .orElse(-1L))
+                        .map(Duration::toMillis))
                 .bytesRead(transaction.getBytesReadByTable())
                 .maximumBytesReadInOneKvsCall(ImmutableMap.of())
                 .kvsReadCallCount(ImmutableMap.of())
