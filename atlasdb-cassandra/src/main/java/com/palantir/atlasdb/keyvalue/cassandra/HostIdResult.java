@@ -36,10 +36,10 @@ public interface HostIdResult {
 
     @Value.Check
     default void checkHostIdsStateBasedOnResultType() {
-        Preconditions.checkState(
+        Preconditions.checkArgument(
                 !(type().equals(Type.SUCCESS) && hostIds().isEmpty()),
                 "It is expected that there should be at least one host id if the result is successful.");
-        Preconditions.checkState(
+        Preconditions.checkArgument(
                 type().equals(Type.SUCCESS) || hostIds().isEmpty(),
                 "It is expected that no hostIds should be present when there is a failure.");
     }
