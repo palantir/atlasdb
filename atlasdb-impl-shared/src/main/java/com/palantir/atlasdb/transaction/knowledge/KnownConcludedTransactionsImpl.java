@@ -16,7 +16,11 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.*;
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -24,10 +28,11 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.immutables.value.Value;
+
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import org.immutables.value.Value;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class KnownConcludedTransactionsImpl implements KnownConcludedTransactions {

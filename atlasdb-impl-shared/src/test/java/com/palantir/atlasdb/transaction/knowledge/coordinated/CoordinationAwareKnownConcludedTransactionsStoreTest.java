@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.*;
-
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -27,6 +24,11 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     private final KnownConcludedTransactionsImpl delegate = mock(KnownConcludedTransactionsImpl.class);
