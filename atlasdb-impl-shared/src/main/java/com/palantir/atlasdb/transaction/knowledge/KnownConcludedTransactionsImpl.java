@@ -16,11 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -28,9 +24,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import org.immutables.value.Value;
+
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicReference;
-import org.immutables.value.Value;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class KnownConcludedTransactionsImpl implements KnownConcludedTransactions {
@@ -61,8 +58,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
         this.knownConcludedTransactionsStore = knownConcludedTransactionsStore;
         this.cachedConcludedTimestampsRef = new AtomicReference<>(ImmutableCache.of(ImmutableRangeSet.of()));
         this.knownConcludedTransactionsMetrics = metrics;
-        metrics.disjointCacheIntervals(
-                () -> cachedConcludedTimestampsRef.get().ranges().asRanges().size());
+        metrics.disjointCacheIntervals(() -> cachedConcludedTimestampsRef.get().ranges().size());
     }
 
     public static KnownConcludedTransactions create(
@@ -75,10 +71,12 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
     @Override
     public boolean isKnownConcluded(long startTimestamp, Consistency consistency) {
-        if (cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp)) {
+        if (cachedConcludedTimestampsRef.get().rangeSet().contains(startTimestamp)) {
+            knownConcludedTransactionsMetrics.localReads().mark();
             return true;
         }
         if (consistency == Consistency.REMOTE_READ) {
+            knownConcludedTransactionsMetrics.remoteReads().mark();
             return performRemoteReadAndCheckConcluded(startTimestamp);
         }
         return false;
@@ -108,7 +106,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
     private boolean performRemoteReadAndCheckConcluded(long startTimestamp) {
         cacheUpdater.get();
-        return cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp);
+        return cachedConcludedTimestampsRef.get().rangeSet().contains(startTimestamp);
     }
 
     private void updateCacheFromRemote() {
@@ -123,13 +121,13 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
             Cache cachedConcludedTimestamps = cachedConcludedTimestampsRef.get();
 
-            ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.ranges();
+            ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.rangeSet();
 
             if (cachedRanges.enclosesAll(timestampRanges)) {
                 return;
             }
             Cache targetCacheValue = ImmutableCache.of(
-                    ImmutableRangeSet.unionOf(Sets.union(cachedRanges.asRanges(), timestampRanges.asRanges())));
+                    ImmutableRangeSet.unionOf(Sets.union(cachedConcludedTimestamps.ranges(), timestampRanges.asRanges())));
             if (cachedConcludedTimestampsRef.compareAndSet(cachedConcludedTimestamps, targetCacheValue)) {
                 return;
             }
@@ -144,11 +142,16 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     @Value.Immutable
     interface Cache {
         @Value.Parameter
-        ImmutableRangeSet<Long> ranges();
+        ImmutableRangeSet<Long> rangeSet();
+
+        @Value.Lazy
+        default ImmutableSet<Range<Long>> ranges() {
+            return rangeSet().asRanges();
+        }
 
         @Value.Lazy
         default long lastKnownConcludedTs() {
-            return ranges().asRanges().stream()
+            return ranges().stream()
                     .filter(Range::hasUpperBound)
                     .map(Range::upperEndpoint)
                     .max(Comparator.naturalOrder())

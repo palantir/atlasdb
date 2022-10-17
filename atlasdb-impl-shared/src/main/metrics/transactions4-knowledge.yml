@@ -8,6 +8,12 @@ namespaces:
       disjointCacheIntervals:
         type: gauge
         docs: The number of disjoint intervals of timestamps tracked in the cache.
+      remoteReads:
+        type: meter
+        docs: The number of times concluded transaction ranges were loaded from remote.
+      localReads:
+        type: meter
+        docs: The number of times concluded transaction timestamp was available locally.
   abortedTransctionsCache:
     docs: Metrics tracking aborted transactions cache usage.
     metrics:
