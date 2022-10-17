@@ -16,11 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.TransactionReadInfo;
 
 public abstract class ExpectationsAwareForwardingTransaction extends ForwardingTransaction
         implements ExpectationsAwareTransaction {
@@ -33,17 +32,17 @@ public abstract class ExpectationsAwareForwardingTransaction extends ForwardingT
     }
 
     @Override
-    public long getBytesRead() {
-        return delegate().getBytesRead();
-    }
-
-    @Override
-    public ImmutableMap<TableReference, Long> getBytesReadByTable() {
-        return delegate().getBytesReadByTable();
-    }
-
-    @Override
     public ExpectationsConfig expectationsConfig() {
         return delegate().expectationsConfig();
+    }
+
+    @Override
+    public TransactionReadInfo getReadInfo() {
+        return delegate().getReadInfo();
+    }
+
+    @Override
+    public ExpectationsStatistics getCallbackStatistics() {
+        return delegate().getCallbackStatistics();
     }
 }

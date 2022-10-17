@@ -16,22 +16,9 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.AtomicLongMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ExpectationsDataSupplier;
 
-public final class TransactionExpectationsTracker {
-    private final AtomicLongMap<TableReference> bytesReadByTable = AtomicLongMap.create();
-
-    void updateBytesRead(TableReference tableRef, long bytesRead) {
-        bytesReadByTable.addAndGet(tableRef, bytesRead);
-    }
-
-    long getBytesRead() {
-        return bytesReadByTable.sum();
-    }
-
-    ImmutableMap<TableReference, Long> getBytesReadByTable() {
-        return ImmutableMap.copyOf(bytesReadByTable.asMap());
-    }
+public interface TransactionExpectationsTracker extends ExpectationsDataSupplier {
+    void trackBytesRead(TableReference tableRef, long bytesRead);
 }

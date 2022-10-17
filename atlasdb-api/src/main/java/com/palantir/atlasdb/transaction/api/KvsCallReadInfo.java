@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import org.immutables.value.Value;
 
-public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final KeyValueService delegate;
-    private final TransactionExpectationsTracker tracker;
+@Value.Immutable
+public interface KvsCallReadInfo {
+    long bytesRead();
 
-    public TrackingKeyValueService(KeyValueService delegate, TransactionExpectationsTracker tracker) {
-        this.delegate = delegate;
-        this.tracker = tracker;
-    }
-
-    @Override
-    public KeyValueService delegate() {
-        return delegate;
-    }
+    String kvsMethodName();
 }

@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+public interface ExpectationsDataSupplier {
+    TransactionReadInfo getReadInfo();
 
-public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final KeyValueService delegate;
-    private final TransactionExpectationsTracker tracker;
-
-    public TrackingKeyValueService(KeyValueService delegate, TransactionExpectationsTracker tracker) {
-        this.delegate = delegate;
-        this.tracker = tracker;
-    }
-
-    @Override
-    public KeyValueService delegate() {
-        return delegate;
-    }
+    ExpectationsStatistics getCallbackStatistics();
 }

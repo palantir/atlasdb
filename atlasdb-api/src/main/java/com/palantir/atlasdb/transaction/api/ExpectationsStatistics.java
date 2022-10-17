@@ -25,9 +25,5 @@ import org.immutables.value.Value;
 public interface ExpectationsStatistics {
     Optional<Long> transactionAgeMillis();
 
-    ImmutableMap<TableReference, Long> bytesRead();
-
-    ImmutableMap<TableReference, Long> maximumBytesReadInOneKvsCall();
-
-    ImmutableMap<TableReference, Long> kvsReadCallCount();
+    ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable();
 }

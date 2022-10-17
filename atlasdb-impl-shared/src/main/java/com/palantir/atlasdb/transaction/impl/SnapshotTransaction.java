@@ -96,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
+import com.palantir.atlasdb.transaction.api.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -175,6 +176,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -266,7 +268,24 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final TransactionExpectationsTracker expectationsTracker = new TransactionExpectationsTracker();
+
+    // todo aalouane TEX implement interface, maybe move this to AbstractTransaction
+    protected final TransactionExpectationsTracker expectationsTracker = new TransactionExpectationsTracker() {
+        @Override
+        public void trackBytesRead(TableReference tableRef, long bytesRead) {
+            throw new NotImplementedException();
+        }
+
+        @Override
+        public TransactionReadInfo getReadInfo() {
+            throw new NotImplementedException();
+        }
+
+        @Override
+        public ExpectationsStatistics getCallbackStatistics() {
+            throw new NotImplementedException();
+        }
+    };
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -380,6 +399,16 @@ public class SnapshotTransaction extends AbstractTransaction
     public void markTableInvolved(TableReference tableRef) {
         // Not setting hasReads on purpose.
         checkGetPreconditions(tableRef);
+    }
+
+    @Override
+    public TransactionReadInfo getReadInfo() {
+        return expectationsTracker.getReadInfo();
+    }
+
+    @Override
+    public ExpectationsStatistics getCallbackStatistics() {
+        return expectationsTracker.getCallbackStatistics();
     }
 
     @Override
@@ -1801,16 +1830,6 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void runExpectationsCallbacks(ExpectationsStatistics stats) {
         expectationsCallbackManager.runCallbacks(stats);
-    }
-
-    @Override
-    public long getBytesRead() {
-        return expectationsTracker.getBytesRead();
-    }
-
-    @Override
-    public ImmutableMap<TableReference, Long> getBytesReadByTable() {
-        return expectationsTracker.getBytesReadByTable();
     }
 
     @Override
