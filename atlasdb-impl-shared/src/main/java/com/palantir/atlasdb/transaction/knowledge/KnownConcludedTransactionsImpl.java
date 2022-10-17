@@ -28,11 +28,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.immutables.value.Value;
-
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import org.immutables.value.Value;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public final class KnownConcludedTransactionsImpl implements KnownConcludedTransactions {
@@ -89,18 +88,18 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     @Override
     public void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals) {
         Preconditions.checkState(
-                sanityCheckConcludedRanges(knownConcludedIntervals),
+                verifyConcludedRanges(knownConcludedIntervals),
                 "KnownConcludedInterval is expected to have closed lower and upper bounds.",
                 SafeArg.of("knownConcludedInterval", knownConcludedIntervals));
         knownConcludedTransactionsStore.supplement(knownConcludedIntervals);
         ensureRangesCached(ImmutableRangeSet.copyOf(knownConcludedIntervals));
     }
 
-    private boolean sanityCheckConcludedRanges(Set<Range<Long>> knownConcludedIntervals) {
-        return knownConcludedIntervals.stream().allMatch(this::sanityCheckConcludedRange);
+    private boolean verifyConcludedRanges(Set<Range<Long>> knownConcludedIntervals) {
+        return knownConcludedIntervals.stream().allMatch(this::verifyConcludedRange);
     }
 
-    private boolean sanityCheckConcludedRange(Range<Long> range) {
+    private boolean verifyConcludedRange(Range<Long> range) {
         return range.hasLowerBound()
                 && range.hasUpperBound()
                 && range.lowerBoundType().equals(BoundType.CLOSED)
