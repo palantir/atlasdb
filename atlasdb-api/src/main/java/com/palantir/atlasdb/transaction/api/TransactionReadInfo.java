@@ -18,11 +18,18 @@ package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
+/**
+ * Data about a transaction's read/get interactions with {@link com.palantir.atlasdb.keyvalue.api.KeyValueService}.
+ */
 @Value.Immutable
 public interface TransactionReadInfo {
     long bytesRead();
 
     long kvsCalls();
 
+    /**
+     * Data about the {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get call that read the
+     * maximum amount of data  for a given transaction.
+     */
     KvsCallReadInfo maximumBytesKvsCallInfo();
 }

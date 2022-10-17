@@ -18,6 +18,9 @@ package com.palantir.atlasdb.transaction.api;
 
 import org.immutables.value.Value;
 
+/**
+ *  Info about one specific {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get method call.
+ */
 @Value.Immutable
 public interface KvsCallReadInfo {
     long bytesRead();
