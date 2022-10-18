@@ -157,10 +157,6 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
         }
     }
 
-    private static String toLowerCase(String string) {
-        return string.toLowerCase(Locale.ROOT);
-    }
-
     @Override
     public String getPrefixedTableName(TableReference tableRef) {
         return tablePrefix + DbKvs.internalTableName(tableRef);
@@ -174,5 +170,9 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
     @Override
     public void clearCacheForTable(String fullTableName) {
         oracleTableNameUnmapper.clearCacheForTable(fullTableName);
+    }
+
+    private static String toLowerCase(String string) {
+        return string.toLowerCase(Locale.ROOT);
     }
 }
