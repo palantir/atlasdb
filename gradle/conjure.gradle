@@ -1,0 +1,13 @@
+apply plugin: 'com.palantir.conjure'
+
+conjure {
+    parser {
+        requireSafety = true
+    }
+
+    java {
+        undertowServicePrefixes = true
+        undertowListenableFutures = true
+        useImmutableBytes = true
+    }
+}

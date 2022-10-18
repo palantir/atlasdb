@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.logsafe.Unsafe;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
      * TODO(fdesouza): Remove this once PDS-95791 is resolved.
      * @deprecated Remove this once PDS-95791 is resolved.
      */
+    @Unsafe
     @Deprecated
     @Value.Immutable
     @JsonDeserialize(as = ImmutableClientLockDiagnosticDigest.class)

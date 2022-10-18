@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    - We now require log safety to be specified on primitive types in Conjure definitions.
+    - Logging arguments are annotated with their safety.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6279
