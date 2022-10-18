@@ -114,8 +114,7 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ExecutorService newCachedThreadPool(String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        verifyName(name);
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
@@ -173,11 +172,11 @@ public final class PTExecutors {
      *
      * @return the newly created thread pool with no new span
      */
-    public static ExecutorService newCachedThreadPoolNoSpan(String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
-        return newCachedThreadPoolWithMaxThreadsNoSpan(Short.MAX_VALUE, name);
+    public static ExecutorService newCachedThreadPoolWithoutSpan(String name) {
+        verifyName(name);
+        return newCachedThreadPoolWithMaxThreadsWithoutSpan(Short.MAX_VALUE, name);
     }
+    private static
 
     /** Specialized cached executor which throws
      * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.
@@ -186,8 +185,7 @@ public final class PTExecutors {
      */
     @Beta
     public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        verifyName(name);
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
@@ -205,9 +203,8 @@ public final class PTExecutors {
      * If you have any doubt, this probably isn't what you're looking for. Best of luck, friend.
      */
     @Beta
-    public static ExecutorService newCachedThreadPoolWithMaxThreadsNoSpan(int maxThreads, String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+    public static ExecutorService newCachedThreadPoolWithMaxThreadsWithoutSpan(int maxThreads, String name) {
+        verifyName(name);
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
@@ -664,9 +661,17 @@ public final class PTExecutors {
 
     /**
      * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
-     * variables are propagated through.  This does not create a span on the thread.
+     * variables are propagated through.
      */
     public static ExecutorService wrap(final ExecutorService executorService) {
+        return wrap("PTExecutor", executorService);
+    }
+
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.  This does not create a span on the thread.
+     */
+    public static ExecutorService wrapWithoutSpan(final ExecutorService executorService) {
         return Tracers.wrap(executorService);
     }
 
@@ -824,6 +829,11 @@ public final class PTExecutors {
         };
 
         return threadFactory;
+    }
+
+    private static void verifyName(String name) {
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
     }
 
     private PTExecutors() {
