@@ -646,6 +646,14 @@ public final class PTExecutors {
 
     /**
      * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.  This does not create a span on the thread.
+     */
+    public static ExecutorService wrapWithoutSpan(final ExecutorService executorService) {
+        return Tracers.wrap(executorService);
+    }
+
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
      * variables are propagated through.
      */
     public static ExecutorService wrap(final String operationName, final ExecutorService executorService) {
@@ -668,14 +676,6 @@ public final class PTExecutors {
      */
     public static ExecutorService wrap(final ExecutorService executorService) {
         return wrap("PTExecutor", executorService);
-    }
-
-    /**
-     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
-     * variables are propagated through.  This does not create a span on the thread.
-     */
-    public static ExecutorService wrapWithoutSpan(final ExecutorService executorService) {
-        return Tracers.wrap(executorService);
     }
 
     /**
