@@ -25,7 +25,6 @@ import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
-import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Observability;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.OpenSpan;
@@ -91,48 +90,13 @@ public class PTExecutorsTest {
             innerSpanId.set(innerSpan.getSpanId());
             innerSpanParentId.set(innerSpan.getParentSpanId().get());
 
-            // Close innerSpan
             Tracer.fastCompleteSpan();
         });
         Span outerSpan = Tracer.completeSpan().get();
 
-        // Proves that both inner and outer spans are part of the same trace.
         assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
-
-        // Proves that the inner span and outer span are not the same
         assertNotEquals(null, innerSpanId.get(), outerSpan.getSpanId());
-
-        // Proves that the inner span is a child of the outer span
         assertThat(innerSpanParentId.get()).isEqualTo(outerSpan.getSpanId());
-    }
-
-    @Test
-    public void testExecutorThreadLocalState_cachedPoolNospanNotLocal() {
-        CloseableTracer outerTrace = CloseableTracer.startSpan("outerThreadTest");
-        String outerTraceId = Tracer.getTraceId();
-        System.out.println("name");
-        System.out.println(Thread.currentThread().getName());
-
-        withExecutor(PTExecutors::newCachedThreadPool, executor -> {
-            ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
-
-            threadLocal.set("test");
-            System.out.println("name");
-            System.out.println(Thread.currentThread().getName());
-            // System.out.print(threadLocal.get());
-
-            CloseableTracer innerTrace = CloseableTracer.startSpan("innerThreadTest");
-            String innerTraceId = Tracer.getTraceId();
-
-            String result = executor.submit(threadLocal::get).get();
-
-            System.out.println(result);
-            assertThat(result).isNull();
-
-            innerTrace.close();
-            assertThat(outerTraceId).isEqualTo(innerTraceId);
-        });
-        outerTrace.close();
     }
 
     @Test
