@@ -189,7 +189,6 @@ public final class OracleDdlTableTest {
     public void dropTablesDeletesTableMetadataCaseInsensitivelyIfCaseInsensitiveSet()
             throws TableMappingNotFoundException {
         when(sqlConnection.selectCount(any(), any(), any())).thenReturn(1L);
-
         createTable();
         createOverflowTable();
 
