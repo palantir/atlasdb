@@ -30,8 +30,8 @@ import org.immutables.value.Value;
 
 /**
  * Drops all Oracle Tables associated with the table and overflow table prefixes provided in the config.
- * This does _not_ clean up the AtlasDB metadata and name mapping tables, as these can be shared across multiple
- * prefixes.
+ * This does _not_ clean up the AtlasDB metadata, _timestamp, and name mapping tables, as these can be shared
+ * across multiple prefixes.
  */
 public final class OracleNamespaceDeleter implements NamespaceDeleter {
     private final ConnectionSupplier connectionSupplier;
