@@ -1,5 +1,5 @@
 type: feature
 feature:
-  description: '[TEX] Interfaces and some wiring (draft)'
+  description: '[TEX] Part 1: Interfaces and some wiring'
   links:
   - https://github.com/palantir/atlasdb/pull/6294
