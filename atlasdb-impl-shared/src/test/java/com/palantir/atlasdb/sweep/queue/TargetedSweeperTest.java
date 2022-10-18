@@ -157,7 +157,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .build());
 
         sweepQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
@@ -186,7 +186,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void secondaryQueueReadsFirstQueueLastSweptTimestamp() {
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -215,7 +215,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1399,8 +1399,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .thoroughThreads(0)
                 .build();
         for (int i = 0; i < sweepers; i++) {
-            TargetedSweeper sweeperInstance =
-                    TargetedSweeper.createUninitialized(metricsManager, () -> runtime, install, ImmutableList.of());
+            TargetedSweeper sweeperInstance = TargetedSweeper.createUninitialized(
+                    metricsManager, () -> runtime, install, ImmutableList.of(), _unused -> {});
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();

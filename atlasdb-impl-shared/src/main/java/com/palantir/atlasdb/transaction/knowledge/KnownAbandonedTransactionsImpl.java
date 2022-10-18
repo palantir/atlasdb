@@ -21,14 +21,14 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
-import com.palantir.atlasdb.transaction.knowledge.AbortedTransactionSoftCache.TransactionSoftCacheStatus;
+import com.palantir.atlasdb.transaction.knowledge.AbandonedTransactionSoftCache.TransactionSoftCacheStatus;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
 import org.checkerframework.checker.index.qual.NonNegative;
 
-public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
+public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransactions {
 
     public static final int MAXIMUM_CACHE_WEIGHT = 100_000;
 
@@ -39,13 +39,13 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
      */
     private final Cache<Bucket, Set<Long>> reliableCache;
 
-    private final AbortedTransactionSoftCache softCache;
+    private final AbandonedTransactionSoftCache softCache;
     private final AbortedTransctionsCacheMetrics metrics;
 
     @VisibleForTesting
-    KnownAbortedTransactionsImpl(
+    KnownAbandonedTransactionsImpl(
             AbandonedTimestampStore abandonedTimestampStore,
-            AbortedTransactionSoftCache softCache,
+            AbandonedTransactionSoftCache softCache,
             TaggedMetricRegistry registry,
             int maxCacheWeight) {
         this.abandonedTimestampStore = abandonedTimestampStore;
@@ -62,19 +62,19 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
                 .build();
     }
 
-    public static KnownAbortedTransactionsImpl create(
+    public static KnownAbandonedTransactionsImpl create(
             KnownConcludedTransactions knownConcludedTransactions,
             AbandonedTimestampStore abandonedTimestampStore,
             TaggedMetricRegistry registry,
             InternalSchemaInstallConfig config) {
-        AbortedTransactionSoftCache softCache =
-                new AbortedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
-        return new KnownAbortedTransactionsImpl(
+        AbandonedTransactionSoftCache softCache =
+                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+        return new KnownAbandonedTransactionsImpl(
                 abandonedTimestampStore, softCache, registry, config.versionFourAbortedTransactionsCacheSize());
     }
 
     @Override
-    public boolean isKnownAborted(long startTimestamp) {
+    public boolean isKnownAbandoned(long startTimestamp) {
         Bucket bucketForTimestamp = Bucket.forTimestamp(startTimestamp);
         TransactionSoftCacheStatus softCacheTransactionStatus = softCache.getSoftCacheTransactionStatus(startTimestamp);
 
@@ -93,8 +93,8 @@ public class KnownAbortedTransactionsImpl implements KnownAbortedTransactions {
     }
 
     @Override
-    public void addAbortedTimestamps(Set<Long> abortedTimestamps) {
-        abortedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
+    public void addAbandonedTimestamps(Set<Long> abandonedTimestamps) {
+        abandonedTimestamps.forEach(abandonedTimestampStore::markAbandoned);
     }
 
     @VisibleForTesting
