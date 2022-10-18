@@ -143,8 +143,7 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
                 .map(tableName -> tableName.toLowerCase(Locale.ROOT))
                 .collect(Collectors.toSet());
         return expectedShortTableNames.stream()
-                .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                .filter(tableName -> !mappedShortTableNames.contains(tableName))
+                .filter(tableName -> !mappedShortTableNames.contains(tableName.toLowerCase(Locale.ROOT)))
                 .collect(Collectors.toSet());
     }
 

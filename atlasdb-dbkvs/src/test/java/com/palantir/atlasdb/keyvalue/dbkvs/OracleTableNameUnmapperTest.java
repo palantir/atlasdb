@@ -35,6 +35,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -186,7 +187,7 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void getLongTableNamesCanReturnPartialResults() {
+    public void getShortToLongTableNamesFromMappingTableCanReturnPartialResults() {
         Map<String, String> shortNamesToLongNames = Map.of("short_test", "long_test");
         mockShortNamesToLongNamesQuery(shortNamesToLongNames);
 
@@ -196,7 +197,7 @@ public class OracleTableNameUnmapperTest {
     }
 
     @Test
-    public void getLongTableNamesThrowsIfTooManyResultsReturned() {
+    public void getShortToLongTableNamesFromMappingTableThrowsIfTooManyResultsReturned() {
         Map<String, String> nameMapping = Map.of("short_test", "long_test", "short_test_2", "long_test_2");
         mockShortNamesToLongNamesQuery(nameMapping);
 
@@ -210,6 +211,14 @@ public class OracleTableNameUnmapperTest {
                         SafeArg.of("numShortTables", 1),
                         UnsafeArg.of("returnedMapping", nameMapping),
                         UnsafeArg.of("expectedShortTableNames", List.of("short_test")));
+    }
+
+    @Test
+    public void getShortToLongTableNamesFromMappingReturnsEmptyMapIfMappingTableNotPresent() {
+        when(sqlConnection.selectResultSetUnregisteredQuery(any(), any()))
+                .thenThrow(new PalantirRuntimeException(OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR));
+        assertThat(oracleTableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, Set.of()))
+                .isEmpty();
     }
 
     private void mockShortNamesToLongNamesQuery(Map<String, String> shortTableNamesToLongTableNames) {

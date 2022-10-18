@@ -24,9 +24,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.Collection;
@@ -35,9 +38,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 class OracleTableNameUnmapper {
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleTableNameUnmapper.class);
+
     private Cache<String, String> unmappingCache;
 
     OracleTableNameUnmapper() {
@@ -96,14 +102,18 @@ class OracleTableNameUnmapper {
 
         // We use the Oracle LOWER function rather than mapping to lower case on the client to ensure that we're
         // using the same locale and conversion.
-        AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                "SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
-                        + " LOWER(short_table_name) IN (" + placeHolders + ")",
-                shortTableNames.toArray());
+        Map<String, String> shortTableToLongTableMapping = runIgnoringTableNotFound(
+                () -> {
+                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                            "SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                    + " WHERE" + " LOWER(short_table_name) IN (" + placeHolders + ")",
+                            shortTableNames.toArray());
 
-        Map<String, String> shortTableToLongTableMapping = results.rows().stream()
-                .collect(
-                        Collectors.toMap(row -> row.getString("short_table_name"), row -> row.getString("table_name")));
+                    return results.rows().stream()
+                            .collect(Collectors.toMap(
+                                    row -> row.getString("short_table_name"), row -> row.getString("table_name")));
+                },
+                Map::of);
 
         verifyMappingSetSizeNotLargerThanExpected(shortTableToLongTableMapping, shortTableNames);
 
@@ -124,5 +134,17 @@ class OracleTableNameUnmapper {
 
     public void clearCacheForTable(String fullTableName) {
         unmappingCache.invalidate(fullTableName);
+    }
+
+    private static <T> T runIgnoringTableNotFound(Supplier<T> task, Supplier<T> defaultValueSupplier) {
+        try {
+            return task.get();
+        } catch (PalantirSqlException e) {
+            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR)) {
+                log.error("Error occurred trying to execute the task", e);
+                throw e;
+            }
+            return defaultValueSupplier.get();
+        }
     }
 }

@@ -157,13 +157,9 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortTableNamesFiltersMappedNames() {
+    public void getTableReferencesFromShortTableNamesFiltersMappedNamesWhenMappingDisabled() {
         Set<String> extraTableNames = Set.of("test", "test2");
-        Set<String> allTableNames = Sets.union(
-                SHORT_TABLE_NAMES,
-                extraTableNames.stream()
-                        .map(tableName -> TABLE_MAPPING_DDL_CONFIG.tablePrefix() + tableName)
-                        .collect(Collectors.toSet()));
+        Set<String> allTableNames = Sets.union(SHORT_TABLE_NAMES, addTablePrefix(extraTableNames));
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
                 .thenReturn(getLongTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
@@ -174,18 +170,34 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortOverflowTableNamesFiltersMappedNames() {
+    public void getTableReferencesFromShortOverflowTableNamesFiltersMappedNamesWhenMappingDisabled() {
         Set<String> extraTableNames = Set.of("test", "test2");
-        Set<String> allTableNames = Sets.union(
-                SHORT_TABLE_NAMES,
-                extraTableNames.stream()
-                        .map(tableName -> TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix() + tableName)
-                        .collect(Collectors.toSet()));
+        Set<String> allTableNames = Sets.union(SHORT_TABLE_NAMES, addOverflowTablePrefix(extraTableNames));
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
                 .thenReturn(getLongOverflowTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, allTableNames))
                 .isEqualTo(extraTableNames.stream()
+                        .map(TableReference::fromInternalTableName)
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
+    public void getTableReferencesFromShortTableNamesPreservesCaseWhenUnmapped() {
+        Set<String> expectedTableNames = Set.of("test", "TesT2");
+        assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
+                        connectionSupplier, addTablePrefix(expectedTableNames)))
+                .isEqualTo(expectedTableNames.stream()
+                        .map(TableReference::fromInternalTableName)
+                        .collect(Collectors.toSet()));
+    }
+
+    @Test
+    public void getTableReferencesFromShortOverflowTableNamesPreservesCaseWhenUnmapped() {
+        Set<String> expectedTableNames = Set.of("test", "TesT2");
+        assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
+                        connectionSupplier, addOverflowTablePrefix(expectedTableNames)))
+                .isEqualTo(expectedTableNames.stream()
                         .map(TableReference::fromInternalTableName)
                         .collect(Collectors.toSet()));
     }
@@ -202,6 +214,18 @@ public class OracleTableNameGetterImplTest {
                 .collect(Collectors.toMap(
                         Map.Entry::getValue,
                         entry -> tableMappingTableNameGetter.getPrefixedTableName(entry.getKey())));
+    }
+
+    private Set<String> addTablePrefix(Set<String> tableNames) {
+        return tableNames.stream()
+                .map(tableName -> TABLE_MAPPING_DDL_CONFIG.tablePrefix() + tableName)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> addOverflowTablePrefix(Set<String> tableNames) {
+        return tableNames.stream()
+                .map(tableName -> TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix() + tableName)
+                .collect(Collectors.toSet());
     }
 
     private static void assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
