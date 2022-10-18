@@ -23,6 +23,8 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -32,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.ImmutableOracleNamespaceDelet
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter.OracleNamespaceDeleterParameters;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.TableDetails;
@@ -261,6 +264,64 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
+    public void deleteAllDataFromNamespaceIgnoresTimestampTable() {
+        NamespaceDeleter namespaceDeleter = createNonMappingNamespaceDeleter();
+
+        String physicalTimestampTableName = createTimestampTable();
+
+        namespaceDeleter.deleteAllDataFromNamespace();
+        assertThat(listAllPhysicalTableNames()).containsExactly(physicalTimestampTableName);
+        assertThat(listAllTablesWithMapping()).isEmpty();
+        assertThat(listAllTablesWithMetadata()).isEmpty();
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceWithMappingIgnoresUnmappedTables() {
+        NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
+
+        createTablesWithDefaultPrefixes(TABLE_NAME_1);
+
+        Set<TableDetails> tableDetails = createTablesWithDefaultPrefixesWithoutMapping(TABLE_NAME_1);
+
+        namespaceDeleter.deleteAllDataFromNamespace();
+        assertThat(listAllPhysicalTableNames())
+                .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPhysicalTableNames(tableDetails));
+        assertThat(listAllTablesWithMapping()).isEmpty();
+        assertThat(listAllTablesWithMetadata())
+                .containsExactlyInAnyOrderElementsOf(TableDetails.mapToTableReferences(tableDetails));
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceWithNoMappingIgnoresMappedTables() {
+        NamespaceDeleter namespaceDeleter = createNonMappingNamespaceDeleter();
+        Set<TableDetails> tableDetails = createTablesWithDefaultPrefixes(TABLE_NAME_1);
+        createTablesWithDefaultPrefixesWithoutMapping(TABLE_NAME_1);
+        namespaceDeleter.deleteAllDataFromNamespace();
+        assertThatTableDetailsMatchPersistedData(tableDetails);
+    }
+
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfUnmappedTablesExistForMappedUser() {
+        NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
+        createTablesWithDefaultPrefixesWithoutMapping(TABLE_NAME_1);
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+    }
+
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfMappedTablesExistForUnmappedUser() {
+        NamespaceDeleter namespaceDeleter = createNonMappingNamespaceDeleter();
+        createTablesWithDefaultPrefixes(TABLE_NAME_1);
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+    }
+
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfTimestampTableExists() {
+        NamespaceDeleter namespaceDeleter = createNonMappingNamespaceDeleter();
+        createTimestampTable();
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+    }
+
+    @Test
     public void closeClosesConnectionSupplier() throws IOException {
         ConnectionSupplier mockConnectionSupplier = mock(ConnectionSupplier.class);
         NamespaceDeleter namespaceDeleter = new OracleNamespaceDeleter(createDefaultNamespaceDeleterParameters()
@@ -277,6 +338,35 @@ public final class OracleNamespaceDeleterTests {
                 createTable(OVERFLOW_TABLE_PREFIX, tableName, TEST_USER));
     }
 
+    private Set<TableDetails> createTablesWithDefaultPrefixesWithoutMapping(String tableName) {
+        TableReference arbitraryTableReference = TableReference.create(Namespace.DEFAULT_NAMESPACE, tableName);
+        String physicalTableName = TABLE_PREFIX + DbKvs.internalTableName(arbitraryTableReference);
+        sqliteOracleAdapter.createTableWithoutMapping(physicalTableName, arbitraryTableReference, TEST_USER, true);
+
+        String overflowPhysicalTableName = OVERFLOW_TABLE_PREFIX + DbKvs.internalTableName(arbitraryTableReference);
+        sqliteOracleAdapter.createTableWithoutMapping(
+                overflowPhysicalTableName, arbitraryTableReference, TEST_USER, false);
+
+        return Set.of(
+                TableDetails.builder()
+                        .tableReference(arbitraryTableReference)
+                        .physicalTableName(physicalTableName)
+                        .prefixedTableName(physicalTableName)
+                        .build(),
+                TableDetails.builder()
+                        .tableReference(arbitraryTableReference)
+                        .physicalTableName(overflowPhysicalTableName)
+                        .prefixedTableName(overflowPhysicalTableName)
+                        .build());
+    }
+
+    private String createTimestampTable() {
+        TableReference timestampTable = AtlasDbConstants.TIMESTAMP_TABLE;
+        String physicalTimestampTable = TABLE_PREFIX + timestampTable.getQualifiedName();
+        sqliteOracleAdapter.createTableWithoutMapping(physicalTimestampTable, timestampTable, TEST_USER, false);
+        return physicalTimestampTable;
+    }
+
     private TableDetails createTable(String prefix, String tableName, String owner) {
         return sqliteOracleAdapter.createTable(prefix, tableName, owner);
     }
@@ -284,9 +374,9 @@ public final class OracleNamespaceDeleterTests {
     private void assertThatTableDetailsMatchPersistedData(Set<TableDetails> tableDetails) {
         assertThat(listAllPhysicalTableNames())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPhysicalTableNames(tableDetails));
-        assertThat(sqliteOracleAdapter.listAllTablesWithMapping())
+        assertThat(listAllTablesWithMapping())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToPrefixedTableNames(tableDetails));
-        assertThat(sqliteOracleAdapter.listAllTablesWithMetadata())
+        assertThat(listAllTablesWithMetadata())
                 .containsExactlyInAnyOrderElementsOf(TableDetails.mapToTableReferences(tableDetails));
     }
 
@@ -294,9 +384,23 @@ public final class OracleNamespaceDeleterTests {
         return sqliteOracleAdapter.listAllPhysicalTableNames();
     }
 
+    private Set<String> listAllTablesWithMapping() {
+        return sqliteOracleAdapter.listAllTablesWithMapping();
+    }
+
+    private Set<TableReference> listAllTablesWithMetadata() {
+        return sqliteOracleAdapter.listAllTablesWithMetadata();
+    }
+
     private NamespaceDeleter createDefaultNamespaceDeleter() {
         return new OracleNamespaceDeleter(
                 createDefaultNamespaceDeleterParameters().build());
+    }
+
+    private NamespaceDeleter createNonMappingNamespaceDeleter() {
+        return new OracleNamespaceDeleter(createNamespaceDeleterParameters(
+                        getDefaultDdlConfig().useTableMapping(false).build())
+                .build());
     }
 
     private ImmutableOracleDdlConfig.Builder getDefaultDdlConfig() {

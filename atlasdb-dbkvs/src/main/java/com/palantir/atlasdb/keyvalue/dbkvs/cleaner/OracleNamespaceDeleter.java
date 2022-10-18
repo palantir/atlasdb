@@ -17,13 +17,12 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.cleaner;
 
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
-import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -61,7 +60,7 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
 
     @Override
     public boolean isNamespaceDeletedSuccessfully() {
-        return getNumberOfTables() == 0;
+        return getAllTableNamesToDrop().isEmpty();
     }
 
     @Override
@@ -73,13 +72,9 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
         Set<String> nonOverflowTables = getAllNonOverflowTables();
         Set<String> overflowTables = getAllOverflowTables();
 
-        try {
-            return Sets.union(
-                    tableNameGetter.getTableReferencesFromShortTableNames(connectionSupplier, nonOverflowTables),
-                    tableNameGetter.getTableReferencesFromShortOverflowTableNames(connectionSupplier, overflowTables));
-        } catch (TableMappingNotFoundException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        return Sets.union(
+                tableNameGetter.getTableReferencesFromShortTableNames(connectionSupplier, nonOverflowTables),
+                tableNameGetter.getTableReferencesFromShortOverflowTableNames(connectionSupplier, overflowTables));
     }
 
     private Set<String> getAllNonOverflowTables() {
@@ -95,25 +90,14 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
                 .get()
                 .selectResultSetUnregisteredQuery(
                         "SELECT table_name FROM all_tables WHERE owner = upper(?) AND"
-                                + " table_name LIKE upper(?) ESCAPE '\\'",
+                                + " table_name LIKE upper(?) ESCAPE '\\' AND table_name NOT LIKE UPPER(?) ESCAPE '\\'",
                         escapedUserId,
-                        prefix)
+                        prefix,
+                        "%" + withEscapedUnderscores(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()))
                 .rows()
                 .stream()
                 .map(resultSetRow -> resultSetRow.getString("table_name"))
                 .collect(Collectors.toSet());
-    }
-
-    private long getNumberOfTables() {
-        return connectionSupplier
-                .get()
-                .selectCount(
-                        "all_tables",
-                        "owner = upper(?) AND (table_name LIKE upper(?) ESCAPE '\\' OR table_name"
-                                + " LIKE upper(?) ESCAPE '\\')",
-                        escapedUserId,
-                        wildcardEscapedTablePrefix,
-                        wildcardEscapedOverflowTablePrefix);
     }
 
     private static String withWildcardSuffix(String tableName) {

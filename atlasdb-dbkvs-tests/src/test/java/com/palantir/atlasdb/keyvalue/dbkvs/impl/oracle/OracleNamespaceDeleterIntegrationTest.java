@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter.Oracle
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.LegacyPhysicalBoundStoreStrategy;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -46,12 +47,14 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -81,6 +84,11 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
 
     private KeyValueService keyValueServiceWithNonDefaultPrefix;
     private NamespaceDeleter namespaceDeleterWithNonDefaultPrefix;
+
+    private KeyValueService keyValueServiceWithDefaultPrefixNoMapping;
+    private NamespaceDeleter namespaceDeleterWithDefaultPrefixNoMapping;
+
+    private String timestampTableName;
 
     public OracleNamespaceDeleterIntegrationTest() {
         super(TRM, TRM);
@@ -116,6 +124,25 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                 dbKeyValueServiceConfig.connection(),
                 DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithNonDefaultPrefix),
                 executorService);
+
+        OracleDdlConfig ddlConfigWithDefaultPrefixNoMapping = ImmutableOracleDdlConfig.builder()
+                .from(oracleDdlConfig)
+                .useTableMapping(false)
+                .build();
+
+        keyValueServiceWithDefaultPrefixNoMapping =
+                ConnectionManagerAwareDbKvs.create(ImmutableDbKeyValueServiceConfig.builder()
+                        .from(dbKeyValueServiceConfig)
+                        .ddl(ddlConfigWithDefaultPrefixNoMapping)
+                        .build());
+
+        namespaceDeleterWithDefaultPrefixNoMapping = createNamespaceDeleter(
+                ddlConfigWithDefaultPrefixNoMapping,
+                dbKeyValueServiceConfig.connection(),
+                DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithDefaultPrefixNoMapping),
+                executorService);
+
+        timestampTableName = oracleDdlConfig.tablePrefix() + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName();
     }
 
     private static NamespaceDeleter createNamespaceDeleter(
@@ -147,6 +174,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     public void after() {
         namespaceDeleter.deleteAllDataFromNamespace();
         namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
         executorService.shutdown();
     }
 
@@ -156,7 +184,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
 
         namespaceDeleter.deleteAllDataFromNamespace();
 
-        assertSnapshotIsEmpty(getTableDetailsForDefaultPrefixes());
+        assertSnapshotIsEmptyExcludingTimestampTable(getTableDetailsForDefaultPrefixes());
     }
 
     @Test
@@ -175,14 +203,14 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
 
         namespaceDeleter.deleteAllDataFromNamespace();
 
-        assertSnapshotIsEmpty(getTableDetailsForDefaultPrefixes());
+        assertSnapshotIsEmptyExcludingTimestampTable(getTableDetailsForDefaultPrefixes());
     }
 
     @Test
     public void deleteAllDataFromNamespaceDoesNotThrowWhenNoTablesToDelete() {
         // Oracle throws on an empty IN () clause, whereas sqlite does not.
         namespaceDeleter.deleteAllDataFromNamespace();
-        assertSnapshotIsEmpty(getTableDetailsForDefaultPrefixes());
+        assertSnapshotIsEmptyExcludingTimestampTable(getTableDetailsForDefaultPrefixes());
 
         assertThatNoException().isThrownBy(namespaceDeleter::deleteAllDataFromNamespace);
     }
@@ -198,6 +226,41 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         namespaceDeleter.deleteAllDataFromNamespace();
         assertThat(listAllPhysicalTableNames(NON_DEFAULT_TABLE_PREFIX, NON_DEFAULT_OVERFLOW_TABLE_PREFIX))
                 .hasSameElementsAs(allTablesWithNonDefaultPrefix);
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceDoesNotDropTablesFromUnmappedTablesForMappedUser() {
+        namespaceDeleter.deleteAllDataFromNamespace();
+        createTableAndOverflowTableWithDefaultPrefixNoMapping(TABLE_NAME_ONE);
+        AllTableDetailsSnapshot snapshot = getTableDetailsForDefaultPrefixes();
+
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+        namespaceDeleter.deleteAllDataFromNamespace();
+        assertThat(getTableDetailsForDefaultPrefixes()).isEqualTo(snapshot);
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceDoesNotDropTablesFromMappedTablesForUnmappedUser() {
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+        createTwoLogicalTablesWithDefaultPrefix();
+        AllTableDetailsSnapshot snapshot = getTableDetailsForDefaultPrefixes();
+
+        createTableAndOverflowTableWithDefaultPrefixNoMapping(TABLE_NAME_ONE);
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+        assertThat(getTableDetailsForDefaultPrefixes()).isEqualTo(snapshot);
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceDoesNotDropTimestampTable() throws SQLException {
+        new LegacyPhysicalBoundStoreStrategy(AtlasDbConstants.TIMESTAMP_TABLE, oracleDdlConfig.tablePrefix())
+                .createTimestampTable(connectionManager.getConnection(), _conn -> DBType.ORACLE);
+
+        createTableAndOverflowTableWithDefaultPrefixNoMapping(TABLE_NAME_ONE);
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+        namespaceDeleter.deleteAllDataFromNamespace();
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+
+        assertSnapshotIsEmptyExcludingTimestampTable(getTableDetailsForDefaultPrefixes());
     }
 
     @Test
@@ -223,6 +286,35 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
     }
 
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfUnmappedTablesExistForMappedUser() {
+        namespaceDeleter.deleteAllDataFromNamespace();
+        createTableAndOverflowTableWithDefaultPrefixNoMapping(TABLE_NAME_ONE);
+
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+    }
+
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfMappedTablesExistForUnMappedUser() {
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+        createTableAndOverflowTable(TABLE_NAME_ONE);
+
+        assertThat(namespaceDeleterWithDefaultPrefixNoMapping.isNamespaceDeletedSuccessfully())
+                .isTrue();
+    }
+
+    @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfTimestampTableExists() throws SQLException {
+        namespaceDeleter.deleteAllDataFromNamespace();
+        namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+        new LegacyPhysicalBoundStoreStrategy(AtlasDbConstants.TIMESTAMP_TABLE, oracleDdlConfig.tablePrefix())
+                .createTimestampTable(connectionManager.getConnection(), _conn -> DBType.ORACLE);
+
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+        assertThat(namespaceDeleterWithDefaultPrefixNoMapping.isNamespaceDeletedSuccessfully())
+                .isTrue();
+    }
+
     private void createTwoLogicalTablesWithDefaultPrefix() {
         AllTableDetailsSnapshot kvsTablesSnapshot = getTableDetailsForDefaultPrefixes();
         assertSnapshotIsNotEmpty(kvsTablesSnapshot);
@@ -234,6 +326,16 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
 
     private void createTableAndOverflowTable(String tableName) {
         keyValueService.createTable(
+                getTableReference(tableName),
+                TableMetadata.builder()
+                        .nameLogSafety(LogSafety.SAFE)
+                        .columns(new ColumnMetadataDescription())
+                        .build()
+                        .persistToBytes());
+    }
+
+    private void createTableAndOverflowTableWithDefaultPrefixNoMapping(String tableName) {
+        keyValueServiceWithDefaultPrefixNoMapping.createTable(
                 getTableReference(tableName),
                 TableMetadata.builder()
                         .nameLogSafety(LogSafety.SAFE)
@@ -336,11 +438,18 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         assertThat(snapshot.tableReferences()).hasSize(expectedNumberOfNewTableReferences);
     }
 
-    private static void assertSnapshotIsEmpty(AllTableDetailsSnapshot snapshot) {
+    private void assertSnapshotIsEmptyExcludingTimestampTable(AllTableDetailsSnapshot snapshot) {
         assertThat(snapshot.prefixedTableNames())
-                .hasSameSizeAs(snapshot.physicalTableNames())
                 .hasSameSizeAs(snapshot.tableReferences())
                 .isEmpty();
+        if (snapshot.physicalTableNames().size() == 1) {
+            assertThat(snapshot.physicalTableNames().stream()
+                            .map(s -> s.toLowerCase(Locale.ROOT))
+                            .collect(Collectors.toSet()))
+                    .containsOnly(timestampTableName);
+        } else {
+            assertThat(snapshot.physicalTableNames()).isEmpty();
+        }
     }
 
     private static void assertSnapshotIsNotEmpty(AllTableDetailsSnapshot snapshot) {
@@ -348,6 +457,24 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         assertThat(snapshot.physicalTableNames()).isNotEmpty();
         assertThat(snapshot.tableReferences()).isNotEmpty();
     }
+
+    // private void runArbitrarySql(String sql) { // Personal testing! Won't be in the final PR :)
+    //     runWithConnection(connection -> {
+    //         PreparedStatement statement = connection.prepareStatement(sql);
+    //         ResultSet resultSet = statement.executeQuery();
+    //         ResultSetMetaData rsmd = resultSet.getMetaData();
+    //         int columnsNumber = rsmd.getColumnCount();
+    //         for (int row = 0; resultSet.next(); row++) {
+    //             for (int i = 1; i <= columnsNumber; i++) {
+    //                 String columnValue = resultSet.getString(i);
+    //                 System.out.printf(
+    //                         "rowNumber %d, columnName %s, columnValue %s%n", row, rsmd.getColumnName(i),
+    // columnValue);
+    //             }
+    //         }
+    //         return null;
+    //     });
+    // }
 
     @Value.Immutable
     interface AllTableDetailsSnapshot {
