@@ -106,7 +106,7 @@ class OracleTableNameUnmapper {
                 () -> {
                     AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                             "SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                    + " WHERE" + " LOWER(short_table_name) IN (" + placeHolders + ")",
+                                    + " WHERE LOWER(short_table_name) IN (" + placeHolders + ")",
                             shortTableNames.toArray());
 
                     return results.rows().stream()
