@@ -246,7 +246,7 @@ public final class OracleDdlTable implements DbDdlTable {
                         tableRef.getQualifiedName());
 
         Preconditions.checkState(
-                numberOfMatchingTableReferences == 1,
+                numberOfMatchingTableReferences <= 1,
                 "There are multiple tables that have the same case"
                         + " insensitive table reference. Throwing to avoid accidentally deleting the wrong table reference."
                         + " Please contact support to delete the metadata, which will involve deleting the row from"
