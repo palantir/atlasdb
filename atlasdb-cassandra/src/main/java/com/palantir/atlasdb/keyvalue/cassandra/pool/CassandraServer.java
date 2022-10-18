@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
-import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Unsafe;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import org.immutables.value.Value;
@@ -42,9 +42,10 @@ public interface CassandraServer {
     /**
      * The only proxy that will be used to reach the Cassandra host.
      * */
-    @DoNotLog
+    @Unsafe // Redaction here was for the purposes of performance, not security
     @Value.Lazy
     @Value.Redacted // exclude from toString for thread names & logs
+    // TODO (jkong): JSON serializations may still perform this expensive computation.
     default InetSocketAddress proxy() {
         // we know the set of proxies contains at least one element
         return reachableProxyIps().iterator().next();

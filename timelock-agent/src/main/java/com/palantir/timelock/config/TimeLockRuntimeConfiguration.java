@@ -30,7 +30,7 @@ import org.immutables.value.Value;
  *
  * Note that the {@link ClusterConfiguration} is an exception to above rule.
  */
-@DoNotLog
+@DoNotLog // Backup token is sensitive information!
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @Value.Immutable

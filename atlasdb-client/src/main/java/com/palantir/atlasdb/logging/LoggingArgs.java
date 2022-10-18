@@ -42,6 +42,10 @@ import org.immutables.value.Value;
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
  *
  * Always returns unsafe, until hydrated.
+ *
+ * Note that many methods of this class return {@link Arg} objects that may or may not be safe for logging. Some of
+ * these are annotated as {@link Unsafe} (which prevents users from wrapping these Args in a {@link SafeArg}), though
+ * users should generally just use the Arg object directly.
  */
 public final class LoggingArgs {
 

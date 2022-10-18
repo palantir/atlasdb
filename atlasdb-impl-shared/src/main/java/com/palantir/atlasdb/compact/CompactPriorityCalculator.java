@@ -139,7 +139,7 @@ class CompactPriorityCalculator {
         return Optional.empty();
     }
 
-    @Unsafe
+    @Unsafe // Should log the Arg directly, rather than wrapping it in another Arg layer.
     private static Arg<String> safeTableRef(String fullyQualifiedName) {
         return LoggingArgs.safeInternalTableName(fullyQualifiedName);
     }
