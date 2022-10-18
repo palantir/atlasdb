@@ -139,12 +139,12 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
 
     private Set<String> getUnmappedTableNames(
             Map<String, String> shortToLongTableNameMapping, Set<String> expectedShortTableNames) {
-        Set<String> tableNamesWithMapping = shortToLongTableNameMapping.keySet().stream()
+        Set<String> mappedShortTableNames = shortToLongTableNameMapping.keySet().stream()
                 .map(tableName -> tableName.toLowerCase(Locale.ROOT))
                 .collect(Collectors.toSet());
         return expectedShortTableNames.stream()
                 .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                .filter(tableName -> !tableNamesWithMapping.contains(tableName))
+                .filter(tableName -> !mappedShortTableNames.contains(tableName))
                 .collect(Collectors.toSet());
     }
 
