@@ -17,6 +17,7 @@
 package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotEquals;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
@@ -24,6 +25,12 @@ import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.tracing.CloseableTracer;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.api.OpenSpan;
+import com.palantir.tracing.api.Span;
+import com.palantir.tracing.api.SpanType;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -35,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.junit.Test;
 
@@ -68,6 +76,66 @@ public class PTExecutorsTest {
     }
 
     @Test
+    public void testExecutorThreadLocalState_cachedPoolNospan() {
+        Tracer.initTraceWithSpan(Observability.SAMPLE, "RandomID", "outerThreadTest", SpanType.LOCAL);
+
+        String outerTraceId = Tracer.getTraceId();
+        AtomicReference<String> innerSpanId = new AtomicReference<>("");
+        AtomicReference<String> innerSpanParentId = new AtomicReference<>("");
+        AtomicReference<String> innerTraceId = new AtomicReference<>("");
+
+        withExecutor(PTExecutors::newCachedThreadPoolWithoutSpan, executor -> {
+            OpenSpan innerSpan = Tracer.startSpan("innerThreadTest");
+
+            innerTraceId.set(Tracer.getTraceId());
+            innerSpanId.set(innerSpan.getSpanId());
+            innerSpanParentId.set(innerSpan.getParentSpanId().get());
+
+            // Close innerSpan
+            Tracer.fastCompleteSpan();
+        });
+        Span outerSpan = Tracer.completeSpan().get();
+
+        // Proves that both inner and outer spans are part of the same trace.
+        assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
+
+        // Proves that the inner span and outer span are not the same
+        assertNotEquals(null, innerSpanId.get(), outerSpan.getSpanId());
+
+        // Proves that the inner span is a child of the outer span
+        assertThat(innerSpanParentId.get()).isEqualTo(outerSpan.getSpanId());
+    }
+
+    @Test
+    public void testExecutorThreadLocalState_cachedPoolNospanNotLocal() {
+        CloseableTracer outerTrace = CloseableTracer.startSpan("outerThreadTest");
+        String outerTraceId = Tracer.getTraceId();
+        System.out.println("name");
+        System.out.println(Thread.currentThread().getName());
+
+        withExecutor(PTExecutors::newCachedThreadPool, executor -> {
+            ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
+
+            threadLocal.set("test");
+            System.out.println("name");
+            System.out.println(Thread.currentThread().getName());
+            // System.out.print(threadLocal.get());
+
+            CloseableTracer innerTrace = CloseableTracer.startSpan("innerThreadTest");
+            String innerTraceId = Tracer.getTraceId();
+
+            String result = executor.submit(threadLocal::get).get();
+
+            System.out.println(result);
+            assertThat(result).isNull();
+
+            innerTrace.close();
+            assertThat(outerTraceId).isEqualTo(innerTraceId);
+        });
+        outerTrace.close();
+    }
+
+    @Test
     public void testExecutorThreadLocalState_cachedPool() {
         withExecutor(PTExecutors::newCachedThreadPool, executor -> {
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
@@ -82,8 +150,11 @@ public class PTExecutorsTest {
         withExecutor(PTExecutors::newSingleThreadScheduledExecutor, executor -> {
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
             threadLocal.set("test");
-            String result = executor.submit(threadLocal::get).get();
-            assertThat(result).isEqualTo("test");
+            try (CloseableTracer tracer = CloseableTracer.startSpan("innerThreadTest")) {
+                String result = executor.submit(threadLocal::get).get();
+                assertThat(result).isEqualTo("innerThreadTest");
+            }
+            // assertThat(result).isEqualTo("test");
         });
     }
 

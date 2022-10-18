@@ -41,7 +41,7 @@ public final class TimedRunner {
     }
 
     public static TimedRunner create(Duration timeoutDuration) {
-        return new TimedRunner(PTExecutors.newCachedThreadPoolNoSpan("timed-runner"), timeoutDuration);
+        return new TimedRunner(PTExecutors.newCachedThreadPoolWithoutSpan("timed-runner"), timeoutDuration);
     }
 
     public <T> T run(TaskContext<T> taskContext) throws Exception {

@@ -159,6 +159,10 @@ public final class PTExecutors {
                 threadFactory);
     }
 
+    public static ExecutorService newCachedThreadPoolWithoutSpan() {
+        return newCachedThreadPoolWithoutSpan(computeBaseThreadName());
+    }
+
     /**
      * Creates a thread pool that creates new threads as needed, but will reuse previously
      * constructed threads when they are available. These pools will typically improve the
@@ -176,7 +180,6 @@ public final class PTExecutors {
         verifyName(name);
         return newCachedThreadPoolWithMaxThreadsWithoutSpan(Short.MAX_VALUE, name);
     }
-    private static
 
     /** Specialized cached executor which throws
      * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.
