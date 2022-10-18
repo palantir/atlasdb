@@ -81,7 +81,7 @@ public class OracleTableNameGetterImplTest {
     @Test
     public void getTableReferencesFromShortTableNamesTransformsUnmapperNamesWhenMappingEnabled() {
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenReturn(getLongTableNames());
+                .thenReturn(getDefaultLongTableNames());
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                 connectionSupplier, SHORT_TABLE_NAMES);
 
@@ -91,7 +91,7 @@ public class OracleTableNameGetterImplTest {
     @Test
     public void getTableReferencesFromShortOverflowTableNamesLoadsFromUnmapperWhenMappingEnabled() {
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenReturn(getLongOverflowTableNames());
+                .thenReturn(getDefaultLongOverflowTableNames());
 
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                 connectionSupplier, SHORT_TABLE_NAMES);
@@ -101,7 +101,7 @@ public class OracleTableNameGetterImplTest {
     @Test
     public void getTableReferencesFromShortTableNamesTransformsProvidedNamesWhenMappingDisabled() {
         Set<TableReference> tableReferences = nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
-                connectionSupplier, new HashSet<>(getLongTableNames().values()));
+                connectionSupplier, new HashSet<>(getDefaultLongTableNames().values()));
         assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
@@ -110,7 +110,7 @@ public class OracleTableNameGetterImplTest {
         Set<TableReference> tableReferences =
                 nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier,
-                        new HashSet<>(getLongOverflowTableNames().values()));
+                        new HashSet<>(getDefaultLongOverflowTableNames().values()));
         assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
@@ -161,7 +161,7 @@ public class OracleTableNameGetterImplTest {
         Set<String> extraTableNames = Set.of("test", "test2");
         Set<String> allTableNames = Sets.union(SHORT_TABLE_NAMES, addTablePrefix(extraTableNames));
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
-                .thenReturn(getLongTableNames());
+                .thenReturn(getDefaultLongTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, allTableNames))
                 .isEqualTo(extraTableNames.stream()
@@ -174,7 +174,7 @@ public class OracleTableNameGetterImplTest {
         Set<String> extraTableNames = Set.of("test", "test2");
         Set<String> allTableNames = Sets.union(SHORT_TABLE_NAMES, addOverflowTablePrefix(extraTableNames));
         when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
-                .thenReturn(getLongOverflowTableNames());
+                .thenReturn(getDefaultLongOverflowTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, allTableNames))
                 .isEqualTo(extraTableNames.stream()
@@ -202,14 +202,14 @@ public class OracleTableNameGetterImplTest {
                         .collect(Collectors.toSet()));
     }
 
-    private Map<String, String> getLongOverflowTableNames() {
+    private Map<String, String> getDefaultLongOverflowTableNames() {
         return REFS_TO_SHORT_TABLE_NAMES.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getValue,
                         entry -> tableMappingTableNameGetter.getPrefixedOverflowTableName(entry.getKey())));
     }
 
-    private Map<String, String> getLongTableNames() {
+    private Map<String, String> getDefaultLongTableNames() {
         return REFS_TO_SHORT_TABLE_NAMES.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getValue,
