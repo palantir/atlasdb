@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: remove some spans that dont add value
+  links:
+  - https://github.com/palantir/atlasdb/pull/6265

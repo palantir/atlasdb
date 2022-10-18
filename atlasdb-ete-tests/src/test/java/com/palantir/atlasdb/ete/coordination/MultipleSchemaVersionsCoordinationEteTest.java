@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.ete.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
@@ -40,7 +41,12 @@ public class MultipleSchemaVersionsCoordinationEteTest {
     public void transactionOnKnownVersionFailsOnValueWithUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
         CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
+
+        // writes to kvs via txn are blocked as transaction on NEW_VERSION will not be able to mark itself in
+        // progress.
+        assertThatCode(() -> coordinationResource.writeToKvsUnsafe(coordinationResource.getFreshTimestamp()))
+                .doesNotThrowAnyException();
+
         coordinationResource.forceInstallNewTransactionsSchemaVersion(VERSION_ONE);
         CoordinationEteTest.assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
 

@@ -30,11 +30,11 @@ import java.util.stream.LongStream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class DefaultAbandonedTimestampStoreTest {
+public class AbandonedTimestampStoreImplTest {
     private static final long TIMESTAMP = 4L;
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(false);
-    private final AbandonedTimestampStore abandonedTimestampStore = new DefaultAbandonedTimestampStore(keyValueService);
+    private final AbandonedTimestampStore abandonedTimestampStore = new AbandonedTimestampStoreImpl(keyValueService);
 
     @Before
     public void before() {

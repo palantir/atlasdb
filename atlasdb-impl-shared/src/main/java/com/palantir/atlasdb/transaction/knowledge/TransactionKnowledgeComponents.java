@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.LastSeenCommitTsLoader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
 
@@ -28,27 +28,27 @@ import org.immutables.value.Value;
 public interface TransactionKnowledgeComponents {
     KnownConcludedTransactions concluded();
 
-    KnownAbortedTransactions aborted();
+    KnownAbandonedTransactions abandoned();
 
     Supplier<Long> lastSeenCommitSupplier();
 
     static TransactionKnowledgeComponents createForTests(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
-        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), Suppliers.ofInstance(true));
+        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), () -> true);
     }
 
     static TransactionKnowledgeComponents create(
             KeyValueService kvs,
             TaggedMetricRegistry metricRegistry,
             InternalSchemaInstallConfig config,
-            Supplier<Boolean> isInitializedSupplier) {
-        LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(kvs, isInitializedSupplier);
+            BooleanSupplier isInitialized) {
+        LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(kvs, isInitialized);
         return ImmutableTransactionKnowledgeComponents.builder()
                 .concluded(KnownConcludedTransactionsImpl.create(
                         KnownConcludedTransactionsStore.create(kvs), metricRegistry))
-                .aborted(KnownAbortedTransactionsImpl.create(
+                .abandoned(KnownAbandonedTransactionsImpl.create(
                         KnownConcludedTransactionsImpl.create(
                                 KnownConcludedTransactionsStore.create(kvs), metricRegistry),
-                        new DefaultAbandonedTimestampStore(kvs),
+                        new AbandonedTimestampStoreImpl(kvs),
                         metricRegistry,
                         config))
                 .lastSeenCommitSupplier(lastSeenCommitTsLoader::getLastSeenCommitTs)
