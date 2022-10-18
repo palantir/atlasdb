@@ -140,10 +140,10 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
     private Set<String> getUnmappedTableNames(
             Map<String, String> shortToLongTableNameMapping, Set<String> expectedShortTableNames) {
         Set<String> mappedShortTableNames = shortToLongTableNameMapping.keySet().stream()
-                .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                .map(OracleTableNameGetterImpl::toLowerCase)
                 .collect(Collectors.toSet());
         return expectedShortTableNames.stream()
-                .filter(tableName -> !mappedShortTableNames.contains(tableName.toLowerCase(Locale.ROOT)))
+                .filter(tableName -> !mappedShortTableNames.contains(OracleTableNameGetterImpl.toLowerCase(tableName)))
                 .collect(Collectors.toSet());
     }
 
@@ -155,6 +155,10 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
                     SafeArg.of("numTablesMissingMapping", unmappedTableNames.size()),
                     UnsafeArg.of("unmappedShortTableNames", unmappedTableNames));
         }
+    }
+
+    private static String toLowerCase(String string) {
+        return string.toLowerCase(Locale.ROOT);
     }
 
     @Override
