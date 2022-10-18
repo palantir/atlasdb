@@ -16,16 +16,21 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
-import com.google.common.collect.ImmutableSet;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -36,15 +41,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import org.junit.Before;
+import org.junit.Test;
 
 public class KnownConcludedTransactionsImplTest {
     private static final Range<Long> DEFAULT_RANGE = Range.closed(10L, 100L);
@@ -122,7 +120,7 @@ public class KnownConcludedTransactionsImplTest {
     @Test
     public void addConcludedTimestampsSupplementsUnderlyingStore() {
         defaultKnownConcludedTransactions.addConcludedTimestamps(ADDITIONAL_RANGE);
-        verify(knownConcludedTransactionsStore).supplement(ImmutableSet.of(ADDITIONAL_RANGE));
+        verify(knownConcludedTransactionsStore).supplement(ImmutableSegt.of(ADDITIONAL_RANGE));
     }
 
     @Test
