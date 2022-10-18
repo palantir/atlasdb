@@ -458,24 +458,6 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         assertThat(snapshot.tableReferences()).isNotEmpty();
     }
 
-    // private void runArbitrarySql(String sql) { // Personal testing! Won't be in the final PR :)
-    //     runWithConnection(connection -> {
-    //         PreparedStatement statement = connection.prepareStatement(sql);
-    //         ResultSet resultSet = statement.executeQuery();
-    //         ResultSetMetaData rsmd = resultSet.getMetaData();
-    //         int columnsNumber = rsmd.getColumnCount();
-    //         for (int row = 0; resultSet.next(); row++) {
-    //             for (int i = 1; i <= columnsNumber; i++) {
-    //                 String columnValue = resultSet.getString(i);
-    //                 System.out.printf(
-    //                         "rowNumber %d, columnName %s, columnValue %s%n", row, rsmd.getColumnName(i),
-    // columnValue);
-    //             }
-    //         }
-    //         return null;
-    //     });
-    // }
-
     @Value.Immutable
     interface AllTableDetailsSnapshot {
         Set<String> prefixedTableNames();
