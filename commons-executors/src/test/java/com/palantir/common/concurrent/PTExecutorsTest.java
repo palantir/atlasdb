@@ -150,11 +150,8 @@ public class PTExecutorsTest {
         withExecutor(PTExecutors::newSingleThreadScheduledExecutor, executor -> {
             ExecutorInheritableThreadLocal<String> threadLocal = new ExecutorInheritableThreadLocal<>();
             threadLocal.set("test");
-            try (CloseableTracer tracer = CloseableTracer.startSpan("innerThreadTest")) {
-                String result = executor.submit(threadLocal::get).get();
-                assertThat(result).isEqualTo("innerThreadTest");
-            }
-            // assertThat(result).isEqualTo("test");
+            String result = executor.submit(threadLocal::get).get();
+            assertThat(result).isEqualTo("test");
         });
     }
 
