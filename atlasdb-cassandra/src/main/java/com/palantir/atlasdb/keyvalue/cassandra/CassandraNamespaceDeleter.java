@@ -63,9 +63,9 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
         }
     }
 
-    private static void dropKeyspace(Namespace keyspace, CassandraClient client) throws TException {
+    private static void dropKeyspace(Namespace namespace, CassandraClient client) throws TException {
         CqlQuery query = CqlQuery.builder()
-                .safeQueryFormat(SchemaBuilder.dropKeyspace(wrapInQuotes(keyspace))
+                .safeQueryFormat(SchemaBuilder.dropKeyspace(wrapInQuotes(namespace))
                         .ifExists()
                         .buildInternal())
                 .build();
@@ -73,8 +73,8 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }
 
-    private static String wrapInQuotes(Namespace keyspace) {
-        return "\"" + keyspace.getName() + "\"";
+    private static String wrapInQuotes(Namespace namespace) {
+        return "\"" + namespace.getName() + "\"";
     }
 
     @Override
