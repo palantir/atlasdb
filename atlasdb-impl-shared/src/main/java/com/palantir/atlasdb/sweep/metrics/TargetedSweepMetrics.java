@@ -192,10 +192,6 @@ public class TargetedSweepMetrics {
             progressMetrics.lastSeenCommitTs(lastSeenCommitTs);
         }
 
-        private void registerProgressMetricsFilter(TargetedSweepMetricPublicationFilter filter) {
-            metricsManager.addMetricFilter(TargetedSweepProgressMetrics.lastSeenCommitTsMetricName(), filter);
-        }
-
         private void updateLastSeenCommitTs(long commitTimestamp) {
             // This could race but accuracy is not paramount, we generally should be seeing and upward trend.
             if (lastSeenCommitTs.getValue() < commitTimestamp) {
