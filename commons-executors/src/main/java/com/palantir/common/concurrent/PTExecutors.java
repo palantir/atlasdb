@@ -209,7 +209,7 @@ public final class PTExecutors {
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
-                .executor(PTExecutors.wrap(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
+                .executor(PTExecutors.wrapWithoutSpan(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
