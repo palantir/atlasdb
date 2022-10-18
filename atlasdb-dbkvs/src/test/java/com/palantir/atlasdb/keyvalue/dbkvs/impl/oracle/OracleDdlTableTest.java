@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,12 +31,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.concurrent.ExecutorService;
 import org.junit.After;
@@ -75,8 +79,8 @@ public final class OracleDdlTableTest {
     private SqlConnection sqlConnection;
 
     private TableValueStyleCache tableValueStyleCache;
-    private DbDdlTable tableMappingDdlTable;
-    private DbDdlTable nonTableMappingDdlTable;
+    private OracleDdlTable tableMappingDdlTable;
+    private OracleDdlTable nonTableMappingDdlTable;
     private ExecutorService executorService;
 
     @Before
@@ -169,7 +173,7 @@ public final class OracleDdlTableTest {
     }
 
     @Test
-    public void dropTablesDeletesTableMetadata() throws TableMappingNotFoundException {
+    public void dropTablesDeletesTableMetadataCaseSensitively() throws TableMappingNotFoundException {
         createTable();
         createOverflowTable();
 
@@ -179,6 +183,51 @@ public final class OracleDdlTableTest {
                 .executeUnregisteredQuery(
                         "DELETE FROM " + TABLE_MAPPING_DEFAULT_CONFIG.metadataTable() + " WHERE table_name = ?",
                         TEST_TABLE.getQualifiedName());
+    }
+
+    @Test
+    public void dropTablesDeletesTableMetadataCaseInsensitivelyIfCaseInsensitiveSet()
+            throws TableMappingNotFoundException {
+        when(sqlConnection.selectCount(any(), any(), any())).thenReturn(1L);
+        createTable();
+        createOverflowTable();
+
+        tableMappingDdlTable.drop(false);
+
+        verify(sqlConnection)
+                .executeUnregisteredQuery(
+                        "DELETE FROM " + TABLE_MAPPING_DEFAULT_CONFIG.metadataTable() + " WHERE LOWER(table_name) ="
+                                + " LOWER(?)",
+                        TEST_TABLE.getQualifiedName());
+    }
+
+    @Test
+    public void dropTablesThrowsIfMultipleMatchingTableReferencesExistAndCaseInsensitiveDrop()
+            throws TableMappingNotFoundException {
+        long numberOfMatchingTableReferences = 2;
+        when(sqlConnection.selectCount(any(), any(), any())).thenReturn(numberOfMatchingTableReferences);
+        createTable();
+        createOverflowTable();
+
+        assertThatLoggableExceptionThrownBy(() -> tableMappingDdlTable.drop(false))
+                .hasLogMessage("There are multiple tables that have the same case insensitive table reference."
+                        + " Throwing to avoid accidentally deleting the wrong table reference."
+                        + " Please contact support to delete the metadata, which will involve deleting the row from"
+                        + " the DB manually.")
+                .hasExactlyArgs(
+                        SafeArg.of("numberOfMatchingTableReferences", numberOfMatchingTableReferences),
+                        UnsafeArg.of("tableReference", TEST_TABLE));
+    }
+
+    @Test
+    public void dropTablesDoesNotThrowIfMultipleMatchingTableReferencesExistAndCaseSensitiveDrop()
+            throws TableMappingNotFoundException {
+        // This mock is never called on the case sensitive code path, but this makes the test easier to read.
+        lenient().when(sqlConnection.selectCount(any(), any(), any())).thenReturn((long) 2);
+        createTable();
+        createOverflowTable();
+
+        assertThatCode(() -> tableMappingDdlTable.drop()).doesNotThrowAnyException();
     }
 
     private void createTable() throws TableMappingNotFoundException {

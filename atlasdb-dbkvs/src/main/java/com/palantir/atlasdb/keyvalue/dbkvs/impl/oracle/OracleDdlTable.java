@@ -33,6 +33,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -199,6 +200,15 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
+        drop(true);
+    }
+
+    /**
+     * Drops the table, and deletes the table from the mapping table (if present), and from the metadata table.
+     * If treatReferenceAsCaseSensitive is false, and another table is created with a table reference that is a case
+     * insensitive match with this table, then the behaviour is undefined.
+     */
+    public void drop(boolean treatReferenceAsCaseSensitive) {
         executeIgnoringTableMappingNotFound(() -> dropTableInternal(
                 oracleTableNameGetter.getPrefixedTableName(tableRef),
                 oracleTableNameGetter.getInternalShortTableName(conns, tableRef)));
@@ -211,7 +221,11 @@ public final class OracleDdlTable implements DbDdlTable {
                 oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
                 oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef)));
 
-        clearTableSizeCacheAndDropTableMetadata();
+        if (treatReferenceAsCaseSensitive) {
+            clearTableSizeCacheAndDropTableMetadataCaseSensitive();
+        } else {
+            clearTableSizeCacheAndDropTableMetadataCaseInsensitive();
+        }
     }
 
     private static void executeIgnoringTableMappingNotFound(
@@ -223,7 +237,31 @@ public final class OracleDdlTable implements DbDdlTable {
         }
     }
 
-    private void clearTableSizeCacheAndDropTableMetadata() {
+    private void clearTableSizeCacheAndDropTableMetadataCaseInsensitive() {
+        valueStyleCache.clearCacheForTable(tableRef);
+        long numberOfMatchingTableReferences = conns.get()
+                .selectCount(
+                        config.metadataTable().getQualifiedName(),
+                        "LOWER(table_name) = LOWER(?)",
+                        tableRef.getQualifiedName());
+
+        Preconditions.checkState(
+                numberOfMatchingTableReferences == 1,
+                "There are multiple tables that have the same case"
+                        + " insensitive table reference. Throwing to avoid accidentally deleting the wrong table reference."
+                        + " Please contact support to delete the metadata, which will involve deleting the row from"
+                        + " the DB manually.",
+                SafeArg.of("numberOfMatchingTableReferences", numberOfMatchingTableReferences),
+                UnsafeArg.of("tableReference", tableRef));
+
+        conns.get()
+                .executeUnregisteredQuery(
+                        "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE LOWER(table_name) ="
+                                + " LOWER(?)",
+                        tableRef.getQualifiedName());
+    }
+
+    private void clearTableSizeCacheAndDropTableMetadataCaseSensitive() {
         valueStyleCache.clearCacheForTable(tableRef);
         conns.get()
                 .executeUnregisteredQuery(
