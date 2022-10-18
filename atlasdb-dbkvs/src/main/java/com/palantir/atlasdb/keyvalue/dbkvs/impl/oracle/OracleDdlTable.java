@@ -230,8 +230,8 @@ public final class OracleDdlTable implements DbDdlTable {
                 clearTableSizeCacheAndDropTableMetadataCaseInsensitive();
                 break;
             default:
-                throw new SafeIllegalStateException("Unknown Case Sensitivity value", SafeArg.of("caseSensitivity",
-                        referenceCaseSensitivity));
+                throw new SafeIllegalStateException(
+                        "Unknown Case Sensitivity value", SafeArg.of("caseSensitivity", referenceCaseSensitivity));
         }
     }
 
@@ -254,10 +254,9 @@ public final class OracleDdlTable implements DbDdlTable {
 
         Preconditions.checkState(
                 numberOfMatchingTableReferences <= 1,
-                "There are multiple tables that have the same case"
-                        + " insensitive table reference. Throwing to avoid accidentally deleting the wrong table reference."
-                        + " Please contact support to delete the metadata, which will involve deleting the row from"
-                        + " the DB manually.",
+                "There are multiple tables that have the same case insensitive table reference. Throwing to avoid"
+                        + " accidentally deleting the wrong table reference. Please contact support to delete the"
+                        + " metadata, which will involve deleting the row from the DB manually.",
                 SafeArg.of("numberOfMatchingTableReferences", numberOfMatchingTableReferences),
                 UnsafeArg.of("tableReference", tableRef));
 
