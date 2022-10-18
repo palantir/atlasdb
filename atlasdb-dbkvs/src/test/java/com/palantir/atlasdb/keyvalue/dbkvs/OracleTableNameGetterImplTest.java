@@ -18,16 +18,18 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
@@ -49,9 +51,12 @@ public class OracleTableNameGetterImplTest {
             .useTableMapping(false)
             .build();
 
-    private static final Set<String> SHORT_TABLE_NAMES = ImmutableSet.of("shortNameOne", "shortNameTwo");
-    private static final Set<TableReference> TABLE_REFERENCES = ImmutableSet.of(
-            TableReference.create(Namespace.create("test"), "world"), TableReference.createWithEmptyNamespace("hello"));
+    private static final Map<TableReference, String> REFS_TO_SHORT_TABLE_NAMES = ImmutableMap.of(
+            TableReference.create(Namespace.create("test"), "world"), "hello",
+            TableReference.createWithEmptyNamespace("hello"), "world");
+
+    private static final Set<String> SHORT_TABLE_NAMES = new HashSet<>(REFS_TO_SHORT_TABLE_NAMES.values());
+    private static final Set<TableReference> TABLE_REFERENCES = REFS_TO_SHORT_TABLE_NAMES.keySet();
 
     @Mock
     private ConnectionSupplier connectionSupplier;
@@ -74,9 +79,8 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortTableNamesTransformsUnmapperNamesWhenMappingEnabled()
-            throws TableMappingNotFoundException {
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+    public void getTableReferencesFromShortTableNamesTransformsUnmapperNamesWhenMappingEnabled() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
                 .thenReturn(getLongTableNames());
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                 connectionSupplier, SHORT_TABLE_NAMES);
@@ -85,9 +89,8 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortOverflowTableNamesLoadsFromUnmapperWhenMappingEnabled()
-            throws TableMappingNotFoundException {
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+    public void getTableReferencesFromShortOverflowTableNamesLoadsFromUnmapperWhenMappingEnabled() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
                 .thenReturn(getLongOverflowTableNames());
 
         Set<TableReference> tableReferences = tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
@@ -96,49 +99,26 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortTableNamesTransformsProvidedNamesWhenMappingDisabled()
-            throws TableMappingNotFoundException {
+    public void getTableReferencesFromShortTableNamesTransformsProvidedNamesWhenMappingDisabled() {
         Set<TableReference> tableReferences = nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
-                connectionSupplier, getLongTableNames());
+                connectionSupplier, new HashSet<>(getLongTableNames().values()));
         assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test
-    public void getTableReferencesFromShortOverflowTableNamesTransformsProvidedNamesWhenMappingDisabled()
-            throws TableMappingNotFoundException {
+    public void getTableReferencesFromShortOverflowTableNamesTransformsProvidedNamesWhenMappingDisabled() {
         Set<TableReference> tableReferences =
                 nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
-                        connectionSupplier, getLongOverflowTableNames());
+                        connectionSupplier,
+                        new HashSet<>(getLongOverflowTableNames().values()));
         assertThat(tableReferences).containsExactlyInAnyOrderElementsOf(TABLE_REFERENCES);
     }
 
     @Test
-    public void getTableReferencesFromShortTableNamesThrowsIfMappingDoesNotExist()
-            throws TableMappingNotFoundException {
-        TableMappingNotFoundException tableMappingNotFoundException = new TableMappingNotFoundException("Propagated!");
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenThrow(tableMappingNotFoundException);
-        assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isEqualTo(tableMappingNotFoundException);
-    }
-
-    @Test
-    public void getTableReferencesFromShortOverflowTableNamesThrowsIfMappingDoesNotExist()
-            throws TableMappingNotFoundException {
-        TableMappingNotFoundException tableMappingNotFoundException = new TableMappingNotFoundException("Propagated!");
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenThrow(tableMappingNotFoundException);
-        assertThatThrownBy(() -> tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
-                        connectionSupplier, SHORT_TABLE_NAMES))
-                .isEqualTo(tableMappingNotFoundException);
-    }
-
-    @Test
-    public void getTableReferencesFromShortTableNamesThrowsIfMappedLongNameDoesNotBeginWithPrefix()
-            throws TableMappingNotFoundException {
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenReturn(SHORT_TABLE_NAMES);
+    public void getTableReferencesFromShortTableNamesThrowsIfMappedLongNameDoesNotBeginWithPrefix() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+                .thenReturn(SHORT_TABLE_NAMES.stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.identity())));
         assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
                 () -> tableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES),
@@ -146,10 +126,10 @@ public class OracleTableNameGetterImplTest {
     }
 
     @Test
-    public void getTableReferencesFromShortOverflowTableNamesThrowsIfMappedLongNameDoesNotBeginWithPrefix()
-            throws TableMappingNotFoundException {
-        when(tableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
-                .thenReturn(SHORT_TABLE_NAMES);
+    public void getTableReferencesFromShortOverflowTableNamesThrowsIfMappedLongNameDoesNotBeginWithPrefix() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+                .thenReturn(SHORT_TABLE_NAMES.stream()
+                        .collect(Collectors.toMap(Functions.identity(), Functions.identity())));
         assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
                 () -> tableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES),
@@ -158,6 +138,8 @@ public class OracleTableNameGetterImplTest {
 
     @Test
     public void getTableReferencesFromShortTableNamesThrowsIfLongNameDoesNotBeginWithPrefix() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+                .thenReturn(Map.of());
         assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
                 () -> nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES),
@@ -166,22 +148,60 @@ public class OracleTableNameGetterImplTest {
 
     @Test
     public void getTableReferencesFromShortOverflowTableNamesThrowsIfLongNameDoesNotBeginWithPrefix() {
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, SHORT_TABLE_NAMES))
+                .thenReturn(Map.of());
         assertThatLoggableExceptionThrownByMatchesPrefixMissingException(
                 () -> nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, SHORT_TABLE_NAMES),
                 NON_TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix());
     }
 
-    private Set<String> getLongOverflowTableNames() {
-        return TABLE_REFERENCES.stream()
-                .map(tableMappingTableNameGetter::getPrefixedOverflowTableName)
-                .collect(Collectors.toSet());
+    @Test
+    public void getTableReferencesFromShortTableNamesFiltersMappedNames() {
+        Set<String> extraTableNames = Set.of("test", "test2");
+        Set<String> allTableNames = Sets.union(
+                SHORT_TABLE_NAMES,
+                extraTableNames.stream()
+                        .map(tableName -> TABLE_MAPPING_DDL_CONFIG.tablePrefix() + tableName)
+                        .collect(Collectors.toSet()));
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
+                .thenReturn(getLongTableNames());
+        assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
+                        connectionSupplier, allTableNames))
+                .isEqualTo(extraTableNames.stream()
+                        .map(TableReference::fromInternalTableName)
+                        .collect(Collectors.toSet()));
     }
 
-    private Set<String> getLongTableNames() {
-        return TABLE_REFERENCES.stream()
-                .map(tableMappingTableNameGetter::getPrefixedTableName)
-                .collect(Collectors.toSet());
+    @Test
+    public void getTableReferencesFromShortOverflowTableNamesFiltersMappedNames() {
+        Set<String> extraTableNames = Set.of("test", "test2");
+        Set<String> allTableNames = Sets.union(
+                SHORT_TABLE_NAMES,
+                extraTableNames.stream()
+                        .map(tableName -> TABLE_MAPPING_DDL_CONFIG.overflowTablePrefix() + tableName)
+                        .collect(Collectors.toSet()));
+        when(tableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, allTableNames))
+                .thenReturn(getLongOverflowTableNames());
+        assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
+                        connectionSupplier, allTableNames))
+                .isEqualTo(extraTableNames.stream()
+                        .map(TableReference::fromInternalTableName)
+                        .collect(Collectors.toSet()));
+    }
+
+    private Map<String, String> getLongOverflowTableNames() {
+        return REFS_TO_SHORT_TABLE_NAMES.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getValue,
+                        entry -> tableMappingTableNameGetter.getPrefixedOverflowTableName(entry.getKey())));
+    }
+
+    private Map<String, String> getLongTableNames() {
+        return REFS_TO_SHORT_TABLE_NAMES.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getValue,
+                        entry -> tableMappingTableNameGetter.getPrefixedTableName(entry.getKey())));
     }
 
     private static void assertThatLoggableExceptionThrownByMatchesPrefixMissingException(

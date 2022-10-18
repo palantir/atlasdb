@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -33,6 +34,8 @@ import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -71,22 +74,21 @@ class OracleTableNameUnmapper {
         }
     }
 
-    public Set<String> getLongTableNamesFromMappingTable(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+    public Map<String, String> getShortToLongTableNamesFromMappingTable(
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
         if (shortTableNames.isEmpty()) {
-            return Set.of();
+            return Map.of();
         }
-        ImmutableSet.Builder<String> longTableNames = ImmutableSet.builder();
+        ImmutableMap.Builder<String, String> shortToLongTableNames = ImmutableMap.builder();
         for (List<String> batch :
                 Iterables.partition(shortTableNames, AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
-            longTableNames.addAll(getBatchOfLongTableNamesFromMappingTable(connectionSupplier, batch));
+            shortToLongTableNames.putAll(getBatchOfLongTableNamesFromMappingTable(connectionSupplier, batch));
         }
-        return longTableNames.build();
+        return shortToLongTableNames.buildKeepingLast();
     }
 
-    private Set<String> getBatchOfLongTableNamesFromMappingTable(
-            ConnectionSupplier connectionSupplier, Collection<String> shortTableNames)
-            throws TableMappingNotFoundException {
+    private Map<String, String> getBatchOfLongTableNamesFromMappingTable(
+            ConnectionSupplier connectionSupplier, Collection<String> shortTableNames) {
         String placeHolders = String.join(",", Collections.nCopies(shortTableNames.size(), "LOWER(?)"));
 
         SqlConnection conn = connectionSupplier.get();
@@ -100,28 +102,45 @@ class OracleTableNameUnmapper {
         // We use the Oracle LOWER function rather than mapping to lower case on the client to ensure that we're
         // using the same locale and conversion.
         AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                "SELECT table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
+                "SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE"
                         + " LOWER(short_table_name) IN (" + placeHolders + ")",
                 shortTableNames.toArray());
 
-        throwIfResultSetSizeDoesNotMatchExpected(results, shortTableNames);
+        Map<String, String> shortTableToLongTableMapping = results.rows().stream()
+                .collect(
+                        Collectors.toMap(row -> row.getString("short_table_name"), row -> row.getString("table_name")));
 
-        return results.rows().stream()
-                .map(result -> result.getString("table_name"))
-                .collect(Collectors.toSet());
+        verifyMappingSetSizeMatchesExpected(shortTableToLongTableMapping, shortTableNames);
+
+        return shortTableToLongTableMapping;
     }
 
-    private void throwIfResultSetSizeDoesNotMatchExpected(
-            AgnosticResultSet resultSet, Collection<String> shortTableNames) throws TableMappingNotFoundException {
-        if (resultSet.size() < shortTableNames.size()) {
-            throw new TableMappingNotFoundException("Some of the tables " + String.join(", ", shortTableNames)
-                    + " do not have a mapping. This might be because these tables do not exist.");
-        } else if (resultSet.size() > shortTableNames.size()) {
+    private void verifyMappingSetSizeMatchesExpected(
+            Map<String, String> shortTableToLongTableMapping, Collection<String> expectedShortTableNames) {
+        if (shortTableToLongTableMapping.size() > expectedShortTableNames.size()) {
             throw new SafeIllegalStateException(
-                    "There are more returned long table names than provided short table"
-                            + " names. This likely indicates a bug in AtlasDB",
-                    SafeArg.of("numLongTables", resultSet.size()),
-                    SafeArg.of("numShortTables", shortTableNames.size()));
+                    "There are more returned long table names than provided short table names. This likely indicates"
+                            + " a bug in AtlasDB",
+                    SafeArg.of("numLongTables", shortTableToLongTableMapping.size()),
+                    SafeArg.of("numShortTables", expectedShortTableNames.size()),
+                    UnsafeArg.of("returnedMapping", shortTableToLongTableMapping),
+                    UnsafeArg.of("expectedShortTableNames", expectedShortTableNames));
+        } else if (shortTableToLongTableMapping.size() < expectedShortTableNames.size()) {
+            Set<String> tableNamesWithMapping = shortTableToLongTableMapping.keySet().stream()
+                    .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toSet());
+            Set<String> tableNamesWithoutMapping = expectedShortTableNames.stream()
+                    .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                    .filter(tableName -> !tableNamesWithMapping.contains(tableName))
+                    .collect(Collectors.toSet());
+            log.info(
+                    "Some tables are missing a mapping. This may be due to another client using the same user and"
+                            + " prefix without table mapping",
+                    SafeArg.of(
+                            "numTablesMissingMapping",
+                            expectedShortTableNames.size() - shortTableToLongTableMapping.size()),
+                    UnsafeArg.of("unmappedShortTableNames", tableNamesWithoutMapping),
+                    UnsafeArg.of("mappedShortTableNames", tableNamesWithMapping));
         }
     }
 

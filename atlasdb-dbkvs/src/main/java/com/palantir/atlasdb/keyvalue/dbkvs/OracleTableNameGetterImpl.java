@@ -22,6 +22,8 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -89,20 +91,19 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
 
     @Override
     public Set<TableReference> getTableReferencesFromShortTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
         return getTableReferencesFromShortTableNamesWithPrefix(connectionSupplier, shortTableNames, tablePrefix);
     }
 
     @Override
     public Set<TableReference> getTableReferencesFromShortOverflowTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
         return getTableReferencesFromShortTableNamesWithPrefix(
                 connectionSupplier, shortTableNames, overflowTablePrefix);
     }
 
     private Set<TableReference> getTableReferencesFromShortTableNamesWithPrefix(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames, String tablePrefixToStrip)
-            throws TableMappingNotFoundException {
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames, String tablePrefixToStrip) {
         Set<String> longTableNames = getLongTableNamesFromTableNames(connectionSupplier, shortTableNames);
         return longTableNames.stream()
                 .peek(tableName -> {
@@ -119,11 +120,26 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
     }
 
     private Set<String> getLongTableNamesFromTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException {
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
         if (useTableMapping) {
-            return oracleTableNameUnmapper.getLongTableNamesFromMappingTable(connectionSupplier, shortTableNames);
+            return new HashSet<>(oracleTableNameUnmapper
+                    .getShortToLongTableNamesFromMappingTable(connectionSupplier, shortTableNames)
+                    .values());
         }
-        return shortTableNames;
+
+        Set<String> lowerCasedMappedTables =
+                oracleTableNameUnmapper
+                        .getShortToLongTableNamesFromMappingTable(connectionSupplier, shortTableNames)
+                        .keySet()
+                        .stream()
+                        .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                        .collect(Collectors.toSet());
+        // irrespective of the case-insensitive match, it is impossible to recover the original case-sensitive long
+        // table name from the oracle table name, as Oracle uppercases table names
+        return shortTableNames.stream()
+                .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                .filter(tableName -> !lowerCasedMappedTables.contains(tableName))
+                .collect(Collectors.toSet());
     }
 
     @Override
