@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable.CaseSensitivity;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
@@ -192,7 +193,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
 
-        tableMappingDdlTable.drop(false);
+        tableMappingDdlTable.drop(CaseSensitivity.CASE_INSENSITIVE);
 
         verify(sqlConnection)
                 .executeUnregisteredQuery(
@@ -209,7 +210,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
 
-        assertThatLoggableExceptionThrownBy(() -> tableMappingDdlTable.drop(false))
+        assertThatLoggableExceptionThrownBy(() -> tableMappingDdlTable.drop(CaseSensitivity.CASE_INSENSITIVE))
                 .hasLogMessage("There are multiple tables that have the same case insensitive table reference."
                         + " Throwing to avoid accidentally deleting the wrong table reference."
                         + " Please contact support to delete the metadata, which will involve deleting the row from"
