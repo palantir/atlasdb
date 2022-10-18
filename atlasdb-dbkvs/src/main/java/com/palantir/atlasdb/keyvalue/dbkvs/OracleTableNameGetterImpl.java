@@ -22,13 +22,18 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
+    private static final SafeLogger log = SafeLoggerFactory.get(OracleTableNameGetterImpl.class);
+
     private final String tablePrefix;
     private final String overflowTablePrefix;
     private final OracleTableNameMapper oracleTableNameMapper;
@@ -104,7 +109,7 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
 
     private Set<TableReference> getTableReferencesFromShortTableNamesWithPrefix(
             ConnectionSupplier connectionSupplier, Set<String> shortTableNames, String tablePrefixToStrip) {
-        Set<String> longTableNames = getLongTableNamesFromTableNames(connectionSupplier, shortTableNames);
+        Set<String> longTableNames = getLongTableNames(connectionSupplier, shortTableNames);
         return longTableNames.stream()
                 .peek(tableName -> {
                     if (!StringUtils.startsWithIgnoreCase(tableName, tablePrefixToStrip)) {
@@ -119,27 +124,38 @@ public final class OracleTableNameGetterImpl implements OracleTableNameGetter {
                 .collect(Collectors.toSet());
     }
 
-    private Set<String> getLongTableNamesFromTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
+    private Set<String> getLongTableNames(ConnectionSupplier connectionSupplier, Set<String> shortTableNames) {
+        Map<String, String> shortToLongTableNames =
+                oracleTableNameUnmapper.getShortToLongTableNamesFromMappingTable(connectionSupplier, shortTableNames);
+        Set<String> unmappedTableNames = getUnmappedTableNames(shortToLongTableNames, shortTableNames);
+
         if (useTableMapping) {
-            return new HashSet<>(oracleTableNameUnmapper
-                    .getShortToLongTableNamesFromMappingTable(connectionSupplier, shortTableNames)
-                    .values());
+            logIfUnmappedTablesPresent(unmappedTableNames);
+            return new HashSet<>(shortToLongTableNames.values());
         }
 
-        Set<String> lowerCasedMappedTables =
-                oracleTableNameUnmapper
-                        .getShortToLongTableNamesFromMappingTable(connectionSupplier, shortTableNames)
-                        .keySet()
-                        .stream()
-                        .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                        .collect(Collectors.toSet());
-        // irrespective of the case-insensitive match, it is impossible to recover the original case-sensitive long
-        // table name from the oracle table name, as Oracle uppercases table names
-        return shortTableNames.stream()
+        return unmappedTableNames;
+    }
+
+    private Set<String> getUnmappedTableNames(
+            Map<String, String> shortToLongTableNameMapping, Set<String> expectedShortTableNames) {
+        Set<String> tableNamesWithMapping = shortToLongTableNameMapping.keySet().stream()
                 .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                .filter(tableName -> !lowerCasedMappedTables.contains(tableName))
                 .collect(Collectors.toSet());
+        return expectedShortTableNames.stream()
+                .map(tableName -> tableName.toLowerCase(Locale.ROOT))
+                .filter(tableName -> !tableNamesWithMapping.contains(tableName))
+                .collect(Collectors.toSet());
+    }
+
+    private void logIfUnmappedTablesPresent(Set<String> unmappedTableNames) {
+        if (!unmappedTableNames.isEmpty()) {
+            log.info(
+                    "Some tables are missing a mapping. This may be due to another client using the same user and"
+                            + " prefix without table mapping",
+                    SafeArg.of("numTablesMissingMapping", unmappedTableNames.size()),
+                    UnsafeArg.of("unmappedShortTableNames", unmappedTableNames));
+        }
     }
 
     @Override

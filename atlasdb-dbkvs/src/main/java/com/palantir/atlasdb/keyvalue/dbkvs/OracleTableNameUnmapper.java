@@ -24,25 +24,20 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 class OracleTableNameUnmapper {
-    private static final SafeLogger log = SafeLoggerFactory.get(OracleTableNameUnmapper.class);
-
     private Cache<String, String> unmappingCache;
 
     OracleTableNameUnmapper() {
@@ -84,7 +79,7 @@ class OracleTableNameUnmapper {
                 Iterables.partition(shortTableNames, AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
             shortToLongTableNames.putAll(getBatchOfLongTableNamesFromMappingTable(connectionSupplier, batch));
         }
-        return shortToLongTableNames.buildKeepingLast();
+        return shortToLongTableNames.buildOrThrow();
     }
 
     private Map<String, String> getBatchOfLongTableNamesFromMappingTable(
@@ -110,38 +105,21 @@ class OracleTableNameUnmapper {
                 .collect(
                         Collectors.toMap(row -> row.getString("short_table_name"), row -> row.getString("table_name")));
 
-        verifyMappingSetSizeMatchesExpected(shortTableToLongTableMapping, shortTableNames);
+        verifyMappingSetSizeNotLargerThanExpected(shortTableToLongTableMapping, shortTableNames);
 
         return shortTableToLongTableMapping;
     }
 
-    private void verifyMappingSetSizeMatchesExpected(
+    private void verifyMappingSetSizeNotLargerThanExpected(
             Map<String, String> shortTableToLongTableMapping, Collection<String> expectedShortTableNames) {
-        if (shortTableToLongTableMapping.size() > expectedShortTableNames.size()) {
-            throw new SafeIllegalStateException(
-                    "There are more returned long table names than provided short table names. This likely indicates"
-                            + " a bug in AtlasDB",
-                    SafeArg.of("numLongTables", shortTableToLongTableMapping.size()),
-                    SafeArg.of("numShortTables", expectedShortTableNames.size()),
-                    UnsafeArg.of("returnedMapping", shortTableToLongTableMapping),
-                    UnsafeArg.of("expectedShortTableNames", expectedShortTableNames));
-        } else if (shortTableToLongTableMapping.size() < expectedShortTableNames.size()) {
-            Set<String> tableNamesWithMapping = shortTableToLongTableMapping.keySet().stream()
-                    .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                    .collect(Collectors.toSet());
-            Set<String> tableNamesWithoutMapping = expectedShortTableNames.stream()
-                    .map(tableName -> tableName.toLowerCase(Locale.ROOT))
-                    .filter(tableName -> !tableNamesWithMapping.contains(tableName))
-                    .collect(Collectors.toSet());
-            log.info(
-                    "Some tables are missing a mapping. This may be due to another client using the same user and"
-                            + " prefix without table mapping",
-                    SafeArg.of(
-                            "numTablesMissingMapping",
-                            expectedShortTableNames.size() - shortTableToLongTableMapping.size()),
-                    UnsafeArg.of("unmappedShortTableNames", tableNamesWithoutMapping),
-                    UnsafeArg.of("mappedShortTableNames", tableNamesWithMapping));
-        }
+        Preconditions.checkState(
+                shortTableToLongTableMapping.size() <= expectedShortTableNames.size(),
+                "There are more returned long table names than provided short table names. This likely indicates"
+                        + " a bug in AtlasDB",
+                SafeArg.of("numLongTables", shortTableToLongTableMapping.size()),
+                SafeArg.of("numShortTables", expectedShortTableNames.size()),
+                UnsafeArg.of("returnedMapping", shortTableToLongTableMapping),
+                UnsafeArg.of("expectedShortTableNames", expectedShortTableNames));
     }
 
     public void clearCacheForTable(String fullTableName) {
