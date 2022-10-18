@@ -21,7 +21,7 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class HostIdResultTest {
@@ -55,10 +55,10 @@ public class HostIdResultTest {
 
     @Test
     public void canBuildWhenHostIdsSpecifiedAndSuccess() {
-        HostIdResult.builder()
-                .type(HostIdResult.Type.SUCCESS)
-                .hostIds(Set.of("foo"))
-                .build();
-        assertThatNoException();
+        assertThatCode(() -> HostIdResult.builder()
+                        .type(HostIdResult.Type.SUCCESS)
+                        .hostIds(Set.of("foo"))
+                        .build())
+                .doesNotThrowAnyException();
     }
 }
