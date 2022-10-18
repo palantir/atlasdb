@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -78,6 +79,7 @@ public class CellsSweeper {
         keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 
+    @Unsafe
     private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
         return UnsafeArg.of("cellTsPairsToSweep", getMessage(cellTsPairsToSweep));
     }

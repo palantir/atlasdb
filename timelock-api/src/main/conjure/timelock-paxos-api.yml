@@ -8,11 +8,15 @@ services:
       takeover:
         http: POST /takeover/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
         returns: boolean
 
       takeoverNamespaces:
         http: POST /takeoverNamespaces
         args:
-          namespaces: set<string>
+          namespaces:
+            type: set<string>
+            safety: safe
         returns: set<string>
