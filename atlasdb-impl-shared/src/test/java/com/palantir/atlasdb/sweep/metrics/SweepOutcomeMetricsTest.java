@@ -15,22 +15,23 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
-import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
-import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
-import java.util.Arrays;
-import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
+import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class SweepOutcomeMetricsTest {
     private MetricsManager metricsManager;
@@ -131,6 +132,7 @@ public class SweepOutcomeMetricsTest {
             targetedMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
         });
 
-        assertThat(metricsManager.getPublishableMetrics().getMetrics()).isEmpty();
+        assertThat(metricsManager.getPublishableMetrics().getMetrics().keySet())
+                .containsOnly(TargetedSweepProgressMetrics.lastSeenCommitTsMetricName());
     }
 }
