@@ -45,7 +45,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class CassandraNamespaceDeleterTest {
     private static final String KEYSPACE = "nonreservedkeyspace";
-    public static final ImmutableCqlQuery DROP_KEYSPACE_QUERY = CqlQuery.builder()
+    private static final ImmutableCqlQuery DROP_KEYSPACE_QUERY = CqlQuery.builder()
             .safeQueryFormat(SchemaBuilder.dropKeyspace("\"" + KEYSPACE + "\"")
                     .ifExists()
                     .buildInternal())
