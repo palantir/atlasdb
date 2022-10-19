@@ -22,8 +22,13 @@ import org.immutables.value.Value;
  *  Info about one specific {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get method call.
  */
 @Value.Immutable
-public interface KvsCallReadInfo {
+public interface KvsCallReadInfo extends Comparable<KvsCallReadInfo> {
     long bytesRead();
 
     String kvsMethodName();
+
+    @Override
+    default int compareTo(KvsCallReadInfo other) {
+        return Long.compare(this.bytesRead(), other.bytesRead());
+    }
 }
