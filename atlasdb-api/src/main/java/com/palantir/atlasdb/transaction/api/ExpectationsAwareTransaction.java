@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+
 public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
 

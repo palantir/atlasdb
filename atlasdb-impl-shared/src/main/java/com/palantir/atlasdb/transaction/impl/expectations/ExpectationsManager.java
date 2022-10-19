@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.palantir.atlasdb.transaction.api.ExpectationsAwareTransaction;
 
-// todo aalouane TEX convert this to an implementation
 public interface ExpectationsManager extends AutoCloseable {
     void scheduleMetricsUpdate(long delayMillis);
 
@@ -30,8 +29,7 @@ public interface ExpectationsManager extends AutoCloseable {
     void unregisterTransaction(ExpectationsAwareTransaction transaction);
 
     /*
-     * Mark transaction as concluded (aborted/succeeded), update end of transaction metrics and run expectations
-     * callbacks.
+     * Mark transaction as concluded (aborted/succeeded), run expectations callbacks and stop tracking the transaction.
      */
     void markConcludedTransaction(ExpectationsAwareTransaction transaction);
 }

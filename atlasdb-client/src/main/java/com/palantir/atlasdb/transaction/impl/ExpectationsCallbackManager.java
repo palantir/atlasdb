@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
