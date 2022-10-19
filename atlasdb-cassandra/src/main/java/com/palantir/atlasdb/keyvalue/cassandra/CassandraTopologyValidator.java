@@ -134,9 +134,9 @@ public final class CassandraTopologyValidator {
         // This means we've not added any hosts yet.
         if (currentServers.isEmpty()) {
             return maybeGetConsistentClusterTopology(newServers)
-                    .map(topology ->
+                    .<Set<CassandraServer>>map(topology ->
                             // Do not add new servers which were unreachable
-                            (Set<CassandraServer>) Sets.difference(newlyAddedHosts, topology.serversInConsensus()))
+                            Sets.difference(newlyAddedHosts, topology.serversInConsensus()))
                     .orElse(newlyAddedHosts);
         }
 
@@ -157,8 +157,8 @@ public final class CassandraTopologyValidator {
      *
      * This is achieved by comparing the hostIds (list of UUIDs for each C* node) for all Cassandra nodes.
      * A quorum of C* nodes are required to be reachable and all reachable nodes must have the same
-     * topology (hostIds) for this to return a valid result. Nodes that are reachable, but do not have
-     * support for our the get_host_ids endpoint, are simply ignored and will not be filtered out.
+     * topology (hostIds) for this to return a valid result. Nodes that are reachable but do not have
+     * support for our get_host_ids endpoint are simply ignored and will not be filtered out.
      *
      * @param hosts Cassandra hosts to obtain a consistent topology view from
      * @return If consensus could be reached, the topology and the list of valid hosts, otherwise empty.
@@ -174,7 +174,7 @@ public final class CassandraTopologyValidator {
                     .build());
         }
 
-        Map<CassandraServer, Set<String>> hostIdsWithoutHardFailures = EntryStream.of(
+        Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
                 .removeValues(result -> result.type().equals(HostIdResult.Type.HARD_FAILURE))
                 .mapValues(HostIdResult::hostIds)
