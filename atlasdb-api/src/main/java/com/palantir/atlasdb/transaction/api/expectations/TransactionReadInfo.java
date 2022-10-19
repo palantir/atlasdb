@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.palantir.atlasdb.transaction.api.KvsCallReadInfo;
 import java.util.Optional;
 import org.immutables.value.Value;
 
