@@ -16,24 +16,42 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
+import java.time.Duration;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ExpectationsConfig {
-    long MAXIMUM_NAME_SIZE = 255;
+public abstract class ExpectationsConfig {
+    public static final long MAXIMUM_NAME_SIZE = 255;
+    public static final long ONE_MEBIBYTE = mebibytesToBytes(1);
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
      * This will be used for logging and will be expected to be safe to log.
      */
-    Optional<String> transactionName();
+    public abstract Optional<String> transactionName();
 
-    long transactionAgeMillisLimit();
+    @Value.Default
+    public long transactionAgeMillisLimit() {
+        return Duration.ofHours(24).toMillis();
+    }
 
-    long bytesReadLimit();
+    @Value.Default
+    public long bytesReadLimit() {
+        return 50 * ONE_MEBIBYTE;
+    }
 
-    long bytesReadInOneKvsCallLimit();
+    @Value.Default
+    public long bytesReadInOneKvsCallLimit() {
+        return 10 * ONE_MEBIBYTE;
+    }
 
-    long kvsReadCallCountLimit();
+    @Value.Default
+    public long kvsReadCallCountLimit() {
+        return 100L;
+    }
+
+    public static long mebibytesToBytes(long mebibytes) {
+        return 1024 * 1024 * mebibytes;
+    }
 }

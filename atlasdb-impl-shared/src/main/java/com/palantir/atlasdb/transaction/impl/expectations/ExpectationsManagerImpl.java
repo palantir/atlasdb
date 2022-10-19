@@ -17,23 +17,41 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
+import com.palantir.logsafe.Preconditions;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ExpectationsManagerImpl implements ExpectationsManager {
-    Set<ExpectationsAwareTransaction> tracking = ConcurrentHashMap.newKeySet();
+
+    private final Set<ExpectationsAwareTransaction> trackedTransactions = ConcurrentHashMap.newKeySet();
+    private final ScheduledExecutorService executorService;
+    private final AtomicBoolean updateIsScheduled = new AtomicBoolean(false);
+
+    public ExpectationsManagerImpl(ScheduledExecutorService executorService) {
+        this.executorService = executorService;
+    }
 
     @Override
-    public void scheduleMetricsUpdate(long delayMillis) {}
+    public void scheduleMetricsUpdate(long delayMillis) {
+        Preconditions.checkArgument(
+                delayMillis > 0, "Transactional expectations manager scheduler delay must be strictly positive.");
+        if (!updateIsScheduled.compareAndExchange(false, true)) {
+            executorService.scheduleWithFixedDelay(
+                    new ExpectationsTask(trackedTransactions), delayMillis, delayMillis, TimeUnit.MILLISECONDS);
+        }
+    }
 
     @Override
     public void registerTransaction(ExpectationsAwareTransaction transaction) {
-        tracking.add(transaction);
+        trackedTransactions.add(transaction);
     }
 
     @Override
     public void unregisterTransaction(ExpectationsAwareTransaction transaction) {
-        tracking.remove(transaction);
+        trackedTransactions.remove(transaction);
     }
 
     @Override
@@ -43,5 +61,8 @@ public final class ExpectationsManagerImpl implements ExpectationsManager {
     }
 
     @Override
-    public void close() throws Exception {}
+    public void close() throws Exception {
+        updateIsScheduled.set(true);
+        executorService.shutdown();
+    }
 }
