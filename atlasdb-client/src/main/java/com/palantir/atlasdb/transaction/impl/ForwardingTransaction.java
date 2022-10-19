@@ -25,12 +25,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
-import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
@@ -38,7 +36,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public abstract class ForwardingTransaction extends ForwardingObject implements Transaction {
@@ -198,15 +195,5 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return delegate().getAsync(tableRef, cells);
-    }
-
-    @Override
-    public void setExpectationsConfig(ExpectationsConfig config) {
-        delegate().setExpectationsConfig(config);
-    }
-
-    @Override
-    public void onCompletion(Consumer<ExpectationsStatistics> callback) {
-        delegate().onCompletion(callback);
     }
 }

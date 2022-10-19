@@ -23,12 +23,9 @@ import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.ExpectationsConfigurations;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.logsafe.Preconditions;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
@@ -61,18 +58,7 @@ public abstract class AbstractTransaction implements Transaction {
         commit();
     }
 
-    @Override
-    public void setExpectationsConfig(ExpectationsConfig config) {
-        expectationsConfigReference.set(config);
-    }
-
     public ExpectationsConfig expectationsConfig() {
         return expectationsConfigReference.get();
-    }
-
-    @Override
-    public void onCompletion(Consumer<ExpectationsStatistics> callback) {
-        Preconditions.checkNotNull(callback, "Transactional expectations callback cannot be null");
-        expectationsCallbackManager.registerCallback(callback);
     }
 }

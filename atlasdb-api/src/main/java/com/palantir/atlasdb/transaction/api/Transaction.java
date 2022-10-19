@@ -24,17 +24,14 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.logsafe.Safe;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -405,19 +402,4 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
-
-    /**
-     * Sets transactional expectations thresholds and config.
-     * {@link com.palantir.atlasdb.transaction.api.ExpectationsConfigurations#DEFAULT} is the default fallback.
-     * Parameter is required to be safe to log.
-     * This method should be called before any interactions with the data store and preferably at the start.
-     * This method should be called at most once.
-     */
-    void setExpectationsConfig(@Safe ExpectationsConfig config);
-
-    /**
-     * Registers a consumer of {@link Consumer} of {TransactionalExpectationsStatistics} to be run after
-     * the transaction completes.
-     */
-    void onCompletion(Consumer<ExpectationsStatistics> expectationsCallback);
 }
