@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ExpectationsConfig {
-    static final long MAXIMUM_NAME_SIZE = 255;
+    long MAXIMUM_NAME_SIZE = 255;
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
