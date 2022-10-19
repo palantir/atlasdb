@@ -208,6 +208,7 @@ import javax.validation.constraints.NotNull;
                     .getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
+
             List<OpenTransaction> transactions = Streams.zip(
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
@@ -219,8 +220,7 @@ import javax.validation.constraints.NotNull;
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
                                 transaction.onSuccess(
                                         () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
-                                OpenTransaction openTransaction = new OpenTransactionImpl(transaction, immutableTsLock);
-                                return openTransaction;
+                                return new OpenTransactionImpl(transaction, immutableTsLock);
                             })
                     .collect(Collectors.toList());
             openTransactionCounter.inc(transactions.size());
