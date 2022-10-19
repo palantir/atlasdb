@@ -14,12 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-public final class ExpectationsConfigurations {
+import com.palantir.atlasdb.transaction.api.KvsCallReadInfo;
+import java.util.Optional;
+import org.immutables.value.Value;
 
-    private ExpectationsConfigurations() {}
+/**
+ * Data about a transaction's read/get interactions with {@link com.palantir.atlasdb.keyvalue.api.KeyValueService}.
+ */
+@Value.Immutable
+public interface TransactionReadInfo {
+    long bytesRead();
 
-    public static final ExpectationsConfig DEFAULT =
-            ImmutableExpectationsConfig.builder().build();
+    long kvsCalls();
+
+    /**
+     * Data about the {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get call that read the
+     * most amount of data  for a given transaction.
+     */
+    Optional<KvsCallReadInfo> maximumBytesKvsCallInfo();
 }

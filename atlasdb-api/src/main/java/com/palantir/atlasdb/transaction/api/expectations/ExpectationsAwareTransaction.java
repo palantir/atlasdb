@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
+import com.palantir.atlasdb.transaction.api.Transaction;
 
-public final class ExpectationsCallbackManager {
-    private final List<Consumer<ExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
+public interface ExpectationsAwareTransaction extends Transaction {
+    ExpectationsConfig expectationsConfig();
 
-    public void registerCallback(Consumer<ExpectationsStatistics> callback) {
-        callbacks.add(callback);
-    }
+    long getAgeMillis();
 
-    public void runCallbacks(ExpectationsStatistics stats) {
-        callbacks.forEach(consumer -> consumer.accept(stats));
-    }
+    TransactionReadInfo getReadInfo();
+
+    ExpectationsStatistics getCallbackStatistics();
+
+    void runExpectationsCallbacks();
 }

@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+import java.util.Optional;
+import org.immutables.value.Value;
 
-public interface ExpectationsAwareTransaction extends Transaction {
-    ExpectationsConfig expectationsConfig();
+@Value.Immutable
+public interface ExpectationsConfig {
+    static final long MAXIMUM_NAME_SIZE = 255;
 
-    long getAgeMillis();
+    /**
+     * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
+     * This will be used for logging and will be expected to be safe to log.
+     */
+    Optional<String> transactionName();
 
-    TransactionReadInfo getReadInfo();
+    long transactionAgeMillisLimit();
 
-    ExpectationsStatistics getCallbackStatistics();
+    long bytesReadLimit();
 
-    void runExpectationsCallbacks();
+    long bytesReadInOneKvsCallLimit();
+
+    long kvsReadCallCountLimit();
 }

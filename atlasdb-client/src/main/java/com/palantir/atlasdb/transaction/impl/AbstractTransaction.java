@@ -19,13 +19,10 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.transaction.api.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.ExpectationsConfigurations;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractTransaction implements Transaction {
     protected static final ImmutableSortedMap<byte[], RowResult<byte[]>> EMPTY_SORTED_ROWS =
@@ -33,11 +30,6 @@ public abstract class AbstractTransaction implements Transaction {
                     .buildOrThrow();
 
     private TransactionType transactionType = TransactionType.DEFAULT;
-
-    protected AtomicReference<ExpectationsConfig> expectationsConfigReference =
-            new AtomicReference<>(ExpectationsConfigurations.DEFAULT);
-
-    protected ExpectationsCallbackManager expectationsCallbackManager = new ExpectationsCallbackManager();
 
     @Override
     @Idempotent
@@ -56,9 +48,5 @@ public abstract class AbstractTransaction implements Transaction {
     @Override
     public void commit(TransactionService txService) throws TransactionFailedException {
         commit();
-    }
-
-    public ExpectationsConfig expectationsConfig() {
-        return expectationsConfigReference.get();
     }
 }
