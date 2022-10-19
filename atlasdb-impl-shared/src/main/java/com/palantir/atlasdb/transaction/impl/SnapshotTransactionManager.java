@@ -183,7 +183,6 @@ import javax.validation.constraints.NotNull;
             condition.cleanup();
             throw e;
         }
-        // todo aalouane TEX mark concluded transaction
         return openTransaction.finishWithCallback(
                 transaction -> task.execute(transaction, condition), condition::cleanup);
     }
@@ -209,7 +208,6 @@ import javax.validation.constraints.NotNull;
                     .getAsLong();
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
-            // todo aalouane TEX register created transactions
             List<OpenTransaction> transactions = Streams.zip(
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
@@ -233,7 +231,6 @@ import javax.validation.constraints.NotNull;
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
                     .collect(Collectors.toSet()));
-            // todo aalouane TEX unregister transactions registered in try block
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
@@ -377,7 +374,6 @@ import javax.validation.constraints.NotNull;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge);
-        // todo aalouane TEX mark registration and completion for transaction
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

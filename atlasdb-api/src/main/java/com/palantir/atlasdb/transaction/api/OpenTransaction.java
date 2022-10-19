@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.metrics.Timed;
 
-public interface OpenTransaction {
+public interface OpenTransaction extends Transaction {
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup. If no further work needs to be done with the
