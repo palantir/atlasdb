@@ -16,20 +16,13 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionReadInfo;
 
-public class TrackingKeyValueService extends ForwardingKeyValueService {
-    private final KeyValueService delegate;
-    private final TransactionExpectationsTracker tracker;
+public interface TrackingKeyValueService extends KeyValueService {
+    TransactionReadInfo getReadInfo();
 
-    public TrackingKeyValueService(KeyValueService delegate, TransactionExpectationsTracker tracker) {
-        this.delegate = delegate;
-        this.tracker = tracker;
-    }
-
-    @Override
-    public KeyValueService delegate() {
-        return delegate;
-    }
+    ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
 }

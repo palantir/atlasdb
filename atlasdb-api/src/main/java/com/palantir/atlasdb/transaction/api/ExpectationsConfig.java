@@ -24,7 +24,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ExpectationsConfig {
-    public static final String DEFAULT_TRANSACTION_NAME = "<un-named>";
+    public static final String DEFAULT_TRANSACTION_DISPLAY_NAME = "unnamed";
     public static final long MAXIMUM_NAME_SIZE = 255;
     public static final long ONE_GIBIBYTE = mebibytesToBytes(1024);
 
@@ -56,30 +56,45 @@ public abstract class ExpectationsConfig {
 
     @Value.Check
     protected void check() {
-        transactionName().ifPresent(name -> {
-            Preconditions.checkArgument(
-                    name.length() <= MAXIMUM_NAME_SIZE,
-                    "transactionName should be shorter",
-                    SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE),
-                    SafeArg.of("transactionalExpectationsConfig", this));
-        });
+        transactionName().ifPresent(ExpectationsConfig::checkTransactionName);
+        checkTransactionAgeMillisLimit(transactionAgeMillisLimit());
+        checkBytesReadLimit(bytesReadLimit());
+        checkBytesReadInOneKvsCallLimit(bytesReadInOneKvsCallLimit());
+        checkKvsReadCallCountLimit(kvsReadCallCountLimit());
+    }
 
+    private static void checkTransactionName(String name) {
         Preconditions.checkArgument(
-                transactionAgeMillisLimit() > 0,
-                "transactionAgeMillisLimit should be strictly positive.",
-                SafeArg.of("transactionalExpectationsConfig", this));
+                name.length() <= MAXIMUM_NAME_SIZE,
+                "transactionName should be shorter",
+                SafeArg.of("transactionNameLength", name.length()),
+                SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE));
+    }
+
+    private static void checkTransactionAgeMillisLimit(long ageLimitMillis) {
         Preconditions.checkArgument(
-                bytesReadLimit() > 0,
-                "bytesReadLimit should be strictly positive",
-                SafeArg.of("transactionalExpectationsConfig", this));
+                ageLimitMillis > 0,
+                "ageLimitMillis should be strictly positive",
+                SafeArg.of("transactionAgeMillis", ageLimitMillis));
+    }
+
+    private static void checkBytesReadLimit(long bytesLimit) {
         Preconditions.checkArgument(
-                bytesReadInOneKvsCallLimit() > 0,
+                bytesLimit > 0, "bytesReadLimit should be strictly positive", SafeArg.of("bytesReadLimit", bytesLimit));
+    }
+
+    private static void checkBytesReadInOneKvsCallLimit(long bytesLimit) {
+        Preconditions.checkArgument(
+                bytesLimit > 0,
                 "bytesReadInOneKvsCallLimit should be strictly positive",
-                SafeArg.of("transactionalExpectationsConfig", this));
+                SafeArg.of("bytesReadInOneKvsCallLimit", bytesLimit));
+    }
+
+    private static void checkKvsReadCallCountLimit(long callCountLimit) {
         Preconditions.checkArgument(
-                kvsReadCallCountLimit() > 0,
+                callCountLimit > 0,
                 "kvsReadCallCountLimit should be strictly positive",
-                SafeArg.of("transactionalExpectationsConfig", this));
+                SafeArg.of("kvsReadCallCountLimit", callCountLimit));
     }
 
     public static long mebibytesToBytes(long mebibytes) {

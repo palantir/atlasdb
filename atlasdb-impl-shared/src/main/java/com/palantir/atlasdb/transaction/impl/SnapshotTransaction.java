@@ -85,7 +85,6 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
-import com.palantir.atlasdb.transaction.api.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -96,7 +95,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
-import com.palantir.atlasdb.transaction.api.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -176,7 +174,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -269,24 +266,6 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
 
-    // todo aalouane TEX implement interface, maybe move this to AbstractTransaction
-    protected final TransactionExpectationsTracker expectationsTracker = new TransactionExpectationsTracker() {
-        @Override
-        public void trackBytesRead(TableReference tableRef, long bytesRead) {
-            throw new NotImplementedException();
-        }
-
-        @Override
-        public TransactionReadInfo getReadInfo() {
-            throw new NotImplementedException();
-        }
-
-        @Override
-        public ExpectationsStatistics getCallbackStatistics() {
-            throw new NotImplementedException();
-        }
-    };
-
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
      *                           lock for it because we know that no writers exist.
@@ -294,7 +273,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService tmKeyValueService,
+            KeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -323,7 +302,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueService(tmKeyValueService, expectationsTracker);
+        this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -399,16 +378,6 @@ public class SnapshotTransaction extends AbstractTransaction
     public void markTableInvolved(TableReference tableRef) {
         // Not setting hasReads on purpose.
         checkGetPreconditions(tableRef);
-    }
-
-    @Override
-    public TransactionReadInfo getReadInfo() {
-        return expectationsTracker.getReadInfo();
-    }
-
-    @Override
-    public ExpectationsStatistics getCallbackStatistics() {
-        return expectationsTracker.getCallbackStatistics();
     }
 
     @Override
@@ -1825,11 +1794,6 @@ public class SnapshotTransaction extends AbstractTransaction
         if (isDefinitivelyCommitted()) {
             successCallbackManager.runCallbacks();
         }
-    }
-
-    @Override
-    public void runExpectationsCallbacks(ExpectationsStatistics stats) {
-        expectationsCallbackManager.runCallbacks(stats);
     }
 
     @Override

@@ -18,12 +18,11 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ExpectationsStatistics {
-    Optional<Long> transactionAgeMillis();
+    long transactionAgeMillis();
 
     ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable();
 }

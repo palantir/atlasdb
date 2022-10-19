@@ -238,7 +238,7 @@ import javax.validation.constraints.NotNull;
         }
     }
 
-    private final class OpenTransactionImpl extends ExpectationsAwareForwardingTransaction implements OpenTransaction {
+    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
         private final CallbackAwareTransaction delegate;
         private final LockToken immutableTsLock;
@@ -249,7 +249,7 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public CallbackAwareTransaction delegate() {
+        public Transaction delegate() {
             return delegate;
         }
 

@@ -16,8 +16,14 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-public interface ExpectationsAwareTransaction extends Transaction, ExpectationsDataSupplier {
+public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
 
-    void runExpectationsCallbacks(ExpectationsStatistics stats);
+    long getAgeMillis();
+
+    TransactionReadInfo getReadInfo();
+
+    ExpectationsStatistics getCallbackStatistics();
+
+    void runExpectationsCallbacks();
 }

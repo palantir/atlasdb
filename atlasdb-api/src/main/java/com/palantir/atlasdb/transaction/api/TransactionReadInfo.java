@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -31,5 +32,5 @@ public interface TransactionReadInfo {
      * Data about the {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get call that read the
      * maximum amount of data  for a given transaction.
      */
-    KvsCallReadInfo maximumBytesKvsCallInfo();
+    Optional<KvsCallReadInfo> maximumBytesKvsCallInfo();
 }
