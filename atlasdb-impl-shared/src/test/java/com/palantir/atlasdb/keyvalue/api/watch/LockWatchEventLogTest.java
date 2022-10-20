@@ -39,6 +39,7 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -72,6 +73,8 @@ public final class LockWatchEventLogTest {
             .collect(Collectors.toList());
     private static final LockWatchReference REFERENCE_1 = LockWatchReferences.entireTable("table.one");
     private static final LockWatchReference REFERENCE_2 = LockWatchReferences.entireTable("table.two");
+    private static final byte[] ROW_NAME = "row".getBytes(StandardCharsets.UTF_8);
+    private static final LockWatchReference ROW_REFERENCE = LockWatchReferences.exactRow("table.three", ROW_NAME);
 
     private static final LockWatchEvent LOCK_DESCRIPTOR_2_VERSION_2 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN).build(SEQUENCE_2);
@@ -107,6 +110,28 @@ public final class LockWatchEventLogTest {
                     .addLocked(DESCRIPTOR_1)
                     .addWatches(REFERENCE_1)
                     .build();
+
+    /*
+       For handling row-level events
+       Sequence 5: Snapshot: lock DESCRIPTOR_1
+       Sequence 6: Lock event: lock ROW_DESCRIPTOR
+    */
+    private static final long SEQUENCE_5 = 5L;
+    private static final long SEQUENCE_6 = 6L;
+    private static final ClientLockWatchSnapshotState SNAPSHOT_STATE_VERSION_5 =
+            ImmutableClientLockWatchSnapshotState.builder()
+                    .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_5))
+                    .addLocked(DESCRIPTOR_1)
+                    .addWatches(REFERENCE_1, ROW_REFERENCE)
+                    .build();
+    private static final LockDescriptor ROW_DESCRIPTOR = StringLockDescriptor.of("lwelt-row");
+    private static final LockWatchEvent LOCK_ROW_DESCRIPTOR_VERSION_6 =
+            LockEvent.builder(ImmutableSet.of(ROW_DESCRIPTOR), LOCK_TOKEN).build(SEQUENCE_6);
+
+    private static final LockWatchStateUpdate.Snapshot INITIAL_SNAPSHOT_VERSION_5 = LockWatchStateUpdate.snapshot(
+            INITIAL_LEADER, SEQUENCE_5, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1, ROW_REFERENCE));
+    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_5_TO_6 =
+            LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_6, ImmutableList.of(LOCK_ROW_DESCRIPTOR_VERSION_6));
 
     private final LockWatchEventLog eventLog =
             LockWatchEventLog.create(CacheMetrics.create(MetricsManagers.createForTests()), MIN_EVENTS, MAX_EVENTS);
@@ -160,6 +185,25 @@ public final class LockWatchEventLogTest {
                         .snapshotState(SNAPSHOT_STATE_VERSION_1)
                         .eventStoreState(ImmutableVersionedEventStoreState.builder()
                                 .eventMap(ImmutableSortedMap.of(Sequence.of(SEQUENCE_2), lockEvent))
+                                .build())
+                        .build());
+    }
+
+    @Test
+    public void successUpdateForExactRowUpdatesContextAndShouldInstructClientsNotToClearCache() {
+        eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_5);
+        CacheUpdate cacheUpdate = eventLog.processUpdate(SUCCESS_VERSION_5_TO_6);
+
+        LockWatchVersion initialLeaderAtSequenceSix = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_6);
+        assertThat(cacheUpdate.shouldClearCache()).isFalse();
+        assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceSix);
+        assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceSix);
+        assertThat(eventLog.getStateForTesting())
+                .isEqualTo(ImmutableLockWatchEventLogState.builder()
+                        .latestVersion(initialLeaderAtSequenceSix)
+                        .snapshotState(SNAPSHOT_STATE_VERSION_5)
+                        .eventStoreState(ImmutableVersionedEventStoreState.builder()
+                                .eventMap(ImmutableSortedMap.of(Sequence.of(SEQUENCE_6), LOCK_ROW_DESCRIPTOR_VERSION_6))
                                 .build())
                         .build());
     }
