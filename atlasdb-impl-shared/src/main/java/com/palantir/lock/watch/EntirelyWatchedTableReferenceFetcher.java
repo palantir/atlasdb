@@ -24,8 +24,16 @@ import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
 import com.palantir.lock.watch.LockWatchReferences.RowRange;
 import java.util.Optional;
 
-public final class LockWatchReferencesVisitor implements LockWatchReferences.Visitor<Optional<TableReference>> {
-    public static final LockWatchReferencesVisitor INSTANCE = new LockWatchReferencesVisitor();
+/**
+ *  A LockWatchReferences Visitor used to extract the table reference from a lock watch reference, but ONLY if
+ *  the table is entirely watched.
+ *
+ *  Returns {@code Optional.empty()} for supported lock watch types other than EntireTable watches, and throws for
+ *  unsupported lock watch types.
+ */
+public final class EntirelyWatchedTableReferenceFetcher
+        implements LockWatchReferences.Visitor<Optional<TableReference>> {
+    public static final EntirelyWatchedTableReferenceFetcher INSTANCE = new EntirelyWatchedTableReferenceFetcher();
 
     @Override
     public Optional<TableReference> visit(EntireTable reference) {
