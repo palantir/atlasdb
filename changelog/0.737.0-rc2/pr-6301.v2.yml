@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[WIP] Namespace Deleter service factory'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6301
