@@ -25,7 +25,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 
-public class ExpectationsTask implements Runnable {
+public final class ExpectationsTask implements Runnable {
     private static final SafeLogger log = SafeLoggerFactory.get(ExpectationsTask.class);
     private final Set<ExpectationsAwareTransaction> transactions;
 
@@ -66,7 +66,7 @@ public class ExpectationsTask implements Runnable {
                     "Transaction running for too long",
                     SafeArg.of("transactionAgeMillis", ageMillis),
                     SafeArg.of("transactionAgeMillisLimit", config.transactionAgeMillisLimit()),
-                    SafeArg.of("transactionName", config.transactionName()));
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
@@ -76,7 +76,7 @@ public class ExpectationsTask implements Runnable {
                     "Transaction reading too much",
                     SafeArg.of("bytesRead", bytesRead),
                     SafeArg.of("bytesReadLimit", config.bytesReadLimit()),
-                    SafeArg.of("transactionName", config.transactionName()));
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
@@ -87,7 +87,7 @@ public class ExpectationsTask implements Runnable {
                     SafeArg.of("kvsCallBytesRead", maximumBytesKvsCallInfo.bytesRead()),
                     SafeArg.of("kvsCallBytesReadLimit", config.bytesReadInOneKvsCallLimit()),
                     SafeArg.of("kvsMethodName", maximumBytesKvsCallInfo.kvsMethodName()),
-                    SafeArg.of("transactionName", config.transactionName()));
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
@@ -97,7 +97,7 @@ public class ExpectationsTask implements Runnable {
                     "Transaction making too many kvs calls",
                     SafeArg.of("kvsCalls", calls),
                     SafeArg.of("kvsReadCallCountLimit", config.kvsReadCallCountLimit()),
-                    SafeArg.of("transactionName", config.transactionName()));
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 }

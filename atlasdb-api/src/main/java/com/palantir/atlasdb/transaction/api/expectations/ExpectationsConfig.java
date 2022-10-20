@@ -21,37 +21,43 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class ExpectationsConfig {
-    public static final long MAXIMUM_NAME_SIZE = 255;
-    public static final long ONE_MEBIBYTE = mebibytesToBytes(1);
+public interface ExpectationsConfig {
+    long MAXIMUM_NAME_SIZE = 255;
+    String DEFAULT_TRANSACTION_DISPLAY_NAME = "Unnamed";
+    long ONE_MEBIBYTE = mebibytesToBytes(1);
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
      * This will be used for logging and will be expected to be safe to log.
      */
-    public abstract Optional<String> transactionName();
+    Optional<String> transactionName();
+
+    @Value.Lazy
+    default String transactionDisplayName() {
+        return transactionName().orElse(DEFAULT_TRANSACTION_DISPLAY_NAME);
+    }
 
     @Value.Default
-    public long transactionAgeMillisLimit() {
+    default long transactionAgeMillisLimit() {
         return Duration.ofHours(24).toMillis();
     }
 
     @Value.Default
-    public long bytesReadLimit() {
+    default long bytesReadLimit() {
         return 50 * ONE_MEBIBYTE;
     }
 
     @Value.Default
-    public long bytesReadInOneKvsCallLimit() {
+    default long bytesReadInOneKvsCallLimit() {
         return 10 * ONE_MEBIBYTE;
     }
 
     @Value.Default
-    public long kvsReadCallCountLimit() {
+    default long kvsReadCallCountLimit() {
         return 100L;
     }
 
-    public static long mebibytesToBytes(long mebibytes) {
+    static long mebibytesToBytes(long mebibytes) {
         return 1024 * 1024 * mebibytes;
     }
 }
