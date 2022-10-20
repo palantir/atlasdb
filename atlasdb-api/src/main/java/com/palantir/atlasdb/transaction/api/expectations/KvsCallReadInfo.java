@@ -27,6 +27,9 @@ public interface KvsCallReadInfo extends Comparable<KvsCallReadInfo> {
 
     String methodName();
 
+    /**
+     * The relative order of {@link KvsCallReadInfo} objects is undefined when their {@link #bytesRead()} are equal.
+     */
     @Override
     default int compareTo(KvsCallReadInfo other) {
         return Long.compare(this.bytesRead(), other.bytesRead());

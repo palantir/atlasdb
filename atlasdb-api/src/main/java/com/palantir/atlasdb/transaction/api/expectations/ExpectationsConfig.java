@@ -16,45 +16,60 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ExpectationsConfig {
-    long MAXIMUM_NAME_SIZE = 255;
-    String DEFAULT_TRANSACTION_DISPLAY_NAME = "Unnamed";
-    long ONE_MEBIBYTE = mebibytesToBytes(1);
+public abstract class ExpectationsConfig {
+    public static final long MAXIMUM_NAME_SIZE = 255;
+    public static final String DEFAULT_TRANSACTION_DISPLAY_NAME = "Unnamed";
+    public static final long ONE_MEBIBYTE = mebibytesToBytes(1);
 
     /**
      * Length should not exceed {@value #MAXIMUM_NAME_SIZE}.
      * This will be used for logging and will be expected to be safe to log.
      */
-    Optional<String> transactionName();
+    public abstract Optional<String> transactionName();
 
     @Value.Lazy
-    default String transactionDisplayName() {
+    public String transactionDisplayName() {
         return transactionName().orElse(DEFAULT_TRANSACTION_DISPLAY_NAME);
     }
 
     @Value.Default
-    default long transactionAgeMillisLimit() {
+    public long transactionAgeMillisLimit() {
         return Duration.ofHours(24).toMillis();
     }
 
     @Value.Default
-    default long bytesReadLimit() {
+    public long bytesReadLimit() {
         return 50 * ONE_MEBIBYTE;
     }
 
     @Value.Default
-    default long bytesReadInOneKvsCallLimit() {
+    public long bytesReadInOneKvsCallLimit() {
         return 10 * ONE_MEBIBYTE;
     }
 
     @Value.Default
-    default long kvsReadCallCountLimit() {
+    public long kvsReadCallCountLimit() {
         return 100L;
+    }
+
+    @Value.Check
+    protected void check() {
+        transactionName().ifPresent(ExpectationsConfig::checkTransactionName);
+    }
+
+    private static void checkTransactionName(String name) {
+        Preconditions.checkArgument(
+                name.length() <= MAXIMUM_NAME_SIZE,
+                "transactionName should be shorter",
+                SafeArg.of("transactionNameLength", name.length()),
+                SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE));
     }
 
     static long mebibytesToBytes(long mebibytes) {
