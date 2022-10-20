@@ -20,6 +20,9 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import org.immutables.value.Value;
 
+/**
+ * Tracked data for an individual transaction.
+ */
 @Value.Immutable
 public interface ExpectationsStatistics {
     long transactionAgeMillis();

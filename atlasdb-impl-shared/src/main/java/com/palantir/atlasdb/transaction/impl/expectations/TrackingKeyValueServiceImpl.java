@@ -39,6 +39,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
@@ -54,7 +55,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     }
 
     @Override
-    public TransactionReadInfo getReadInfo() {
+    public TransactionReadInfo getOverallReadInfo() {
         return tracker.getReadInfo();
     }
 
@@ -67,14 +68,14 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
-        tracker.trackKvsGetMethodRead(tableRef, "getRows", ExpectationsUtils.valueByCellByteSize(result));
+        tracker.registerKvsGetMethodRead(tableRef, "getRows", ExpectationsUtils.valueByCellByteSize(result));
         return result;
     }
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
-        tracker.trackKvsGetMethodRead(tableRef, "get", ExpectationsUtils.valueByCellByteSize(result));
+        tracker.registerKvsGetMethodRead(tableRef, "get", ExpectationsUtils.valueByCellByteSize(result));
         return result;
     }
 
@@ -84,11 +85,11 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        tracker.incrementKvsGetCallCount(tableRef);
+        tracker.incrementKvsReadCallCount(tableRef);
         Map<byte[], RowColumnRangeIterator> result =
                 delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
-        result.replaceAll((rowsRead, iterator) ->
-                new TrackingRowColumnRangeIterator(iterator, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes)));
+        result.replaceAll(
+                (rowsRead, iterator) -> new TrackingRowColumnRangeIterator(iterator, partialBytesConsumer(tableRef)));
         return result;
     }
 
@@ -99,16 +100,16 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
-        tracker.incrementKvsGetCallCount(tableRef);
+        tracker.incrementKvsReadCallCount(tableRef);
         RowColumnRangeIterator result =
                 delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-        return new TrackingRowColumnRangeIterator(result, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes));
+        return new TrackingRowColumnRangeIterator(result, partialBytesConsumer(tableRef));
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-        tracker.trackKvsGetMethodRead(tableRef, "getLatestTimestamps", ExpectationsUtils.longByCellByteSize(result));
+        tracker.registerKvsGetMethodRead(tableRef, "getLatestTimestamps", ExpectationsUtils.longByCellByteSize(result));
         return result;
     }
 
@@ -116,45 +117,63 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
             throws AtlasDbDependencyException {
         Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-        tracker.trackKvsGetMethodRead(tableRef, "getAllTimestamps", ExpectationsUtils.longByCellByteSize(result));
+        tracker.registerKvsGetMethodRead(tableRef, "getAllTimestamps", ExpectationsUtils.longByCellByteSize(result));
         return result;
     }
 
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        tracker.incrementKvsGetCallCount(tableRef);
-        ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
-        return new TrackingClosableRowResultIterator(result, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes));
+        tracker.incrementKvsReadCallCount(tableRef);
+        try (ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp)) {
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), ExpectationsUtils::valueRowResultByteSize);
+        }
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp)
             throws InsufficientConsistencyException {
-        return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        tracker.incrementKvsReadCallCount(tableRef);
+        try (ClosableIterator<RowResult<Set<Long>>> result =
+                delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), ExpectationsUtils::longSetRowResultByteSize);
+        }
     }
 
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
-        tracker.trackKvsGetMethodRead(tableRef, "getRowKeysInRange", ExpectationsUtils.byteSize(result));
+        tracker.registerKvsGetMethodRead(tableRef, "getRowKeysInRange", ExpectationsUtils.byteSize(result));
         return result;
     }
 
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
-        tracker.incrementKvsGetCallCount(tableRef);
-        ClosableIterator<List<CandidateCellForSweeping>> result =
-                delegate.getCandidateCellsForSweeping(tableRef, request);
-        return new TrackingClosableCandidateCellsForSweepingIterator(
-                result, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes));
+        tracker.incrementKvsReadCallCount(tableRef);
+        try (ClosableIterator<List<CandidateCellForSweeping>> result =
+                delegate.getCandidateCellsForSweeping(tableRef, request)) {
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), candidates -> candidates.stream()
+                            .mapToLong(CandidateCellForSweeping::byteSize)
+                            .sum());
+        }
     }
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        return null;
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
+                delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+        tracker.registerKvsGetMethodRead(
+                tableRef, "getFirstBatchForRanges", ExpectationsUtils.pageByRangeRequestByteSize(result));
+        return result;
+    }
+
+    private Consumer<Long> partialBytesConsumer(TableReference tableRef) {
+        return bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes);
     }
 }

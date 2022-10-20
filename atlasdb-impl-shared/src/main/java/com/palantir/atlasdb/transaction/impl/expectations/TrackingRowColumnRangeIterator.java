@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 
 public class TrackingRowColumnRangeIterator extends ForwardingIterator<Map.Entry<Cell, Value>>
         implements RowColumnRangeIterator {
-
     Iterator<Map.Entry<Cell, Value>> delegate;
     Consumer<Long> tracker;
 
@@ -42,8 +41,8 @@ public class TrackingRowColumnRangeIterator extends ForwardingIterator<Map.Entry
 
     @Override
     public Map.Entry<Cell, Value> next() {
-        Map.Entry<Cell, Value> entry = delegate().next();
-        tracker.accept(ExpectationsUtils.valueByCellEntryByteSize(entry));
+        Map.Entry<Cell, Value> entry = delegate.next();
+        tracker.accept(ExpectationsUtils.byteSize(entry));
         return entry;
     }
 }

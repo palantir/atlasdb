@@ -16,13 +16,15 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ExpectationsConfig {
-    long MAXIMUM_NAME_SIZE = 255;
+    int MAXIMUM_NAME_SIZE = 255;
     String DEFAULT_TRANSACTION_DISPLAY_NAME = "Unnamed";
     long ONE_MEBIBYTE = mebibytesToBytes(1);
 
@@ -55,6 +57,19 @@ public interface ExpectationsConfig {
     @Value.Default
     default long kvsReadCallCountLimit() {
         return 100L;
+    }
+
+    @Value.Check
+    default void check() {
+        transactionName().ifPresent(ExpectationsConfig::checkTransactionName);
+    }
+
+    private static void checkTransactionName(String name) {
+        Preconditions.checkArgument(
+                name.length() <= MAXIMUM_NAME_SIZE,
+                "transactionName should be shorter",
+                SafeArg.of("transactionNameLength", name.length()),
+                SafeArg.of("maximumNameSize", MAXIMUM_NAME_SIZE));
     }
 
     static long mebibytesToBytes(long mebibytes) {
