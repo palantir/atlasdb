@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
+import org.derive4j.Data;
 
-public interface ExpectationsManager extends AutoCloseable {
-    void register(ExpectationsAwareTransaction transaction);
+@Data
+public interface ExpectationsViolation {
+    interface Cases<R> {
+        R runningForTooLong();
 
-    /*
-     * Stop tracking a given transaction without running expectations callbacks.
-     */
-    void unregister(ExpectationsAwareTransaction transaction);
+        R readTooMuch();
 
-    /*
-     * Mark transaction as concluded (aborted/succeeded), run expectations callbacks and stop tracking the transaction.
-     */
-    void markCompletion(ExpectationsAwareTransaction transaction);
+        R readTooMuchInOneKvsCall();
+
+        R queriesKvsTooManyTimes();
+    }
+
+    <R> R match(Cases<R> cases);
+
+    @Override
+    boolean equals(Object other);
 }

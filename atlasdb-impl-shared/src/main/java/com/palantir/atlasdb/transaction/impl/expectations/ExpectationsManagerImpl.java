@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.logsafe.Preconditions;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,22 +25,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ExpectationsManagerImpl implements ExpectationsManager {
-
+    public static final long SCHEDULER_DELAY_MILLIS = Duration.ofMinutes(5).toMillis();
     private final Set<ExpectationsAwareTransaction> trackedTransactions = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean taskIsScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService executorService;
 
-    public ExpectationsManagerImpl(ScheduledExecutorService executorService) {
+    private ExpectationsManagerImpl(ScheduledExecutorService executorService) {
         this.executorService = executorService;
     }
 
-    @Override
-    public void scheduleExpectationsTask(long delayMillis) {
-        Preconditions.checkArgument(
-                delayMillis > 0, "Transactional expectations manager scheduler delay must be strictly positive.");
+    public static ExpectationsManager createStarted(ScheduledExecutorService executorService) {
+        ExpectationsManagerImpl manager = new ExpectationsManagerImpl(executorService);
+        manager.scheduleExpectationsTask();
+        return manager;
+    }
+
+    private void scheduleExpectationsTask() {
         if (!taskIsScheduled.compareAndExchange(false, true)) {
             executorService.scheduleWithFixedDelay(
-                    new ExpectationsTask(trackedTransactions), delayMillis, delayMillis, TimeUnit.MILLISECONDS);
+                    new ExpectationsTask(trackedTransactions),
+                    SCHEDULER_DELAY_MILLIS,
+                    SCHEDULER_DELAY_MILLIS,
+                    TimeUnit.MILLISECONDS);
         }
     }
 

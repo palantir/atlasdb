@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.util.Set;
 
 public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
@@ -28,4 +29,6 @@ public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsStatistics getCallbackStatistics();
 
     void runExpectationsCallbacks();
+
+    Set<ExpectationsViolation> checkAndGetViolations();
 }
