@@ -17,10 +17,14 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -30,7 +34,11 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
@@ -105,10 +113,48 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     }
 
     @Override
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
+            throws AtlasDbDependencyException {
+        Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
+        tracker.trackKvsGetMethodRead(tableRef, "getAllTimestamps", ExpectationsUtils.longByCellByteSize(result));
+        return result;
+    }
+
+    @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         tracker.incrementKvsGetCallCount(tableRef);
         ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp);
         return new TrackingClosableRowResultIterator(result, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes));
+    }
+
+    @Override
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef, RangeRequest rangeRequest, long timestamp)
+            throws InsufficientConsistencyException {
+        return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
+        tracker.trackKvsGetMethodRead(tableRef, "getRowKeysInRange", ExpectationsUtils.byteSize(result));
+        return result;
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
+            TableReference tableRef, CandidateCellForSweepingRequest request) {
+        tracker.incrementKvsGetCallCount(tableRef);
+        ClosableIterator<List<CandidateCellForSweeping>> result =
+                delegate.getCandidateCellsForSweeping(tableRef, request);
+        return new TrackingClosableCandidateCellsForSweepingIterator(
+                result, bytes -> tracker.trackKvsGetPartialRead(tableRef, bytes));
+    }
+
+    @Override
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+        return null;
     }
 }

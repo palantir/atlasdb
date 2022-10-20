@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -28,6 +31,12 @@ public final class ExpectationsUtils {
     public static long longByCellByteSize(Map<Cell, Long> timestampByCell) {
         return timestampByCell.keySet().stream()
                 .mapToLong(cell -> byteSize(cell) + 8)
+                .sum();
+    }
+
+    public static long longByCellByteSize(Multimap<Cell, Long> valueByCell) {
+        return valueByCell.keys().stream()
+                .mapToLong(ExpectationsUtils::byteSize)
                 .sum();
     }
 
@@ -50,6 +59,14 @@ public final class ExpectationsUtils {
                 + rowResult.getColumns().entrySet().stream()
                         .mapToLong(entry -> entry.getKey().length + byteSize(entry.getValue()))
                         .sum();
+    }
+
+    public static long byteSize(List<byte[]> array) {
+        return array.stream().mapToLong(value -> value.length).sum();
+    }
+
+    public static long byteSize(CandidateCellForSweeping candidate) {
+        return byteSize(candidate.cell()) + 8L * candidate.sortedTimestamps().size();
     }
 
     public static long valueByCellEntryByteSize(Entry<Cell, Value> entry) {

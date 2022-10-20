@@ -16,30 +16,32 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
+import java.util.List;
 import java.util.function.Consumer;
 
-public final class TrackingClosableRowResultIterator extends ForwardingClosableIterator<RowResult<Value>> {
-    ClosableIterator<RowResult<Value>> delegate;
+public final class TrackingClosableCandidateCellsForSweepingIterator
+        extends ForwardingClosableIterator<List<CandidateCellForSweeping>> {
+    ClosableIterator<List<CandidateCellForSweeping>> delegate;
     Consumer<Long> tracker;
 
-    public TrackingClosableRowResultIterator(ClosableIterator<RowResult<Value>> delegate, Consumer<Long> tracker) {
+    public TrackingClosableCandidateCellsForSweepingIterator(
+            ClosableIterator<List<CandidateCellForSweeping>> delegate, Consumer<Long> tracker) {
         this.delegate = delegate;
         this.tracker = tracker;
     }
 
     @Override
-    protected ClosableIterator<RowResult<Value>> delegate() {
+    protected ClosableIterator<List<CandidateCellForSweeping>> delegate() {
         return delegate;
     }
 
     @Override
-    public RowResult<Value> next() {
-        RowResult<Value> result = delegate.next();
-        tracker.accept(ExpectationsUtils.byteSize(result));
+    public List<CandidateCellForSweeping> next() {
+        List<CandidateCellForSweeping> result = delegate.next();
+        tracker.accept(result.stream().mapToLong(ExpectationsUtils::byteSize).sum());
         return result;
     }
 }

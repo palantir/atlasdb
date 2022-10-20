@@ -86,7 +86,7 @@ public final class KeyValueServiceDataTracker {
                 tableRef,
                 ImmutableKvsCallReadInfo.builder()
                         .bytesRead(bytesRead)
-                        .kvsMethodName(methodName)
+                        .methodName(methodName)
                         .build(),
                 Comparators::max);
     }
