@@ -32,7 +32,6 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Iterator;
@@ -97,12 +96,12 @@ public class CassandraTopologyValidatorTest {
         EntryStream.of(allHosts)
                 .values()
                 .forEach(container -> setHostIds(Set.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
-        assertThatThrownBy(() -> validator.getNewHostsWithInconsistentTopologiesAndRetry(
+        assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
                         allHosts.keySet(),
                         allHosts,
                         HumanReadableDuration.milliseconds(1),
                         HumanReadableDuration.milliseconds(1)))
-                .isInstanceOf(SafeRuntimeException.class);
+                .isNotEmpty();
         verify(metrics, times(1)).markTopologyValidationFailure();
         verify(metrics, atLeastOnce()).recordTopologyValidationLatency(any());
     }
@@ -230,6 +229,16 @@ public class CassandraTopologyValidatorTest {
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(uuids));
         assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
                 .containsExactlyElementsOf(allHosts.keySet());
+    }
+
+    @Test
+    public void validateNewlyAddedHostsAddsAllNewHostsIfCurrentServersDoNotHaveEndpoint() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(Sets.union(newHosts, oldHosts));
+        setHostIds(filterContainers(allHosts, newHosts::contains), HostIdResult.success(uuids));
+        setHostIds(filterContainers(allHosts, oldHosts::contains), HostIdResult.softFailure());
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        filterServers(allHosts, newHosts::contains), allHosts))
+                .isEmpty();
     }
 
     @Test

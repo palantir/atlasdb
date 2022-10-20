@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
@@ -38,6 +37,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.transport.TTransportException;
 import org.immutables.value.Value;
@@ -49,38 +49,6 @@ public final class CassandraTopologyValidator {
 
     public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
         this.metrics = metrics;
-    }
-
-    public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
-            Set<CassandraServer> newlyAddedHosts,
-            Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
-            HumanReadableDuration waitTimeBetweenCalls,
-            HumanReadableDuration maxWaitTime) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
-                .retryIfResult(servers -> servers.size() == allHosts.size())
-                .retryIfException()
-                .withWaitStrategy(
-                        WaitStrategies.fixedWait(waitTimeBetweenCalls.toMilliseconds(), TimeUnit.MILLISECONDS))
-                .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMilliseconds(), TimeUnit.MILLISECONDS))
-                .build();
-        try {
-            return retryer.call(() -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts));
-        } catch (ExecutionException | RetryException e) {
-            metrics.markTopologyValidationFailure();
-            log.error(
-                    "Failed to obtain consistent view of hosts from cluster.",
-                    SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
-                    SafeArg.of("allCassandraHosts", allHosts.keySet()),
-                    e);
-            throw new SafeRuntimeException(
-                    "Failed to obtain consistent view of hosts from cluster.",
-                    e,
-                    SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
-                    SafeArg.of("allCassandraHosts", allHosts.keySet()));
-        } finally {
-            metrics.recordTopologyValidationLatency(Duration.ofMillis(stopwatch.elapsed(TimeUnit.MILLISECONDS)));
-        }
     }
 
     /**
@@ -113,7 +81,39 @@ public final class CassandraTopologyValidator {
      * @param allHosts All Cassandra servers which must include newlyAddedHosts.
      * @return Set of Cassandra servers which do not match the pre-existing hosts topology.
      */
-    public Set<CassandraServer> getNewHostsWithInconsistentTopologies(
+    public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
+            Set<CassandraServer> newlyAddedHosts,
+            Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
+            HumanReadableDuration waitTimeBetweenCalls,
+            HumanReadableDuration maxWaitTime) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
+                .retryIfResult(servers -> servers.size() == allHosts.size())
+                .retryIfException()
+                .withWaitStrategy(
+                        WaitStrategies.fixedWait(waitTimeBetweenCalls.toMilliseconds(), TimeUnit.MILLISECONDS))
+                .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMilliseconds(), TimeUnit.MILLISECONDS))
+                .build();
+        // Callable interface requires we handle Exception, which is ugly to do within a try/catch
+        Supplier<Set<CassandraServer>> inconsistentNewHosts =
+                () -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts);
+        try {
+            return retryer.call(inconsistentNewHosts::get);
+        } catch (ExecutionException | RetryException e) {
+            metrics.markTopologyValidationFailure();
+            log.error(
+                    "Failed to obtain consistent view of hosts from cluster.",
+                    SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
+                    SafeArg.of("allCassandraHosts", allHosts.keySet()),
+                    e);
+            return inconsistentNewHosts.get();
+        } finally {
+            metrics.recordTopologyValidationLatency(Duration.ofMillis(stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+        }
+    }
+
+    @VisibleForTesting
+    Set<CassandraServer> getNewHostsWithInconsistentTopologies(
             Set<CassandraServer> newlyAddedHosts, Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
 
         if (newlyAddedHosts.isEmpty()) {
@@ -123,33 +123,42 @@ public final class CassandraTopologyValidator {
         Preconditions.checkArgument(
                 Sets.difference(newlyAddedHosts, allHosts.keySet()).isEmpty(),
                 "Newly added hosts must be a subset of all hosts, as otherwise we have no way to query them.",
-                SafeArg.of("newlyAddedHosts", newlyAddedHosts),
-                SafeArg.of("allHosts", allHosts));
+                SafeArg.of("newlyAddedHosts", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
+                SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
 
-        Map<CassandraServer, CassandraClientPoolingContainer> currentServers =
-                EntryStream.of(allHosts).removeKeys(newlyAddedHosts::contains).toMap();
-        Map<CassandraServer, CassandraClientPoolingContainer> newServers =
-                EntryStream.of(allHosts).filterKeys(newlyAddedHosts::contains).toMap();
+        Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures =
+                fetchHostIdsIgnoringSoftFailures(allHosts);
 
-        // This means we've not added any hosts yet.
-        if (currentServers.isEmpty()) {
-            return maybeGetConsistentClusterTopology(newServers)
+        Map<CassandraServer, HostIdResult> currentServersWithoutSoftFailures = EntryStream.of(
+                        hostIdsByServerWithoutSoftFailures)
+                .removeKeys(newlyAddedHosts::contains)
+                .toMap();
+        Map<CassandraServer, HostIdResult> newServersWithoutSoftFailures = EntryStream.of(
+                        hostIdsByServerWithoutSoftFailures)
+                .filterKeys(newlyAddedHosts::contains)
+                .toMap();
+
+        // This means currently we've no servers, therefore we need to come to a consensus on the new servers
+        if (currentServersWithoutSoftFailures.isEmpty()) {
+            return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
                     .<Set<CassandraServer>>map(topology ->
                             // Do not add new servers which were unreachable
-                            Sets.difference(newlyAddedHosts, topology.serversInConsensus()))
-                    .orElse(newlyAddedHosts);
+                            Sets.difference(newServersWithoutSoftFailures.keySet(), topology.serversInConsensus()))
+                    .orElseGet(newServersWithoutSoftFailures::keySet);
         }
 
         // If a consensus can be reached from the current servers,
         // filter all new servers which have the same set of host ids.
         // Otherwise, if we cannot come to consensus on the current topology, just refuse to add any new servers.
-        return maybeGetConsistentClusterTopology(currentServers)
-                .map(topology -> EntryStream.of(fetchHostIdsIgnoringSoftFailures(newServers))
-                        .mapValues(HostIdResult::hostIds)
-                        .removeValues(topology.hostIds()::equals)
+        return maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures)
+                .map(topology -> EntryStream.of(newServersWithoutSoftFailures)
+                        .removeValues(result -> result instanceof HostIdResult.SuccessfulHostIdResult
+                                && ((HostIdResult.SuccessfulHostIdResult) result)
+                                        .hostIds()
+                                        .equals(topology.hostIds()))
                         .keys()
                         .toSet())
-                .orElse(newlyAddedHosts);
+                .orElseGet(newServersWithoutSoftFailures::keySet);
     }
 
     /**
@@ -160,56 +169,55 @@ public final class CassandraTopologyValidator {
      * topology (hostIds) for this to return a valid result. Nodes that are reachable but do not have
      * support for our get_host_ids endpoint are simply ignored and will not be filtered out.
      *
-     * @param hosts Cassandra hosts to obtain a consistent topology view from
+     * @param hostIdsByServerWithoutSoftFailures Cassandra hosts to obtain a consistent topology view from
      * @return If consensus could be reached, the topology and the list of valid hosts, otherwise empty.
      */
     private Optional<ConsistentClusterTopology> maybeGetConsistentClusterTopology(
-            Map<CassandraServer, CassandraClientPoolingContainer> hosts) {
-        Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures = fetchHostIdsIgnoringSoftFailures(hosts);
+            Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures) {
         // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
             return Optional.of(ConsistentClusterTopology.builder()
                     .hostIds(Set.of())
-                    .serversInConsensus(hosts.keySet())
+                    .serversInConsensus(hostIdsByServerWithoutSoftFailures.keySet())
                     .build());
         }
 
-        Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(
-                        hostIdsByServerWithoutSoftFailures)
-                .removeValues(result -> result.type().equals(HostIdResult.Type.HARD_FAILURE))
-                .mapValues(HostIdResult::hostIds)
+        Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(hostIdsByServerWithoutSoftFailures)
+                .filterValues(HostIdResult.SuccessfulHostIdResult.class::isInstance)
+                .mapValues(HostIdResult.SuccessfulHostIdResult.class::cast)
+                .mapValues(HostIdResult.SuccessfulHostIdResult::hostIds)
                 .toMap();
 
-        // Only consider hosts that have the endpoint for quorum calculations
+        // Only consider hosts that have the endpoint for quorum calculations.
+        // Otherwise, we will never add hosts when we're in a mixed state
         int quorum = (hostIdsByServerWithoutSoftFailures.size() + 1) / 2;
 
         // If too many hosts are unreachable, then we cannot come to a consensus
-        if (hostIdsWithoutHardFailures.size() < quorum) {
+        if (hostIdsWithoutFailures.size() < quorum) {
             return Optional.empty();
         }
 
         Set<Set<String>> uniqueSetsOfHostIds =
-                EntryStream.of(hostIdsWithoutHardFailures).values().toImmutableSet();
+                EntryStream.of(hostIdsWithoutFailures).values().toImmutableSet();
 
         // If we only have one set of host ids, we've consensus, otherwise fail
         if (uniqueSetsOfHostIds.size() == 1) {
             Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
-            Set<CassandraServer> cassandraServersWithMatchingHostIds = EntryStream.of(
-                            hostIdsByServerWithoutSoftFailures)
-                    .mapValues(HostIdResult::hostIds)
-                    .filterValues(uniqueHostIds::equals)
-                    .keys()
-                    .toSet();
-            Set<CassandraServer> cassandraServerWithoutHostIdEndpoint =
-                    Sets.difference(hosts.keySet(), hostIdsByServerWithoutSoftFailures.keySet());
             return Optional.of(ConsistentClusterTopology.builder()
                     .hostIds(uniqueHostIds)
-                    .serversInConsensus(
-                            Sets.union(cassandraServersWithMatchingHostIds, cassandraServerWithoutHostIdEndpoint))
+                    .serversInConsensus(hostIdsWithoutFailures.keySet())
                     .build());
         }
 
         return Optional.empty();
+    }
+
+    private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
+            Map<CassandraServer, CassandraClientPoolingContainer> servers) {
+        return EntryStream.of(servers)
+                .mapValues(this::fetchHostIds)
+                .removeValues(HostIdResult.SoftFailureHostIdResult.class::isInstance)
+                .toMap();
     }
 
     @VisibleForTesting
@@ -238,14 +246,6 @@ public final class CassandraTopologyValidator {
                     e);
             return HostIdResult.softFailure();
         }
-    }
-
-    private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
-            Map<CassandraServer, CassandraClientPoolingContainer> servers) {
-        return EntryStream.of(servers)
-                .mapValues(this::fetchHostIds)
-                .removeValues(result -> HostIdResult.Type.SOFT_FAILURE.equals(result.type()))
-                .toMap();
     }
 
     @Value.Immutable
