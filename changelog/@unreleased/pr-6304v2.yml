@@ -1,5 +1,0 @@
-type: feature
-feature:
-  description: '[TEX] Part 1a: ExpectationsManager and some interfaces'
-  links:
-  - https://github.com/palantir/atlasdb/pull/6304
