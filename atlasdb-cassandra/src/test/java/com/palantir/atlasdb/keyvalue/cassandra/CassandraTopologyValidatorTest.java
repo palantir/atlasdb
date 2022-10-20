@@ -16,22 +16,19 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
+import org.apache.thrift.transport.TTransportException;
+import org.junit.Test;
+
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Iterator;
@@ -39,11 +36,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
-import org.apache.thrift.transport.TTransportException;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class CassandraTopologyValidatorTest {
 
@@ -62,14 +61,9 @@ public class CassandraTopologyValidatorTest {
 
     private static final HostIdResult DEFAULT_RESULT = HostIdResult.success(uuids);
 
-    private CassandraTopologyValidator validator;
-    private CassandraTopologyValidationMetrics metrics;
-
-    @Before
-    public void before() {
-        metrics = mock(CassandraTopologyValidationMetrics.class);
-        this.validator = spy(new CassandraTopologyValidator(metrics));
-    }
+    private final CassandraTopologyValidationMetrics metrics =
+            CassandraTopologyValidationMetrics.of(new DefaultTaggedMetricRegistry());
+    private CassandraTopologyValidator validator = spy(new CassandraTopologyValidator(metrics));
 
     @Test
     public void retriesUntilNoNewHostsReturned() {
@@ -102,8 +96,8 @@ public class CassandraTopologyValidatorTest {
                         HumanReadableDuration.milliseconds(1),
                         HumanReadableDuration.milliseconds(1)))
                 .isNotEmpty();
-        verify(metrics, times(1)).markTopologyValidationFailure();
-        verify(metrics, atLeastOnce()).recordTopologyValidationLatency(any());
+        assertThat(metrics.validationFailures().getCount()).isEqualTo(1);
+        assertThat(metrics.validationLatency().getCount()).isEqualTo(1);
     }
 
     @Test

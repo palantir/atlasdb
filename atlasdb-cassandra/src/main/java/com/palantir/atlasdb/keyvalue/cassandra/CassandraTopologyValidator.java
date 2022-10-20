@@ -25,13 +25,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -100,7 +100,7 @@ public final class CassandraTopologyValidator {
         try {
             return retryer.call(inconsistentNewHosts::get);
         } catch (ExecutionException | RetryException e) {
-            metrics.markTopologyValidationFailure();
+            metrics.validationFailures().inc();
             log.error(
                     "Failed to obtain consistent view of hosts from cluster.",
                     SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
@@ -108,7 +108,7 @@ public final class CassandraTopologyValidator {
                     e);
             return inconsistentNewHosts.get();
         } finally {
-            metrics.recordTopologyValidationLatency(Duration.ofMillis(stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+            metrics.validationLatency().update(stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
