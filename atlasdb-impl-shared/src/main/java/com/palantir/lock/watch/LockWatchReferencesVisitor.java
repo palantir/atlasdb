@@ -44,6 +44,7 @@ public final class LockWatchReferencesVisitor implements LockWatchReferences.Vis
 
     @Override
     public Optional<TableReference> visit(ExactRow reference) {
+        // We support exact row lock watches, but watching the row does *not* mean that we're watching the entire table
         return Optional.empty();
     }
 
