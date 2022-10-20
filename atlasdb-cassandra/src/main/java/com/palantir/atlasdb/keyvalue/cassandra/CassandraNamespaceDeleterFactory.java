@@ -22,6 +22,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigs;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -57,7 +58,7 @@ public class CassandraNamespaceDeleterFactory implements NamespaceDeleterFactory
             InetSocketAddress host = runtimeConfig.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
                     .findFirst()
                     .orElseThrow();
-            return CassandraClientFactory.getClientInternal(host, CassandraClientConfig.of(config));
+            return CassandraClientFactory.getClientInternal(CassandraServer.of(host), CassandraClientConfig.of(config));
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
