@@ -46,15 +46,23 @@ types:
     objects:
       ConjureIdentifiedVersion:
         fields:
-          id: uuid
+          id:
+            type: uuid
+            safety: safe
           version: Long
         docs: |
           ``version`` is always an inclusive number. If the event log is empty, ``-1`` is returned.
       ConjureStartTransactionsRequest:
         fields:
-          requestId: uuid
-          requestorId: uuid
-          numTransactions: integer
+          requestId:
+            type: uuid
+            safety: safe
+          requestorId:
+            type: uuid
+            safety: safe
+          numTransactions:
+            type: integer
+            safety: safe
           lastKnownVersion: optional<ConjureIdentifiedVersion>
       ConjureStartTransactionsResponse:
         fields:
@@ -73,9 +81,12 @@ types:
           efficiency and readability.
       ConjureGetFreshTimestampsRequest:
         fields:
-          numTimestamps: integer
+          numTimestamps:
+            type: integer
+            safety: safe
       ConjureGetFreshTimestampsRequestV2:
         alias: integer
+        safety: safe
       ConjureGetFreshTimestampsResponse:
         fields:
           inclusiveLower: Long
@@ -84,17 +95,27 @@ types:
         alias: ConjureTimestampRange
       ConjureLockDescriptor:
         alias: binary
+        safety: unsafe
       ConjureLockRequest:
         fields:
-          requestId: uuid
+          requestId:
+            type: uuid
+            safety: safe
           lockDescriptors: set<ConjureLockDescriptor>
-          acquireTimeoutMs: integer
-          clientDescription: optional<string>
+          acquireTimeoutMs:
+            type: integer
+            safety: safe
+          clientDescription:
+            type: optional<string>
+            safety: unsafe
       ConjureLockToken:
         fields:
-          requestId: uuid
+          requestId:
+            type: uuid
+            safety: safe
       ConjureLockTokenV2:
         alias: uuid
+        safety: safe
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
@@ -107,7 +128,9 @@ types:
           unsuccessful: UnsuccessfulLockResponse
       ConjureWaitForLocksResponse:
         fields:
-          wasSuccessful: boolean
+          wasSuccessful:
+            type: boolean
+            safety: safe
       ConjureRefreshLocksRequest:
         fields:
           tokens: set<ConjureLockToken>
@@ -133,7 +156,9 @@ types:
         alias: set<ConjureLockTokenV2>
       GetCommitTimestampsRequest:
         fields:
-          numTimestamps: integer
+          numTimestamps:
+            type: integer
+            safety: safe
           lastKnownVersion: optional<ConjureIdentifiedVersion>
       GetCommitTimestampsResponse:
         fields:
@@ -157,6 +182,7 @@ types:
       ServiceId:
         package: com.palantir.atlasdb.backup.api
         alias: string
+        safety: safe
       AtlasService:
         package: com.palantir.atlasdb.backup.api
         fields:
@@ -255,71 +281,95 @@ services:
       startTransactions:
         http: POST /st/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureStartTransactionsRequest
         returns: ConjureStartTransactionsResponse
       getFreshTimestamps:
         http: POST /ts/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureGetFreshTimestampsRequest
         returns: ConjureGetFreshTimestampsResponse
       getFreshTimestampsV2:
         http: POST /t2/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureGetFreshTimestampsRequestV2
         returns: ConjureGetFreshTimestampsResponseV2
       getFreshTimestamp:
         http: POST /ts1/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
         returns: ConjureSingleTimestamp
       leaderTime:
         http: POST /lt/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
         returns: LeaderTime
       lock:
         http: POST /l/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureLockRequest
         returns: ConjureLockResponse
       waitForLocks:
         http: POST /wl/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureLockRequest
         returns: ConjureWaitForLocksResponse
       refreshLocks:
         http: POST /rl/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureRefreshLocksRequest
         returns: ConjureRefreshLocksResponse
       refreshLocksV2:
         http: POST /rl2/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureRefreshLocksRequestV2
         returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
       unlockV2:
         http: POST /ul2/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: ConjureUnlockRequestV2
         returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: GetCommitTimestampsRequest
         returns: GetCommitTimestampsResponse
         docs: |
@@ -328,7 +378,9 @@ services:
       getCommitTimestamp:
         http: POST /g1ct/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: GetCommitTimestampRequest
         returns: GetCommitTimestampResponse
   ConjureLockWatchingService:
@@ -340,7 +392,9 @@ services:
       startWatching:
         http: POST /sw/{namespace}
         args:
-          namespace: string
+          namespace:
+            type: string
+            safety: safe
           request: LockWatchRequest
   MultiClientConjureTimelockService:
     name: Multi Client Timelock Service

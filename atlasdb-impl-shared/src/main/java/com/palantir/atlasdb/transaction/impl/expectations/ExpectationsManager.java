@@ -19,17 +19,17 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 
 public interface ExpectationsManager extends AutoCloseable {
-    void scheduleMetricsUpdate(long delayMillis);
+    void scheduleExpectationsTask(long delayMillis);
 
-    void registerTransaction(ExpectationsAwareTransaction transaction);
+    void register(ExpectationsAwareTransaction transaction);
 
     /*
      * Stop tracking a given transaction without running expectations callbacks.
      */
-    void unregisterTransaction(ExpectationsAwareTransaction transaction);
+    void unregister(ExpectationsAwareTransaction transaction);
 
     /*
      * Mark transaction as concluded (aborted/succeeded), run expectations callbacks and stop tracking the transaction.
      */
-    void markConcludedTransaction(ExpectationsAwareTransaction transaction);
+    void markCompletion(ExpectationsAwareTransaction transaction);
 }

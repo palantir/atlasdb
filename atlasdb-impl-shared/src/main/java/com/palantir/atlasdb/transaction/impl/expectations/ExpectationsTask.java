@@ -25,14 +25,9 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 
-public class ExpectationsTask implements Runnable {
+public final class ExpectationsTask implements Runnable {
     private static final SafeLogger log = SafeLoggerFactory.get(ExpectationsTask.class);
     private final Set<ExpectationsAwareTransaction> transactions;
-
-    private boolean bytesReadLimitViolated = false;
-    private boolean ageLimitViolated = false;
-    private boolean maximumBytesReadPerKvsCallLimitViolated = false;
-    private boolean kvsReadCallLimitViolated = false;
 
     public ExpectationsTask(Set<ExpectationsAwareTransaction> transactions) {
         this.transactions = transactions;
@@ -67,29 +62,42 @@ public class ExpectationsTask implements Runnable {
 
     private void checkAge(long ageMillis, ExpectationsConfig config) {
         if (ageMillis > config.transactionAgeMillisLimit()) {
-            // event log
-            ageLimitViolated = true;
+            log.warn(
+                    "Transaction running for too long",
+                    SafeArg.of("transactionAgeMillis", ageMillis),
+                    SafeArg.of("transactionAgeMillisLimit", config.transactionAgeMillisLimit()),
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
     private void checkBytesRead(long bytesRead, ExpectationsConfig config) {
         if (bytesRead > config.bytesReadLimit()) {
-            // event log
-            bytesReadLimitViolated = true;
+            log.warn(
+                    "Transaction reading too much",
+                    SafeArg.of("bytesRead", bytesRead),
+                    SafeArg.of("bytesReadLimit", config.bytesReadLimit()),
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
     private void checkMaximumBytesReadPerKvsCall(KvsCallReadInfo maximumBytesKvsCallInfo, ExpectationsConfig config) {
         if (maximumBytesKvsCallInfo.bytesRead() > config.bytesReadInOneKvsCallLimit()) {
-            // event log
-            maximumBytesReadPerKvsCallLimitViolated = true;
+            log.warn(
+                    "Transaction reading too much in a single kvs call",
+                    SafeArg.of("kvsCallBytesRead", maximumBytesKvsCallInfo.bytesRead()),
+                    SafeArg.of("kvsCallBytesReadLimit", config.bytesReadInOneKvsCallLimit()),
+                    SafeArg.of("kvsMethodName", maximumBytesKvsCallInfo.methodName()),
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 
     private void checkKvsReadCalls(long calls, ExpectationsConfig config) {
-        if (calls > config.bytesReadInOneKvsCallLimit()) {
-            // event log
-            kvsReadCallLimitViolated = true;
+        if (calls > config.kvsReadCallCountLimit()) {
+            log.warn(
+                    "Transaction making too many kvs calls",
+                    SafeArg.of("kvsCalls", calls),
+                    SafeArg.of("kvsReadCallCountLimit", config.kvsReadCallCountLimit()),
+                    SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
 }
