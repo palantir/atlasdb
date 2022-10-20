@@ -27,42 +27,42 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class ExpectationsManagerImpl implements ExpectationsManager {
 
     private final Set<ExpectationsAwareTransaction> trackedTransactions = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean taskIsScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService executorService;
-    private final AtomicBoolean updateIsScheduled = new AtomicBoolean(false);
 
     public ExpectationsManagerImpl(ScheduledExecutorService executorService) {
         this.executorService = executorService;
     }
 
     @Override
-    public void scheduleMetricsUpdate(long delayMillis) {
+    public void scheduleExpectationsTask(long delayMillis) {
         Preconditions.checkArgument(
                 delayMillis > 0, "Transactional expectations manager scheduler delay must be strictly positive.");
-        if (!updateIsScheduled.compareAndExchange(false, true)) {
+        if (!taskIsScheduled.compareAndExchange(false, true)) {
             executorService.scheduleWithFixedDelay(
                     new ExpectationsTask(trackedTransactions), delayMillis, delayMillis, TimeUnit.MILLISECONDS);
         }
     }
 
     @Override
-    public void registerTransaction(ExpectationsAwareTransaction transaction) {
+    public void register(ExpectationsAwareTransaction transaction) {
         trackedTransactions.add(transaction);
     }
 
     @Override
-    public void unregisterTransaction(ExpectationsAwareTransaction transaction) {
+    public void unregister(ExpectationsAwareTransaction transaction) {
         trackedTransactions.remove(transaction);
     }
 
     @Override
-    public void markConcludedTransaction(ExpectationsAwareTransaction transaction) {
+    public void markCompletion(ExpectationsAwareTransaction transaction) {
         transaction.runExpectationsCallbacks();
-        unregisterTransaction(transaction);
+        unregister(transaction);
     }
 
     @Override
     public void close() throws Exception {
-        updateIsScheduled.set(true);
+        taskIsScheduled.set(true);
         executorService.shutdown();
     }
 }

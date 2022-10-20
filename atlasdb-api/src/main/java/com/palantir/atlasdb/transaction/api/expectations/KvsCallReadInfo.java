@@ -25,7 +25,7 @@ import org.immutables.value.Value;
 public interface KvsCallReadInfo extends Comparable<KvsCallReadInfo> {
     long bytesRead();
 
-    String kvsMethodName();
+    String methodName();
 
     @Override
     default int compareTo(KvsCallReadInfo other) {

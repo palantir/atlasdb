@@ -86,7 +86,7 @@ public final class ExpectationsTask implements Runnable {
                     "Transaction reading too much in a single kvs call",
                     SafeArg.of("kvsCallBytesRead", maximumBytesKvsCallInfo.bytesRead()),
                     SafeArg.of("kvsCallBytesReadLimit", config.bytesReadInOneKvsCallLimit()),
-                    SafeArg.of("kvsMethodName", maximumBytesKvsCallInfo.kvsMethodName()),
+                    SafeArg.of("kvsMethodName", maximumBytesKvsCallInfo.methodName()),
                     SafeArg.of("transactionName", config.transactionDisplayName()));
         }
     }
