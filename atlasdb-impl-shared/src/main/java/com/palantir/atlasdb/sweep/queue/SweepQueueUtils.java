@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
@@ -127,5 +128,9 @@ public final class SweepQueueUtils {
 
     public static Map<PartitionInfo, List<WriteInfo>> partitioningForNonSweepable(long startTs) {
         return ImmutableMap.of(SweepQueueUtils.nonSweepable(startTs), ImmutableList.of(WriteInfo.of(startTs)));
+    }
+
+    public static boolean tableWasDropped(TableReference tableRef, KeyValueService kvs) {
+        return !kvs.getAllTableNames().contains(tableRef);
     }
 }

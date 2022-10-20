@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +42,10 @@ import org.immutables.value.Value;
  * Includes utilities for generating logging args that may be safe or unsafe, depending on table metadata.
  *
  * Always returns unsafe, until hydrated.
+ *
+ * Note that many methods of this class return {@link Arg} objects that may or may not be safe for logging. Some of
+ * these are annotated as {@link Unsafe} (which prevents users from wrapping these Args in a {@link SafeArg}), though
+ * users should generally just use the Arg object directly.
  */
 public final class LoggingArgs {
 
@@ -49,6 +54,7 @@ public final class LoggingArgs {
     public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
+    @Unsafe
     @Value.Immutable
     public interface SafeAndUnsafeTableReferences {
         SafeArg<List<TableReference>> safeTableRefs();
@@ -90,6 +96,7 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
+    @Unsafe
     public static Arg<String> internalTableName(TableReference tableReference) {
         return safeInternalTableName(AbstractKeyValueService.internalTableName(tableReference));
     }
@@ -120,6 +127,7 @@ public final class LoggingArgs {
     /**
      * Returns a safe or unsafe arg corresponding to the supplied table reference, with name "tableRef".
      */
+    @Unsafe
     public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
     }
@@ -150,6 +158,7 @@ public final class LoggingArgs {
         }
     }
 
+    @Unsafe
     public static Arg<String> safeInternalTableName(String internalTableReference) {
         if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
             return SafeArg.of("tableRef", internalTableReference);
@@ -158,46 +167,57 @@ public final class LoggingArgs {
         }
     }
 
+    @Unsafe
     public static Arg<String> tableRef(String argName, TableReference tableReference) {
         return getArg(argName, tableReference.toString(), logArbitrator.isTableReferenceSafe(tableReference));
     }
 
+    @Unsafe
     public static Arg<String> customTableName(TableReference tableReference, String tableName) {
         return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
+    @Unsafe
     public static Arg<Long> durationMillis(Stopwatch stopwatch) {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
+    @Unsafe
     public static Arg<Long> startTimeMillis(long startTime) {
         return getArg("startTimeMillis", startTime, true);
     }
 
+    @Unsafe
     public static Arg<String> method(String method) {
         return getArg("method", method, true);
     }
 
+    @Unsafe
     public static Arg<Integer> cellCount(int cellCount) {
         return getArg("cellCount", cellCount, true);
     }
 
+    @Unsafe
     public static Arg<Integer> tableCount(int tableCount) {
         return getArg("tableCount", tableCount, true);
     }
 
+    @Unsafe
     public static Arg<Integer> keyCount(int keyCount) {
         return getArg("keyCount", keyCount, true);
     }
 
+    @Unsafe
     public static Arg<Integer> rowCount(int rowCount) {
         return getArg("rowCount", rowCount, true);
     }
 
+    @Unsafe
     public static Arg<Long> sizeInBytes(long sizeInBytes) {
         return getArg("sizeInBytes", sizeInBytes, true);
     }
 
+    @Unsafe
     public static Arg<?> columnCount(ColumnSelection columnSelection) {
         return getArg(
                 "columnCount",
@@ -205,14 +225,17 @@ public final class LoggingArgs {
                 true);
     }
 
+    @Unsafe
     public static Arg<?> columnCount(int numberOfColumns) {
         return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
     }
 
+    @Unsafe
     public static Arg<Integer> batchHint(int batchHint) {
         return getArg("batchHint", batchHint, true);
     }
 
+    @Unsafe
     public static Arg<RangeRequest> range(TableReference tableReference, RangeRequest range) {
         return getArg(
                 "range",
@@ -222,15 +245,18 @@ public final class LoggingArgs {
                                 logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 
+    @Unsafe
     public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
             BatchColumnRangeSelection batchColumnRangeSelection) {
         return getArg("batchColumnRangeSelection", batchColumnRangeSelection, false);
     }
 
+    @Unsafe
     public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
         return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 
+    @Unsafe
     private static <T> Arg<T> getArg(String name, T value, boolean safe) {
         return safe ? SafeArg.of(name, value) : UnsafeArg.of(name, value);
     }

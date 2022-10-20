@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -65,7 +65,7 @@ public final class CommitTimestampLoader {
     private final long immutableTimestamp;
     private final Supplier<Long> lastSeenCommitTsSupplier;
 
-    private final KnownAbortedTransactions abortedTransactionsCache;
+    private final KnownAbandonedTransactions abortedTransactionsCache;
 
     public CommitTimestampLoader(
             TimestampCache timestampCache,
@@ -84,7 +84,7 @@ public final class CommitTimestampLoader {
         this.timelockService = timelockService;
         this.immutableTimestamp = immutableTimestamp;
         this.lastSeenCommitTsSupplier = knowledge.lastSeenCommitSupplier();
-        this.abortedTransactionsCache = knowledge.aborted();
+        this.abortedTransactionsCache = knowledge.abandoned();
     }
 
     /**
@@ -146,7 +146,7 @@ public final class CommitTimestampLoader {
             }
 
             long commitTs = TransactionStatusUtils.getCommitTsFromStatus(
-                    start, commitStatus, abortedTransactionsCache::isKnownAborted);
+                    start, commitStatus, abortedTransactionsCache::isKnownAbandoned);
             if (commitStatus.equals(TransactionStatuses.unknown())) {
                 shouldValidate = true;
             } else {

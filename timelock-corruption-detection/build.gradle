@@ -1,13 +1,5 @@
 apply from: "../gradle/shared.gradle"
-apply plugin: 'com.palantir.conjure'
-
-conjure {
-    java {
-        undertowServicePrefixes = true
-        undertowListenableFutures = true
-        useImmutableBytes = true
-    }
-}
+apply from: "../gradle/conjure.gradle"
 
 dependencies {
     implementation project(':atlasdb-api')

@@ -34,4 +34,6 @@ public interface AbandonedTimestampStore {
      * Registers that the transaction with the provided start timestamp will not be able to commit.
      */
     void markAbandoned(long timestampToAbort);
+
+    void markAbandoned(Set<Long> timestampsToAbort);
 }

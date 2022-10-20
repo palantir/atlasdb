@@ -29,6 +29,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -208,6 +209,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         return ~PtBytes.toLong(flippedTimestampAsBytes);
     }
 
+    @Unsafe // Should log the Arg directly, rather than wrapping it in another Arg layer.
     private static Arg<String> key(byte[] row) {
         return UnsafeArg.of("key", getKey(row));
     }
@@ -216,6 +218,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         return CassandraKeyValueServices.encodeAsHex(row);
     }
 
+    @Unsafe // Should log the Arg directly, rather than wrapping it in another Arg layer.
     private static Arg<String> column1(byte[] column) {
         return UnsafeArg.of("column1", CassandraKeyValueServices.encodeAsHex(column));
     }
@@ -228,6 +231,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         return SafeArg.of("limit", limit);
     }
 
+    @Unsafe // Should log the Arg directly, rather than wrapping it in another Arg layer.
     private static Arg<String> quotedTableName(TableReference tableRef) {
         String tableNameWithQuotes = "\"" + CassandraKeyValueServiceImpl.internalTableName(tableRef) + "\"";
         return LoggingArgs.customTableName(tableRef, tableNameWithQuotes);
