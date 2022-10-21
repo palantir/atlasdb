@@ -64,6 +64,17 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
+    public ConjureGetFreshTimestampsResponseV2 getFreshTimestampsV2(
+            AuthHeader authHeader, String namespace, ConjureGetFreshTimestampsRequestV2 request) {
+        return dialogueDelegate.getFreshTimestampsV2(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureSingleTimestamp getFreshTimestamp(AuthHeader authHeader, String namespace) {
+        return dialogueDelegate.getFreshTimestamp(authHeader, namespace);
+    }
+
+    @Override
     public LeaderTime leaderTime(AuthHeader authHeader, String namespace) {
         return executeInstrumented(
                 () -> dialogueDelegate.leaderTime(authHeader, namespace),
@@ -89,8 +100,19 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     }
 
     @Override
+    public ConjureRefreshLocksResponseV2 refreshLocksV2(
+            AuthHeader authHeader, String namespace, ConjureRefreshLocksRequestV2 request) {
+        return dialogueDelegate.refreshLocksV2(authHeader, namespace, request);
+    }
+
+    @Override
     public ConjureUnlockResponse unlock(AuthHeader authHeader, String namespace, ConjureUnlockRequest request) {
         return dialogueDelegate.unlock(authHeader, namespace, request);
+    }
+
+    @Override
+    public ConjureUnlockResponseV2 unlockV2(AuthHeader authHeader, String namespace, ConjureUnlockRequestV2 request) {
+        return dialogueDelegate.unlockV2(authHeader, namespace, request);
     }
 
     @Override
