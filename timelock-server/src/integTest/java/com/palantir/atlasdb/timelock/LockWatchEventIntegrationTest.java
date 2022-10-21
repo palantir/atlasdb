@@ -105,9 +105,20 @@ public final class LockWatchEventIntegrationTest {
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
+    }
+
+    @Test
+    public void exactRowWatchesCanBeRegistered() {
         LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
         txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
         LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
+    }
+
+    @Test
+    public void entireTableWatchesCanBeRegistered() {
+        LockWatchReference entireTable = LockWatchReferences.entireTable(TABLE_2_REF.getQualifiedName());
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(entireTable));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, entireTable);
     }
 
     @Test

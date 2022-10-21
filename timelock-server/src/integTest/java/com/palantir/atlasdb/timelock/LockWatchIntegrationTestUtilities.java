@@ -88,7 +88,7 @@ public final class LockWatchIntegrationTestUtilities {
 
     public static void awaitLockWatchCreated(TransactionManager txnManager, LockWatchReference lockWatchReference) {
         LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
-        Awaitility.await("Row is watched")
+        Awaitility.await("Lock watch created event is fired")
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
                 .until(() -> getLockWatchState(txnManager, lockWatchManager)
