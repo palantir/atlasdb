@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;

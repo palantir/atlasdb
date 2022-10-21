@@ -24,7 +24,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ExpectationsConfig {
-    long MAXIMUM_NAME_SIZE = 255;
+    int MAXIMUM_NAME_SIZE = 255;
     String DEFAULT_TRANSACTION_DISPLAY_NAME = "Unnamed";
     long ONE_MEBIBYTE = mebibytesToBytes(1);
 

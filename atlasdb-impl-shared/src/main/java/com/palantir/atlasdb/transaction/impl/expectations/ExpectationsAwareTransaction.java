@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import java.util.Set;
 
 public interface ExpectationsAwareTransaction extends Transaction {

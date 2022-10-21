@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl.expectations;
 
 import org.derive4j.Data;
 
 @Data
 public interface ExpectationsViolation {
     interface Cases<R> {
-        R runningForTooLong();
+        R ranForTooLong();
 
         R readTooMuch();
 
         R readTooMuchInOneKvsCall();
 
-        R queriesKvsTooManyTimes();
+        R queriedKvsTooManyTimes();
     }
 
     <R> R match(Cases<R> cases);

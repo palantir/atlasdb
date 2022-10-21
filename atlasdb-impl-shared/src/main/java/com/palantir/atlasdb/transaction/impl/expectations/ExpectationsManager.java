@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-
 public interface ExpectationsManager extends AutoCloseable {
     void register(ExpectationsAwareTransaction transaction);
 
