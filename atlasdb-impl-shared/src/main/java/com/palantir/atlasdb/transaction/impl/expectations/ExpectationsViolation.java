@@ -16,16 +16,22 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-public interface ExpectationsManager extends AutoCloseable {
-    void register(ExpectationsAwareTransaction transaction);
+import org.derive4j.Data;
 
-    /*
-     * Stop tracking a given transaction without running expectations callbacks.
-     */
-    void unregister(ExpectationsAwareTransaction transaction);
+@Data
+public interface ExpectationsViolation {
+    interface Cases<R> {
+        R ranForTooLong();
 
-    /*
-     * Mark transaction as concluded (aborted/succeeded), run expectations callbacks and stop tracking the transaction.
-     */
-    void markCompletion(ExpectationsAwareTransaction transaction);
+        R readTooMuch();
+
+        R readTooMuchInOneKvsCall();
+
+        R queriedKvsTooManyTimes();
+    }
+
+    <R> R match(Cases<R> cases);
+
+    @Override
+    boolean equals(Object other);
 }

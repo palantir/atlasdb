@@ -23,8 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TestTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -63,7 +63,7 @@ public class AtlasDbTestCase {
 
     protected LockClient lockClient;
     protected LockService lockService;
-    protected TestTrackingKeyValueService keyValueService;
+    protected TrackingKeyValueService keyValueService;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -105,8 +105,8 @@ public class AtlasDbTestCase {
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
-    private TestTrackingKeyValueService trackingKeyValueService(KeyValueService originalKeyValueService) {
-        return spy(new TestTrackingKeyValueService(new StatsTrackingKeyValueService(originalKeyValueService)));
+    private TrackingKeyValueService trackingKeyValueService(KeyValueService originalKeyValueService) {
+        return spy(new TrackingKeyValueService(new StatsTrackingKeyValueService(originalKeyValueService)));
     }
 
     protected TestTransactionManager constructTestTransactionManager() {

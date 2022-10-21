@@ -32,12 +32,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TestTrackingKeyValueService extends ForwardingKeyValueService {
+public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(new ConcurrentHashMap<>());
     private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(new ConcurrentHashMap<>());
     private final KeyValueService delegate;
 
-    public TestTrackingKeyValueService(KeyValueService delegate) {
+    public TrackingKeyValueService(KeyValueService delegate) {
         this.delegate = delegate;
     }
 

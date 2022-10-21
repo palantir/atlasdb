@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 public interface TrackingKeyValueService extends KeyValueService {
-    TransactionReadInfo getReadInfo();
+    TransactionReadInfo getOverallReadInfo();
 
     ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
 }

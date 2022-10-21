@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
+import java.util.Comparator;
 import org.immutables.value.Value;
 
 /**
@@ -23,12 +24,15 @@ import org.immutables.value.Value;
  */
 @Value.Immutable
 public interface KvsCallReadInfo extends Comparable<KvsCallReadInfo> {
+    Comparator<KvsCallReadInfo> COMPARATOR =
+            Comparator.comparing(KvsCallReadInfo::bytesRead).thenComparing(KvsCallReadInfo::methodName);
+
     long bytesRead();
 
     String methodName();
 
     @Override
     default int compareTo(KvsCallReadInfo other) {
-        return Long.compare(this.bytesRead(), other.bytesRead());
+        return COMPARATOR.compare(this, other);
     }
 }
