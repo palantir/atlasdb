@@ -45,6 +45,8 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -78,8 +80,11 @@ public final class LockWatchEventIntegrationTest {
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_4 =
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "give".getBytes(StandardCharsets.UTF_8));
-    private static final String TABLE = "table";
+    private static byte[] ROW = "up".getBytes(StandardCharsets.UTF_8);
+    private static final String TABLE = LockWatchIntegrationTestUtilities.TABLE;
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
+    private static final TableReference TABLE_2_REF =
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, LockWatchIntegrationTestUtilities.TABLE_2);
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
@@ -100,6 +105,9 @@ public final class LockWatchEventIntegrationTest {
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
+        LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
     }
 
     @Test

@@ -34,6 +34,7 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
@@ -45,7 +46,8 @@ import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
     private static final String TEST_PACKAGE = "package";
-    private static final String TABLE = "table";
+    static final String TABLE = "table";
+    static final String TABLE_2 = "table2";
 
     private LockWatchIntegrationTestUtilities() {
         // no-op
@@ -81,6 +83,17 @@ public final class LockWatchIntegrationTestUtilities {
                         .map(event -> event.accept(new LockWatchCreatedEventVisitor(createdEvent -> createdEvent
                                 .references()
                                 .contains(LockWatchReferences.entireTable(tableReference.getQualifiedName())))))
+                        .orElse(false));
+    }
+
+    public static void awaitLockWatchCreated(TransactionManager txnManager, LockWatchReference lockWatchReference) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
+        Awaitility.await("Row is watched")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> getLockWatchState(txnManager, lockWatchManager)
+                        .map(event -> event.accept(new LockWatchCreatedEventVisitor(
+                                createdEvent -> createdEvent.references().contains(lockWatchReference))))
                         .orElse(false));
     }
 
@@ -120,6 +133,7 @@ public final class LockWatchIntegrationTestUtilities {
 
     private static Schema createSchema() {
         Schema schema = new Schema("table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
@@ -130,6 +144,17 @@ public final class LockWatchIntegrationTestUtilities {
             }
         };
         schema.addTableDefinition(TABLE, tableDef);
+
+        TableDefinition tableWithoutCaching = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TABLE_2, tableWithoutCaching);
+
         return schema;
     }
 
