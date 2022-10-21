@@ -38,7 +38,7 @@ public class ExpectationsManagerTest {
     private final ExpectationsManager manager = ExpectationsManagerImpl.createStarted(executorService);
 
     @Mock
-    ExpectationsAwareTransaction transaction;
+    private ExpectationsAwareTransaction transaction;
 
     @Test
     public void runnableWasScheduled() {
