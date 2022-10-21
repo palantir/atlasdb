@@ -253,9 +253,9 @@ public final class LockWatchEventIntegrationTest {
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
                 .isEmpty();
     }
@@ -373,9 +373,13 @@ public final class LockWatchEventIntegrationTest {
     }
 
     private Set<LockDescriptor> getDescriptors(Cell... cells) {
+        return getDescriptors(TABLE_REF, cells);
+    }
+
+    private Set<LockDescriptor> getDescriptors(TableReference tableRef, Cell... cells) {
         return Stream.of(cells)
                 .map(cell -> AtlasCellLockDescriptor.of(
-                        TABLE_REF.getQualifiedName(), cell.getRowName(), cell.getColumnName()))
+                        tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()))
                 .collect(Collectors.toSet());
     }
 
