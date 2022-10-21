@@ -38,6 +38,7 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -91,10 +92,9 @@ public final class LockWatchIntegrationTestUtilities {
         Awaitility.await("Lock watch created event is fired")
                 .atMost(Duration.ofSeconds(5))
                 .pollDelay(Duration.ofMillis(100))
-                .until(() -> getLockWatchState(txnManager, lockWatchManager)
-                        .map(event -> event.accept(new LockWatchCreatedEventVisitor(
-                                createdEvent -> createdEvent.references().contains(lockWatchReference))))
-                        .orElse(false));
+                .until(() -> getLockWatchEvents(txnManager, lockWatchManager).stream()
+                        .anyMatch(event -> event.accept(new LockWatchCreatedEventVisitor(
+                                createdEvent -> createdEvent.references().contains(lockWatchReference)))));
     }
 
     /**
@@ -129,6 +129,15 @@ public final class LockWatchIntegrationTestUtilities {
                 .events()
                 .stream()
                 .collect(MoreCollectors.toOptional()));
+    }
+
+    private static List<LockWatchEvent> getLockWatchEvents(
+            TransactionManager txnManager, LockWatchManagerInternal lockWatchManager) {
+        return txnManager.runTaskThrowOnConflict(txn -> lockWatchManager
+                .getCache()
+                .getEventCache()
+                .getUpdateForTransactions(ImmutableSet.of(txn.getTimestamp()), Optional.empty())
+                .events());
     }
 
     private static Schema createSchema() {

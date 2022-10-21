@@ -80,7 +80,7 @@ public final class LockWatchEventIntegrationTest {
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_4 =
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "give".getBytes(StandardCharsets.UTF_8));
-    private static byte[] ROW = "up".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] ROW = "up".getBytes(StandardCharsets.UTF_8);
     private static final String TABLE = LockWatchIntegrationTestUtilities.TABLE;
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final TableReference TABLE_2_REF =
