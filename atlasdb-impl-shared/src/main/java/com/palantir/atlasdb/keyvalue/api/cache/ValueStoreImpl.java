@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
+import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils.TableRefAndRemainder;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -131,23 +132,25 @@ final class ValueStoreImpl implements ValueStore {
                 .orElse(map));
     }
 
-    private Stream<CellReference> extractCandidateCells(LockDescriptor descriptor) {
-        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
-    }
-
     private void applyLockedDescriptors(Set<LockDescriptor> lockDescriptors) {
-        lockDescriptors.stream()
-                // Explicitly exclude descriptors corresponding to watched rows from non-watched tables
-                .filter(this::isTableWatched)
-                .flatMap(this::extractCandidateCells)
-                .forEach(this::putLockedCell);
+        getCandidateCells(lockDescriptors).forEach(this::putLockedCell);
     }
 
-    private boolean isTableWatched(LockDescriptor lockDescriptor) {
-        return AtlasLockDescriptorUtils.tryParseTableRef(lockDescriptor)
-                .map(AtlasLockDescriptorUtils.TableRefAndRemainder::tableRef)
-                .map(tableReference -> watchedTables.getSnapshot().contains(tableReference))
-                .orElse(false);
+    private Stream<CellReference> getCandidateCells(Set<LockDescriptor> lockDescriptors) {
+        return lockDescriptors.stream()
+                .map(AtlasLockDescriptorUtils::tryParseTableRef)
+                .flatMap(Optional::stream)
+                // Explicitly exclude descriptors corresponding to watched rows from non-watched tables
+                .filter(ValueStoreImpl.this::isTableWatched)
+                .flatMap(ValueStoreImpl.this::extractCandidateCells);
+    }
+
+    private boolean isTableWatched(TableRefAndRemainder parsedLockDescriptor) {
+        return watchedTables.getSnapshot().contains(parsedLockDescriptor.tableRef());
+    }
+
+    private Stream<CellReference> extractCandidateCells(TableRefAndRemainder descriptor) {
+        return AtlasLockDescriptorUtils.candidateCells(descriptor).stream();
     }
 
     private final class LockWatchVisitor implements LockWatchEvent.Visitor<Void> {
@@ -159,9 +162,7 @@ final class ValueStoreImpl implements ValueStore {
 
         @Override
         public Void visit(UnlockEvent unlockEvent) {
-            unlockEvent.lockDescriptors().stream()
-                    .flatMap(ValueStoreImpl.this::extractCandidateCells)
-                    .forEach(ValueStoreImpl.this::clearLockedCell);
+            getCandidateCells(unlockEvent.lockDescriptors()).forEach(ValueStoreImpl.this::clearLockedCell);
             return null;
         }
 
