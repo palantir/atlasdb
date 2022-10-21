@@ -234,6 +234,7 @@ public final class LockWatchEventIntegrationTest {
 
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
+        assertThat(update.events()).isNotEmpty();
         assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
         assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
         assertThat(watchDescriptors(update.events())).isEmpty();
