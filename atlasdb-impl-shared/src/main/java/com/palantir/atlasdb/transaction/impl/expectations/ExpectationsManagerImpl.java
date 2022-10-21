@@ -62,8 +62,11 @@ public final class ExpectationsManagerImpl implements ExpectationsManager {
 
     @Override
     public void markCompletion(ExpectationsAwareTransaction transaction) {
-        unregister(transaction);
-        transaction.runExpectationsCallbacks();
+        try {
+            unregister(transaction);
+        } finally {
+            transaction.runExpectationsCallbacks();
+        }
     }
 
     @Override
