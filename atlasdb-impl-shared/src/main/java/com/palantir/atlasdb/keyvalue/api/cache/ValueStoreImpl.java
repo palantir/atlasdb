@@ -26,10 +26,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.watch.EntirelyWatchedTableReferenceFetcher;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferenceTableExtractor;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
@@ -169,7 +169,7 @@ final class ValueStoreImpl implements ValueStore {
         @Override
         public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             lockWatchCreatedEvent.references().stream()
-                    .map(ref -> ref.accept(EntirelyWatchedTableReferenceFetcher.INSTANCE))
+                    .map(reference -> reference.accept(LockWatchReferenceTableExtractor.INSTANCE))
                     .flatMap(Optional::stream)
                     .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
 

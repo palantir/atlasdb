@@ -30,8 +30,8 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
-import com.palantir.lock.watch.EntirelyWatchedTableReferenceFetcher;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchReferenceTableExtractor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import java.time.Duration;
 import java.util.Optional;
@@ -78,7 +78,7 @@ public final class LockWatchManagerImplTest {
     @Test
     public void createMethodParsesTablesFromSchema() {
         when(schema.getLockWatches()).thenReturn(ImmutableSet.of(fromSchema));
-        when(fromSchema.accept(EntirelyWatchedTableReferenceFetcher.INSTANCE))
+        when(fromSchema.accept(LockWatchReferenceTableExtractor.INSTANCE))
                 .thenReturn(Optional.of(TableReference.createFromFullyQualifiedName("t.table")));
         manager = LockWatchManagerImpl.create(
                 MetricsManagers.createForTests(),

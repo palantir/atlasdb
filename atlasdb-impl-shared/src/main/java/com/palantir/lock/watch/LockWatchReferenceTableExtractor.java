@@ -31,9 +31,8 @@ import java.util.Optional;
  *  Returns {@code Optional.empty()} for supported lock watch types other than EntireTable watches, and throws for
  *  unsupported lock watch types.
  */
-public final class EntirelyWatchedTableReferenceFetcher
-        implements LockWatchReferences.Visitor<Optional<TableReference>> {
-    public static final EntirelyWatchedTableReferenceFetcher INSTANCE = new EntirelyWatchedTableReferenceFetcher();
+public final class LockWatchReferenceTableExtractor implements LockWatchReferences.Visitor<Optional<TableReference>> {
+    public static final LockWatchReferenceTableExtractor INSTANCE = new LockWatchReferenceTableExtractor();
 
     @Override
     public Optional<TableReference> visit(EntireTable reference) {
