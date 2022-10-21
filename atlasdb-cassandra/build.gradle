@@ -115,6 +115,10 @@ jar.onlyIf { false }
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 
+license {
+  exclude '**/CassandraTopologyValidationMetrics.java'
+}
+
 recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.rescue'
