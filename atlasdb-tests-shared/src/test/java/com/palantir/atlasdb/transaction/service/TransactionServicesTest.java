@@ -23,7 +23,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -33,9 +35,12 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.V4ProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -140,19 +145,89 @@ public class TransactionServicesTest {
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
     }
 
+    @Test
+    public void cannotMarkV4Transaction() {
+        forceInstallV4();
+        initializeTimestamps();
+        transactionService.markInProgress(startTs);
+
+        verifyNoMoreInteractions(keyValueService);
+    }
+
+    @Test
+    public void canCommitV3Transaction() {
+        forceInstallV3();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
+        assertExpectedArgumentTwoPhase(
+                actualArgument, new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE));
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
+    }
+
+    @Test
+    public void canMarkV4TransactionInProgress() {
+        forceInstallV4();
+        initializeTimestamps();
+        transactionService.markInProgress(startTs);
+
+        Map<Cell, byte[]> actualArgument = verifyPutInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
+        Cell cell =
+                new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE).encodeStartTimestampAsCell(startTs);
+
+        assertThat(actualArgument.keySet()).containsExactly(cell);
+        assertThat(actualArgument.get(cell)).containsExactly(TransactionConstants.TTS_IN_PROGRESS_MARKER);
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
+    }
+
+    @Test
+    public void canCommitV4Transaction() {
+        forceInstallV4();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
+        assertExpectedArgumentTwoPhase(
+                actualArgument, new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE));
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
+    }
+
     private void initializeTimestamps() {
         startTs = timestampService.getFreshTimestamp();
         commitTs = timestampService.getFreshTimestamp();
     }
 
     private void forceInstallV2() {
+        forceInstallVersion(2);
+    }
+
+    private void forceInstallV3() {
+        forceInstallVersion(3);
+    }
+
+    private void forceInstallV4() {
+        forceInstallVersion(4);
+    }
+
+    private void forceInstallVersion(int newVersion) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
-            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
+            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
-            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == 2;
+            return transactionSchemaManager.getTransactionsSchemaVersion(timestampService.getFreshTimestamp())
+                    == newVersion;
         });
+    }
+
+    private Map<Cell, byte[]> verifyPutInTableAndReturnArgument(TableReference tableReference) {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
+        verify(keyValueService).put(eq(tableReference), argument.capture(), eq(0));
+        return argument.getValue();
     }
 
     private Map<Cell, byte[]> verifyPueInTableAndReturnArgument(TableReference tableReference) {
@@ -166,6 +241,16 @@ public class TransactionServicesTest {
             Map<Cell, byte[]> actualArgument, TransactionStatusEncodingStrategy<TransactionStatus> strategy) {
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
         byte[] value = strategy.encodeCommitStatusAsValue(startTs, TransactionStatusUtils.fromTimestamp(commitTs));
+
+        assertThat(actualArgument.keySet()).containsExactly(cell);
+        assertThat(actualArgument.get(cell)).containsExactly(value);
+    }
+
+    private <V> void assertExpectedArgumentTwoPhase(
+            Map<Cell, byte[]> actualArgument, TwoPhaseEncodingStrategy strategy) {
+        Cell cell = strategy.encodeStartTimestampAsCell(startTs);
+        byte[] value = strategy.encodeCommitStatusAsValue(
+                startTs, AtomicValue.committed(TransactionStatusUtils.fromTimestamp(commitTs)));
 
         assertThat(actualArgument.keySet()).containsExactly(cell);
         assertThat(actualArgument.get(cell)).containsExactly(value);

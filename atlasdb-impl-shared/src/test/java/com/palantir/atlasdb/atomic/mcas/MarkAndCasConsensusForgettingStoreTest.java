@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -55,17 +56,17 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private static final Cell CELL_2 = Cell.create(ROW, PtBytes.toBytes("col2"));
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
-    private static final byte[] IN_PROGRESS_MARKER = new byte[] {1};
-    private static final ByteBuffer BUFFERED_IN_PROGRESS_MARKER = ByteBuffer.wrap(IN_PROGRESS_MARKER);
+    private static final ByteBuffer BUFFERED_IN_PROGRESS_MARKER =
+            ByteBuffer.wrap(TransactionConstants.TTS_IN_PROGRESS_MARKER);
 
     private final InMemoryKeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final MarkAndCasConsensusForgettingStore store =
-            new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
+            new MarkAndCasConsensusForgettingStore(TransactionConstants.TTS_IN_PROGRESS_MARKER, kvs, TABLE);
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
         assertThat(kvs.getAllTimestamps(TABLE, ImmutableSet.of(CELL), Long.MAX_VALUE)
                         .size())
                 .isEqualTo(1);
