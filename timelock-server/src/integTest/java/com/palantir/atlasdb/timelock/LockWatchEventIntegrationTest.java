@@ -220,6 +220,26 @@ public final class LockWatchEventIntegrationTest {
     }
 
     @Test
+    public void eventsGeneratedForRowLevelLockWatches() {
+        LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+
+        OpenTransaction firstTxn = startSingleTransaction();
+        LockWatchVersion currentVersion = getCurrentVersion();
+
+        Cell cell = Cell.create(ROW, "down".getBytes(StandardCharsets.UTF_8));
+        performWriteTransactionLockingAndUnlockingCells(TABLE_2_REF, ImmutableMap.of(cell, DATA_1));
+
+        OpenTransaction thirdTxn = startSingleTransaction();
+
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
+
+        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+        assertThat(watchDescriptors(update.events())).isEmpty();
+    }
+
+    @Test
     public void leaderElectionDuringTransactionCausesTransactionToFailRetriably() {
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
@@ -283,8 +303,12 @@ public final class LockWatchEventIntegrationTest {
     }
 
     private void performWriteTransactionLockingAndUnlockingCells(Map<Cell, byte[]> values) {
+        performWriteTransactionLockingAndUnlockingCells(TABLE_REF, values);
+    }
+
+    private void performWriteTransactionLockingAndUnlockingCells(TableReference tableRef, Map<Cell, byte[]> values) {
         txnManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE_REF, values);
+            txn.put(tableRef, values);
             return null;
         });
         LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
