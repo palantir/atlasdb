@@ -141,11 +141,9 @@ public final class ValueStoreImplTest {
     @Test
     public void watchEventUpdatesWatchableTables() {
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isFalse();
-        //        assertThat(valueStore.getSnapshot().isWatched(ROW_LEVEL_CELL_REFERENCE)).isFalse();
         valueStore.applyEvent(WATCH_EVENTS);
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isTrue();
         assertThat(valueStore.getSnapshot().isWatched(ROW_WATCHED_TABLE)).isFalse();
-        //        assertThat(valueStore.getSnapshot().isWatched(ROW_LEVEL_CELL_REFERENCE)).isTrue();
     }
 
     @Test
