@@ -234,10 +234,12 @@ public final class LockWatchEventIntegrationTest {
 
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
-        assertThat(update.events()).isNotEmpty();
-        assertThat(lockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
-        assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
-        assertThat(watchDescriptors(update.events())).isEmpty();
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(cell));
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
+                .isEmpty();
     }
 
     @Test
@@ -333,6 +335,14 @@ public final class LockWatchEventIntegrationTest {
                 .map(event -> event.accept(visitor))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet()));
+    }
+
+    private Set<LockDescriptor> getAllDescriptorsFromLockWatchEvent(
+            Collection<LockWatchEvent> events, LockWatchEvent.Visitor<Set<LockDescriptor>> visitor) {
+        return events.stream()
+                .map(event -> event.accept(visitor))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
     private Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors) {
