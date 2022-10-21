@@ -62,6 +62,9 @@ public final class CassandraTopologyValidator {
      * Of course, there is the base case of all hosts will be new. In this case, we simply check that all
      * new hosts are in consensus.
      *
+     * Servers that  do not have support for the get_host_ids endpoint are always considered consistent,
+     * even if we cannot come to a consensus on the hosts that do support the endpoint.
+     *
      * Consensus is defined as:
      * (1) A quorum of nodes (excluding those without `get_host_ids` support) are reachable.
      * (2) All reachable nodes have the same set of hostIds.
@@ -79,7 +82,8 @@ public final class CassandraTopologyValidator {
      *
      * @param newlyAddedHosts Set of new Cassandra servers you wish to validate.
      * @param allHosts All Cassandra servers which must include newlyAddedHosts.
-     * @return Set of Cassandra servers which do not match the pre-existing hosts topology.
+     * @return Set of Cassandra servers which do not match the pre-existing hosts topology. Servers without
+     * the get_host_ids endpoint will never be returned here.
      */
     public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
             Set<CassandraServer> newlyAddedHosts,
@@ -94,12 +98,11 @@ public final class CassandraTopologyValidator {
                         WaitStrategies.fixedWait(waitTimeBetweenCalls.toMilliseconds(), TimeUnit.MILLISECONDS))
                 .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMilliseconds(), TimeUnit.MILLISECONDS))
                 .build();
-        // Callable interface requires we handle Exception, which is ugly to do within a try/catch
         Supplier<Set<CassandraServer>> inconsistentNewHosts =
                 () -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts);
         try {
             return retryer.call(inconsistentNewHosts::get);
-        } catch (ExecutionException | RetryException e) {
+        } catch (RetryException | ExecutionException e) {
             metrics.validationFailures().inc();
             log.error(
                     "Failed to obtain consistent view of hosts from cluster.",
@@ -138,7 +141,8 @@ public final class CassandraTopologyValidator {
                 .filterKeys(newlyAddedHosts::contains)
                 .toMap();
 
-        // This means currently we've no servers, therefore we need to come to a consensus on the new servers
+        // This means currently we've no servers or no server without the get_host_ids endpoint.
+        // Therefore, we need to come to a consensus on the new servers.
         if (currentServersWithoutSoftFailures.isEmpty()) {
             return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
                     .<Set<CassandraServer>>map(topology ->
@@ -152,10 +156,8 @@ public final class CassandraTopologyValidator {
         // Otherwise, if we cannot come to consensus on the current topology, just refuse to add any new servers.
         return maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures)
                 .map(topology -> EntryStream.of(newServersWithoutSoftFailures)
-                        .removeValues(result -> result instanceof HostIdResult.SuccessfulHostIdResult
-                                && ((HostIdResult.SuccessfulHostIdResult) result)
-                                        .hostIds()
-                                        .equals(topology.hostIds()))
+                        .removeValues(result -> result.type() == HostIdResult.Type.SUCCESS
+                                && result.hostIds().equals(topology.hostIds()))
                         .keys()
                         .toSet())
                 .orElseGet(newServersWithoutSoftFailures::keySet);
@@ -183,9 +185,8 @@ public final class CassandraTopologyValidator {
         }
 
         Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(hostIdsByServerWithoutSoftFailures)
-                .filterValues(HostIdResult.SuccessfulHostIdResult.class::isInstance)
-                .mapValues(HostIdResult.SuccessfulHostIdResult.class::cast)
-                .mapValues(HostIdResult.SuccessfulHostIdResult::hostIds)
+                .filterValues(result -> result.type() == HostIdResult.Type.SUCCESS)
+                .mapValues(HostIdResult::hostIds)
                 .toMap();
 
         // Only consider hosts that have the endpoint for quorum calculations.
@@ -216,7 +217,7 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
         return EntryStream.of(servers)
                 .mapValues(this::fetchHostIds)
-                .removeValues(HostIdResult.SoftFailureHostIdResult.class::isInstance)
+                .removeValues(result -> result.type() == HostIdResult.Type.SOFT_FAILURE)
                 .toMap();
     }
 

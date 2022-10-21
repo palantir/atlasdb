@@ -16,32 +16,46 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.logsafe.Preconditions;
 import java.util.Set;
 import org.immutables.value.Value;
 
+@Value.Immutable
 public interface HostIdResult {
 
-    static SuccessfulHostIdResult success(Iterable<String> hostIds) {
-        return ImmutableSuccessfulHostIdResult.of(hostIds);
+    enum Type {
+        SUCCESS,
+        SOFT_FAILURE,
+        HARD_FAILURE
     }
 
-    static HardFailureHostIdResult hardFailure() {
-        return ImmutableHardFailureHostIdResult.of();
+    Type type();
+
+    Set<String> hostIds();
+
+    static HostIdResult success(Iterable<String> hostIds) {
+        return builder().type(Type.SUCCESS).hostIds(hostIds).build();
     }
 
-    static SoftFailureHostIdResult softFailure() {
-        return ImmutableSoftFailureHostIdResult.of();
+    static HostIdResult hardFailure() {
+        return builder().type(Type.HARD_FAILURE).hostIds(Set.of()).build();
     }
 
-    @Value.Immutable(builder = false)
-    interface HardFailureHostIdResult extends HostIdResult {}
+    static HostIdResult softFailure() {
+        return builder().type(Type.SOFT_FAILURE).hostIds(Set.of()).build();
+    }
 
-    @Value.Immutable(builder = false)
-    interface SoftFailureHostIdResult extends HostIdResult {}
+    @Value.Check
+    default void checkHostIdsStateBasedOnResultType() {
+        Preconditions.checkArgument(
+                !(type().equals(Type.SUCCESS) && hostIds().isEmpty()),
+                "It is expected that there should be at least one host id if the result is successful.");
+        Preconditions.checkArgument(
+                type().equals(Type.SUCCESS) || hostIds().isEmpty(),
+                "It is expected that no hostIds should be present when there is a failure.");
+    }
 
-    @Value.Immutable(builder = false)
-    interface SuccessfulHostIdResult extends HostIdResult {
-        @Value.Parameter
-        Set<String> hostIds();
+    static ImmutableHostIdResult.Builder builder() {
+        return ImmutableHostIdResult.builder();
     }
 }
