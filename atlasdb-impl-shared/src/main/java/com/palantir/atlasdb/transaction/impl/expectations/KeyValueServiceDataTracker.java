@@ -31,38 +31,43 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 
 public final class KeyValueServiceDataTracker {
     private final AtomicLongMap<TableReference> bytesReadByTable = AtomicLongMap.create();
+    private final LongAdder bytesReadOverall = new LongAdder();
     private final AtomicLongMap<TableReference> kvsCallsByTable = AtomicLongMap.create();
+    private final LongAdder kvsCallsOverall = new LongAdder();
 
     private final ConcurrentMap<TableReference, KvsCallReadInfo> maximumBytesKvsCallInfoByTable =
             new ConcurrentHashMap<>();
 
-    // we can keep separate tallies for these, not sure if it's worth the extra bookkeeping
+    private final AtomicReference<Optional<KvsCallReadInfo>> maximumBytesKvsCallInfoOverall =
+            new AtomicReference<>(Optional.empty());
+
     TransactionReadInfo getReadInfo() {
-        // todo(aalouane) check Comparator.naturalOrder() does what I think it does
         return ImmutableTransactionReadInfo.builder()
-                .bytesRead(bytesReadByTable.sum())
-                .kvsCalls(kvsCallsByTable.sum())
-                .maximumBytesKvsCallInfo(
-                        maximumBytesKvsCallInfoByTable.values().stream().max(Comparator.naturalOrder()))
+                .bytesRead(bytesReadOverall.longValue())
+                .kvsCalls(kvsCallsOverall.longValue())
+                .maximumBytesKvsCallInfo(maximumBytesKvsCallInfoOverall.get())
                 .build();
     }
 
     // below method may be too jank
     // takes immutable snapshots of maps and uses only the common keys to construct a coherent return value
     // we could keep a ConcurrentMap<TableReference, TransactionReadInfo>, but the update would be slower
-    // (creating immutables instead of updating atomic longs) and that
-    // happens more frequently than the method below (only ran after transactions close on callback)
+    // update is expected to run more frequently compared with this method (called on callback)
+    // actually, as this is supposed to run post-commit, there should be no iteraction with the maps
+    // so we can just synchronized (or maybe there are futures hanging around with a kvs reference??)
     ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
-        ImmutableMap<TableReference, Long> bytesRead = ImmutableMap.copyOf(bytesReadByTable.asMap());
-        ImmutableMap<TableReference, Long> kvsCalls = ImmutableMap.copyOf(kvsCallsByTable.asMap());
-        ImmutableMap<TableReference, KvsCallReadInfo> maximumBytesKvsCall =
+        ImmutableMap<TableReference, Long> bytesReadMap = ImmutableMap.copyOf(bytesReadByTable.asMap());
+        ImmutableMap<TableReference, Long> kvsCallsMap = ImmutableMap.copyOf(kvsCallsByTable.asMap());
+        ImmutableMap<TableReference, KvsCallReadInfo> maximumBytesKvsCallMap =
                 ImmutableMap.copyOf(maximumBytesKvsCallInfoByTable);
 
         // omitting third map as it doesn't always have info (e.g. kvs iterator gets)
-        Set<TableReference> tableRefs = Sets.intersection(bytesRead.keySet(), kvsCalls.keySet());
+        Set<TableReference> tableRefs = Sets.intersection(bytesReadMap.keySet(), kvsCallsMap.keySet());
 
         // ugly!
         Builder<TableReference, TransactionReadInfo> mapBuilder = ImmutableMap.builder();
@@ -70,32 +75,45 @@ public final class KeyValueServiceDataTracker {
             mapBuilder = mapBuilder.put(
                     tableRef,
                     ImmutableTransactionReadInfo.builder()
-                            .bytesRead(bytesRead.get(tableRef))
-                            .kvsCalls(kvsCalls.get(tableRef))
-                            .maximumBytesKvsCallInfo(Optional.ofNullable(maximumBytesKvsCall.get(tableRef)))
+                            .bytesRead(bytesReadMap.get(tableRef))
+                            .kvsCalls(kvsCallsMap.get(tableRef))
+                            .maximumBytesKvsCallInfo(Optional.ofNullable(maximumBytesKvsCallMap.get(tableRef)))
                             .build());
         }
 
-        return mapBuilder.build();
+        return mapBuilder.buildOrThrow();
     }
 
-    void trackKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead) {
+    void registerKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead) {
+        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
+                .bytesRead(bytesRead)
+                .methodName(methodName)
+                .build();
+
+        updateKvsMethodOverallTallies(callInfo);
+        updateKvsMethodByTableTallies(tableRef, callInfo);
+    }
+
+    void registerKvsGetPartialRead(TableReference tableRef, long bytesRead) {
+        bytesReadOverall.add(bytesRead);
         bytesReadByTable.addAndGet(tableRef, bytesRead);
+    }
+
+    private void updateKvsMethodByTableTallies(TableReference tableRef, KvsCallReadInfo callInfo) {
+        bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
         kvsCallsByTable.incrementAndGet(tableRef);
-        maximumBytesKvsCallInfoByTable.merge(
-                tableRef,
-                ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(bytesRead)
-                        .methodName(methodName)
-                        .build(),
-                Comparators::max);
+        maximumBytesKvsCallInfoByTable.merge(tableRef, callInfo, Comparators::max);
     }
 
-    void trackKvsGetPartialRead(TableReference tableRef, long bytesRead) {
-        bytesReadByTable.addAndGet(tableRef, bytesRead);
+    private void updateKvsMethodOverallTallies(KvsCallReadInfo callInfo) {
+        bytesReadOverall.add(callInfo.bytesRead());
+        kvsCallsOverall.increment();
+        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
+                currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
     }
 
-    void incrementKvsGetCallCount(TableReference tableRef) {
+    void incrementKvsReadCallCount(TableReference tableRef) {
+        kvsCallsOverall.increment();
         kvsCallsByTable.incrementAndGet(tableRef);
     }
 }
