@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable.CaseSensitivity;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import java.util.Set;
 import java.util.function.Function;
@@ -43,7 +44,8 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
     @Override
     public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
-        tableNamesToDrop.stream().map(parameters.oracleDdlTableFactory()).forEach(OracleDdlTable::drop);
+        tableNamesToDrop.stream().map(parameters.oracleDdlTableFactory()).forEach(ddlTable -> ddlTable.drop(
+                CaseSensitivity.CASE_INSENSITIVE));
     }
 
     @Override
