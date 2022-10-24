@@ -116,6 +116,10 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return columnName;
     }
 
+    public long byteSize() {
+        return ((long) rowName.length) + columnName.length;
+    }
+
     @Override
     public int compareTo(Cell other) {
         int cmp = UnsignedBytes.lexicographicalComparator().compare(rowName, other.rowName);

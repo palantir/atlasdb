@@ -17,17 +17,17 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.lang.reflect.Array;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Function;
 
 public final class ExpectationsUtils {
     public static final long LONG_BYTES = 8;
@@ -36,57 +36,53 @@ public final class ExpectationsUtils {
 
     public static long longByCellByteSize(Map<Cell, Long> timestampByCell) {
         return timestampByCell.keySet().stream()
-                .mapToLong(cell -> byteSize(cell) + LONG_BYTES)
+                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
                 .sum();
     }
 
     public static long longByCellByteSize(Multimap<Cell, Long> valueByCell) {
         return valueByCell.keys().stream()
-                .mapToLong(ExpectationsUtils::byteSize)
+                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
                 .sum();
     }
 
     public static long valueByCellByteSize(Map<Cell, Value> valueByCell) {
         return valueByCell.entrySet().stream()
-                .mapToLong(ExpectationsUtils::valueByCellEntryByteSize)
+                .mapToLong(ExpectationsUtils::byteSize)
                 .sum();
     }
 
     public static long pageByRangeRequestByteSize(
             Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
         return pageByRange.values().stream()
-                .map(TokenBackedBasicResultsPage::getResults)
-                .flatMap(Collection::stream)
-                .mapToLong(ExpectationsUtils::byteSize)
+                .mapToLong(page -> page.getTokenForNextPage().length
+                        + page.getResults().stream()
+                                .mapToLong(ExpectationsUtils::valueRowResultByteSize)
+                                .sum())
                 .sum();
     }
 
-    public static long byteSize(Cell cell) {
-        return ((long) cell.getRowName().length) + cell.getColumnName().length;
+    public static long valueRowResultByteSize(RowResult<Value> rowResult) {
+        return rowResultByteSize(rowResult, Value::byteSize);
     }
 
-    public static long byteSize(Value value) {
-        return value.getContents().length;
+    public static long longSetRowResultByteSize(RowResult<Set<Long>> rowResult) {
+        return rowResultByteSize(rowResult, set -> (long) set.size() * Long.BYTES);
     }
 
-    public static long byteSize(CandidateCellForSweeping candidate) {
-        return byteSize(candidate.cell())
-                + LONG_BYTES * candidate.sortedTimestamps().size();
+    private static <T> long rowResultByteSize(RowResult<T> rowResult, Function<T, Long> measurer) {
+        return rowResult.getRowNameSize()
+                + rowResult.getColumns().entrySet().stream()
+                        .mapToLong(entry -> entry.getKey().length + measurer.apply(entry.getValue()))
+                        .sum();
+    }
+
+    public static long byteSize(Entry<Cell, Value> entry) {
+        return entry.getKey().byteSize() + entry.getValue().byteSize();
     }
 
     public static long byteSize(List<byte[]> array) {
         return array.stream().mapToLong(Array::getLength).sum();
-    }
-
-    public static long byteSize(RowResult<Value> rowResult) {
-        return rowResult.getRowNameSize()
-                + rowResult.getColumns().entrySet().stream()
-                        .mapToLong(ExpectationsUtils::valueByByteArrayByteSize)
-                        .sum();
-    }
-
-    public static long valueByCellEntryByteSize(Entry<Cell, Value> entry) {
-        return byteSize(entry.getKey()) + byteSize(entry.getValue());
     }
 
     public static long valueByByteArrayByteSize(Entry<byte[], Value> valueByArray) {

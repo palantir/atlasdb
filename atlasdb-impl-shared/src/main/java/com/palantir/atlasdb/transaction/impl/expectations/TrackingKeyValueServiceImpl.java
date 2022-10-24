@@ -40,10 +40,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
-    KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
+    KeyValueServiceDataTracker tracker;
 
     public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
@@ -88,8 +89,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.incrementKvsReadCallCount(tableRef);
         Map<byte[], RowColumnRangeIterator> result =
                 delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
-        result.replaceAll((rowsRead, iterator) -> new TrackingRowColumnRangeIterator(
-                iterator, bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes)));
+        result.replaceAll(
+                (rowsRead, iterator) -> new TrackingRowColumnRangeIterator(iterator, partialBytesConsumer(tableRef)));
         return result;
     }
 
@@ -103,7 +104,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.incrementKvsReadCallCount(tableRef);
         RowColumnRangeIterator result =
                 delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-        return new TrackingRowColumnRangeIterator(result, bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes));
+        return new TrackingRowColumnRangeIterator(result, partialBytesConsumer(tableRef));
     }
 
     @Override
@@ -125,9 +126,9 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         tracker.incrementKvsReadCallCount(tableRef);
-        try (ClosableIterator<RowResult<Value>> closable = delegate.getRange(tableRef, rangeRequest, timestamp)) {
-            return new TrackingClosableRowResultIterator(
-                    closable, bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes));
+        try (ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp)) {
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), ExpectationsUtils::valueRowResultByteSize);
         }
     }
 
@@ -135,7 +136,12 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp)
             throws InsufficientConsistencyException {
-        return delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        tracker.incrementKvsReadCallCount(tableRef);
+        try (ClosableIterator<RowResult<Set<Long>>> result =
+                delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), ExpectationsUtils::longSetRowResultByteSize);
+        }
     }
 
     @Override
@@ -152,8 +158,10 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.incrementKvsReadCallCount(tableRef);
         try (ClosableIterator<List<CandidateCellForSweeping>> result =
                 delegate.getCandidateCellsForSweeping(tableRef, request)) {
-            return new TrackingClosableCandidateCellsForSweepingIterator(
-                    result, bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes));
+            return new TrackingClosableIterator<>(
+                    result, partialBytesConsumer(tableRef), candidates -> candidates.stream()
+                            .mapToLong(CandidateCellForSweeping::byteSize)
+                            .sum());
         }
     }
 
@@ -165,5 +173,9 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.registerKvsGetMethodRead(
                 tableRef, "getFirstBatchForRanges", ExpectationsUtils.pageByRangeRequestByteSize(result));
         return result;
+    }
+
+    private Consumer<Long> partialBytesConsumer(TableReference tableRef) {
+        return bytes -> tracker.registerKvsGetPartialRead(tableRef, bytes);
     }
 }

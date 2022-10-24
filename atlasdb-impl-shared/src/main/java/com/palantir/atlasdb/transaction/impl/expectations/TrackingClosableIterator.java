@@ -16,32 +16,31 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
-import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
-public final class TrackingClosableCandidateCellsForSweepingIterator
-        extends ForwardingClosableIterator<List<CandidateCellForSweeping>> {
-    ClosableIterator<List<CandidateCellForSweeping>> delegate;
+public class TrackingClosableIterator<T> extends ForwardingClosableIterator<T> {
+    ClosableIterator<T> delegate;
+    Function<T, Long> measurer;
     Consumer<Long> tracker;
 
-    public TrackingClosableCandidateCellsForSweepingIterator(
-            ClosableIterator<List<CandidateCellForSweeping>> delegate, Consumer<Long> tracker) {
+    public TrackingClosableIterator(ClosableIterator<T> delegate, Consumer<Long> tracker, Function<T, Long> measurer) {
         this.delegate = delegate;
         this.tracker = tracker;
+        this.measurer = measurer;
     }
 
     @Override
-    protected ClosableIterator<List<CandidateCellForSweeping>> delegate() {
+    protected ClosableIterator<T> delegate() {
         return delegate;
     }
 
     @Override
-    public List<CandidateCellForSweeping> next() {
-        List<CandidateCellForSweeping> result = delegate.next();
-        tracker.accept(result.stream().mapToLong(ExpectationsUtils::byteSize).sum());
+    public T next() {
+        T result = delegate.next();
+        tracker.accept(measurer.apply(result));
         return result;
     }
 }
