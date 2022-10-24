@@ -118,6 +118,12 @@ public final class OracleNamespaceDeleterTests {
     }
 
     @Test
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfNoTablesExist() {
+        NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
+        assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isTrue();
+    }
+
+    @Test
     public void isNamespaceDeletedSuccessfullyReturnsFalseIfTablePrefixExistsForConfigUser() {
         NamespaceDeleter namespaceDeleter = createDefaultNamespaceDeleter();
         createTable(TABLE_PREFIX, TABLE_NAME_1, TEST_USER);
@@ -139,20 +145,6 @@ public final class OracleNamespaceDeleterTests {
         createTablesWithDefaultPrefixes(TABLE_NAME_1);
 
         assertThat(namespaceDeleter.isNamespaceDeletedSuccessfully()).isFalse();
-    }
-
-    @Test
-    public void deleteAllDataFromNamespaceMakesProgressInSpiteOfFailures() {
-        NamespaceDeleter namespaceDeleter =
-                new OracleNamespaceDeleter(createNamespaceDeleterParametersWithUnstableFactory());
-
-        for (int i = 0; i < 10; i++) {
-            createTablesWithDefaultPrefixes(TABLE_NAME_1 + i);
-        }
-
-        assertThat(listAllPhysicalTableNames()).hasSize(20);
-        assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace);
-        assertThat(listAllPhysicalTableNames()).hasSizeLessThan(20);
     }
 
     @Test
