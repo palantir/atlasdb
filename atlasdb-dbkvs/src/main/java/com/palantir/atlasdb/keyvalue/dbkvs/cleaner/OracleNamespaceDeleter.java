@@ -34,28 +34,16 @@ import org.immutables.value.Value;
  * across multiple prefixes.
  */
 public final class OracleNamespaceDeleter implements NamespaceDeleter {
-    private final ConnectionSupplier connectionSupplier;
-    private final String wildcardEscapedTablePrefix;
-    private final String wildcardEscapedOverflowTablePrefix;
-    private final String escapedUserId;
-
-    private final Function<TableReference, OracleDdlTable> oracleDdlTableFactory;
-    private final OracleTableNameGetter tableNameGetter;
+    private final OracleNamespaceDeleterParameters parameters;
 
     public OracleNamespaceDeleter(OracleNamespaceDeleterParameters parameters) {
-        this.wildcardEscapedTablePrefix = withWildcardSuffix(withEscapedUnderscores(parameters.tablePrefix()));
-        this.wildcardEscapedOverflowTablePrefix =
-                withWildcardSuffix(withEscapedUnderscores(parameters.overflowTablePrefix()));
-        this.escapedUserId = withEscapedUnderscores(parameters.userId());
-        this.connectionSupplier = parameters.connectionSupplier();
-        this.oracleDdlTableFactory = parameters.oracleDdlTableFactory();
-        this.tableNameGetter = parameters.tableNameGetter();
+        this.parameters = parameters;
     }
 
     @Override
     public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
-        tableNamesToDrop.stream().map(oracleDdlTableFactory).forEach(OracleDdlTable::drop);
+        tableNamesToDrop.stream().map(parameters.oracleDdlTableFactory()).forEach(OracleDdlTable::drop);
     }
 
     @Override
@@ -65,12 +53,15 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
 
     @Override
     public void close() {
-        connectionSupplier.close();
+        parameters.connectionSupplier().close();
     }
 
     private Set<TableReference> getAllTableNamesToDrop() {
         Set<String> nonOverflowTables = getAllNonOverflowTables();
         Set<String> overflowTables = getAllOverflowTables();
+
+        OracleTableNameGetter tableNameGetter = parameters.tableNameGetter();
+        ConnectionSupplier connectionSupplier = parameters.connectionSupplier();
 
         return Sets.union(
                 tableNameGetter.getTableReferencesFromShortTableNames(connectionSupplier, nonOverflowTables),
@@ -78,34 +69,39 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
     }
 
     private Set<String> getAllNonOverflowTables() {
-        return getAllTablesWithPrefix(wildcardEscapedTablePrefix);
+        return getAllTablesWithPrefix(parameters.tablePrefix());
     }
 
     private Set<String> getAllOverflowTables() {
-        return getAllTablesWithPrefix(wildcardEscapedOverflowTablePrefix);
+        return getAllTablesWithPrefix(parameters.overflowTablePrefix());
     }
 
     private Set<String> getAllTablesWithPrefix(String prefix) {
-        return connectionSupplier
+        return parameters
+                .connectionSupplier()
                 .get()
                 .selectResultSetUnregisteredQuery(
                         "SELECT table_name FROM all_tables WHERE owner = upper(?) AND"
                                 + " table_name LIKE upper(?) ESCAPE '\\' AND table_name NOT LIKE UPPER(?) ESCAPE '\\'",
-                        escapedUserId,
-                        prefix,
-                        "%" + withEscapedUnderscores(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()))
+                        withEscapedUnderscores(parameters.userId()),
+                        withWildcardSuffixAndEscapedUnderscores(prefix),
+                        withWildcardPrefixAndEscapedUnderscores(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()))
                 .rows()
                 .stream()
                 .map(resultSetRow -> resultSetRow.getString("table_name"))
                 .collect(Collectors.toSet());
     }
 
-    private static String withWildcardSuffix(String tableName) {
-        return tableName + "%";
+    private static String withWildcardSuffixAndEscapedUnderscores(String prefix) {
+        return withEscapedUnderscores(prefix) + "%";
     }
 
-    private static String withEscapedUnderscores(String prefix) {
-        return prefix.replace("_", "\\_");
+    private static String withWildcardPrefixAndEscapedUnderscores(String suffix) {
+        return "%" + withEscapedUnderscores(suffix);
+    }
+
+    private static String withEscapedUnderscores(String value) {
+        return value.replace("_", "\\_");
     }
 
     @Value.Immutable
