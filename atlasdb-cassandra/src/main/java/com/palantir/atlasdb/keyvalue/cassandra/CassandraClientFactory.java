@@ -19,6 +19,7 @@ import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -44,7 +45,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.Set;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
@@ -226,15 +227,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
             throws SafeSSLPeerUnverifiedException {
-        boolean endpointVerified = Stream.of(
-                        socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName())
-                .anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
+        Set<String> endpointsToCheck =
+                ImmutableSet.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
+        boolean endpointVerified =
+                endpointsToCheck.stream().anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
 
         if (!endpointVerified) {
-            log.warn("Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+            log.warn("Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
             if (throwOnFailure) {
                 throw new SafeSSLPeerUnverifiedException(
-                        "Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+                        "Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
             }
         }
     }

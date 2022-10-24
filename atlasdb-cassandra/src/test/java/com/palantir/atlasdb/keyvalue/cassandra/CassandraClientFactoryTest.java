@@ -114,6 +114,14 @@ public class CassandraClientFactoryTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void verifyEndpointDoesNotThrownWhenHostnameIpAreDuplicates() {
+        CassandraServer cassandraServer = CassandraServer.of(InetSocketAddress.createUnresolved("1.2.3.4", 4000));
+        SSLSocket sslSocket = createSSLSocket(cassandraServer, DEFAULT_ADDRESS);
+        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(cassandraServer, sslSocket, true))
+                .doesNotThrowAnyException();
+    }
+
     @SuppressWarnings("ReverseDnsLookup")
     private static InetSocketAddress mockInetSocketAddress(String ipAddress) {
         InetAddress inetAddress = mockInetAddress(ipAddress);
