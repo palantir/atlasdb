@@ -124,6 +124,14 @@ public class CassandraClientFactoryTest {
                 .containsExactly(DEFAULT_ADDRESS.getHostAddress());
     }
 
+    @Test
+    public void getEndpointsToCheckPerformsNoDeduplicationWhenHostnameIpDiffer() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        assertThat(CassandraClientFactory.getEndpointsToCheck(DEFAULT_SERVER, sslSocket))
+                .isNotEmpty()
+                .containsExactlyInAnyOrder(DEFAULT_SERVER.cassandraHostName(), DEFAULT_ADDRESS.getHostAddress());
+    }
+
     @SuppressWarnings("ReverseDnsLookup")
     private static InetSocketAddress mockInetSocketAddress(String ipAddress) {
         InetAddress inetAddress = mockInetAddress(ipAddress);
