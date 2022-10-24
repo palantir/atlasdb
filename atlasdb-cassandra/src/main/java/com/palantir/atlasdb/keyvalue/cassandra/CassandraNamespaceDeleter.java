@@ -45,9 +45,9 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
     public void deleteAllDataFromNamespace() {
         try (CassandraClient client = cassandraClientSupplier.get()) {
             CassandraKeyValueServices.runWithWaitingForSchemas(
-                    () -> dropKeyspace(keyspace, client), config, client, "Dropping keyspace " + keyspace);
+                    () -> dropKeyspace(keyspace, client), config, client, "Dropping keyspace " + keyspace.getName());
         } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw Throwables.throwUncheckedException(e);
         }
     }
 

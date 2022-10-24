@@ -77,8 +77,7 @@ public final class CassandraNamespaceDeleterTest {
         when(cassandraClient.describe_schema_versions()).thenReturn(Map.of("hello", List.of(), "world", List.of()));
 
         assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .cause()
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
         verify(cassandraClient, never()).execute_cql3_query(any(), any(), any());
     }
@@ -90,8 +89,7 @@ public final class CassandraNamespaceDeleterTest {
                 .thenReturn(Map.of("hello", List.of(), "world", List.of()));
 
         assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .cause()
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
 
         verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(), any());
@@ -102,6 +100,23 @@ public final class CassandraNamespaceDeleterTest {
         setupCassandraSchemaVersions();
 
         namespaceDeleter.deleteAllDataFromNamespace();
+        verify(cassandraClient).close();
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceClosesClientOnSchemaAgreementTimeout() throws TException {
+        when(cassandraClient.describe_schema_versions()).thenReturn(Map.of("hello", List.of(), "world", List.of()));
+
+        assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace);
+        verify(cassandraClient).close();
+    }
+
+    @Test
+    public void deleteAllDataFromNamespaceClosesClientOnDropKeyspaceException() throws TException {
+        RuntimeException exception = new RuntimeException("Exception");
+        setupCassandraSchemaVersions();
+        when(cassandraClient.execute_cql3_query(any(), any(), any())).thenThrow(exception);
+        assertThatThrownBy(namespaceDeleter::deleteAllDataFromNamespace).isEqualTo(exception);
         verify(cassandraClient).close();
     }
 
