@@ -227,8 +227,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
             throws SafeSSLPeerUnverifiedException {
-        Set<String> endpointsToCheck =
-                ImmutableSet.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
+        Set<String> endpointsToCheck = getEndpointsToCheck(cassandraServer, socket);
         boolean endpointVerified =
                 endpointsToCheck.stream().anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
 
@@ -239,6 +238,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         "Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
             }
         }
+    }
+
+    @VisibleForTesting
+    static Set<String> getEndpointsToCheck(CassandraServer cassandraServer, SSLSocket socket) {
+        return ImmutableSet.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
     }
 
     @Override

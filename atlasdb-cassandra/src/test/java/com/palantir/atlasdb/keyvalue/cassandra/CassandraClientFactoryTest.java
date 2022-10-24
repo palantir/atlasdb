@@ -115,11 +115,13 @@ public class CassandraClientFactoryTest {
     }
 
     @Test
-    public void verifyEndpointDoesNotThrownWhenHostnameIpAreDuplicates() {
-        CassandraServer cassandraServer = CassandraServer.of(InetSocketAddress.createUnresolved("1.2.3.4", 4000));
+    public void getEndpointsToCheckDeduplicatesMatchingHostnameIp() {
+        CassandraServer cassandraServer =
+                CassandraServer.of(InetSocketAddress.createUnresolved(DEFAULT_ADDRESS.getHostAddress(), 4000));
         SSLSocket sslSocket = createSSLSocket(cassandraServer, DEFAULT_ADDRESS);
-        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(cassandraServer, sslSocket, true))
-                .doesNotThrowAnyException();
+        assertThat(CassandraClientFactory.getEndpointsToCheck(cassandraServer, sslSocket))
+                .isNotEmpty()
+                .containsExactly(DEFAULT_ADDRESS.getHostAddress());
     }
 
     @SuppressWarnings("ReverseDnsLookup")
