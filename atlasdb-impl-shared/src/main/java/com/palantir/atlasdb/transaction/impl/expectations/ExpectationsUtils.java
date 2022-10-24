@@ -30,8 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 public final class ExpectationsUtils {
-    public static final long LONG_BYTES = 8;
-
     private ExpectationsUtils() {}
 
     public static long longByCellByteSize(Map<Cell, Long> timestampByCell) {
@@ -83,9 +81,5 @@ public final class ExpectationsUtils {
 
     public static long byteSize(List<byte[]> array) {
         return array.stream().mapToLong(Array::getLength).sum();
-    }
-
-    public static long valueByByteArrayByteSize(Entry<byte[], Value> valueByArray) {
-        return byteSize(valueByArray.getValue()) + valueByArray.getKey().length;
     }
 }

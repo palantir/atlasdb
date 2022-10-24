@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TrackingKeyValueService extends ForwardingKeyValueService {
     private final Set<TableReference> tablesWrittenTo = Sets.newSetFromMap(new ConcurrentHashMap<>());
     private final Set<TableReference> tablesReadFrom = Sets.newSetFromMap(new ConcurrentHashMap<>());
-
     private final KeyValueService delegate;
 
     public TrackingKeyValueService(KeyValueService delegate) {

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -151,7 +150,6 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         return result;
     }
 
-    @MustBeClosed
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
