@@ -141,8 +141,8 @@ final class ValueStoreImpl implements ValueStore {
                 .map(AtlasLockDescriptorUtils::tryParseTableRef)
                 .flatMap(Optional::stream)
                 // Explicitly exclude descriptors corresponding to watched rows from non-watched tables
-                .filter(ValueStoreImpl.this::isTableWatched)
-                .flatMap(ValueStoreImpl.this::extractCandidateCells);
+                .filter(this::isTableWatched)
+                .flatMap(this::extractCandidateCells);
     }
 
     private boolean isTableWatched(TableRefAndRemainder parsedLockDescriptor) {
