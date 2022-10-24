@@ -19,33 +19,25 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import org.apache.commons.lang3.NotImplementedException;
 
 // todo(aalouane)
-public final class KeyValueServiceDataTracker {
-    public TransactionReadInfo getReadInfo() {
-        throw new NotImplementedException();
-    }
+public abstract class KeyValueServiceDataTracker {
+    public abstract TransactionReadInfo getReadInfo();
 
-    public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
-        throw new NotImplementedException();
-    }
+    public abstract ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
 
     /*
      * Tracks all data read in one kvs read method call.
      */
-    public void registerKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead) {
-        throw new NotImplementedException();
-    }
+    public abstract void registerKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead);
 
     /*
      * Track some, but not necessarily all, data read in some kvs read method call.
      */
-    public void registerKvsGetPartialRead(TableReference tableRef, long bytesRead) {
-        throw new NotImplementedException();
-    }
+    public abstract void registerKvsGetPartialRead(TableReference tableRef, long bytesRead);
 
-    public void incrementKvsReadCallCount(TableReference tableRef) {
-        throw new NotImplementedException();
-    }
+    public abstract void incrementKvsReadCallCount(TableReference tableRef);
+    ;
+    ;
+    ;
 }
