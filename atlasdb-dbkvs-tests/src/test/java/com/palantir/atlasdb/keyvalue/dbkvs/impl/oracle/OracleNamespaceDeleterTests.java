@@ -434,16 +434,22 @@ public final class OracleNamespaceDeleterTests {
                 createDefaultNamespaceDeleterParameters().build();
         return OracleNamespaceDeleterParameters.builder()
                 .from(parameters)
-                .oracleDdlTableFactory(new UnstableOracleDdlFactory(parameters.oracleDdlTableFactory()))
+                .oracleDdlTableFactory(new OnceFailingOracleDdlFactory(parameters.oracleDdlTableFactory()))
                 .build();
     }
 
-    private static final class UnstableOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
+    /**
+     * An OracleDdlTable factory that throws an exception every 5 + (2^32)n calls.
+     *
+     * This is intended to be used for testing resilience to failures for operations that work across multiple
+     * OracleDDLTables.
+     */
+    private static final class OnceFailingOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
         private static final int NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE = 5;
         private final AtomicInteger counter;
         private final Function<TableReference, OracleDdlTable> factory;
 
-        UnstableOracleDdlFactory(Function<TableReference, OracleDdlTable> factory) {
+        OnceFailingOracleDdlFactory(Function<TableReference, OracleDdlTable> factory) {
             this.factory = factory;
             this.counter = new AtomicInteger();
         }
