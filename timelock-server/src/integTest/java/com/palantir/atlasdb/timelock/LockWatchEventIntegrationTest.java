@@ -45,7 +45,6 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
-import com.palantir.lock.watch.LockWatchEvent.Visitor;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -112,31 +111,32 @@ public final class LockWatchEventIntegrationTest {
     public void exactRowWatchesCanBeRegistered() {
         LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
         txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
 
-        OpenTransaction firstTxn = startSingleTransaction();
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), firstTxn);
-
-        Set<LockWatchReference> registeredWatches = update.events().stream()
-                .map(event -> event.accept(new Visitor<Set<LockWatchReference>>() {
-                    @Override
-                    public Set<LockWatchReference> visit(LockEvent lockEvent) {
-                        return ImmutableSet.of();
-                    }
-
-                    @Override
-                    public Set<LockWatchReference> visit(UnlockEvent unlockEvent) {
-                        return ImmutableSet.of();
-                    }
-
-                    @Override
-                    public Set<LockWatchReference> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-                        return lockWatchCreatedEvent.references();
-                    }
-                }))
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-
-        assertThat(registeredWatches).contains(exactRowReference);
+        // OpenTransaction firstTxn = startSingleTransaction();
+        // TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), firstTxn);
+        //
+        // Set<LockWatchReference> registeredWatches = update.events().stream()
+        //         .map(event -> event.accept(new Visitor<Set<LockWatchReference>>() {
+        //             @Override
+        //             public Set<LockWatchReference> visit(LockEvent lockEvent) {
+        //                 return ImmutableSet.of();
+        //             }
+        //
+        //             @Override
+        //             public Set<LockWatchReference> visit(UnlockEvent unlockEvent) {
+        //                 return ImmutableSet.of();
+        //             }
+        //
+        //             @Override
+        //             public Set<LockWatchReference> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+        //                 return lockWatchCreatedEvent.references();
+        //             }
+        //         }))
+        //         .flatMap(Collection::stream)
+        //         .collect(Collectors.toSet());
+        //
+        // assertThat(registeredWatches).contains(exactRowReference);
     }
 
     @Test
