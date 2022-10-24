@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -443,10 +444,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                 .hasSameSizeAs(snapshot.tableReferences())
                 .isEmpty();
         if (snapshot.physicalTableNames().size() == 1) {
-            assertThat(snapshot.physicalTableNames().stream()
-                            .map(s -> s.toLowerCase(Locale.ROOT))
-                            .collect(Collectors.toSet()))
-                    .containsOnly(timestampTableName);
+            assertThat(Iterables.getOnlyElement(snapshot.physicalTableNames()).toLowerCase(Locale.ROOT)).isEqualTo(timestampTableName);
         } else {
             assertThat(snapshot.physicalTableNames()).isEmpty();
         }
