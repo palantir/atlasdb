@@ -295,7 +295,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     }
 
     @Test
-    public void isNamespaceDeletedSuccessfullyReturnsTrueIfMappedTablesExistForUnMappedUser() {
+    public void isNamespaceDeletedSuccessfullyReturnsTrueIfMappedTablesExistForUnmappedUser() {
         namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
         createTableAndOverflowTable(TABLE_NAME_ONE);
 
