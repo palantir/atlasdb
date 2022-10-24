@@ -18,10 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,16 +67,9 @@ public final class CassandraNamespaceDeleterTest {
 
         namespaceDeleter.deleteAllDataFromNamespace();
 
-        verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(), any());
-    }
-
-    @Test
-    public void deleteAllDataFromNamespaceDropsOnlyKeyspaceSpecified() throws TException {
-        setupCassandraSchemaVersions();
-
-        namespaceDeleter.deleteAllDataFromNamespace();
-
-        verify(cassandraClient, times(1)).execute_cql3_query(any(), any(), any());
+        verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(),
+                eq(CassandraKeyValueServiceImpl.WRITE_CONSISTENCY));
+        verify(cassandraClient, never()).execute_cql3_query(not(eq(DROP_KEYSPACE_QUERY)), any(), any());
     }
 
     @Test
