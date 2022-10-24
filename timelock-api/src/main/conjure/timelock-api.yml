@@ -62,13 +62,26 @@ types:
           timestamps: PartitionedTimestamps
           lease: Lease
           lockWatchUpdate: LockWatchStateUpdate
+      ConjureTimestampRange:
+        fields:
+          start: Long
+          count: Long
+        docs: |
+          A contiguous range of timestamps, covering the range [start, start + count). This format is chosen to balance
+          efficiency and readability.
       ConjureGetFreshTimestampsRequest:
         fields:
           numTimestamps: integer
+      ConjureGetFreshTimestampsRequestV2:
+        alias: integer
       ConjureGetFreshTimestampsResponse:
         fields:
           inclusiveLower: Long
           inclusiveUpper: Long
+      ConjureSingleTimestamp:
+        alias: Long
+      ConjureGetFreshTimestampsResponseV2:
+        alias: ConjureTimestampRange
       ConjureLockDescriptor:
         alias: binary
       ConjureLockRequest:
@@ -80,6 +93,8 @@ types:
       ConjureLockToken:
         fields:
           requestId: uuid
+      ConjureLockTokenV2:
+        alias: uuid
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
@@ -100,6 +115,16 @@ types:
         fields:
           refreshedTokens: set<ConjureLockToken>
           lease: Lease
+      ConjureRefreshLocksRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureRefreshLocksResponseV2:
+        fields:
+          refreshedTokens: set<ConjureLockTokenV2>
+          lease: Lease
+      ConjureUnlockRequestV2:
+        alias: set<ConjureLockTokenV2>
+      ConjureUnlockResponseV2:
+        alias: set<ConjureLockTokenV2>
       ConjureUnlockRequest:
         fields:
           tokens: set<ConjureLockToken>
@@ -211,6 +236,19 @@ services:
           namespace: string
           request: ConjureGetFreshTimestampsRequest
         returns: ConjureGetFreshTimestampsResponse
+      getFreshTimestampsV2:
+        http: POST /t2/{namespace}
+        args:
+          namespace:
+            type: string
+          request: ConjureGetFreshTimestampsRequestV2
+        returns: ConjureGetFreshTimestampsResponseV2
+      getFreshTimestamp:
+        http: POST /ts1/{namespace}
+        args:
+          namespace:
+            type: string
+        returns: ConjureSingleTimestamp
       leaderTime:
         http: POST /lt/{namespace}
         args:
@@ -234,12 +272,26 @@ services:
           namespace: string
           request: ConjureRefreshLocksRequest
         returns: ConjureRefreshLocksResponse
+      refreshLocksV2:
+        http: POST /rl2/{namespace}
+        args:
+          namespace:
+            type: string
+          request: ConjureRefreshLocksRequestV2
+        returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
         args:
           namespace: string
           request: ConjureUnlockRequest
         returns: ConjureUnlockResponse
+      unlockV2:
+        http: POST /ul2/{namespace}
+        args:
+          namespace:
+            type: string
+          request: ConjureUnlockRequestV2
+        returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
         args:
