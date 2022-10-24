@@ -70,6 +70,9 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
                         .buildInternal())
                 .build();
 
+        // Drop keyspace should work at any consistency level. Write is used here to give resilience against any
+        // Cassandra node outages whilst providing some safety against any other cassandra shenanigans that may
+        // happen with a consistency of ONE.
         client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }
 
