@@ -226,25 +226,23 @@ public final class CassandraTopologyValidator {
         try {
             return container.<HostIdResult, Exception>runWithPooledResource(
                     client -> HostIdResult.success(client.get_host_ids()));
-        } catch (TApplicationException e) {
-            log.warn(
-                    "Failed to get host ids from host due to method not existing on Cassandra server.",
-                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
-                    SafeArg.of(
-                            "proxy",
-                            CassandraLogHelper.host(
-                                    container.getCassandraServer().proxy())),
-                    e);
-            return HostIdResult.softFailure();
         } catch (Exception e) {
             log.warn(
-                    "Failed to get host ids from host due to networking failure.",
+                    "Failed to get host ids from host due to an exception thrown.",
                     SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
                     SafeArg.of(
                             "proxy",
                             CassandraLogHelper.host(
                                     container.getCassandraServer().proxy())),
                     e);
+
+            // If the get_host_ids API endpoint does not exist, then return a soft failure.
+            if (e instanceof TApplicationException) {
+                TApplicationException applicationException = (TApplicationException) e;
+                if (applicationException.getType() == TApplicationException.UNKNOWN_METHOD) {
+                    return HostIdResult.softFailure();
+                }
+            }
             return HostIdResult.hardFailure();
         }
     }

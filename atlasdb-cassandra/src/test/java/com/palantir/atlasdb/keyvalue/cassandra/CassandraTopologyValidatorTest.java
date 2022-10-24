@@ -246,12 +246,21 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void fetchHostIdsReturnsSoftFailureWhenNetworkErrors() throws Exception {
+    public void fetchHostIdsReturnsSoftFailureWhenMethodDoesNotExist() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
         when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
-                .thenThrow(new TApplicationException());
+                .thenThrow(new TApplicationException(TApplicationException.UNKNOWN_METHOD));
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.softFailure());
+    }
+
+    @Test
+    public void fetchHostIdsReturnsHardFailureWhenApplicationExceptionIsNotUnknownMethod() throws Exception {
+        CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
+        when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
+        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                .thenThrow(new TApplicationException(TApplicationException.WRONG_METHOD_NAME));
+        assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
     public Set<CassandraClientPoolingContainer> filterContainers(
