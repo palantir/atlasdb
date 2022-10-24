@@ -90,7 +90,6 @@ public final class ExpectationsMeasuringUtils {
                 + byteSize(tableRef.getNamespace().getName());
     }
 
-    // todo(aalouane): unsure about this
     public static long byteSize(String string) {
         return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
     }
