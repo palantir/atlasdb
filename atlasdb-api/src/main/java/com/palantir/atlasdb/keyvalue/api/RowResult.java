@@ -68,10 +68,6 @@ public final class RowResult<T> implements Serializable {
         return row.clone();
     }
 
-    public long getRowNameSize() {
-        return row.length;
-    }
-
     public NavigableMap<byte[], T> getColumns() {
         return columns;
     }

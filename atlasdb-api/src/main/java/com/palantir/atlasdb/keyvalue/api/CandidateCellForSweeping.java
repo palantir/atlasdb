@@ -41,8 +41,4 @@ public interface CandidateCellForSweeping {
      * Otherwise, the return value is undefined and depends on the implementation.
      */
     boolean isLatestValueEmpty();
-
-    default long byteSize() {
-        return cell().byteSize() + ((long) sortedTimestamps().size()) * Long.BYTES;
-    }
 }
