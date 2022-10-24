@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
@@ -212,7 +212,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         namespaceDeleter.deleteAllDataFromNamespace();
         assertSnapshotIsEmptyExcludingTimestampTable(getTableDetailsForDefaultPrefixes());
 
-        assertThatNoException().isThrownBy(namespaceDeleter::deleteAllDataFromNamespace);
+        assertThatCode(namespaceDeleter::deleteAllDataFromNamespace).doesNotThrowAnyException();
     }
 
     @Test
