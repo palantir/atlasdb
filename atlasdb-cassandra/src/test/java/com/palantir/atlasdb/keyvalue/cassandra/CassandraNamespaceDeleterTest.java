@@ -67,8 +67,8 @@ public final class CassandraNamespaceDeleterTest {
 
         namespaceDeleter.deleteAllDataFromNamespace();
 
-        verify(cassandraClient).execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(),
-                eq(CassandraKeyValueServiceImpl.WRITE_CONSISTENCY));
+        verify(cassandraClient)
+                .execute_cql3_query(eq(DROP_KEYSPACE_QUERY), any(), eq(CassandraKeyValueServiceImpl.WRITE_CONSISTENCY));
         verify(cassandraClient, never()).execute_cql3_query(not(eq(DROP_KEYSPACE_QUERY)), any(), any());
     }
 
