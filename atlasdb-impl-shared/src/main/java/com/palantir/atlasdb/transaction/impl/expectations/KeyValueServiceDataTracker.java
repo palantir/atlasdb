@@ -26,15 +26,25 @@ public abstract class KeyValueServiceDataTracker {
 
     public abstract ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
 
-    /*
-     * Tracks all data read in one kvs read method call.
+    /**
+     * Tracks an effectively completed kvs read method call for some {@link TableReference}.
+     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
      */
-    public abstract void registerKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead);
+    public abstract void readForTable(TableReference tableRef, String methodName, long bytesRead);
 
-    /*
-     * Track some, but not necessarily all, data read in some kvs read method call.
+    /**
+     * Track a lazy kvs read method call for some {@link TableReference}.
      */
-    public abstract void registerKvsGetPartialRead(TableReference tableRef, long bytesRead);
+    public abstract void partialReadForTable(TableReference tableRef, long bytesRead);
 
-    public abstract void incrementKvsReadCallCount(TableReference tableRef);
+    /**
+     * Track that a kvs read method was called for some {@link TableReference}.
+     */
+    public abstract void callForTable(TableReference tableRef);
+
+    /**
+     * Track an effectively completed kvs read method call with no {@link TableReference} information.
+     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
+     */
+    public abstract void tableAgnosticRead(String methodName, long bytesRead);
 }

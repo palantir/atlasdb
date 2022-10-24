@@ -20,17 +20,23 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.lang.reflect.Array;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
-public final class ExpectationsUtils {
-    private ExpectationsUtils() {}
+public final class ExpectationsMeasuringUtils {
+    private ExpectationsMeasuringUtils() {}
+
+    public static long byteArrayByTableReferenceByteSize(Map<TableReference, byte[]> arrayByRef) {
+        return arrayByRef.entrySet().stream()
+                .mapToLong(entry -> byteSize(entry.getKey()) + entry.getValue().length)
+                .sum();
+    }
 
     public static long longByCellByteSize(Map<Cell, Long> timestampByCell) {
         return timestampByCell.keySet().stream()
@@ -46,7 +52,7 @@ public final class ExpectationsUtils {
 
     public static long valueByCellByteSize(Map<Cell, Value> valueByCell) {
         return valueByCell.entrySet().stream()
-                .mapToLong(ExpectationsUtils::byteSize)
+                .mapToLong(ExpectationsMeasuringUtils::byteSize)
                 .sum();
     }
 
@@ -55,7 +61,7 @@ public final class ExpectationsUtils {
         return pageByRange.values().stream()
                 .mapToLong(page -> page.getTokenForNextPage().length
                         + page.getResults().stream()
-                                .mapToLong(ExpectationsUtils::valueRowResultByteSize)
+                                .mapToLong(ExpectationsMeasuringUtils::valueRowResultByteSize)
                                 .sum())
                 .sum();
     }
@@ -79,7 +85,13 @@ public final class ExpectationsUtils {
         return entry.getKey().byteSize() + entry.getValue().byteSize();
     }
 
-    public static long byteSize(List<byte[]> array) {
-        return array.stream().mapToLong(Array::getLength).sum();
+    public static long byteSize(TableReference tableRef) {
+        return byteSize(tableRef.getTableName())
+                + byteSize(tableRef.getNamespace().getName());
+    }
+
+    // todo(aalouane): unsure about this
+    public static long byteSize(String string) {
+        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
     }
 }

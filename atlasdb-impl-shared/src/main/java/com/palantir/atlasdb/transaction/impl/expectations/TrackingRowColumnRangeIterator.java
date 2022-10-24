@@ -42,7 +42,7 @@ public class TrackingRowColumnRangeIterator extends ForwardingIterator<Map.Entry
     @Override
     public Map.Entry<Cell, Value> next() {
         Map.Entry<Cell, Value> entry = delegate.next();
-        tracker.accept(ExpectationsUtils.byteSize(entry));
+        tracker.accept(ExpectationsMeasuringUtils.byteSize(entry));
         return entry;
     }
 }

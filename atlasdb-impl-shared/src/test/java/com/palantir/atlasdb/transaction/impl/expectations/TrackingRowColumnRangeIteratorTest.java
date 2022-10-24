@@ -57,7 +57,7 @@ public class TrackingRowColumnRangeIteratorTest {
 
                     @Override
                     public void accept(Long bytes) {
-                        assertEquals(ExpectationsUtils.byteSize(baseIterator.next()), bytes.longValue());
+                        assertEquals(ExpectationsMeasuringUtils.byteSize(baseIterator.next()), bytes.longValue());
                     }
                 });
 
