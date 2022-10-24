@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.TApplicationException;
 import org.junit.Test;
 
 public final class CassandraTopologyValidatorTest {
@@ -237,21 +237,21 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void fetchHostIdsReturnsSoftFailureWhenException() throws Exception {
+    public void fetchHostIdsReturnsHardFailureWhenException() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
         when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
                 .thenThrow(new RuntimeException());
-        assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.softFailure());
+        assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
     @Test
-    public void fetchHostIdsReturnsHardFailureWhenNetworkErrors() throws Exception {
+    public void fetchHostIdsReturnsSoftFailureWhenNetworkErrors() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
         when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
-                .thenThrow(new TTransportException());
-        assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
+                .thenThrow(new TApplicationException());
+        assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.softFailure());
     }
 
     public Set<CassandraClientPoolingContainer> filterContainers(

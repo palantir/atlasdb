@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import one.util.streamex.EntryStream;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.TApplicationException;
 import org.immutables.value.Value;
 
 public final class CassandraTopologyValidator {
@@ -226,7 +226,17 @@ public final class CassandraTopologyValidator {
         try {
             return container.<HostIdResult, Exception>runWithPooledResource(
                     client -> HostIdResult.success(client.get_host_ids()));
-        } catch (TTransportException e) {
+        } catch (TApplicationException e) {
+            log.warn(
+                    "Failed to get host ids from host due to method not existing on Cassandra server.",
+                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
+                    SafeArg.of(
+                            "proxy",
+                            CassandraLogHelper.host(
+                                    container.getCassandraServer().proxy())),
+                    e);
+            return HostIdResult.softFailure();
+        } catch (Exception e) {
             log.warn(
                     "Failed to get host ids from host due to networking failure.",
                     SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
@@ -236,16 +246,6 @@ public final class CassandraTopologyValidator {
                                     container.getCassandraServer().proxy())),
                     e);
             return HostIdResult.hardFailure();
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to get host ids from host due to method not existing on Cassandrda server.",
-                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
-                    SafeArg.of(
-                            "proxy",
-                            CassandraLogHelper.host(
-                                    container.getCassandraServer().proxy())),
-                    e);
-            return HostIdResult.softFailure();
         }
     }
 
