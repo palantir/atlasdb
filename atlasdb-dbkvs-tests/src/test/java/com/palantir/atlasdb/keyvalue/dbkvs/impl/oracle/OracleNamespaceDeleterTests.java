@@ -47,7 +47,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -55,8 +55,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class OracleNamespaceDeleterTests {
-    @ClassRule
-    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final String TABLE_PREFIX = "a_";
     private static final String OVERFLOW_TABLE_PREFIX = "ao_";
@@ -74,7 +74,7 @@ public final class OracleNamespaceDeleterTests {
     @Before
     public void before() throws IOException {
         executorService = MoreExecutors.newDirectExecutorService();
-        sqliteOracleAdapter = new SqliteOracleAdapter(TEMPORARY_FOLDER.newFile());
+        sqliteOracleAdapter = new SqliteOracleAdapter(temporaryFolder.newFile());
         sqliteOracleAdapter.initializeMetadataAndMappingTables();
     }
 
