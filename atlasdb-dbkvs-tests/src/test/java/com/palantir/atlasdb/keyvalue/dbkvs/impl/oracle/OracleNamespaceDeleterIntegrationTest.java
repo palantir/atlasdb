@@ -423,12 +423,12 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         return builder.build();
     }
 
-    private static String withEscapedUnderscores(String s) {
-        return s.replace("_", "\\_");
+    private static String withEscapedUnderscores(String value) {
+        return value.replace("_", "\\_");
     }
 
-    private static String withWildcardSuffix(String s) {
-        return s + "%";
+    private static String withWildcardSuffix(String prefix) {
+        return prefix + "%";
     }
 
     private static void assertSnapshotContainsNewTableReferences(
