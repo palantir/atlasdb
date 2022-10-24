@@ -28,10 +28,12 @@ import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import org.immutables.value.Value;
+
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -118,6 +120,21 @@ public abstract class OracleDdlConfig extends DdlConfig {
      */
     @JsonProperty("forceTableMappingIAmOnThePersistenceTeamAndKnowWhatIAmDoing")
     public abstract Optional<Boolean> forceTableMapping();
+
+    /**
+     * This should only be used in the case that metadata or the underlying schema in Oracle mismatch for a table.
+     * Adding a table reference here will perform either an alter, or to allow the metadata to be updated on startup.
+     *
+     * Generally speaking the operation is safe to perform, although it's on the operator to determine what the side
+     * effects are. For example, if the issue arose as two services are configured to use this table, but only one is
+     * performing table mapping, then it is expected that this could break one of the services. However, that condition
+     * still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
+     */
+    @JsonProperty("alterTablesOrMetadataToMatchOnStartupAndIKnowWhatIAmDoing")
+    @Value.Default
+    public List<TableReference> alterTablesOrMetadataToMatch() {
+        return List.of();
+    }
 
     @Override
     public final String type() {
