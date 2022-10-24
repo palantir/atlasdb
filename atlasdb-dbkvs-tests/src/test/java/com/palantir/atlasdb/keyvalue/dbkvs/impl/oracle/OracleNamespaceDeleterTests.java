@@ -399,7 +399,7 @@ public final class OracleNamespaceDeleterTests {
         return ImmutableOracleDdlConfig.builder()
                 .tablePrefix(TABLE_PREFIX)
                 .overflowTablePrefix(OVERFLOW_TABLE_PREFIX)
-                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .overflowMigrationState(OverflowMigrationState.FINISHED)
                 .useTableMapping(true)
                 .metadataTable(SqliteOracleAdapter.METADATA_TABLE);
     }
