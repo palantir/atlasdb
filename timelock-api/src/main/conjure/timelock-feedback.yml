@@ -10,30 +10,55 @@ types:
     objects:
       ConjureTimeLockClientFeedback:
         fields:
-          atlasVersion: string
-          serviceName: string
-          nodeId: uuid
+          atlasVersion:
+            type: string
+            safety: safe
+          serviceName:
+            type: string
+            safety: safe
+          nodeId:
+            type: uuid
+            safety: safe
           startTransaction: optional<EndpointStatistics>
           leaderTime: optional<EndpointStatistics>
           namespace:
             type: optional<string>
+            safety: safe
             docs: The namespace the client uses to make timestamp/lock requests
       EndpointStatistics:
         fields:
-          p99: double
-          oneMin: double
-          errorRate: optional<double>
+          p99:
+            type: double
+            safety: safe
+          oneMin:
+            type: double
+            safety: safe
+          errorRate:
+            type: optional<double>
+            safety: safe
       LeaderElectionDuration:
         fields:
-          oldLeader: uuid
-          newLeader: uuid
+          oldLeader:
+            type: uuid
+            safety: safe
+          newLeader:
+            type: uuid
+            safety: safe
           duration: Duration
       LeaderElectionStatistics:
         fields:
-          p99: double
-          p95: double
-          mean: double
-          count: safelong
+          p99:
+            type: double
+            safety: safe
+          p95:
+            type: double
+            safety: safe
+          mean:
+            type: double
+            safety: safe
+          count:
+            type: safelong
+            safety: safe
           durationEstimate: optional<LeaderElectionDuration>
 
 services:
