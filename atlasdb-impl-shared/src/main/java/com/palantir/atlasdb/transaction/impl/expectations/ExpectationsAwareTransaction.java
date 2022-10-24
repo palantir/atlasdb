@@ -29,14 +29,14 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     TransactionReadInfo getReadInfo();
 
-    /*
-     * A consistent view of ExpectationsStatistics is not guaranteed if the user interacts with the transaction
+    /**
+     * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
      * post-commit/post-abort or outside the user task.
      */
     ExpectationsStatistics getCallbackStatistics();
 
-    /*
-     * A consistent view of ExpectationsStatistics is not guaranteed if the user interacts with the transaction
+    /**
+     * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
      * post-commit/post-abort or outside the user task.
      */
     void runExpectationsCallbacks();
