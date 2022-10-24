@@ -37,7 +37,4 @@ public abstract class KeyValueServiceDataTracker {
     public abstract void registerKvsGetPartialRead(TableReference tableRef, long bytesRead);
 
     public abstract void incrementKvsReadCallCount(TableReference tableRef);
-    ;
-    ;
-    ;
 }
