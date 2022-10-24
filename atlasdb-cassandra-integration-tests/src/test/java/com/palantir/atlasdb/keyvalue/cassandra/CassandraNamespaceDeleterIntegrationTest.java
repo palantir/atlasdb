@@ -116,7 +116,6 @@ public final class CassandraNamespaceDeleterIntegrationTest {
 
     @Test
     public void isNamespaceDeletedSuccessfullyReturnsTrueIfDifferentKeyspaceExists() {
-        // Cleanup all KVS tables and the associated keyspace
         namespaceDeleterForNamespaceOne.deleteAllDataFromNamespace();
 
         createNamespaceTwo();
