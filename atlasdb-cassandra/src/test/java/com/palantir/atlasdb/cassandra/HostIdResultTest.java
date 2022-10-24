@@ -23,7 +23,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Set;
 import org.junit.Test;
 
-public class HostIdResultTest {
+public final class HostIdResultTest {
 
     @Test
     public void hostIdsMustBeEmptyWhenSoftFailure() {

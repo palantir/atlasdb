@@ -8,4 +8,4 @@ namespaces:
         docs: Count of total failures when performing topology validation.
       validationLatency:
         type: histogram
-        docs: Histogram of the total time taken to validate the topology.
+        docs: Time taken to validate the topology.

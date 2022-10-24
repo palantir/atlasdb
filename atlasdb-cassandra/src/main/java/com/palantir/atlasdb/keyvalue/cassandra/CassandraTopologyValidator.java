@@ -62,7 +62,7 @@ public final class CassandraTopologyValidator {
      * Of course, there is the base case of all hosts will be new. In this case, we simply check that all
      * new hosts are in consensus.
      *
-     * Servers that  do not have support for the get_host_ids endpoint are always considered consistent,
+     * Servers that do not have support for the get_host_ids endpoint are always considered consistent,
      * even if we cannot come to a consensus on the hosts that do support the endpoint.
      *
      * Consensus is defined as:
