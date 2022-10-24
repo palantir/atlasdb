@@ -51,30 +51,25 @@ public final class KeyValueServiceDataTracker {
                 .build();
     }
 
-    // todo(aalouane): not sure about this
+    /*
+     * This is un-synchronized as runs after task completion and the abort/commit stage.
+     * Users can interact with the transaction outside their task, we give no guarantees in that case.
+     */
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
-        // this is supposed to run after user tasks are finished (and txn is aborted/committed)
-        // so no kvs calls would be made, and as such no update to this instance
-        // not sure about the cases of futures/iterators.
-        // the alternative to synchronizing is to clone maps as immutables and return best effort result
-        // another solution is to keep an active Map<TableReference, TransactionReadInfo> but that may be too
-        // expensive to upkeep
-        ImmutableMap.Builder<TableReference, TransactionReadInfo> builder = ImmutableMap.builder();
-        synchronized (this) {
-            Set<TableReference> tableRefs = Sets.intersection(
-                    bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet());
+        Set<TableReference> tableRefs = Sets.intersection(
+                bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet());
 
-            for (TableReference tableRef : tableRefs) {
-                builder = builder.put(
-                        tableRef,
-                        ImmutableTransactionReadInfo.builder()
-                                .bytesRead(bytesReadByTable.get(tableRef))
-                                .kvsCalls(kvsCallByTable.get(tableRef))
-                                .maximumBytesKvsCallInfo(
-                                        Optional.ofNullable(maximumBytesKvsCallInfoByTable.get(tableRef)))
-                                .build());
-            }
+        ImmutableMap.Builder<TableReference, TransactionReadInfo> builder = ImmutableMap.builder();
+        for (TableReference tableRef : tableRefs) {
+            builder = builder.put(
+                    tableRef,
+                    ImmutableTransactionReadInfo.builder()
+                            .bytesRead(bytesReadByTable.get(tableRef))
+                            .kvsCalls(kvsCallByTable.get(tableRef))
+                            .maximumBytesKvsCallInfo(Optional.ofNullable(maximumBytesKvsCallInfoByTable.get(tableRef)))
+                            .build());
         }
+
         return builder.buildOrThrow();
     }
 
