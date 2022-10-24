@@ -52,8 +52,9 @@ public final class KeyValueServiceDataTracker {
     }
 
     /*
-     * This is un-synchronized as runs after task completion and the abort/commit stage.
-     * Users can interact with the transaction outside their task, we give no guarantees in that case.
+     * This is un-synchronized as it is called after task completion and the abort/commit stage.
+     * Users can interact with the transaction outside their task, we give no guarantees of a consistent view in that
+     * case.
      */
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
         Set<TableReference> tableRefs = Sets.intersection(
