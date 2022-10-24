@@ -41,7 +41,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.Table
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -68,19 +67,16 @@ public final class OracleNamespaceDeleterTests {
     private static final String TEST_USER = "testuser";
     private static final String TEST_USER_2 = "testuser2";
 
-    private ExecutorService executorService;
     private SqliteOracleAdapter sqliteOracleAdapter;
 
     @Before
     public void before() throws IOException {
-        executorService = MoreExecutors.newDirectExecutorService();
         sqliteOracleAdapter = new SqliteOracleAdapter(temporaryFolder.newFile());
         sqliteOracleAdapter.initializeMetadataAndMappingTables();
     }
 
     @After
     public void after() {
-        executorService.shutdown();
         sqliteOracleAdapter.close();
     }
 
@@ -419,7 +415,7 @@ public final class OracleNamespaceDeleterTests {
                 ddlConfig,
                 tableNameGetter,
                 new TableValueStyleCache(),
-                executorService);
+                MoreExecutors.newDirectExecutorService());
         return OracleNamespaceDeleterParameters.builder()
                 .tablePrefix(ddlConfig.tablePrefix())
                 .overflowTablePrefix(ddlConfig.overflowTablePrefix())

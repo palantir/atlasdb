@@ -81,7 +81,6 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     private OracleDdlConfig oracleDdlConfig;
     private NamespaceDeleter namespaceDeleter;
     private ConnectionManager connectionManager;
-    private ExecutorService executorService;
 
     private KeyValueService keyValueServiceWithNonDefaultPrefix;
     private NamespaceDeleter namespaceDeleterWithNonDefaultPrefix;
@@ -99,14 +98,13 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     public void before() {
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
-        executorService = MoreExecutors.newDirectExecutorService();
         connectionManager = DbKvsOracleTestSuite.getConnectionManager(keyValueService);
 
         namespaceDeleter = createNamespaceDeleter(
                 oracleDdlConfig,
                 dbKeyValueServiceConfig.connection(),
                 DbKvsOracleTestSuite.getConnectionSupplier(keyValueService),
-                executorService);
+                MoreExecutors.newDirectExecutorService());
 
         OracleDdlConfig ddlConfigWithNonDefaultPrefix = ImmutableOracleDdlConfig.builder()
                 .from(oracleDdlConfig)
@@ -124,7 +122,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                 ddlConfigWithNonDefaultPrefix,
                 dbKeyValueServiceConfig.connection(),
                 DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithNonDefaultPrefix),
-                executorService);
+                MoreExecutors.newDirectExecutorService());
 
         OracleDdlConfig ddlConfigWithDefaultPrefixNoMapping = ImmutableOracleDdlConfig.builder()
                 .from(oracleDdlConfig)
@@ -141,7 +139,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                 ddlConfigWithDefaultPrefixNoMapping,
                 dbKeyValueServiceConfig.connection(),
                 DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithDefaultPrefixNoMapping),
-                executorService);
+                MoreExecutors.newDirectExecutorService());
 
         timestampTableName = oracleDdlConfig.tablePrefix() + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName();
     }
@@ -176,7 +174,6 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         namespaceDeleter.deleteAllDataFromNamespace();
         namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();
         namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
-        executorService.shutdown();
     }
 
     @Test
