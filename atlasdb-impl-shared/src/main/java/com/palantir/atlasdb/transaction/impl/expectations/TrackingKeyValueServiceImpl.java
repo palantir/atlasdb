@@ -18,6 +18,9 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -63,6 +66,18 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
         return tracker.getReadInfoByTable();
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return Futures.transform(
+                delegate.getAsync(tableRef, timestampByCell),
+                valueByCell -> {
+                    tracker.readForTable(
+                            tableRef, "getAsync", ExpectationsMeasuringUtils.valueByCellByteSize(valueByCell));
+                    return valueByCell;
+                },
+                MoreExecutors.directExecutor());
     }
 
     @Override
