@@ -51,10 +51,11 @@ public final class KeyValueServiceDataTracker {
                 .build();
     }
 
-    /*
+    /**
      * This is un-synchronized as it is called after task completion and the abort/commit stage.
-     * Users can interact with the transaction outside their task, we give no guarantees of a consistent view in that
-     * case.
+     * For returned statistics, no consistency guarantees are provided if the user interacts with the transaction
+     * outside the context of {@link com.palantir.atlasdb.transaction.api.TransactionTask} or after commit/abort
+     * stages (e.g. this can happen with futures/iterators).
      */
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
         Set<TableReference> tableRefs = Sets.intersection(
@@ -74,10 +75,11 @@ public final class KeyValueServiceDataTracker {
         return builder.buildOrThrow();
     }
 
-    /*
-     * Tracks all data read in one kvs read method call.
+    /**
+     * Tracks an effectively completed kvs read method call for some {@link TableReference}.
+     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
      */
-    public void registerKvsGetMethodRead(TableReference tableRef, String methodName, long bytesRead) {
+    public void readForTable(TableReference tableRef, String methodName, long bytesRead) {
         KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
                 .bytesRead(bytesRead)
                 .methodName(methodName)
@@ -86,17 +88,32 @@ public final class KeyValueServiceDataTracker {
         updateKvsMethodByTableTallies(tableRef, callInfo);
     }
 
-    /*
-     * Track some, but not necessarily all, data read in some kvs read method call.
+    /**
+     * Track a lazy kvs read method call for some {@link TableReference}.
      */
-    public void registerKvsGetPartialRead(TableReference tableRef, long bytesRead) {
+    public void partialReadForTable(TableReference tableRef, long bytesRead) {
         bytesReadOverall.add(bytesRead);
         bytesReadByTable.addAndGet(tableRef, bytesRead);
     }
 
-    public void incrementKvsReadCallCount(TableReference tableRef) {
+    /**
+     * Track that a kvs read method was called for some {@link TableReference}.
+     */
+    public void callForTable(TableReference tableRef) {
         kvsCallsOverall.increment();
         kvsCallByTable.incrementAndGet(tableRef);
+    }
+
+    /**
+     * Track an effectively completed kvs read method call with no {@link TableReference} information.
+     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
+     */
+    public void tableAgnosticRead(String methodName, long bytesRead) {
+        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
+                .bytesRead(bytesRead)
+                .methodName(methodName)
+                .build();
+        updateKvsMethodOverallTallies(callInfo);
     }
 
     private void updateKvsMethodOverallTallies(KvsCallReadInfo callInfo) {
