@@ -26,7 +26,13 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.EntireTable;
+import com.palantir.lock.watch.LockWatchReferences.ExactCell;
+import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
+import com.palantir.lock.watch.LockWatchReferences.RowRange;
+import com.palantir.lock.watch.LockWatchReferences.Visitor;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.SafeArg;
@@ -79,10 +85,41 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         Optional<LockWatches> changes = addToWatches(locksToWatch);
-        changes.ifPresent(changedWatches -> log.info(
-                "New references watched",
-                SafeArg.of("sizeOfReferences", changedWatches.references().size()),
-                UnsafeArg.of("references", changedWatches.references())));
+        changes.ifPresent(changedWatches -> {
+            log.info(
+                    "New references watched",
+                    SafeArg.of("sizeOfReferences", changedWatches.references().size()),
+                    UnsafeArg.of("references", changedWatches.references()));
+            changedWatches
+                    .references()
+                    .forEach(ref -> ref.accept(new Visitor<Void>() {
+                        @Override
+                        public Void visit(EntireTable reference) {
+                            return null;
+                        }
+
+                        @Override
+                        public Void visit(RowPrefix reference) {
+                            return null;
+                        }
+
+                        @Override
+                        public Void visit(RowRange reference) {
+                            return null;
+                        }
+
+                        @Override
+                        public Void visit(ExactRow reference) {
+                            log.info("Exact row reference added!");
+                            return null;
+                        }
+
+                        @Override
+                        public Void visit(ExactCell reference) {
+                            return null;
+                        }
+                    }));
+        });
         changes.ifPresent(this::logLockWatchEvent);
         Set<LockWatchReference> allReferences = watches.get().references();
         if (log.isDebugEnabled()) {
