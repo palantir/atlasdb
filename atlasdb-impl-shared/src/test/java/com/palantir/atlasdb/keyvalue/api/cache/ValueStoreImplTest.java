@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -43,15 +44,21 @@ import org.junit.Test;
 
 public final class ValueStoreImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
+    private static final TableReference ROW_WATCHED_TABLE = TableReference.createFromFullyQualifiedName("t.row-level");
+    private static final byte[] ROW_NAME = createBytes(73);
+
     private static final Cell CELL_1 = createCell(1);
     private static final Cell CELL_2 = createCell(2);
     private static final Cell CELL_3 = createCell(3);
+    private static final Cell ROW_LEVEL_CELL = Cell.create(ROW_NAME, createBytes(42));
     private static final CellReference TABLE_CELL = CellReference.of(TABLE, CELL_1);
+    private static final CellReference ROW_LEVEL_CELL_REFERENCE = CellReference.of(ROW_WATCHED_TABLE, ROW_LEVEL_CELL);
     private static final CacheValue VALUE_1 = createValue(10);
     private static final CacheValue VALUE_2 = createValue(20);
     private static final CacheValue VALUE_3 = createValue(30);
     private static final LockWatchEvent LOCK_EVENT = createLockEvent();
-    private static final LockWatchEvent WATCH_EVENT = createWatchEvent();
+    private static final LockWatchEvent ROW_LOCK_EVENT = createRowLockEvent();
+    private static final LockWatchEvent WATCH_EVENTS = createWatchEvents();
     private static final LockWatchEvent UNLOCK_EVENT = createUnlockEvent();
     private static final int EXPECTED_SIZE = EntryWeigher.INSTANCE.weigh(TABLE_CELL, 1);
 
@@ -61,12 +68,12 @@ public final class ValueStoreImplTest {
 
     @Before
     public void before() {
-        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 1_000, metrics);
+        valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE, ROW_WATCHED_TABLE), 1_000, metrics);
     }
 
     @Test
     public void lockEventInvalidatesValue() {
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_3);
 
@@ -83,8 +90,20 @@ public final class ValueStoreImplTest {
     }
 
     @Test
+    public void rowLevelReferencesExcludedFromValueStore() {
+        valueStore.applyEvent(WATCH_EVENTS);
+        valueStore.applyEvent(ROW_LOCK_EVENT);
+
+        verify(metrics, never()).increaseCacheSize(anyLong());
+
+        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
+        assertThatCode(() -> valueStore.putValue(ROW_LEVEL_CELL_REFERENCE, VALUE_1))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     public void unlockEventsClearLockedEntries() {
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         valueStore.applyEvent(LOCK_EVENT);
 
         assertExpectedValue(CELL_1, CacheEntry.locked());
@@ -94,8 +113,22 @@ public final class ValueStoreImplTest {
     }
 
     @Test
+    public void resetClearsAllEntries() {
+        valueStore.applyEvent(WATCH_EVENTS);
+        valueStore.applyEvent(LOCK_EVENT);
+        valueStore.applyEvent(ROW_LOCK_EVENT);
+
+        assertExpectedValue(CELL_1, CacheEntry.locked());
+        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
+
+        valueStore.reset();
+        assertThat(valueStore.getSnapshot().getValue(TABLE_CELL)).isEmpty();
+        assertThat(valueStore.getSnapshot().getValue(ROW_LEVEL_CELL_REFERENCE)).isEmpty();
+    }
+
+    @Test
     public void putValueThrowsIfCurrentValueDiffers() {
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
 
         assertThatCode(() -> valueStore.putValue(TABLE_CELL, VALUE_1)).doesNotThrowAnyException();
@@ -108,8 +141,9 @@ public final class ValueStoreImplTest {
     @Test
     public void watchEventUpdatesWatchableTables() {
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isFalse();
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         assertThat(valueStore.getSnapshot().isWatched(TABLE)).isTrue();
+        assertThat(valueStore.getSnapshot().isWatched(ROW_WATCHED_TABLE)).isFalse();
     }
 
     @Test
@@ -118,7 +152,7 @@ public final class ValueStoreImplTest {
         valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
         CellReference tableCell2 = CellReference.of(TABLE, CELL_2);
 
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         valueStore.putValue(TABLE_CELL, VALUE_1);
         valueStore.putValue(tableCell2, VALUE_2);
         verify(metrics, times(2)).increaseCacheSize(EXPECTED_SIZE);
@@ -134,7 +168,7 @@ public final class ValueStoreImplTest {
     @Test
     public void lockedValuesDoNotCountToCacheSize() {
         valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
         valueStore.applyEvent(LOCK_EVENT);
 
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
@@ -148,7 +182,7 @@ public final class ValueStoreImplTest {
     @Test
     public void metricsCorrectlyCountOverlappingPuts() {
         valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
 
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
         valueStore.putValue(CellReference.of(TABLE, CELL_2), VALUE_2);
@@ -159,7 +193,7 @@ public final class ValueStoreImplTest {
     @Test
     public void metricsCalculateSize() {
         valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE), 300, metrics);
-        valueStore.applyEvent(WATCH_EVENT);
+        valueStore.applyEvent(WATCH_EVENTS);
 
         CellReference cellRef = CellReference.of(TABLE, Cell.create(new byte[] {1, 2}, new byte[] {3, 4, 5}));
 
@@ -169,27 +203,45 @@ public final class ValueStoreImplTest {
     }
 
     private void assertPutThrows(CacheValue value) {
-        assertThatThrownBy(() -> valueStore.putValue(TABLE_CELL, value))
+        assertPutThrows(TABLE_CELL, value);
+    }
+
+    private void assertPutThrows(CellReference cellReference, CacheValue value) {
+        assertThatThrownBy(() -> valueStore.putValue(cellReference, value))
                 .isExactlyInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining(
                         "Trying to cache a value which is either locked or is not equal to a currently cached value");
     }
 
     private void assertExpectedValue(Cell cell, CacheEntry entry) {
-        assertThat(valueStore.getSnapshot().getValue(CellReference.of(TABLE, cell)))
+        assertExpectedValue(TABLE, cell, entry);
+    }
+
+    private void assertExpectedValue(TableReference tableRef, Cell cell, CacheEntry entry) {
+        assertThat(valueStore.getSnapshot().getValue(CellReference.of(tableRef, cell)))
                 .hasValue(entry);
     }
 
-    private static LockWatchEvent createWatchEvent() {
-        return LockWatchCreatedEvent.builder(
-                        ImmutableSet.of(LockWatchReferences.entireTable(TABLE.getQualifiedName())), ImmutableSet.of())
+    private static LockWatchEvent createWatchEvents() {
+        LockWatchReferences.LockWatchReference entireTable = LockWatchReferences.entireTable(TABLE.getQualifiedName());
+        LockWatchReferences.LockWatchReference exactRow =
+                LockWatchReferences.exactRow(ROW_WATCHED_TABLE.getQualifiedName(), ROW_NAME);
+        return LockWatchCreatedEvent.builder(ImmutableSet.of(entireTable, exactRow), ImmutableSet.of())
                 .build(0L);
     }
 
+    private static LockWatchEvent createRowLockEvent() {
+        return createLockEvent(ROW_WATCHED_TABLE, ROW_LEVEL_CELL);
+    }
+
     private static LockWatchEvent createLockEvent() {
+        return createLockEvent(TABLE, CELL_1);
+    }
+
+    private static LockWatchEvent createLockEvent(TableReference table, Cell cell) {
         return LockEvent.builder(
                         ImmutableSet.of(AtlasCellLockDescriptor.of(
-                                TABLE.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName())),
+                                table.getQualifiedName(), cell.getRowName(), cell.getColumnName())),
                         LockToken.of(UUID.randomUUID()))
                 .build(1L);
     }

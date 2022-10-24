@@ -32,9 +32,9 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchEventCache;
+import com.palantir.lock.watch.LockWatchReferenceTableExtractor;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchReferencesVisitor;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
@@ -83,7 +83,8 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
         Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
-                .map(schema -> schema.accept(LockWatchReferencesVisitor.INSTANCE))
+                .map(schema -> schema.accept(LockWatchReferenceTableExtractor.INSTANCE))
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         CacheMetrics metrics = CacheMetrics.create(metricsManager);
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);

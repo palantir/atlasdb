@@ -22,32 +22,41 @@ import com.palantir.lock.watch.LockWatchReferences.ExactCell;
 import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
 import com.palantir.lock.watch.LockWatchReferences.RowRange;
+import java.util.Optional;
 
-public final class LockWatchReferencesVisitor implements LockWatchReferences.Visitor<TableReference> {
-    public static final LockWatchReferencesVisitor INSTANCE = new LockWatchReferencesVisitor();
+/**
+ *  A LockWatchReferences Visitor used to extract the table reference from a lock watch reference, but ONLY if
+ *  the table is entirely watched.
+ *
+ *  Returns {@code Optional.empty()} for supported lock watch types other than EntireTable watches, and throws for
+ *  unsupported lock watch types.
+ */
+public final class LockWatchReferenceTableExtractor implements LockWatchReferences.Visitor<Optional<TableReference>> {
+    public static final LockWatchReferenceTableExtractor INSTANCE = new LockWatchReferenceTableExtractor();
 
     @Override
-    public TableReference visit(EntireTable reference) {
-        return TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef());
+    public Optional<TableReference> visit(EntireTable reference) {
+        return Optional.of(TableReference.createFromFullyQualifiedName(reference.qualifiedTableRef()));
     }
 
     @Override
-    public TableReference visit(RowPrefix reference) {
+    public Optional<TableReference> visit(RowPrefix reference) {
         throw new UnsupportedOperationException("Row prefix watches are not yet supported");
     }
 
     @Override
-    public TableReference visit(RowRange reference) {
+    public Optional<TableReference> visit(RowRange reference) {
         throw new UnsupportedOperationException("Row range watches are not yet supported");
     }
 
     @Override
-    public TableReference visit(ExactRow reference) {
-        throw new UnsupportedOperationException("Exact row watches are not yet supported");
+    public Optional<TableReference> visit(ExactRow reference) {
+        // We support exact row lock watches, but watching the row does *not* mean that we're watching the entire table
+        return Optional.empty();
     }
 
     @Override
-    public TableReference visit(ExactCell reference) {
+    public Optional<TableReference> visit(ExactCell reference) {
         throw new UnsupportedOperationException("Exact cell watches are not yet supported");
     }
 }
