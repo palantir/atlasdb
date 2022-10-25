@@ -482,7 +482,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             int maxPoolSize = maxConnectionBurstSize * numberOfThriftHosts;
             return Tracers.wrap(MetricRegistries.instrument(
                     registry,
-                    createThreadPool("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
+                    createThreadPoolWihtoutSpans("Atlas Cassandra KVS", corePoolSize, maxPoolSize),
                     "Atlas Cassandra KVS"));
         };
     }

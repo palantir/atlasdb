@@ -301,6 +301,28 @@ public final class PTExecutors {
                 name);
     }
 
+    /**
+     * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+     * queue.  At any point, at most <tt>numThreads</tt> threads will be active processing tasks.  If
+     * additional tasks are submitted when all threads are active, they will wait in the queue until
+     * a thread is available.  If any thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
+     * in the pool will exist until it is explicitly {@link
+     * ExecutorService#shutdown shutdown}.
+     *
+     * @param numThreads the number of threads in the pool
+     * @param name Executor name used for thread naming and instrumentation
+     * @return the newly created thread pool
+     * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
+     */
+    public static ExecutorService newFixedThreadPoolWithoutSpan(int numThreads, String name) {
+        return MetricRegistries.instrument(
+                SharedTaggedMetricRegistries.getSingleton(),
+                PTExecutors.wrapWithoutSpan(
+                        getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
+                name);
+    }
+
     public static ExecutorService getViewExecutor(
             String name, int numThreads, int queueSize, ExecutorService delegate) {
         return NylonExecutor.builder()

@@ -81,6 +81,19 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return PTExecutors.newFixedThreadPool(maxPoolSize, threadNamePrefix);
     }
 
+    /**
+     * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
+     *
+     * @param threadNamePrefix thread name prefix
+     * @param _corePoolSize size of the core pool
+     * @param maxPoolSize maximum size of the pool
+     * @return a new fixed size thread pool with a keep alive time of 1 minute
+     */
+    protected static ExecutorService createThreadPoolWihtoutSpans(
+            String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, threadNamePrefix);
+    }
+
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.supportedBuilder()
