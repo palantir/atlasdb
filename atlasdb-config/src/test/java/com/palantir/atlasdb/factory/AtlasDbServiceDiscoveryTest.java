@@ -17,40 +17,74 @@ package com.palantir.atlasdb.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import org.junit.Test;
 
 public final class AtlasDbServiceDiscoveryTest {
-    private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
-    private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
-    private final Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
+    private static final KeyValueServiceConfig INVALID_KVS_CONFIG = new TestKeyValueServiceConfig(true, "fakeconfig");
+    private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
             Refreshable.only(Optional.empty());
     private final NamespaceDeleterFactory delegate = new AutoServiceAnnotatedNamespaceDeleterFactory();
 
     @Test
     public void createsNamespaceDeleterFactoriesAnnotatedWithAutoService() {
-        NamespaceDeleterFactory namespaceDeleterFactory = createNamespaceDeleterFactory(kvsConfig);
+        KeyValueServiceConfig deletionEnabledConfig =
+                new TestKeyValueServiceConfig(true, AutoServiceAnnotatedNamespaceDeleterFactory.TYPE);
+        NamespaceDeleterFactory namespaceDeleterFactory = createNamespaceDeleterFactory(deletionEnabledConfig);
 
         assertThat(namespaceDeleterFactory).isInstanceOf(AutoServiceAnnotatedNamespaceDeleterFactory.class);
-        assertThat(namespaceDeleterFactory.createNamespaceDeleter(kvsConfig, runtimeConfig))
-                .isEqualTo(delegate.createNamespaceDeleter(kvsConfig, runtimeConfig));
+        assertThat(namespaceDeleterFactory.createNamespaceDeleter(deletionEnabledConfig, RUNTIME_CONFIG))
+                .isEqualTo(delegate.createNamespaceDeleter(deletionEnabledConfig, RUNTIME_CONFIG));
+    }
+
+    @Test
+    public void creatingNamespaceDeleterFactoryThrowsIfDeletionDisabled() {
+        KeyValueServiceConfig deletionEnabledConfig =
+                new TestKeyValueServiceConfig(false, AutoServiceAnnotatedNamespaceDeleterFactory.TYPE);
+
+        assertThatThrownBy(() -> createNamespaceDeleterFactory(deletionEnabledConfig))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage("Cannot construct a NamespaceDeleterFactory when"
+                        + " keyValueService.enableNamespaceDeletionDangerousIKnowWhatIAmDoing is false.");
     }
 
     @Test
     public void notAllowConstructionWithoutAValidBackingNamespaceDeleterFactory() {
         assertThatIllegalStateException()
-                .isThrownBy(() -> createNamespaceDeleterFactory(invalidKvsConfig))
+                .isThrownBy(() -> createNamespaceDeleterFactory(INVALID_KVS_CONFIG))
                 .withMessageContaining("No atlas provider")
-                .withMessageContaining(invalidKvsConfig.type());
+                .withMessageContaining(INVALID_KVS_CONFIG.type());
     }
 
     private static NamespaceDeleterFactory createNamespaceDeleterFactory(KeyValueServiceConfig config) {
         return AtlasDbServiceDiscovery.createNamespaceDeleterFactoryOfCorrectType(config);
+    }
+
+    private static final class TestKeyValueServiceConfig implements KeyValueServiceConfigHelper {
+        private final boolean enableDeletion;
+        private final String type;
+
+        private TestKeyValueServiceConfig(boolean enableDeletion, String type) {
+            this.enableDeletion = enableDeletion;
+            this.type = type;
+        }
+
+        @Override
+        public String type() {
+            return type;
+        }
+
+        @Override
+        public boolean enableNamespaceDeletion() {
+            return enableDeletion;
+        }
     }
 }
