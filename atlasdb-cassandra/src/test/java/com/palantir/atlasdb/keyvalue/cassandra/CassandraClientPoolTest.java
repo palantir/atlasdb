@@ -41,6 +41,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -373,7 +374,7 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
         assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
-        assertThat(containerTwo).isEqualTo(poolServers.get(CASS_SERVER_2));
+        assertThat(cassandraServerTwoContainer).isEqualTo(poolServers.get(CASS_SERVER_2));
     }
 
     @Test
@@ -407,6 +408,15 @@ public final class CassandraClientPoolTest {
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
         assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_3);
         assertThat(clientPool.getAbsentHostTracker().returnPool(CASS_SERVER_2)).isPresent();
+    }
+
+    @Test
+    public void throwsWhenNoServersInPoolAndServersAddedPresentButAreInvalid() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of(CASS_SERVER_1));
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1);
+        assertThatThrownBy(this::createClientPool).isInstanceOf(SafeIllegalStateException.class);
     }
 
     @Test
