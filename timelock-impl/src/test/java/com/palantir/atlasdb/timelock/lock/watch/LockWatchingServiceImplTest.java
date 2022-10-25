@@ -143,6 +143,16 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
+    public void watchExactRowLockWatchLogsHeldLocksInRange() {
+        LockWatchRequest request = exactRowRequest();
+        lockWatcher.startWatching(request);
+
+        List<LockWatchEvent> expectedEvents =
+                ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
+        assertLoggedEvents(expectedEvents);
+    }
+
+    @Test
     public void registeringWatchWithWiderScopeLogsAlreadyWatchedLocksAgain() {
         LockDescriptor secondRow = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), PtBytes.toBytes("other_row"));
         when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, new ExclusiveLock(secondRow)));
@@ -331,6 +341,10 @@ public class LockWatchingServiceImplTest {
 
     private static LockWatchRequest tableRequest() {
         return LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.entireTable(TABLE)));
+    }
+
+    private static LockWatchRequest exactRowRequest() {
+        return LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.exactRow(TABLE, ROW)));
     }
 
     private static LockWatchRequest prefixRequest(byte[] prefix) {
