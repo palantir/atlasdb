@@ -239,10 +239,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             return;
         }
         if (!endpointVerified) {
-            log.warn("Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
+            log.warn("Endpoint verification failed for host.", SafeArg.of("endpointsChecked", endpointsToCheck));
             if (throwOnFailure) {
                 throw new SafeSSLPeerUnverifiedException(
-                        "Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
+                        "Endpoint verification failed for host.", SafeArg.of("endpointsChecked", endpointsToCheck));
             }
         }
     }
