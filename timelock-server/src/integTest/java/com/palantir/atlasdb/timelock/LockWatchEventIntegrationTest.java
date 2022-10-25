@@ -53,6 +53,7 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +63,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -249,18 +251,24 @@ public final class LockWatchEventIntegrationTest {
         Cell cell = Cell.create(ROW, "down".getBytes(StandardCharsets.UTF_8));
         performWriteTransactionLockingAndUnlockingCells(TABLE_2_REF, ImmutableMap.of(cell, DATA_1));
 
-        OpenTransaction thirdTxn = startSingleTransaction();
+        Awaitility.await()
+                .alias("Waiting for lock event to appear")
+                .atMost(Duration.ofSeconds(5L))
+                .pollInterval(Duration.ofMillis(500L))
+                .untilAsserted(() -> {
+                    OpenTransaction thirdTxn = startSingleTransaction();
+                    TransactionsLockWatchUpdate update =
+                            getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
-
-        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), AllEventVisitor.INSTANCE))
-                .containsAll(getDescriptors(TABLE_2_REF, cell));
-        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
-        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
-                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
-        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
-                .isEmpty();
+                    assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), AllEventVisitor.INSTANCE))
+                            .containsAll(getDescriptors(TABLE_2_REF, cell));
+                    assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
+                            .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
+                    assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
+                            .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
+                    assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
+                            .isEmpty();
+                });
     }
 
     @Test
