@@ -29,6 +29,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.immutables.value.Value;
 
@@ -85,16 +86,20 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     }
 
     @Override
-    public void addConcludedTimestamps(Range<Long> knownConcludedInterval) {
+    public void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals) {
         Preconditions.checkState(
-                sanityCheckConcludedRange(knownConcludedInterval),
+                verifyConcludedRanges(knownConcludedIntervals),
                 "KnownConcludedInterval is expected to have closed lower and upper bounds.",
-                SafeArg.of("knownConcludedInterval", knownConcludedInterval));
-        knownConcludedTransactionsStore.supplement(knownConcludedInterval);
-        ensureRangesCached(ImmutableRangeSet.of(knownConcludedInterval));
+                SafeArg.of("knownConcludedInterval", knownConcludedIntervals));
+        knownConcludedTransactionsStore.supplement(knownConcludedIntervals);
+        ensureRangesCached(ImmutableRangeSet.copyOf(knownConcludedIntervals));
     }
 
-    private boolean sanityCheckConcludedRange(Range<Long> range) {
+    private boolean verifyConcludedRanges(Set<Range<Long>> knownConcludedIntervals) {
+        return knownConcludedIntervals.stream().allMatch(this::verifyConcludedRange);
+    }
+
+    private boolean verifyConcludedRange(Range<Long> range) {
         return range.hasLowerBound()
                 && range.hasUpperBound()
                 && range.lowerBoundType().equals(BoundType.CLOSED)
