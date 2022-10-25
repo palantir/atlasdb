@@ -373,6 +373,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<CassandraServer> validatedServersToAdd = Sets.difference(serversToAdd, newHostsWithDifferingTopology);
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
+        newHostsWithDifferingTopology.forEach(
+                server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
         return validatedServersToAdd;
     }
 
@@ -561,5 +563,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     public enum StartupChecks {
         RUN,
         DO_NOT_RUN
+    }
+
+    @VisibleForTesting
+    CassandraAbsentHostTracker getAbsentHostTracker() {
+        return absentHostTracker;
     }
 }
