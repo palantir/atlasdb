@@ -308,7 +308,7 @@ public final class PTExecutors {
      * a thread is available.  If any thread terminates due to a failure during execution prior to
      * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
      * in the pool will exist until it is explicitly {@link
-     * ExecutorService#shutdown shutdown}.
+     * ExecutorService#shutdown shutdown}.  It does not create a span.
      *
      * @param numThreads the number of threads in the pool
      * @param name Executor name used for thread naming and instrumentation

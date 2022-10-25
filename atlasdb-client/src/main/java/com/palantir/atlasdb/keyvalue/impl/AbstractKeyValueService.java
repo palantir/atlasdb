@@ -83,6 +83,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
+     * It does not create a span.
      *
      * @param threadNamePrefix thread name prefix
      * @param _corePoolSize size of the core pool
