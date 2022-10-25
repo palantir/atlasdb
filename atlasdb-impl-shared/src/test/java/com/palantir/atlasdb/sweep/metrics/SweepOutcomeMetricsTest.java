@@ -131,6 +131,7 @@ public class SweepOutcomeMetricsTest {
             targetedMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
         });
 
-        assertThat(metricsManager.getPublishableMetrics().getMetrics()).isEmpty();
+        assertThat(metricsManager.getPublishableMetrics().getMetrics().keySet())
+                .containsOnly(TargetedSweepProgressMetrics.lastSeenCommitTsMetricName());
     }
 }

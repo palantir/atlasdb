@@ -98,7 +98,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
         Range<Long> concludedTimestamps =
                 Range.closed(TransactionConstants.LOWEST_POSSIBLE_START_TS, minLastSweptTimestamp);
-        concludedTransactionsStore.supplement(concludedTimestamps);
+        concludedTransactionsStore.addConcludedTimestamps(concludedTimestamps);
     }
 
     private void maybeRefreshShardsAndStrategies(int currentNumShards) {

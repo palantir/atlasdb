@@ -50,7 +50,7 @@ public final class CoordinationAwareKnownAbandonedTransactionsStore {
         RangeMap<Long, Integer> transactionsSchemaMap = latestTimestampRangesSnapshot(
                 abandonedTimestamps.stream().max(Comparator.naturalOrder()).get());
 
-        Set<Long> abandonedTsSchemas = new HashSet<>();
+        Set<Long> abandonedTsToMark = new HashSet<>();
 
         for (long ts : abandonedTimestamps) {
             Optional<Integer> maybeSchema = Optional.ofNullable(transactionsSchemaMap.get(ts));
@@ -70,12 +70,16 @@ public final class CoordinationAwareKnownAbandonedTransactionsStore {
                 // This is log is meant to be noisy
                 log.error("Updating A for unrecognized schema version.", SafeArg.of("schemaVersion", schema));
             }
-            abandonedTsSchemas.add(ts);
+            abandonedTsToMark.add(ts);
         }
 
-        if (!abandonedTsSchemas.isEmpty()) {
-            // todo(snanda): metric/logs
-            delegate.markAbandoned(abandonedTsSchemas);
+        if (!abandonedTsToMark.isEmpty()) {
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Attempting to mark transactions as abandoned.", SafeArg.of("count", abandonedTsToMark.size()));
+            }
+
+            delegate.markAbandoned(abandonedTsToMark);
         }
     }
 
