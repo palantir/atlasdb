@@ -35,4 +35,10 @@ namespaces:
       localReads:
         type: counter
         docs: The number of times abandoned transaction timestamps were available locally.
+  verificationMode:
+    docs: Metrics tracking inconsistent transactionn status.
+    metrics:
+      inconsistencies:
+        type: counter
+        docs: The number of times the status of transaction in _txn2 does not match with known concluded and abandoned stores.
 

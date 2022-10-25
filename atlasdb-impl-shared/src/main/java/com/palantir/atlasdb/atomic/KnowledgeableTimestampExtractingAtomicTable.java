@@ -27,11 +27,13 @@ import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
+import com.palantir.atlasdb.transaction.knowledge.VerificationModeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
@@ -44,10 +46,14 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbandonedTransactions knownAbandonedTransactions;
+    private final VerificationModeMetrics metrics;
 
     public KnowledgeableTimestampExtractingAtomicTable(
-            AtomicTable<Long, TransactionStatus> delegate, TransactionKnowledgeComponents knowledge) {
+            AtomicTable<Long, TransactionStatus> delegate,
+            TransactionKnowledgeComponents knowledge,
+            TaggedMetricRegistry metricRegistry) {
         this.delegate = delegate;
+        this.metrics = VerificationModeMetrics.of(metricRegistry);
         this.knownConcludedTransactions = knowledge.concluded();
         this.knownAbandonedTransactions = knowledge.abandoned();
     }
@@ -117,6 +123,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
             boolean isTransactionStatusCommitted = commitTs != TransactionConstants.FAILED_COMMIT_TS;
 
             if (isConcludedAndAbandoned && isTransactionStatusCommitted) {
+                metrics.inconsistencies().inc();
                 log.error(
                         "Found a transaction marked abandoned that was actually committed.",
                         SafeArg.of("startTimestamp", startTimestamp),
@@ -126,6 +133,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
             }
 
             if (isConcludedAndNotAbandoned && !isTransactionStatusCommitted) {
+                metrics.inconsistencies().inc();
                 log.error(
                         "Found a concluded non-abandoned transaction that was actually aborted.",
                         SafeArg.of("startTimestamp", startTimestamp),

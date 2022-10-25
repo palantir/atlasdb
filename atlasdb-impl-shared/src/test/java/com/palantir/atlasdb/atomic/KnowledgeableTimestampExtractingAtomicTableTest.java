@@ -27,6 +27,7 @@ import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
@@ -41,7 +42,8 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
                             .concluded(knownConcludedTransactions)
                             .abandoned(knownAbandonedTransactions)
                             .lastSeenCommitSupplier(() -> Long.MAX_VALUE)
-                            .build());
+                            .build(),
+                    new DefaultTaggedMetricRegistry());
 
     @Test
     public void canGetTsOfConcludedTxn() throws ExecutionException, InterruptedException {
