@@ -353,8 +353,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Preconditions.checkState(
                 !(getCurrentPools().isEmpty() && !serversToAdd.isEmpty()),
-                "No servers are in the pool, despite there being servers added. This means hosts could not come to a"
-                    + " consensus on cluster topology, and thus the client cannot start as there are no valid hosts.",
+                "No servers are in the pool, despite there being servers added. This means we could not come to a"
+                    + " consensus on cluster topology, and the client cannot start as there are no valid hosts. This"
+                    + " state should be transient, and if it is not, indicates that the user may haven't accidentally"
+                    + " configured to use two separate Cassandra clusters (i.e. user-led split brain).",
                 SafeArg.of("serversToAdd", serversToAdd));
 
         logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
