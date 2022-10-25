@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Bump Timelock dependency to 0.1161.0, and remove probabilistic usage
+    of V1 versus V2 endpoints; now, V2 endpoints will be used exclusively as they
+    are known to exist (via the product dependency).
+  links:
+  - https://github.com/palantir/atlasdb/pull/6309

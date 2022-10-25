@@ -19,40 +19,41 @@ package com.palantir.atlasdb.transaction.knowledge.coordinated;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsStore;
-import com.palantir.atlasdb.transaction.knowledge.TimestampRangeSet;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class CoordinationAwareKnownConcludedTransactionsStore {
+public final class CoordinationAwareKnownConcludedTransactionsStore implements KnownConcludedTransactions {
     private static final SafeLogger log = SafeLoggerFactory.get(CoordinationAwareKnownConcludedTransactionsStore.class);
 
     // todo(Snanda): to be wired in with `TransactionSchemaManager`
     private final Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter;
-    private final KnownConcludedTransactionsStore delegate;
+    private final KnownConcludedTransactionsImpl delegate;
 
     public CoordinationAwareKnownConcludedTransactionsStore(
             Function<Long, TimestampPartitioningMap<Integer>> internalSchemaSnapshotGetter,
-            KnownConcludedTransactionsStore delegate) {
+            KnownConcludedTransactionsImpl delegate) {
         this.internalSchemaSnapshotGetter = internalSchemaSnapshotGetter;
         this.delegate = delegate;
     }
 
-    public Optional<TimestampRangeSet> get() {
-        return delegate.get();
+    @Override
+    public boolean isKnownConcluded(long startTimestamp, Consistency consistency) {
+        return delegate.isKnownConcluded(startTimestamp, consistency);
     }
 
-    public void supplement(Range<Long> closedTimestampRangeToAdd) {
+    @Override
+    public void addConcludedTimestamps(Range<Long> closedTimestampRangeToAdd) {
         Map<Range<Long>, Integer> timestampRanges =
                 latestTimestampRangesSnapshot(closedTimestampRangeToAdd.upperEndpoint());
-        sanityCheckTimestampRanges(timestampRanges);
+        verifyTimestampRangeSchema(timestampRanges);
 
         Set<Range<Long>> rangesToSupplement = getRangesToSupplement(closedTimestampRangeToAdd, timestampRanges);
 
@@ -63,8 +64,18 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
                         SafeArg.of("ranges", rangesToSupplement));
             }
 
-            delegate.supplement(rangesToSupplement);
+            delegate.addConcludedTimestamps(rangesToSupplement);
         }
+    }
+
+    @Override
+    public void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals) {
+        knownConcludedIntervals.forEach(this::addConcludedTimestamps);
+    }
+
+    @Override
+    public long lastLocallyKnownConcludedTimestamp() {
+        return delegate.lastLocallyKnownConcludedTimestamp();
     }
 
     private static Set<Range<Long>> getRangesToSupplement(
@@ -76,14 +87,16 @@ public final class CoordinationAwareKnownConcludedTransactionsStore {
                 .collect(Collectors.toSet());
     }
 
-    private static void sanityCheckTimestampRanges(Map<Range<Long>, Integer> timestampRanges) {
-        Optional<Integer> maybeUnknownSchema = timestampRanges.values().stream()
+    private static void verifyTimestampRangeSchema(Map<Range<Long>, Integer> timestampRanges) {
+        Set<Integer> unknownSchemas = timestampRanges.values().stream()
                 .filter(schemaVersion -> schemaVersion > TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
-                .findFirst();
-        maybeUnknownSchema.ifPresent(unknownSchema -> log.error(
-                "Found an unknown schema version. Will block further progress of TTS to avoid"
-                        + " completeness issues.",
-                SafeArg.of("unknownSchema", unknownSchema)));
+                .collect(Collectors.toSet());
+        if (!unknownSchemas.isEmpty()) {
+            log.error(
+                    "Found an unknown schema version. Will block further progress of TTS to avoid"
+                            + " completeness issues.",
+                    SafeArg.of("unknownSchemas", unknownSchemas));
+        }
     }
 
     private Map<Range<Long>, Integer> latestTimestampRangesSnapshot(long lastSweptTimestamp) {
