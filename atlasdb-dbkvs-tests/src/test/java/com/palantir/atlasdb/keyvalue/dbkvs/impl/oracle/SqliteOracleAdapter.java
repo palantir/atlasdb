@@ -192,25 +192,8 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
         String physicalTableName =
                 prefixedTableName + UUID.randomUUID().toString().replace("-", "");
 
-        // We don't use ddlTable createTable since we want the table name to insert into all_tables, and extracting
-        // that is quite painful
+        createTableWithoutMapping(physicalTableName, tableReference, owner, true);
         return runWithConnection(connection -> {
-            PreparedStatement insertAllTables =
-                    connection.prepareStatement("INSERT INTO all_tables VALUES (upper(?), upper(?))");
-            insertAllTables.setString(1, physicalTableName);
-            insertAllTables.setString(2, owner);
-            insertAllTables.executeUpdate();
-
-            String createTableSql = "CREATE TABLE %s (k VARCHAR(128) PRIMARY KEY, value VARCHAR(32))";
-            Statement createNewTable = connection.createStatement();
-            createNewTable.executeUpdate(String.format(createTableSql, physicalTableName));
-
-            PreparedStatement insertMetadata = connection.prepareStatement(
-                    "INSERT INTO " + METADATA_TABLE.getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
-            insertMetadata.setString(1, tableReference.getQualifiedName());
-            insertMetadata.setInt(2, 1);
-            insertMetadata.executeUpdate();
-
             PreparedStatement insertTableMapping = connection.prepareStatement("INSERT INTO "
                     + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)");
             insertTableMapping.setString(1, prefixedTableName);
@@ -221,6 +204,37 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
                     .physicalTableName(physicalTableName)
                     .prefixedTableName(prefixedTableName)
                     .build();
+        });
+    }
+
+    /**
+     * Similar to {@link #createTable}, but does not add an entry to the table mapping table.
+     * This enables simulating cases where two clients share the same prefix and user, one with table mapping enabled
+     * and the other without.
+     */
+    public void createTableWithoutMapping(
+            String physicalTableName, TableReference tableReference, String owner, boolean addMetadata) {
+        // We don't use ddlTable createTable since we want the table name to insert into all_tables, and extracting
+        // that is quite painful
+        runWithConnection(connection -> {
+            PreparedStatement insertAllTables =
+                    connection.prepareStatement("INSERT INTO all_tables VALUES (upper(?), upper(?))");
+            insertAllTables.setString(1, physicalTableName);
+            insertAllTables.setString(2, owner);
+            insertAllTables.executeUpdate();
+
+            String createTableSql = "CREATE TABLE %s (k VARCHAR(128) PRIMARY KEY, value VARCHAR(32))";
+            Statement createNewTable = connection.createStatement();
+            createNewTable.executeUpdate(String.format(createTableSql, physicalTableName));
+
+            if (addMetadata) {
+                PreparedStatement insertMetadata = connection.prepareStatement(
+                        "INSERT INTO " + METADATA_TABLE.getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
+                insertMetadata.setString(1, tableReference.getQualifiedName());
+                insertMetadata.setInt(2, 1);
+                insertMetadata.executeUpdate();
+            }
+            return null;
         });
     }
 

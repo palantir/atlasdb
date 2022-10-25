@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
@@ -120,7 +121,7 @@ public class KnownConcludedTransactionsImplTest {
     @Test
     public void addConcludedTimestampsSupplementsUnderlyingStore() {
         defaultKnownConcludedTransactions.addConcludedTimestamps(ADDITIONAL_RANGE);
-        verify(knownConcludedTransactionsStore).supplement(ADDITIONAL_RANGE);
+        verify(knownConcludedTransactionsStore).supplement(ImmutableSet.of(ADDITIONAL_RANGE));
     }
 
     @Test

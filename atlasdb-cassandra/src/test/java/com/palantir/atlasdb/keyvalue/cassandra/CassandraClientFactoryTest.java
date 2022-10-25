@@ -114,6 +114,40 @@ public class CassandraClientFactoryTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    public void verifyEndpointThrowsWhenSocketIsClosed() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        when(sslSocket.isClosed()).thenReturn(true);
+        assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSocket, true))
+                .isInstanceOf(SafeSSLPeerUnverifiedException.class);
+    }
+
+    @Test
+    public void verifyEndpointDoesNotThrowWhenSocketIsClosedAndThrowOnFailureIsFalse() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        when(sslSocket.isClosed()).thenReturn(true);
+        assertThatCode(() -> CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSocket, false))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void getEndpointsToCheckDeduplicatesMatchingHostnameIp() {
+        CassandraServer cassandraServer =
+                CassandraServer.of(InetSocketAddress.createUnresolved(DEFAULT_ADDRESS.getHostAddress(), 4000));
+        SSLSocket sslSocket = createSSLSocket(cassandraServer, DEFAULT_ADDRESS);
+        assertThat(CassandraClientFactory.getEndpointsToCheck(cassandraServer, sslSocket))
+                .isNotEmpty()
+                .containsExactly(DEFAULT_ADDRESS.getHostAddress());
+    }
+
+    @Test
+    public void getEndpointsToCheckPerformsNoDeduplicationWhenHostnameIpDiffer() {
+        SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
+        assertThat(CassandraClientFactory.getEndpointsToCheck(DEFAULT_SERVER, sslSocket))
+                .isNotEmpty()
+                .containsExactlyInAnyOrder(DEFAULT_SERVER.cassandraHostName(), DEFAULT_ADDRESS.getHostAddress());
+    }
+
     @SuppressWarnings("ReverseDnsLookup")
     private static InetSocketAddress mockInetSocketAddress(String ipAddress) {
         InetAddress inetAddress = mockInetAddress(ipAddress);
