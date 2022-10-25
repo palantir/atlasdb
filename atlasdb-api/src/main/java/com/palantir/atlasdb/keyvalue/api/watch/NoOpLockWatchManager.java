@@ -24,10 +24,14 @@ import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 
 public final class NoOpLockWatchManager extends LockWatchManagerInternal {
+    private static final SafeLogger log = SafeLoggerFactory.get(NoOpLockWatchManager.class);
+
     private final LockWatchCache cache;
 
     private NoOpLockWatchManager(LockWatchCache cache) {
@@ -41,6 +45,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     @Override
     public void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences) {
         // Ignored
+        log.info("nope, not creating your watches today");
     }
 
     @Override
