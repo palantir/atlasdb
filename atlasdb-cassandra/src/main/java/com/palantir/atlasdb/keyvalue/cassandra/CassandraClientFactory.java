@@ -19,6 +19,7 @@ import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -44,7 +45,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.Set;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
@@ -179,8 +180,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
                 thriftSocket = tSocketFactory.create(socket);
+                verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
                 success = true;
             } catch (IOException e) {
                 throw new TTransportException(e);
@@ -222,21 +223,35 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
      * This will check both ip address/hostname, and uses the IP address associated with the socket, rather
      * that what has been provided. Hostname/ip address are both need to be checked, as historically we've
      * connected to Cassandra directly using IP addresses, and therefore need to support such cases.
+     *
+     * Will only throw when throwOnFailure is true, even if the socket is closed during verification.
      */
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
             throws SafeSSLPeerUnverifiedException {
-        boolean endpointVerified = Stream.of(
-                        socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName())
-                .anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
-
-        if (!endpointVerified) {
-            log.warn("Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+        Set<String> endpointsToCheck = getEndpointsToCheck(cassandraServer, socket);
+        boolean endpointVerified =
+                endpointsToCheck.stream().anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
+        if (socket.isClosed()) {
             if (throwOnFailure) {
                 throw new SafeSSLPeerUnverifiedException(
-                        "Endpoint verification failed for host.", SafeArg.of("cassandraServer", cassandraServer));
+                        "Unable to verify endpoints as socket is closed.",
+                        SafeArg.of("endpoint", socket.getInetAddress()));
+            }
+            return;
+        }
+        if (!endpointVerified) {
+            log.warn("Endpoint verification failed for host.", SafeArg.of("endpointsChecked", endpointsToCheck));
+            if (throwOnFailure) {
+                throw new SafeSSLPeerUnverifiedException(
+                        "Endpoint verification failed for host.", SafeArg.of("endpointsChecked", endpointsToCheck));
             }
         }
+    }
+
+    @VisibleForTesting
+    static Set<String> getEndpointsToCheck(CassandraServer cassandraServer, SSLSocket socket) {
+        return ImmutableSet.of(socket.getInetAddress().getHostAddress(), cassandraServer.cassandraHostName());
     }
 
     @Override
