@@ -37,6 +37,9 @@ namespaces:
         tags:
           - strategy
         docs: Value of the last swept timestamp (that is, the highest timestamp at which we actually did sweep).
+      lastSeenCommitTs:
+        type: gauge
+        docs: Value of the last seen commit timestamp across shards (this metric is not recorded for thorough strategy).
       millisSinceLastSweptTs:
         type: gauge
         tags:
