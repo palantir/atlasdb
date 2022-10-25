@@ -40,13 +40,14 @@ public final class AtlasLockDescriptorUtils {
     }
 
     public static List<CellReference> candidateCells(LockDescriptor lockDescriptor) {
-        Optional<TableRefAndRemainder> tableRefAndRemainder = tryParseTableRef(lockDescriptor);
-        if (!tableRefAndRemainder.isPresent()) {
-            return ImmutableList.of();
-        }
+        return tryParseTableRef(lockDescriptor)
+                .map(AtlasLockDescriptorUtils::candidateCells)
+                .orElseGet(ImmutableList::of);
+    }
 
-        TableReference tableRef = tableRefAndRemainder.get().tableRef();
-        ByteString remainingBytes = tableRefAndRemainder.get().remainder();
+    public static List<CellReference> candidateCells(TableRefAndRemainder parsedLockDescriptor) {
+        TableReference tableRef = parsedLockDescriptor.tableRef();
+        ByteString remainingBytes = parsedLockDescriptor.remainder();
 
         List<CellReference> candidateCells = IntStream.range(1, remainingBytes.size() - 1)
                 .filter(index -> isZeroDelimiterIndex(remainingBytes, index))
@@ -60,7 +61,7 @@ public final class AtlasLockDescriptorUtils {
                             + "containing many zero bytes. If this message is logged frequently, this table may be "
                             + "inappropriate for caching",
                     SafeArg.of("candidateCellSize", candidateCells.size()),
-                    UnsafeArg.of("lockDescriptor", lockDescriptor));
+                    UnsafeArg.of("lockDescriptorBytes", remainingBytes));
         }
 
         return candidateCells;

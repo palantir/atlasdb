@@ -33,9 +33,11 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -199,6 +201,15 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
+        drop(CaseSensitivity.CASE_SENSITIVE);
+    }
+
+    /**
+     * Drops the table, and deletes the table from the mapping table (if present), and from the metadata table.
+     * If referenceCaseSensitivity is CASE_INSENSITIVE, and another table is created with a table reference that is a
+     * case insensitive match with this table, then the behaviour is undefined.
+     */
+    public void drop(CaseSensitivity referenceCaseSensitivity) {
         executeIgnoringTableMappingNotFound(() -> dropTableInternal(
                 oracleTableNameGetter.getPrefixedTableName(tableRef),
                 oracleTableNameGetter.getInternalShortTableName(conns, tableRef)));
@@ -211,7 +222,17 @@ public final class OracleDdlTable implements DbDdlTable {
                 oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
                 oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef)));
 
-        clearTableSizeCacheAndDropTableMetadata();
+        switch (referenceCaseSensitivity) {
+            case CASE_SENSITIVE:
+                clearTableSizeCacheAndDropTableMetadataCaseSensitive();
+                break;
+            case CASE_INSENSITIVE:
+                clearTableSizeCacheAndDropTableMetadataCaseInsensitive();
+                break;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unknown Case Sensitivity value", SafeArg.of("caseSensitivity", referenceCaseSensitivity));
+        }
     }
 
     private static void executeIgnoringTableMappingNotFound(
@@ -223,7 +244,33 @@ public final class OracleDdlTable implements DbDdlTable {
         }
     }
 
-    private void clearTableSizeCacheAndDropTableMetadata() {
+    private void clearTableSizeCacheAndDropTableMetadataCaseInsensitive() {
+        valueStyleCache.clearCacheForTable(tableRef);
+        long numberOfMatchingTableReferences = conns.get()
+                .selectCount(
+                        config.metadataTable().getQualifiedName(),
+                        "LOWER(table_name) = LOWER(?)",
+                        tableRef.getQualifiedName());
+
+        Preconditions.checkState(
+                numberOfMatchingTableReferences <= 1,
+                "There are multiple tables that have the same case insensitive table reference. Throwing to avoid"
+                        + " accidentally deleting the wrong table reference. Please contact support to delete the"
+                        + " metadata, which will involve deleting the row from the DB manually.",
+                SafeArg.of("numberOfMatchingTableReferences", numberOfMatchingTableReferences),
+                UnsafeArg.of("tableReference", tableRef));
+
+        // There is a race condition here - if a new table was created after the above count, and has a table reference
+        // with a case-insensitive match of this table reference, then that table reference will be deleted.
+        // We explicitly are not supporting that case, and acknowledge the need for DB surgery if it ever happens.
+        conns.get()
+                .executeUnregisteredQuery(
+                        "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE LOWER(table_name) ="
+                                + " LOWER(?)",
+                        tableRef.getQualifiedName());
+    }
+
+    private void clearTableSizeCacheAndDropTableMetadataCaseSensitive() {
         valueStyleCache.clearCacheForTable(tableRef);
         conns.get()
                 .executeUnregisteredQuery(
@@ -410,5 +457,10 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         return sqlConnection;
+    }
+
+    public enum CaseSensitivity {
+        CASE_SENSITIVE,
+        CASE_INSENSITIVE;
     }
 }
