@@ -1,0 +1,56 @@
+/*
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.palantir.atlasdb.factory;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
+import java.util.Optional;
+import org.junit.Test;
+
+public class AtlasDbServiceDiscoveryTest {
+    private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
+    private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
+    private final Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
+            Refreshable.only(Optional.empty());
+    private final NamespaceDeleterFactory delegate = new AutoServiceAnnotatedNamespaceDeleterFactory();
+
+    @Test
+    public void createsNamespaceDeleterFactoriesAnnotatedWithAutoService() {
+        NamespaceDeleterFactory namespaceDeleterFactory = createNamespaceDeleterFactory(kvsConfig);
+
+        assertThat(namespaceDeleterFactory).isInstanceOf(AutoServiceAnnotatedNamespaceDeleterFactory.class);
+        assertThat(namespaceDeleterFactory.createNamespaceDeleter(kvsConfig, runtimeConfig))
+                .isEqualTo(delegate.createNamespaceDeleter(kvsConfig, runtimeConfig));
+    }
+
+    @Test
+    public void notAllowConstructionWithoutAValidBackingNamespaceDeleterFactory() {
+        assertThatIllegalStateException()
+                .isThrownBy(() -> createNamespaceDeleterFactory(invalidKvsConfig))
+                .withMessageContaining("No atlas provider")
+                .withMessageContaining(invalidKvsConfig.type());
+    }
+
+    private static NamespaceDeleterFactory createNamespaceDeleterFactory(KeyValueServiceConfig config) {
+        return AtlasDbServiceDiscovery.createNamespaceDeleterFactoryOfCorrectType(config);
+    }
+}
