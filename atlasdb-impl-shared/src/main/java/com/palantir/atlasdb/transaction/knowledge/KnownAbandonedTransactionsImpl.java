@@ -56,7 +56,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
                 .weigher(new AbortedTransactionBucketWeigher())
                 .evictionListener((k, v, cause) -> {
                     if (cause.wasEvicted()) {
-                        metrics.reliableBucketEvictions().mark();
+                        metrics.reliableBucketEvictions().inc();
                     }
                 })
                 .build();
@@ -103,11 +103,12 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
     }
 
     private Set<Long> getCachedAbortedTimestampsInBucket(Bucket bucket) {
+        metrics.allReads().inc();
         return reliableCache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
-        metrics.abandonedTxnCacheMiss().mark();
+        metrics.abandonedTxnCacheMiss().inc();
         return abandonedTimestampStore.getAbandonedTimestampsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }

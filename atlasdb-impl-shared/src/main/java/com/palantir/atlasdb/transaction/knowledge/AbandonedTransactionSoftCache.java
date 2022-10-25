@@ -145,7 +145,7 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
 
         // It is possible that cache was updated by the time we reach here and refresh is not required any more.
         if (latestTs <= currentLastKnownConcluded) {
-            metrics.localReads().mark();
+            metrics.localReads().inc();
             return snapshot;
         }
 
@@ -163,7 +163,7 @@ public final class AbandonedTransactionSoftCache implements AutoCloseable {
     }
 
     private Set<Long> loadFromRemote(long startInclusive, long endInclusive) {
-        metrics.remoteReads().mark();
+        metrics.remoteReads().inc();
         return abandonedTimestampStore.getAbandonedTimestampsInRange(startInclusive, endInclusive);
     }
 

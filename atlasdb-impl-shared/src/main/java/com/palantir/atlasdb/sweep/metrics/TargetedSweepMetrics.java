@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -179,24 +180,18 @@ public class TargetedSweepMetrics {
     }
 
     private static final class StrategyAgnosticMetrics {
-        private final MetricsManager metricsManager;
-
         private final TargetedSweepProgressMetrics progressMetrics;
-        private final AccumulatingValueMetric lastSeenCommitTs;
+        private final AtomicLong lastSeenCommitTs;
 
         private StrategyAgnosticMetrics(MetricsManager metricsManager) {
-            this.metricsManager = metricsManager;
-            this.lastSeenCommitTs = new AccumulatingValueMetric();
+            this.lastSeenCommitTs = new AtomicLong();
             this.progressMetrics = TargetedSweepProgressMetrics.of(metricsManager.getTaggedRegistry());
 
-            progressMetrics.lastSeenCommitTs(lastSeenCommitTs);
+            progressMetrics.lastSeenCommitTs(lastSeenCommitTs::get);
         }
 
         private void updateLastSeenCommitTs(long commitTimestamp) {
-            // This could race but accuracy is not paramount, we generally should be seeing and upward trend.
-            if (lastSeenCommitTs.getValue() < commitTimestamp) {
-                lastSeenCommitTs.setValue(commitTimestamp);
-            }
+            lastSeenCommitTs.updateAndGet(_u -> commitTimestamp);
         }
     }
 

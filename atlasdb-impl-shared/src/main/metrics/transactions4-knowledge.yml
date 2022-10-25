@@ -9,27 +9,30 @@ namespaces:
         type: gauge
         docs: The number of disjoint intervals of timestamps tracked in the cache.
       remoteReads:
-        type: meter
+        type: counter
         docs: The number of times concluded transaction ranges were loaded from remote.
       localReads:
-        type: meter
+        type: counter
         docs: The number of times concluded transaction timestamp was available locally.
   abandonedTransactionsReliableCache:
     docs: Metrics tracking abandoned transactions reliable cache usage.
     metrics:
+      allReads:
+        type: counter
+        docs: The number of times reliable cache was read.
       abandonedTxnCacheMiss:
-        type: meter
+        type: counter
         docs: The number of times abandoned transactions bucket was loaded from remote.
       reliableBucketEvictions:
-        type: meter
+        type: counter
         docs: The number of times a reliable bucket was evicted from cache.
   abandonedTransactionsSoftCache:
     docs: Metrics tracking abandoned transactions soft cache usage.
     metrics:
       remoteReads:
-        type: meter
+        type: counter
         docs: The number of times abandoned transaction ranges were loaded from remote.
       localReads:
-        type: meter
+        type: counter
         docs: The number of times abandoned transaction timestamps were available locally.
 

@@ -77,11 +77,11 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     @Override
     public boolean isKnownConcluded(long startTimestamp, Consistency consistency) {
         if (cachedConcludedTimestampsRef.get().rangeSet().contains(startTimestamp)) {
-            knownConcludedTransactionsMetrics.localReads().mark();
+            knownConcludedTransactionsMetrics.localReads().inc();
             return true;
         }
         if (consistency == Consistency.REMOTE_READ) {
-            knownConcludedTransactionsMetrics.remoteReads().mark();
+            knownConcludedTransactionsMetrics.remoteReads().inc();
             return performRemoteReadAndCheckConcluded(startTimestamp);
         }
         return false;
