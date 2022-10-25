@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -61,6 +62,8 @@ import org.immutables.value.Value;
 public class TargetedSweepMetrics {
     private static final SafeLogger log = SafeLoggerFactory.get(TargetedSweepMetrics.class);
     private final Map<SweeperStrategy, MetricsForStrategy> metricsForStrategyMap;
+
+    private final StrategyAgnosticMetrics strategyAgnosticMetrics;
 
     private TargetedSweepMetrics(
             MetricsManager metricsManager,
@@ -73,6 +76,7 @@ public class TargetedSweepMetrics {
                 .map(strategyTag -> new MetricsForStrategy(
                         metricsManager, strategyTag, tsToMillis, clock, metricsConfiguration, shards))
                 .collectToMap();
+        strategyAgnosticMetrics = new StrategyAgnosticMetrics(metricsManager);
     }
 
     public static TargetedSweepMetrics create(
@@ -154,6 +158,10 @@ public class TargetedSweepMetrics {
         Optional.ofNullable(getMetrics(strategy)).ifPresent(update);
     }
 
+    public void updateLastSeenCommitTs(long lastSeenCommitTs) {
+        strategyAgnosticMetrics.updateLastSeenCommitTs(lastSeenCommitTs);
+    }
+
     private MetricsForStrategy getMetrics(SweeperStrategy strategy) {
         return metricsForStrategyMap.get(strategy);
     }
@@ -168,6 +176,22 @@ public class TargetedSweepMetrics {
                 return AtlasDbMetricNames.TAG_NON_SWEEPABLE;
             default:
                 throw new SafeIllegalStateException("Unexpected sweeper strategy", SafeArg.of("strategy", strategy));
+        }
+    }
+
+    private static final class StrategyAgnosticMetrics {
+        private final TargetedSweepProgressMetrics progressMetrics;
+        private final AtomicLong lastSeenCommitTs;
+
+        private StrategyAgnosticMetrics(MetricsManager metricsManager) {
+            this.lastSeenCommitTs = new AtomicLong();
+            this.progressMetrics = TargetedSweepProgressMetrics.of(metricsManager.getTaggedRegistry());
+
+            progressMetrics.lastSeenCommitTs(lastSeenCommitTs::get);
+        }
+
+        private void updateLastSeenCommitTs(long commitTimestamp) {
+            lastSeenCommitTs.updateAndGet(_u -> commitTimestamp);
         }
     }
 
