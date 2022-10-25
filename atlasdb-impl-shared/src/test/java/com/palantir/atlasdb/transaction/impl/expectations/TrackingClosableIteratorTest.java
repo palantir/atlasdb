@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,11 +41,11 @@ public class TrackingClosableIteratorTest {
                 new TrackingClosableIterator<>(spawnIterator(), noOp(), MEASURER);
 
         trackingIterator.forEachRemaining(string -> {
-            assertTrue(iterator.hasNext());
-            assertEquals(iterator.next(), string);
+            assertThat(iterator.hasNext()).isTrue();
+            assertThat(string).isEqualTo(iterator.next());
         });
 
-        assertFalse(iterator.hasNext());
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     @Test
@@ -61,7 +59,7 @@ public class TrackingClosableIteratorTest {
 
                     @Override
                     public void accept(Long bytes) {
-                        assertEquals(MEASURER.apply(baseIterator.next()), bytes);
+                        assertThat(bytes).isEqualTo(MEASURER.apply(baseIterator.next()));
                     }
                 },
                 MEASURER);

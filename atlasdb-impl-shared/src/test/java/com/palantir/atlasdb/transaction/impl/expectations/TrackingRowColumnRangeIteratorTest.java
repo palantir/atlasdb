@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,11 +40,11 @@ public class TrackingRowColumnRangeIteratorTest {
         TrackingRowColumnRangeIterator trackingIterator = new TrackingRowColumnRangeIterator(spawnIterator(), noOp());
 
         trackingIterator.forEachRemaining(entry -> {
-            assertTrue(iterator.hasNext());
-            assertEquals(iterator.next(), entry);
+            assertThat(iterator.hasNext()).isTrue();
+            assertThat(entry).isEqualTo(iterator.next());
         });
 
-        assertFalse(iterator.hasNext());
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     @Test
@@ -57,7 +55,7 @@ public class TrackingRowColumnRangeIteratorTest {
 
                     @Override
                     public void accept(Long bytes) {
-                        assertEquals(ExpectationsMeasuringUtils.byteSize(baseIterator.next()), bytes.longValue());
+                        assertThat(bytes).isEqualTo(ExpectationsMeasuringUtils.byteSize(baseIterator.next()));
                     }
                 });
 
