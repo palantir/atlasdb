@@ -228,13 +228,15 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
      */
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
-            throws SafeSSLPeerUnverifiedException, SocketException {
+            throws SafeSSLPeerUnverifiedException {
         Set<String> endpointsToCheck = getEndpointsToCheck(cassandraServer, socket);
         boolean endpointVerified =
                 endpointsToCheck.stream().anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
         if (socket.isClosed()) {
             if (throwOnFailure) {
-                throw new SocketException("Unable to verify hostnames as socket is closed.");
+                throw new SafeSSLPeerUnverifiedException(
+                        "Unable to verify endpoints as socket is closed.",
+                        SafeArg.of("endpoint", socket.getInetAddress()));
             }
             return;
         }

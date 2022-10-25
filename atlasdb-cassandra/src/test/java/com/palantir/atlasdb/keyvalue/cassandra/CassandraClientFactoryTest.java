@@ -30,7 +30,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -120,7 +119,7 @@ public class CassandraClientFactoryTest {
         SSLSocket sslSocket = createSSLSocket(DEFAULT_SERVER, DEFAULT_ADDRESS);
         when(sslSocket.isClosed()).thenReturn(true);
         assertThatThrownBy(() -> CassandraClientFactory.verifyEndpoint(DEFAULT_SERVER, sslSocket, true))
-                .isInstanceOf(SocketException.class);
+                .isInstanceOf(SafeSSLPeerUnverifiedException.class);
     }
 
     @Test
