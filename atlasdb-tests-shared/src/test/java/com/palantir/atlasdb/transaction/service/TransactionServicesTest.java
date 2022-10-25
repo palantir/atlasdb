@@ -19,9 +19,7 @@ package com.palantir.atlasdb.transaction.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import com.palantir.atlasdb.atomic.AtomicValue;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -142,16 +140,16 @@ public class TransactionServicesTest {
     }
 
     @Test
-    public void cannotMarkV4Transaction() {
-        forceInstallV4();
+    public void markV3TransactionIsNoop() {
+        forceInstallV3();
         initializeTimestamps();
         transactionService.markInProgress(startTs);
 
-        verify(keyValueService, never()).put(eq(TransactionConstants.TRANSACTION_TABLE), anyMap(), eq(0));
+        verify(keyValueService, never()).put(eq(TransactionConstants.TRANSACTIONS2_TABLE), any(), anyLong());
     }
 
     @Test
-    public void canCommitV3Transaction() {
+    public void canCommitV3TransactionWithoutMarking() {
         forceInstallV3();
         initializeTimestamps();
         transactionService.putUnlessExists(startTs, commitTs);
@@ -188,13 +186,24 @@ public class TransactionServicesTest {
     }
 
     @Test
+    public void cannotCommitV4TransactionWithoutMarking() throws InterruptedException {
+        forceInstallV4();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+
+        Thread.sleep(1000);
+
+        assertThat(transactionService.getV2(startTs)).isNull();
+    }
+
+    @Test
     public void canCommitV4Transaction() throws InterruptedException {
         forceInstallV4();
         initializeTimestamps();
         transactionService.markInProgress(startTs);
         transactionService.putUnlessExists(startTs, commitTs);
         // Enforcing the mcas autobatcher
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         TwoPhaseEncodingStrategy strategy = new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE);
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
@@ -231,7 +240,7 @@ public class TransactionServicesTest {
 
     private void forceInstallVersion(int newVersion) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(200)).until(() -> {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);

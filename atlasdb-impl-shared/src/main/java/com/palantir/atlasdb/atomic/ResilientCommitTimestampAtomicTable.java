@@ -141,6 +141,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
         store.atomicUpdate(stagingValues);
+        // todo(snanda): old algo was pue + put; new state machine is put + mcas (this one will be batched cas + put)
         store.put(KeyedStream.stream(stagingValues)
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());
