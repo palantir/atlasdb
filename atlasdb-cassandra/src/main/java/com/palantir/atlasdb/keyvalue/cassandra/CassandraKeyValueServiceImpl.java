@@ -39,6 +39,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.protobuf.ByteString;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
@@ -256,7 +257,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 StartupChecks.RUN,
                 new Blacklist(
                         config,
-                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)));
+                        runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
+                new CassandraTopologyValidator(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())));
 
         return createOrShutdownClientPool(
                 metricsManager,
