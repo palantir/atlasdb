@@ -180,8 +180,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
                 thriftSocket = tSocketFactory.create(socket);
+                verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
                 success = true;
             } catch (IOException e) {
                 throw new TTransportException(e);
@@ -223,14 +223,21 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
      * This will check both ip address/hostname, and uses the IP address associated with the socket, rather
      * that what has been provided. Hostname/ip address are both need to be checked, as historically we've
      * connected to Cassandra directly using IP addresses, and therefore need to support such cases.
+     *
+     * Will only throw when throwOnFailure is true, even if the socket is closed during verification.
      */
     @VisibleForTesting
     static void verifyEndpoint(CassandraServer cassandraServer, SSLSocket socket, boolean throwOnFailure)
-            throws SafeSSLPeerUnverifiedException {
+            throws SafeSSLPeerUnverifiedException, SocketException {
         Set<String> endpointsToCheck = getEndpointsToCheck(cassandraServer, socket);
         boolean endpointVerified =
                 endpointsToCheck.stream().anyMatch(address -> hostnameVerifier.verify(address, socket.getSession()));
-
+        if (socket.isClosed()) {
+            if (throwOnFailure) {
+                throw new SocketException("Unable to verify hostnames as socket is closed.");
+            }
+            return;
+        }
         if (!endpointVerified) {
             log.warn("Endpoint verification failed for host.", SafeArg.of("endpointsToCheck", endpointsToCheck));
             if (throwOnFailure) {
