@@ -48,7 +48,7 @@ import org.awaitility.Awaitility;
 public final class LockWatchIntegrationTestUtilities {
     private static final String TEST_PACKAGE = "package";
     static final String TABLE = "table";
-    static final String TABLE_2 = "stół";
+    static final String TABLE_2 = "rowLevelTable";
 
     private LockWatchIntegrationTestUtilities() {
         // no-op
