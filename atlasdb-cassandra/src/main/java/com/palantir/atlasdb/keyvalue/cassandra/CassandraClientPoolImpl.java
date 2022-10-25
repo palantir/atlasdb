@@ -359,6 +359,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
     }
 
+    /**
+     * Validates new servers to add to the cassandra client container pool,
+     * by checking them with the @see {@link com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator}.
+     * If any servers come back and are not in consensus this is OK, we will simply add them to the absent host
+     * tracker, as we most likely will retry this host in subsequent calls.
+     *
+     * @return The set of cassandra servers which have valid topologies and have been added to the pool.
+     */
     private Set<CassandraServer> validateNewHostsTopologiesAndMaybeAddToPool(Set<CassandraServer> serversToAdd) {
         if (serversToAdd.isEmpty()) {
             return Set.of();
@@ -370,6 +378,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
                 MapUtils.combineMaps(getCurrentPools(), serversToAddContainers);
 
+        // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
         Set<CassandraServer> newHostsWithDifferingTopology =
                 cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
                         serversToAdd,
