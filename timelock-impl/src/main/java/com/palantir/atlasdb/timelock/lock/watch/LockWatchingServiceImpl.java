@@ -104,6 +104,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         }
     }
 
+    @SuppressWarnings("CompileTimeConstant")
     private void logIfExactTable(Set<LockWatchReference> changedWatches, String message) {
         changedWatches.forEach(ref -> ref.accept(new Visitor<Void>() {
             @Override
