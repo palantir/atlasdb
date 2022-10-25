@@ -84,41 +84,15 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
+        log.info("Attempting to watch new references");
+        logIfExactTable(locksToWatch.getReferences(), "Attempting to watch exact table");
         Optional<LockWatches> changes = addToWatches(locksToWatch);
         changes.ifPresent(changedWatches -> {
             log.info(
                     "New references watched",
                     SafeArg.of("sizeOfReferences", changedWatches.references().size()),
                     UnsafeArg.of("references", changedWatches.references()));
-            changedWatches
-                    .references()
-                    .forEach(ref -> ref.accept(new Visitor<Void>() {
-                        @Override
-                        public Void visit(EntireTable reference) {
-                            return null;
-                        }
-
-                        @Override
-                        public Void visit(RowPrefix reference) {
-                            return null;
-                        }
-
-                        @Override
-                        public Void visit(RowRange reference) {
-                            return null;
-                        }
-
-                        @Override
-                        public Void visit(ExactRow reference) {
-                            log.info("Exact row reference added!");
-                            return null;
-                        }
-
-                        @Override
-                        public Void visit(ExactCell reference) {
-                            return null;
-                        }
-                    }));
+            logIfExactTable(changedWatches.references(), "Exact row reference added!");
         });
         changes.ifPresent(this::logLockWatchEvent);
         Set<LockWatchReference> allReferences = watches.get().references();
@@ -128,6 +102,36 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                     SafeArg.of("sizeOfReferences", allReferences.size()),
                     UnsafeArg.of("allWatchedTables", allReferences));
         }
+    }
+
+    private void logIfExactTable(Set<LockWatchReference> changedWatches, String message) {
+        changedWatches.forEach(ref -> ref.accept(new Visitor<Void>() {
+            @Override
+            public Void visit(EntireTable reference) {
+                return null;
+            }
+
+            @Override
+            public Void visit(RowPrefix reference) {
+                return null;
+            }
+
+            @Override
+            public Void visit(RowRange reference) {
+                return null;
+            }
+
+            @Override
+            public Void visit(ExactRow reference) {
+                log.info(message);
+                return null;
+            }
+
+            @Override
+            public Void visit(ExactCell reference) {
+                return null;
+            }
+        }));
     }
 
     @Override
