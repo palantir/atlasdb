@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ClientLockDiagnosticDigest;
 import com.palantir.atlasdb.debug.ClientLockDiagnosticCollector.ConflictTrace;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.logsafe.Unsafe;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.immutables.value.Value;
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
  * @deprecated Remove this once PDS-95791 is resolved.
  */
+@Unsafe
 @Deprecated
 @Value.Immutable
 @JsonDeserialize(as = ImmutableFullDiagnosticDigest.class)
@@ -49,6 +51,7 @@ public interface FullDiagnosticDigest<T> {
 
     List<LocalLockTracker.TrackedLockEvent> trackedLockEvents();
 
+    @Unsafe
     @Value.Immutable
     @JsonDeserialize(as = ImmutableRawData.class)
     @JsonSerialize(as = ImmutableRawData.class)
@@ -63,6 +66,7 @@ public interface FullDiagnosticDigest<T> {
         Map<Long, ClientLockDiagnosticDigest> clientSideDiagnosticInfo();
     }
 
+    @Unsafe
     @JsonDeserialize(as = ImmutableCompletedTransactionDigest.class)
     @JsonSerialize(as = ImmutableCompletedTransactionDigest.class)
     @Value.Immutable
@@ -82,6 +86,7 @@ public interface FullDiagnosticDigest<T> {
         List<ConflictTrace> conflictTrace();
     }
 
+    @Unsafe
     @JsonDeserialize(as = ImmutableLockDigest.class)
     @JsonSerialize(as = ImmutableLockDigest.class)
     @Value.Immutable

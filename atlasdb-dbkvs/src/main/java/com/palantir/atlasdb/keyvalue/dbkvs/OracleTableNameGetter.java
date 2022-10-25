@@ -33,10 +33,10 @@ public interface OracleTableNameGetter {
             throws TableMappingNotFoundException;
 
     Set<TableReference> getTableReferencesFromShortTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException;
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames);
 
     Set<TableReference> getTableReferencesFromShortOverflowTableNames(
-            ConnectionSupplier connectionSupplier, Set<String> shortTableNames) throws TableMappingNotFoundException;
+            ConnectionSupplier connectionSupplier, Set<String> shortTableNames);
 
     String getPrefixedTableName(TableReference tableRef);
 
