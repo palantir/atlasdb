@@ -39,6 +39,10 @@ public final class AtlasDbServiceDiscovery {
     }
 
     public static NamespaceDeleterFactory createNamespaceDeleterFactoryOfCorrectType(KeyValueServiceConfig config) {
+        if (!config.enableNamespaceDeletion()) {
+            throw new SafeIllegalStateException("Cannot construct a NamespaceDeleterFactory when keyValueService"
+                    + ".enableNamespaceDeletionDangerousIKnowWhatIAmDoing is false.");
+        }
         return createAtlasDbServiceOfCorrectType(
                 config, NamespaceDeleterFactory::getType, NamespaceDeleterFactory.class);
     }

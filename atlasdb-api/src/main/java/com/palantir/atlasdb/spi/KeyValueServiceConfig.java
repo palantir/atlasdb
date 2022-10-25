@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.spi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
@@ -29,4 +31,17 @@ public interface KeyValueServiceConfig {
     Optional<String> namespace();
 
     Optional<SharedResourcesConfig> sharedResourcesConfig();
+
+    /**
+     * Enables construction of {@link com.palantir.atlasdb.namespacedeleter.NamespaceDeleter} via a
+     * {@link com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory} through AtlasDbServiceDiscovery, which
+     * can be used to delete all data for a namespace in the KVS. This is dangerous, and must only be used once
+     * you've acknowledged the risks and side effects mentioned in the relevant NamespaceDeleter docs (e.g.,
+     * CassandraNamespaceDeleter)
+     */
+    @Value.Default
+    @JsonProperty("enableNamespaceDeletionDangerousIKnowWhatIAmDoing")
+    default boolean enableNamespaceDeletion() {
+        return false;
+    }
 }
