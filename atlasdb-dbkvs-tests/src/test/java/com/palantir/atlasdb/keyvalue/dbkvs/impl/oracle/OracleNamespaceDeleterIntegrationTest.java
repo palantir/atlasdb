@@ -441,7 +441,8 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                 .hasSameSizeAs(snapshot.tableReferences())
                 .isEmpty();
         if (snapshot.physicalTableNames().size() == 1) {
-            assertThat(Iterables.getOnlyElement(snapshot.physicalTableNames()).toLowerCase(Locale.ROOT)).isEqualTo(timestampTableName);
+            assertThat(Iterables.getOnlyElement(snapshot.physicalTableNames()).toLowerCase(Locale.ROOT))
+                    .isEqualTo(timestampTableName);
         } else {
             assertThat(snapshot.physicalTableNames()).isEmpty();
         }

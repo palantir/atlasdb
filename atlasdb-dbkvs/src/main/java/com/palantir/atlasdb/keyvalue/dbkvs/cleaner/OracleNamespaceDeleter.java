@@ -44,8 +44,9 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
     @Override
     public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
-        tableNamesToDrop.stream().map(parameters.oracleDdlTableFactory()).forEach(ddlTable -> ddlTable.drop(
-                CaseSensitivity.CASE_INSENSITIVE));
+        tableNamesToDrop.stream()
+                .map(parameters.oracleDdlTableFactory())
+                .forEach(ddlTable -> ddlTable.drop(CaseSensitivity.CASE_INSENSITIVE));
     }
 
     @Override
