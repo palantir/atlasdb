@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: If hostname/ip address are duplicates, only check one when performing
+    endpoint verification.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6314
