@@ -188,18 +188,19 @@ public class TransactionServicesTest {
     }
 
     @Test
-    public void canCommitV4Transaction() {
+    public void canCommitV4Transaction() throws InterruptedException {
         forceInstallV4();
         initializeTimestamps();
         transactionService.markInProgress(startTs);
         transactionService.putUnlessExists(startTs, commitTs);
+        // Enforcing the mcas autobatcher
+        Thread.sleep(1000);
 
         TwoPhaseEncodingStrategy strategy = new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE);
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
         byte[] update = strategy.encodeCommitStatusAsValue(
                 startTs, AtomicValue.staging(TransactionStatuses.committed(commitTs)));
 
-        // todo(snanda): this is async. Fix
         MultiCheckAndSetRequest actualMcasRequest = verifyMcasInTableAndReturnArgument();
         assertThat(actualMcasRequest.tableRef()).isEqualTo(TransactionConstants.TRANSACTIONS2_TABLE);
         assertThat(ByteBuffer.wrap(actualMcasRequest.rowName())).isEqualTo(ByteBuffer.wrap(cell.getRowName()));
