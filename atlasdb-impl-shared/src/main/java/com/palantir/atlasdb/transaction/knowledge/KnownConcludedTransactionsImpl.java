@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
@@ -63,7 +64,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
         this.cachedConcludedTimestampsRef = new AtomicReference<>(ImmutableCache.of(ImmutableRangeSet.of()));
         this.knownConcludedTransactionsMetrics = metrics;
         metrics.disjointCacheIntervals(
-                () -> cachedConcludedTimestampsRef.get().ranges().asRanges().size());
+                () -> cachedConcludedTimestampsRef.get().ranges().size());
     }
 
     public static KnownConcludedTransactions create(
@@ -76,10 +77,12 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
     @Override
     public boolean isKnownConcluded(long startTimestamp, Consistency consistency) {
-        if (cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp)) {
+        if (cachedConcludedTimestampsRef.get().rangeSet().contains(startTimestamp)) {
+            knownConcludedTransactionsMetrics.localReads().inc();
             return true;
         }
         if (consistency == Consistency.REMOTE_READ) {
+            knownConcludedTransactionsMetrics.remoteReads().inc();
             return performRemoteReadAndCheckConcluded(startTimestamp);
         }
         return false;
@@ -113,7 +116,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
     private boolean performRemoteReadAndCheckConcluded(long startTimestamp) {
         cacheUpdater.get();
-        return cachedConcludedTimestampsRef.get().ranges().contains(startTimestamp);
+        return cachedConcludedTimestampsRef.get().rangeSet().contains(startTimestamp);
     }
 
     private void updateCacheFromRemote() {
@@ -128,13 +131,13 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
 
             Cache cachedConcludedTimestamps = cachedConcludedTimestampsRef.get();
 
-            ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.ranges();
+            ImmutableRangeSet<Long> cachedRanges = cachedConcludedTimestamps.rangeSet();
 
             if (cachedRanges.enclosesAll(timestampRanges)) {
                 return;
             }
-            Cache targetCacheValue = ImmutableCache.of(
-                    ImmutableRangeSet.unionOf(Sets.union(cachedRanges.asRanges(), timestampRanges.asRanges())));
+            Cache targetCacheValue = ImmutableCache.of(ImmutableRangeSet.unionOf(
+                    Sets.union(cachedConcludedTimestamps.ranges(), timestampRanges.asRanges())));
             if (cachedConcludedTimestampsRef.compareAndSet(cachedConcludedTimestamps, targetCacheValue)) {
                 return;
             }
@@ -149,11 +152,16 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     @Value.Immutable
     interface Cache {
         @Value.Parameter
-        ImmutableRangeSet<Long> ranges();
+        ImmutableRangeSet<Long> rangeSet();
+
+        @Value.Lazy
+        default ImmutableSet<Range<Long>> ranges() {
+            return rangeSet().asRanges();
+        }
 
         @Value.Lazy
         default long lastKnownConcludedTs() {
-            return ranges().asRanges().stream()
+            return ranges().stream()
                     .filter(Range::hasUpperBound)
                     .map(Range::upperEndpoint)
                     .max(Comparator.naturalOrder())
