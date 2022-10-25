@@ -67,7 +67,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.OngoingStubbing;
 
-public class CassandraClientPoolTest {
+public final class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
     private static final int TIME_BETWEEN_EVICTION_RUNS_SECONDS = 20;
     private static final int UNRESPONSIVE_HOST_BACKOFF_SECONDS = 5 * 60;
@@ -97,6 +97,8 @@ public class CassandraClientPoolTest {
     private Blacklist blacklist;
     private CassandraService cassandra = mock(CassandraService.class);
 
+    private CassandraTopologyValidator cassandraTopologyValidator = mock(CassandraTopologyValidator.class);
+
     @Before
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
@@ -114,7 +116,10 @@ public class CassandraClientPoolTest {
                 .addPool(any());
         doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
                 .when(cassandra)
-                .returnOrCreatePool(any(), any());
+                .addPool(any(), any());
+        doAnswer(invocation -> mock(CassandraClientPoolingContainer.class))
+                .when(cassandra)
+                .createPool(any());
         doAnswer(invocation -> {
                     poolServers.remove(getInvocationAddress(invocation));
                     return mock(CassandraClientPoolingContainer.class);
@@ -277,7 +282,8 @@ public class CassandraClientPoolTest {
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                blacklist);
+                blacklist,
+                cassandraTopologyValidator);
 
         host(CASS_SERVER_1)
                 .throwsException(new SocketTimeoutException())
@@ -292,6 +298,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnStartup() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -303,6 +310,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyRemovedOnRefresh() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -318,6 +326,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnStartup() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -329,6 +338,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostIsAutomaticallyAddedOnRefresh() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
 
@@ -344,6 +354,7 @@ public class CassandraClientPoolTest {
 
     @Test
     public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
         when(config.autoRefreshNodes()).thenReturn(false);
 
@@ -358,6 +369,8 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shutsDownHostsBeyondAbsenceTolerance() {
+        when(cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(any(), any(), any(), any()))
+                .thenReturn(Set.of());
         CassandraClientPoolImpl cassandraClientPool =
                 clientPoolWithServersInCurrentPool(ImmutableSet.of(CASS_SERVER_1));
         Map<CassandraServer, CassandraClientPoolingContainer> currentPoolSnapshot =
@@ -390,7 +403,8 @@ public class CassandraClientPoolTest {
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 _numThreads -> deterministicExecutor,
                 blacklist,
-                cassandra);
+                cassandra,
+                cassandraTopologyValidator);
     }
 
     private HostBuilder host(CassandraServer server) {
@@ -463,7 +477,8 @@ public class CassandraClientPoolTest {
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                blacklist);
+                blacklist,
+                cassandraTopologyValidator);
 
         serversInPool.forEach(address -> cassandraClientPool
                 .getCurrentPools()
@@ -554,5 +569,10 @@ public class CassandraClientPoolTest {
                 .thenReturn(config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
                         .map(CassandraServer::of)
                         .collect(ImmutableSet.toImmutableSet()));
+    }
+
+    private void setupHostsWithInconsistentTopology(Set<CassandraServer> cassandraServers) {
+        when(cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(any(), any(), any(), any()))
+                .thenReturn(cassandraServers);
     }
 }
