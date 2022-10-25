@@ -16,20 +16,23 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public final class ExpectationsCallbackManager {
-    private final List<Consumer<Object>> callbacks = new CopyOnWriteArrayList<>();
-    private final AtomicBoolean ranCallbacks
+    private final List<Consumer<ExpectationsStatistics>> callbacks = new CopyOnWriteArrayList<>();
+    private final AtomicBoolean ranCallbacks = new AtomicBoolean(false);
 
-    public void registerCallback(Consumer<Object> callback) {
+    public void registerCallback(Consumer<ExpectationsStatistics> callback) {
         callbacks.add(callback);
     }
 
-    public void runCallbacksOnce(Object stats) {
-        callbacks.forEach(consumer -> consumer.accept(stats));
+    public void runCallbacksOnce(ExpectationsStatistics stats) {
+        if (!ranCallbacks.compareAndExchange(false, true)) {
+            callbacks.forEach(consumer -> consumer.accept(stats));
+        }
     }
 }
