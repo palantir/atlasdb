@@ -36,6 +36,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -349,6 +350,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
         }
+
+        Preconditions.checkState(
+                !(getCurrentPools().isEmpty() && !serversToAdd.isEmpty()),
+                "No servers are in the pool, despite there being servers added. This means hosts could not come to a"
+                    + " consensus on cluster topology, and thus the client cannot start as there are no valid hosts.",
+                SafeArg.of("serversToAdd", serversToAdd));
 
         logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
     }
