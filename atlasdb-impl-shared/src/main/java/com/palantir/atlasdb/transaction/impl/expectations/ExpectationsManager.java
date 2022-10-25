@@ -21,11 +21,15 @@ public interface ExpectationsManager extends AutoCloseable {
 
     /*
      * Stop tracking a given transaction without running expectations callbacks.
+     * Should not be used on transactions that are already in progress.
+     * Use case is for when transactions are created and registered but thrown away unused.
      */
     void unregister(ExpectationsAwareTransaction transaction);
 
     /*
      * Mark transaction as concluded (aborted/succeeded), run expectations callbacks and stop tracking the transaction.
+     * Unregistering transactions is done at best effort basis.
+     * Running callbacks is guaranteed.
      */
     void markCompletion(ExpectationsAwareTransaction transaction);
 }

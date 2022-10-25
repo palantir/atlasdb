@@ -22,6 +22,11 @@ import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import java.util.Set;
 
+/**
+ * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
+ * post-commit/post-abort or outside the user task.
+ * todo(aalouane) move this javadoc to the user-exposed API when implemented
+ */
 public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
 
@@ -29,16 +34,8 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     TransactionReadInfo getReadInfo();
 
-    /**
-     * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
-     * post-commit/post-abort or outside the user task.
-     */
     ExpectationsStatistics getCallbackStatistics();
 
-    /**
-     * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
-     * post-commit/post-abort or outside the user task.
-     */
     void runExpectationsCallbacks();
 
     Set<ExpectationsViolation> checkAndGetViolations();

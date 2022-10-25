@@ -45,6 +45,6 @@ public final class ExpectationsTask implements Runnable {
         }
     }
 
-    // todo(aalouane)
+    // todo(aalouane) wire metrics and for each violation type mark violationOccurred-equivalent metric as 1 or 0
     private void updateMetrics(Set<ExpectationsViolation> violations) {}
 }

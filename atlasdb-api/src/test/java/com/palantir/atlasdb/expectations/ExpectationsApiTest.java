@@ -16,14 +16,15 @@
 
 package com.palantir.atlasdb.expectations;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,46 +56,44 @@ public class ExpectationsApiTest {
 
     @Test
     public void testKvsCallReadInfoComparator() {
-        assertTrue(SMALLER_NAME_10.compareTo(SMALLER_NAME_20) < 0);
-        assertTrue(SMALLER_NAME_20.compareTo(SMALLER_NAME_10) > 0);
+        assertThat(SMALLER_NAME_10).isLessThan(SMALLER_NAME_20);
+        assertThat(SMALLER_NAME_20).isGreaterThan(SMALLER_NAME_10);
 
-        assertTrue(LARGER_NAME_10.compareTo(LARGER_NAME_20) < 0);
-        assertTrue(LARGER_NAME_20.compareTo(LARGER_NAME_10) > 0);
+        assertThat(LARGER_NAME_10).isLessThan(LARGER_NAME_20);
+        assertThat(LARGER_NAME_20).isGreaterThan(LARGER_NAME_10);
 
-        assertTrue(LARGER_NAME_10.compareTo(SMALLER_NAME_20) < 0);
-        assertTrue(SMALLER_NAME_20.compareTo(LARGER_NAME_10) > 0);
+        assertThat(LARGER_NAME_10).isLessThan(SMALLER_NAME_20);
+        assertThat(SMALLER_NAME_20).isGreaterThan(LARGER_NAME_10);
 
-        assertTrue(SMALLER_NAME_10.compareTo(LARGER_NAME_20) < 0);
-        assertTrue(LARGER_NAME_20.compareTo(SMALLER_NAME_10) > 0);
+        assertThat(SMALLER_NAME_10).isLessThan(LARGER_NAME_20);
+        assertThat(LARGER_NAME_20).isGreaterThan(SMALLER_NAME_10);
 
-        assertEquals(
-                0,
-                SMALLER_NAME_10.compareTo(
-                        ImmutableKvsCallReadInfo.builder().from(SMALLER_NAME_10).build()));
-        assertEquals(
-                0,
-                SMALLER_NAME_20.compareTo(
-                        ImmutableKvsCallReadInfo.builder().from(SMALLER_NAME_20).build()));
-        assertEquals(
-                0,
-                LARGER_NAME_10.compareTo(
-                        ImmutableKvsCallReadInfo.builder().from(LARGER_NAME_10).build()));
-        assertEquals(
-                0,
-                LARGER_NAME_20.compareTo(
-                        ImmutableKvsCallReadInfo.builder().from(LARGER_NAME_20).build()));
+        assertThat(SMALLER_NAME_10.compareTo(
+                        ImmutableKvsCallReadInfo.builder().from(SMALLER_NAME_10).build()))
+                .isEqualTo(0);
+        assertThat(SMALLER_NAME_20.compareTo(
+                        ImmutableKvsCallReadInfo.builder().from(SMALLER_NAME_20).build()))
+                .isEqualTo(0);
+        assertThat(LARGER_NAME_10.compareTo(
+                        ImmutableKvsCallReadInfo.builder().from(LARGER_NAME_10).build()))
+                .isEqualTo(0);
+        assertThat(LARGER_NAME_20.compareTo(
+                        ImmutableKvsCallReadInfo.builder().from(LARGER_NAME_20).build()))
+                .isEqualTo(0);
     }
 
     @Test
     public void testExpectationsConfigValidation() {
-        ExpectationsConfig validConfig = ImmutableExpectationsConfig.builder()
-                .from(DEFAULT_EXPECTATIONS_CONFIG)
-                .transactionName(StringUtils.repeat('t', ExpectationsConfig.MAXIMUM_NAME_SIZE))
-                .build();
+        assertThatCode(() -> ImmutableExpectationsConfig.builder()
+                        .from(DEFAULT_EXPECTATIONS_CONFIG)
+                        .transactionName(StringUtils.repeat('t', ExpectationsConfig.MAXIMUM_NAME_SIZE))
+                        .build())
+                .doesNotThrowAnyException();
 
-        assertThrows(IllegalArgumentException.class, () -> ImmutableExpectationsConfig.builder()
-                .from(DEFAULT_EXPECTATIONS_CONFIG)
-                .transactionName(StringUtils.repeat('t', ExpectationsConfig.MAXIMUM_NAME_SIZE + 1))
-                .build());
+        assertThatThrownBy(() -> ImmutableExpectationsConfig.builder()
+                        .from(DEFAULT_EXPECTATIONS_CONFIG)
+                        .transactionName(StringUtils.repeat('t', ExpectationsConfig.MAXIMUM_NAME_SIZE + 1))
+                        .build())
+                .isInstanceOf(SafeIllegalArgumentException.class);
     }
 }

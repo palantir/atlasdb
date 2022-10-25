@@ -22,6 +22,7 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
@@ -61,5 +62,26 @@ public class ExpectationsManagerTest {
         manager.register(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
         verify(transaction, times(1)).checkAndGetViolations();
+    }
+
+    @Test
+    public void unregisterLeadsToNoMoreInteractionsWithTransaction() {
+        manager.register(transaction);
+        executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verify(transaction, times(1)).checkAndGetViolations();
+        manager.unregister(transaction);
+        executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verifyNoMoreInteractions(transaction);
+    }
+
+    @Test
+    public void doubleUnregisterIsRedundant() {
+        manager.register(transaction);
+        executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verify(transaction, times(1)).checkAndGetViolations();
+        manager.unregister(transaction);
+        manager.unregister(transaction);
+        executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verifyNoMoreInteractions(transaction);
     }
 }
