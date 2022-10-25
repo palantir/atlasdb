@@ -241,6 +241,7 @@ public final class LockWatchEventIntegrationTest {
     public void eventsGeneratedForRowLevelLockWatches() {
         LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
         txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
 
         OpenTransaction firstTxn = startSingleTransaction();
         LockWatchVersion currentVersion = getCurrentVersion();
