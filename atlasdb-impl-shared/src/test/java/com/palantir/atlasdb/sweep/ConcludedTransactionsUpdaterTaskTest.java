@@ -83,7 +83,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
 
         updaterTask.runOneIteration();
 
-        verify(concludedTransactionsStore).supplement(Range.closed(1L, expectedMinTs));
+        verify(concludedTransactionsStore).addConcludedTimestamps(Range.closed(1L, expectedMinTs));
 
         updaterTask.close();
     }
