@@ -149,7 +149,11 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         // The order must not be changed without considering correctness of txn4
         abandonedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
+
+        // Update last seen commit timestamp
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
+        metrics.updateLastSeenCommitTs(sweepBatch.lastSeenCommitTimestamp());
+
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 

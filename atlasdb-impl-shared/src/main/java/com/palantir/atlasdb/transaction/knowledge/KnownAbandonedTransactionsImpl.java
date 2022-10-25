@@ -40,7 +40,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
     private final Cache<Bucket, Set<Long>> reliableCache;
 
     private final AbandonedTransactionSoftCache softCache;
-    private final AbortedTransctionsCacheMetrics metrics;
+    private final AbandonedTransactionsReliableCacheMetrics metrics;
 
     @VisibleForTesting
     KnownAbandonedTransactionsImpl(
@@ -50,13 +50,13 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
             int maxCacheWeight) {
         this.abandonedTimestampStore = abandonedTimestampStore;
         this.softCache = softCache;
-        this.metrics = AbortedTransctionsCacheMetrics.of(registry);
+        this.metrics = AbandonedTransactionsReliableCacheMetrics.of(registry);
         this.reliableCache = Caffeine.newBuilder()
                 .maximumWeight(maxCacheWeight)
                 .weigher(new AbortedTransactionBucketWeigher())
                 .evictionListener((k, v, cause) -> {
                     if (cause.wasEvicted()) {
-                        metrics.reliableBucketEvictions().mark();
+                        metrics.reliableBucketEvictions().inc();
                     }
                 })
                 .build();
@@ -68,7 +68,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
             TaggedMetricRegistry registry,
             InternalSchemaInstallConfig config) {
         AbandonedTransactionSoftCache softCache =
-                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions);
+                new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions, registry);
         return new KnownAbandonedTransactionsImpl(
                 abandonedTimestampStore, softCache, registry, config.versionFourAbortedTransactionsCacheSize());
     }
@@ -103,11 +103,12 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
     }
 
     private Set<Long> getCachedAbortedTimestampsInBucket(Bucket bucket) {
+        metrics.allReads().inc();
         return reliableCache.get(bucket, this::getAbortedTransactionsRemote);
     }
 
     private Set<Long> getAbortedTransactionsRemote(Bucket bucket) {
-        metrics.abortedTxnCacheMiss().mark();
+        metrics.abandonedTxnCacheMiss().inc();
         return abandonedTimestampStore.getAbandonedTimestampsInRange(
                 bucket.getMinTsInBucket(), bucket.getMaxTsInCurrentBucket());
     }
