@@ -26,7 +26,7 @@ import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 
 @AutoService(NamespaceDeleterFactory.class)
-public class AutoServiceAnnotatedNamespaceDeleterFactory implements NamespaceDeleterFactory {
+public final class AutoServiceAnnotatedNamespaceDeleterFactory implements NamespaceDeleterFactory {
     public static final String TYPE = "not-a-real-db";
     private static final NamespaceDeleter NAMESPACE_DELETER = mock(NamespaceDeleter.class);
 
