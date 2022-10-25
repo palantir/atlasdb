@@ -26,7 +26,7 @@ import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import org.junit.Test;
 
-public class AtlasDbServiceDiscoveryTest {
+public final class AtlasDbServiceDiscoveryTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
     private final Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig =
