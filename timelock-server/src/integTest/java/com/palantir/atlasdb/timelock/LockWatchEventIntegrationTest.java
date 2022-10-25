@@ -253,6 +253,8 @@ public final class LockWatchEventIntegrationTest {
 
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), AllEventVisitor.INSTANCE))
+                .containsAll(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
@@ -396,6 +398,25 @@ public final class LockWatchEventIntegrationTest {
                 return invalidatedLocks;
             }
         }));
+    }
+
+    private static final class AllEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        static AllEventVisitor INSTANCE = new AllEventVisitor();
+
+        @Override
+        public Set<LockDescriptor> visit(LockEvent lockEvent) {
+            return lockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
+            return unlockEvent.lockDescriptors();
+        }
+
+        @Override
+        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return lockWatchCreatedEvent.lockDescriptors();
+        }
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
