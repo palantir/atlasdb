@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -49,7 +50,7 @@ import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -88,7 +89,7 @@ public final class CassandraClientPoolTest {
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
 
     private DeterministicScheduler deterministicExecutor = new DeterministicScheduler();
-    private Set<CassandraServer> poolServers = new HashSet<>();
+    private Map<CassandraServer, CassandraClientPoolingContainer> poolServers = new HashMap<>();
 
     private CassandraKeyValueServiceConfig config;
     private CassandraKeyValueServiceRuntimeConfig runtimeConfig;
@@ -110,27 +111,24 @@ public final class CassandraClientPoolTest {
         when(runtimeConfig.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
+        when(config.consecutiveAbsencesBeforePoolRemoval()).thenReturn(10);
         blacklist = new Blacklist(config, Refreshable.only(UNRESPONSIVE_HOST_BACKOFF_SECONDS));
 
-        doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
+        doAnswer(invocation -> poolServers.putIfAbsent(
+                        getCassandraServerFromInvocation(invocation), mock(CassandraClientPoolingContainer.class)))
                 .when(cassandra)
                 .addPool(any());
-        doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation)))
+        doAnswer(invocation -> poolServers.putIfAbsent(
+                        getCassandraServerFromInvocation(invocation), getCassandraContainerFromInvocation(invocation)))
                 .when(cassandra)
                 .addPool(any(), any());
         doAnswer(invocation -> mock(CassandraClientPoolingContainer.class))
                 .when(cassandra)
                 .createPool(any());
-        doAnswer(invocation -> {
-                    poolServers.remove(getInvocationAddress(invocation));
-                    return mock(CassandraClientPoolingContainer.class);
-                })
+        doAnswer(invocation -> poolServers.remove(getCassandraServerFromInvocation(invocation)))
                 .when(cassandra)
                 .removePool(any());
-        doAnswer(invocation -> poolServers.stream()
-                        .collect(Collectors.toMap(x -> x, x -> mock(CassandraClientPoolingContainer.class))))
-                .when(cassandra)
-                .getPools();
+        doReturn(poolServers).when(cassandra).getPools();
         when(config.socketTimeoutMillis()).thenReturn(1);
     }
 
@@ -306,7 +304,7 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1);
 
         createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1);
     }
 
     @Test
@@ -318,11 +316,11 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
 
         createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
     }
 
     @Test
@@ -334,7 +332,48 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
 
         createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+    }
+
+    @Test
+    public void reuseAbsentHostsContainerIfPresent() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        createClientPool();
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        CassandraClientPoolingContainer cassandraServerTwoContainer = poolServers.get(CASS_SERVER_2);
+
+        setCassandraServersTo(CASS_SERVER_1);
+        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1);
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(cassandraServerTwoContainer).isEqualTo(poolServers.get(CASS_SERVER_2));
+    }
+
+    @Test
+    public void reuseContainerIfPreviouslyInvalid() {
+        setupHostsWithInconsistentTopology(ImmutableSet.of());
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(CASS_SERVER_1);
+        CassandraClientPoolImpl cassandraClientPool = createClientPool();
+        CassandraClientPoolingContainer cassandraServerTwoContainer = mock(CassandraClientPoolingContainer.class);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1);
+        cassandraClientPool
+                .getAbsentHostTracker()
+                .trackAbsentCassandraServer(CASS_SERVER_2, cassandraServerTwoContainer);
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(containerTwo).isEqualTo(poolServers.get(CASS_SERVER_2));
     }
 
     @Test
@@ -346,11 +385,43 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
 
         createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+    }
+
+    @Test
+    public void onlyValidatedHostsAreAddedOnRefresh() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(CASS_SERVER_1);
+
+        CassandraClientPoolImpl clientPool = createClientPool();
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1);
+        setupHostsWithInconsistentTopology(ImmutableSet.of(CASS_SERVER_2));
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_3);
+        assertThat(clientPool.getAbsentHostTracker().returnPool(CASS_SERVER_2)).isPresent();
+    }
+
+    @Test
+    public void refreshHandlesNothingToAddOrRemove() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+
+        createClientPool();
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
     }
 
     @Test
@@ -361,11 +432,11 @@ public final class CassandraClientPoolTest {
 
         setCassandraServersTo(CASS_SERVER_1);
         createClientPool();
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
 
-        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        assertThat(poolServers).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
+        assertThat(poolServers.keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
     }
 
     @Test
@@ -387,8 +458,12 @@ public final class CassandraClientPoolTest {
         verify(container1).shutdownPooling();
     }
 
-    private CassandraServer getInvocationAddress(InvocationOnMock invocation) {
+    private CassandraServer getCassandraServerFromInvocation(InvocationOnMock invocation) {
         return invocation.getArgument(0);
+    }
+
+    private CassandraClientPoolingContainer getCassandraContainerFromInvocation(InvocationOnMock invocation) {
+        return invocation.getArgument(1);
     }
 
     private void setCassandraServersTo(CassandraServer... servers) {
