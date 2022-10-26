@@ -150,6 +150,10 @@ public class LockWatchingServiceImplTest {
         List<LockWatchEvent> expectedEvents =
                 ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
+
+        Set<LockDescriptor> cellDescriptor = ImmutableSet.of(CELL_DESCRIPTOR);
+        lockWatcher.registerLock(cellDescriptor, TOKEN);
+        assertLoggedEvents(ImmutableList.of(lockEvent(cellDescriptor)));
     }
 
     @Test
