@@ -147,13 +147,13 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest request = exactRowRequest();
         lockWatcher.startWatching(request);
 
-        List<LockWatchEvent> expectedEvents =
-                ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
+        LockWatchEvent createdEvent = createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR));
+        List<LockWatchEvent> expectedEvents = ImmutableList.of(createdEvent);
         assertLoggedEvents(expectedEvents);
 
         Set<LockDescriptor> cellDescriptor = ImmutableSet.of(CELL_DESCRIPTOR);
         lockWatcher.registerLock(cellDescriptor, TOKEN);
-        assertLoggedEvents(ImmutableList.of(lockEvent(cellDescriptor)));
+        assertLoggedEvents(ImmutableList.of(createdEvent, lockEvent(cellDescriptor)));
     }
 
     @Test
