@@ -122,7 +122,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     /**
      * This should only be used in the case that metadata or the underlying schema in Oracle mismatch for a table.
-     * Adding a table reference here will perform either an alter, or to allow the metadata to be updated on startup.
+     * Adding a table reference here will perform either an alter, or allow the metadata to be updated on startup.
      *
      * Generally speaking the operation is safe to perform, although it's on the operator to determine what the side
      * effects are. For example, if the issue arose as two services are configured to use this table, but only one is
@@ -130,10 +130,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
      * still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
      */
     @JsonProperty("alterTablesOrMetadataToMatchOnStartupAndIKnowWhatIAmDoing")
-    @Value.Default
-    public List<TableReference> alterTablesOrMetadataToMatch() {
-        return List.of();
-    }
+    public abstract List<TableReference> alterTablesOrMetadataToMatchOnStartup();
 
     @Override
     public final String type() {
