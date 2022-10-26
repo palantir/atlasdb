@@ -45,7 +45,7 @@ public final class AtlasLockDescriptorRanges {
 
     public static Range<LockDescriptor> exactRow(String qualifiedTableName, byte[] row) {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(qualifiedTableName, row);
-        byte[] nextRow = createExclusiveEndNameForPrefixScan(row);
+        byte[] nextRow = createExclusiveEndNameWithZeroByteForPrefixScan(row);
         LockDescriptor nextRowDescriptor = AtlasRowLockDescriptor.of(qualifiedTableName, nextRow);
         return Range.closed(descriptor, nextRowDescriptor);
     }
@@ -57,6 +57,13 @@ public final class AtlasLockDescriptorRanges {
 
     private static byte[] bytesForTableName(String tableName) {
         return tableName.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] createExclusiveEndNameWithZeroByteForPrefixScan(byte[] prefix) {
+        byte[] prefixWithZero = new byte[prefix.length + 1];
+        System.arraycopy(prefix, 0, prefixWithZero, 0, prefix.length);
+        prefixWithZero[prefix.length] = 1;
+        return prefixWithZero;
     }
 
     private static byte[] createExclusiveEndNameForPrefixScan(byte[] prefix) {
