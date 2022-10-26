@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
@@ -87,7 +88,9 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      */
     @Override
     public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
+        kvs.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(tableRef, cell.getRowName(),
+                ImmutableMap.of(cell, inProgressMarker), ImmutableMap.of(cell, value)));
+        // autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
     }
 
     /**
