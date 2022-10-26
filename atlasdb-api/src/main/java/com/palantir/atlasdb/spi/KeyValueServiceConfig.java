@@ -18,7 +18,6 @@ package com.palantir.atlasdb.spi;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import java.util.Optional;
-import org.immutables.value.Value;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
@@ -38,8 +37,5 @@ public interface KeyValueServiceConfig {
      * you've acknowledged the risks and side effects mentioned in the relevant NamespaceDeleter docs (e.g.,
      * CassandraNamespaceDeleter)
      */
-    @Value.Default // Without this annotation, implementors cannot add this property as part of an immutable builder.
-    default boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
-        return false;
-    }
+    boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing();
 }
