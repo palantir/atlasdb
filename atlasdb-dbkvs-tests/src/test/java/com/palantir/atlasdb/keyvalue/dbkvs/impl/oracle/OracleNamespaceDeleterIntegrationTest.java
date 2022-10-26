@@ -109,11 +109,10 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
                         .build())
                 .build();
 
-        keyValueServiceWithNonDefaultPrefix =
-                ConnectionManagerAwareDbKvs.create(kvsConfigWithNonDefaultPrefix);
+        keyValueServiceWithNonDefaultPrefix = ConnectionManagerAwareDbKvs.create(kvsConfigWithNonDefaultPrefix);
 
-        namespaceDeleterWithNonDefaultPrefix = factory.createNamespaceDeleter(kvsConfigWithNonDefaultPrefix,
-                RUNTIME_CONFIG);
+        namespaceDeleterWithNonDefaultPrefix =
+                factory.createNamespaceDeleter(kvsConfigWithNonDefaultPrefix, RUNTIME_CONFIG);
 
         DbKeyValueServiceConfig kvsConfigWithDefaultPrefixNoMapping = ImmutableDbKeyValueServiceConfig.builder()
                 .from(dbKeyValueServiceConfig)
@@ -140,7 +139,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         namespaceDeleter.close();
         namespaceDeleterWithDefaultPrefixNoMapping.close();
         namespaceDeleterWithNonDefaultPrefix.close();
-        connectionManager.close();
+        // We don't close the connectionManager because that is managed by the TestResourceManager
     }
 
     @Test
