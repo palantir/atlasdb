@@ -28,11 +28,12 @@ import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import org.immutables.value.Value;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -129,7 +130,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
      * performing table mapping, then it is expected that this could break one of the services. However, that condition
      * still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
      */
-    @JsonProperty("alterTablesOrMetadataToMatchOnStartupAndIKnowWhatIAmDoing")
+    @JsonProperty("alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing")
     public abstract List<TableReference> alterTablesOrMetadataToMatchOnStartup();
 
     @Override
