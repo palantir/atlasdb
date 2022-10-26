@@ -81,6 +81,12 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
      * */
     @Override
     public ListenableFuture<Long> get(Long startTimestamp) {
+        if (IS_VALIDATION_MODE) {
+            return Futures.transform(
+                    delegate.get(startTimestamp),
+                    status -> verifyAndGetCommitTs(startTimestamp, status).orElse(null),
+                    MoreExecutors.directExecutor());
+        }
         return getInternal(startTimestamp);
     }
 
@@ -116,13 +122,15 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
         maybeGetCommitTs.ifPresent(commitTs -> {
             boolean isConcluded = knownConcludedTransactions.isKnownConcluded(
                     startTimestamp, KnownConcludedTransactions.Consistency.REMOTE_READ);
-            boolean isConcludedAndAbandoned =
-                    isConcluded && knownAbandonedTransactions.isKnownAbandoned(startTimestamp);
-            boolean isConcludedAndNotAbandoned =
-                    isConcluded && !knownAbandonedTransactions.isKnownAbandoned(startTimestamp);
-            boolean isTransactionStatusCommitted = commitTs != TransactionConstants.FAILED_COMMIT_TS;
 
-            if (isConcludedAndAbandoned && isTransactionStatusCommitted) {
+            if (!isConcluded) {
+                return;
+            }
+
+            boolean abandonedTransaction = knownAbandonedTransactions.isKnownAbandoned(startTimestamp);
+            boolean transactionStatusAborted = commitTs == TransactionConstants.FAILED_COMMIT_TS;
+
+            if (abandonedTransaction && !transactionStatusAborted) {
                 metrics.inconsistencies().inc();
                 log.error(
                         "Found a transaction marked abandoned that was actually committed.",
@@ -132,7 +140,7 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
                                 "lastKnownConcluded", knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()));
             }
 
-            if (isConcludedAndNotAbandoned && !isTransactionStatusCommitted) {
+            if (!abandonedTransaction && transactionStatusAborted) {
                 metrics.inconsistencies().inc();
                 log.error(
                         "Found a concluded non-abandoned transaction that was actually aborted.",
