@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -39,12 +40,14 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -140,11 +143,32 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
-        store.atomicUpdate(stagingValues);
-        // todo(snanda): old algo was pue + put; new state machine is put + mcas (this one will be batched cas + put)
-        store.put(KeyedStream.stream(stagingValues)
-                .map(encodingStrategy::transformStagingToCommitted)
-                .collectToMap());
+        Map<Cell, ListenableFuture<Void>> cellListenableFutureMap = store.atomicUpdate(stagingValues);
+
+        ImmutableMap.Builder<Cell, byte[]> valuesToPutBuilder = ImmutableMap.builder();
+        ImmutableList.Builder<Cell> keysAlreadyExist = ImmutableList.builder();
+
+        for (Map.Entry<Cell, ListenableFuture<Void>> entry : cellListenableFutureMap.entrySet()) {
+            try {
+                entry.getValue().get();
+                valuesToPutBuilder.put(
+                        entry.getKey(),
+                        encodingStrategy.transformStagingToCommitted(stagingValues.get(entry.getKey())));
+            } catch (Exception ex) {
+                if (ex.getCause() instanceof KeyAlreadyExistsException) {
+                    keysAlreadyExist.add(entry.getKey());
+                } else {
+                    throw new SafeRuntimeException("Could not process resilient update on batch.", ex);
+                }
+            }
+        }
+        store.put(valuesToPutBuilder.buildKeepingLast());
+
+        List<Cell> keysThatAlreadyExist = keysAlreadyExist.build();
+        if (!keysThatAlreadyExist.isEmpty()) {
+            throw new KeyAlreadyExistsException(
+                    "Could not process resilient update as the keys already exist in the kvs.", keysThatAlreadyExist);
+        }
     }
 
     @Override

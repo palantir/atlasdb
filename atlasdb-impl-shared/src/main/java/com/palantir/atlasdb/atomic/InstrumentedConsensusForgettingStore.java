@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.atomic;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -72,13 +73,14 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+    public ListenableFuture<Void> atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         delegate.atomicUpdate(cell, value);
+        return Futures.immediateVoidFuture();
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.atomicUpdate(values);
+    public Map<Cell, ListenableFuture<Void>> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        return delegate.atomicUpdate(values);
     }
 
     @Override

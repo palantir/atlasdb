@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -56,19 +57,23 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      *   another update operation has failed in the past non-deterministically
      *   3. The semantics of the update operation depend on the underlying implementation.
      */
-    void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+    ListenableFuture<Void> atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
 
     /**
      * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
      * depending on the underlying implementation.
+     * @return map of individual futures
      */
-    void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    // todo(snanda): consider making this atomic across calls? we cannot do that due to across endpoint batching. Check
+    // how to handle at resilient layer level.
+    Map<Cell, ListenableFuture<Void>> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a
      * {@link ConsensusForgettingStore#put(Cell, byte[])} is called subsequent gets are guaranteed to return
      * Optional.of(value), and subsequent PUE is guaranteed to throw a KeyAlreadyExistsException.
      */
+    // Todo(snanda): we might need to wait on this future (mcas batching makes the serve async)
     void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
     default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {

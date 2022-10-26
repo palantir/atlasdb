@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
@@ -85,12 +85,13 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     /**
      * Atomically updates cells that have been marked. Throws {@code CheckAndSetException} if cell to update has not
      * been marked. The MCAS calls to KVS are batched.
+     * @return future of the update
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        kvs.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(tableRef, cell.getRowName(),
-                ImmutableMap.of(cell, inProgressMarker), ImmutableMap.of(cell, value)));
-        // autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
+    public ListenableFuture<Void> atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
+        //        kvs.multiCheckAndSet(MultiCheckAndSetRequest.multipleCells(tableRef, cell.getRowName(),
+        //                ImmutableMap.of(cell, inProgressMarker), ImmutableMap.of(cell, value)));
+        return autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
     }
 
     /**
@@ -98,10 +99,15 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * and does not guarantee atomicity across cells.
      * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
      * atomically.
+     *
+     * @return map of individual futures
      * */
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        values.forEach(this::atomicUpdate);
+    public Map<Cell, ListenableFuture<Void>> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        Map<Cell, ListenableFuture<Void>> cellListenableFutureMap = KeyedStream.stream(values)
+                .map((BiFunction<Cell, byte[], ListenableFuture<Void>>) this::atomicUpdate)
+                .collectToMap();
+        return cellListenableFutureMap;
     }
 
     @Override

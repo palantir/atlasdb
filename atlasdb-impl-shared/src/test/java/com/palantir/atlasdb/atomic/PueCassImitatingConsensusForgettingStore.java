@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.atomic;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
@@ -51,7 +52,7 @@ public class PueCassImitatingConsensusForgettingStore extends CassandraImitating
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public Map<Cell, ListenableFuture<Void>> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
                 .forEach(this::atomicUpdate);
