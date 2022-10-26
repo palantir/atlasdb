@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.spi;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import java.util.Optional;
@@ -39,9 +38,8 @@ public interface KeyValueServiceConfig {
      * you've acknowledged the risks and side effects mentioned in the relevant NamespaceDeleter docs (e.g.,
      * CassandraNamespaceDeleter)
      */
-    @Value.Default
-    @JsonProperty("enableNamespaceDeletionDangerousIKnowWhatIAmDoing")
-    default boolean enableNamespaceDeletion() {
+    @Value.Default // Without this annotation, implementors cannot add this property as part of an immutable builder.
+    default boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
         return false;
     }
 }

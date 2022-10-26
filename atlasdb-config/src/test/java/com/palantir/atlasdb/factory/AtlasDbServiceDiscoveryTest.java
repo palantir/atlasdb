@@ -83,7 +83,7 @@ public final class AtlasDbServiceDiscoveryTest {
         }
 
         @Override
-        public boolean enableNamespaceDeletion() {
+        public boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
             return enableDeletion;
         }
     }
