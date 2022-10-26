@@ -31,11 +31,15 @@ import com.palantir.common.base.Throwables;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.thrift.TException;
 
 @AutoService(NamespaceDeleterFactory.class)
 public final class CassandraNamespaceDeleterFactory implements NamespaceDeleterFactory {
+    public static final Random RANDOM = new Random();
+
     @Override
     public String getType() {
         return CassandraKeyValueServiceConfig.TYPE;
@@ -55,7 +59,9 @@ public final class CassandraNamespaceDeleterFactory implements NamespaceDeleterF
     private static CassandraClient createClient(
             CassandraKeyValueServiceConfig config, CassandraKeyValueServiceRuntimeConfig runtimeConfig) {
         try {
-            InetSocketAddress host = runtimeConfig.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
+            Set<InetSocketAddress> servers = runtimeConfig.servers().accept(ThriftHostsExtractingVisitor.INSTANCE);
+            InetSocketAddress host = servers.stream()
+                    .skip(RANDOM.nextInt(servers.size()))
                     .findFirst()
                     .orElseThrow();
             return CassandraClientFactory.getClientInternal(CassandraServer.of(host), CassandraClientConfig.of(config));
