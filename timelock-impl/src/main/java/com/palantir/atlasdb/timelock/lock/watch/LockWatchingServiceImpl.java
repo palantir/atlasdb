@@ -195,7 +195,13 @@ public class LockWatchingServiceImpl implements LockWatchingService {
             Set<LockDescriptor> filtered =
                     unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
             if (!filtered.isEmpty()) {
+                log.info("Logging a lock event", SafeArg.of("matching filters", filtered));
                 consumer.accept(filtered);
+            } else {
+                log.info(
+                        "Not logging lock event, as no descriptor matches a watched range",
+                        SafeArg.of("descriptors", unfiltered),
+                        SafeArg.of("ranges", ranges));
             }
         } finally {
             watchesLock.readLock().unlock();
