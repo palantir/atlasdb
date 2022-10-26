@@ -29,4 +29,13 @@ public interface KeyValueServiceConfig {
     Optional<String> namespace();
 
     Optional<SharedResourcesConfig> sharedResourcesConfig();
+
+    /**
+     * Enables construction of {@link com.palantir.atlasdb.namespacedeleter.NamespaceDeleter} via a
+     * {@link com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory} through AtlasDbServiceDiscovery, which
+     * can be used to delete all data for a namespace in the KVS. This is dangerous, and must only be used once
+     * you've acknowledged the risks and side effects mentioned in the relevant NamespaceDeleter docs (e.g.,
+     * CassandraNamespaceDeleter)
+     */
+    boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing();
 }
