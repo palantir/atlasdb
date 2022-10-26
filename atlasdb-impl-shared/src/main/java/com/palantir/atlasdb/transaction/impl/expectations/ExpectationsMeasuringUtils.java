@@ -32,65 +32,65 @@ import java.util.function.Function;
 public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
-    public static long byteArrayByTableReferenceByteSize(Map<TableReference, byte[]> arrayByRef) {
-        return arrayByRef.entrySet().stream()
-                .mapToLong(entry -> byteSize(entry.getKey()) + entry.getValue().length)
-                .sum();
+    public static long sizeInBytes(Entry<Cell, Value> entry) {
+        return entry.getKey().byteSize() + entry.getValue().byteSize();
     }
 
-    public static long longByCellByteSize(Map<Cell, Long> timestampByCell) {
-        return timestampByCell.keySet().stream()
-                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
-                .sum();
+    public static long sizeInBytes(TableReference tableRef) {
+        return sizeInBytes(tableRef.getTableName())
+                + sizeInBytes(tableRef.getNamespace().getName());
     }
 
-    public static long longByCellByteSize(Multimap<Cell, Long> valueByCell) {
+    public static long sizeInBytes(String string) {
+        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
+    }
+
+    public static long sizeInBytes(Multimap<Cell, Long> valueByCell) {
         return valueByCell.keys().stream()
                 .mapToLong(cell -> cell.byteSize() + Long.BYTES)
                 .sum();
     }
 
-    public static long valueByCellByteSize(Map<Cell, Value> valueByCell) {
-        return valueByCell.entrySet().stream()
-                .mapToLong(ExpectationsMeasuringUtils::byteSize)
+    public static long sizeInBytes(Map<Cell, Long> longByCell) {
+        return longByCell.keySet().stream()
+                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
                 .sum();
     }
 
-    public static long pageByRangeRequestByteSize(
-            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
-        return pageByRange.values().stream()
-                .mapToLong(page -> page.getTokenForNextPage().length
-                        + page.getResults().stream()
-                                .mapToLong(ExpectationsMeasuringUtils::valueRowResultByteSize)
-                                .sum())
-                .sum();
+    public static long sizeInBytes(RowResult<Value> rowResult) {
+        return sizeInBytes(rowResult, Value::byteSize);
     }
 
-    public static long valueRowResultByteSize(RowResult<Value> rowResult) {
-        return rowResultByteSize(rowResult, Value::byteSize);
-    }
-
-    public static long longSetRowResultByteSize(RowResult<Set<Long>> rowResult) {
-        return rowResultByteSize(rowResult, set -> (long) set.size() * Long.BYTES);
-    }
-
-    private static <T> long rowResultByteSize(RowResult<T> rowResult, Function<T, Long> measurer) {
+    private static <T> long sizeInBytes(RowResult<T> rowResult, Function<T, Long> measurer) {
         return rowResult.getRowNameSize()
                 + rowResult.getColumns().entrySet().stream()
                         .mapToLong(entry -> entry.getKey().length + measurer.apply(entry.getValue()))
                         .sum();
     }
 
-    public static long byteSize(Entry<Cell, Value> entry) {
-        return entry.getKey().byteSize() + entry.getValue().byteSize();
+    public static long arrayByRefSizeInBytes(Map<TableReference, byte[]> arrayByRef) {
+        return arrayByRef.entrySet().stream()
+                .mapToLong(entry -> sizeInBytes(entry.getKey()) + entry.getValue().length)
+                .sum();
     }
 
-    public static long byteSize(TableReference tableRef) {
-        return byteSize(tableRef.getTableName())
-                + byteSize(tableRef.getNamespace().getName());
+    public static long valueByCellSizeInBytes(Map<Cell, Value> valueByCell) {
+        return valueByCell.entrySet().stream()
+                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
+                .sum();
     }
 
-    public static long byteSize(String string) {
-        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
+    public static long pageByRequestSizeInBytes(
+            Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
+        return pageByRange.values().stream()
+                .mapToLong(page -> page.getTokenForNextPage().length
+                        + page.getResults().stream()
+                                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
+                                .sum())
+                .sum();
+    }
+
+    public static long setResultSizeInBytes(RowResult<Set<Long>> rowResult) {
+        return sizeInBytes(rowResult, set -> (long) set.size() * Long.BYTES);
     }
 }
