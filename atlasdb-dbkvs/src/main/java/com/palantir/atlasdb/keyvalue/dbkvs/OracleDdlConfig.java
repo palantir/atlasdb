@@ -131,7 +131,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
      * still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
      */
     @JsonProperty("alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing")
-    public abstract List<TableReference> alterTablesOrMetadataToMatchOnStartup();
+    public abstract List<TableReference> alterTablesOrMetadataToMatch();
 
     @Override
     public final String type() {
