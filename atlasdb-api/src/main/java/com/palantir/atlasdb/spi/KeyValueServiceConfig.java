@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.spi;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import java.util.Optional;
-import org.immutables.value.Value;
 
 /**
  * Marker interface for various AtlasDb KeyValueService config objects.
@@ -39,9 +37,5 @@ public interface KeyValueServiceConfig {
      * you've acknowledged the risks and side effects mentioned in the relevant NamespaceDeleter docs (e.g.,
      * CassandraNamespaceDeleter)
      */
-    @Value.Default
-    @JsonProperty("enableNamespaceDeletionDangerousIKnowWhatIAmDoing")
-    default boolean enableNamespaceDeletion() {
-        return false;
-    }
+    boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing();
 }

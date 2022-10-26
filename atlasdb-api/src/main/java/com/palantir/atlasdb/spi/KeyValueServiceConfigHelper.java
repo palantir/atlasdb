@@ -34,4 +34,9 @@ public interface KeyValueServiceConfigHelper extends KeyValueServiceConfig {
     default Optional<SharedResourcesConfig> sharedResourcesConfig() {
         return Optional.empty();
     }
+
+    @Override
+    default boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
 }

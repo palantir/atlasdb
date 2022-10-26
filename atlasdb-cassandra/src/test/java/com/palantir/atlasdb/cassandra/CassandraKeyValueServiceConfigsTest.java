@@ -73,6 +73,7 @@ public class CassandraKeyValueServiceConfigsTest {
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVER_ADDRESSES)))
                 .replicationFactor(1)
                 .credentials(CREDENTIALS)
+                .enableNamespaceDeletionDangerousIKnowWhatIAmDoing(true)
                 .build();
 
         URL configUrl =
