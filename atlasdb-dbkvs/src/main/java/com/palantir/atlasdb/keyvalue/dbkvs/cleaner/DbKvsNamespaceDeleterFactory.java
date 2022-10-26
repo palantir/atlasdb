@@ -39,6 +39,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
@@ -69,7 +70,8 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
     private NamespaceDeleter createOracleNamespaceDeleter(
             DbKeyValueServiceConfig config, Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
         OracleDdlConfig ddlConfig = (OracleDdlConfig) config.ddl();
-        OracleConnectionConfig connectionConfig = (OracleConnectionConfig) config.connection();
+        OracleConnectionConfig connectionConfig =
+                getConfigWithSingleConnection((OracleConnectionConfig) config.connection());
 
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
@@ -80,7 +82,7 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
         ExecutorService executorService = MoreExecutors.newDirectExecutorService();
         OracleDbTableFactory factory =
                 new OracleDbTableFactory(ddlConfig, tableNameGetter, prefixedTableNames, cache, executorService);
-        ConnectionSupplier connectionSupplier = createConnectionSupplier(config, runtimeConfig);
+        ConnectionSupplier connectionSupplier = createConnectionSupplier(config, runtimeConfig, connectionConfig);
 
         OracleNamespaceDeleterParameters parameters = OracleNamespaceDeleterParameters.builder()
                 .userId(connectionConfig.getDbLogin())
@@ -95,10 +97,20 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
     }
 
     private ConnectionSupplier createConnectionSupplier(
-            DbKeyValueServiceConfig config, Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
-        ConnectionManager connectionManager = HikariClientPoolConnectionManagers.create(config.connection());
+            DbKeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            ConnectionConfig connectionConfig) {
+        ConnectionManager connectionManager = HikariClientPoolConnectionManagers.create(connectionConfig);
         SqlConnectionSupplier sqlConnSupplier =
                 SqlConnectionSuppliers.createSimpleConnectionSupplier(connectionManager, config, runtimeConfig);
         return new ConnectionSupplier(sqlConnSupplier);
+    }
+
+    private OracleConnectionConfig getConfigWithSingleConnection(OracleConnectionConfig config) {
+        return new OracleConnectionConfig.Builder()
+                .from(config)
+                .minConnections(0)
+                .maxConnections(1)
+                .build();
     }
 }
