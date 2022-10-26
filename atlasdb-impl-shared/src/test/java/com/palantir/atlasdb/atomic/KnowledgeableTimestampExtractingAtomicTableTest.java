@@ -135,6 +135,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verifyNoInteractions(knownAbandonedTransactions);
         verifyNoInteractions(knownConcludedTransactions);
+        assertNoVerification();
     }
 
     @Test
@@ -146,6 +147,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verifyNoInteractions(knownAbandonedTransactions);
         verifyNoInteractions(knownConcludedTransactions);
+        assertNoVerification();
     }
 
     @Test
@@ -160,7 +162,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
         verifyNoInteractions(knownAbandonedTransactions);
-        assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
+        assertNoVerification();
     }
 
     @Test
@@ -176,6 +178,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
         verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(1);
         assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
     }
 
@@ -192,6 +195,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
         verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(1);
         assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
     }
 
@@ -209,6 +213,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
         verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(0);
         assertThat(metrics.inconsistencies().getCount()).isEqualTo(1);
     }
 
@@ -225,6 +230,12 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
 
         verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
         verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(0);
         assertThat(metrics.inconsistencies().getCount()).isEqualTo(1);
+    }
+
+    private void assertNoVerification() {
+        assertThat(metrics.success().getCount()).isEqualTo(0);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
     }
 }

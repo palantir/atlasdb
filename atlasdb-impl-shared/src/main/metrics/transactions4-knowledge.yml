@@ -38,7 +38,10 @@ namespaces:
   verificationMode:
     docs: Metrics tracking inconsistent transactionn status.
     metrics:
+      success:
+        type: counter
+        docs: The number of times the status of a transaction in _txn2 was verified against the known concluded and abandoned sets.
       inconsistencies:
         type: counter
-        docs: The number of times the status of transaction in _txn2 does not match with known concluded and abandoned stores.
+        docs: The number of times the status of a transaction in _txn2 does not match with known concluded and abandoned stores.
 

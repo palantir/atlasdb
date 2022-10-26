@@ -138,15 +138,15 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
                         SafeArg.of("commitTs", commitTs),
                         SafeArg.of(
                                 "lastKnownConcluded", knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()));
-            }
-
-            if (!abandonedTransaction && transactionStatusAborted) {
+            } else if (!abandonedTransaction && transactionStatusAborted) {
                 metrics.inconsistencies().inc();
                 log.error(
                         "Found a concluded non-abandoned transaction that was actually aborted.",
                         SafeArg.of("startTimestamp", startTimestamp),
                         SafeArg.of(
                                 "lastKnownConcluded", knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()));
+            } else {
+                metrics.success().inc();
             }
         });
         return maybeGetCommitTs;
