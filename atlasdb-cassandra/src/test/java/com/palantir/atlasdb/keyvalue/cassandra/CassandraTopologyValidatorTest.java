@@ -19,10 +19,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,7 +114,7 @@ public final class CassandraTopologyValidatorTest {
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
                         allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
                 .isNotEmpty();
-        verify(validator, times(2)).getNewHostsWithInconsistentTopologies(any(), any());
+        verify(validator, atLeast(2)).getNewHostsWithInconsistentTopologies(any(), any());
     }
 
     @Test
