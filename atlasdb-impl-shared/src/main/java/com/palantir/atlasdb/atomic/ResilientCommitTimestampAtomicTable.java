@@ -127,7 +127,9 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
 
     @Override
     public void markInProgress(Iterable<Long> keys) {
-        // no op
+        store.mark(StreamSupport.stream(keys.spliterator(), false)
+                .map(encodingStrategy::encodeStartTimestampAsCell)
+                .collect(Collectors.toSet()));
     }
 
     @Override
@@ -208,7 +210,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
             }
             try {
                 Instant startTime = clock.instant();
-                long commitTs = TransactionStatusUtils.getCommitTimestampOrThrow(commitStatus);
+                long commitTs = TransactionStatusUtils.getCommitTimestampIfKnown(commitStatus);
                 resultBuilder.put(startTs, touchCache.get(ImmutableCellInfo.of(cell, startTs, commitTs, actual)));
                 Duration timeTaken = Duration.between(startTime, clock.instant());
                 if (timeTaken.compareTo(COMMIT_THRESHOLD) >= 0) {
@@ -236,7 +238,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 throw e;
             }
         }
-        return resultBuilder.build();
+        return resultBuilder.buildOrThrow();
     }
 
     private boolean shouldTouch() {

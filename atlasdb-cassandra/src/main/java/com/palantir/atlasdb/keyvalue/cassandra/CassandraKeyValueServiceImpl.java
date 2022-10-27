@@ -820,7 +820,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
                 builder.putAll(collector.getCollectedResults());
             }
-            return builder.build();
+            return builder.buildOrThrow();
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
@@ -1530,8 +1530,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Gets the metadata for a given table. Also useful for checking to see if a table exists. Requires a quorum of
-     * Cassandra nodes to be reachable.
+     * Gets the metadata for a given table. Do not use this method to see if a table exists as it can return false
+     * positives. Requires a quorum of Cassandra nodes to be reachable.
      *
      * @param tableRef the name of the table to get metadata for.
      *

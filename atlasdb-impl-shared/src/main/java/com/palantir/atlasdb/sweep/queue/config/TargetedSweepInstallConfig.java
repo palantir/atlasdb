@@ -78,6 +78,15 @@ public class TargetedSweepInstallConfig {
     }
 
     /**
+     * The number of background threads dedicated to running targeted sweep of tables with SweepStrategy NONE. Do not
+     * modify this value unless you know exactly why this makes sense.
+     */
+    @Value.Default
+    public int noneThreads() {
+        return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
+    }
+
+    /**
      * Specifies how metrics are tracked for this instance of Targeted Sweep.
      */
     @Value.Default

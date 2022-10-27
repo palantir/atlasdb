@@ -7,20 +7,20 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.netflix.nebula:gradle-info-plugin:11.4.1'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:18.4.0'
-        classpath 'com.palantir.baseline:gradle-baseline-java:4.173.0'
-        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.30.0'
+        classpath 'com.netflix.nebula:gradle-info-plugin:12.0.0'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:19.0.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:4.182.0'
+        classpath 'com.palantir.gradle.conjure:gradle-conjure:5.31.0'
         classpath 'com.palantir.gradle.consistentversions:gradle-consistent-versions:2.11.0'
         classpath 'com.palantir.gradle.docker:gradle-docker:0.32.0'
         classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:1.11.0'
         classpath 'com.palantir.gradle.gitversion:gradle-git-version:0.15.0'
         classpath 'com.palantir.gradle.jdks:gradle-jdks:0.27.0'
         classpath 'com.palantir.gradle.jdkslatest:gradle-jdks-latest:0.4.0'
-        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.26.0'
+        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.27.0'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.19.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:7.13.0'
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.19'
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.9.1'
         classpath 'gradle.plugin.com.github.johnrengelman:shadow:7.1.2'
         classpath 'gradle.plugin.com.hierynomus.gradle.plugins:license-gradle-plugin:0.16.1'
         classpath 'gradle.plugin.org.inferred:gradle-processors:3.7.0'
@@ -86,15 +86,15 @@ allprojects {
             it.substitute it.module('javax.ws.rs:javax.ws.rs-api') with it.module('jakarta.ws.rs:jakarta.ws.rs-api:2.1.6')
             it.substitute it.module('javax.servlet:javax.servlet-api') with it.module('jakarta.servlet:jakarta.servlet-api:4.0.4')
 
-            it.substitute it.module('javax.inject:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
-            it.substitute it.module('org.glassfish.hk2.external:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
-            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0')
+            it.substitute it.module('javax.inject:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
+            it.substitute it.module('org.glassfish.hk2.external:javax.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
+            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') with it.module('jakarta.inject:jakarta.inject-api:1.0.5')
 
             // See internal migration plugin PR 26: this direction is intentional.
-            it.substitute it.module('javax.el:javax.el-api') with it.module('org.glassfish:jakarta.el:3.0.3')
-            it.substitute it.module('jakarta.el:jakarta.el-api') with it.module('org.glassfish:jakarta.el:3.0.3')
-            it.substitute it.module('org.glassfish:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
-            it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.3')
+            it.substitute it.module('javax.el:javax.el-api') with it.module('org.glassfish:jakarta.el:3.0.4')
+            it.substitute it.module('jakarta.el:jakarta.el-api') with it.module('org.glassfish:jakarta.el:3.0.4')
+            it.substitute it.module('org.glassfish:javax.el') with it.module('org.glassfish:jakarta.el:3.0.4')
+            it.substitute it.module('org.glassfish.web:javax.el') with it.module('org.glassfish:jakarta.el:3.0.4')
 
             // Force errorprone 2.10.0
             it.substitute it.module('com.google.errorprone:error_prone_annotations') with it.module('com.google.errorprone:error_prone_annotations:2.10.0')
@@ -112,6 +112,7 @@ allprojects {
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable'
+        options.errorprone.error 'SafeLoggingPropagation'
     }
 }
 

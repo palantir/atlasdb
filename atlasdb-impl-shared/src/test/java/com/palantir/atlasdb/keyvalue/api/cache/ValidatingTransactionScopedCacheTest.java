@@ -66,7 +66,7 @@ public final class ValidatingTransactionScopedCacheTest {
     private static final ImmutableMap<Cell, byte[]> VALUES = ImmutableMap.<Cell, byte[]>builder()
             .put(CELL_1, VALUE_1.value().get())
             .put(CELL_2, VALUE_2.value().get())
-            .build();
+            .buildOrThrow();
 
     private final CacheMetrics metrics = mock(CacheMetrics.class);
 

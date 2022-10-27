@@ -131,7 +131,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
         return ImmutableMap.<String, String>builder()
                 .putAll(CassandraEnvironment.get())
                 .put("CONFIG_FILE_MOUNTPOINT", temporaryFolder.getRoot().getAbsolutePath())
-                .build();
+                .buildOrThrow();
     }
 
     private String dockerExecOnClient(String... arguments) {

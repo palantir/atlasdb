@@ -52,7 +52,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     Collection<? extends KeyValueService> getDelegates();
 
     /**
-     * Gets values from the key-value store.
+     * Gets values from the key-value store. Note that rows and columns must be non-empty: behaviour is
+     * undefined when any of the rows or any of the columns in the column selection are the empty byte array.
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for.
@@ -72,7 +73,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Gets values from the key-value store for the specified rows and column range
-     * as separate iterators for each row.
+     * as separate iterators for each row. Note that rows and columns must be non-empty: behaviour is undefined when
+     * any of the rows or any of the columns in the column selection are the empty byte array.
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
@@ -95,7 +97,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * Gets values from the key-value store for the specified rows and column range as a single iterator. This method
      * should be at least as performant as
      * {@link #getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)}, and may be more
-     * performant in some cases.
+     * performant in some cases. Note that rows and columns must be non-empty: behaviour is undefined when
+     * any of the rows or any of the columns in the column selection are the empty byte array.
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
@@ -564,7 +567,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     Set<TableReference> getAllTableNames();
 
     /**
-     * Gets the metadata for a given table. Also useful for checking to see if a table exists.
+     * Gets the metadata for a given table. This method may not be suitable to determine if a table exists.
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.

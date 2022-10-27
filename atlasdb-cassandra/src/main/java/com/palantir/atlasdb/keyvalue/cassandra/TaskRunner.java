@@ -15,18 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
-import com.palantir.tracing.DetachedSpan;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 class TaskRunner {
@@ -53,9 +49,7 @@ class TaskRunner {
 
         List<ListenableFuture<V>> futures = new ArrayList<>(tasks.size());
         for (Callable<V> task : tasks) {
-            DetachedSpan detachedSpan = DetachedSpan.start("task");
-            ListenableFuture<V> future = listeningExecutor.submit(task);
-            futures.add(attachDetachedSpanCompletion(detachedSpan, future, listeningExecutor));
+            futures.add(listeningExecutor.submit(task));
         }
         try {
             List<V> results = new ArrayList<>(tasks.size());
@@ -70,24 +64,5 @@ class TaskRunner {
                 future.cancel(true);
             }
         }
-    }
-
-    private static <V> ListenableFuture<V> attachDetachedSpanCompletion(
-            DetachedSpan detachedSpan, ListenableFuture<V> future, Executor tracingExecutorService) {
-        Futures.addCallback(
-                future,
-                new FutureCallback<V>() {
-                    @Override
-                    public void onSuccess(V result) {
-                        detachedSpan.complete();
-                    }
-
-                    @Override
-                    public void onFailure(Throwable throwable) {
-                        detachedSpan.complete();
-                    }
-                },
-                tracingExecutorService);
-        return future;
     }
 }

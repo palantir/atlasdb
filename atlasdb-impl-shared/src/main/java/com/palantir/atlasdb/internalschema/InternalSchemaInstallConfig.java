@@ -19,7 +19,7 @@ package com.palantir.atlasdb.internalschema;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.transaction.knowledge.KnownAbortedTransactionsImpl;
+import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactionsImpl;
 import org.immutables.value.Value;
 
 /**
@@ -38,6 +38,10 @@ public abstract class InternalSchemaInstallConfig {
     @JsonProperty("versionFourAbortedTransactionsCacheSize")
     @Value.Default
     public int versionFourAbortedTransactionsCacheSize() {
-        return KnownAbortedTransactionsImpl.MAXIMUM_CACHE_WEIGHT;
+        return KnownAbandonedTransactionsImpl.MAXIMUM_CACHE_WEIGHT;
+    }
+
+    public static InternalSchemaInstallConfig getDefault() {
+        return ImmutableInternalSchemaInstallConfig.builder().build();
     }
 }

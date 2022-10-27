@@ -108,13 +108,13 @@ public class CachingTransaction extends ForwardingTransaction {
                 if (shouldLoad) {
                     toLoad.add(row);
                 } else if (nonEmpty) {
-                    inCache.put(row, RowResult.create(row, matches.build()));
+                    inCache.put(row, RowResult.create(row, matches.buildOrThrow()));
                 }
             }
             SortedMap<byte[], RowResult<byte[]>> results = super.getRows(tableRef, toLoad, columnSelection);
             cacheLoadedRows(tableRef, toLoad, columnSelection.getSelectedColumns(), results);
             inCache.putAll(results);
-            return inCache.build();
+            return inCache.buildOrThrow();
         }
     }
 

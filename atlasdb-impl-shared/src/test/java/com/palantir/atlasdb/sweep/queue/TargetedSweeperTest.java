@@ -81,13 +81,13 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -157,7 +157,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .build());
 
         sweepQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
@@ -186,7 +186,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void secondaryQueueReadsFirstQueueLastSweptTimestamp() {
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -215,7 +215,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of());
+                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {});
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1399,8 +1399,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .thoroughThreads(0)
                 .build();
         for (int i = 0; i < sweepers; i++) {
-            TargetedSweeper sweeperInstance =
-                    TargetedSweeper.createUninitialized(metricsManager, () -> runtime, install, ImmutableList.of());
+            TargetedSweeper sweeperInstance = TargetedSweeper.createUninitialized(
+                    metricsManager, () -> runtime, install, ImmutableList.of(), _unused -> {});
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();
@@ -1450,9 +1450,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void await(final ThrowingRunnable assertion) {
         Awaitility.await()
-                .atMost(2L, TimeUnit.SECONDS)
+                .atMost(Duration.ofSeconds(2L))
                 .with()
-                .pollInterval(SMALL_REFRESH_MILLIS, TimeUnit.MILLISECONDS)
+                .pollInterval(Duration.ofMillis(SMALL_REFRESH_MILLIS))
                 .untilAsserted(assertion);
     }
 }

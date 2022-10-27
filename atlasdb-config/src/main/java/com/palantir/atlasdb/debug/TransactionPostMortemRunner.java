@@ -36,6 +36,7 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -83,9 +84,9 @@ public class TransactionPostMortemRunner {
         WritesDigest<String> digest = writesDigestEmitter.getDigest(row, columnName);
         log.info("raw digest", SafeArg.of("rawDigest", digest));
         Map<Long, ClientLockDiagnosticDigest> snapshot = clientLockDiagnosticCollector.getSnapshot();
-        log.info("client lock diagnostic digest", SafeArg.of("clientLockDiagnosticDigest", snapshot));
+        log.info("client lock diagnostic digest", UnsafeArg.of("clientLockDiagnosticDigest", snapshot));
         Optional<LockDiagnosticInfo> lockDiagnosticInfo = getTimelockDiagnostics(snapshot);
-        log.info("lock diagnostic info", SafeArg.of("timelockLockDiagnosticInfo", lockDiagnosticInfo));
+        log.info("lock diagnostic info", UnsafeArg.of("timelockLockDiagnosticInfo", lockDiagnosticInfo));
         Set<UUID> lockRequestIdsEvictedMidLockRequest = lockDiagnosticInfo
                 .map(LockDiagnosticInfo::requestIdsEvictedMidLockRequest)
                 .orElseGet(ImmutableSet::of);
@@ -103,7 +104,7 @@ public class TransactionPostMortemRunner {
                                 snapshot.getOrDefault(startTimestamp, ClientLockDiagnosticDigest.missingEntry())))
                         .collect(Collectors.toSet());
 
-        log.info("transaction digests", SafeArg.of("transactionDigests", transactionDigests));
+        log.info("transaction digests", UnsafeArg.of("transactionDigests", transactionDigests));
 
         List<LocalLockTracker.TrackedLockEvent> locallyTrackedLockEvents = localLockTracker.getLocalLockHistory();
 
@@ -147,7 +148,7 @@ public class TransactionPostMortemRunner {
         Map<UUID, Set<ConjureLockDescriptor>> lockRequests = ImmutableMap.<UUID, Set<ConjureLockDescriptor>>builder()
                 .putAll(clientLockDigest.lockRequests())
                 .put(clientLockDigest.immutableTimestampRequestId(), ImmutableSet.of())
-                .build();
+                .buildOrThrow();
         Map<UUID, LockDigest> lockDigests = KeyedStream.stream(lockRequests)
                 .map((requestId, descriptors) ->
                         lockDigest(descriptors, timelockLockInfo.map(info -> lockState(requestId, info))))

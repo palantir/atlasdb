@@ -57,7 +57,7 @@ public class CassandraClientPoolMetrics {
             registerPoolMeanMetrics(metricsManager, metric, distributionOutlierController.getMeanGauge());
             builder.put(metric, distributionOutlierController);
         });
-        return builder.build();
+        return builder.buildOrThrow();
     }
 
     private static void registerPoolMeanMetrics(

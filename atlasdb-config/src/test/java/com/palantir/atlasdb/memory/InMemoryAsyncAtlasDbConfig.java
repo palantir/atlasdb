@@ -15,18 +15,21 @@
  */
 package com.palantir.atlasdb.memory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@JsonTypeName(InMemoryAsyncAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)
 public final class InMemoryAsyncAtlasDbConfig implements KeyValueServiceConfig {
     public static final String TYPE = "memory-async";
+
+    private final boolean eventuallySucceed;
+
+    public InMemoryAsyncAtlasDbConfig(boolean eventuallySucceed) {
+        this.eventuallySucceed = eventuallySucceed;
+    }
 
     @Override
     public String type() {
@@ -53,14 +56,21 @@ public final class InMemoryAsyncAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
+    public boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
+
+    @Override
     public int hashCode() {
         return InMemoryAsyncAtlasDbConfig.class.hashCode();
     }
 
     @Override
-    @JsonIgnore
-    @Value.Default
     public Optional<String> namespace() {
         return Optional.of("test");
+    }
+
+    public boolean eventuallySucceed() {
+        return eventuallySucceed;
     }
 }

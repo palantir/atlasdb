@@ -24,7 +24,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -52,7 +51,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -299,7 +297,7 @@ public class SweepableCells extends SweepQueueTable {
             try {
                 kvs.delete(tableRef, multimap);
             } catch (Exception exception) {
-                if (tableWasDropped(tableRef)) {
+                if (SweepQueueUtils.tableWasDropped(tableRef, kvs)) {
                     // this table no longer exists, but had work to do in the sweep queue still;
                     // don't error out on this batch so that the queue cleans up and doesn't constantly retry forever
                     log.info(
@@ -327,10 +325,6 @@ public class SweepableCells extends SweepQueueTable {
                 .lastSeenCommitTs(lastSeenCommitTs)
                 .processedAll(processedAll)
                 .build();
-    }
-
-    private boolean tableWasDropped(TableReference tableRef) {
-        return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, SortedSet<Long> startTs) {

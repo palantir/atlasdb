@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
@@ -35,6 +36,15 @@ public final class AtlasDbServiceDiscovery {
 
     public static DbTimeLockFactory createDbTimeLockFactoryOfCorrectType(KeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(config, DbTimeLockFactory::getType, DbTimeLockFactory.class);
+    }
+
+    public static NamespaceDeleterFactory createNamespaceDeleterFactoryOfCorrectType(KeyValueServiceConfig config) {
+        if (!config.enableNamespaceDeletionDangerousIKnowWhatIAmDoing()) {
+            throw new SafeIllegalStateException("Cannot construct a NamespaceDeleterFactory when keyValueService"
+                    + ".enableNamespaceDeletionDangerousIKnowWhatIAmDoing is false.");
+        }
+        return createAtlasDbServiceOfCorrectType(
+                config, NamespaceDeleterFactory::getType, NamespaceDeleterFactory.class);
     }
 
     private static <T> T createAtlasDbServiceOfCorrectType(

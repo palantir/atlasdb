@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import java.util.Set;
 
 /**
  * Represents a set of start timestamps that belong to transactions that are known to have concluded.
@@ -34,12 +36,18 @@ public interface KnownConcludedTransactions {
     boolean isKnownConcluded(long startTimestamp, Consistency consistency);
 
     /**
-     * Registers the fact that any transactions that had started in the provided range have concluded, including
+     * Registers the fact that any transactions that had started in the provided ranges have concluded, including
      * writing this to the database. This endpoint is costly, and must not be called with a high level of concurrency.
+     *
+     * Whether the endpoint is coordination aware or not depends on the underlying implementation.
      *
      * @param knownConcludedInterval range of timestamps in which all transactions must have concluded
      */
-    void addConcludedTimestamps(Range<Long> knownConcludedInterval);
+    default void addConcludedTimestamps(Range<Long> knownConcludedInterval) {
+        addConcludedTimestamps(ImmutableSet.of(knownConcludedInterval));
+    }
+
+    void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals);
 
     /**
      * Returns the greatest known concluded timestamp for which transaction is known to have concluded. This call

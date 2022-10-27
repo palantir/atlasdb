@@ -53,6 +53,11 @@ public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
+    public boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
+
+    @Override
     public int hashCode() {
         return InMemoryAtlasDbConfig.class.hashCode();
     }

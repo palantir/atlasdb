@@ -5,7 +5,8 @@ apply plugin: 'com.palantir.metric-schema'
 libsDirName = file('build/artifacts')
 
 license {
-  exclude '**/AbortedTransctionsCacheMetrics.java'
+  exclude '**/AbandonedTransactionsReliableCacheMetrics.java'
+  exclude '**/AbandonedTransactionsSoftCacheMetrics.java'
   exclude '**/ConsensusForgettingStoreMetrics.java'
   exclude '**/KnownConcludedTransactionsMetrics.java'
   exclude '**/PutUnlessExistsTableMetrics.java'

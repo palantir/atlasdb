@@ -53,7 +53,7 @@ public class BatchSizeRecorderTest {
         Map<String, String> customTags = ImmutableMap.<String, String>builder()
                 .put("tag1", "value1")
                 .put("tag2", "value2")
-                .build();
+                .buildOrThrow();
         BatchSizeRecorder recorder = BatchSizeRecorder.create(SAFE_IDENTIFIER, customTags);
 
         recorder.markBatchProcessed(5);
