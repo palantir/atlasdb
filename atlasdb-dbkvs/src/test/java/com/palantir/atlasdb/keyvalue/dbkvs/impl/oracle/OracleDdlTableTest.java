@@ -18,10 +18,13 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,11 +38,15 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.After;
 import org.junit.Before;
@@ -52,12 +59,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class OracleDdlTableTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test");
     private static final OracleDdlConfig TABLE_MAPPING_DEFAULT_CONFIG = ImmutableOracleDdlConfig.builder()
-            .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+            .overflowMigrationState(OverflowMigrationState.FINISHED)
             .useTableMapping(true)
+            .alterTablesOrMetadataToMatch(Set.of(TEST_TABLE))
             .build();
-
     private static final OracleDdlConfig NON_TABLE_MAPPING_DEFAULT_CONFIG = ImmutableOracleDdlConfig.builder()
-            .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+            .overflowMigrationState(OverflowMigrationState.FINISHED)
             .useTableMapping(false)
             .build();
 
@@ -88,21 +95,8 @@ public final class OracleDdlTableTest {
     public void before() {
         tableValueStyleCache = new TableValueStyleCache();
         executorService = PTExecutors.newSingleThreadExecutor();
-        tableMappingDdlTable = OracleDdlTable.create(
-                TEST_TABLE,
-                connectionSupplier,
-                TABLE_MAPPING_DEFAULT_CONFIG,
-                tableNameGetter,
-                tableValueStyleCache,
-                executorService);
-
-        nonTableMappingDdlTable = OracleDdlTable.create(
-                TEST_TABLE,
-                connectionSupplier,
-                NON_TABLE_MAPPING_DEFAULT_CONFIG,
-                tableNameGetter,
-                tableValueStyleCache,
-                executorService);
+        tableMappingDdlTable = createOracleDdlTable(TABLE_MAPPING_DEFAULT_CONFIG);
+        nonTableMappingDdlTable = createOracleDdlTable(NON_TABLE_MAPPING_DEFAULT_CONFIG);
 
         when(connectionSupplier.get()).thenReturn(sqlConnection);
     }
@@ -231,7 +225,66 @@ public final class OracleDdlTableTest {
         assertThatCode(() -> tableMappingDdlTable.drop()).doesNotThrowAnyException();
     }
 
+    @Test
+    public void createAltersTableIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
+        setTableToHaveOverflowColumn(false);
+        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
+        verifyNumberOfTimesTableAltered(1);
+    }
+
+    @Test
+    public void createDoesNothingWhenAlterSpecifiedButOverflowColumnExists() throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
+        setTableToHaveOverflowColumn(true);
+        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
+        verifyNumberOfTimesTableAltered(0);
+    }
+
+    @Test
+    public void createDoesNothingWhenAlterSpecifiedButMigrationUnstarted() throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
+        setTableToHaveOverflowColumn(false);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .build());
+        assertThatThrownBy(() -> ddlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(OracleDdlTable.MISSING_OVERFLOW_TABLE_MESSAGE);
+        verifyNumberOfTimesTableAltered(0);
+    }
+
+    @Test
+    public void createDoesNothingWhenAlterSpecifiedButOverflowColumnIsNotNeeded() throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
+        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(false))).doesNotThrowAnyException();
+        verifyNumberOfTimesTableAltered(0);
+    }
+
+    @Test
+    public void createDoesNothingIfOverflowColumnNeededButTableNotListedInConfig()
+            throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
+        setTableToHaveOverflowColumn(false);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .alterTablesOrMetadataToMatch(Set.of())
+                .build());
+        assertThatThrownBy(() -> ddlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(OracleDdlTable.MISSING_OVERFLOW_TABLE_MESSAGE);
+        verifyNumberOfTimesTableAltered(0);
+    }
+
     private void createTable() throws TableMappingNotFoundException {
+        when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
+                .thenReturn(INTERNAL_TABLE_NAME);
         when(tableNameGetter.getPrefixedTableName(TEST_TABLE)).thenReturn(PREFIXED_TABLE_NAME);
         when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_TABLE_NAME);
@@ -241,9 +294,37 @@ public final class OracleDdlTableTest {
         when(tableNameGetter.getPrefixedOverflowTableName(TEST_TABLE)).thenReturn(PREFIXED_OVERFLOW_TABLE_NAME);
         when(tableNameGetter.getInternalShortOverflowTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_OVERFLOW_TABLE_NAME);
+        when(sqlConnection.selectExistsUnregisteredQuery(
+                        eq("SELECT 1 FROM user_tables WHERE TABLE_NAME = ?"),
+                        eq(INTERNAL_OVERFLOW_TABLE_NAME.toUpperCase())))
+                .thenReturn(true);
     }
 
     private void verifyTableDeleted(String tableName) {
         verify(sqlConnection).executeUnregisteredQuery("DROP TABLE " + tableName + " PURGE");
+    }
+
+    private byte[] createMetadata(boolean hasOverflow) {
+        return TableMetadata.builder()
+                .singleNamedColumn("foo", "foobar", hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG)
+                .build()
+                .persistToBytes();
+    }
+
+    private void setTableToHaveOverflowColumn(boolean hasColumn) {
+        when(sqlConnection.selectExistsUnregisteredQuery(
+                        eq("SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'"),
+                        eq(INTERNAL_TABLE_NAME.toUpperCase())))
+                .thenReturn(hasColumn);
+    }
+
+    private void verifyNumberOfTimesTableAltered(int numberOfTimes) {
+        verify(sqlConnection, times(numberOfTimes))
+                .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD overflow NUMBER(38);");
+    }
+
+    private OracleDdlTable createOracleDdlTable(OracleDdlConfig config) {
+        return OracleDdlTable.create(
+                TEST_TABLE, connectionSupplier, config, tableNameGetter, tableValueStyleCache, executorService);
     }
 }
