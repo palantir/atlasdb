@@ -226,6 +226,15 @@ public class TransactionServicesTest {
         assertThat(actualMcasRequest.updates().get(cell)).containsExactly(update);
     }
 
+    @Test
+    public void canReadCommittedV4Transaction() {
+        forceInstallV4();
+        initializeTimestamps();
+        transactionService.markInProgress(startTs);
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.committed(commitTs));
+    }
+
     private void initializeTimestamps() {
         startTs = timestampService.getFreshTimestamp();
         commitTs = timestampService.getFreshTimestamp();
@@ -245,7 +254,7 @@ public class TransactionServicesTest {
 
     private void forceInstallVersion(int newVersion) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        Awaitility.await().atMost(Duration.ofSeconds(200)).until(() -> {
+        Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
             ((TimestampManagementService) timestampService)
                     .fastForwardTimestamp(timestampService.getFreshTimestamp() + 1_000_000);
