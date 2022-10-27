@@ -17,15 +17,17 @@
 package com.palantir.atlasdb.atomic;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 public final class MarkAndCasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
     @VisibleForTesting
@@ -46,7 +48,6 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
      * {@link AtomicUpdateResult} with {@link CheckAndSetException} with detail if there is a value
      * present against this key.
      */
-    // todo(snanda): why is it throwing check and set instead of keyAlreadyExists?
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
         try {
@@ -57,15 +58,13 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
                         .map(BytesAndTimestamp::bytes)
                         .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
                         .isEmpty()) {
-                    throw new CheckAndSetException(
-                            "Did not find the expected value",
-                            cell,
-                            value,
-                            readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
+                    throw new KeyAlreadyExistsException(
+                            "Key already exists",
+                            ImmutableList.of(cell));
                 }
                 writeToQuorum(cell, quorumNodes, value);
             });
-        } catch (CheckAndSetException ex) {
+        } catch (KeyAlreadyExistsException ex) {
             return AtomicUpdateResult.failure(ex);
         }
         return AtomicUpdateResult.success();
