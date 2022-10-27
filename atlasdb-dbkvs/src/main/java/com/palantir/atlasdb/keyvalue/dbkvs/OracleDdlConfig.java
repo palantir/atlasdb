@@ -28,12 +28,11 @@ import com.palantir.db.oracle.JdbcHandler;
 import com.palantir.db.oracle.NativeOracleJdbcHandler;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import org.immutables.value.Value;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
