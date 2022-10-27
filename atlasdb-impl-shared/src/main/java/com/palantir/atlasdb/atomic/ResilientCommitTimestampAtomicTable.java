@@ -42,18 +42,21 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
-import org.immutables.value.Value;
-
-import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
+import org.immutables.value.Value;
 
 public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
     private static final RateLimitedLogger log =

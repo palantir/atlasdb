@@ -37,13 +37,16 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
 
     /**
      * Atomically performs a read (potentially propagating newest read value) and if the cell is marked on any of
-     * the nodes in a quorum, writes the value to those nodes. If there is a value present, throws a
-     * {@link CheckAndSetException} with detail.
+     * the nodes in a quorum, writes the value to those nodes.
      *
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
-     * @return
+     *
+     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
+     * {@link AtomicUpdateResult} with {@link CheckAndSetException} with detail if there is a value
+     * present against this key.
      */
+    // todo(snanda): why is it throwing check and set instead of keyAlreadyExists?
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
         try {

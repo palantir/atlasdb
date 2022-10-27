@@ -33,12 +33,14 @@ public class PueCassImitatingConsensusForgettingStore extends CassandraImitating
 
     /**
      * Atomically performs a read (potentially propagating newest read value) and if there is no value present on any of
-     * the nodes in a quorum, writes the value to those nodes. If there is a value present, throws a
-     * {@link KeyAlreadyExistsException} with detail.
+     * the nodes in a quorum, writes the value to those nodes.
      *
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
-     * @return
+     *
+     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
+     * {@link AtomicUpdateResult} with {@link KeyAlreadyExistsException} with detail if there is a value
+     * present against this key.
      */
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {

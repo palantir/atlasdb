@@ -85,9 +85,11 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     /**
-     * Atomically updates cells that have been marked. Throws {@code CheckAndSetException} if cell to update has not
-     * been marked. The MCAS calls to KVS are batched.
-     * @return
+     * Atomically updates cells that have been marked. The MCAS calls to KVS are batched.
+     *
+     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
+     * {@link AtomicUpdateResult} with {@link KeyAlreadyExistsException} with detail if there is a value
+     * present against this key.
      */
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
@@ -100,8 +102,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * and does not guarantee atomicity across cells.
      * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
      * atomically.
-     *
-     * @return*/
+     * */
     @Override
     public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
         return KeyedStream.stream(values)
