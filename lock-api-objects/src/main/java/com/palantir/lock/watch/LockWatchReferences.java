@@ -83,7 +83,7 @@ public final class LockWatchReferences {
     @JsonDeserialize(as = ImmutableEntireTable.class)
     @JsonSerialize(as = ImmutableEntireTable.class)
     @JsonTypeName(EntireTable.TYPE)
-    public abstract static class EntireTable implements LockWatchReference {
+    abstract static class EntireTable implements LockWatchReference {
         static final String TYPE = "fullTable";
 
         @Value.Parameter
@@ -100,7 +100,7 @@ public final class LockWatchReferences {
     @JsonDeserialize(as = ImmutableRowPrefix.class)
     @JsonSerialize(as = ImmutableRowPrefix.class)
     @JsonTypeName(RowPrefix.TYPE)
-    public abstract static class RowPrefix implements LockWatchReference {
+    abstract static class RowPrefix implements LockWatchReference {
         static final String TYPE = "rowPrefix";
 
         @Value.Parameter
@@ -120,7 +120,7 @@ public final class LockWatchReferences {
     @JsonDeserialize(as = ImmutableRowRange.class)
     @JsonSerialize(as = ImmutableRowRange.class)
     @JsonTypeName(RowRange.TYPE)
-    public abstract static class RowRange implements LockWatchReference {
+    abstract static class RowRange implements LockWatchReference {
         static final String TYPE = "rowRange";
 
         @Value.Parameter
@@ -143,7 +143,7 @@ public final class LockWatchReferences {
     @JsonDeserialize(as = ImmutableExactRow.class)
     @JsonSerialize(as = ImmutableExactRow.class)
     @JsonTypeName(ExactRow.TYPE)
-    public abstract static class ExactRow implements LockWatchReference {
+    abstract static class ExactRow implements LockWatchReference {
         static final String TYPE = "exactRow";
 
         @Value.Parameter
@@ -163,7 +163,7 @@ public final class LockWatchReferences {
     @JsonDeserialize(as = ImmutableExactCell.class)
     @JsonSerialize(as = ImmutableExactCell.class)
     @JsonTypeName(ExactCell.TYPE)
-    public abstract static class ExactCell implements LockWatchReference {
+    abstract static class ExactCell implements LockWatchReference {
         static final String TYPE = "exactCell";
 
         @Value.Parameter

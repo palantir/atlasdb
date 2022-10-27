@@ -112,31 +112,6 @@ public final class LockWatchEventIntegrationTest {
         LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
         txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
         LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
-
-        // OpenTransaction firstTxn = startSingleTransaction();
-        // TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.empty(), firstTxn);
-        //
-        // Set<LockWatchReference> registeredWatches = update.events().stream()
-        //         .map(event -> event.accept(new Visitor<Set<LockWatchReference>>() {
-        //             @Override
-        //             public Set<LockWatchReference> visit(LockEvent lockEvent) {
-        //                 return ImmutableSet.of();
-        //             }
-        //
-        //             @Override
-        //             public Set<LockWatchReference> visit(UnlockEvent unlockEvent) {
-        //                 return ImmutableSet.of();
-        //             }
-        //
-        //             @Override
-        //             public Set<LockWatchReference> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-        //                 return lockWatchCreatedEvent.references();
-        //             }
-        //         }))
-        //         .flatMap(Collection::stream)
-        //         .collect(Collectors.toSet());
-        //
-        // assertThat(registeredWatches).contains(exactRowReference);
     }
 
     @Test
@@ -253,8 +228,6 @@ public final class LockWatchEventIntegrationTest {
 
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
 
-        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), AllEventVisitor.INSTANCE))
-                .containsAll(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
                 .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
@@ -398,25 +371,6 @@ public final class LockWatchEventIntegrationTest {
                 return invalidatedLocks;
             }
         }));
-    }
-
-    private static final class AllEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        static AllEventVisitor INSTANCE = new AllEventVisitor();
-
-        @Override
-        public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            return lockEvent.lockDescriptors();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(UnlockEvent unlockEvent) {
-            return unlockEvent.lockDescriptors();
-        }
-
-        @Override
-        public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return lockWatchCreatedEvent.lockDescriptors();
-        }
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {

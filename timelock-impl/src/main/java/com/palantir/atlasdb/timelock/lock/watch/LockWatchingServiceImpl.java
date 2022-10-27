@@ -26,13 +26,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchReferences;
-import com.palantir.lock.watch.LockWatchReferences.EntireTable;
-import com.palantir.lock.watch.LockWatchReferences.ExactCell;
-import com.palantir.lock.watch.LockWatchReferences.ExactRow;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
-import com.palantir.lock.watch.LockWatchReferences.RowPrefix;
-import com.palantir.lock.watch.LockWatchReferences.RowRange;
-import com.palantir.lock.watch.LockWatchReferences.Visitor;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.SafeArg;
@@ -84,16 +78,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        log.info("Attempting to watch new references");
-        logIfExactTable(locksToWatch.getReferences(), "Attempting to watch exact table");
         Optional<LockWatches> changes = addToWatches(locksToWatch);
-        changes.ifPresent(changedWatches -> {
-            log.info(
-                    "New references watched",
-                    SafeArg.of("sizeOfReferences", changedWatches.references().size()),
-                    UnsafeArg.of("references", changedWatches.references()));
-            logIfExactTable(changedWatches.references(), "Exact row reference added!");
-        });
         changes.ifPresent(this::logLockWatchEvent);
         Set<LockWatchReference> allReferences = watches.get().references();
         if (log.isDebugEnabled()) {
@@ -102,37 +87,6 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                     SafeArg.of("sizeOfReferences", allReferences.size()),
                     UnsafeArg.of("allWatchedTables", allReferences));
         }
-    }
-
-    @SuppressWarnings("CompileTimeConstant")
-    private void logIfExactTable(Set<LockWatchReference> changedWatches, String message) {
-        changedWatches.forEach(ref -> ref.accept(new Visitor<Void>() {
-            @Override
-            public Void visit(EntireTable reference) {
-                return null;
-            }
-
-            @Override
-            public Void visit(RowPrefix reference) {
-                return null;
-            }
-
-            @Override
-            public Void visit(RowRange reference) {
-                return null;
-            }
-
-            @Override
-            public Void visit(ExactRow reference) {
-                log.info(message);
-                return null;
-            }
-
-            @Override
-            public Void visit(ExactCell reference) {
-                return null;
-            }
-        }));
     }
 
     @Override
@@ -195,13 +149,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
             Set<LockDescriptor> filtered =
                     unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
             if (!filtered.isEmpty()) {
-                log.info("Logging a lock event", SafeArg.of("matching filters", filtered));
                 consumer.accept(filtered);
-            } else {
-                log.info(
-                        "Not logging lock event, as no descriptor matches a watched range",
-                        SafeArg.of("descriptors", unfiltered),
-                        SafeArg.of("ranges", ranges));
             }
         } finally {
             watchesLock.readLock().unlock();

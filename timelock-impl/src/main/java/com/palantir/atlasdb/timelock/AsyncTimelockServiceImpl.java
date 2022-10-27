@@ -50,8 +50,6 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import java.util.Optional;
@@ -60,8 +58,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
-    private static final SafeLogger log = SafeLoggerFactory.get(AsyncTimelockServiceImpl.class);
-
     private final AsyncLockService lockService;
     private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
@@ -264,7 +260,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
-        log.info("Start watching (async)");
         lockService.getLockWatchingService().startWatching(locksToWatch);
     }
 
@@ -280,7 +275,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        log.info("Register lock async");
         lockService.getLockWatchingService().registerLock(locksTakenOut, token);
     }
 

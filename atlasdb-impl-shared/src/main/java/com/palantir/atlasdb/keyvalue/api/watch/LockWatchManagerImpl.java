@@ -115,7 +115,6 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         lockWatchReferences.clear();
         lockWatchReferences.addAll(referencesFromSchema);
         lockWatchReferences.addAll(newLockWatches);
-        log.info("Registering new watches with timelock");
         registerWatchesWithTimelock();
     }
 
@@ -155,7 +154,6 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         }
 
         try {
-            log.info("Start watching", UnsafeArg.of("lockwatches", lockWatchReferences));
             lockWatchingService.startWatching(LockWatchRequest.of(lockWatchReferences));
         } catch (Throwable e) {
             log.info("Failed to register lockwatches", UnsafeArg.of("lockwatches", lockWatchReferences), e);
