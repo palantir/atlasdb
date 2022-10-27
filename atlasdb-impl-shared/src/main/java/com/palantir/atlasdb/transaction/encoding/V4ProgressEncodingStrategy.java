@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Arrays;
 
 public enum V4ProgressEncodingStrategy implements ProgressEncodingStrategy {
     INSTANCE;
 
-    private static final byte[] TTS_IN_PROGRESS_TRANSACTION_VALUE = new byte[] {0};
-
     @Override
     public byte[] getInProgressMarker() {
-        return TTS_IN_PROGRESS_TRANSACTION_VALUE;
+        return TransactionConstants.TTS_IN_PROGRESS_MARKER;
     }
 
     @Override
     public boolean isInProgress(byte[] value) {
-        return Arrays.equals(value, TTS_IN_PROGRESS_TRANSACTION_VALUE);
+        return Arrays.equals(value, TransactionConstants.TTS_IN_PROGRESS_MARKER);
     }
 }

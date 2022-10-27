@@ -24,6 +24,7 @@ import com.palantir.atlasdb.atomic.PueConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ResilientCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.SimpleCommitTimestampAtomicTable;
 import com.palantir.atlasdb.atomic.TimestampExtractingAtomicTable;
+import com.palantir.atlasdb.atomic.mcas.MarkAndCasConsensusForgettingStore;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -123,7 +124,7 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted,
             TransactionKnowledgeComponents knowledge) {
         AtomicTable<Long, TransactionStatus> delegate =
-                getDelegate(kvs, tableRef, encodingStrategy, metricRegistry, acceptStagingReadsAsCommitted);
+                getMcasDelegate(kvs, tableRef, encodingStrategy, metricRegistry, acceptStagingReadsAsCommitted);
         AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(delegate, knowledge);
         return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
     }
@@ -136,6 +137,19 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             Supplier<Boolean> acceptStagingReadsAsCommitted) {
         ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
                 new PueConsensusForgettingStore(kvs, tableRef), metricRegistry);
+        return new ResilientCommitTimestampAtomicTable(
+                store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
+    }
+
+    private static ResilientCommitTimestampAtomicTable getMcasDelegate(
+            KeyValueService kvs,
+            TableReference tableRef,
+            TwoPhaseEncodingStrategy encodingStrategy,
+            TaggedMetricRegistry metricRegistry,
+            Supplier<Boolean> acceptStagingReadsAsCommitted) {
+        ConsensusForgettingStore store = InstrumentedConsensusForgettingStore.create(
+                new MarkAndCasConsensusForgettingStore(TransactionConstants.TTS_IN_PROGRESS_MARKER, kvs, tableRef),
+                metricRegistry);
         return new ResilientCommitTimestampAtomicTable(
                 store, encodingStrategy, acceptStagingReadsAsCommitted, metricRegistry);
     }
