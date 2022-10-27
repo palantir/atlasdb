@@ -27,11 +27,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -88,15 +88,14 @@ public final class CassandraTopologyValidator {
     public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
             Set<CassandraServer> newlyAddedHosts,
             Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
-            HumanReadableDuration waitTimeBetweenCalls,
-            HumanReadableDuration maxWaitTime) {
+            Duration waitTimeBetweenCalls,
+            Duration maxWaitTime) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         Retryer<Set<CassandraServer>> retryer = RetryerBuilder.<Set<CassandraServer>>newBuilder()
                 .retryIfResult(servers -> servers.size() == allHosts.size())
                 .retryIfException()
-                .withWaitStrategy(
-                        WaitStrategies.fixedWait(waitTimeBetweenCalls.toMilliseconds(), TimeUnit.MILLISECONDS))
-                .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMilliseconds(), TimeUnit.MILLISECONDS))
+                .withWaitStrategy(WaitStrategies.fixedWait(waitTimeBetweenCalls.toMillis(), TimeUnit.MILLISECONDS))
+                .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS))
                 .build();
         Supplier<Set<CassandraServer>> inconsistentNewHosts =
                 () -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts);

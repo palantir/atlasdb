@@ -25,7 +25,11 @@ public interface HostIdResult {
 
     enum Type {
         SUCCESS,
+        // Endpoint does not exist on C* host, therefore it is impossible to perform this check.
+        // As a result, we shouldn't fail hard in this case, and simply ignore these results.
         SOFT_FAILURE,
+        // Calling the endpoint failed for some reason (i.e network exception). In this case it's not clear
+        // if the endpoint is supported, thus let's count this host as failing the check.
         HARD_FAILURE
     }
 
@@ -48,10 +52,10 @@ public interface HostIdResult {
     @Value.Check
     default void checkHostIdsStateBasedOnResultType() {
         Preconditions.checkArgument(
-                !(type().equals(Type.SUCCESS) && hostIds().isEmpty()),
+                !((type() == Type.SUCCESS) && hostIds().isEmpty()),
                 "It is expected that there should be at least one host id if the result is successful.");
         Preconditions.checkArgument(
-                type().equals(Type.SUCCESS) || hostIds().isEmpty(),
+                type() == Type.SUCCESS || hostIds().isEmpty(),
                 "It is expected that no hostIds should be present when there is a failure.");
     }
 

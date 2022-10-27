@@ -19,8 +19,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -28,10 +31,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -64,7 +67,7 @@ public final class CassandraTopologyValidatorTest {
 
     private final CassandraTopologyValidationMetrics metrics =
             CassandraTopologyValidationMetrics.of(new DefaultTaggedMetricRegistry());
-    private CassandraTopologyValidator validator = spy(new CassandraTopologyValidator(metrics));
+    private final CassandraTopologyValidator validator = spy(new CassandraTopologyValidator(metrics));
 
     @Test
     public void retriesUntilNoNewHostsReturned() {
@@ -77,28 +80,41 @@ public final class CassandraTopologyValidatorTest {
                         HostIdResult.success(Set.of(uuidIterator.next())),
                         HostIdResult.success(UUIDS)));
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(),
-                        allHosts,
-                        HumanReadableDuration.milliseconds(1),
-                        HumanReadableDuration.seconds(20)))
+                        allHosts.keySet(), allHosts, Duration.ofMillis(1), Duration.ofSeconds(20)))
                 .isEmpty();
     }
 
     @Test
-    public void retriesThrowsAndMarksFailureWhenNeverResolves() {
+    public void retriesMarksFailureWhenNeverResolves() {
         Iterator<String> uuidIterator = UUIDS.iterator();
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         EntryStream.of(allHosts)
                 .values()
                 .forEach(container -> setHostIds(Set.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(),
-                        allHosts,
-                        HumanReadableDuration.milliseconds(1),
-                        HumanReadableDuration.milliseconds(1)))
+                        allHosts.keySet(), allHosts, Duration.ofMillis(1), Duration.ofMillis(1)))
                 .isNotEmpty();
         assertThat(metrics.validationFailures().getCount()).isEqualTo(1);
         assertThat(metrics.validationLatency().getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void retiresAndReturnsFailingHosts() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
+        doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
+        assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
+                .containsExactlyInAnyOrderElementsOf(allHosts.keySet());
+    }
+
+    @Test
+    public void retiresAtLeastTwoTimes() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
+        doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
+        assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
+                .isNotEmpty();
+        verify(validator, times(2)).getNewHostsWithInconsistentTopologies(any(), any());
     }
 
     @Test
@@ -129,7 +145,7 @@ public final class CassandraTopologyValidatorTest {
                 filterContainers(allHosts, server -> !server.equals(NEW_HOST_ONE)),
                 HostIdResult.success(ImmutableSet.of("uuid1", "uuid2")));
         setHostIds(
-                filterContainers(allHosts, NEW_HOST_ONE::equalsIgnoreCase),
+                filterContainers(allHosts, NEW_HOST_ONE::equals),
                 HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
         assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
                 .containsExactlyElementsOf(allHosts.keySet());
@@ -151,12 +167,12 @@ public final class CassandraTopologyValidatorTest {
 
     @Test
     public void validateNewlyAddedHostsReturnsOnlyMismatchingNewHosts() {
-        Predicate<String> badHostFilter = NEW_HOST_ONE::equalsIgnoreCase;
+        Predicate<String> badHostFilter = NEW_HOST_ONE::equals;
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
-        Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
-        Set<CassandraServer> badNewHosts = filterServers(allHosts, badHostFilter);
         setHostIds(filterContainers(allHosts, badHostFilter.negate()), DEFAULT_RESULT);
         setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
+        Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
+        Set<CassandraServer> badNewHosts = filterServers(allHosts, badHostFilter);
         assertThat(validator.getNewHostsWithInconsistentTopologies(newServers, allHosts))
                 .containsExactlyElementsOf(badNewHosts);
     }
@@ -198,11 +214,11 @@ public final class CassandraTopologyValidatorTest {
         Set<String> hostsWithEndpoints = ImmutableSet.of(NEW_HOST_ONE, OLD_HOST_ONE);
         setHostIds(
                 filterContainers(allHosts, server -> !hostsWithEndpoints.contains(server)), HostIdResult.softFailure());
-        setHostIds(filterContainers(allHosts, NEW_HOST_ONE::equalsIgnoreCase), HostIdResult.success(Set.of("uuid")));
-        setHostIds(filterContainers(allHosts, OLD_HOST_ONE::equalsIgnoreCase), DEFAULT_RESULT);
+        setHostIds(filterContainers(allHosts, NEW_HOST_ONE::equals), HostIdResult.success(Set.of("uuid")));
+        setHostIds(filterContainers(allHosts, OLD_HOST_ONE::equals), DEFAULT_RESULT);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         filterServers(allHosts, NEW_HOSTS::contains), allHosts))
-                .containsExactlyElementsOf(filterServers(allHosts, NEW_HOST_ONE::equalsIgnoreCase));
+                .containsExactlyElementsOf(filterServers(allHosts, NEW_HOST_ONE::equals));
     }
 
     @Test
