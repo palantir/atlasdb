@@ -41,7 +41,7 @@ public final class HostIdResultTest {
                         .hostIds(Set.of("foo"))
                         .build())
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("It is expected that no hostIds should be present when there is a failure.");
+                .hasMessage("It is expected that no hostIds should be present when there is a failure.");
     }
 
     @Test
@@ -51,8 +51,7 @@ public final class HostIdResultTest {
                         .hostIds(Set.of())
                         .build())
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageNotContaining(
-                        "It is expected that there should be at least one host id if the result is successful.");
+                .hasMessage("It is expected that there should be at least one host id if the result is successful.");
     }
 
     @Test
