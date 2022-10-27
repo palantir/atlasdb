@@ -116,8 +116,8 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return columnName;
     }
 
-    public long byteSize() {
-        return ((long) rowName.length) + columnName.length;
+    public long sizeInBytes() {
+        return Long.sum(rowName.length, columnName.length);
     }
 
     @Override

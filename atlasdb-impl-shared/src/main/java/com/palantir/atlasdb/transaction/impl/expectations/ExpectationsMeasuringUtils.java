@@ -33,7 +33,7 @@ public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
     public static long sizeInBytes(Entry<Cell, Value> entry) {
-        return entry.getKey().byteSize() + entry.getValue().byteSize();
+        return entry.getKey().sizeInBytes() + entry.getValue().byteSize();
     }
 
     public static long sizeInBytes(TableReference tableRef) {
@@ -47,13 +47,13 @@ public final class ExpectationsMeasuringUtils {
 
     public static long sizeInBytes(Multimap<Cell, Long> valueByCell) {
         return valueByCell.keys().stream()
-                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
+                .mapToLong(cell -> cell.sizeInBytes() + Long.BYTES)
                 .sum();
     }
 
     public static long sizeInBytes(Map<Cell, Long> longByCell) {
         return longByCell.keySet().stream()
-                .mapToLong(cell -> cell.byteSize() + Long.BYTES)
+                .mapToLong(cell -> cell.sizeInBytes() + Long.BYTES)
                 .sum();
     }
 

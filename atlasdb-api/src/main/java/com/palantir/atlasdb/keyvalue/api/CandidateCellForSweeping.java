@@ -42,7 +42,7 @@ public interface CandidateCellForSweeping {
      */
     boolean isLatestValueEmpty();
 
-    default long byteSize() {
-        return cell().byteSize() + ((long) sortedTimestamps().size()) * Long.BYTES;
+    default long sizeInBytes() {
+        return cell().sizeInBytes() + ((long) sortedTimestamps().size()) * Long.BYTES;
     }
 }

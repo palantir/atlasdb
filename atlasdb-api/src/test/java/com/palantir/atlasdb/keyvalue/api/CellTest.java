@@ -18,12 +18,21 @@ package com.palantir.atlasdb.keyvalue.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeNullPointerException;
+import com.palantir.util.Pair;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public final class CellTest {
+    private static final ImmutableSet<Integer> THREE_CELL_NAME_SIZES =
+            ImmutableSet.of(1, Cell.MAX_NAME_LENGTH / 2, Cell.MAX_NAME_LENGTH);
+    private static final ImmutableSet<Byte> TWO_BYTES = ImmutableSet.of((byte) 0xa, (byte) 0xb);
 
     @Test
     public void testCreate() {
@@ -78,6 +87,31 @@ public final class CellTest {
                         + "row and column values lead to the same hashCode and cannot be changed due "
                         + "to backward compatibility. See CellReference#goodHash")
                 .hasSameHashCodeAs(Cell.create(bytes("col"), bytes("row")));
+    }
+
+    @Test
+    public void testSizeInBytes() {
+        for (Pair<Integer, Integer> sizes : allPairs(THREE_CELL_NAME_SIZES)) {
+            for (Pair<Byte, Byte> bytes : allPairs(TWO_BYTES)) {
+                assertThat(Cell.create(
+                                        spawnBytes(sizes.getLhSide(), bytes.getLhSide()),
+                                        spawnBytes(sizes.getRhSide(), bytes.getRhSide()))
+                                .sizeInBytes())
+                        .isEqualTo(sizes.getLhSide() + sizes.getRhSide());
+            }
+        }
+    }
+
+    private static <T> Set<Pair<T, T>> allPairs(Set<T> set) {
+        return Sets.cartesianProduct(set, set).stream()
+                .map(list -> Pair.create(list.get(0), list.get(1)))
+                .collect(Collectors.toSet());
+    }
+
+    private static byte[] spawnBytes(int size, byte element) {
+        byte[] bytes = new byte[size];
+        Arrays.fill(bytes, element);
+        return bytes;
     }
 
     private static byte[] bytes(String value) {
