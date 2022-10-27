@@ -79,6 +79,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     @Override
     public void startWatching(LockWatchRequest locksToWatch) {
         Optional<LockWatches> changes = addToWatches(locksToWatch);
+        changes.ifPresent(changedWatches -> log.info(
+                "New references watched",
+                SafeArg.of("sizeOfReferences", changedWatches.references().size()),
+                UnsafeArg.of("references", changedWatches.references())));
         changes.ifPresent(this::logLockWatchEvent);
         Set<LockWatchReference> allReferences = watches.get().references();
         if (log.isDebugEnabled()) {
