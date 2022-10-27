@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
@@ -121,6 +122,10 @@ public final class TableReference {
         return getQualifiedName().contains(".");
     }
 
+    public long sizeInBytes() {
+        return stringSizeInBytes(tableName) + stringSizeInBytes(namespace.getName());
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -155,5 +160,9 @@ public final class TableReference {
         } else {
             throw new IllegalArgumentException(tableReferenceAsString + " is not a valid table reference.");
         }
+    }
+
+    private static long stringSizeInBytes(String string) {
+        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
     }
 }

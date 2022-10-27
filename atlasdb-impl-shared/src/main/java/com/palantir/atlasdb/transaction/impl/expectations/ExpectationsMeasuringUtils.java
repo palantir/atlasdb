@@ -23,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -34,15 +33,6 @@ public final class ExpectationsMeasuringUtils {
 
     public static long sizeInBytes(Entry<Cell, Value> entry) {
         return entry.getKey().sizeInBytes() + entry.getValue().byteSize();
-    }
-
-    public static long sizeInBytes(TableReference tableRef) {
-        return sizeInBytes(tableRef.getTableName())
-                + sizeInBytes(tableRef.getNamespace().getName());
-    }
-
-    public static long sizeInBytes(String string) {
-        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
     }
 
     public static long sizeInBytes(Multimap<Cell, Long> valueByCell) {
@@ -70,7 +60,7 @@ public final class ExpectationsMeasuringUtils {
 
     public static long arrayByRefSizeInBytes(Map<TableReference, byte[]> arrayByRef) {
         return arrayByRef.entrySet().stream()
-                .mapToLong(entry -> sizeInBytes(entry.getKey()) + entry.getValue().length)
+                .mapToLong(entry -> entry.getKey().sizeInBytes() + entry.getValue().length)
                 .sum();
     }
 
