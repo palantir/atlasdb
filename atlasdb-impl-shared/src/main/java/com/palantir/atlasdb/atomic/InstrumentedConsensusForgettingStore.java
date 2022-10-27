@@ -19,12 +19,14 @@ package com.palantir.atlasdb.atomic;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
+;
 
 /**
  * In general, the purpose of this class at least in its current form is to evaluate the requirement (or lack
@@ -65,24 +67,24 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+    public AtomicOperationResult atomicUpdate(Cell cell, byte[] value) {
         return delegate.atomicUpdate(cell, value);
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public Map<Cell, AtomicOperationResult> atomicUpdate(Map<Cell, byte[]> values) {
         return delegate.atomicUpdate(values);
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        runCheckAndTouchOperation(() -> delegate.checkAndTouch(cell, value));
+    public AtomicOperationResult checkAndTouch(Cell cell, byte[] value) {
+        return runCheckAndTouchOperation(() -> delegate.checkAndTouch(cell, value));
     }
 
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) {
         metrics.batchedCheckAndTouchSize().update(values.size());
-        runCheckAndTouchOperation(() -> delegate.checkAndTouch(values));
+        return runCheckAndTouchOperation(() -> delegate.checkAndTouch(values));
     }
 
     @Override
@@ -105,10 +107,12 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
         delegate.put(values);
     }
 
-    private void runCheckAndTouchOperation(Runnable checkAndTouchOperation) {
+    private <T> T runCheckAndTouchOperation(Callable<T> checkAndTouchOperation) {
         concurrentCheckAndTouchOperations.incrementAndGet();
         try {
-            metrics.checkAndTouch().time(checkAndTouchOperation);
+            return metrics.checkAndTouch().time(checkAndTouchOperation);
+        } catch (Exception ex) {
+            throw new SafeRuntimeException("Error while evaluation atomic operation.", ex);
         } finally {
             concurrentCheckAndTouchOperations.decrementAndGet();
         }

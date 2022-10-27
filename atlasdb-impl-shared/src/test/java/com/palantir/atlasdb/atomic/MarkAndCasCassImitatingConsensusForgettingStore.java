@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -44,12 +43,12 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
      *
-     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
-     * {@link AtomicUpdateResult} with {@link CheckAndSetException} with detail if there is a value
+     * @return {@link AtomicOperationResult} with success if the atomic update was successful. Else,
+     * {@link AtomicOperationResult} with {@link CheckAndSetException} with detail if there is a value
      * present against this key.
      */
     @Override
-    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+    public AtomicOperationResult atomicUpdate(Cell cell, byte[] value) {
         try {
             runAtomically(cell, () -> {
                 Set<Node> quorumNodes = getQuorumNodes();
@@ -58,23 +57,21 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
                         .map(BytesAndTimestamp::bytes)
                         .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
                         .isEmpty()) {
-                    throw new KeyAlreadyExistsException(
-                            "Key already exists",
-                            ImmutableList.of(cell));
+                    throw new KeyAlreadyExistsException("Key already exists", ImmutableList.of(cell));
                 }
                 writeToQuorum(cell, quorumNodes, value);
             });
         } catch (KeyAlreadyExistsException ex) {
-            return AtomicUpdateResult.failure(ex);
+            return AtomicOperationResult.failure(ex);
         }
-        return AtomicUpdateResult.success();
+        return AtomicOperationResult.success();
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public Map<Cell, AtomicOperationResult> atomicUpdate(Map<Cell, byte[]> values) {
         // sort by cells to avoid deadlock
         return KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
+                .map((BiFunction<Cell, byte[], AtomicOperationResult>) this::atomicUpdate)
                 .collectToMap();
     }
 

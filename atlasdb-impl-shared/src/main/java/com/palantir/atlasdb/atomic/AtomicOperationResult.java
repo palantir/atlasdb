@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 
 @Unsafe
 @Value.Immutable
-public interface AtomicUpdateResult {
+public interface AtomicOperationResult {
     boolean isSuccess();
 
     // Todo(snanda): we need unified exceptions
@@ -36,14 +36,14 @@ public interface AtomicUpdateResult {
                 "Should be either successful or failure with exception.");
     }
 
-    static AtomicUpdateResult failure(RuntimeException ex) {
-        return ImmutableAtomicUpdateResult.builder()
+    static AtomicOperationResult failure(RuntimeException ex) {
+        return ImmutableAtomicOperationResult.builder()
                 .isSuccess(false)
                 .maybeException(ex)
                 .build();
     }
 
-    static AtomicUpdateResult success() {
-        return ImmutableAtomicUpdateResult.builder().isSuccess(false).build();
+    static AtomicOperationResult success() {
+        return ImmutableAtomicOperationResult.builder().isSuccess(false).build();
     }
 }

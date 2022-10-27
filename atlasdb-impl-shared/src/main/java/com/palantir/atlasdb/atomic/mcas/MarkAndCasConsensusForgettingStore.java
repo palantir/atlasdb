@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.atomic.AtomicUpdateResult;
+import com.palantir.atlasdb.atomic.AtomicOperationResult;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStoreImpl;
@@ -87,13 +87,13 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     /**
      * Atomically updates cells that have been marked. The MCAS calls to KVS are batched.
      *
-     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
-     * {@link AtomicUpdateResult} with {@link KeyAlreadyExistsException} with detail if there is a value
+     * @return {@link AtomicOperationResult} with success if the atomic update was successful. Else,
+     * {@link AtomicOperationResult} with {@link KeyAlreadyExistsException} with detail if there is a value
      * present against this key.
      */
     @Override
-    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
-        return getResultForFuture(
+    public AtomicOperationResult atomicUpdate(Cell cell, byte[] value) {
+        return getResultForAtomicUpdate(
                 autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value))));
     }
 
@@ -104,21 +104,23 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * atomically.
      * */
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public Map<Cell, AtomicOperationResult> atomicUpdate(Map<Cell, byte[]> values) {
         return KeyedStream.stream(values)
-                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
+                .map((BiFunction<Cell, byte[], AtomicOperationResult>) this::atomicUpdate)
                 .collectToMap();
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+    public AtomicOperationResult checkAndTouch(Cell cell, byte[] value) {
         ByteBuffer buffer = ByteBuffer.wrap(value);
-        autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
+        return getResultForCheckAndSet(autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer)));
     }
 
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+    public Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        return KeyedStream.stream(values)
+                .map((cell, value) -> checkAndTouch(cell, value))
+                .collectToMap();
     }
 
     @Override
@@ -188,13 +190,25 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         return casRequest.expected().equals(ByteBuffer.wrap(ex.getActualValues().get(cell)));
     }
 
-    private AtomicUpdateResult getResultForFuture(ListenableFuture<Void> future) {
+    private AtomicOperationResult getResultForAtomicUpdate(ListenableFuture<Void> future) {
         try {
             future.get();
-            return AtomicUpdateResult.success();
+            return AtomicOperationResult.success();
         } catch (Exception ex) {
             if (ex.getCause() instanceof KeyAlreadyExistsException) {
-                return AtomicUpdateResult.failure((KeyAlreadyExistsException) ex.getCause());
+                return AtomicOperationResult.failure((KeyAlreadyExistsException) ex.getCause());
+            }
+            throw new SafeRuntimeException("Could not execute atomic update", ex);
+        }
+    }
+
+    private AtomicOperationResult getResultForCheckAndSet(ListenableFuture<Void> future) {
+        try {
+            future.get();
+            return AtomicOperationResult.success();
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof CheckAndSetException) {
+                return AtomicOperationResult.failure((KeyAlreadyExistsException) ex.getCause());
             }
             throw new SafeRuntimeException("Could not execute atomic update", ex);
         }

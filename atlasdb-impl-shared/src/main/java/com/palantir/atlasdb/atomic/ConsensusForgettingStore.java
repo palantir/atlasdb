@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.atomic;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,24 +55,26 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      *   another update operation has failed in the past non-deterministically
      *   3. The semantics of the update operation depend on the underlying implementation.
      */
-    AtomicUpdateResult atomicUpdate(Cell cell, byte[] value);
+    AtomicOperationResult atomicUpdate(Cell cell, byte[] value);
 
     /**
      * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
      * depending on the underlying implementation.
      * @return atomic update result for each individual cell
      */
-    Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values);
+    Map<Cell, AtomicOperationResult> atomicUpdate(Map<Cell, byte[]> values);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a
      * {@link ConsensusForgettingStore#put(Cell, byte[])} is called subsequent gets are guaranteed to return
      * Optional.of(value), and subsequent PUE is guaranteed to throw a KeyAlreadyExistsException.
      */
-    void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
+    AtomicOperationResult checkAndTouch(Cell cell, byte[] value);
 
-    default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+    default Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) {
+        return KeyedStream.stream(values)
+                .map((cell, val) -> checkAndTouch(cell, val))
+                .collectToMap();
     }
 
     /**

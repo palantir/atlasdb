@@ -42,37 +42,45 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+    public AtomicOperationResult atomicUpdate(Cell cell, byte[] value) {
         return atomicUpdate(ImmutableMap.of(cell, value)).get(cell);
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public Map<Cell, AtomicOperationResult> atomicUpdate(Map<Cell, byte[]> values) {
         try {
             kvs.putUnlessExists(tableRef, values);
         } catch (KeyAlreadyExistsException ex) {
             return KeyedStream.stream(values)
-                    .map(_u -> AtomicUpdateResult.failure(ex))
+                    .map(_u -> AtomicOperationResult.failure(ex))
                     .collectToMap();
         }
         return KeyedStream.stream(values)
-                .map(_u -> AtomicUpdateResult.success())
+                .map(_u -> AtomicOperationResult.success())
                 .collectToMap();
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+    public AtomicOperationResult checkAndTouch(Cell cell, byte[] value) {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
-        kvs.checkAndSet(request);
+        try {
+            kvs.checkAndSet(request);
+        } catch (CheckAndSetException ex) {
+            return AtomicOperationResult.failure(ex);
+        }
+        return AtomicOperationResult.success();
     }
 
     /**
      * Note that changing this method may invalidate existing tests in
      * ResilientCommitTimestampPutUnlessExistsTableTest.
+     * @return
      */
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+    public Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) {
+        return KeyedStream.stream(values)
+                .map((cell, value) -> checkAndTouch(cell, value))
+                .collectToMap();
     }
 
     @Override

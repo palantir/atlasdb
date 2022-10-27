@@ -78,28 +78,35 @@ abstract class CassandraImitatingConsensusForgettingStore implements ConsensusFo
      *
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
+     * @return
      */
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
-            Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult.map(BytesAndTimestamp::bytes).stream().noneMatch(read -> Arrays.equals(read, value))) {
-                throw new CheckAndSetException(
-                        "Did not find the expected value",
-                        cell,
-                        value,
-                        readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
-            }
-            writeToQuorum(cell, quorumNodes, value);
-        });
+    public AtomicOperationResult checkAndTouch(Cell cell, byte[] value) {
+        try {
+            runAtomically(cell, () -> {
+                Set<Node> quorumNodes = getQuorumNodes();
+                Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
+                if (readResult.map(BytesAndTimestamp::bytes).stream().noneMatch(read -> Arrays.equals(read, value))) {
+                    throw new CheckAndSetException(
+                            "Did not find the expected value",
+                            cell,
+                            value,
+                            readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
+                }
+                writeToQuorum(cell, quorumNodes, value);
+            });
+        } catch (CheckAndSetException checkAndSetException) {
+            return AtomicOperationResult.failure(checkAndSetException);
+        }
+        return AtomicOperationResult.success();
     }
 
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) {
         // sort by cells to avoid deadlock
-        KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::checkAndTouch);
+        return KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
+                .map((cell, val) -> checkAndTouch(cell, val))
+                .collectToMap();
     }
 
     /**

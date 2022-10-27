@@ -39,6 +39,7 @@ import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
@@ -144,7 +145,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
 
-        Map<Cell, AtomicUpdateResult> atomicUpdateResults = store.atomicUpdate(stagingValues);
+        Map<Cell, AtomicOperationResult> atomicUpdateResults = store.atomicUpdate(stagingValues);
 
         Map<Cell, byte[]> valuesToPut = new HashMap<>();
         List<Cell> keysAlreadyExist = new ArrayList<>();
@@ -181,25 +182,33 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
         }
         Cell cell = cellAndValue.cell();
         byte[] actual = cellAndValue.value();
-        try {
-            store.checkAndTouch(cell, actual);
+        AtomicOperationResult atomicOperationResult = store.checkAndTouch(cell, actual);
+
+        if (atomicOperationResult.isSuccess()) {
             return FollowUpAction.PUT;
-        } catch (CheckAndSetException e) {
-            long startTs = cellAndValue.startTs();
-            AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
-            TransactionStatus commitStatus = currentValue.value();
-            AtomicValue<TransactionStatus> kvsValue =
-                    encodingStrategy.decodeValueAsCommitStatus(startTs, Iterables.getOnlyElement(e.getActualValues()));
-            Preconditions.checkState(
-                    kvsValue.isCommitted()
-                            && TransactionStatuses.getCommitTimestamp(kvsValue.value())
-                                    .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
-                    "Failed to persist a staging value for commit timestamp because an unexpected value "
-                            + "was found in the KVS",
-                    SafeArg.of("kvsValue", kvsValue),
-                    SafeArg.of("stagingValue", currentValue));
-            return FollowUpAction.NONE;
         }
+
+        RuntimeException ex = atomicOperationResult.maybeException().get();
+        // Todo(snanda): stronger type cast
+        if (!(ex instanceof CheckAndSetException)) {
+            throw new SafeRuntimeException("Could not check and touch.", ex);
+        }
+
+        CheckAndSetException checkAndSetException = (CheckAndSetException) ex;
+        long startTs = cellAndValue.startTs();
+        AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
+        TransactionStatus commitStatus = currentValue.value();
+        AtomicValue<TransactionStatus> kvsValue = encodingStrategy.decodeValueAsCommitStatus(
+                startTs, Iterables.getOnlyElement(checkAndSetException.getActualValues()));
+        Preconditions.checkState(
+                kvsValue.isCommitted()
+                        && TransactionStatuses.getCommitTimestamp(kvsValue.value())
+                                .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
+                "Failed to persist a staging value for commit timestamp because an unexpected value "
+                        + "was found in the KVS",
+                SafeArg.of("kvsValue", kvsValue),
+                SafeArg.of("stagingValue", currentValue));
+        return FollowUpAction.NONE;
     }
 
     private Map<Long, TransactionStatus> processReads(Map<Cell, byte[]> reads, Map<Long, Cell> startTsToCell) {
