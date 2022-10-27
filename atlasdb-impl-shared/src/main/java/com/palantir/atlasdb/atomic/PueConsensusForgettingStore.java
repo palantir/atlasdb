@@ -47,7 +47,7 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
         try {
             kvs.putUnlessExists(tableRef, values);
         } catch (KeyAlreadyExistsException ex) {

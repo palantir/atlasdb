@@ -103,7 +103,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      *
      * @return*/
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
         return KeyedStream.stream(values)
                 .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
                 .collectToMap();

@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -45,6 +46,7 @@ import com.palantir.util.RateLimitedLogger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -140,10 +142,27 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
-        store.atomicUpdate(stagingValues);
-        store.put(KeyedStream.stream(stagingValues)
-                .map(encodingStrategy::transformStagingToCommitted)
-                .collectToMap());
+
+        Map<Cell, AtomicUpdateResult> atomicUpdateResults = store.atomicUpdate(stagingValues);
+
+        ImmutableMap.Builder<Cell, byte[]> valuesToPutBuilder = ImmutableMap.builder();
+        ImmutableList.Builder<Cell> keysAlreadyExistBuilder = ImmutableList.builder();
+
+        atomicUpdateResults.forEach((cell, res) -> {
+            if (res.isSuccess()) {
+                valuesToPutBuilder.put(cell, encodingStrategy.transformStagingToCommitted(stagingValues.get(cell)));
+            } else {
+                keysAlreadyExistBuilder.add(cell);
+            }
+        });
+        store.put(valuesToPutBuilder.build());
+
+        // Todo(snanda): This looks super jank
+        List<Cell> alreadyExistingKeys = keysAlreadyExistBuilder.build();
+        if (!alreadyExistingKeys.isEmpty()) {
+            throw new KeyAlreadyExistsException(
+                    "Could not process resilient update as the keys already exist in the kvs.", alreadyExistingKeys);
+        }
     }
 
     @Override
