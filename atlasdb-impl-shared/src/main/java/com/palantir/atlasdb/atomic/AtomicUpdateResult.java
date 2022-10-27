@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.atomic;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -27,11 +28,22 @@ public interface AtomicUpdateResult {
     // Todo(snanda): we need unified exceptions
     Optional<RuntimeException> maybeException();
 
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(
+                (isSuccess() && maybeException().isEmpty())
+                        || (!isSuccess() && maybeException().isPresent()),
+                "Should be either successful or failure with exception.");
+    }
+
     static AtomicUpdateResult failure(RuntimeException ex) {
-        return null;
+        return ImmutableAtomicUpdateResult.builder()
+                .isSuccess(false)
+                .maybeException(ex)
+                .build();
     }
 
     static AtomicUpdateResult success() {
-        return null;
+        return ImmutableAtomicUpdateResult.builder().isSuccess(false).build();
     }
 }
