@@ -124,7 +124,7 @@ public final class CassandraTopologyValidator {
         }
 
         Preconditions.checkArgument(
-                Sets.difference(newlyAddedHosts, allHosts.keySet()).isEmpty(),
+                allHosts.keySet().containsAll(newlyAddedHosts),
                 "Newly added hosts must be a subset of all hosts, as otherwise we have no way to query them.",
                 SafeArg.of("newlyAddedHosts", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                 SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
