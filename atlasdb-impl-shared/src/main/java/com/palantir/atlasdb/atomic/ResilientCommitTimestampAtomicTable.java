@@ -20,7 +20,6 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
@@ -43,19 +42,18 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.RateLimitedLogger;
+import org.immutables.value.Value;
+
+import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.annotation.Nonnull;
-import org.immutables.value.Value;
 
 public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
     private static final RateLimitedLogger log =
@@ -145,23 +143,21 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
 
         Map<Cell, AtomicUpdateResult> atomicUpdateResults = store.atomicUpdate(stagingValues);
 
-        ImmutableMap.Builder<Cell, byte[]> valuesToPutBuilder = ImmutableMap.builder();
-        ImmutableList.Builder<Cell> keysAlreadyExistBuilder = ImmutableList.builder();
+        Map<Cell, byte[]> valuesToPut = new HashMap<>();
+        List<Cell> keysAlreadyExist = new ArrayList<>();
 
         atomicUpdateResults.forEach((cell, res) -> {
             if (res.isSuccess()) {
-                valuesToPutBuilder.put(cell, encodingStrategy.transformStagingToCommitted(stagingValues.get(cell)));
+                valuesToPut.put(cell, encodingStrategy.transformStagingToCommitted(stagingValues.get(cell)));
             } else {
-                keysAlreadyExistBuilder.add(cell);
+                keysAlreadyExist.add(cell);
             }
         });
-        store.put(valuesToPutBuilder.build());
 
-        // Todo(snanda): This looks super jank
-        List<Cell> alreadyExistingKeys = keysAlreadyExistBuilder.build();
-        if (!alreadyExistingKeys.isEmpty()) {
+        store.put(valuesToPut);
+        if (!keysAlreadyExist.isEmpty()) {
             throw new KeyAlreadyExistsException(
-                    "Could not process resilient update as the keys already exist in the kvs.", alreadyExistingKeys);
+                    "Could not process resilient update as the keys already exist in the kvs.", keysAlreadyExist);
         }
     }
 
