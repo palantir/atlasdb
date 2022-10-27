@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
@@ -66,13 +65,13 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        delegate.atomicUpdate(cell, value);
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        return delegate.atomicUpdate(cell, value);
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.atomicUpdate(values);
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+        return delegate.atomicUpdate(values);
     }
 
     @Override

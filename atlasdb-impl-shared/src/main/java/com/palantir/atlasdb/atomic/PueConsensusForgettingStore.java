@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
@@ -41,13 +42,22 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        atomicUpdate(ImmutableMap.of(cell, value));
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        return atomicUpdate(ImmutableMap.of(cell, value)).get(cell);
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        kvs.putUnlessExists(tableRef, values);
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        try {
+            kvs.putUnlessExists(tableRef, values);
+        } catch (KeyAlreadyExistsException ex) {
+            return KeyedStream.stream(values)
+                    .map(_u -> AtomicUpdateResult.failure(ex))
+                    .collectToMap();
+        }
+        return KeyedStream.stream(values)
+                .map(_u -> AtomicUpdateResult.success())
+                .collectToMap();
     }
 
     @Override

@@ -23,6 +23,7 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 public class PueCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
 
@@ -37,23 +38,30 @@ public class PueCassImitatingConsensusForgettingStore extends CassandraImitating
      *
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
+     * @return
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
-            Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult.isPresent()) {
-                throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
-            }
-            writeToQuorum(cell, quorumNodes, value);
-        });
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        try {
+            runAtomically(cell, () -> {
+                Set<Node> quorumNodes = getQuorumNodes();
+                Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
+                if (readResult.isPresent()) {
+                    throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
+                }
+                writeToQuorum(cell, quorumNodes, value);
+            });
+        } catch (KeyAlreadyExistsException ex) {
+            return AtomicUpdateResult.failure(ex);
+        }
+        return AtomicUpdateResult.success();
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
         // sort by cells to avoid deadlock
-        KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::atomicUpdate);
+        return KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
+                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
+                .collectToMap();
     }
 }

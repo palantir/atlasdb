@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public final class MarkAndCasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
@@ -41,31 +42,38 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
      *
      * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
      * changed between the read and the write.
+     * @return
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws CheckAndSetException {
-        runAtomically(cell, () -> {
-            Set<Node> quorumNodes = getQuorumNodes();
-            Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-            if (readResult
-                    .map(BytesAndTimestamp::bytes)
-                    .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
-                    .isEmpty()) {
-                throw new CheckAndSetException(
-                        "Did not find the expected value",
-                        cell,
-                        value,
-                        readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
-            }
-            writeToQuorum(cell, quorumNodes, value);
-        });
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        try {
+            runAtomically(cell, () -> {
+                Set<Node> quorumNodes = getQuorumNodes();
+                Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
+                if (readResult
+                        .map(BytesAndTimestamp::bytes)
+                        .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
+                        .isEmpty()) {
+                    throw new CheckAndSetException(
+                            "Did not find the expected value",
+                            cell,
+                            value,
+                            readResult.map(BytesAndTimestamp::bytes).stream().collect(Collectors.toList()));
+                }
+                writeToQuorum(cell, quorumNodes, value);
+            });
+        } catch (CheckAndSetException ex) {
+            return AtomicUpdateResult.failure(ex);
+        }
+        return AtomicUpdateResult.success();
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) throws CheckAndSetException {
         // sort by cells to avoid deadlock
-        KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .forEach(this::atomicUpdate);
+        return KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
+                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
+                .collectToMap();
     }
 
     @Override

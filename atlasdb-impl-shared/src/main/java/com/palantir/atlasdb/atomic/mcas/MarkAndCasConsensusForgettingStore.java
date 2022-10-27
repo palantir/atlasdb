@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.atomic.AtomicUpdateResult;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStoreImpl;
@@ -36,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Comparator;
@@ -43,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
@@ -84,10 +87,12 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     /**
      * Atomically updates cells that have been marked. Throws {@code CheckAndSetException} if cell to update has not
      * been marked. The MCAS calls to KVS are batched.
+     * @return
      */
     @Override
-    public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        return getResultForFuture(
+                autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value))));
     }
 
     /**
@@ -95,10 +100,13 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * and does not guarantee atomicity across cells.
      * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
      * atomically.
-     * */
+     *
+     * @return*/
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        values.forEach(this::atomicUpdate);
+    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        return KeyedStream.stream(values)
+                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
+                .collectToMap();
     }
 
     @Override
@@ -166,6 +174,7 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     // we only want to retry the requests where the actual matches the expected.
+
     @VisibleForTesting
     static boolean shouldRetry(BatchElement<CasRequest, Void> req, MultiCheckAndSetException ex) {
         CasRequest casRequest = req.argument();
@@ -176,6 +185,18 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         }
 
         return casRequest.expected().equals(ByteBuffer.wrap(ex.getActualValues().get(cell)));
+    }
+
+    private AtomicUpdateResult getResultForFuture(ListenableFuture<Void> future) {
+        try {
+            future.get();
+            return AtomicUpdateResult.success();
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof KeyAlreadyExistsException) {
+                return AtomicUpdateResult.failure((KeyAlreadyExistsException) ex.getCause());
+            }
+            throw new SafeRuntimeException("Could not execute atomic update", ex);
+        }
     }
 
     // Every request with a lower rank will never be tried. Requests for touch will fail with

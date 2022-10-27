@@ -18,7 +18,6 @@ package com.palantir.atlasdb.atomic;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,13 +55,14 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      *   another update operation has failed in the past non-deterministically
      *   3. The semantics of the update operation depend on the underlying implementation.
      */
-    void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException;
+    AtomicUpdateResult atomicUpdate(Cell cell, byte[] value);
 
     /**
      * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
      * depending on the underlying implementation.
+     * @return atomic update result for each individual cell
      */
-    void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a
