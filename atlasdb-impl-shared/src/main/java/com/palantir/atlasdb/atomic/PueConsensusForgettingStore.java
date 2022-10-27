@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Future;
 
 public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     private final KeyValueService kvs;
@@ -54,18 +55,10 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+    public ListenableFuture<Void> checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(tableRef, cell, value, value);
         kvs.checkAndSet(request);
-    }
-
-    /**
-     * Note that changing this method may invalidate existing tests in
-     * ResilientCommitTimestampPutUnlessExistsTableTest.
-     */
-    @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+        return Futures.immediateVoidFuture();
     }
 
     @Override

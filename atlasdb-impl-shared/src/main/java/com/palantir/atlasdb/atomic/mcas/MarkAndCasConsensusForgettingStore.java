@@ -111,14 +111,9 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+    public ListenableFuture<Void> checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
         ByteBuffer buffer = ByteBuffer.wrap(value);
-        autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
-    }
-
-    @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+        return autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
     }
 
     @Override

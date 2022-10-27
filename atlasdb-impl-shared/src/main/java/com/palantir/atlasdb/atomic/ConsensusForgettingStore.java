@@ -20,8 +20,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.common.streams.KeyedStream;
+
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 /**
  * A table that supports atomic put unless exists and check and touch operations, but explicitly does NOT guarantee
@@ -64,8 +67,6 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      * depending on the underlying implementation.
      * @return map of individual futures
      */
-    // todo(snanda): consider making this atomic across calls? we cannot do that due to across endpoint batching. Check
-    // how to handle at resilient layer level.
     Map<Cell, ListenableFuture<Void>> atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
@@ -73,11 +74,10 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      * {@link ConsensusForgettingStore#put(Cell, byte[])} is called subsequent gets are guaranteed to return
      * Optional.of(value), and subsequent PUE is guaranteed to throw a KeyAlreadyExistsException.
      */
-    // Todo(snanda): we might need to wait on this future (mcas batching makes the serve async)
-    void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
+    ListenableFuture<Void> checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException;
 
-    default void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
-        values.forEach(this::checkAndTouch);
+    default Map<Cell, ListenableFuture<Void>> checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+        return KeyedStream.stream(values).map((BiFunction<Cell, byte[], ListenableFuture<Void>>) this::checkAndTouch).collectToMap();
     }
 
     /**

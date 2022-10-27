@@ -84,14 +84,16 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
-        runCheckAndTouchOperation(() -> delegate.checkAndTouch(cell, value));
+    public ListenableFuture<Void> checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+        concurrentCheckAndTouchOperations.incrementAndGet();
+        delegate.checkAndTouch(cell, value);
+        concurrentCheckAndTouchOperations.incrementAndGet();
     }
 
     @Override
-    public void checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public Map<Cell, ListenableFuture<Void>> checkAndTouch(Map<Cell, byte[]> values) throws CheckAndSetException {
         metrics.batchedCheckAndTouchSize().update(values.size());
-        runCheckAndTouchOperation(() -> delegate.checkAndTouch(values));
+        return runCheckAndTouchOperation(() -> delegate.checkAndTouch(values));
     }
 
     @Override
@@ -114,9 +116,11 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
         delegate.put(values);
     }
 
-    private void runCheckAndTouchOperation(Runnable checkAndTouchOperation) {
+    private void runCheckAndTouchOperation(ListenableFuture<Void> checkAndTouchOperation) {
         concurrentCheckAndTouchOperations.incrementAndGet();
         try {
+            return Futures.transform(checkAndTouchOperation,
+                    op -> metrics.checkAndTouch().time(checkAndTouchOperation))
             metrics.checkAndTouch().time(checkAndTouchOperation);
         } finally {
             concurrentCheckAndTouchOperations.decrementAndGet();

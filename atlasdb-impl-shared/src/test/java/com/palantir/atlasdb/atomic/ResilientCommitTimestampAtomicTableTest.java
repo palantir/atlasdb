@@ -457,9 +457,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         /**
          * We rely on the fact that {@link PueConsensusForgettingStore} uses the default
          * implementation of {@link ConsensusForgettingStore#checkAndTouch(Map)}
+         * @return
          */
         @Override
-        public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
+        public ListenableFuture<Void> checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
             if (commitUnderUs) {
                 super.put(ImmutableMap.of(cell, encodingStrategy.transformStagingToCommitted(value)));
             }
@@ -470,6 +471,7 @@ public class ResilientCommitTimestampAtomicTableTest {
             super.checkAndTouch(cell, value);
             clockLong.getAndAccumulate(millisForPue, Long::sum);
             concurrentTouches.decrementAndGet();
+            return null;
         }
 
         /**
