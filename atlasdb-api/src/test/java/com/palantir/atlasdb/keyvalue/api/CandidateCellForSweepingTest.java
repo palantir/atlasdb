@@ -48,15 +48,23 @@ public class CandidateCellForSweepingTest {
     private List<Long> MOCK_TIMESTAMPS;
 
     @Test
-    public void candidateCellSizeIsCorrect() {
-        SORTED_TIMESTAMPS_SIZES.forEach(this::candidatesSizeIsCorrectForGivenTimestampSize);
+    public void candidateCellSizeWithLargerTimestampCollectionIsBigger() {
+        EXAMPLE_CELLS.forEach(cell -> {
+            CandidateCellForSweeping withOneTimestamp = createCandidateCell(cell, ImmutableSet.of(TIMESTAMP), true);
+            CandidateCellForSweeping withTwoTimestamps =
+                    createCandidateCell(cell, ImmutableSet.of(TIMESTAMP, TIMESTAMP + 1), false);
+            assertThat(withOneTimestamp.sizeInBytes()).isLessThan(withTwoTimestamps.sizeInBytes());
+        });
     }
 
-    public void candidatesSizeIsCorrectForGivenTimestampSize(int sortedTimestampsSize) {
-        for (CandidateCellForSweeping candidate : createCandidateCells(sortedTimestampsSize)) {
-            assertThat(candidate.sizeInBytes())
-                    .isEqualTo(Long.sum(candidate.cell().sizeInBytes(), (long) sortedTimestampsSize * Long.BYTES));
-        }
+    @Test
+    public void candidateCellSizeIsCorrectForDifferentSortedTimestampSizes() {
+        SORTED_TIMESTAMPS_SIZES.forEach(sortedTimestampsSize -> {
+            for (CandidateCellForSweeping candidate : createCandidateCells(sortedTimestampsSize)) {
+                assertThat(candidate.sizeInBytes())
+                        .isEqualTo(Long.sum(candidate.cell().sizeInBytes(), (long) sortedTimestampsSize * Long.BYTES));
+            }
+        });
     }
 
     @Test

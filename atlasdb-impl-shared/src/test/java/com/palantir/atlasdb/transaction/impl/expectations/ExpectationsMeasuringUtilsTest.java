@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -26,47 +27,51 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 public class ExpectationsMeasuringUtilsTest {
     private static final byte BYTE = (byte) 0xa;
-    private static final int SIZE_1 = 256;
-    private static final int SIZE_2 = 5;
+    private static final int SIZE_1 = 123;
+    private static final int SIZE_2 = 214;
+    private static final int SIZE_3 = 329;
     private static final int TIMESTAMP = 100;
 
     @Test
-    public void testEmptyValueByCellMapSize() {
+    public void emptyValueByCellMapSizeIsZero() {
         assertThat(ExpectationsMeasuringUtils.valueByCellSizeInBytes(Map.<Cell, Value>of()))
                 .isEqualTo(0);
     }
 
     @Test
-    public void testEmptyLongByCellMapSize() {
+    public void emptyLongByCellMapSizeInBytesIsZero() {
         assertThat(ExpectationsMeasuringUtils.sizeInBytes(Map.<Cell, Long>of())).isEqualTo(0);
     }
 
     @Test
-    public void testEmptyLongByValueMultimapSize() {
+    public void emptyLongByCellMultimapSizeInBytesIsZero() {
         assertThat(ExpectationsMeasuringUtils.sizeInBytes(ArrayListMultimap.<Cell, Long>create()))
                 .isEqualTo(0);
     }
 
     @Test
-    public void testEmptyArrayByRefSize() {
+    public void emptyByteArrayByTableReferenceMapSizeInBytesIsZero() {
         assertThat(ExpectationsMeasuringUtils.arrayByRefSizeInBytes(Map.<TableReference, byte[]>of()))
                 .isEqualTo(0);
     }
 
     @Test
-    public void testEmptyPageByRequestSize() {
+    public void emptyTokenPageByRangeRequestMapSizeInBytesIsZero() {
         assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(
                         Map.<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>of()))
                 .isEqualTo(0);
@@ -88,7 +93,7 @@ public class ExpectationsMeasuringUtilsTest {
         Map<Cell, Value> valueByCell = IntStream.range(1, SIZE_1 + 1)
                 .boxed()
                 .collect(Collectors.toUnmodifiableMap(
-                        ExpectationsMeasuringUtilsTest::createCell, size -> createValue(2 * size, TIMESTAMP)));
+                        ExpectationsMeasuringUtilsTest::createCell, size -> createValue(2 * size)));
 
         assertThat(ExpectationsMeasuringUtils.valueByCellSizeInBytes(valueByCell))
                 .isEqualTo((2L * SIZE_1 + Long.BYTES + 2) * SIZE_1);
@@ -119,12 +124,10 @@ public class ExpectationsMeasuringUtilsTest {
 
     @Test
     public void testValueRowResult() {
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(
-                        RowResult.of(createCell(SIZE_1), createValue(SIZE_1, TIMESTAMP))))
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(RowResult.of(createCell(SIZE_1), createValue(SIZE_1))))
                 .isEqualTo(3L * SIZE_1 + Long.BYTES);
 
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(
-                        RowResult.of(createCell(SIZE_2), createValue(SIZE_2, TIMESTAMP))))
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(RowResult.of(createCell(SIZE_2), createValue(SIZE_2))))
                 .isEqualTo(3L * SIZE_2 + Long.BYTES);
     }
 
@@ -144,6 +147,50 @@ public class ExpectationsMeasuringUtilsTest {
                 .isEqualTo(SIZE_1 * (Long.BYTES + 2L));
     }
 
+    @Test
+    public void testValueByCellEntrySize() {
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(
+                        new SimpleImmutableEntry<>(createCell(SIZE_1), createValue(SIZE_1))))
+                .isEqualTo(3L * SIZE_1 + Long.BYTES);
+
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(
+                        new SimpleImmutableEntry<>(createCell(SIZE_2), createValue(SIZE_2))))
+                .isEqualTo(3L * SIZE_2 + Long.BYTES);
+    }
+
+    @Test
+    public void testPageByRequestSize() {
+        assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(
+                        ImmutableMap.<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>builder()
+                                .put(RangeRequest.all(), createPage(SIZE_2, SIZE_2, SIZE_2, 0))
+                                .put(
+                                        RangeRequest.builder()
+                                                .startRowInclusive(spawnBytes(SIZE_3))
+                                                .build(),
+                                        createPage(SIZE_2, SIZE_2, SIZE_2, 1))
+                                .put(
+                                        RangeRequest.builder()
+                                                .endRowExclusive(spawnBytes(SIZE_3))
+                                                .build(),
+                                        createPage(SIZE_3, SIZE_2, SIZE_2, SIZE_3))
+                                .put(
+                                        RangeRequest.builder()
+                                                .startRowInclusive(spawnBytes(SIZE_2))
+                                                .build(),
+                                        createPage(SIZE_3, SIZE_3, SIZE_3, SIZE_3))
+                                .buildOrThrow()))
+                .isEqualTo((SIZE_3 + 1L) * (3L * SIZE_2 + Long.BYTES) + SIZE_3 * (3L * SIZE_3 + Long.BYTES));
+    }
+
+    private static SimpleTokenBackedResultsPage<RowResult<Value>, byte[]> createPage(
+            int tokenSize, int cellNameSize, int valueNameSize, int resultsCount) {
+        return SimpleTokenBackedResultsPage.create(
+                spawnBytes(tokenSize),
+                Stream.generate(() -> RowResult.of(createCell(cellNameSize), createValue(valueNameSize)))
+                        .limit(resultsCount)
+                        .collect(Collectors.toUnmodifiableList()));
+    }
+
     private static TableReference createTableReference(int size) {
         return TableReference.createWithEmptyNamespace(StringUtils.repeat('A', size));
     }
@@ -152,8 +199,8 @@ public class ExpectationsMeasuringUtilsTest {
         return Cell.create(spawnBytes(nameSize), spawnBytes(nameSize));
     }
 
-    private static Value createValue(int size, int ts) {
-        return Value.create(spawnBytes(size), ts);
+    private static Value createValue(int size) {
+        return Value.create(spawnBytes(size), TIMESTAMP);
     }
 
     private static byte[] spawnBytes(int size) {

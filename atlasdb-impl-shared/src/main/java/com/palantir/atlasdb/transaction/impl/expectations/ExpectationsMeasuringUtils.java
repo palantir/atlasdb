@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -32,7 +33,7 @@ public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
     public static long sizeInBytes(Entry<Cell, Value> entry) {
-        return entry.getKey().sizeInBytes() + entry.getValue().byteSize();
+        return entry.getKey().sizeInBytes() + entry.getValue().sizeInBytes();
     }
 
     public static long sizeInBytes(Multimap<Cell, Long> valueByCell) {
@@ -48,7 +49,7 @@ public final class ExpectationsMeasuringUtils {
     }
 
     public static long sizeInBytes(RowResult<Value> rowResult) {
-        return sizeInBytes(rowResult, Value::byteSize);
+        return sizeInBytes(rowResult, Value::sizeInBytes);
     }
 
     private static <T> long sizeInBytes(RowResult<T> rowResult, Function<T, Long> measurer) {
@@ -70,13 +71,18 @@ public final class ExpectationsMeasuringUtils {
                 .sum();
     }
 
+    /**
+     * Ignoring the size of token for next page because the interface method
+     * {@link TokenBackedBasicResultsPage#getTokenForNextPage} might have side effects (e.g. interact with the kvs).
+     * The interface specification is ambiguous. Also, the current token is not exposed.
+     * todo(aalouane): SG search
+     */
     public static long pageByRequestSizeInBytes(
             Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
         return pageByRange.values().stream()
-                .mapToLong(page -> page.getTokenForNextPage().length
-                        + page.getResults().stream()
-                                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
-                                .sum())
+                .map(TokenBackedBasicResultsPage::getResults)
+                .flatMap(Collection::stream)
+                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
                 .sum();
     }
 
