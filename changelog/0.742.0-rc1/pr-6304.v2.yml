@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: 'Transactional Expectations Part 1a: ExpectationsManager implementation
+    (and some interfaces)'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6304

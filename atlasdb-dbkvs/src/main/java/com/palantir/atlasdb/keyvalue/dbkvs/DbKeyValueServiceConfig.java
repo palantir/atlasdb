@@ -67,6 +67,12 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
 
     abstract Optional<Integer> defaultGetRangesConcurrency();
 
+    @Override
+    @Value.Default
+    public boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
+
     @Value.Check
     public void checkKvsPoolSize() {
         sharedResourcesConfig()

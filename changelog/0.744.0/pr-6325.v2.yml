@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Add configuration option to Oracle which will alter table schema or
+    metadata to match.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6325
