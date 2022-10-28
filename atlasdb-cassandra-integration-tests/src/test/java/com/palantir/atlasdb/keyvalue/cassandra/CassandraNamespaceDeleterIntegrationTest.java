@@ -31,9 +31,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.refreshable.Refreshable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -50,8 +53,8 @@ public final class CassandraNamespaceDeleterIntegrationTest {
 
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> keyValueServiceRuntimeConfig =
             CASSANDRA.getRuntimeConfig();
-    private final CassandraKeyValueServiceConfig keyValueServiceConfigWithNamespaceOne = CASSANDRA.getConfig();
-    private final Namespace namespaceOne = Namespace.create(keyValueServiceConfigWithNamespaceOne.getKeyspaceOrThrow());
+    private final CassandraKeyValueServiceConfig keyValueServiceConfigForNamespaceOne = CASSANDRA.getConfig();
+    private final Namespace namespaceOne = Namespace.create(keyValueServiceConfigForNamespaceOne.getKeyspaceOrThrow());
     private final Namespace namespaceTwo = Namespace.create("test_keyspace");
     private final CassandraKeyValueServiceConfig keyValueServiceConfigForNamespaceTwo =
             ImmutableCassandraKeyValueServiceConfig.builder()
@@ -64,17 +67,20 @@ public final class CassandraNamespaceDeleterIntegrationTest {
     // We don't need a kvs for namespaceTwo, because we manually create the keyspace and don't care about the
     // existence of the atlas tables for the new namespace
     private final KeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(
-            keyValueServiceConfigWithNamespaceOne, keyValueServiceRuntimeConfig);
-    private final NamespaceDeleter namespaceDeleterForNamespaceOne =
-            new CassandraNamespaceDeleter(keyValueServiceConfigWithNamespaceOne, this::createClient);
-    private final NamespaceDeleter namespaceDeleterForNamespaceTwo =
-            new CassandraNamespaceDeleter(keyValueServiceConfigForNamespaceTwo, this::createClient);
+            keyValueServiceConfigForNamespaceOne, keyValueServiceRuntimeConfig);
+    private final NamespaceDeleterFactory factory = new CassandraNamespaceDeleterFactory();
+    private final NamespaceDeleter namespaceDeleterForNamespaceOne = factory.createNamespaceDeleter(
+            keyValueServiceConfigForNamespaceOne, keyValueServiceRuntimeConfig.map(Optional::of));
+    private final NamespaceDeleter namespaceDeleterForNamespaceTwo = factory.createNamespaceDeleter(
+            keyValueServiceConfigForNamespaceTwo, keyValueServiceRuntimeConfig.map(Optional::of));
 
     @After
-    public void after() {
+    public void after() throws IOException {
         kvs.close();
         namespaceDeleterForNamespaceOne.deleteAllDataFromNamespace();
         namespaceDeleterForNamespaceTwo.deleteAllDataFromNamespace();
+        namespaceDeleterForNamespaceOne.close();
+        namespaceDeleterForNamespaceTwo.close();
     }
 
     @Test
@@ -175,7 +181,7 @@ public final class CassandraNamespaceDeleterIntegrationTest {
                             .findFirst()
                             .orElseThrow();
             return CassandraClientFactory.getClientInternal(
-                    CassandraServer.of(host), CassandraClientConfig.of(keyValueServiceConfigWithNamespaceOne));
+                    CassandraServer.of(host), CassandraClientConfig.of(keyValueServiceConfigForNamespaceOne));
         } catch (TException e) {
             throw new RuntimeException(e);
         }
