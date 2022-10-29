@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 public interface TrackingKeyValueService extends KeyValueService {
     TransactionReadInfo getOverallReadInfo();
