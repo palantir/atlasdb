@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,47 +34,14 @@ public class TrackingClosableIteratorTest {
     private static final Function<String, Long> MEASURER = Functions.compose(Long::valueOf, String::length);
 
     @Test
-    public void trackingStringIteratorForwardsData() {
-        ClosableIterator<String> iterator = spawnIterator();
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(spawnIterator(), noOp(), MEASURER);
-
-        trackingIterator.forEachRemaining(string -> {
-            assertThat(iterator.hasNext()).isTrue();
-            assertThat(string).isEqualTo(iterator.next());
-        });
-
-        assertThat(iterator.hasNext()).isFalse();
-    }
-
-    @Test
-    public void trackingStringIteratorTracksData() {
-        ClosableIterator<String> iterator = spawnIterator();
-
-        TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(
-                spawnIterator(),
-                new Consumer<Long>() {
-                    final ClosableIterator<String> baseIterator = spawnIterator();
-
-                    @Override
-                    public void accept(Long bytes) {
-                        assertThat(bytes).isEqualTo(MEASURER.apply(baseIterator.next()));
-                    }
-                },
-                MEASURER);
-
-        trackingIterator.forEachRemaining(noOp());
-    }
-
-    @Test
-    public void trackingStringIteratorDelegatesClose() {
-        ClosableIterator<String> iterator = spy(spawnIterator());
+    public void trackingClosableStringIteratorDelegatesClose() {
+        ClosableIterator<String> iterator = spy(spawnClosableIterator());
         TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(iterator, noOp(), MEASURER);
         trackingIterator.close();
         verify(iterator, times(1)).close();
     }
 
-    private static ClosableIterator<String> spawnIterator() {
+    private static ClosableIterator<String> spawnClosableIterator() {
         return ClosableIterators.wrapWithEmptyClose(STRINGS.stream().iterator());
     }
 
