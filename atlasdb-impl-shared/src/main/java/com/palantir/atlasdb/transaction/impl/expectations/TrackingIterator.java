@@ -16,19 +16,31 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.common.base.ClosableIterator;
+import com.google.common.collect.ForwardingIterator;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TrackingClosableIterator<T> extends TrackingIterator<T, ClosableIterator<T>>
-        implements ClosableIterator<T> {
+public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterator<T> {
+    I delegate;
+    Function<T, Long> measurer;
+    Consumer<Long> tracker;
 
-    public TrackingClosableIterator(ClosableIterator<T> delegate, Consumer<Long> tracker, Function<T, Long> measurer) {
-        super(delegate, tracker, measurer);
+    public TrackingIterator(I delegate, Consumer<Long> tracker, Function<T, Long> measurer) {
+        this.delegate = delegate;
+        this.tracker = tracker;
+        this.measurer = measurer;
     }
 
     @Override
-    public void close() {
-        delegate().close();
+    protected I delegate() {
+        return delegate;
+    }
+
+    @Override
+    public T next() {
+        T result = delegate.next();
+        tracker.accept(measurer.apply(result));
+        return result;
     }
 }
