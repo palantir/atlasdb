@@ -49,7 +49,11 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     KeyValueService delegate;
     KeyValueServiceDataTracker tracker;
 
-    public TrackingKeyValueServiceImpl(KeyValueService delegate) {
+    public static TrackingKeyValueService create(KeyValueService keyValueService) {
+        return null;
+    }
+
+    private TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
     }
 
@@ -97,8 +101,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.callForTable(tableRef);
         Map<byte[], RowColumnRangeIterator> result =
                 delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
-        result.replaceAll((rowsRead, iterator) ->
-                new TrackingRowColumnRangeIterator(iterator, partialReadForTableConsumer(tableRef)));
+        result.replaceAll((rowsRead, iterator) -> new TrackingRowColumnRangeIterator(
+                iterator, partialReadForTableConsumer(tableRef), ExpectationsMeasuringUtils::byteSize));
         return result;
     }
 
@@ -112,7 +116,9 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.callForTable(tableRef);
         RowColumnRangeIterator result =
                 delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-        return new TrackingRowColumnRangeIterator(result, partialReadForTableConsumer(tableRef));
+
+        return new TrackingRowColumnRangeIterator(
+                result, partialReadForTableConsumer(tableRef), ExpectationsMeasuringUtils::byteSize);
     }
 
     @Override

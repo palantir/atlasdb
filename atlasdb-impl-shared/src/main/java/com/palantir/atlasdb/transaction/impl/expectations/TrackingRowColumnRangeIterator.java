@@ -16,33 +16,17 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ForwardingIterator;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class TrackingRowColumnRangeIterator extends ForwardingIterator<Map.Entry<Cell, Value>>
+public class TrackingRowColumnRangeIterator extends TrackingIterator<Map.Entry<Cell, Value>, RowColumnRangeIterator>
         implements RowColumnRangeIterator {
-    Iterator<Map.Entry<Cell, Value>> delegate;
-    Consumer<Long> tracker;
-
-    public TrackingRowColumnRangeIterator(Iterator<Map.Entry<Cell, Value>> delegate, Consumer<Long> tracker) {
-        this.delegate = delegate;
-        this.tracker = tracker;
-    }
-
-    @Override
-    protected Iterator<Map.Entry<Cell, Value>> delegate() {
-        return delegate;
-    }
-
-    @Override
-    public Map.Entry<Cell, Value> next() {
-        Map.Entry<Cell, Value> entry = delegate.next();
-        tracker.accept(ExpectationsMeasuringUtils.byteSize(entry));
-        return entry;
+    public TrackingRowColumnRangeIterator(
+            RowColumnRangeIterator delegate, Consumer<Long> tracker, Function<Map.Entry<Cell, Value>, Long> measurer) {
+        super(delegate, tracker, measurer);
     }
 }
