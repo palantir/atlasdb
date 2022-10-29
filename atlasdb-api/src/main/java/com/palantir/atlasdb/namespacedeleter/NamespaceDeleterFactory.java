@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.namespacedeleter;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.refreshable.Refreshable;
+import java.util.Optional;
 
-public interface TrackingKeyValueService extends KeyValueService {
-    TransactionReadInfo getOverallReadInfo();
+public interface NamespaceDeleterFactory {
+    String getType();
 
-    ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
+    NamespaceDeleter createNamespaceDeleter(
+            KeyValueServiceConfig config, Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig);
 }

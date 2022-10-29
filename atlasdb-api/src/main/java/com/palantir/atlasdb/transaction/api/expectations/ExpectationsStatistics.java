@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import org.immutables.value.Value;
 
-public interface TrackingKeyValueService extends KeyValueService {
-    TransactionReadInfo getOverallReadInfo();
+/**
+ * Tracked data for an individual transaction.
+ */
+@Value.Immutable
+public interface ExpectationsStatistics {
+    long transactionAgeMillis();
 
-    ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
+    ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable();
 }

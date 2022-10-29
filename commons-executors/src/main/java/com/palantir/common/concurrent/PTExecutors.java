@@ -114,8 +114,7 @@ public final class PTExecutors {
      * @return the newly created thread pool
      */
     public static ExecutorService newCachedThreadPool(String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        verifyName(name);
         return newCachedThreadPoolWithMaxThreads(Short.MAX_VALUE, name);
     }
 
@@ -160,6 +159,28 @@ public final class PTExecutors {
                 threadFactory);
     }
 
+    public static ExecutorService newCachedThreadPoolWithoutSpan() {
+        return newCachedThreadPoolWithoutSpan(computeBaseThreadName());
+    }
+
+    /**
+     * Creates a thread pool that creates new threads as needed, but will reuse previously
+     * constructed threads when they are available. These pools will typically improve the
+     * performance of programs that execute many short-lived asynchronous tasks. Calls to
+     * <tt>execute</tt> will reuse previously constructed threads if available. If no existing
+     * thread is available, a new thread will be created and added to the pool. Threads that have
+     * not been used for sixty seconds are terminated and removed from the cache. Thus, a pool that
+     * remains idle for long enough will not consume any resources. Note that pools with similar
+     * properties but different details (for example, timeout parameters) may be created using
+     * {@link ThreadPoolExecutor} constructors.  This does not create a new span.
+     *
+     * @return the newly created thread pool with no new span
+     */
+    public static ExecutorService newCachedThreadPoolWithoutSpan(String name) {
+        verifyName(name);
+        return newCachedThreadPoolWithMaxThreadsWithoutSpan(Short.MAX_VALUE, name);
+    }
+
     /** Specialized cached executor which throws
      * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.
      *
@@ -167,13 +188,31 @@ public final class PTExecutors {
      */
     @Beta
     public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
-        Preconditions.checkNotNull(name, "Name is required");
-        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
+        verifyName(name);
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
         return MetricRegistries.executor()
                 .registry(SharedTaggedMetricRegistries.getSingleton())
                 .name(name)
                 .executor(PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
+                // Unhelpful for cached executors
+                .reportQueuedDuration(false)
+                .build();
+    }
+
+    /** Specialized cached executor which throws
+     * {@link java.util.concurrent.RejectedExecutionException} once max-threads have been exceeded.  This does not
+     * create a new span.
+     *
+     * If you have any doubt, this probably isn't what you're looking for. Best of luck, friend.
+     */
+    @Beta
+    public static ExecutorService newCachedThreadPoolWithMaxThreadsWithoutSpan(int maxThreads, String name) {
+        verifyName(name);
+        Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
+        return MetricRegistries.executor()
+                .registry(SharedTaggedMetricRegistries.getSingleton())
+                .name(name)
+                .executor(PTExecutors.wrapWithoutSpan(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
                 // Unhelpful for cached executors
                 .reportQueuedDuration(false)
                 .build();
@@ -259,6 +298,28 @@ public final class PTExecutors {
         return MetricRegistries.instrument(
                 SharedTaggedMetricRegistries.getSingleton(),
                 PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
+                name);
+    }
+
+    /**
+     * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+     * queue.  At any point, at most <tt>numThreads</tt> threads will be active processing tasks.  If
+     * additional tasks are submitted when all threads are active, they will wait in the queue until
+     * a thread is available.  If any thread terminates due to a failure during execution prior to
+     * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
+     * in the pool will exist until it is explicitly {@link
+     * ExecutorService#shutdown shutdown}.  It does not create a span.
+     *
+     * @param numThreads the number of threads in the pool
+     * @param name Executor name used for thread naming and instrumentation
+     * @return the newly created thread pool
+     * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
+     */
+    public static ExecutorService newFixedThreadPoolWithoutSpan(int numThreads, String name) {
+        return MetricRegistries.instrument(
+                SharedTaggedMetricRegistries.getSingleton(),
+                PTExecutors.wrapWithoutSpan(
+                        getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
                 name);
     }
 
@@ -607,6 +668,14 @@ public final class PTExecutors {
 
     /**
      * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.  This does not create a span on the thread.
+     */
+    public static ExecutorService wrapWithoutSpan(final ExecutorService executorService) {
+        return Tracers.wrap(executorService);
+    }
+
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
      * variables are propagated through.
      */
     public static ExecutorService wrap(final String operationName, final ExecutorService executorService) {
@@ -623,6 +692,10 @@ public final class PTExecutors {
         };
     }
 
+    /**
+     * Wraps the given {@code ExecutorService} so that {@link ExecutorInheritableThreadLocal}
+     * variables are propagated through.
+     */
     public static ExecutorService wrap(final ExecutorService executorService) {
         return wrap("PTExecutor", executorService);
     }
@@ -781,6 +854,11 @@ public final class PTExecutors {
         };
 
         return threadFactory;
+    }
+
+    private static void verifyName(String name) {
+        Preconditions.checkNotNull(name, "Name is required");
+        Preconditions.checkArgument(!name.isEmpty(), "Name must not be empty");
     }
 
     private PTExecutors() {

@@ -16,13 +16,22 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import org.derive4j.Data;
 
-public interface TrackingKeyValueService extends KeyValueService {
-    TransactionReadInfo getOverallReadInfo();
+@Data
+public interface ExpectationsViolation {
+    interface Cases<R> {
+        R ranForTooLong();
 
-    ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
+        R readTooMuch();
+
+        R readTooMuchInOneKvsCall();
+
+        R queriedKvsTooManyTimes();
+    }
+
+    <R> R match(Cases<R> cases);
+
+    @Override
+    boolean equals(Object other);
 }

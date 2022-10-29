@@ -146,7 +146,7 @@ public class OracleTableNameUnmapperTest {
         Map<String, String> mappedNames = oracleTableNameUnmapper.getShortToLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
 
-        assertThat(mappedNames).isEqualTo(shortNamesToLongNames);
+        assertThat(mappedNames).containsExactlyInAnyOrderEntriesOf(shortNamesToLongNames);
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
@@ -168,7 +168,7 @@ public class OracleTableNameUnmapperTest {
         Map<String, String> mappedNames = oracleTableNameUnmapper.getShortToLongTableNamesFromMappingTable(
                 connectionSupplier, shortNamesToLongNames.keySet());
 
-        assertThat(mappedNames).isEqualTo(shortNamesToLongNames);
+        assertThat(mappedNames).containsExactlyInAnyOrderEntriesOf(shortNamesToLongNames);
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
@@ -193,7 +193,7 @@ public class OracleTableNameUnmapperTest {
 
         Map<String, String> mappedNames = oracleTableNameUnmapper.getShortToLongTableNamesFromMappingTable(
                 connectionSupplier, Set.of("short_test", "test_2"));
-        assertThat(mappedNames).isEqualTo(shortNamesToLongNames);
+        assertThat(mappedNames).containsExactlyInAnyOrderEntriesOf(shortNamesToLongNames);
     }
 
     @Test

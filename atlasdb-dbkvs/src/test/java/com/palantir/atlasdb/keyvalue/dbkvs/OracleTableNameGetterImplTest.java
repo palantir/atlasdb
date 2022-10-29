@@ -164,7 +164,7 @@ public class OracleTableNameGetterImplTest {
                 .thenReturn(getDefaultLongTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, allTableNames))
-                .isEqualTo(extraTableNames.stream()
+                .containsExactlyInAnyOrderElementsOf(extraTableNames.stream()
                         .map(TableReference::fromInternalTableName)
                         .collect(Collectors.toSet()));
     }
@@ -177,7 +177,7 @@ public class OracleTableNameGetterImplTest {
                 .thenReturn(getDefaultLongOverflowTableNames());
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, allTableNames))
-                .isEqualTo(extraTableNames.stream()
+                .containsExactlyInAnyOrderElementsOf(extraTableNames.stream()
                         .map(TableReference::fromInternalTableName)
                         .collect(Collectors.toSet()));
     }
@@ -187,7 +187,7 @@ public class OracleTableNameGetterImplTest {
         Set<String> expectedTableNames = Set.of("test", "TesT2");
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortTableNames(
                         connectionSupplier, addTablePrefix(expectedTableNames)))
-                .isEqualTo(expectedTableNames.stream()
+                .containsExactlyInAnyOrderElementsOf(expectedTableNames.stream()
                         .map(TableReference::fromInternalTableName)
                         .collect(Collectors.toSet()));
     }
@@ -197,7 +197,7 @@ public class OracleTableNameGetterImplTest {
         Set<String> expectedTableNames = Set.of("test", "TesT2");
         assertThat(nonTableMappingTableNameGetter.getTableReferencesFromShortOverflowTableNames(
                         connectionSupplier, addOverflowTablePrefix(expectedTableNames)))
-                .isEqualTo(expectedTableNames.stream()
+                .containsExactlyInAnyOrderElementsOf(expectedTableNames.stream()
                         .map(TableReference::fromInternalTableName)
                         .collect(Collectors.toSet()));
     }
