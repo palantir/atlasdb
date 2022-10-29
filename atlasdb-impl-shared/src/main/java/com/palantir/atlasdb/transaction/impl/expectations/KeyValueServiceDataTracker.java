@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Function;
 
 public final class KeyValueServiceDataTracker {
     private final AtomicLongMap<TableReference> bytesReadByTable = AtomicLongMap.create();
@@ -61,18 +62,14 @@ public final class KeyValueServiceDataTracker {
         Set<TableReference> tableRefs = Sets.intersection(
                 bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet());
 
-        ImmutableMap.Builder<TableReference, TransactionReadInfo> builder = ImmutableMap.builder();
-        for (TableReference tableRef : tableRefs) {
-            builder = builder.put(
-                    tableRef,
-                    ImmutableTransactionReadInfo.builder()
-                            .bytesRead(bytesReadByTable.get(tableRef))
-                            .kvsCalls(kvsCallByTable.get(tableRef))
-                            .maximumBytesKvsCallInfo(Optional.ofNullable(maximumBytesKvsCallInfoByTable.get(tableRef)))
-                            .build());
-        }
-
-        return builder.buildOrThrow();
+        return tableRefs.stream()
+                .collect(ImmutableMap.toImmutableMap(
+                        Function.identity(), tableRef -> ImmutableTransactionReadInfo.builder()
+                                .bytesRead(bytesReadByTable.get(tableRef))
+                                .kvsCalls(kvsCallByTable.get(tableRef))
+                                .maximumBytesKvsCallInfo(
+                                        Optional.ofNullable(maximumBytesKvsCallInfoByTable.get(tableRef)))
+                                .build()));
     }
 
     /**
