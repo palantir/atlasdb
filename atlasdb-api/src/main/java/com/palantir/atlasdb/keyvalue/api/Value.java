@@ -82,6 +82,11 @@ public final class Value implements Serializable {
 
     public static final Function<Value, byte[]> GET_VALUE = Value::getContents;
 
+    public long sizeInBytes() {
+        // One byte added for the timestamp
+        return Long.BYTES + (long) contents.length;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
