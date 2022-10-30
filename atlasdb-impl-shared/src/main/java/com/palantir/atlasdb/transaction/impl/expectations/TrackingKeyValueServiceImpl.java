@@ -49,7 +49,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     KeyValueService delegate;
     KeyValueServiceDataTracker tracker;
 
-    private TrackingKeyValueServiceImpl(KeyValueService delegate) {
+    public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
     }
 
