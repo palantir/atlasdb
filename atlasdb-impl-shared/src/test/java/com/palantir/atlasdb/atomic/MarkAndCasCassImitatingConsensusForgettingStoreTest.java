@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -76,18 +77,18 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
         neverThrowing.atomicUpdate(CELL, VALUE);
 
         // Second atomic update
-        assertThatThrownBy(() -> neverThrowing.atomicUpdate(CELL, VALUE))
-                .isInstanceOf(CheckAndSetException.class)
-                .satisfies(exception -> {
-                    CheckAndSetException checkAndSetException = (CheckAndSetException) exception;
-                    assertThat(checkAndSetException.getKey()).isEqualTo(CELL);
-                    assertThat(checkAndSetException.getActualValues()).containsExactly(VALUE);
-                });
+        AtomicUpdateResult atomicUpdateResult = neverThrowing.atomicUpdate(CELL, VALUE);
+        assertThat(atomicUpdateResult.maybeException().get()).isInstanceOf(KeyAlreadyExistsException.class);
+
+        KeyAlreadyExistsException keyAlreadyExistsException =
+                (KeyAlreadyExistsException) atomicUpdateResult.maybeException().get();
+        assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(CELL);
     }
 
     @Test
     public void cannotAtomicUpdateIfNotMarked() {
-        assertThatThrownBy(() -> neverThrowing.atomicUpdate(CELL, VALUE)).isInstanceOf(CheckAndSetException.class);
+        assertThat(neverThrowing.atomicUpdate(CELL, VALUE).maybeException().get())
+                .isInstanceOf(KeyAlreadyExistsException.class);
         assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).isEmpty();
     }
 
