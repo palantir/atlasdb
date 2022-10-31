@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 /**
@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
  * are run. This can be used to e.g run {@link PreCommitCondition#cleanup()} <i>before</i> the onSuccess callbacks
  * are run.
  */
-public interface CallbackAwareTransaction extends Transaction {
+public interface CallbackAwareTransaction extends ExpectationsAwareTransaction {
     void commitWithoutCallbacks() throws TransactionFailedException;
 
     void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException;

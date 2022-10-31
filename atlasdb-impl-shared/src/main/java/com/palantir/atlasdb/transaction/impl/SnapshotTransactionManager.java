@@ -45,6 +45,10 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -68,6 +72,7 @@ import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -183,8 +188,16 @@ import javax.validation.constraints.NotNull;
             condition.cleanup();
             throw e;
         }
-        return openTransaction.finishWithCallback(
-                transaction -> task.execute(transaction, condition), condition::cleanup);
+
+        T result;
+        try {
+            result = openTransaction.finishWithCallback(
+                    transaction -> task.execute(transaction, condition), condition::cleanup);
+        } finally {
+            openTransaction.reportExpectationsCollectedData();
+        }
+
+        return result;
     }
 
     @Override
@@ -277,6 +290,39 @@ import javax.validation.constraints.NotNull;
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();
             return result;
+        }
+
+        @Override
+        public ExpectationsConfig expectationsConfig() {
+            return delegate.expectationsConfig();
+        }
+
+        @Override
+        public long getAgeMillis() {
+            return delegate.getAgeMillis();
+        }
+
+        @Override
+        public TransactionReadInfo getReadInfo() {
+            return delegate.getReadInfo();
+        }
+
+        @Override
+        public ExpectationsStatistics getCallbackStatistics() {
+            return delegate.getCallbackStatistics();
+        }
+
+        @Override
+        public void runExpectationsCallbacks() {}
+
+        @Override
+        public Set<ExpectationsViolation> checkAndGetViolations() {
+            return delegate.checkAndGetViolations();
+        }
+
+        @Override
+        public void reportExpectationsCollectedData() {
+            delegate.reportExpectationsCollectedData();
         }
     }
 

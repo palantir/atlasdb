@@ -17,8 +17,9 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 
-public interface OpenTransaction extends Transaction {
+public interface OpenTransaction extends ExpectationsAwareTransaction {
 
     /**
      * Runs a provided task, commits the transaction, and performs cleanup. If no further work needs to be done with the

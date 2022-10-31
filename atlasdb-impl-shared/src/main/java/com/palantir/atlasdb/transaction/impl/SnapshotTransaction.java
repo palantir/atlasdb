@@ -25,6 +25,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -96,6 +97,14 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -174,6 +183,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -216,7 +226,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    final KeyValueService keyValueService;
+    final TrackingKeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
@@ -265,6 +275,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
+    protected final Stopwatch stopwatch = Stopwatch.createStarted();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -273,7 +285,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            KeyValueService tmKeyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -302,7 +314,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = keyValueService;
+        this.keyValueService = new TrackingKeyValueServiceImpl(tmKeyValueService);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -338,6 +350,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.expectationsDataCollectionMetrics =
+                ExpectationsDataCollectionMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -2574,6 +2588,54 @@ public class SnapshotTransaction extends AbstractTransaction
             AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return tableRefToCells;
+    }
+
+    // todo(aalouane)
+    @Override
+    public ExpectationsConfig expectationsConfig() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public long getAgeMillis() {
+        stopwatch.stop();
+        return stopwatch.elapsed(TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public TransactionReadInfo getReadInfo() {
+        return keyValueService.getOverallReadInfo();
+    }
+
+    @Override
+    public ExpectationsStatistics getCallbackStatistics() {
+        return ImmutableExpectationsStatistics.builder()
+                .transactionAgeMillis(getAgeMillis())
+                .readInfoByTable(keyValueService.getReadInfoByTable())
+                .build();
+    }
+
+    // todo(aalouane)
+    @Override
+    public void runExpectationsCallbacks() {
+        throw new NotImplementedException();
+    }
+
+    // todo(aalouane)
+    @Override
+    public Set<ExpectationsViolation> checkAndGetViolations() {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void reportExpectationsCollectedData() {
+        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
+        TransactionReadInfo info = getReadInfo();
+        expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
+        expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
+        info.maximumBytesKvsCallInfo()
+                .ifPresent(kvsReadInfo ->
+                        expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsReadInfo.bytesRead()));
     }
 
     private Timer getTimer(String name) {

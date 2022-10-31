@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
-    KeyValueServiceDataTracker tracker;
+    KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
     public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;

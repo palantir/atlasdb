@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
