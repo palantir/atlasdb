@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -41,7 +42,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.util.MapUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -379,7 +379,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 getContainerForNewServers(serversToAdd);
 
         Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
-                MapUtils.combineMaps(getCurrentPools(), serversToAddContainers);
+                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                        .putAll(getCurrentPools())
+                        .putAll(serversToAddContainers)
+                        .buildKeepingLast();
 
         // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
         Set<CassandraServer> newHostsWithDifferingTopology =
