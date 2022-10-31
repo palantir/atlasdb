@@ -45,6 +45,7 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
@@ -248,7 +249,7 @@ import javax.validation.constraints.NotNull;
         }
     }
 
-    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
+    private final class OpenTransactionImpl extends ForwardingExpectationsAwareTransaction implements OpenTransaction {
 
         private final CallbackAwareTransaction delegate;
         private final LockToken immutableTsLock;
@@ -259,7 +260,7 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public Transaction delegate() {
+        public ExpectationsAwareTransaction delegate() {
             return delegate;
         }
 
