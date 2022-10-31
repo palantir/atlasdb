@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -58,9 +57,7 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
                         .map(BytesAndTimestamp::bytes)
                         .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
                         .isEmpty()) {
-                    throw new KeyAlreadyExistsException(
-                            "Key already exists",
-                            ImmutableList.of(cell));
+                    throw new KeyAlreadyExistsException("Key already exists", ImmutableList.of(cell));
                 }
                 writeToQuorum(cell, quorumNodes, value);
             });

@@ -33,59 +33,62 @@ public class PueCassImitatingConsensusForgettingStoreTest {
     private static final byte[] VALUE_2 = PtBytes.toBytes("VAL2");
     // solution to (1-x)^4 = 0.5
     private static final double PROBABILITY_THROWING_ON_QUORUM_HALF = 0.16;
-    private final ConsensusForgettingStore neverThrowing = new PueCassImitatingConsensusForgettingStore(0.0);
+
+    private final ConsensusForgettingStore neverFailing = new PueCassImitatingConsensusForgettingStore(0.0);
     private final CassandraImitatingConsensusForgettingStore sometimesThrowing =
             new PueCassImitatingConsensusForgettingStore(PROBABILITY_THROWING_ON_QUORUM_HALF);
 
     @Test
     public void trivialGet() throws ExecutionException, InterruptedException {
-        assertThat(neverThrowing.get(CELL).get()).isEmpty();
+        assertThat(neverFailing.get(CELL).get()).isEmpty();
     }
 
     @Test
     public void canGetAfterPue() throws ExecutionException, InterruptedException {
-        neverThrowing.atomicUpdate(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).contains(VALUE);
+        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        assertThat(neverFailing.get(CELL).get()).contains(VALUE);
     }
 
     @Test
     public void canGetAfterPut() throws ExecutionException, InterruptedException {
-        neverThrowing.put(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
+        neverFailing.put(CELL, VALUE);
+        assertThat(neverFailing.get(CELL).get()).hasValue(VALUE);
     }
 
     @Test
     public void putOverwritesPue() throws ExecutionException, InterruptedException {
-        neverThrowing.atomicUpdate(CELL, VALUE);
-        neverThrowing.put(CELL, VALUE_2);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE_2);
+        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        neverFailing.put(CELL, VALUE_2);
+        assertThat(neverFailing.get(CELL).get()).hasValue(VALUE_2);
     }
 
     @Test
     public void cannotPueTwice() {
-        neverThrowing.atomicUpdate(CELL, VALUE);
-        assertThatThrownBy(() -> neverThrowing.atomicUpdate(CELL, VALUE))
-                .isInstanceOf(KeyAlreadyExistsException.class)
-                .satisfies(exception -> assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
-                        .containsExactly(CELL));
+        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        AtomicUpdateResult secondPueResult = neverFailing.atomicUpdate(CELL, VALUE);
+        assertThat(secondPueResult.isSuccess()).isFalse();
+        assertThat(secondPueResult.maybeException().get()).isInstanceOf(KeyAlreadyExistsException.class);
+        KeyAlreadyExistsException keyAlreadyExistsException =
+                (KeyAlreadyExistsException) secondPueResult.maybeException().get();
+        assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(CELL);
     }
 
     @Test
     public void canTouchAfterPue() throws ExecutionException, InterruptedException {
-        neverThrowing.atomicUpdate(CELL, VALUE);
-        neverThrowing.checkAndTouch(CELL, VALUE);
-        assertThat(neverThrowing.get(CELL).get()).hasValue(VALUE);
+        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        neverFailing.checkAndTouch(CELL, VALUE);
+        assertThat(neverFailing.get(CELL).get()).hasValue(VALUE);
     }
 
     @Test
     public void cannotTouchWhenNotMatching() {
-        assertThatThrownBy(() -> neverThrowing.checkAndTouch(CELL, VALUE))
+        assertThatThrownBy(() -> neverFailing.checkAndTouch(CELL, VALUE))
                 .isInstanceOf(CheckAndSetException.class)
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
                         .isEmpty());
 
-        neverThrowing.atomicUpdate(CELL, VALUE);
-        assertThatThrownBy(() -> neverThrowing.checkAndTouch(CELL, VALUE_2))
+        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        assertThatThrownBy(() -> neverFailing.checkAndTouch(CELL, VALUE_2))
                 .isInstanceOf(CheckAndSetException.class)
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
                         .containsExactly(VALUE));
@@ -99,7 +102,10 @@ public class PueCassImitatingConsensusForgettingStoreTest {
         for (int i = 0; i < 100; i++) {
             Cell cell = Cell.create(PtBytes.toBytes(i), PtBytes.toBytes(i));
             try {
-                sometimesThrowing.atomicUpdate(cell, VALUE);
+                AtomicUpdateResult atomicUpdateResult = sometimesThrowing.atomicUpdate(cell, VALUE);
+                if (!atomicUpdateResult.isSuccess()) {
+                    throw atomicUpdateResult.maybeException().get();
+                }
                 numberOfSuccessfulPue++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);
                 assertThat(sometimesThrowing.get(cell).get()).hasValue(VALUE);

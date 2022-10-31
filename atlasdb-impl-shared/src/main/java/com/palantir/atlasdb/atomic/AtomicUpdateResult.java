@@ -44,6 +44,6 @@ public interface AtomicUpdateResult {
     }
 
     static AtomicUpdateResult success() {
-        return ImmutableAtomicUpdateResult.builder().isSuccess(false).build();
+        return ImmutableAtomicUpdateResult.builder().isSuccess(true).build();
     }
 }
