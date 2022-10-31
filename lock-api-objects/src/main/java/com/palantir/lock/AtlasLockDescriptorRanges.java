@@ -47,7 +47,7 @@ public final class AtlasLockDescriptorRanges {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(qualifiedTableName, row);
         byte[] nextRow = createExclusiveEndNameWithZeroByteForPrefixScan(row);
         LockDescriptor nextRowDescriptor = AtlasRowLockDescriptor.of(qualifiedTableName, nextRow);
-        return Range.closed(descriptor, nextRowDescriptor);
+        return Range.closedOpen(descriptor, nextRowDescriptor);
     }
 
     public static Range<LockDescriptor> exactCell(String qualifiedTableName, byte[] row, byte[] col) {
