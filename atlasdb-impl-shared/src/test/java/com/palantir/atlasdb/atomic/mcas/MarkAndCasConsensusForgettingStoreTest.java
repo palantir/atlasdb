@@ -16,14 +16,6 @@
 
 package com.palantir.atlasdb.atomic.mcas;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -36,12 +28,19 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import org.junit.Test;
+
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class MarkAndCasConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");
@@ -82,14 +81,12 @@ public class MarkAndCasConsensusForgettingStoreTest {
     @Test
     public void updatesMultipleMarkedCells() throws ExecutionException, InterruptedException {
         store.mark(ImmutableSet.of(CELL, CELL_2));
-
-        store.atomicUpdate(ImmutableMap.of(CELL, HAPPY, CELL_2, HAPPY));
         TestBatchElement elem1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         TestBatchElement elem2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_SAD);
 
         store.processBatch(kvs, TABLE, ImmutableList.of(elem1, elem2));
-        assertThat(store.get(CELL).get()).hasValue(elem1.argument().update().array());
-        assertThat(store.get(CELL_2).get()).hasValue(elem2.argument().update().array());
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+        assertThat(store.get(CELL_2).get()).hasValue(SAD);
     }
 
     @Test
