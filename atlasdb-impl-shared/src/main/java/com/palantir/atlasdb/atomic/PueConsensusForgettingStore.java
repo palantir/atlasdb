@@ -74,7 +74,7 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     /**
      * Note that changing this method may invalidate existing tests in
      * ResilientCommitTimestampPutUnlessExistsTableTest.
-     * @return
+     * @return check and touch result for each individual cell.
      */
     @Override
     public Map<Cell, AtomicOperationResult> checkAndTouch(Map<Cell, byte[]> values) {

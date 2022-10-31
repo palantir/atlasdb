@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
-;
 
 /**
  * In general, the purpose of this class at least in its current form is to evaluate the requirement (or lack
