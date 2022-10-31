@@ -34,22 +34,33 @@ public final class LockWatchReferences {
         // no
     }
 
+    // Matches any lock descriptor relating to the given table.
     public static LockWatchReference entireTable(String qualifiedTableRef) {
         return ImmutableEntireTable.of(qualifiedTableRef);
     }
 
+    // Matches any row or cell lock descriptor relating to the given table,
+    // as long as the row name starts with the prefix.
+    // Currently, this reference type is unsupported.
     public static LockWatchReference rowPrefix(String qualifiedTableRef, byte[] rowPrefix) {
         return ImmutableRowPrefix.of(qualifiedTableRef, rowPrefix);
     }
 
+    // Matches a range of rows in a given table, e.g. from "cat" to "dog".
+    // Currently, this reference type is unsupported.
     public static LockWatchReference rowRange(String qualifiedTableRef, byte[] startInclusive, byte[] endExclusive) {
         return ImmutableRowRange.of(qualifiedTableRef, startInclusive, endExclusive);
     }
 
+    // Matches row or cell descriptors with row name exactly matching the row bytes.
+    // Note that this does not match rows starting with the row bytes.
     public static LockWatchReference exactRow(String qualifiedTableRef, byte[] row) {
         return ImmutableExactRow.of(qualifiedTableRef, row);
     }
 
+    // Matches precisely one AtlasCellLockDescriptor. Cell-level conflict handling (RETRY_ON_WRITE_WRITE_CELL or
+    // SERIALIZABLE_CELL) is required for this to match anything.
+    // Currently, this reference type is unsupported.
     public static LockWatchReference exactCell(String qualifiedTableRef, byte[] row, byte[] col) {
         return ImmutableExactCell.of(qualifiedTableRef, row, col);
     }
