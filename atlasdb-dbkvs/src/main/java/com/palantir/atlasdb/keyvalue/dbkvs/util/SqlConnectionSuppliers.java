@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.util;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
+import com.palantir.nexus.db.pool.config.MaskedValue;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 
@@ -44,12 +46,10 @@ public final class SqlConnectionSuppliers {
             ConnectionManager connManager,
             DbKeyValueServiceConfig config,
             Optional<KeyValueServiceRuntimeConfig> runtimeConfig) {
-        runtimeConfig
+        MaskedValue password = runtimeConfig
                 .flatMap(DbKeyValueServiceConfigs::tryCastToDbKeyValueServiceRuntimeConfig)
-                .ifPresentOrElse(
-                        dbKeyValueServiceRuntimeConfig -> connManager.setPassword(
-                                dbKeyValueServiceRuntimeConfig.getDbPassword().unmasked()),
-                        () -> connManager.setPassword(
-                                config.connection().getDbPassword().unmasked()));
+                .map(DbKeyValueServiceRuntimeConfig::getDbPassword)
+                .orElseGet(() -> config.connection().getDbPassword());
+        connManager.setPassword(password.unmasked());
     }
 }

@@ -42,6 +42,7 @@ import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
 import com.palantir.refreshable.Refreshable;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
@@ -64,7 +65,7 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
         throw new SafeIllegalArgumentException(
                 "Dropping a namespace for the given DB type is not supported",
                 SafeArg.of("type", dbType),
-                SafeArg.of("supportedTypes", OracleDdlConfig.TYPE));
+                SafeArg.of("supportedTypes", List.of(OracleDdlConfig.TYPE)));
     }
 
     private NamespaceDeleter createOracleNamespaceDeleter(
