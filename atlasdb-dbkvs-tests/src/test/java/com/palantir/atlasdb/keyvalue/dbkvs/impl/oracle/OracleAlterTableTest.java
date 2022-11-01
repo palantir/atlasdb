@@ -17,8 +17,9 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -28,12 +29,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -49,7 +54,14 @@ public class OracleAlterTableTest {
             .from(DbKvsOracleTestSuite.getKvsConfig())
             .ddl(ImmutableOracleDdlConfig.builder()
                     .overflowMigrationState(OverflowMigrationState.FINISHED)
-                    .alterTablesOrMetadataToMatch(ImmutableSet.of(TABLE_REFERENCE))
+                    .build())
+            .build();
+
+    private static final DbKeyValueServiceConfig CONFIG_WITH_ALTER = ImmutableDbKeyValueServiceConfig.builder()
+            .from(CONFIG)
+            .ddl(ImmutableOracleDdlConfig.builder()
+                    .overflowMigrationState(OverflowMigrationState.FINISHED)
+                    .addAlterTablesOrMetadataToMatch(TABLE_REFERENCE)
                     .build())
             .build();
 
@@ -70,38 +82,83 @@ public class OracleAlterTableTest {
             .build();
 
     private static final Cell DEFAULT_CELL = createCell("foo", "bar");
+    private static final Cell DEFAULT_CELL_2 = createCell("something", "bar");
 
     private static final byte[] DEFAULT_VALUE = PtBytes.toBytes("amazing");
     private static final long TIMESTAMP = 1L;
 
-    private KeyValueService kvs;
+    private ConnectionManagerAwareDbKvs defaultKvs;
     private ConnectionSupplier connectionSupplier;
+    private OracleTableNameGetter oracleTableNameGetter;
 
     @Before
     public void setup() {
-        kvs = TRM.getDefaultKvs();
-        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(kvs);
+        defaultKvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
+        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(defaultKvs);
+        oracleTableNameGetter = OracleTableNameGetterImpl.createDefault((OracleDdlConfig) CONFIG.ddl());
     }
 
     @After
     public void tearDown() {
-        kvs.dropTables(kvs.getAllTableNames());
+        defaultKvs.dropTables(defaultKvs.getAllTableNames());
         connectionSupplier.close();
     }
 
     @Test
-    public void canReadWriteData() {
-        kvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        writeData();
-        canReadData();
+    public void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable() {
+        defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        writeData(defaultKvs);
+        assertThatDataCanBeRead(defaultKvs);
+        dropOverflowColumn(defaultKvs);
+        defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
+        assertThatThrownBy(() -> fetchData(defaultKvs));
+        ConnectionManagerAwareDbKvs workingKvs = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        assertThatDataCanBeRead(workingKvs);
+        assertThatOverflowColumnExists(workingKvs);
+        assertThatDataCanBeWritten(workingKvs);
     }
 
-    public void writeData() {
+    private void assertThatDataCanBeWritten(ConnectionManagerAwareDbKvs kvs) {
+        assertThatCode(() -> kvs.put(TABLE_REFERENCE, Map.of(DEFAULT_CELL_2, DEFAULT_VALUE), TIMESTAMP))
+                .doesNotThrowAnyException();
+    }
+
+    private void assertThatOverflowColumnExists(ConnectionManagerAwareDbKvs kvs) {
+        assertThatCode(() -> {
+                    String tableName =
+                            oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
+                    boolean columnExists = kvs.getSqlConnectionSupplier()
+                            .get()
+                            .selectExistsUnregisteredQuery(
+                                    "SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'",
+                                    tableName.toUpperCase());
+                    assertThat(columnExists).isTrue();
+                })
+                .doesNotThrowAnyException();
+    }
+
+    private void dropOverflowColumn(ConnectionManagerAwareDbKvs kvs) {
+        try {
+            String tableName = oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
+            kvs.getSqlConnectionSupplier()
+                    .get()
+                    .executeUnregisteredQuery("ALTER TABLE " + tableName + " DROP COLUMN overflow");
+        } catch (TableMappingNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeData(KeyValueService kvs) {
         kvs.put(TABLE_REFERENCE, Map.of(DEFAULT_CELL, DEFAULT_VALUE), TIMESTAMP);
     }
 
-    public void canReadData() {
-        Map<Cell, Value> values = kvs.get(TABLE_REFERENCE, Map.of(DEFAULT_CELL, TIMESTAMP));
+    private static Map<Cell, Value> fetchData(KeyValueService kvs) {
+        return kvs.get(TABLE_REFERENCE, Map.of(DEFAULT_CELL, TIMESTAMP + 1));
+    }
+
+    private static void assertThatDataCanBeRead(KeyValueService kvs) {
+        Map<Cell, Value> values = fetchData(kvs);
         assertThat(values).hasSize(1);
         assertThat(values).containsKey(DEFAULT_CELL);
         Value value = values.get(DEFAULT_CELL);

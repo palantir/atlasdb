@@ -98,15 +98,13 @@ public final class OracleDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         boolean needsOverflow = needsOverflow(tableMetadata);
 
-        if (conns.get()
-                .selectExistsUnregisteredQuery(
-                        "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                        tableRef.getQualifiedName())) {
+        if (tableExists()) {
             if (needsOverflow) {
                 TableValueStyle existingStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
                 if (existingStyle != TableValueStyle.OVERFLOW) {
                     throwForMissingOverflowTable();
                 }
+                maybeAlterTableToHaveOverflow();
             }
             return;
         }
@@ -114,12 +112,7 @@ public final class OracleDdlTable implements DbDdlTable {
         String shortTableName = createTable(needsOverflow);
 
         if (needsOverflow && !overflowColumnExists(shortTableName)) {
-            if (!(config.alterTablesOrMetadataToMatch().contains(tableRef)
-                    && overflowTableHasMigrated()
-                    && overflowTableExists())) {
-                throwForMissingOverflowTable();
-            }
-            alterTableToHaveOverflowColumn(shortTableName);
+            throwForMissingOverflowTable();
         }
 
         if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
@@ -131,8 +124,22 @@ public final class OracleDdlTable implements DbDdlTable {
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
     }
 
+    private void maybeAlterTableToHaveOverflow() {
+        try {
+            String tableShortName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+
+            if (config.alterTablesOrMetadataToMatch().contains(tableRef)
+                    && overflowTableHasMigrated()
+                    && overflowTableExists()) {
+                alterTableToHaveOverflowColumn(tableShortName);
+            }
+        } catch (TableMappingNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void alterTableToHaveOverflowColumn(String shortTableName) {
-        conns.get().executeUnregisteredQuery("ALTER TABLE " + shortTableName + " ADD overflow NUMBER(38);");
+        conns.get().executeUnregisteredQuery("ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))");
     }
 
     private boolean overflowTableHasMigrated() {
@@ -151,6 +158,13 @@ public final class OracleDdlTable implements DbDdlTable {
                 .selectExistsUnregisteredQuery(
                         "SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'",
                         shortTableName.toUpperCase());
+    }
+
+    private boolean tableExists() {
+        return conns.get()
+                .selectExistsUnregisteredQuery(
+                        "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        tableRef.getQualifiedName());
     }
 
     private boolean overflowTableExists() {
