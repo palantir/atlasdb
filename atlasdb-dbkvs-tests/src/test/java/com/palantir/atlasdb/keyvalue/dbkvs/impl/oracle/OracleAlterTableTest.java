@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,11 +35,16 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
-import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class OracleAlterTableTest {
 
@@ -117,6 +118,14 @@ public class OracleAlterTableTest {
         assertThatDataCanBeRead(workingKvs);
         assertThatOverflowColumnExists(workingKvs);
         assertThatDataCanBeWritten(workingKvs);
+    }
+
+    @Test
+    public void whenConfiguredAlterTableDoesNothingWhenMatching() {
+        ConnectionManagerAwareDbKvs kvsWithAlter = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        writeData(kvsWithAlter);
+        assertThatDataCanBeRead(defaultKvs);
     }
 
     private void assertThatDataCanBeWritten(ConnectionManagerAwareDbKvs kvs) {
