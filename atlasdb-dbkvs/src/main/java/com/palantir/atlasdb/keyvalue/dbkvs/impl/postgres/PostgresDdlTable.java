@@ -125,7 +125,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop(CaseSensitivity referenceCaseSensitivity) {
         if (referenceCaseSensitivity == CaseSensitivity.CASE_INSENSITIVE) {
             throw new UnsupportedOperationException(
-                    "AtlasDB does not currently support case insensitive drop table" + " commands for Postgres");
+                    "AtlasDB does not currently support case insensitive drop table commands for Postgres");
         }
 
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
