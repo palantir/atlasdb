@@ -161,7 +161,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -259,6 +261,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
+    protected final ExecutorService writeToSweepQueueExecutor;
 
     protected volatile boolean hasReads;
 
@@ -267,9 +270,9 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
 
     /**
-     * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
-     * @param preCommitCondition This check must pass for this transaction to commit.
+     * @param immutableTimestamp        If we find a row written before the immutableTimestamp we don't need to grab a read
+     *                                  lock for it because we know that no writers exist.
+     * @param preCommitCondition        This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
@@ -297,10 +300,12 @@ public class SnapshotTransaction extends AbstractTransaction
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
+        this.writeToSweepQueueExecutor = writeToSweepQueueExecutor;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
@@ -1914,9 +1919,12 @@ public class SnapshotTransaction extends AbstractTransaction
                 timedAndTraced(
                         "markingTransactionInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
 
-                // Write to the targeted sweep queue. We must do this before writing to the key value service -
-                // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
+                // Optimistically write to the targeted sweep queue.
+                // Whilst ideally must do this before writing to the key value service - to avoid hanging values that
+                // targeted sweep won't know about - this is relatively expensive, and so err on the side of
+                // running this concurrently with other operations (and accepting sometimes we'll miss some stuff).
+                Future<?> writeToSweepQueueFuture = writeToSweepQueueExecutor.submit(() -> timedAndTraced(
+                        "writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp())));
 
                 // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
                 // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
@@ -1970,6 +1978,13 @@ public class SnapshotTransaction extends AbstractTransaction
                 getTimer("commitTotalTimeSinceTxCreation").update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
                         .update(byteCount.get());
+
+                // wait for the sweep write to finish
+                try {
+                    writeToSweepQueueFuture.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
