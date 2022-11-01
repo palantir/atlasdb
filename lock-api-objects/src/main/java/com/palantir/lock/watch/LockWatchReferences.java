@@ -27,6 +27,9 @@ import com.palantir.lock.AtlasLockDescriptorRanges;
 import com.palantir.lock.LockDescriptor;
 import org.immutables.value.Value;
 
+// A suite of references that match particular sets of lock descriptor.
+// Note that the 00 byte is used as a delimiter in lock descriptors; these references may match more than expected
+// in peculiar cases, if the 00 byte (the null character in UTF-8) is actually part of the table or row name.
 public final class LockWatchReferences {
     public static final LockDescriptorRangeVisitor TO_RANGES_VISITOR = new LockDescriptorRangeVisitor();
 
@@ -53,13 +56,13 @@ public final class LockWatchReferences {
     }
 
     // Matches row or cell descriptors with row name exactly matching the row bytes.
-    // Note that this does not match rows starting with the row bytes.
+    // Note that this does not match rows starting with the row bytes, unless the next byte is exactly the null byte.
     public static LockWatchReference exactRow(String qualifiedTableRef, byte[] row) {
         return ImmutableExactRow.of(qualifiedTableRef, row);
     }
 
     // Matches precisely one AtlasCellLockDescriptor. Cell-level conflict handling (RETRY_ON_WRITE_WRITE_CELL or
-    // SERIALIZABLE_CELL) is required for this to match anything.
+    // SERIALIZABLE_CELL) is required for this to match anything (unless the null byte is used in a row name).
     // Currently, this reference type is unsupported.
     public static LockWatchReference exactCell(String qualifiedTableRef, byte[] row, byte[] col) {
         return ImmutableExactCell.of(qualifiedTableRef, row, col);
