@@ -270,9 +270,9 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
 
     /**
-     * @param immutableTimestamp        If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                                  lock for it because we know that no writers exist.
-     * @param preCommitCondition        This check must pass for this transaction to commit.
+     * @param immutableTimestamp   If we find a row written before the immutableTimestamp we don't need to grab a read
+     *                             lock for it because we know that no writers exist.
+     * @param preCommitCondition   This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
