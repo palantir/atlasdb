@@ -421,10 +421,16 @@ import javax.validation.constraints.NotNull;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge);
-        return runTaskThrowOnConflictWithCallback(
-                txn -> task.execute(txn, condition),
-                new ReadTransaction(transaction, sweepStrategyManager),
-                condition::cleanup);
+        T result;
+        try {
+            result = runTaskThrowOnConflictWithCallback(
+                    txn -> task.execute(txn, condition),
+                    new ReadTransaction(transaction, sweepStrategyManager),
+                    condition::cleanup);
+        } finally {
+            transaction.reportExpectationsCollectedData();
+        }
+        return result;
     }
 
     @Override
