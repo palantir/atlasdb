@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Perform sweep queue writes in parallel with the rest of the commit
+    stage.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6347
