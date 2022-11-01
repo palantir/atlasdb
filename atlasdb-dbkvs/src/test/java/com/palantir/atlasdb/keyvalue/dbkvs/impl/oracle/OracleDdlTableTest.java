@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -93,7 +95,7 @@ public final class OracleDdlTableTest {
 
     @Before
     public void before() {
-        tableValueStyleCache = new TableValueStyleCache();
+        tableValueStyleCache = mock(TableValueStyleCache.class);
         executorService = PTExecutors.newSingleThreadExecutor();
         tableMappingDdlTable = createOracleDdlTable(TABLE_MAPPING_DEFAULT_CONFIG);
         nonTableMappingDdlTable = createOracleDdlTable(NON_TABLE_MAPPING_DEFAULT_CONFIG);
@@ -230,6 +232,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
         setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(true);
         assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
         verifyNumberOfTimesTableAltered(1);
     }
@@ -239,6 +242,7 @@ public final class OracleDdlTableTest {
         createTable();
         createOverflowTable();
         setTableToHaveOverflowColumn(true);
+        setMetadataToHaveOverflow(true);
         assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
         verifyNumberOfTimesTableAltered(0);
     }
@@ -283,11 +287,19 @@ public final class OracleDdlTableTest {
     }
 
     private void createTable() throws TableMappingNotFoundException {
-        when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
+        // We do not always create the table, thus this is sometimes not used
+        lenient()
+                .when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_TABLE_NAME);
         when(tableNameGetter.getPrefixedTableName(TEST_TABLE)).thenReturn(PREFIXED_TABLE_NAME);
         when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_TABLE_NAME);
+        when(sqlConnection.selectExistsUnregisteredQuery(
+                        eq("SELECT 1 FROM "
+                                + TABLE_MAPPING_DEFAULT_CONFIG.metadataTable().getQualifiedName()
+                                + " WHERE table_name = ?"),
+                        eq(TEST_TABLE.getQualifiedName())))
+                .thenReturn(true);
     }
 
     private void createOverflowTable() throws TableMappingNotFoundException {
@@ -320,11 +332,17 @@ public final class OracleDdlTableTest {
 
     private void verifyNumberOfTimesTableAltered(int numberOfTimes) {
         verify(sqlConnection, times(numberOfTimes))
-                .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD overflow NUMBER(38);");
+                .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD (overflow NUMBER(38))");
     }
 
     private OracleDdlTable createOracleDdlTable(OracleDdlConfig config) {
         return OracleDdlTable.create(
                 TEST_TABLE, connectionSupplier, config, tableNameGetter, tableValueStyleCache, executorService);
+    }
+
+    private void setMetadataToHaveOverflow(boolean hasOverflow) {
+        TableValueStyle style = hasOverflow ? TableValueStyle.OVERFLOW : TableValueStyle.RAW;
+        when(tableValueStyleCache.getTableType(eq(connectionSupplier), eq(TEST_TABLE), any()))
+                .thenReturn(style);
     }
 }

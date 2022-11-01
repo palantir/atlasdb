@@ -126,12 +126,13 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void maybeAlterTableToHaveOverflow() {
         try {
-            String tableShortName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+            String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
 
             if (config.alterTablesOrMetadataToMatch().contains(tableRef)
                     && overflowTableHasMigrated()
-                    && overflowTableExists()) {
-                alterTableToHaveOverflowColumn(tableShortName);
+                    && overflowTableExists()
+                    && !overflowColumnExists(shortTableName)) {
+                alterTableToHaveOverflowColumn(shortTableName);
             }
         } catch (TableMappingNotFoundException e) {
             throw new RuntimeException(e);

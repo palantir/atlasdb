@@ -28,7 +28,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.concurrent.ExecutionException;
 
-public final class TableValueStyleCache {
+public class TableValueStyleCache {
     private static final SafeLogger log = SafeLoggerFactory.get(TableValueStyleCache.class);
 
     private final Cache<TableReference, TableValueStyle> valueStyleByTableRef =
