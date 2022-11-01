@@ -82,7 +82,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             Supplier<TransactionConfig> transactionConfig,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         super(
                 metricsManager,
                 keyValueService,
@@ -109,7 +110,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 transactionConfig,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @Override
