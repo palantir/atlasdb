@@ -70,7 +70,8 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 blacklist,
                 new CassandraTopologyValidator(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())));
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
     }
 
     @Test
@@ -115,7 +116,8 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 blacklist,
                 new CassandraTopologyValidator(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())));
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
 
         return clientPoolWithLocation.getLocalHosts();
     }

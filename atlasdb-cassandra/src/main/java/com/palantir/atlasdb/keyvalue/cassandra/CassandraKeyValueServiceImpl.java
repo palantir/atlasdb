@@ -259,7 +259,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         config,
                         runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 new CassandraTopologyValidator(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())));
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
 
         return createOrShutdownClientPool(
                 metricsManager,
