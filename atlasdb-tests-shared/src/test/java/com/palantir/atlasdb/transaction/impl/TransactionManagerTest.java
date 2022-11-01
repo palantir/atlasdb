@@ -267,7 +267,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp())

@@ -356,7 +356,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
                 keyValueServiceWrapper,
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
     }
 
     @Test
@@ -452,7 +453,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        MoreExecutors.newDirectExecutorService()),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -484,7 +486,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
                 keyValueServiceWrapper,
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -971,7 +974,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 executor,
                 transactionWrapper,
                 keyValueServiceWrapper,
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -2283,7 +2287,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

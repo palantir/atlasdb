@@ -121,6 +121,7 @@ public class AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 knowledge,
+                MoreExecutors.newDirectExecutorService(),
                 MoreExecutors.newDirectExecutorService());
     }
 

@@ -75,6 +75,7 @@ public class SnapshotTransactionManagerTest {
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService writeToSweepQueueExecutor = Executors.newSingleThreadExecutor();
 
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
@@ -111,7 +112,8 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @Test
@@ -168,7 +170,8 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
         newTransactionManager.close(); // should not throw
     }
 
@@ -299,6 +302,7 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 }
