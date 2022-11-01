@@ -99,7 +99,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void retiresAndReturnsFailingHosts() {
+    public void retriesAndReturnsFailingHosts() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
@@ -108,9 +108,10 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void retiresAtLeastTwoTimes() {
+    public void retriesAtLeastTwoTimes() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
+        when(validator.getNewHostsWithInconsistentTopologies(any(), any())).thenReturn(allHosts.keySet());
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
                         allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
                 .isNotEmpty();
