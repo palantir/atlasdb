@@ -135,11 +135,15 @@ public final class OracleDdlTable implements DbDdlTable {
                 alterTableToHaveOverflowColumn(shortTableName);
             }
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new SafeRuntimeException(e);
         }
     }
 
     private void alterTableToHaveOverflowColumn(String shortTableName) {
+        log.info(
+                "Altering table to have overflow column to match metadata.",
+                UnsafeArg.of("tableReference", tableRef),
+                UnsafeArg.of("shortTableName", shortTableName));
         conns.get().executeUnregisteredQuery("ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))");
     }
 
