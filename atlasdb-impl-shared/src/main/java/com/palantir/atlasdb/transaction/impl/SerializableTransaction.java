@@ -162,7 +162,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         super(
                 metricsManager,
                 keyValueService,
@@ -189,7 +190,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @Override
@@ -870,7 +872,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge) {
+                knowledge,
+                writeToSweepQueueExecutor) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
