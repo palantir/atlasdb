@@ -96,7 +96,7 @@ final class CellLoader {
             ConsistencyLevel consistency) {
         Map<CassandraServer, List<Cell>> hostsAndCells;
         try (CloseableTracer tracer = CloseableTracer.startSpan(
-                "partitionByHost",
+                "loadWithTs.partitionByHost",
                 ImmutableMap.of(
                         "cells",
                         String.valueOf(cells.size()),
@@ -133,7 +133,7 @@ final class CellLoader {
                         SafeArg.of("ipPort", hostAndCells.getKey()));
             }
 
-            try (CloseableTracer tracer = CloseableTracer.startSpan("getLoadWithTsTasksForSingleHost")) {
+            try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs.getLoadWithTsTasksForSingleHost")) {
                 tasks.addAll(getLoadWithTsTasksForSingleHost(
                         kvsMethodName,
                         hostAndCells.getKey(),

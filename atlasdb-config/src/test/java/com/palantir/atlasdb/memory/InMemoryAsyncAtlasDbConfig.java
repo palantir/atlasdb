@@ -56,6 +56,11 @@ public final class InMemoryAsyncAtlasDbConfig implements KeyValueServiceConfig {
     }
 
     @Override
+    public boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
+
+    @Override
     public int hashCode() {
         return InMemoryAsyncAtlasDbConfig.class.hashCode();
     }

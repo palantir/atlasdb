@@ -407,6 +407,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
+    @Override
+    @Value.Default
+    default boolean enableNamespaceDeletionDangerousIKnowWhatIAmDoing() {
+        return false;
+    }
+
     @Value.Check
     default void check() {
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
