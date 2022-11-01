@@ -35,13 +35,12 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
-
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -362,9 +361,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                        + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
-                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally configured"
-                        + " AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
+                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", serversToAdd));
 
         logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
@@ -398,10 +397,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
         Set<CassandraServer> newHostsWithDifferingTopology =
                 cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        serversToAdd,
-                        allContainers,
-                        HumanReadableDuration.seconds(5),
-                        HumanReadableDuration.minutes(1));
+                        serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
 
         Set<CassandraServer> validatedServersToAdd = Sets.difference(serversToAdd, newHostsWithDifferingTopology);
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
