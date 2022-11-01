@@ -142,6 +142,7 @@ public class TestTransactionManagerModule {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                PTExecutors.newSingleThreadExecutor(true));
     }
 }

@@ -143,6 +143,8 @@ public class TransactionManagerModule {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                Executors.newSingleThreadExecutor(new NamedThreadFactory(
+                        TransactionManagerModule.class + "-write-to-sweep-queue-executor", true)));
     }
 }
