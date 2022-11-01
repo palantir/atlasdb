@@ -1,5 +1,6 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.palantir.metric-schema'
 
 configurations {
   explicitShadow
@@ -113,6 +114,10 @@ jar.dependsOn shadowJar
 jar.onlyIf { false }
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
+
+license {
+  exclude '**/CassandraTopologyValidationMetrics.java'
+}
 
 recommendedProductDependencies {
     productDependency {
