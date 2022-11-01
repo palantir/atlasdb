@@ -438,7 +438,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                DefaultTaskExecutors.createDefaultWriteToSweepQueueExecutor());
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -493,7 +494,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                DefaultTaskExecutors.createDefaultWriteToSweepQueueExecutor());
     }
 
     public SerializableTransactionManager(
@@ -519,7 +521,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         super(
                 metricsManager,
                 keyValueService,
@@ -543,7 +546,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
         this.conflictTracer = conflictTracer;
     }
 
@@ -579,7 +583,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @VisibleForTesting

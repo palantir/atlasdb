@@ -98,6 +98,7 @@ import javax.validation.constraints.NotNull;
     final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
     final ExecutorService deleteExecutor;
+    final ExecutorService writeToSweepQueueExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
@@ -134,7 +135,8 @@ import javax.validation.constraints.NotNull;
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -164,6 +166,7 @@ import javax.validation.constraints.NotNull;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
+        this.writeToSweepQueueExecutor = writeToSweepQueueExecutor;
     }
 
     @Override
@@ -330,7 +333,8 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @Override
@@ -373,7 +377,8 @@ import javax.validation.constraints.NotNull;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

@@ -46,4 +46,15 @@ final class DefaultTaskExecutors {
                 new NamedThreadFactory("atlas-delete-executor", true),
                 new ThreadPoolExecutor.AbortPolicy());
     }
+
+    static ExecutorService createDefaultWriteToSweepQueueExecutor() {
+        return PTExecutors.newThreadPoolExecutor(
+                8,
+                8,
+                DEFAULT_IDLE_TIMEOUT.toMillis(),
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(DEFAULT_QUEUE_CAPACITY),
+                new NamedThreadFactory("atlas-write-to-sweep-queue-executor", true),
+                new ThreadPoolExecutor.AbortPolicy());
+    }
 }
