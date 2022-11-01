@@ -27,8 +27,9 @@ import java.util.Set;
 public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
 
-    // todo(aalouane): pass boolean to indicate whether this should freeze any time keeping
     long getAgeMillis();
+
+    long getAgeMillisAndFreezeTimer();
 
     TransactionReadInfo getReadInfo();
 

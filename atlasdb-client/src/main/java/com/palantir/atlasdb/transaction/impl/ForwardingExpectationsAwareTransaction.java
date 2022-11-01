@@ -39,6 +39,11 @@ public abstract class ForwardingExpectationsAwareTransaction extends ForwardingT
     }
 
     @Override
+    public long getAgeMillisAndFreezeTimer() {
+        return delegate().getAgeMillisAndFreezeTimer();
+    }
+
+    @Override
     public TransactionReadInfo getReadInfo() {
         return delegate().getReadInfo();
     }

@@ -2598,8 +2598,13 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public long getAgeMillis() {
-        stopwatch.stop();
         return stopwatch.elapsed(TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public long getAgeMillisAndFreezeTimer() {
+        stopwatch.stop();
+        return getAgeMillis();
     }
 
     @Override
@@ -2610,7 +2615,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public ExpectationsStatistics getCallbackStatistics() {
         return ImmutableExpectationsStatistics.builder()
-                .transactionAgeMillis(getAgeMillis())
+                .transactionAgeMillis(getAgeMillisAndFreezeTimer())
                 .readInfoByTable(keyValueService.getReadInfoByTable())
                 .build();
     }
@@ -2629,7 +2634,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void reportExpectationsCollectedData() {
-        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
+        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillisAndFreezeTimer());
         TransactionReadInfo info = getReadInfo();
         expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
         expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
