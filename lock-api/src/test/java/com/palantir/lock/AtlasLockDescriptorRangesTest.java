@@ -107,11 +107,11 @@ public class AtlasLockDescriptorRangesTest {
     }
 
     @Test
-    public void exactRowDoesNotContainCellDescriptorForRow() {
+    public void exactRowDoesContainsCellDescriptorForRow() {
         Range<LockDescriptor> exactRow = AtlasLockDescriptorRanges.exactRow(TABLE, BYTES);
 
         assertThat(exactRow.contains(AtlasCellLockDescriptor.of(TABLE, BYTES, BYTES_SUFFIX)))
-                .isFalse();
+                .isTrue();
     }
 
     @Test
