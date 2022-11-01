@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
@@ -117,6 +118,16 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
+        drop(CaseSensitivity.CASE_SENSITIVE);
+    }
+
+    @Override
+    public void drop(CaseSensitivity referenceCaseSensitivity) {
+        if (referenceCaseSensitivity == CaseSensitivity.CASE_INSENSITIVE) {
+            throw new UnsupportedOperationException(
+                    "AtlasDB does not currently support case insensitive drop table" + " commands for Postgres");
+        }
+
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get()
                 .executeUnregisteredQuery(

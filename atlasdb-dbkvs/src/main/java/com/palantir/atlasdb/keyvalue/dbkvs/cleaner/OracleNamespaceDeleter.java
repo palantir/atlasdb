@@ -20,9 +20,9 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable.CaseSensitivity;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import java.util.Set;
 import java.util.function.Function;
@@ -45,7 +45,7 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
     public void deleteAllDataFromNamespace() {
         Set<TableReference> tableNamesToDrop = getAllTableNamesToDrop();
         tableNamesToDrop.stream()
-                .map(parameters.oracleDdlTableFactory())
+                .map(parameters.ddlTableFactory())
                 .forEach(ddlTable -> ddlTable.drop(CaseSensitivity.CASE_INSENSITIVE));
     }
 
@@ -119,7 +119,7 @@ public final class OracleNamespaceDeleter implements NamespaceDeleter {
 
         OracleTableNameGetter tableNameGetter();
 
-        Function<TableReference, OracleDdlTable> oracleDdlTableFactory();
+        Function<TableReference, DbDdlTable> ddlTableFactory();
 
         static ImmutableOracleNamespaceDeleterParameters.Builder builder() {
             return ImmutableOracleNamespaceDeleterParameters.builder();

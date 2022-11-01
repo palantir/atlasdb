@@ -54,7 +54,7 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public OracleDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
+    public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
         return OracleDdlTable.create(
                 tableRef, conns, config, oracleTableNameGetter, valueStyleCache, compactionTimeoutExecutor);
     }

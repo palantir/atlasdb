@@ -90,7 +90,7 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
                 .tablePrefix(ddlConfig.tablePrefix())
                 .overflowTablePrefix(ddlConfig.overflowTablePrefix())
                 .connectionSupplier(connectionSupplier)
-                .oracleDdlTableFactory(tableReference -> factory.createDdl(tableReference, connectionSupplier))
+                .ddlTableFactory(tableReference -> factory.createDdl(tableReference, connectionSupplier))
                 .tableNameGetter(tableNameGetter)
                 .build();
 
