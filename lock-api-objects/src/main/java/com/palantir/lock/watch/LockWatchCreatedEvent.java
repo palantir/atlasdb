@@ -21,9 +21,11 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.logsafe.Unsafe;
 import java.util.Set;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWatchCreatedEvent.class)
 @JsonDeserialize(as = ImmutableLockWatchCreatedEvent.class)

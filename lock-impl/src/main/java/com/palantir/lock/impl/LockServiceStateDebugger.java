@@ -25,6 +25,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.logsafe.Unsafe;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +81,7 @@ public class LockServiceStateDebugger {
                 .build();
     }
 
+    @Unsafe
     @Value.Immutable
     @JsonSerialize(as = ImmutableLockRequestProgress.class)
     @JsonDeserialize(as = ImmutableLockRequestProgress.class)
