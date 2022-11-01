@@ -71,7 +71,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            ExecutorService writeToSweepQueueExecutor) {
         this(
                 metricsManager,
                 keyValueService,
@@ -85,7 +86,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
                 WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -122,7 +124,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
         this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
     }
@@ -141,7 +144,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService writeToSweepQueueExecutor) {
         super(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -165,7 +169,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                writeToSweepQueueExecutor);
         this.transactionWrapper = transactionWrapper;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -224,7 +229,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        writeToSweepQueueExecutor),
                 pathTypeTracker);
     }
 
