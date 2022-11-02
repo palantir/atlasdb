@@ -33,8 +33,8 @@ public class CandidateCellForSweepingTest {
     private static final int CELL_NAME_SIZE = 100;
     private static final int TIMESTAMPS_COLLECTION_SIZE = 200;
     private static final long TIMESTAMP = 1977;
-
-    private static final Cell CELL = Cell.create(spawnBytes(), spawnBytes());
+    private static final byte[] BYTES = new byte[CELL_NAME_SIZE];
+    private static final Cell CELL = Cell.create(BYTES, BYTES);
     private static final List<Long> TIMESTAMPS = Collections.nCopies(TIMESTAMPS_COLLECTION_SIZE, TIMESTAMP);
 
     @Mock
@@ -82,9 +82,5 @@ public class CandidateCellForSweepingTest {
                 .sortedTimestamps(sortedTimestamps)
                 .isLatestValueEmpty(isLatestValueEmpty)
                 .build();
-    }
-
-    private static byte[] spawnBytes() {
-        return new byte[CELL_NAME_SIZE];
     }
 }

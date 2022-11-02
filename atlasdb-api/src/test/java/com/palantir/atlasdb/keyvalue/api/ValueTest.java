@@ -41,10 +41,6 @@ public class ValueTest {
     }
 
     private static Value createValue(int contentsSize) {
-        return Value.create(spawnBytes(contentsSize), Value.INVALID_VALUE_TIMESTAMP);
-    }
-
-    private static byte[] spawnBytes(int size) {
-        return new byte[size];
+        return Value.create(new byte[contentsSize], Value.INVALID_VALUE_TIMESTAMP);
     }
 }
