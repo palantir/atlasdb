@@ -38,7 +38,7 @@ public class CandidateCellForSweepingTest {
     private static final List<Long> TIMESTAMPS = Collections.nCopies(TIMESTAMPS_COLLECTION_SIZE, TIMESTAMP);
 
     @Mock
-    private List<Long> MOCK_TIMESTAMPS;
+    private List<Long> mockTimestamps;
 
     @Test
     public void candidateCellHasCorrectSizeForEmptyTimestampCollection() {
@@ -62,8 +62,8 @@ public class CandidateCellForSweepingTest {
     @Test
     public void noOverflowFromCollectionSize() {
         // Mocking because otherwise we OOM.
-        when(MOCK_TIMESTAMPS.size()).thenReturn(Integer.MAX_VALUE);
-        assertThat(createCandidateCell(MOCK_TIMESTAMPS, false).sizeInBytes())
+        when(mockTimestamps.size()).thenReturn(Integer.MAX_VALUE);
+        assertThat(createCandidateCell(mockTimestamps, false).sizeInBytes())
                 .isEqualTo(Long.sum(Integer.MAX_VALUE * 8L, CELL.sizeInBytes()));
     }
 

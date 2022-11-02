@@ -88,7 +88,7 @@ public final class CellTest {
     }
 
     private static Cell createCellWithByteSize(int size) {
-        Preconditions.checkArgument(size > 1, "Size should be at least 2");
+        Preconditions.checkArgument(size >= 2, "Size should be at least 2");
         return Cell.create(new byte[size / 2], new byte[size - (size / 2)]);
     }
 
