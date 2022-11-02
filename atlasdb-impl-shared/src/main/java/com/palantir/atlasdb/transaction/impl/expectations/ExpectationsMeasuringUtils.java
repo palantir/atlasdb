@@ -17,11 +17,10 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.util.Measurable;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.Map;
@@ -32,24 +31,20 @@ import java.util.function.Function;
 public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
-    public static long sizeInBytes(Entry<Cell, Value> entry) {
+    public static long sizeInBytes(Multimap<? extends Measurable, Long> map) {
+        return map.keys().stream()
+                .mapToLong(measurable -> measurable.sizeInBytes() + Long.BYTES)
+                .sum();
+    }
+
+    public static long sizeInBytes(Entry<? extends Measurable, ? extends Measurable> entry) {
         return entry.getKey().sizeInBytes() + entry.getValue().sizeInBytes();
     }
 
-    public static long sizeInBytes(Multimap<Cell, Long> valueByCell) {
-        return valueByCell.keys().stream()
-                .mapToLong(cell -> cell.sizeInBytes() + Long.BYTES)
+    public static long sizeInBytes(Map<? extends Measurable, ? extends Measurable> map) {
+        return map.entrySet().stream()
+                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
                 .sum();
-    }
-
-    public static long sizeInBytes(Map<Cell, Long> longByCell) {
-        return longByCell.keySet().stream()
-                .mapToLong(cell -> cell.sizeInBytes() + Long.BYTES)
-                .sum();
-    }
-
-    public static long sizeInBytes(RowResult<Value> rowResult) {
-        return sizeInBytes(rowResult, Value::sizeInBytes);
     }
 
     private static <T> long sizeInBytes(RowResult<T> rowResult, Function<T, Long> measurer) {
@@ -59,23 +54,32 @@ public final class ExpectationsMeasuringUtils {
                         .sum();
     }
 
-    public static long arrayByRefSizeInBytes(Map<TableReference, byte[]> arrayByRef) {
-        return arrayByRef.entrySet().stream()
-                .mapToLong(entry -> entry.getKey().sizeInBytes() + entry.getValue().length)
+    private static <T> long sizeInBytes(Map<? extends Measurable, T> byMeasurable, Function<T, Long> valueMeasurer) {
+        return byMeasurable.entrySet().stream()
+                .mapToLong(entry -> entry.getKey().sizeInBytes() + valueMeasurer.apply(entry.getValue()))
                 .sum();
     }
 
-    public static long valueByCellSizeInBytes(Map<Cell, Value> valueByCell) {
-        return valueByCell.entrySet().stream()
-                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
-                .sum();
+    public static long sizeInBytes(RowResult<? extends Measurable> rowResult) {
+        return sizeInBytes(rowResult, Measurable::sizeInBytes);
+    }
+
+    public static long toLongSizeInBytes(Map<? extends Measurable, Long> map) {
+        return sizeInBytes(map, unused -> Long.valueOf(Long.BYTES));
+    }
+
+    public static long toArraySizeInBytes(Map<? extends Measurable, byte[]> map) {
+        return sizeInBytes(map, array -> Long.valueOf(array.length));
+    }
+
+    public static long setResultSizeInBytes(RowResult<Set<Long>> rowResult) {
+        return sizeInBytes(rowResult, set -> (long) set.size() * Long.BYTES);
     }
 
     /**
      * Ignoring the size of token for next page because the interface method
      * {@link TokenBackedBasicResultsPage#getTokenForNextPage} might have side effects (e.g. interact with the kvs).
-     * The interface specification is ambiguous. Also, the current token is not exposed.
-     * todo(aalouane): SG search
+     * The interface specification is ambiguous.
      */
     public static long pageByRequestSizeInBytes(
             Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
@@ -84,9 +88,5 @@ public final class ExpectationsMeasuringUtils {
                 .flatMap(Collection::stream)
                 .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
                 .sum();
-    }
-
-    public static long setResultSizeInBytes(RowResult<Set<Long>> rowResult) {
-        return sizeInBytes(rowResult, set -> (long) set.size() * Long.BYTES);
     }
 }
