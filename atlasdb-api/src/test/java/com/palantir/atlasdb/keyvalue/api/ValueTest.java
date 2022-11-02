@@ -18,33 +18,33 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.encoding.PtBytes;
-import java.util.Arrays;
 import org.junit.Test;
 
 public class ValueTest {
-    private static final int SMALLER = 100;
-    private static final int LARGER = 200;
-    private static final byte BYTE = (byte) 0xa;
+    private static final int CONTENTS_SIZE_1 = 100;
+    private static final int CONTENTS_SIZE_2 = 200;
 
     @Test
     public void sizeInBytesOfValueWithNoContentsIsSizeOfLong() {
-        assertThat(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP)
-                        .sizeInBytes())
-                .isEqualTo(Long.BYTES);
+        assertThat(createValue(0).sizeInBytes()).isEqualTo(Long.BYTES);
     }
 
     @Test
-    public void sizeInBytesOfValueOrderFollowsContentsSizeOrder() {
-        assertThat(Value.create(spawnBytes(SMALLER), Value.INVALID_VALUE_TIMESTAMP)
-                        .sizeInBytes())
-                .isLessThan(Value.create(spawnBytes(LARGER), Value.INVALID_VALUE_TIMESTAMP)
-                        .sizeInBytes());
+    public void sizeInBytesIsCorrectForOneByteContentsArray() {
+        assertThat(createValue(1).sizeInBytes()).isEqualTo(1L + Long.BYTES);
+    }
+
+    @Test
+    public void sizeInBytesIsCorrectForMultipleBytesArray() {
+        assertThat(createValue(CONTENTS_SIZE_1).sizeInBytes()).isEqualTo(Long.sum(CONTENTS_SIZE_1, Long.BYTES));
+        assertThat(createValue(CONTENTS_SIZE_2).sizeInBytes()).isEqualTo(Long.sum(CONTENTS_SIZE_2, Long.BYTES));
+    }
+
+    private static Value createValue(int contentsSize) {
+        return Value.create(spawnBytes(contentsSize), Value.INVALID_VALUE_TIMESTAMP);
     }
 
     private static byte[] spawnBytes(int size) {
-        byte[] bytes = new byte[size];
-        Arrays.fill(bytes, BYTE);
-        return bytes;
+        return new byte[size];
     }
 }
