@@ -40,6 +40,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -357,12 +358,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", serversToAdd));
 
-        logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
+        logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
     }
 
     /**
