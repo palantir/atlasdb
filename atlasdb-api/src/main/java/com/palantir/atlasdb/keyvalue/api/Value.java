@@ -85,7 +85,7 @@ public final class Value implements Serializable, Measurable {
 
     @Override
     public long sizeInBytes() {
-        // one byte added for the timestamp
+        // one long added for the timestamp
         return Long.sum(Long.BYTES, contents.length);
     }
 
