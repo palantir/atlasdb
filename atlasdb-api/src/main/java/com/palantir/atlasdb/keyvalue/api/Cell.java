@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -39,7 +40,7 @@ import javax.annotation.Nonnull;
  * @see Value
  * @see Bytes
  */
-public final class Cell implements Serializable, Comparable<Cell> {
+public final class Cell implements Serializable, Comparable<Cell>, Measurable {
     private static final long serialVersionUID = 1L;
     private static final SafeLogger log = SafeLoggerFactory.get(Cell.class);
 
@@ -116,6 +117,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return columnName;
     }
 
+    @Override
     public long sizeInBytes() {
         return Long.sum(rowName.length, columnName.length);
     }

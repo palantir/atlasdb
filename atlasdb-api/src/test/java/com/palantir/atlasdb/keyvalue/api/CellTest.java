@@ -18,22 +18,13 @@ package com.palantir.atlasdb.keyvalue.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeNullPointerException;
-import com.palantir.util.Pair;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.Test;
 
 public final class CellTest {
-    private static final ImmutableSet<Integer> THREE_CELL_NAME_SIZES =
-            ImmutableSet.of(1, Cell.MAX_NAME_LENGTH / 2, Cell.MAX_NAME_LENGTH);
-    private static final ImmutableSet<Byte> TWO_BYTES = ImmutableSet.of((byte) 0xa, (byte) 0xb);
-
     @Test
     public void testCreate() {
         Cell cell = Cell.create(bytes("row"), bytes("col"));
@@ -91,27 +82,18 @@ public final class CellTest {
 
     @Test
     public void testSizeInBytes() {
-        for (Pair<Integer, Integer> sizes : allPairs(THREE_CELL_NAME_SIZES)) {
-            for (Pair<Byte, Byte> bytes : allPairs(TWO_BYTES)) {
-                assertThat(Cell.create(
-                                        spawnBytes(sizes.getLhSide(), bytes.getLhSide()),
-                                        spawnBytes(sizes.getRhSide(), bytes.getRhSide()))
-                                .sizeInBytes())
-                        .isEqualTo(sizes.getLhSide() + sizes.getRhSide());
-            }
-        }
+        assertThat(createCellWithByteSize(2).sizeInBytes()).isEqualTo(2);
+        assertThat(createCellWithByteSize(63).sizeInBytes()).isEqualTo(63);
+        assertThat(createCellWithByteSize(256).sizeInBytes()).isEqualTo(256);
     }
 
-    private static <T> Set<Pair<T, T>> allPairs(Set<T> set) {
-        return Sets.cartesianProduct(set, set).stream()
-                .map(list -> Pair.create(list.get(0), list.get(1)))
-                .collect(Collectors.toSet());
+    private static Cell createCellWithByteSize(int size) {
+        Preconditions.checkArgument(size > 1, "Size should be at least 2");
+        return Cell.create(spawnBytes(size / 2), spawnBytes(size - (size / 2)));
     }
 
-    private static byte[] spawnBytes(int size, byte element) {
-        byte[] bytes = new byte[size];
-        Arrays.fill(bytes, element);
-        return bytes;
+    private static byte[] spawnBytes(int size) {
+        return new byte[size];
     }
 
     private static byte[] bytes(String value) {

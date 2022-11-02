@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.Preconditions;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -31,7 +32,7 @@ import javax.annotation.Nonnull;
  * Values are stored in {@link Cell}s.
  * @see Cell
  */
-public final class Value implements Serializable {
+public final class Value implements Serializable, Measurable {
     private static final long serialVersionUID = 1L;
     public static final long INVALID_VALUE_TIMESTAMP = -1L;
 
@@ -82,8 +83,9 @@ public final class Value implements Serializable {
 
     public static final Function<Value, byte[]> GET_VALUE = Value::getContents;
 
+    @Override
     public long sizeInBytes() {
-        // one byte added for the timestamp
+        // one long added for the timestamp
         return Long.sum(Long.BYTES, contents.length);
     }
 
