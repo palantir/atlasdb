@@ -40,7 +40,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -135,7 +134,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 alterTableToHaveOverflowColumn(shortTableName);
             }
         } catch (TableMappingNotFoundException e) {
-            throw new SafeRuntimeException(e);
+            log.warn("Table mapping expected but not found for table.", UnsafeArg.of("tableRef", tableRef), e);
         }
     }
 
@@ -179,7 +178,8 @@ public final class OracleDdlTable implements DbDdlTable {
                     .selectExistsUnregisteredQuery(
                             "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase());
         } catch (TableMappingNotFoundException e) {
-            throw new SafeRuntimeException(e);
+            log.warn("Table mapping does not exist but is expected for overflow table.", e);
+            return false;
         }
     }
 
