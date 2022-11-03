@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 public final class CellTest {
+
     @Test
     public void testCreate() {
         Cell cell = Cell.create(bytes("row"), bytes("col"));
@@ -88,12 +89,8 @@ public final class CellTest {
     }
 
     private static Cell createCellWithByteSize(int size) {
-        Preconditions.checkArgument(size > 1, "Size should be at least 2");
-        return Cell.create(spawnBytes(size / 2), spawnBytes(size - (size / 2)));
-    }
-
-    private static byte[] spawnBytes(int size) {
-        return new byte[size];
+        Preconditions.checkArgument(size >= 2, "Size should be at least 2");
+        return Cell.create(new byte[size / 2], new byte[size - (size / 2)]);
     }
 
     private static byte[] bytes(String value) {

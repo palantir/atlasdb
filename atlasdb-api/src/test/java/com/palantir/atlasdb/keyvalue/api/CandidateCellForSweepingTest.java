@@ -29,16 +29,16 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CandidateCellForSweepingTest {
+public final class CandidateCellForSweepingTest {
     private static final int CELL_NAME_SIZE = 100;
     private static final int TIMESTAMPS_COLLECTION_SIZE = 200;
     private static final long TIMESTAMP = 1977;
-
-    private static final Cell CELL = Cell.create(spawnBytes(), spawnBytes());
+    private static final byte[] BYTES = new byte[CELL_NAME_SIZE];
+    private static final Cell CELL = Cell.create(BYTES, BYTES);
     private static final List<Long> TIMESTAMPS = Collections.nCopies(TIMESTAMPS_COLLECTION_SIZE, TIMESTAMP);
 
     @Mock
-    private List<Long> MOCK_TIMESTAMPS;
+    private List<Long> mockTimestamps;
 
     @Test
     public void candidateCellHasCorrectSizeForEmptyTimestampCollection() {
@@ -62,8 +62,8 @@ public class CandidateCellForSweepingTest {
     @Test
     public void noOverflowFromCollectionSize() {
         // Mocking because otherwise we OOM.
-        when(MOCK_TIMESTAMPS.size()).thenReturn(Integer.MAX_VALUE);
-        assertThat(createCandidateCell(MOCK_TIMESTAMPS, false).sizeInBytes())
+        when(mockTimestamps.size()).thenReturn(Integer.MAX_VALUE);
+        assertThat(createCandidateCell(mockTimestamps, false).sizeInBytes())
                 .isEqualTo(Long.sum(Integer.MAX_VALUE * 8L, CELL.sizeInBytes()));
     }
 
@@ -82,9 +82,5 @@ public class CandidateCellForSweepingTest {
                 .sortedTimestamps(sortedTimestamps)
                 .isLatestValueEmpty(isLatestValueEmpty)
                 .build();
-    }
-
-    private static byte[] spawnBytes() {
-        return new byte[CELL_NAME_SIZE];
     }
 }

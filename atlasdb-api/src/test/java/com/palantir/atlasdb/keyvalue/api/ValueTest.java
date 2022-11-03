@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class ValueTest {
+public final class ValueTest {
     private static final int CONTENTS_SIZE_1 = 100;
     private static final int CONTENTS_SIZE_2 = 200;
 
@@ -41,10 +41,6 @@ public class ValueTest {
     }
 
     private static Value createValue(int contentsSize) {
-        return Value.create(spawnBytes(contentsSize), Value.INVALID_VALUE_TIMESTAMP);
-    }
-
-    private static byte[] spawnBytes(int size) {
-        return new byte[size];
+        return Value.create(new byte[contentsSize], Value.INVALID_VALUE_TIMESTAMP);
     }
 }

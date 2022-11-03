@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.util;
 
+/*
+ * Implement to provide a best-effort estimate of object size (in bytes) when persisted to key value stores.
+ * Used for transactional expectations.
+ */
 public interface Measurable {
     long sizeInBytes();
 }
