@@ -101,12 +101,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolImpl.class);
 
-    private static final String EMPTY_CLIENT_POOL_MESSAGE =
-            "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).";
-
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
@@ -365,7 +359,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
-                EMPTY_CLIENT_POOL_MESSAGE,
+                "No servers were successfully added to the pool. This means we could not come to a consensus on"
+                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
+                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", serversToAdd));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -389,6 +386,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
                 getContainerForNewServers(serversToAdd);
+
+        Preconditions.checkArgument(
+                Sets.intersection(currentContainers.keySet(), serversToAdd).isEmpty(),
+                "The current pool of servers should not have any server(s) that are being added.",
+                SafeArg.of("serversToAdd", serversToAdd),
+                SafeArg.of("currentServers", currentContainers.keySet()));
 
         Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
                 ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
