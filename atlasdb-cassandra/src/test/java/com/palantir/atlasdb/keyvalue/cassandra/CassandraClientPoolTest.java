@@ -43,6 +43,7 @@ import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupp
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -386,6 +387,7 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1);
         assertThatLoggableExceptionThrownBy(this::createClientPool)
                 .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("No servers were successfully added to the pool.")
                 .hasExactlyArgs(SafeArg.of("serversToAdd", Set.of(CASS_SERVER_1)));
     }
 
@@ -445,10 +447,14 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
 
         CassandraClientPoolImpl pool = createClientPool();
+        Set<CassandraServer> serversToAdd = Set.of(CASS_SERVER_1);
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2);
-        assertThatThrownBy(() -> pool.validateNewHostsTopologiesAndMaybeAddToPool(poolServers, Set.of(CASS_SERVER_1)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Multiple entries with same key");
+        assertThatLoggableExceptionThrownBy(
+                        () -> pool.validateNewHostsTopologiesAndMaybeAddToPool(poolServers, serversToAdd))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("The current pool of servers should not have any server(s) that are being added.")
+                .hasExactlyArgs(
+                        SafeArg.of("serversToAdd", serversToAdd), SafeArg.of("currentServers", poolServers.keySet()));
     }
 
     @Test
@@ -660,7 +666,7 @@ public final class CassandraClientPoolTest {
     }
 
     private void setupHostsWithConsistentTopology() {
-        // Not hosts have inconsistent topology... therefore they're consistent!
+        // No hosts have inconsistent topology... therefore they're consistent!
         setupHostsWithInconsistentTopology();
     }
 
