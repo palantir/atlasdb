@@ -385,9 +385,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 getContainerForNewServers(serversToAdd);
 
         Preconditions.checkArgument(
-                Sets.intersection(currentContainers.keySet(), serversToAdd).isEmpty(),
+                Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
+                        .isEmpty(),
                 "The current pool of servers should not have any server(s) that are being added.",
-                SafeArg.of("serversToAdd", serversToAdd),
+                SafeArg.of("serversToAdd", serversToAddContainers.keySet()),
                 SafeArg.of("currentServers", currentContainers.keySet()));
 
         Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
