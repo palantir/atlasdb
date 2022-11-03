@@ -35,8 +35,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -72,9 +72,9 @@ import org.apache.cassandra.thrift.TokenRange;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
-            new InitializeableScheduledExecutorServiceSupplier(
-                    new NamedThreadFactory("CassandraClientPoolRefresh", true));
+
+    private static final ScheduledExecutorServiceFactory REFRESH_DAEMON_FACTORY =
+            ScheduledExecutorServiceFactory.of(new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
@@ -147,7 +147,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
+            ScheduledExecutorServiceFactory refreshDaemonFactory,
             Blacklist blacklist,
             CassandraService cassandra) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
@@ -155,7 +155,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                initializeableExecutorSupplier,
+                refreshDaemonFactory,
                 exceptionHandler,
                 blacklist,
                 cassandra,
@@ -200,7 +200,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                SHARED_EXECUTOR_SUPPLIER,
+                REFRESH_DAEMON_FACTORY,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
@@ -211,7 +211,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
+            ScheduledExecutorServiceFactory refreshDaemonFactory,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
@@ -220,8 +220,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.runtimeConfig = runtimeConfig;
         this.clientConfig = CassandraClientConfig.of(config);
         this.startupChecks = startupChecks;
-        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
-        this.refreshDaemon = initializeableExecutorSupplier.get();
+        this.refreshDaemon = refreshDaemonFactory.create(config.numPoolRefreshingThreads());
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
@@ -256,7 +255,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cleanUpOnInitFailure() {
-        refreshPoolFuture.cancel(true);
+        if (refreshPoolFuture != null) {
+            refreshPoolFuture.cancel(true);
+        }
         cassandra
                 .getPools()
                 .forEach((address, cassandraClientPoolingContainer) ->
@@ -272,8 +273,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public void shutdown() {
+        if (refreshPoolFuture != null) {
+            refreshPoolFuture.cancel(true);
+        }
         cassandra.close();
-        refreshPoolFuture.cancel(false);
         cassandra
                 .getPools()
                 .forEach((address, cassandraClientPoolingContainer) ->
