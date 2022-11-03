@@ -357,17 +357,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
+                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
                     + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
                     + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
-                SafeArg.of("serversToAdd", serversToAdd));
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
     }
 
     /**
      * Validates new servers to add to the cassandra client container pool,
-     * by checking them with the @see {@link com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator}.
+     * by checking them with the {@link com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator}.
      * If any servers come back and are not in consensus this is OK, we will simply add them to the absent host
      * tracker, as we most likely will retry this host in subsequent calls.
      *
@@ -388,8 +388,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
                         .isEmpty(),
                 "The current pool of servers should not have any server(s) that are being added.",
-                SafeArg.of("serversToAdd", serversToAddContainers.keySet()),
-                SafeArg.of("currentServers", currentContainers.keySet()));
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
+                SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())));
 
         Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
                 ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
