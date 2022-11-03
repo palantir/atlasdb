@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TrackingRowColumnRangeIterator extends TrackingIterator<Map.Entry<Cell, Value>, RowColumnRangeIterator>
-        implements RowColumnRangeIterator {
+public final class TrackingRowColumnRangeIterator
+        extends TrackingIterator<Map.Entry<Cell, Value>, RowColumnRangeIterator> implements RowColumnRangeIterator {
     public TrackingRowColumnRangeIterator(
             RowColumnRangeIterator delegate, Consumer<Long> tracker, Function<Map.Entry<Cell, Value>, Long> measurer) {
         super(delegate, tracker, measurer);
