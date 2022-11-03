@@ -387,7 +387,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkArgument(
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
                         .isEmpty(),
-                "The current pool of servers should not have any server(s) that are being added.",
+                "The current pool of servers should not have any server(s) that are being added. This is unexpected"
+                        + " and could lead to undefined behavior, as we should not be validating already validated"
+                        + " servers. This suggests a bug in the calling method.",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
                 SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())));
 
