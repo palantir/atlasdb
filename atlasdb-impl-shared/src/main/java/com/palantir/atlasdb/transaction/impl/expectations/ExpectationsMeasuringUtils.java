@@ -31,6 +31,10 @@ import java.util.function.Function;
 public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
+    public static long sizeInBytes(Collection<? extends Measurable> collection) {
+        return collection.stream().mapToLong(Measurable::sizeInBytes).sum();
+    }
+
     public static long sizeInBytes(Multimap<? extends Measurable, Long> map) {
         return map.keys().stream()
                 .mapToLong(measurable -> measurable.sizeInBytes() + Long.BYTES)

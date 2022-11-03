@@ -33,6 +33,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public class ExpectationsMeasuringUtilsTest {
+public final class ExpectationsMeasuringUtilsTest {
     private static final int SIZE_1 = 123;
     private static final int SIZE_2 = 214;
     private static final int SIZE_3 = 329;
@@ -49,6 +50,8 @@ public class ExpectationsMeasuringUtilsTest {
 
     @Test
     public void sizeOfEmptyObjectsIsZero() {
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of())).isEqualTo(0);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of())).isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.sizeInBytes(Map.of())).isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.sizeInBytes(ImmutableMultimap.of()))
                 .isEqualTo(0);
@@ -56,6 +59,17 @@ public class ExpectationsMeasuringUtilsTest {
         assertThat(ExpectationsMeasuringUtils.toArraySizeInBytes(Map.of())).isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(Map.of()))
                 .isEqualTo(0);
+    }
+
+    @Test
+    public void sizeOfCollectionsOfMeasurableObjectsIsCorrect() {
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1))).isEqualTo(SIZE_1);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1)))
+                .isEqualTo(SIZE_1);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1, MEASURABLE_2)))
+                .isEqualTo(Long.sum(SIZE_1, SIZE_2));
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1, MEASURABLE_2, MEASURABLE_1)))
+                .isEqualTo(2L * SIZE_1 + SIZE_2);
     }
 
     @Test
