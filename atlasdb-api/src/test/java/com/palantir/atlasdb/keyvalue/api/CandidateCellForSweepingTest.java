@@ -29,7 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CandidateCellForSweepingTest {
+public final class CandidateCellForSweepingTest {
     private static final int CELL_NAME_SIZE = 100;
     private static final int TIMESTAMPS_COLLECTION_SIZE = 200;
     private static final long TIMESTAMP = 1977;

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class ValueTest {
+public final class ValueTest {
     private static final int CONTENTS_SIZE_1 = 100;
     private static final int CONTENTS_SIZE_2 = 200;
 
