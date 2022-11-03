@@ -19,10 +19,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,80 +29,58 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CandidateCellForSweepingTest {
-    private static final byte BYTE = (byte) 0xa;
+public final class CandidateCellForSweepingTest {
+    private static final int CELL_NAME_SIZE = 100;
+    private static final int TIMESTAMPS_COLLECTION_SIZE = 200;
     private static final long TIMESTAMP = 1977;
-    private static final ImmutableSet<Integer> THREE_CELL_NAME_SIZES =
-            ImmutableSet.of(1, Cell.MAX_NAME_LENGTH / 2, Cell.MAX_NAME_LENGTH);
-    private static final ImmutableList<Cell> EXAMPLE_CELLS =
-            Sets.cartesianProduct(THREE_CELL_NAME_SIZES, THREE_CELL_NAME_SIZES).stream()
-                    .map(pair -> Cell.create(spawnBytes(pair.get(0)), spawnBytes(pair.get(1))))
-                    .collect(ImmutableList.toImmutableList());
-
-    private static final ImmutableList<Integer> SORTED_TIMESTAMPS_SIZES = ImmutableList.of(0, 1, 2, 100, 1000);
+    private static final byte[] BYTES = new byte[CELL_NAME_SIZE];
+    private static final Cell CELL = Cell.create(BYTES, BYTES);
+    private static final List<Long> TIMESTAMPS = Collections.nCopies(TIMESTAMPS_COLLECTION_SIZE, TIMESTAMP);
 
     @Mock
-    private List<Long> MOCK_TIMESTAMPS;
+    private List<Long> mockTimestamps;
 
     @Test
-    public void candidateCellSizeWithLargerTimestampCollectionIsBigger() {
-        EXAMPLE_CELLS.forEach(cell -> {
-            CandidateCellForSweeping withOneTimestamp = createCandidateCell(cell, ImmutableSet.of(TIMESTAMP), true);
-            CandidateCellForSweeping withTwoTimestamps =
-                    createCandidateCell(cell, ImmutableSet.of(TIMESTAMP, TIMESTAMP + 1), false);
-            assertThat(withOneTimestamp.sizeInBytes()).isLessThan(withTwoTimestamps.sizeInBytes());
-        });
+    public void candidateCellHasCorrectSizeForEmptyTimestampCollection() {
+        CandidateCellForSweeping candidate = createCandidateCell(ImmutableSet.of(), false);
+        assertThat(candidate.sizeInBytes()).isEqualTo(CELL.sizeInBytes());
     }
 
     @Test
-    public void candidateCellSizeIsCorrectForDifferentSortedTimestampSizes() {
-        SORTED_TIMESTAMPS_SIZES.forEach(sortedTimestampsSize -> {
-            for (CandidateCellForSweeping candidate : createCandidateCells(sortedTimestampsSize)) {
-                assertThat(candidate.sizeInBytes())
-                        .isEqualTo(Long.sum(candidate.cell().sizeInBytes(), (long) sortedTimestampsSize * Long.BYTES));
-            }
-        });
+    public void candidateCellHasCorrectSizeForOneTimestamp() {
+        CandidateCellForSweeping candidate = createCandidateCell(ImmutableSet.of(TIMESTAMP), false);
+        assertThat(candidate.sizeInBytes()).isEqualTo(Long.sum(CELL.sizeInBytes(), Long.BYTES));
+    }
+
+    @Test
+    public void candidateCellSizeHasCorrectSizeForMultipleTimestamps() {
+        CandidateCellForSweeping candidate = createCandidateCell(TIMESTAMPS, false);
+        assertThat(candidate.sizeInBytes())
+                .isEqualTo(Long.sum(CELL.sizeInBytes(), Long.BYTES * ((long) TIMESTAMPS_COLLECTION_SIZE)));
     }
 
     @Test
     public void noOverflowFromCollectionSize() {
         // Mocking because otherwise we OOM.
-        when(MOCK_TIMESTAMPS.size()).thenReturn(Integer.MAX_VALUE);
-        Cell exampleCell = EXAMPLE_CELLS.get(0);
-        for (boolean isLatestValueEmpty : new boolean[] {true, false}) {
-            assertThat(createCandidateCell(exampleCell, MOCK_TIMESTAMPS, isLatestValueEmpty)
-                            .sizeInBytes())
-                    .isEqualTo(Long.sum(Integer.MAX_VALUE * 8L, exampleCell.sizeInBytes()));
-        }
+        when(mockTimestamps.size()).thenReturn(Integer.MAX_VALUE);
+        assertThat(createCandidateCell(mockTimestamps, false).sizeInBytes())
+                .isEqualTo(Long.sum(Integer.MAX_VALUE * 8L, CELL.sizeInBytes()));
     }
 
-    private static ImmutableSet<CandidateCellForSweeping> createCandidateCells(int sortedTimestampsSize) {
-        ImmutableSet.Builder<CandidateCellForSweeping> builder = ImmutableSet.<CandidateCellForSweeping>builder();
-        for (boolean isLatestValueEmpty : new boolean[] {true, false}) {
-            builder.addAll(EXAMPLE_CELLS.stream()
-                    .map(cell -> createCandidateCell(
-                            cell, spawnCollectionOfTimestamps(sortedTimestampsSize), isLatestValueEmpty))
-                    .iterator());
-        }
-        return builder.build();
+    @Test
+    public void candidateCellSizeIsEqualRegardlessOfLatestValueEmpty() {
+        CandidateCellForSweeping candidateWithLatestValueNonEmpty = createCandidateCell(TIMESTAMPS, false);
+        CandidateCellForSweeping candidateWithLatestValueEmpty = createCandidateCell(TIMESTAMPS, true);
+        assertThat(candidateWithLatestValueNonEmpty.sizeInBytes())
+                .isEqualTo(candidateWithLatestValueEmpty.sizeInBytes());
     }
 
     private static CandidateCellForSweeping createCandidateCell(
-            Cell cell, Collection<Long> sortedTimestamps, boolean isLatestValueEmpty) {
+            Collection<Long> sortedTimestamps, boolean isLatestValueEmpty) {
         return ImmutableCandidateCellForSweeping.builder()
-                .cell(cell)
+                .cell(CELL)
                 .sortedTimestamps(sortedTimestamps)
                 .isLatestValueEmpty(isLatestValueEmpty)
                 .build();
-    }
-
-    private static List<Long> spawnCollectionOfTimestamps(int size) {
-        return Collections.nCopies(size, TIMESTAMP);
-    }
-
-    private static byte[] spawnBytes(int size) {
-        byte[] bytes = new byte[size];
-        Arrays.fill(bytes, BYTE);
-        return bytes;
     }
 }

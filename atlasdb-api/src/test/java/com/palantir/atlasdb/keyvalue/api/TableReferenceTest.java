@@ -69,28 +69,13 @@ public class TableReferenceTest {
     public void sizeInBytesForTableReferenceWithAsciiNamespaceAndTableNameIsCorrect() {
         assertThat(TableReference.create(Namespace.create("FOO"), "").sizeInBytes())
                 .isEqualTo(3 * Character.BYTES);
+        assertThat(TableReference.create(Namespace.create("FO"), "BAR").sizeInBytes())
+                .isEqualTo(5 * Character.BYTES);
         assertThat(TableReference.create(Namespace.create("FOO"), "BAR").sizeInBytes())
                 .isEqualTo(6 * Character.BYTES);
         assertThat(TableReference.create(Namespace.create("FOO"), "BABAZ").sizeInBytes())
                 .isEqualTo(8 * Character.BYTES);
         assertThat(TableReference.create(Namespace.create("FOOBAR"), "BAZ").sizeInBytes())
                 .isEqualTo(9 * Character.BYTES);
-    }
-
-    @Test
-    public void orderOfSizeInBytesOfValuesWithSameNamespaceFollowsTableNameSizeOrder() {
-        Namespace namespace = Namespace.create("TestNameSpace");
-        assertThat(TableReference.create(namespace, "smallerTableName").sizeInBytes())
-                .isLessThan(TableReference.create(namespace, "largerTableNamePadding")
-                        .sizeInBytes());
-    }
-
-    @Test
-    public void orderOfSizeInBytesOfValuesWithSameTableNameFollowsNamespaceOrder() {
-        String tableName = "tableName";
-        assertThat(TableReference.create(Namespace.create("smallerNamespace"), tableName)
-                        .sizeInBytes())
-                .isLessThan(TableReference.create(Namespace.create("largerNamespacePadding"), tableName)
-                        .sizeInBytes());
     }
 }
