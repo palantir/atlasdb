@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 public final class CellTest {
+
     @Test
     public void testCreate() {
         Cell cell = Cell.create(bytes("row"), bytes("col"));
