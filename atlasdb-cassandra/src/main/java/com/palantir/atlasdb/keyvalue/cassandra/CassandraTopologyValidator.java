@@ -31,6 +31,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +45,7 @@ import org.immutables.value.Value;
 
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
+    private static final RateLimitedLogger rateLimitedLog = new RateLimitedLogger(log, 1);
 
     private final CassandraTopologyValidationMetrics metrics;
 
@@ -226,14 +228,14 @@ public final class CassandraTopologyValidator {
             return container.<HostIdResult, Exception>runWithPooledResource(
                     client -> HostIdResult.success(client.get_host_ids()));
         } catch (Exception e) {
-            log.warn(
+            rateLimitedLog.log(logger -> logger.warn(
                     "Failed to get host ids from host due to an exception thrown.",
                     SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
                     SafeArg.of(
                             "proxy",
                             CassandraLogHelper.host(
                                     container.getCassandraServer().proxy())),
-                    e);
+                    e));
 
             // If the get_host_ids API endpoint does not exist, then return a soft failure.
             if (e instanceof TApplicationException) {
