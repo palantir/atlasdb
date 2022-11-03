@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -57,58 +58,9 @@ public final class ExpectationsMeasuringUtilsTest {
                 .isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.toLongSizeInBytes(Map.of())).isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.toArraySizeInBytes(Map.of())).isEqualTo(0);
+        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of())).isEqualTo(0);
         assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(Map.of()))
                 .isEqualTo(0);
-    }
-
-    @Test
-    public void sizeOfCollectionsOfMeasurableObjectsIsCorrect() {
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1))).isEqualTo(SIZE_1);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1)))
-                .isEqualTo(SIZE_1);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1, MEASURABLE_2)))
-                .isEqualTo(Long.sum(SIZE_1, SIZE_2));
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1, MEASURABLE_2, MEASURABLE_1)))
-                .isEqualTo(2L * SIZE_1 + SIZE_2);
-    }
-
-    @Test
-    public void sizeOfMeasurableToLongMultimapIsCorrect() {
-        Multimap<Measurable, Long> toLong = ImmutableSetMultimap.<Measurable, Long>builder()
-                .put(MEASURABLE_1, 0L)
-                .put(MEASURABLE_2, 0L)
-                .put(MEASURABLE_2, 1L)
-                .build();
-
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(toLong)).isEqualTo(SIZE_1 + 2L * SIZE_2 + 3L * Long.BYTES);
-    }
-
-    @Test
-    public void sizeOfMeasurableToMeasurableEntryIsCorrect() {
-        Entry<Measurable, Measurable> entry = new SimpleImmutableEntry<>(MEASURABLE_1, MEASURABLE_2);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(entry)).isEqualTo(Long.sum(SIZE_1, SIZE_2));
-    }
-
-    @Test
-    public void sizeOfMeasurableToMeasurableMapIsCorrect() {
-        Map<Measurable, Measurable> map = ImmutableMap.<Measurable, Measurable>builder()
-                .put(MEASURABLE_1, MEASURABLE_2)
-                .put(MEASURABLE_2, MEASURABLE_1)
-                .buildOrThrow();
-
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(map)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2);
-    }
-
-    @Test
-    public void sizeOfRowResultOfMeasurableIsCorrect() {
-        RowResult<Measurable> rowResult = RowResult.create(
-                createBytes(SIZE_3),
-                ImmutableSortedMap.<byte[], Measurable>orderedBy(UnsignedBytes.lexicographicalComparator())
-                        .put(createBytes(SIZE_1), MEASURABLE_2)
-                        .put(createBytes(SIZE_2), MEASURABLE_1)
-                        .buildOrThrow());
-
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(rowResult)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2 + SIZE_3);
     }
 
     @Test
@@ -129,6 +81,17 @@ public final class ExpectationsMeasuringUtilsTest {
                 .buildOrThrow();
 
         assertThat(ExpectationsMeasuringUtils.toArraySizeInBytes(toByteArray)).isEqualTo(SIZE_1 + SIZE_2 + 2L * SIZE_3);
+    }
+
+    @Test
+    public void sizeOfByteArrayCollectionIsCorrect() {
+        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of(PtBytes.EMPTY_BYTE_ARRAY)))
+                .isEqualTo(0);
+        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of(createBytes(SIZE_1))))
+                .isEqualTo(SIZE_1);
+        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(
+                        List.of(createBytes(SIZE_1), createBytes(SIZE_2), createBytes(SIZE_2))))
+                .isEqualTo(SIZE_1 + 2L * SIZE_2);
     }
 
     @Test
@@ -163,6 +126,56 @@ public final class ExpectationsMeasuringUtilsTest {
                                         createPage(SIZE_1, 10, SIZE_2))
                                 .buildOrThrow()))
                 .isEqualTo(SIZE_1 + 2L * SIZE_3 + 10L * SIZE_2);
+    }
+
+    @Test
+    public void sizeOfMeasurableToLongMultimapIsCorrect() {
+        Multimap<Measurable, Long> toLong = ImmutableSetMultimap.<Measurable, Long>builder()
+                .put(MEASURABLE_1, 0L)
+                .put(MEASURABLE_2, 0L)
+                .put(MEASURABLE_2, 1L)
+                .build();
+
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(toLong)).isEqualTo(SIZE_1 + 2L * SIZE_2 + 3L * Long.BYTES);
+    }
+
+    @Test
+    public void sizeOfMeasurableToMeasurableEntryIsCorrect() {
+        Entry<Measurable, Measurable> entry = new SimpleImmutableEntry<>(MEASURABLE_1, MEASURABLE_2);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(entry)).isEqualTo(Long.sum(SIZE_1, SIZE_2));
+    }
+
+    @Test
+    public void sizeOfCollectionsOfMeasurableObjectsIsCorrect() {
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1))).isEqualTo(SIZE_1);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1)))
+                .isEqualTo(SIZE_1);
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1, MEASURABLE_2)))
+                .isEqualTo(Long.sum(SIZE_1, SIZE_2));
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1, MEASURABLE_2, MEASURABLE_1)))
+                .isEqualTo(2L * SIZE_1 + SIZE_2);
+    }
+
+    @Test
+    public void sizeOfMeasurableToMeasurableMapIsCorrect() {
+        Map<Measurable, Measurable> map = ImmutableMap.<Measurable, Measurable>builder()
+                .put(MEASURABLE_1, MEASURABLE_2)
+                .put(MEASURABLE_2, MEASURABLE_1)
+                .buildOrThrow();
+
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(map)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2);
+    }
+
+    @Test
+    public void sizeOfRowResultOfMeasurableIsCorrect() {
+        RowResult<Measurable> rowResult = RowResult.create(
+                createBytes(SIZE_3),
+                ImmutableSortedMap.<byte[], Measurable>orderedBy(UnsignedBytes.lexicographicalComparator())
+                        .put(createBytes(SIZE_1), MEASURABLE_2)
+                        .put(createBytes(SIZE_2), MEASURABLE_1)
+                        .buildOrThrow());
+
+        assertThat(ExpectationsMeasuringUtils.sizeInBytes(rowResult)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2 + SIZE_3);
     }
 
     private static SimpleTokenBackedResultsPage<RowResult<Value>, byte[]> createPage(
