@@ -17,7 +17,6 @@
 package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotEquals;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
@@ -103,7 +102,7 @@ public class PTExecutorsTest {
         Span outerSpan = Tracer.completeSpan().get();
 
         assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
-        assertNotEquals(null, innerSpanId.get(), outerSpan.getSpanId());
+        assertThat(outerSpan.getSpanId()).describedAs(null).isNotEqualTo(innerSpanId.get());
         assertThat(innerSpanParentId.get()).isEqualTo(outerSpan.getSpanId());
     }
 
