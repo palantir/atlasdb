@@ -16,58 +16,36 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIterator;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
-public class TrackingIteratorTest {
-    private static final ImmutableList<String> STRINGS =
-            ImmutableList.of("test1", "test200", "composite", "", "t", "tt");
-    private static final Function<String, Long> MEASURER = Functions.compose(Long::valueOf, String::length);
+public class TrackingIteratorTest extends AbstractTrackingIteratorTest {
+    @Test
+    public void trackingIteratorForwardsData() {
+        TrackingIterator<String, Iterator<String>> trackingIterator =
+                new TrackingIterator<>(createStringIterator(), noOp(), STRING_MEASURER);
+        assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(STRINGS);
+    }
 
     @Test
-    public void trackingStringIteratorForwardsData() {
-        Iterator<String> iterator = spawnIterator();
+    public void trackerInvokedCorrectlyByTrackingIterator() {
+        Consumer<Long> tracker = spy(noOp());
+        InOrder inOrder = Mockito.inOrder(tracker);
+
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(spawnIterator(), noOp(), MEASURER);
+                new TrackingIterator<>(createStringIterator(), tracker, STRING_MEASURER);
 
         trackingIterator.forEachRemaining(string -> {
-            assertThat(iterator.hasNext()).isTrue();
-            assertThat(string).isEqualTo(iterator.next());
+            inOrder.verify(tracker).accept(STRING_MEASURER.apply(string));
         });
 
-        assertThat(iterator.hasNext()).isFalse();
-    }
-
-    @Test
-    public void trackingStringIteratorTracksData() {
-        Iterator<String> iterator = spawnIterator();
-
-        TrackingIterator<String, Iterator<String>> trackingIterator = new TrackingIterator<>(
-                spawnIterator(),
-                new Consumer<Long>() {
-                    final Iterator<String> baseIterator = spawnIterator();
-
-                    @Override
-                    public void accept(Long bytes) {
-                        assertThat(bytes).isEqualTo(MEASURER.apply(baseIterator.next()));
-                    }
-                },
-                MEASURER);
-
-        trackingIterator.forEachRemaining(noOp());
-    }
-
-    private static Iterator<String> spawnIterator() {
-        return STRINGS.stream().iterator();
-    }
-
-    private static <T> Consumer<T> noOp() {
-        return t -> {};
+        verifyNoMoreInteractions(tracker);
     }
 }

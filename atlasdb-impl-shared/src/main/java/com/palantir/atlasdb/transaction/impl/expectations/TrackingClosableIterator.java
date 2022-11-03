@@ -20,7 +20,7 @@ import com.palantir.common.base.ClosableIterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TrackingClosableIterator<T> extends TrackingIterator<T, ClosableIterator<T>>
+public final class TrackingClosableIterator<T> extends TrackingIterator<T, ClosableIterator<T>>
         implements ClosableIterator<T> {
 
     public TrackingClosableIterator(ClosableIterator<T> delegate, Consumer<Long> tracker, Function<T, Long> measurer) {

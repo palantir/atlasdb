@@ -16,31 +16,27 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ForwardingIterator;
+import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterator<T> {
-    private final I delegate;
-    private final Function<T, Long> measurer;
-    private final Consumer<Long> tracker;
+public class AbstractTrackingIteratorTest {
+    protected static final String STRING = "test";
+    protected static final ImmutableList<String> STRINGS =
+            ImmutableList.of("test1", "test2", "test200", "composite", "", "t", "tt");
+    protected static final Function<String, Long> STRING_MEASURER = Functions.compose(Long::valueOf, String::length);
 
-    public TrackingIterator(I delegate, Consumer<Long> tracker, Function<T, Long> measurer) {
-        this.delegate = delegate;
-        this.tracker = tracker;
-        this.measurer = measurer;
+    protected static Iterator<String> createStringIterator() {
+        return STRINGS.stream().iterator();
     }
 
-    @Override
-    protected I delegate() {
-        return delegate;
-    }
-
-    @Override
-    public T next() {
-        T result = delegate.next();
-        tracker.accept(measurer.apply(result));
-        return result;
+    protected static <T> Consumer<T> noOp() {
+        // avoiding lambdas for mocking and using a method instead of a static object for generic use
+        return new Consumer<>() {
+            @Override
+            public void accept(T t) {}
+        };
     }
 }
