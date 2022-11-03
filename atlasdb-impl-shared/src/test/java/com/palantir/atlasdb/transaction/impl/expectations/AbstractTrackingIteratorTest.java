@@ -16,17 +16,22 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class AbstractTrackingIteratorTest {
     protected static final String STRING = "test";
     protected static final ImmutableList<String> STRINGS =
             ImmutableList.of("test1", "test2", "test200", "composite", "", "t", "tt");
-    protected static final Function<String, Long> STRING_MEASURER = Functions.compose(Long::valueOf, String::length);
+    // wrapped for mocking
+    protected static final ToLongFunction<String> STRING_MEASURER = new ToLongFunction<>() {
+        @Override
+        public long applyAsLong(String value) {
+            return value.length();
+        }
+    };
 
     protected static Iterator<String> createStringIterator() {
         return STRINGS.stream().iterator();
