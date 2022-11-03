@@ -43,7 +43,7 @@ public class TrackingIteratorTest extends AbstractTrackingIteratorTest {
                 new TrackingIterator<>(createStringIterator(), tracker, STRING_MEASURER);
 
         trackingIterator.forEachRemaining(string -> {
-            inOrder.verify(tracker).accept(STRING_MEASURER.apply(string));
+            inOrder.verify(tracker).accept(STRING_MEASURER.applyAsLong(string));
         });
 
         verifyNoMoreInteractions(tracker);

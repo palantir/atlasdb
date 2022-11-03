@@ -22,7 +22,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -33,7 +32,7 @@ import io.vavr.collection.Iterator;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import org.junit.Test;
 
 public final class TrackingRowColumnRangeIteratorTest extends AbstractTrackingIteratorTest {
@@ -41,13 +40,18 @@ public final class TrackingRowColumnRangeIteratorTest extends AbstractTrackingIt
             Cell.create(new byte[1], new byte[1]),
             Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
 
-    private static final Function<Entry<Cell, Value>, Long> ENTRY_MEASURER =
-            Functions.compose(Functions.constant(1L), Functions.identity());
+    // wrapped for mocking
+    private static final ToLongFunction<Entry<Cell, Value>> ENTRY_MEASURER = new ToLongFunction<>() {
+        @Override
+        public long applyAsLong(Entry<Cell, Value> value) {
+            return 1L;
+        }
+    };
 
     @Test
     public void trackingClosableStringIteratorIsWiredCorrectly() {
         Consumer<Long> tracker = spy(noOp());
-        Function<Entry<Cell, Value>, Long> measurer = spy(ENTRY_MEASURER);
+        ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
 
         TrackingRowColumnRangeIterator trackingIterator =
                 new TrackingRowColumnRangeIterator(createOneElementRowColumnRangeIterator(), tracker, measurer);
@@ -55,8 +59,8 @@ public final class TrackingRowColumnRangeIteratorTest extends AbstractTrackingIt
         assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableSet.of(ENTRY));
         trackingIterator.forEachRemaining(noOp());
 
-        verify(measurer, times(1)).apply(ENTRY);
-        verify(tracker, times(1)).accept(measurer.apply(ENTRY));
+        verify(measurer, times(1)).applyAsLong(ENTRY);
+        verify(tracker, times(1)).accept(measurer.applyAsLong(ENTRY));
         verifyNoMoreInteractions(tracker);
     }
 

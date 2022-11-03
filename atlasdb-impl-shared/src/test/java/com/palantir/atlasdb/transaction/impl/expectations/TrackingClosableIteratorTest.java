@@ -27,7 +27,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import io.vavr.collection.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import org.junit.Test;
 
 public final class TrackingClosableIteratorTest extends AbstractTrackingIteratorTest {
@@ -44,15 +44,15 @@ public final class TrackingClosableIteratorTest extends AbstractTrackingIterator
     @Test
     public void trackingClosableStringIteratorIsWiredCorrectly() {
         Consumer<Long> tracker = spy(noOp());
-        Function<String, Long> measurer = spy(STRING_MEASURER);
+        ToLongFunction<String> measurer = spy(STRING_MEASURER);
         TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(
                 ClosableIterators.wrapWithEmptyClose(Iterator.of(STRING)), tracker, measurer);
 
         assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableSet.of(STRING));
         trackingIterator.forEachRemaining(noOp());
 
-        verify(measurer, times(1)).apply(STRING);
-        verify(tracker, times(1)).accept(measurer.apply(STRING));
+        verify(measurer, times(1)).applyAsLong(STRING);
+        verify(tracker, times(1)).accept(measurer.applyAsLong(STRING));
         verifyNoMoreInteractions(tracker);
     }
 
