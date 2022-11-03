@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.noOp;
 import static org.assertj.core.api.IteratorAssert.assertThatIterator;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -35,12 +36,12 @@ import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 import org.junit.Test;
 
-public final class TrackingRowColumnRangeIteratorTest extends AbstractTrackingIteratorTest {
+public final class TrackingRowColumnRangeIteratorTest {
     private static final Entry<Cell, Value> ENTRY = new SimpleImmutableEntry<>(
             Cell.create(new byte[1], new byte[1]),
             Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
 
-    // wrapped for mocking
+    // this has to be an anonymous inner class rather than lambda in order to spy
     private static final ToLongFunction<Entry<Cell, Value>> ENTRY_MEASURER = new ToLongFunction<>() {
         @Override
         public long applyAsLong(Entry<Cell, Value> value) {

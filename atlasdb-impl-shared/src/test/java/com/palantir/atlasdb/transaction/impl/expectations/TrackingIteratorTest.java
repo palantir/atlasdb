@@ -16,36 +16,40 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.STRING_MEASURER;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.consumeIteratorIntoList;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.createStringIterator;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.noOp;
+import static org.assertj.core.api.Assertions.assertThatIterable;
 import static org.assertj.core.api.Assertions.assertThatIterator;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
 
-public class TrackingIteratorTest extends AbstractTrackingIteratorTest {
+public final class TrackingIteratorTest {
     @Test
     public void trackingIteratorForwardsData() {
         TrackingIterator<String, Iterator<String>> trackingIterator =
                 new TrackingIterator<>(createStringIterator(), noOp(), STRING_MEASURER);
-        assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(STRINGS);
+
+        assertThatIterator(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(consumeIteratorIntoList(createStringIterator()));
     }
 
     @Test
     public void trackerInvokedCorrectlyByTrackingIterator() {
-        Consumer<Long> tracker = spy(noOp());
-        InOrder inOrder = Mockito.inOrder(tracker);
-
+        ArrayList<Long> consumed = new ArrayList<>();
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), tracker, STRING_MEASURER);
+                new TrackingIterator<>(createStringIterator(), consumed::add, STRING_MEASURER);
+        trackingIterator.forEachRemaining(noOp());
 
-        trackingIterator.forEachRemaining(string -> {
-            inOrder.verify(tracker).accept(STRING_MEASURER.applyAsLong(string));
-        });
-
-        verifyNoMoreInteractions(tracker);
+        assertThatIterable(consumed)
+                .containsExactlyElementsOf(consumeIteratorIntoList(createStringIterator()).stream()
+                        .mapToLong(STRING_MEASURER)
+                        .boxed()
+                        .collect(Collectors.toUnmodifiableList()));
     }
 }

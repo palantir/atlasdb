@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.STRING;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.STRING_MEASURER;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.createStringIterator;
+import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.noOp;
 import static org.assertj.core.api.IteratorAssert.assertThatIterator;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -30,7 +34,7 @@ import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 import org.junit.Test;
 
-public final class TrackingClosableIteratorTest extends AbstractTrackingIteratorTest {
+public final class TrackingClosableIteratorTest {
     @Test
     public void trackingClosableStringIteratorDelegatesClose() {
         ClosableIterator<String> iterator = spy(createClosableStringIterator());
