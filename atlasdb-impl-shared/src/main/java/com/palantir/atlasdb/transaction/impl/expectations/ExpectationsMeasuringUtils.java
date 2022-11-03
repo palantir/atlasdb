@@ -22,58 +22,26 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.Measurable;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public final class ExpectationsMeasuringUtils {
     private ExpectationsMeasuringUtils() {}
 
-    public static long sizeInBytes(Collection<? extends Measurable> collection) {
-        return collection.stream().mapToLong(Measurable::sizeInBytes).sum();
-    }
-
-    public static long sizeInBytes(Multimap<? extends Measurable, Long> map) {
-        return map.keys().stream()
-                .mapToLong(measurable -> measurable.sizeInBytes() + Long.BYTES)
-                .sum();
-    }
-
-    public static long sizeInBytes(Entry<? extends Measurable, ? extends Measurable> entry) {
-        return entry.getKey().sizeInBytes() + entry.getValue().sizeInBytes();
-    }
-
-    public static long sizeInBytes(Map<? extends Measurable, ? extends Measurable> map) {
-        return map.entrySet().stream()
-                .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
-                .sum();
-    }
-
-    private static <T> long sizeInBytes(RowResult<T> rowResult, Function<T, Long> measurer) {
-        return rowResult.getRowNameSize()
-                + rowResult.getColumns().entrySet().stream()
-                        .mapToLong(entry -> entry.getKey().length + measurer.apply(entry.getValue()))
-                        .sum();
-    }
-
-    private static <T> long sizeInBytes(Map<? extends Measurable, T> byMeasurable, Function<T, Long> valueMeasurer) {
-        return byMeasurable.entrySet().stream()
-                .mapToLong(entry -> entry.getKey().sizeInBytes() + valueMeasurer.apply(entry.getValue()))
-                .sum();
-    }
-
-    public static long sizeInBytes(RowResult<? extends Measurable> rowResult) {
-        return sizeInBytes(rowResult, Measurable::sizeInBytes);
-    }
-
     public static long toLongSizeInBytes(Map<? extends Measurable, Long> map) {
-        return sizeInBytes(map, unused -> Long.valueOf(Long.BYTES));
+        return sizeInBytes(map, unused -> Long.BYTES);
     }
 
     public static long toArraySizeInBytes(Map<? extends Measurable, byte[]> map) {
-        return sizeInBytes(map, array -> Long.valueOf(array.length));
+        return sizeInBytes(map, Array::getLength);
+    }
+
+    public static long byteArraysSizeInBytes(Collection<byte[]> byteArrays) {
+        return sizeInBytes(byteArrays, Array::getLength);
     }
 
     public static long setResultSizeInBytes(RowResult<Set<Long>> rowResult) {
@@ -92,5 +60,42 @@ public final class ExpectationsMeasuringUtils {
                 .flatMap(Collection::stream)
                 .mapToLong(ExpectationsMeasuringUtils::sizeInBytes)
                 .sum();
+    }
+
+    public static long sizeInBytes(Multimap<? extends Measurable, Long> map) {
+        return sizeInBytes(map.keys()) + Long.BYTES * ((long) map.size());
+    }
+
+    public static long sizeInBytes(Entry<? extends Measurable, ? extends Measurable> entry) {
+        return entry.getKey().sizeInBytes() + entry.getValue().sizeInBytes();
+    }
+
+    public static long sizeInBytes(Collection<? extends Measurable> collection) {
+        return sizeInBytes(collection, Measurable::sizeInBytes);
+    }
+
+    public static long sizeInBytes(Map<? extends Measurable, ? extends Measurable> map) {
+        return sizeInBytes(map, Measurable::sizeInBytes);
+    }
+
+    public static long sizeInBytes(RowResult<? extends Measurable> rowResult) {
+        return sizeInBytes(rowResult, Measurable::sizeInBytes);
+    }
+
+    private static <T> long sizeInBytes(Collection<T> collection, ToLongFunction<T> measurer) {
+        return collection.stream().mapToLong(measurer).sum();
+    }
+
+    private static <T> long sizeInBytes(Map<? extends Measurable, T> byMeasurable, ToLongFunction<T> valueMeasurer) {
+        return byMeasurable.entrySet().stream()
+                .mapToLong(entry -> entry.getKey().sizeInBytes() + valueMeasurer.applyAsLong(entry.getValue()))
+                .sum();
+    }
+
+    private static <T> long sizeInBytes(RowResult<T> rowResult, ToLongFunction<T> measurer) {
+        return rowResult.getRowNameSize()
+                + rowResult.getColumns().entrySet().stream()
+                        .mapToLong(entry -> entry.getKey().length + measurer.applyAsLong(entry.getValue()))
+                        .sum();
     }
 }
