@@ -387,7 +387,8 @@ public final class CassandraClientPoolTest {
         assertThatLoggableExceptionThrownBy(this::createClientPool)
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("No servers were successfully added to the pool.")
-                .hasExactlyArgs(SafeArg.of("serversToAdd", Set.of(CASS_SERVER_1)));
+                .hasExactlyArgs(
+                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(Set.of(CASS_SERVER_1))));
     }
 
     @Test
@@ -453,7 +454,8 @@ public final class CassandraClientPoolTest {
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("The current pool of servers should not have any server(s) that are being added.")
                 .hasExactlyArgs(
-                        SafeArg.of("serversToAdd", serversToAdd), SafeArg.of("currentServers", poolServers.keySet()));
+                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                        SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(poolServers.keySet())));
     }
 
     @Test
