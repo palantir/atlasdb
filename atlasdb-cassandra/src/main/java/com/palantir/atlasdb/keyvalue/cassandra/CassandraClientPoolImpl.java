@@ -101,6 +101,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolImpl.class);
 
+    private static final String EMPTY_CLIENT_POOL_MESSAGE =
+            "No servers were successfully added to the pool. This means we could not come to a consensus on"
+                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
+                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).";
+
     private final Blacklist blacklist;
     private final CassandraRequestExceptionHandler exceptionHandler;
     private final CassandraService cassandra;
@@ -356,10 +362,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
-                "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot start as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                EMPTY_CLIENT_POOL_MESSAGE,
                 SafeArg.of("serversToAdd", serversToAdd));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -401,7 +404,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
         if (!newHostsWithDifferingTopology.isEmpty()) {
             log.warn(
-                    "Found hosts with differing topologies, or are potentially unreachable.",
+                    "Some hosts are potentially unreachable or have topologies that are not in consensus with the"
+                            + " majority (if startup) or the current servers in the pool (if refreshing).",
                     SafeArg.of(
                             "hostsWithDifferingTopology",
                             CassandraLogHelper.collectionOfHosts(newHostsWithDifferingTopology)));
