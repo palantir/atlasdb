@@ -252,6 +252,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             }
         } else {
             try (PreparedStatement stmt = connection.prepareStatement(connConfig.getTestQuery())) {
+                stmt.setFetchSize(1); // only need first row result
                 ResultSet rs = stmt.executeQuery();
                 if (!rs.next()) {
                     throw new SQLException(String.format(
