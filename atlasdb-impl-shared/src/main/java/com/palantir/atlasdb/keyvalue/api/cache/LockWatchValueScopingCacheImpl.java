@@ -48,13 +48,13 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueScopingCacheImpl.class);
+    private static final RateLimitedLogger rateLimitedLogger = new RateLimitedLogger(log, (1 / 5.0));
     private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
 
-    private final RateLimitedLogger rateLimitedLogger;
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private final CacheMetrics cacheMetrics;
@@ -74,7 +74,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.cacheMetrics = metrics;
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
-        this.rateLimitedLogger = new RateLimitedLogger(log, (1 / 5.0));
     }
 
     public static LockWatchValueScopingCache create(
