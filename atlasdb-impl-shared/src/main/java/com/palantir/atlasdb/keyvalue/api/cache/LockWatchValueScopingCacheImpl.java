@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
@@ -37,6 +36,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +54,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
 
-    private final RateLimiter rateLimiter = RateLimiter.create(1 / 30.0);
+    private final RateLimitedLogger rateLimitedLogger;
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private final CacheMetrics cacheMetrics;
@@ -74,6 +74,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.cacheMetrics = metrics;
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
+        this.rateLimitedLogger = new RateLimitedLogger(log, (1 / 5.0));
     }
 
     public static LockWatchValueScopingCache create(
@@ -279,17 +280,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private void registerAllClearEventAndMaybeLog(
             Optional<LockWatchVersion> latestVersionFromUpdate, LockWatchEvent firstEvent, LockWatchEvent lastEvent) {
         cacheMetrics.increaseCacheStateAllClear();
-        if (rateLimiter.tryAcquire()) {
-            log.info(
-                    "Clearing all value cache state",
-                    SafeArg.of("currentVersion", currentVersion),
-                    SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
-                    SafeArg.of(
-                            "firstEventSequence",
-                            Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
-                    SafeArg.of(
-                            "lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence)));
-        }
+        rateLimitedLogger.log(logger -> logger.info(
+                "Clearing all value cache state",
+                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
+                SafeArg.of("firstEventSequence", Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
+                SafeArg.of("lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence))));
     }
 
     private static Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
