@@ -25,7 +25,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionRea
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import org.junit.Test;
 
-public class KeyValueServiceDataTrackerTest {
+public final class KeyValueServiceDataTrackerTest {
     private static final TableReference TABLE_1 = TableReference.createWithEmptyNamespace("Table1");
     private static final TableReference TABLE_2 = TableReference.createWithEmptyNamespace("Table2");
     private static final TableReference TABLE_3 = TableReference.createWithEmptyNamespace("Table3");
@@ -273,7 +273,7 @@ public class KeyValueServiceDataTrackerTest {
     }
 
     @Test
-    public void multipleTrackingCallMultipleTablesTest() {
+    public void multipleTrackingCallsMultipleTablesTest() {
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
         tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_3, BYTES_READ_3);
