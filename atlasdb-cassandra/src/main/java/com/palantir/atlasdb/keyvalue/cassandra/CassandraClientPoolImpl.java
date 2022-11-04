@@ -16,19 +16,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -37,12 +34,13 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -50,9 +48,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.cassandra.thrift.TokenRange;
 
 /**
  * Feature breakdown:
@@ -112,12 +107,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private final CassandraKeyValueServiceConfig config;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
-    private final CassandraClientConfig clientConfig;
     private final StartupChecks startupChecks;
     private final ScheduledExecutorService refreshDaemon;
     private final CassandraClientPoolMetrics metrics;
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private final CassandraAbsentHostTracker absentHostTracker;
+    private final CassandraTopologyValidator cassandraTopologyValidator;
 
     private ScheduledFuture<?> refreshPoolFuture;
 
@@ -127,7 +122,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            Blacklist blacklist) {
+            Blacklist blacklist,
+            CassandraTopologyValidator cassandraTopologyValidator,
+            CassandraAbsentHostTracker absentHostTracker) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
@@ -136,7 +133,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 startupChecks,
                 exceptionHandler,
                 blacklist,
-                new CassandraClientPoolMetrics(metricsManager));
+                new CassandraClientPoolMetrics(metricsManager),
+                cassandraTopologyValidator,
+                absentHostTracker);
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -149,7 +148,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             ScheduledExecutorServiceFactory refreshDaemonFactory,
             Blacklist blacklist,
-            CassandraService cassandra) {
+            CassandraService cassandra,
+            CassandraTopologyValidator cassandraTopologyValidator,
+            CassandraAbsentHostTracker cassandraAbsentHostTracker) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 config,
@@ -159,7 +160,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 exceptionHandler,
                 blacklist,
                 cassandra,
-                new CassandraClientPoolMetrics(metricsManager));
+                new CassandraClientPoolMetrics(metricsManager),
+                cassandraTopologyValidator,
+                cassandraAbsentHostTracker);
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -183,7 +186,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 StartupChecks.RUN,
                 exceptionHandler,
                 blacklist,
-                new CassandraClientPoolMetrics(metricsManager));
+                new CassandraClientPoolMetrics(metricsManager),
+                new CassandraTopologyValidator(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
@@ -195,7 +201,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
-            CassandraClientPoolMetrics metrics) {
+            CassandraClientPoolMetrics metrics,
+            CassandraTopologyValidator cassandraTopologyValidator,
+            CassandraAbsentHostTracker absentHostTracker) {
         this(
                 config,
                 runtimeConfig,
@@ -204,7 +212,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
-                metrics);
+                metrics,
+                cassandraTopologyValidator,
+                absentHostTracker);
     }
 
     private CassandraClientPoolImpl(
@@ -215,17 +225,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
-            CassandraClientPoolMetrics metrics) {
+            CassandraClientPoolMetrics metrics,
+            CassandraTopologyValidator cassandraTopologyValidator,
+            CassandraAbsentHostTracker absentHostTracker) {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
-        this.clientConfig = CassandraClientConfig.of(config);
         this.startupChecks = startupChecks;
         this.refreshDaemon = refreshDaemonFactory.create(config.numPoolRefreshingThreads());
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
         this.metrics = metrics;
-        this.absentHostTracker = new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval());
+        this.absentHostTracker = absentHostTracker;
+        this.cassandraTopologyValidator = cassandraTopologyValidator;
     }
 
     private void tryInitialize() {
@@ -327,11 +339,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
-        ImmutableSet<CassandraServer> cachedServers = getCachedServers();
-        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, cachedServers);
-        SetView<CassandraServer> absentServers = Sets.difference(cachedServers, desiredServers);
+        Set<CassandraServer> currentServers = getCachedServers();
+        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, currentServers);
+        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers);
 
-        serversToAdd.forEach(server -> cassandra.returnOrCreatePool(server, absentHostTracker.returnPool(server)));
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
             absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
@@ -339,12 +350,83 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
-        if (!(serversToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
-            sanityCheckRingConsistency();
+        Set<CassandraServer> validatedServersToAdd =
+                validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
+
+        if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
         }
 
-        logRefreshedHosts(serversToAdd, serversToShutdown, absentServers);
+        Preconditions.checkState(
+                !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
+                "No servers were successfully added to the pool. This means we could not come to a consensus on"
+                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)));
+
+        logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
+    }
+
+    /**
+     * Validates new servers to add to the cassandra client container pool,
+     * by checking them with the {@link com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator}.
+     * If any servers come back and are not in consensus this is OK, we will simply add them to the absent host
+     * tracker, as we most likely will retry this host in subsequent calls.
+     *
+     * @return The set of cassandra servers which have valid topologies and have been added to the pool.
+     */
+    @VisibleForTesting
+    Set<CassandraServer> validateNewHostsTopologiesAndMaybeAddToPool(
+            Map<CassandraServer, CassandraClientPoolingContainer> currentContainers,
+            Set<CassandraServer> serversToAdd) {
+        if (serversToAdd.isEmpty()) {
+            return Set.of();
+        }
+
+        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
+                getContainerForNewServers(serversToAdd);
+
+        Preconditions.checkArgument(
+                Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
+                        .isEmpty(),
+                "The current pool of servers should not have any server(s) that are being added. This is unexpected"
+                        + " and could lead to undefined behavior, as we should not be validating already validated"
+                        + " servers. This suggests a bug in the calling method.",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
+                SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())));
+
+        Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
+                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                        .putAll(serversToAddContainers)
+                        .putAll(currentContainers)
+                        .buildOrThrow();
+
+        // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
+        Set<CassandraServer> newHostsWithDifferingTopology =
+                cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
+
+        Set<CassandraServer> validatedServersToAdd = Sets.difference(serversToAdd, newHostsWithDifferingTopology);
+        validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
+        newHostsWithDifferingTopology.forEach(
+                server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
+        if (!newHostsWithDifferingTopology.isEmpty()) {
+            log.warn(
+                    "Some hosts are potentially unreachable or have topologies that are not in consensus with the"
+                            + " majority (if startup) or the current servers in the pool (if refreshing).",
+                    SafeArg.of(
+                            "hostsWithDifferingTopology",
+                            CassandraLogHelper.collectionOfHosts(newHostsWithDifferingTopology)));
+        }
+        return validatedServersToAdd;
+    }
+
+    private Map<CassandraServer, CassandraClientPoolingContainer> getContainerForNewServers(
+            Set<CassandraServer> newServers) {
+        return KeyedStream.of(newServers)
+                .map(server -> absentHostTracker.returnPool(server).orElseGet(() -> cassandra.createPool(server)))
+                .collectToMap();
     }
 
     private static void logRefreshedHosts(
@@ -515,85 +597,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             }
             throw e;
         }
-    }
-
-    // This method exists to verify a particularly nasty bug where cassandra doesn't have a
-    // consistent ring across all of it's nodes.  One node will think it owns more than the others
-    // think it does and they will not send writes to it, but it will respond to requests
-    // acting like it does.
-    private void sanityCheckRingConsistency() {
-        Multimap<Set<TokenRange>, CassandraServer> tokenRangesToServer = HashMultimap.create();
-        for (CassandraServer host : getCachedServers()) {
-            try (CassandraClient client = CassandraClientFactory.getClientInternal(host, clientConfig)) {
-                try {
-                    client.describe_keyspace(config.getKeyspaceOrThrow());
-                } catch (NotFoundException e) {
-                    return; // don't care to check for ring consistency when we're not even fully initialized
-                }
-                tokenRangesToServer.put(ImmutableSet.copyOf(client.describe_ring(config.getKeyspaceOrThrow())), host);
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to get ring info from host: {}",
-                        SafeArg.of("host", host.cassandraHostName()),
-                        SafeArg.of("proxy", CassandraLogHelper.host(host.proxy())),
-                        e);
-            }
-        }
-
-        if (tokenRangesToServer.isEmpty()) {
-            log.warn(
-                    "Failed to get ring info for entire Cassandra cluster ({});"
-                            + " ring could not be checked for consistency.",
-                    UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-            return;
-        }
-
-        if (tokenRangesToServer.keySet().size() == 1) { // all nodes agree on a consistent view of the cluster. Good.
-            return;
-        }
-
-        if (TokenRangeResolution.viewsAreConsistent(tokenRangesToServer.keySet())) {
-            log.info("Although multiple ring descriptions were detected, we believe these to be consistent:"
-                    + " ranges detected were identical. This may occur when there are legitimate network routing"
-                    + " changes, for instance.");
-            return;
-        }
-
-        RuntimeException ex = new SafeIllegalStateException(
-                "Hosts have differing ring descriptions. This can lead to inconsistent reads and lost data.");
-        log.error(
-                "Cassandra does not appear to have a consistent ring across all of its nodes. This could cause us to"
-                        + " lose writes. The mapping of token ranges to hosts is:\n{}",
-                UnsafeArg.of("tokenRangesToServer", CassandraLogHelper.tokenRangesToServer(tokenRangesToServer)),
-                SafeArg.of(
-                        "tokenRangeHashes",
-                        CassandraLogHelper.tokenRangeHashes(tokenRangesToServer.keySet().stream()
-                                .flatMap(Set::stream)
-                                .collect(Collectors.toSet()))),
-                ex);
-
-        // provide some easier to grok logging for the two most common cases
-        if (tokenRangesToServer.size() > 2) {
-            tokenRangesToServer.asMap().entrySet().stream()
-                    .filter(entry -> entry.getValue().size() == 1)
-                    .forEach(entry -> {
-                        // We've checked above that entry.getValue() has one element, so we never NPE here.
-                        log.error(
-                                "Host: {} disagrees with the other nodes about the ring state.",
-                                SafeArg.of("host", Iterables.getFirst(entry.getValue(), null)));
-                    });
-        }
-        if (tokenRangesToServer.keySet().size() == 2) {
-            ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToServer.keySet());
-            Set<TokenRange> set1 = sets.get(0);
-            Set<TokenRange> set2 = sets.get(1);
-            log.error(
-                    "Hosts are split. group1: {} group2: {}",
-                    SafeArg.of("hosts1", CassandraLogHelper.collectionOfHosts(tokenRangesToServer.get(set1))),
-                    SafeArg.of("hosts2", CassandraLogHelper.collectionOfHosts(tokenRangesToServer.get(set2))));
-        }
-
-        CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.ignoreInconsistentRingChecks());
     }
 
     @Override
