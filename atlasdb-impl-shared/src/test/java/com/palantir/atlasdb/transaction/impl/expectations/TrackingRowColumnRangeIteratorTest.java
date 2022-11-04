@@ -40,7 +40,7 @@ import org.junit.Test;
 
 public final class TrackingRowColumnRangeIteratorTest {
     private static final Entry<Cell, Value> ENTRY = new SimpleImmutableEntry<>(createCell(10), createValue(10));
-    private static final RowColumnRangeIterator ONE_ELEMENT_ROW_COLUMN_RANGE_ITERATOR =
+    private static final RowColumnRangeIterator ONE_ELEMENT_ITERATOR =
             new LocalRowColumnRangeIterator(ImmutableList.of(ENTRY).iterator());
     private static final Map<Cell, Value> VALUE_BY_CELL = Map.of(
             createCell(10), createValue(10),
@@ -60,7 +60,7 @@ public final class TrackingRowColumnRangeIteratorTest {
         Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
         ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
         TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(ONE_ELEMENT_ROW_COLUMN_RANGE_ITERATOR, tracker, measurer);
+                new TrackingRowColumnRangeIterator(ONE_ELEMENT_ITERATOR, tracker, measurer);
 
         assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(ENTRY));
         verify(measurer, times(1)).applyAsLong(ENTRY);

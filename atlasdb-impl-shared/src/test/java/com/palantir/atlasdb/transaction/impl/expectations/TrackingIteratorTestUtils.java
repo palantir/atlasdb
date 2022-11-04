@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
@@ -30,7 +30,8 @@ public final class TrackingIteratorTestUtils {
             return value.length();
         }
     };
-    private static final ImmutableSet<String> STRINGS = ImmutableSet.of("test1", "test200", "composite", "", "t", "tt");
+    private static final ImmutableList<String> STRINGS = ImmutableList.of(
+            "test4", "test4", "test200", "composite", "", "t", "twentyElementString1", "tt", "twentyElementString2");
 
     public static Iterator<String> createStringIterator() {
         return STRINGS.stream().iterator();
