@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -204,11 +205,7 @@ public final class OracleDdlTable implements DbDdlTable {
         drop(CaseSensitivity.CASE_SENSITIVE);
     }
 
-    /**
-     * Drops the table, and deletes the table from the mapping table (if present), and from the metadata table.
-     * If referenceCaseSensitivity is CASE_INSENSITIVE, and another table is created with a table reference that is a
-     * case insensitive match with this table, then the behaviour is undefined.
-     */
+    @Override
     public void drop(CaseSensitivity referenceCaseSensitivity) {
         executeIgnoringTableMappingNotFound(() -> dropTableInternal(
                 oracleTableNameGetter.getPrefixedTableName(tableRef),
@@ -457,10 +454,5 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         return sqlConnection;
-    }
-
-    public enum CaseSensitivity {
-        CASE_SENSITIVE,
-        CASE_INSENSITIVE;
     }
 }

@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKeyValueServiceConfigs;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -68,22 +69,14 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {
 
-        return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config, runtimeConfig, initializeAsync);
-    }
-
-    private static DbKeyValueServiceConfig toDbKeyValueServiceConfig(KeyValueServiceConfig config) {
-        Preconditions.checkArgument(
-                config instanceof DbKeyValueServiceConfig,
-                "[Unexpected configuration] | DbAtlasDbFactory expects a configuration of type "
-                        + "DbKeyValueServiceConfiguration.",
-                SafeArg.of("configurationClass", config.getClass()));
-        return (DbKeyValueServiceConfig) config;
+        return ConnectionManagerAwareDbKvs.create(
+                DbKeyValueServiceConfigs.toDbKeyValueServiceConfig(config), runtimeConfig, initializeAsync);
     }
 
     @Override
     public DerivedSnapshotConfig createDerivedSnapshotConfig(
             KeyValueServiceConfig config, Optional<KeyValueServiceRuntimeConfig> runtimeConfigSnapshot) {
-        DbKeyValueServiceConfig dbKeyValueServiceConfig = toDbKeyValueServiceConfig(config);
+        DbKeyValueServiceConfig dbKeyValueServiceConfig = DbKeyValueServiceConfigs.toDbKeyValueServiceConfig(config);
         return DerivedSnapshotConfig.builder()
                 .concurrentGetRangesThreadPoolSize(dbKeyValueServiceConfig.concurrentGetRangesThreadPoolSize())
                 .defaultGetRangesConcurrencyOverride(dbKeyValueServiceConfig.defaultGetRangesConcurrency())

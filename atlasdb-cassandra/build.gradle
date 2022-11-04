@@ -1,5 +1,6 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.palantir.metric-schema'
 
 configurations {
   explicitShadow
@@ -31,7 +32,6 @@ dependencies {
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
-  explicitShadow ('org.apache.thrift:libthrift')
   implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -50,7 +50,6 @@ dependencies {
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
@@ -115,6 +114,10 @@ jar.dependsOn shadowJar
 jar.onlyIf { false }
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
+
+license {
+  exclude '**/CassandraTopologyValidationMetrics.java'
+}
 
 recommendedProductDependencies {
     productDependency {

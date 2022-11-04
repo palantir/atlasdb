@@ -267,8 +267,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 "Clearing all value cache state",
                 SafeArg.of("currentVersion", currentVersion),
                 SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
-                SafeArg.of("firstEventSequence", firstEvent),
-                SafeArg.of("lastEventSequence", lastEvent));
+                SafeArg.of("firstEventSequence", Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
+                SafeArg.of("lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence)));
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();

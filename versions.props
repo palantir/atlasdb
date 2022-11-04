@@ -29,7 +29,7 @@ com.palantir.conjure.java:* = 6.65.0
 com.palantir.conjure:conjure = 4.35.0
 com.palantir.dialogue:* = 3.69.0
 com.palantir.docker.compose:docker-compose-rule* = 1.8.0
-com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
+com.palantir.docker.proxy:docker-proxy-rule* = 1.6.0
 com.palantir.goethe:* = 0.9.0
 com.palantir.nylon:* = 0.3.0
 com.palantir.refreshable:refreshable = 2.2.0
@@ -96,7 +96,7 @@ ch.qos.logback:* = 1.2.11
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
 com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
-com.palantir.cassandra:* = 2.2.13-1.6.0
+com.palantir.cassandra:* = 2.2.18-1.101.0
 org.postgresql:postgresql = 42.4.1
 
 # Large internal product uses 2.x

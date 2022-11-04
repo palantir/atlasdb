@@ -20,9 +20,11 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.Unsafe;
 import java.util.Set;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @JsonSerialize(as = ImmutableUnlockEvent.class)
 @JsonDeserialize(as = ImmutableUnlockEvent.class)

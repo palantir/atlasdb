@@ -18,13 +18,12 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.util.SqlConnectionSuppliers;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.spi.LocalConnectionConfig;
 import com.palantir.nexus.db.pool.ConnectionManager;
 import com.palantir.nexus.db.pool.HikariClientPoolConnectionManagers;
-import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 
@@ -68,24 +67,11 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
         } else {
             connManager = HikariClientPoolConnectionManagers.create(config.connection());
         }
-        runtimeConfig.subscribe(newRuntimeConfig -> updateConnManagerConfig(connManager, config, newRuntimeConfig));
-        ReentrantManagedConnectionSupplier connSupplier = new ReentrantManagedConnectionSupplier(connManager);
-        SqlConnectionSupplier sqlConnSupplier = new SimpleTimedSqlConnectionSupplier(connSupplier);
+
+        SqlConnectionSupplier sqlConnSupplier =
+                SqlConnectionSuppliers.createSimpleConnectionSupplier(connManager, config, runtimeConfig);
         return new ConnectionManagerAwareDbKvs(
                 DbKvs.create(config, sqlConnSupplier, initializeAsync), connManager, sqlConnSupplier);
-    }
-
-    private static void updateConnManagerConfig(
-            ConnectionManager connManager,
-            DbKeyValueServiceConfig config,
-            Optional<KeyValueServiceRuntimeConfig> runtimeConfig) {
-        if (runtimeConfig.isPresent() && runtimeConfig.get() instanceof DbKeyValueServiceRuntimeConfig) {
-            DbKeyValueServiceRuntimeConfig dbRuntimeConfig = (DbKeyValueServiceRuntimeConfig) runtimeConfig.get();
-            connManager.setPassword(dbRuntimeConfig.getDbPassword().unmasked());
-        } else {
-            // no runtime config (or wrong type), use the password from the install config
-            connManager.setPassword(config.connection().getDbPassword().unmasked());
-        }
     }
 
     private ConnectionManagerAwareDbKvs(

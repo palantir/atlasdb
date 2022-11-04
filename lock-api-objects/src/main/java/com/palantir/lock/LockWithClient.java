@@ -17,8 +17,10 @@ package com.palantir.lock;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.Unsafe;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWithClient.class)
 @JsonDeserialize(as = ImmutableLockWithClient.class)
