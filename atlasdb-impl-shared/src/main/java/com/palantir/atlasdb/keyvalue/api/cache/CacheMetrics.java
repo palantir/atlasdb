@@ -30,7 +30,7 @@ public final class CacheMetrics {
     private final Counter getRowsCellLookups;
     private final Counter getRowsRowLookups;
 
-    private final Counter allClear;
+    private final Counter stateClearEvents;
     private final CurrentValueMetric<Integer> eventCacheValidationFailures;
     private final CurrentValueMetric<Integer> valueCacheValidationFailures;
     private final MetricsManager metricsManager;
@@ -42,7 +42,7 @@ public final class CacheMetrics {
             Counter getRowsCellsHit,
             Counter getRowsCellLookups,
             Counter getRowsRowLookups,
-            Counter allClear,
+            Counter stateClearEvents,
             CurrentValueMetric<Integer> eventCacheValidationFailures,
             CurrentValueMetric<Integer> valueCacheValidationFailures,
             MetricsManager metricsManager) {
@@ -52,7 +52,7 @@ public final class CacheMetrics {
         this.getRowsCellsHit = getRowsCellsHit;
         this.getRowsCellLookups = getRowsCellLookups;
         this.getRowsRowLookups = getRowsRowLookups;
-        this.allClear = allClear;
+        this.stateClearEvents = stateClearEvents;
         this.eventCacheValidationFailures = eventCacheValidationFailures;
         this.valueCacheValidationFailures = valueCacheValidationFailures;
         this.metricsManager = metricsManager;
@@ -107,7 +107,7 @@ public final class CacheMetrics {
     }
 
     public void increaseCacheStateAllClear() {
-        allClear.inc();
+        stateClearEvents.inc();
     }
 
     public void registerEventCacheValidationFailure() {
