@@ -16,10 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
@@ -32,17 +30,10 @@ public final class TrackingIteratorTestUtils {
             return value.length();
         }
     };
-    private static final ImmutableList<String> STRINGS =
-            ImmutableList.of("test1", "test2", "test200", "composite", "", "t", "tt");
+    private static final ImmutableSet<String> STRINGS = ImmutableSet.of("test1", "test200", "composite", "", "t", "tt");
 
     public static Iterator<String> createStringIterator() {
         return STRINGS.stream().iterator();
-    }
-
-    public static <T> List<T> consumeIteratorIntoList(Iterator<T> iterator) {
-        ArrayList<T> list = new ArrayList<>();
-        iterator.forEachRemaining(list::add);
-        return list;
     }
 
     // this has to be a static method rather than a static member in order to be used for any type T

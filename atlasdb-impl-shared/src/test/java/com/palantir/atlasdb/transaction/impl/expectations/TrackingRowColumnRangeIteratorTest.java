@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.noOp;
-import static org.assertj.core.api.IteratorAssert.assertThatIterator;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,18 +50,19 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void trackingClosableStringIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(noOp());
+        Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
         ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
 
         TrackingRowColumnRangeIterator trackingIterator =
                 new TrackingRowColumnRangeIterator(createOneElementRowColumnRangeIterator(), tracker, measurer);
 
-        assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableSet.of(ENTRY));
-        trackingIterator.forEachRemaining(noOp());
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableSet.of(ENTRY));
+        trackingIterator.forEachRemaining(TrackingIteratorTestUtils.noOp());
 
         verify(measurer, times(1)).applyAsLong(ENTRY);
-        verify(tracker, times(1)).accept(measurer.applyAsLong(ENTRY));
+        verify(tracker, times(1)).accept(ENTRY_MEASURER.applyAsLong(ENTRY));
         verifyNoMoreInteractions(tracker);
+        verifyNoMoreInteractions(measurer);
     }
 
     private static RowColumnRangeIterator createOneElementRowColumnRangeIterator() {

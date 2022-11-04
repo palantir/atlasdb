@@ -16,20 +16,15 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.STRING;
-import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.STRING_MEASURER;
-import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.createStringIterator;
-import static com.palantir.atlasdb.transaction.impl.expectations.TrackingIteratorTestUtils.noOp;
-import static org.assertj.core.api.IteratorAssert.assertThatIterator;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import io.vavr.collection.Iterator;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 import org.junit.Test;
@@ -38,8 +33,8 @@ public final class TrackingClosableIteratorTest {
     @Test
     public void trackingClosableStringIteratorDelegatesClose() {
         ClosableIterator<String> iterator = spy(createClosableStringIterator());
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(iterator, noOp(), STRING_MEASURER);
+        TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(
+                iterator, TrackingIteratorTestUtils.noOp(), TrackingIteratorTestUtils.STRING_MEASURER);
         trackingIterator.close();
         verify(iterator, times(1)).close();
         verifyNoMoreInteractions(iterator);
@@ -47,20 +42,27 @@ public final class TrackingClosableIteratorTest {
 
     @Test
     public void trackingClosableStringIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(noOp());
-        ToLongFunction<String> measurer = spy(STRING_MEASURER);
-        TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(
-                ClosableIterators.wrapWithEmptyClose(Iterator.of(STRING)), tracker, measurer);
+        Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
+        ToLongFunction<String> measurer = spy(TrackingIteratorTestUtils.STRING_MEASURER);
+        TrackingClosableIterator<String> trackingIterator =
+                new TrackingClosableIterator<>(createClosableStringIterator(), tracker, measurer);
 
-        assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableSet.of(STRING));
-        trackingIterator.forEachRemaining(noOp());
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
 
-        verify(measurer, times(1)).applyAsLong(STRING);
-        verify(tracker, times(1)).accept(measurer.applyAsLong(STRING));
+        try (ClosableIterator<String> iterator = createClosableStringIterator()) {
+            iterator.forEachRemaining(string -> {
+                verify(measurer, times(1)).applyAsLong(string);
+                verify(tracker, times(1)).accept(TrackingIteratorTestUtils.STRING_MEASURER.applyAsLong(string));
+            });
+        }
+
+        verifyNoMoreInteractions(measurer);
         verifyNoMoreInteractions(tracker);
     }
 
     private static ClosableIterator<String> createClosableStringIterator() {
-        return ClosableIterators.wrapWithEmptyClose(createStringIterator());
+        return ClosableIterators.wrapWithEmptyClose(TrackingIteratorTestUtils.createStringIterator());
     }
 }
