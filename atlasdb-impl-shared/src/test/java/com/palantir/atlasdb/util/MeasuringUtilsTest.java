@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -42,7 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public final class ExpectationsMeasuringUtilsTest {
+public final class MeasuringUtilsTest {
     private static final int SIZE_1 = 123;
     private static final int SIZE_2 = 214;
     private static final int SIZE_3 = 329;
@@ -51,16 +50,14 @@ public final class ExpectationsMeasuringUtilsTest {
 
     @Test
     public void sizeOfEmptyObjectsIsZero() {
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Map.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(ImmutableMultimap.of()))
-                .isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.toLongSizeInBytes(Map.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.toArraySizeInBytes(Map.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of())).isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(Map.of()))
-                .isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOf(List.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOf(Set.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOf(Map.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOf(ImmutableMultimap.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOfMeasurableLongMap(Map.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOfMeasurableByteMap(Map.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOfByteCollection(List.of())).isEqualTo(0);
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(Map.of())).isEqualTo(0);
     }
 
     @Test
@@ -70,7 +67,7 @@ public final class ExpectationsMeasuringUtilsTest {
                 .put(MEASURABLE_2, 1L)
                 .buildOrThrow();
 
-        assertThat(ExpectationsMeasuringUtils.toLongSizeInBytes(toLong)).isEqualTo(SIZE_1 + SIZE_2 + 2L * Long.BYTES);
+        assertThat(MeasuringUtils.sizeOfMeasurableLongMap(toLong)).isEqualTo(SIZE_1 + SIZE_2 + 2L * Long.BYTES);
     }
 
     @Test
@@ -80,38 +77,36 @@ public final class ExpectationsMeasuringUtilsTest {
                 .put(MEASURABLE_2, createBytes(SIZE_3))
                 .buildOrThrow();
 
-        assertThat(ExpectationsMeasuringUtils.toArraySizeInBytes(toByteArray)).isEqualTo(SIZE_1 + SIZE_2 + 2L * SIZE_3);
+        assertThat(MeasuringUtils.sizeOfMeasurableByteMap(toByteArray)).isEqualTo(SIZE_1 + SIZE_2 + 2L * SIZE_3);
     }
 
     @Test
     public void sizeOfByteArrayCollectionIsCorrect() {
-        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of(PtBytes.EMPTY_BYTE_ARRAY)))
+        assertThat(MeasuringUtils.sizeOfByteCollection(List.of(PtBytes.EMPTY_BYTE_ARRAY)))
                 .isEqualTo(0);
-        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(List.of(createBytes(SIZE_1))))
+        assertThat(MeasuringUtils.sizeOfByteCollection(List.of(createBytes(SIZE_1))))
                 .isEqualTo(SIZE_1);
-        assertThat(ExpectationsMeasuringUtils.byteArraysSizeInBytes(
+        assertThat(MeasuringUtils.sizeOfByteCollection(
                         List.of(createBytes(SIZE_1), createBytes(SIZE_2), createBytes(SIZE_2))))
                 .isEqualTo(SIZE_1 + 2L * SIZE_2);
     }
 
     @Test
     public void sizeOfRowResultOfSetOfLongIsCorrect() {
-        assertThat(ExpectationsMeasuringUtils.setResultSizeInBytes(
-                        RowResult.of(createCellWithByteSize(SIZE_1), Set.of())))
+        assertThat(MeasuringUtils.sizeOfLongSetRowResult(RowResult.of(createCellWithByteSize(SIZE_1), Set.of())))
                 .isEqualTo(SIZE_1);
 
-        assertThat(ExpectationsMeasuringUtils.setResultSizeInBytes(
-                        RowResult.of(createCellWithByteSize(SIZE_2), Set.of(1L))))
+        assertThat(MeasuringUtils.sizeOfLongSetRowResult(RowResult.of(createCellWithByteSize(SIZE_2), Set.of(1L))))
                 .isEqualTo(Long.sum(SIZE_2, Long.BYTES));
 
-        assertThat(ExpectationsMeasuringUtils.setResultSizeInBytes(
+        assertThat(MeasuringUtils.sizeOfLongSetRowResult(
                         RowResult.of(createCellWithByteSize(SIZE_3), Set.of(1L, 2L, 3L))))
                 .isEqualTo(SIZE_3 + 3L * Long.BYTES);
     }
 
     @Test
     public void sizeOfPageByRequestIsCorrect() {
-        assertThat(ExpectationsMeasuringUtils.pageByRequestSizeInBytes(
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(
                         ImmutableMap.<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>builder()
                                 .put(RangeRequest.all(), createPage(SIZE_1, 1, SIZE_1))
                                 .put(
@@ -136,23 +131,21 @@ public final class ExpectationsMeasuringUtilsTest {
                 .put(MEASURABLE_2, 1L)
                 .build();
 
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(toLong)).isEqualTo(SIZE_1 + 2L * SIZE_2 + 3L * Long.BYTES);
+        assertThat(MeasuringUtils.sizeOf(toLong)).isEqualTo(SIZE_1 + 2L * SIZE_2 + 3L * Long.BYTES);
     }
 
     @Test
     public void sizeOfMeasurableToMeasurableEntryIsCorrect() {
         Entry<Measurable, Measurable> entry = new SimpleImmutableEntry<>(MEASURABLE_1, MEASURABLE_2);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(entry)).isEqualTo(Long.sum(SIZE_1, SIZE_2));
+        assertThat(MeasuringUtils.sizeOf(entry)).isEqualTo(Long.sum(SIZE_1, SIZE_2));
     }
 
     @Test
     public void sizeOfCollectionsOfMeasurableObjectsIsCorrect() {
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1))).isEqualTo(SIZE_1);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1)))
-                .isEqualTo(SIZE_1);
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(Set.of(MEASURABLE_1, MEASURABLE_2)))
-                .isEqualTo(Long.sum(SIZE_1, SIZE_2));
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(List.of(MEASURABLE_1, MEASURABLE_2, MEASURABLE_1)))
+        assertThat(MeasuringUtils.sizeOf(Set.of(MEASURABLE_1))).isEqualTo(SIZE_1);
+        assertThat(MeasuringUtils.sizeOf(List.of(MEASURABLE_1))).isEqualTo(SIZE_1);
+        assertThat(MeasuringUtils.sizeOf(Set.of(MEASURABLE_1, MEASURABLE_2))).isEqualTo(Long.sum(SIZE_1, SIZE_2));
+        assertThat(MeasuringUtils.sizeOf(List.of(MEASURABLE_1, MEASURABLE_2, MEASURABLE_1)))
                 .isEqualTo(2L * SIZE_1 + SIZE_2);
     }
 
@@ -163,7 +156,7 @@ public final class ExpectationsMeasuringUtilsTest {
                 .put(MEASURABLE_2, MEASURABLE_1)
                 .buildOrThrow();
 
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(map)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2);
+        assertThat(MeasuringUtils.sizeOf(map)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2);
     }
 
     @Test
@@ -175,7 +168,7 @@ public final class ExpectationsMeasuringUtilsTest {
                         .put(createBytes(SIZE_2), MEASURABLE_1)
                         .buildOrThrow());
 
-        assertThat(ExpectationsMeasuringUtils.sizeInBytes(rowResult)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2 + SIZE_3);
+        assertThat(MeasuringUtils.sizeOf(rowResult)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2 + SIZE_3);
     }
 
     private static SimpleTokenBackedResultsPage<RowResult<Value>, byte[]> createPage(
