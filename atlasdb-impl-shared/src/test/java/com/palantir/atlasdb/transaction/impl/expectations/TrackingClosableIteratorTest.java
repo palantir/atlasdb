@@ -25,11 +25,49 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
+import one.util.streamex.StreamEx;
 import org.junit.Test;
 
 public final class TrackingClosableIteratorTest {
+    private static final ClosableIterator<String> ONE_ELEMENT_ITERATOR = ClosableIterators.wrapWithEmptyClose(
+            List.of(TrackingIteratorTestUtils.STRING).iterator());
+
+    @Test
+    public void oneElementTrackingClosableIteratorIsWiredCorrectly() {
+        Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
+        ToLongFunction<String> measurer = spy(TrackingIteratorTestUtils.STRING_MEASURER);
+        TrackingClosableIterator<String> trackingIterator =
+                new TrackingClosableIterator<>(ONE_ELEMENT_ITERATOR, tracker, measurer);
+
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(TrackingIteratorTestUtils.STRING));
+        verify(measurer, times(1)).applyAsLong(TrackingIteratorTestUtils.STRING);
+        verify(tracker, times(1))
+                .accept(TrackingIteratorTestUtils.STRING_MEASURER.applyAsLong(TrackingIteratorTestUtils.STRING));
+        verifyNoMoreInteractions(tracker);
+        verifyNoMoreInteractions(measurer);
+    }
+
+    @Test
+    public void multiElementTrackingClosableIteratorIsWiredCorrectly() {
+        ArrayList<Long> consumed = new ArrayList<>();
+        TrackingClosableIterator<String> trackingIterator = new TrackingClosableIterator<>(
+                createClosableStringIterator(), consumed::add, TrackingIteratorTestUtils.STRING_MEASURER);
+
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
+
+        assertThat(consumed)
+                .containsExactlyElementsOf(StreamEx.of(createClosableStringIterator())
+                        .mapToLong(TrackingIteratorTestUtils.STRING_MEASURER)
+                        .boxed()
+                        .toList());
+    }
+
     @Test
     public void trackingClosableStringIteratorDelegatesClose() {
         ClosableIterator<String> iterator = spy(createClosableStringIterator());
@@ -38,28 +76,6 @@ public final class TrackingClosableIteratorTest {
         trackingIterator.close();
         verify(iterator, times(1)).close();
         verifyNoMoreInteractions(iterator);
-    }
-
-    @Test
-    public void trackingClosableStringIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
-        ToLongFunction<String> measurer = spy(TrackingIteratorTestUtils.STRING_MEASURER);
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(createClosableStringIterator(), tracker, measurer);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
-
-        try (ClosableIterator<String> iterator = createClosableStringIterator()) {
-            iterator.forEachRemaining(string -> {
-                verify(measurer, times(1)).applyAsLong(string);
-                verify(tracker, times(1)).accept(TrackingIteratorTestUtils.STRING_MEASURER.applyAsLong(string));
-            });
-        }
-
-        verifyNoMoreInteractions(measurer);
-        verifyNoMoreInteractions(tracker);
     }
 
     private static ClosableIterator<String> createClosableStringIterator() {
