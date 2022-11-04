@@ -32,7 +32,7 @@ dependencies {
   explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
-
+  implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
