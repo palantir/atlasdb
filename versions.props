@@ -57,6 +57,7 @@ net.jpountz.lz4:lz4 = 1.3.0
 one.util:streamex = 0.8.1
 org.apache.commons:commons-lang3 = 3.12.0
 org.apache.commons:commons-pool2 = 2.11.1
+org.apache.httpcomponents.client5:httpclient5 = 5.1.3
 org.assertj:assertj-* = 3.23.1
 org.assertj:assertj-guava = 3.4.0
 org.awaitility:awaitility = 4.2.0
