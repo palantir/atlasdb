@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -32,17 +31,14 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
-import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter;
-import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter.OracleNamespaceDeleterParameters;
+import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.DbKvsNamespaceDeleterFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.LegacyPhysicalBoundStoreStrategy;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
+import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
@@ -50,15 +46,15 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
-import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.refreshable.Refreshable;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.junit.After;
@@ -71,6 +67,8 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
+    private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
+            Refreshable.only(Optional.empty());
     private static final String TABLE_NAME_ONE = "tablenameone";
     private static final String TABLE_NAME_ONE_CASE_INSENSITIVE_MATCH = "tableNameOne";
     private static final String TABLE_NAME_TWO = "tablenametwo";
@@ -96,84 +94,52 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
 
     @Before
     public void before() {
+        NamespaceDeleterFactory factory = new DbKvsNamespaceDeleterFactory();
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
         connectionManager = DbKvsOracleTestSuite.getConnectionManager(keyValueService);
+        namespaceDeleter = factory.createNamespaceDeleter(dbKeyValueServiceConfig, RUNTIME_CONFIG);
 
-        namespaceDeleter = createNamespaceDeleter(
-                oracleDdlConfig,
-                dbKeyValueServiceConfig.connection(),
-                DbKvsOracleTestSuite.getConnectionSupplier(keyValueService),
-                MoreExecutors.newDirectExecutorService());
-
-        OracleDdlConfig ddlConfigWithNonDefaultPrefix = ImmutableOracleDdlConfig.builder()
-                .from(oracleDdlConfig)
-                .tablePrefix(NON_DEFAULT_TABLE_PREFIX)
-                .overflowTablePrefix(NON_DEFAULT_OVERFLOW_TABLE_PREFIX)
+        DbKeyValueServiceConfig kvsConfigWithNonDefaultPrefix = ImmutableDbKeyValueServiceConfig.builder()
+                .from(dbKeyValueServiceConfig)
+                .ddl(ImmutableOracleDdlConfig.builder()
+                        .from(oracleDdlConfig)
+                        .tablePrefix(NON_DEFAULT_TABLE_PREFIX)
+                        .overflowTablePrefix(NON_DEFAULT_OVERFLOW_TABLE_PREFIX)
+                        .build())
                 .build();
 
-        keyValueServiceWithNonDefaultPrefix =
-                ConnectionManagerAwareDbKvs.create(ImmutableDbKeyValueServiceConfig.builder()
-                        .from(dbKeyValueServiceConfig)
-                        .ddl(ddlConfigWithNonDefaultPrefix)
-                        .build());
+        keyValueServiceWithNonDefaultPrefix = ConnectionManagerAwareDbKvs.create(kvsConfigWithNonDefaultPrefix);
 
-        namespaceDeleterWithNonDefaultPrefix = createNamespaceDeleter(
-                ddlConfigWithNonDefaultPrefix,
-                dbKeyValueServiceConfig.connection(),
-                DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithNonDefaultPrefix),
-                MoreExecutors.newDirectExecutorService());
+        namespaceDeleterWithNonDefaultPrefix =
+                factory.createNamespaceDeleter(kvsConfigWithNonDefaultPrefix, RUNTIME_CONFIG);
 
-        OracleDdlConfig ddlConfigWithDefaultPrefixNoMapping = ImmutableOracleDdlConfig.builder()
-                .from(oracleDdlConfig)
-                .useTableMapping(false)
+        DbKeyValueServiceConfig kvsConfigWithDefaultPrefixNoMapping = ImmutableDbKeyValueServiceConfig.builder()
+                .from(dbKeyValueServiceConfig)
+                .ddl(ImmutableOracleDdlConfig.builder()
+                        .from(oracleDdlConfig)
+                        .useTableMapping(false)
+                        .build())
                 .build();
 
         keyValueServiceWithDefaultPrefixNoMapping =
-                ConnectionManagerAwareDbKvs.create(ImmutableDbKeyValueServiceConfig.builder()
-                        .from(dbKeyValueServiceConfig)
-                        .ddl(ddlConfigWithDefaultPrefixNoMapping)
-                        .build());
+                ConnectionManagerAwareDbKvs.create(kvsConfigWithDefaultPrefixNoMapping);
 
-        namespaceDeleterWithDefaultPrefixNoMapping = createNamespaceDeleter(
-                ddlConfigWithDefaultPrefixNoMapping,
-                dbKeyValueServiceConfig.connection(),
-                DbKvsOracleTestSuite.getConnectionSupplier(keyValueServiceWithDefaultPrefixNoMapping),
-                MoreExecutors.newDirectExecutorService());
+        namespaceDeleterWithDefaultPrefixNoMapping =
+                factory.createNamespaceDeleter(kvsConfigWithDefaultPrefixNoMapping, RUNTIME_CONFIG);
 
         timestampTableName = oracleDdlConfig.tablePrefix() + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName();
     }
 
-    private static NamespaceDeleter createNamespaceDeleter(
-            OracleDdlConfig ddlConfig,
-            ConnectionConfig connectionConfig,
-            ConnectionSupplier connectionSupplier,
-            ExecutorService executorService) {
-        OracleTableNameGetter oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
-
-        Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
-                tableReference,
-                connectionSupplier,
-                ddlConfig,
-                oracleTableNameGetter,
-                new TableValueStyleCache(),
-                executorService);
-
-        return new OracleNamespaceDeleter(OracleNamespaceDeleterParameters.builder()
-                .tablePrefix(ddlConfig.tablePrefix())
-                .overflowTablePrefix(ddlConfig.overflowTablePrefix())
-                .connectionSupplier(connectionSupplier)
-                .tableNameGetter(oracleTableNameGetter)
-                .oracleDdlTableFactory(ddlTableFactory)
-                .userId(connectionConfig.getDbLogin())
-                .build());
-    }
-
     @After
-    public void after() {
+    public void after() throws IOException, SQLException {
         namespaceDeleter.deleteAllDataFromNamespace();
         namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();
         namespaceDeleterWithDefaultPrefixNoMapping.deleteAllDataFromNamespace();
+        namespaceDeleter.close();
+        namespaceDeleterWithDefaultPrefixNoMapping.close();
+        namespaceDeleterWithNonDefaultPrefix.close();
+        // We don't close the connectionManager because that is managed by the TestResourceManager
     }
 
     @Test

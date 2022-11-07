@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.CharMatcher;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.logsafe.Unsafe;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import javax.annotation.concurrent.Immutable;
  *
  * @author jtamer
  */
+@Unsafe
 @Immutable
 public class LockDescriptor implements Comparable<LockDescriptor>, Serializable {
 
