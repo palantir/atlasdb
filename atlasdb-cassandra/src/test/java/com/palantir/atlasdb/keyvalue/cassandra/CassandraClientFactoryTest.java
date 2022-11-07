@@ -45,6 +45,7 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.junit.Test;
 
 public class CassandraClientFactoryTest {
@@ -77,7 +78,7 @@ public class CassandraClientFactoryTest {
     private PooledObject<CassandraClient> pooledClient = new DefaultPooledObject<>(client);
 
     @Test
-    public void validateObjectReliesOnOpennessOfUnderlyingTransport() {
+    public void validateObjectReliesOnOpennessOfUnderlyingTransport() throws TTransportException {
         when(client.getOutputProtocol()).thenReturn(new TCompactProtocol(new TMemoryInputTransport(), 31337, 131072));
         assertThat(FACTORY.validateObject(pooledClient)).isTrue();
     }
