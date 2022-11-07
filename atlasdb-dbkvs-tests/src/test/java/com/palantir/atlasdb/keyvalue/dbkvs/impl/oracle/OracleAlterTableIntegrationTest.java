@@ -45,29 +45,19 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class OracleAlterTableTest {
+public final class OracleAlterTableIntegrationTest {
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(() -> DbKvsOracleTestSuite.createKvs());
 
     private static final Namespace NAMESPACE = Namespace.create("test_namespace");
     private static final TableReference TABLE_REFERENCE = TableReference.create(NAMESPACE, "foo");
-
-    private static final DbKeyValueServiceConfig CONFIG = ImmutableDbKeyValueServiceConfig.builder()
-            .from(DbKvsOracleTestSuite.getKvsConfig())
-            .ddl(ImmutableOracleDdlConfig.builder()
-                    .overflowMigrationState(OverflowMigrationState.FINISHED)
-                    .build())
-            .build();
-
     private static final DbKeyValueServiceConfig CONFIG_WITH_ALTER = ImmutableDbKeyValueServiceConfig.builder()
-            .from(CONFIG)
+            .from(DbKvsOracleTestSuite.getKvsConfig())
             .ddl(ImmutableOracleDdlConfig.builder()
                     .overflowMigrationState(OverflowMigrationState.FINISHED)
                     .addAlterTablesOrMetadataToMatch(TABLE_REFERENCE)
                     .build())
             .build();
-
-    @ClassRule
-    public static final TestResourceManager TRM =
-            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(CONFIG));
 
     private static final String COLUMN_NAME = "variable";
 
@@ -81,62 +71,70 @@ public class OracleAlterTableTest {
             .singleNamedColumn("var", COLUMN_NAME, ValueType.FIXED_LONG)
             .build();
 
-    private static final Cell DEFAULT_CELL = createCell("foo", "bar");
+    private static final Cell DEFAULT_CELL_1 = createCell("foo", "bar");
     private static final Cell DEFAULT_CELL_2 = createCell("something", "bar");
 
     private static final byte[] DEFAULT_VALUE = PtBytes.toBytes("amazing");
-    private static final long TIMESTAMP = 1L;
+    private static final long TIMESTAMP_1 = 1L;
+    private static final long TIMESTAMP_2 = 2L;
 
-    private ConnectionManagerAwareDbKvs defaultKvs;
+    private static final Map<Cell, byte[]> ROW_1 = Map.of(DEFAULT_CELL_1, DEFAULT_VALUE);
+    private static final Map<Cell, byte[]> ROW_2 = Map.of(DEFAULT_CELL_2, DEFAULT_VALUE);
+
+    private KeyValueService defaultKvs;
     private ConnectionSupplier connectionSupplier;
     private OracleTableNameGetter oracleTableNameGetter;
 
     @Before
-    public void setup() {
-        defaultKvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
+    public void before() {
+        defaultKvs = TRM.getDefaultKvs();
         connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(defaultKvs);
-        oracleTableNameGetter = OracleTableNameGetterImpl.createDefault((OracleDdlConfig) CONFIG.ddl());
+        oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(
+                (OracleDdlConfig) DbKvsOracleTestSuite.getKvsConfig().ddl());
     }
 
     @After
-    public void tearDown() {
+    public void after() {
         defaultKvs.dropTables(defaultKvs.getAllTableNames());
+        defaultKvs.dropTable(DbKvsOracleTestSuite.getKvsConfig().ddl().metadataTable());
         connectionSupplier.close();
     }
 
     @Test
     public void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable() {
         defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        writeData(defaultKvs);
-        assertThatDataCanBeRead(defaultKvs);
-        dropOverflowColumn(defaultKvs);
+        writeData(defaultKvs, ROW_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+
+        dropOverflowColumn();
         defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
-        assertThatThrownBy(() -> fetchData(defaultKvs));
-        ConnectionManagerAwareDbKvs workingKvs = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        assertThatThrownBy(() -> fetchData(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1));
+
+        KeyValueService workingKvs = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
         workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        assertThatDataCanBeRead(workingKvs);
-        assertThatOverflowColumnExists(workingKvs);
-        assertThatDataCanBeWritten(workingKvs);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+        assertThatOverflowColumnExists();
+        assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2);
     }
 
     @Test
     public void whenConfiguredAlterTableDoesNothingWhenMatching() {
-        ConnectionManagerAwareDbKvs kvsWithAlter = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        KeyValueService kvsWithAlter = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        writeData(kvsWithAlter);
-        assertThatDataCanBeRead(defaultKvs);
+        writeData(defaultKvs, ROW_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+
+        kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        writeData(defaultKvs, ROW_2, TIMESTAMP_2);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2);
     }
 
-    private void assertThatDataCanBeWritten(ConnectionManagerAwareDbKvs kvs) {
-        assertThatCode(() -> kvs.put(TABLE_REFERENCE, Map.of(DEFAULT_CELL_2, DEFAULT_VALUE), TIMESTAMP))
-                .doesNotThrowAnyException();
-    }
-
-    private void assertThatOverflowColumnExists(ConnectionManagerAwareDbKvs kvs) {
+    private void assertThatOverflowColumnExists() {
         assertThatCode(() -> {
                     String tableName =
                             oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
-                    boolean columnExists = kvs.getSqlConnectionSupplier()
+                    boolean columnExists = connectionSupplier
                             .get()
                             .selectExistsUnregisteredQuery(
                                     "SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'",
@@ -146,31 +144,29 @@ public class OracleAlterTableTest {
                 .doesNotThrowAnyException();
     }
 
-    private void dropOverflowColumn(ConnectionManagerAwareDbKvs kvs) {
+    private void dropOverflowColumn() {
         try {
             String tableName = oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
-            kvs.getSqlConnectionSupplier()
-                    .get()
-                    .executeUnregisteredQuery("ALTER TABLE " + tableName + " DROP COLUMN overflow");
+            connectionSupplier.get().executeUnregisteredQuery("ALTER TABLE " + tableName + " DROP COLUMN overflow");
         } catch (TableMappingNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static void writeData(KeyValueService kvs) {
-        kvs.put(TABLE_REFERENCE, Map.of(DEFAULT_CELL, DEFAULT_VALUE), TIMESTAMP);
+    private static void writeData(KeyValueService kvs, Map<Cell, byte[]> value, long timestamp) {
+        kvs.put(TABLE_REFERENCE, value, timestamp);
     }
 
-    private static Map<Cell, Value> fetchData(KeyValueService kvs) {
-        return kvs.get(TABLE_REFERENCE, Map.of(DEFAULT_CELL, TIMESTAMP + 1));
+    private static Map<Cell, Value> fetchData(KeyValueService kvs, Cell cell, long timestamp) {
+        return kvs.get(TABLE_REFERENCE, Map.of(cell, timestamp + 1));
     }
 
-    private static void assertThatDataCanBeRead(KeyValueService kvs) {
-        Map<Cell, Value> values = fetchData(kvs);
+    private static void assertThatDataCanBeRead(KeyValueService kvs, Cell cell, long timestamp) {
+        Map<Cell, Value> values = fetchData(kvs, cell, timestamp);
         assertThat(values).hasSize(1);
-        assertThat(values).containsKey(DEFAULT_CELL);
-        Value value = values.get(DEFAULT_CELL);
-        assertThat(value.getTimestamp()).isEqualTo(TIMESTAMP);
+        assertThat(values).containsKey(DEFAULT_CELL_1);
+        Value value = values.get(DEFAULT_CELL_1);
+        assertThat(value.getTimestamp()).isEqualTo(TIMESTAMP_1);
         assertThat(value.getContents()).isEqualTo(DEFAULT_VALUE);
     }
 

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -53,12 +52,6 @@ import org.apache.commons.lang3.StringUtils;
 public final class OracleDdlTable implements DbDdlTable {
     private static final SafeLogger log = SafeLoggerFactory.get(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
-
-    @VisibleForTesting
-    static final String MISSING_OVERFLOW_TABLE_MESSAGE =
-            "Unsupported table change from raw to overflow, likely due to a schema change. "
-                    + "Changing the table type requires manual intervention. Please roll back the change or "
-                    + "contact support for help with the change.";
 
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
@@ -103,7 +96,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 if (existingStyle != TableValueStyle.OVERFLOW) {
                     throwForMissingOverflowTable();
                 }
-                maybeAlterTableToHaveOverflow();
+                maybeAlterTableToHaveOverflowColumn();
             }
             return;
         }
@@ -123,18 +116,19 @@ public final class OracleDdlTable implements DbDdlTable {
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
     }
 
-    private void maybeAlterTableToHaveOverflow() {
-        try {
-            String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
-
-            if (config.alterTablesOrMetadataToMatch().contains(tableRef)
-                    && overflowTableHasMigrated()
-                    && overflowTableExists()
-                    && !overflowColumnExists(shortTableName)) {
-                alterTableToHaveOverflowColumn(shortTableName);
+    private void maybeAlterTableToHaveOverflowColumn() {
+        if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
+            try {
+                String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+                if (overflowTableHasMigrated() && overflowTableExists() && !overflowColumnExists(shortTableName)) {
+                    alterTableToHaveOverflowColumn(shortTableName);
+                }
+            } catch (TableMappingNotFoundException e) {
+                log.warn(
+                        "Table mapping expected but not found for table when trying to alter table to match metadata.",
+                        UnsafeArg.of("tableRef", tableRef),
+                        e);
             }
-        } catch (TableMappingNotFoundException e) {
-            log.warn("Table mapping expected but not found for table.", UnsafeArg.of("tableRef", tableRef), e);
         }
     }
 
@@ -171,22 +165,25 @@ public final class OracleDdlTable implements DbDdlTable {
                         tableRef.getQualifiedName());
     }
 
-    private boolean overflowTableExists() {
-        try {
-            String shortTableName = oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
-            return conns.get()
-                    .selectExistsUnregisteredQuery(
-                            "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase());
-        } catch (TableMappingNotFoundException e) {
-            log.warn("Table mapping does not exist but is expected for overflow table.", e);
-            return false;
-        }
+    private boolean overflowTableExists() throws TableMappingNotFoundException {
+        String shortTableName = oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
+        return conns.get()
+                .selectExistsUnregisteredQuery(
+                        "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase());
     }
 
     private void throwForMissingOverflowTable() {
-        throw new SafeIllegalArgumentException(MISSING_OVERFLOW_TABLE_MESSAGE, LoggingArgs.tableRef(tableRef));
+        throw new SafeIllegalArgumentException(
+                "Unsupported table change from raw to overflow, likely due to a schema change. "
+                        + "Changing the table type requires manual intervention. Please roll back the change or "
+                        + "contact support for help with the change.",
+                LoggingArgs.tableRef(tableRef));
     }
 
+    /**
+     * Creates the table for the given reference. If the table needs to be modified (i.e. to add an overflow column),
+     * then please see {@link #alterTableToHaveOverflowColumn}.
+     */
     private String createTable(boolean needsOverflow) {
         String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
         executeIgnoringError(

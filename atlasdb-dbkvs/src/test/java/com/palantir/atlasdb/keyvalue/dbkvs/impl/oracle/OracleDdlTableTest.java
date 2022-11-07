@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -79,6 +78,9 @@ public final class OracleDdlTableTest {
     private static final String INTERNAL_TABLE_NAME = "iaminternal";
     private static final String INTERNAL_OVERFLOW_TABLE_NAME = "iaminternaloverflow";
 
+    private static final String MISSING_OVERFLOW_EXCEPTION_MESSAGE =
+            "Unsupported table change from raw to overflow, likely due to a schema change.";
+
     @Mock
     private ConnectionSupplier connectionSupplier;
 
@@ -88,14 +90,15 @@ public final class OracleDdlTableTest {
     @Mock
     private SqlConnection sqlConnection;
 
+    @Mock
     private TableValueStyleCache tableValueStyleCache;
+
     private OracleDdlTable tableMappingDdlTable;
     private OracleDdlTable nonTableMappingDdlTable;
     private ExecutorService executorService;
 
     @Before
     public void before() {
-        tableValueStyleCache = mock(TableValueStyleCache.class);
         executorService = PTExecutors.newSingleThreadExecutor();
         tableMappingDdlTable = createOracleDdlTable(TABLE_MAPPING_DEFAULT_CONFIG);
         nonTableMappingDdlTable = createOracleDdlTable(NON_TABLE_MAPPING_DEFAULT_CONFIG);
@@ -110,8 +113,7 @@ public final class OracleDdlTableTest {
 
     @Test
     public void dropTablesDropsAllPhysicalTablesWithPurge() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         tableMappingDdlTable.drop();
 
@@ -143,8 +145,7 @@ public final class OracleDdlTableTest {
 
     @Test
     public void dropTablesDeletesTableMappingIfTableMappingConfigured() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         tableMappingDdlTable.drop();
 
@@ -160,8 +161,7 @@ public final class OracleDdlTableTest {
 
     @Test
     public void dropTablesDoesNotDeleteTableMappingIfTableMappingNotConfigured() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         nonTableMappingDdlTable.drop();
 
@@ -171,8 +171,7 @@ public final class OracleDdlTableTest {
 
     @Test
     public void dropTablesDeletesTableMetadataCaseSensitively() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         tableMappingDdlTable.drop();
 
@@ -186,8 +185,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDeletesTableMetadataCaseInsensitivelyIfCaseInsensitiveSet()
             throws TableMappingNotFoundException {
         when(sqlConnection.selectCount(any(), any(), any())).thenReturn(1L);
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         tableMappingDdlTable.drop(CaseSensitivity.CASE_INSENSITIVE);
 
@@ -203,8 +201,7 @@ public final class OracleDdlTableTest {
             throws TableMappingNotFoundException {
         long numberOfMatchingTableReferences = 2;
         when(sqlConnection.selectCount(any(), any(), any())).thenReturn(numberOfMatchingTableReferences);
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         assertThatLoggableExceptionThrownBy(() -> tableMappingDdlTable.drop(CaseSensitivity.CASE_INSENSITIVE))
                 .hasLogMessage("There are multiple tables that have the same case insensitive table reference."
@@ -221,26 +218,23 @@ public final class OracleDdlTableTest {
             throws TableMappingNotFoundException {
         // This mock is never called on the case sensitive code path, but this makes the test easier to read.
         lenient().when(sqlConnection.selectCount(any(), any(), any())).thenReturn((long) 2);
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
 
         assertThatCode(() -> tableMappingDdlTable.drop()).doesNotThrowAnyException();
     }
 
     @Test
     public void createAltersTableIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
         setTableToHaveOverflowColumn(false);
         setMetadataToHaveOverflow(true);
-        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
+        tableMappingDdlTable.create(createMetadata(true));
         verifyNumberOfTimesTableAltered(1);
     }
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButOverflowColumnExists() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
         setTableToHaveOverflowColumn(true);
         setMetadataToHaveOverflow(true);
         assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
@@ -249,23 +243,24 @@ public final class OracleDdlTableTest {
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButMigrationUnstarted() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
         setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(false);
         OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
                 .from(TABLE_MAPPING_DEFAULT_CONFIG)
                 .overflowMigrationState(OverflowMigrationState.UNSTARTED)
                 .build());
         assertThatThrownBy(() -> ddlTable.create(createMetadata(true)))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(OracleDdlTable.MISSING_OVERFLOW_TABLE_MESSAGE);
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
         verifyNumberOfTimesTableAltered(0);
     }
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButOverflowColumnIsNotNeeded() throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(false);
         assertThatCode(() -> tableMappingDdlTable.create(createMetadata(false))).doesNotThrowAnyException();
         verifyNumberOfTimesTableAltered(0);
     }
@@ -273,21 +268,21 @@ public final class OracleDdlTableTest {
     @Test
     public void createDoesNothingIfOverflowColumnNeededButTableNotListedInConfig()
             throws TableMappingNotFoundException {
-        createTable();
-        createOverflowTable();
+        createTableAndOverflow();
         setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(false);
         OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
                 .from(TABLE_MAPPING_DEFAULT_CONFIG)
                 .alterTablesOrMetadataToMatch(Set.of())
                 .build());
         assertThatThrownBy(() -> ddlTable.create(createMetadata(true)))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(OracleDdlTable.MISSING_OVERFLOW_TABLE_MESSAGE);
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
         verifyNumberOfTimesTableAltered(0);
     }
 
     private void createTable() throws TableMappingNotFoundException {
-        // We do not always create the table, thus this is sometimes not used
+        // Not all tests will call OracleDdlTable#createTable, which makes sense as this test "creates" it for them!
         lenient()
                 .when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_TABLE_NAME);
@@ -310,6 +305,11 @@ public final class OracleDdlTableTest {
                         eq("SELECT 1 FROM user_tables WHERE TABLE_NAME = ?"),
                         eq(INTERNAL_OVERFLOW_TABLE_NAME.toUpperCase())))
                 .thenReturn(true);
+    }
+
+    private void createTableAndOverflow() throws TableMappingNotFoundException {
+        createTable();
+        createOverflowTable();
     }
 
     private void verifyTableDeleted(String tableName) {
