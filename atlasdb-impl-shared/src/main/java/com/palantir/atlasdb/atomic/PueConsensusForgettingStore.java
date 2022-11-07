@@ -46,18 +46,13 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
     }
 
     @Override
-    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
+    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> updates) {
         try {
-            kvs.putUnlessExists(tableRef, values);
+            kvs.putUnlessExists(tableRef, updates);
         } catch (KeyAlreadyExistsException ex) {
-            return ImmutableAtomicUpdateResult.builder()
-                    .addAllExistingKeys(ex.getExistingKeys())
-                    .addAllKnownSuccessfullyCommittedKeys(ex.getKnownSuccessfullyCommittedKeys())
-                    .build();
+            return AtomicUpdateResult.create(ex.getKnownSuccessfullyCommittedKeys(), ex.getExistingKeys());
         }
-        return ImmutableAtomicUpdateResult.builder()
-                .addAllKnownSuccessfullyCommittedKeys(values.keySet())
-                .build();
+        return AtomicUpdateResult.success(updates.keySet());
     }
 
     @Override

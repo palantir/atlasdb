@@ -41,7 +41,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -106,22 +105,17 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      */
     @Override
     public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
-        List<Cell> successfulUpdates = new ArrayList<>();
-        List<Cell> keysAlreadyExist = new ArrayList<>();
+        ImmutableList.Builder<Cell> committedKeys = ImmutableList.builder();
+        ImmutableList.Builder<Cell> existingKeys = ImmutableList.builder();
 
-        // todo(snanda): refactor
-        for (Map.Entry<Cell, byte[]> entry : values.entrySet()) {
-            AtomicUpdateResult updateResult = this.atomicUpdate(entry.getKey(), entry.getValue());
-            if (!updateResult.knownSuccessfullyCommittedKeys().isEmpty()) {
-                successfulUpdates.add(entry.getKey());
-            } else {
-                keysAlreadyExist.add(entry.getKey());
-            }
-        }
-        return ImmutableAtomicUpdateResult.builder()
-                .addAllExistingKeys(keysAlreadyExist)
-                .addAllKnownSuccessfullyCommittedKeys(successfulUpdates)
-                .build();
+        values.entrySet().stream()
+                .map(entry -> atomicUpdate(entry.getKey(), entry.getValue()))
+                .forEach(updateResult -> {
+                    committedKeys.addAll(updateResult.knownSuccessfullyCommittedKeys());
+                    existingKeys.addAll(updateResult.existingKeys());
+                });
+
+        return AtomicUpdateResult.create(committedKeys.build(), existingKeys.build());
     }
 
     @Override

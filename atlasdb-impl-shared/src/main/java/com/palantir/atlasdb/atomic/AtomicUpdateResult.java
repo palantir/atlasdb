@@ -18,6 +18,7 @@ package com.palantir.atlasdb.atomic;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.logsafe.Unsafe;
+import java.util.Collection;
 import org.immutables.value.Value;
 
 @Unsafe
@@ -26,4 +27,29 @@ public interface AtomicUpdateResult {
     ImmutableList<Cell> knownSuccessfullyCommittedKeys();
 
     ImmutableList<Cell> existingKeys();
+
+    static AtomicUpdateResult create(Collection<Cell> committed, Collection<Cell> existing) {
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllKnownSuccessfullyCommittedKeys(committed)
+                .existingKeys(existing)
+                .build();
+    }
+
+    static AtomicUpdateResult success(Collection<Cell> committed) {
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllKnownSuccessfullyCommittedKeys(committed)
+                .build();
+    }
+
+    static AtomicUpdateResult success(Cell committed) {
+        return ImmutableAtomicUpdateResult.builder()
+                .addKnownSuccessfullyCommittedKeys(committed)
+                .build();
+    }
+
+    static AtomicUpdateResult keyAlreadyExists(Collection<Cell> existingKeys) {
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllExistingKeys(existingKeys)
+                .build();
+    }
 }

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.atomic;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -242,37 +243,27 @@ abstract class CassandraImitatingConsensusForgettingStore implements ConsensusFo
                 writeToQuorum(cell, quorumNodes, value);
             });
         } catch (KeyAlreadyExistsException ex) {
-            return ImmutableAtomicUpdateResult.builder()
-                    .addAllExistingKeys(ex.getExistingKeys())
-                    .build();
+            return AtomicUpdateResult.keyAlreadyExists(ex.getExistingKeys());
         }
-        return ImmutableAtomicUpdateResult.builder()
-                .addKnownSuccessfullyCommittedKeys(cell)
-                .build();
+        return AtomicUpdateResult.success(cell);
     }
 
     @Override
     public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
+        ImmutableList.Builder<Cell> committedKeys = ImmutableList.builder();
+        ImmutableList.Builder<Cell> existingKeys = ImmutableList.builder();
+
+        // Todo(snanda): there is too much repetition :(
         // sort by cells to avoid deadlock
-        List<Entry<Cell, byte[]>> entries =
-                values.entrySet().stream().sorted(Entry.comparingByKey()).collect(Collectors.toList());
+        values.entrySet().stream()
+                .sorted(Entry.comparingByKey())
+                .map(entry -> atomicUpdate(entry.getKey(), entry.getValue()))
+                .forEach(updateResult -> {
+                    committedKeys.addAll(updateResult.knownSuccessfullyCommittedKeys());
+                    existingKeys.addAll(updateResult.existingKeys());
+                });
 
-        List<Cell> successfulUpdates = new ArrayList<>();
-        List<Cell> keysAlreadyExist = new ArrayList<>();
-
-        // todo(snanda): refactor
-        for (Entry<Cell, byte[]> entry : entries) {
-            AtomicUpdateResult updateResult = this.atomicUpdate(entry.getKey(), entry.getValue());
-            if (!updateResult.knownSuccessfullyCommittedKeys().isEmpty()) {
-                successfulUpdates.add(entry.getKey());
-            } else {
-                keysAlreadyExist.add(entry.getKey());
-            }
-        }
-        return ImmutableAtomicUpdateResult.builder()
-                .addAllExistingKeys(keysAlreadyExist)
-                .addAllKnownSuccessfullyCommittedKeys(successfulUpdates)
-                .build();
+        return AtomicUpdateResult.create(committedKeys.build(), existingKeys.build());
     }
 
     @Value.Immutable
