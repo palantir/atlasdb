@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicUpdateResult;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
-import com.palantir.atlasdb.atomic.ImmutableAtomicUpdateResult;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStoreImpl;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -199,14 +198,10 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     private AtomicUpdateResult getResultForFuture(CasRequest casRequest) {
         try {
             autobatcher.apply(casRequest).get();
-            return ImmutableAtomicUpdateResult.builder()
-                    .addKnownSuccessfullyCommittedKeys(casRequest.cell())
-                    .build();
+            return AtomicUpdateResult.success(casRequest.cell());
         } catch (Exception ex) {
             if (ex.getCause() instanceof KeyAlreadyExistsException) {
-                return ImmutableAtomicUpdateResult.builder()
-                        .addExistingKeys(casRequest.cell())
-                        .build();
+                return AtomicUpdateResult.keyAlreadyExists(casRequest.cell());
             }
             throw new SafeRuntimeException("Could not execute atomic update", ex);
         }

@@ -52,4 +52,10 @@ public interface AtomicUpdateResult {
                 .addAllExistingKeys(existingKeys)
                 .build();
     }
+
+    static AtomicUpdateResult keyAlreadyExists(Cell existingKey) {
+        return ImmutableAtomicUpdateResult.builder()
+                .addExistingKeys(existingKey)
+                .build();
+    }
 }
