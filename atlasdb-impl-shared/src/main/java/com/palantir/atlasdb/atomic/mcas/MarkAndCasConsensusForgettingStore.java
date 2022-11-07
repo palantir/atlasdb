@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.atomic.AtomicUpdateResult;
 import com.palantir.atlasdb.atomic.ConsensusForgettingStore;
+import com.palantir.atlasdb.atomic.ImmutableAtomicUpdateResult;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStore;
 import com.palantir.atlasdb.atomic.ReadableConsensusForgettingStoreImpl;
 import com.palantir.atlasdb.autobatch.Autobatchers;
@@ -40,12 +41,12 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingStore {
@@ -93,8 +94,8 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      */
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
-        return getResultForFuture(
-                autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value))));
+        ImmutableCasRequest casRequest = ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value));
+        return getResultForFuture(casRequest);
     }
 
     /**
@@ -102,12 +103,25 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      * and does not guarantee atomicity across cells.
      * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
      * atomically.
-     * */
+     */
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
-        return KeyedStream.stream(values)
-                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
-                .collectToMap();
+    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
+        List<Cell> successfulUpdates = new ArrayList<>();
+        List<Cell> keysAlreadyExist = new ArrayList<>();
+
+        // todo(snanda): refactor
+        for (Map.Entry<Cell, byte[]> entry : values.entrySet()) {
+            AtomicUpdateResult updateResult = this.atomicUpdate(entry.getKey(), entry.getValue());
+            if (!updateResult.knownSuccessfullyCommittedKeys().isEmpty()) {
+                successfulUpdates.add(entry.getKey());
+            } else {
+                keysAlreadyExist.add(entry.getKey());
+            }
+        }
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllExistingKeys(keysAlreadyExist)
+                .addAllKnownSuccessfullyCommittedKeys(successfulUpdates)
+                .build();
     }
 
     @Override
@@ -188,13 +202,17 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         return casRequest.expected().equals(ByteBuffer.wrap(ex.getActualValues().get(cell)));
     }
 
-    private AtomicUpdateResult getResultForFuture(ListenableFuture<Void> future) {
+    private AtomicUpdateResult getResultForFuture(CasRequest casRequest) {
         try {
-            future.get();
-            return AtomicUpdateResult.success();
+            autobatcher.apply(casRequest).get();
+            return ImmutableAtomicUpdateResult.builder()
+                    .addKnownSuccessfullyCommittedKeys(casRequest.cell())
+                    .build();
         } catch (Exception ex) {
             if (ex.getCause() instanceof KeyAlreadyExistsException) {
-                return AtomicUpdateResult.failure((KeyAlreadyExistsException) ex.getCause());
+                return ImmutableAtomicUpdateResult.builder()
+                        .addExistingKeys(casRequest.cell())
+                        .build();
             }
             throw new SafeRuntimeException("Could not execute atomic update", ex);
         }

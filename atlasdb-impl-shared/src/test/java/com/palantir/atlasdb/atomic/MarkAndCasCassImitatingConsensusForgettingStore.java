@@ -17,16 +17,8 @@
 package com.palantir.atlasdb.atomic;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.common.streams.KeyedStream;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 public final class MarkAndCasCassImitatingConsensusForgettingStore extends CassandraImitatingConsensusForgettingStore {
     @VisibleForTesting
@@ -34,45 +26,6 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
 
     public MarkAndCasCassImitatingConsensusForgettingStore(double probabilityOfFailure) {
         super(probabilityOfFailure);
-    }
-
-    /**
-     * Atomically performs a read (potentially propagating newest read value) and if the cell is marked on any of
-     * the nodes in a quorum, writes the value to those nodes.
-     *
-     * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
-     * changed between the read and the write.
-     *
-     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
-     * {@link AtomicUpdateResult} with {@link CheckAndSetException} with detail if there is a value
-     * present against this key.
-     */
-    @Override
-    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
-        try {
-            runAtomically(cell, () -> {
-                Set<Node> quorumNodes = getQuorumNodes();
-                Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
-                if (readResult
-                        .map(BytesAndTimestamp::bytes)
-                        .filter(read -> Arrays.equals(read, IN_PROGRESS_MARKER))
-                        .isEmpty()) {
-                    throw new KeyAlreadyExistsException("Key already exists", ImmutableList.of(cell));
-                }
-                writeToQuorum(cell, quorumNodes, value);
-            });
-        } catch (KeyAlreadyExistsException ex) {
-            return AtomicUpdateResult.failure(ex);
-        }
-        return AtomicUpdateResult.success();
-    }
-
-    @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
-        // sort by cells to avoid deadlock
-        return KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
-                .map((BiFunction<Cell, byte[], AtomicUpdateResult>) this::atomicUpdate)
-                .collectToMap();
     }
 
     @Override

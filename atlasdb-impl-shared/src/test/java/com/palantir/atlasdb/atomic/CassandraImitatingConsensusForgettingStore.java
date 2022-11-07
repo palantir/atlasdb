@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -215,6 +217,62 @@ abstract class CassandraImitatingConsensusForgettingStore implements ConsensusFo
 
     private ReentrantReadWriteLock getReentrantReadWriteLockForCell(Cell cell) {
         return locks.computeIfAbsent(cell, _ignore -> new ReentrantReadWriteLock());
+    }
+
+    /**
+     * Atomically performs a read (potentially propagating newest read value) and if there is no value present on any of
+     * the nodes in a quorum, writes the value to those nodes.
+     *
+     * This operation is guarded by a write lock on cell to prevent the values on any of the quorum of nodes from being
+     * changed between the read and the write.
+     *
+     * @return {@link AtomicUpdateResult} with success if the atomic update was successful. Else,
+     * {@link AtomicUpdateResult} with {@link KeyAlreadyExistsException} with detail if there is a value
+     * present against this key.
+     */
+    @Override
+    public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
+        try {
+            runAtomically(cell, () -> {
+                Set<Node> quorumNodes = getQuorumNodes();
+                Optional<BytesAndTimestamp> readResult = getInternal(cell, quorumNodes);
+                if (readResult.isPresent()) {
+                    throw new KeyAlreadyExistsException("The cell was not empty", ImmutableSet.of(cell));
+                }
+                writeToQuorum(cell, quorumNodes, value);
+            });
+        } catch (KeyAlreadyExistsException ex) {
+            return ImmutableAtomicUpdateResult.builder()
+                    .addAllExistingKeys(ex.getExistingKeys())
+                    .build();
+        }
+        return ImmutableAtomicUpdateResult.builder()
+                .addKnownSuccessfullyCommittedKeys(cell)
+                .build();
+    }
+
+    @Override
+    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
+        // sort by cells to avoid deadlock
+        List<Entry<Cell, byte[]>> entries =
+                values.entrySet().stream().sorted(Entry.comparingByKey()).collect(Collectors.toList());
+
+        List<Cell> successfulUpdates = new ArrayList<>();
+        List<Cell> keysAlreadyExist = new ArrayList<>();
+
+        // todo(snanda): refactor
+        for (Entry<Cell, byte[]> entry : entries) {
+            AtomicUpdateResult updateResult = this.atomicUpdate(entry.getKey(), entry.getValue());
+            if (!updateResult.knownSuccessfullyCommittedKeys().isEmpty()) {
+                successfulUpdates.add(entry.getKey());
+            } else {
+                keysAlreadyExist.add(entry.getKey());
+            }
+        }
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllExistingKeys(keysAlreadyExist)
+                .addAllKnownSuccessfullyCommittedKeys(successfulUpdates)
+                .build();
     }
 
     @Value.Immutable

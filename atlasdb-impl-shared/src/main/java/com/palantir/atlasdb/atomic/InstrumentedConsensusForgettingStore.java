@@ -70,7 +70,7 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
         return delegate.atomicUpdate(values);
     }
 

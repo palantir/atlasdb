@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
@@ -43,21 +42,22 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public AtomicUpdateResult atomicUpdate(Cell cell, byte[] value) {
-        return atomicUpdate(ImmutableMap.of(cell, value)).get(cell);
+        return atomicUpdate(ImmutableMap.of(cell, value));
     }
 
     @Override
-    public Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values) {
+    public AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values) {
         try {
             kvs.putUnlessExists(tableRef, values);
         } catch (KeyAlreadyExistsException ex) {
-            return KeyedStream.stream(values)
-                    .map(_u -> AtomicUpdateResult.failure(ex))
-                    .collectToMap();
+            return ImmutableAtomicUpdateResult.builder()
+                    .addAllExistingKeys(ex.getExistingKeys())
+                    .addAllKnownSuccessfullyCommittedKeys(ex.getKnownSuccessfullyCommittedKeys())
+                    .build();
         }
-        return KeyedStream.stream(values)
-                .map(_u -> AtomicUpdateResult.success())
-                .collectToMap();
+        return ImmutableAtomicUpdateResult.builder()
+                .addAllKnownSuccessfullyCommittedKeys(values.keySet())
+                .build();
     }
 
     @Override

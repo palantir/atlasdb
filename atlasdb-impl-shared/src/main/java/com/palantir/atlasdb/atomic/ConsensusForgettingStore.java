@@ -62,7 +62,7 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      * depending on the underlying implementation.
      * @return atomic update result for each individual cell
      */
-    Map<Cell, AtomicUpdateResult> atomicUpdate(Map<Cell, byte[]> values);
+    AtomicUpdateResult atomicUpdate(Map<Cell, byte[]> values);
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

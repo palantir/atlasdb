@@ -45,7 +45,8 @@ public class PueCassImitatingConsensusForgettingStoreTest {
 
     @Test
     public void canGetAfterPue() throws ExecutionException, InterruptedException {
-        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        AtomicUpdateResult atomicUpdateResult = neverFailing.atomicUpdate(CELL, VALUE);
+        assertSuccessfulResponse(CELL, atomicUpdateResult);
         assertThat(neverFailing.get(CELL).get()).contains(VALUE);
     }
 
@@ -57,25 +58,32 @@ public class PueCassImitatingConsensusForgettingStoreTest {
 
     @Test
     public void putOverwritesPue() throws ExecutionException, InterruptedException {
-        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        AtomicUpdateResult atomicUpdateResult = neverFailing.atomicUpdate(CELL, VALUE);
+        assertSuccessfulResponse(CELL, atomicUpdateResult);
         neverFailing.put(CELL, VALUE_2);
         assertThat(neverFailing.get(CELL).get()).hasValue(VALUE_2);
     }
 
     @Test
     public void cannotPueTwice() {
-        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
-        AtomicUpdateResult secondPueResult = neverFailing.atomicUpdate(CELL, VALUE);
-        assertThat(secondPueResult.isSuccess()).isFalse();
-        assertThat(secondPueResult.maybeException().get()).isInstanceOf(KeyAlreadyExistsException.class);
-        KeyAlreadyExistsException keyAlreadyExistsException =
-                (KeyAlreadyExistsException) secondPueResult.maybeException().get();
-        assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(CELL);
+        assertSuccessfulResponse(CELL, neverFailing.atomicUpdate(CELL, VALUE));
+        // second pue fails
+        assertFailedRequest(CELL, neverFailing.atomicUpdate(CELL, VALUE));
+    }
+
+    private static void assertSuccessfulResponse(Cell cell, AtomicUpdateResult atomicUpdateResult) {
+        assertThat(atomicUpdateResult.knownSuccessfullyCommittedKeys()).containsExactly(cell);
+        assertThat(atomicUpdateResult.existingKeys()).isEmpty();
+    }
+
+    private static void assertFailedRequest(Cell cell, AtomicUpdateResult atomicUpdateResult) {
+        assertThat(atomicUpdateResult.existingKeys()).containsExactly(cell);
+        assertThat(atomicUpdateResult.knownSuccessfullyCommittedKeys()).isEmpty();
     }
 
     @Test
     public void canTouchAfterPue() throws ExecutionException, InterruptedException {
-        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        assertSuccessfulResponse(CELL, neverFailing.atomicUpdate(CELL, VALUE));
         neverFailing.checkAndTouch(CELL, VALUE);
         assertThat(neverFailing.get(CELL).get()).hasValue(VALUE);
     }
@@ -87,7 +95,7 @@ public class PueCassImitatingConsensusForgettingStoreTest {
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
                         .isEmpty());
 
-        assertThat(neverFailing.atomicUpdate(CELL, VALUE).isSuccess()).isTrue();
+        assertSuccessfulResponse(CELL, neverFailing.atomicUpdate(CELL, VALUE));
         assertThatThrownBy(() -> neverFailing.checkAndTouch(CELL, VALUE_2))
                 .isInstanceOf(CheckAndSetException.class)
                 .satisfies(exception -> assertThat(((CheckAndSetException) exception).getActualValues())
@@ -103,8 +111,11 @@ public class PueCassImitatingConsensusForgettingStoreTest {
             Cell cell = Cell.create(PtBytes.toBytes(i), PtBytes.toBytes(i));
             try {
                 AtomicUpdateResult atomicUpdateResult = sometimesThrowing.atomicUpdate(cell, VALUE);
-                if (!atomicUpdateResult.isSuccess()) {
-                    throw atomicUpdateResult.maybeException().get();
+                if (!atomicUpdateResult.existingKeys().isEmpty()) {
+                    throw new KeyAlreadyExistsException(
+                            "Could not perform pue",
+                            atomicUpdateResult.existingKeys(),
+                            atomicUpdateResult.knownSuccessfullyCommittedKeys());
                 }
                 numberOfSuccessfulPue++;
                 sometimesThrowing.setProbabilityOfFailure(0.0);

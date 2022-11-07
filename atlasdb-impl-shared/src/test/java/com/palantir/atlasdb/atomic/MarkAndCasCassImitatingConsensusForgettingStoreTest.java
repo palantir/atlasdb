@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -78,17 +77,12 @@ public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
 
         // Second atomic update
         AtomicUpdateResult atomicUpdateResult = neverThrowing.atomicUpdate(CELL, VALUE);
-        assertThat(atomicUpdateResult.maybeException().get()).isInstanceOf(KeyAlreadyExistsException.class);
-
-        KeyAlreadyExistsException keyAlreadyExistsException =
-                (KeyAlreadyExistsException) atomicUpdateResult.maybeException().get();
-        assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(CELL);
+        assertThat(atomicUpdateResult.existingKeys()).containsExactly(CELL);
     }
 
     @Test
     public void cannotAtomicUpdateIfNotMarked() {
-        assertThat(neverThrowing.atomicUpdate(CELL, VALUE).maybeException().get())
-                .isInstanceOf(KeyAlreadyExistsException.class);
+        assertThat(neverThrowing.atomicUpdate(CELL, VALUE).existingKeys()).containsExactly(CELL);
         assertThat(Futures.getUnchecked(neverThrowing.get(CELL))).isEmpty();
     }
 

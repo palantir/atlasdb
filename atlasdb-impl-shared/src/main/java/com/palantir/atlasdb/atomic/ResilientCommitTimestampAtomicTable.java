@@ -45,9 +45,6 @@ import com.palantir.util.RateLimitedLogger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -144,23 +141,19 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
 
-        Map<Cell, AtomicUpdateResult> atomicUpdateResults = store.atomicUpdate(stagingValues);
+        AtomicUpdateResult atomicUpdateResult = store.atomicUpdate(stagingValues);
 
-        Map<Cell, byte[]> valuesToPut = new HashMap<>();
-        List<Cell> keysAlreadyExist = new ArrayList<>();
-
-        atomicUpdateResults.forEach((cell, res) -> {
-            if (res.isSuccess()) {
-                valuesToPut.put(cell, encodingStrategy.transformStagingToCommitted(stagingValues.get(cell)));
-            } else {
-                keysAlreadyExist.add(cell);
-            }
-        });
-
+        Map<Cell, byte[]> valuesToPut = KeyedStream.of(atomicUpdateResult.knownSuccessfullyCommittedKeys())
+                .map(stagingValues::get)
+                .map(encodingStrategy::transformStagingToCommitted)
+                .collectToMap();
         store.put(valuesToPut);
-        if (!keysAlreadyExist.isEmpty()) {
+
+        if (!atomicUpdateResult.existingKeys().isEmpty()) {
             throw new KeyAlreadyExistsException(
-                    "Could not process resilient update as the keys already exist in the kvs.", keysAlreadyExist);
+                    "Could not process resilient update as the keys already exist in the kvs.",
+                    atomicUpdateResult.existingKeys(),
+                    atomicUpdateResult.knownSuccessfullyCommittedKeys());
         }
     }
 

@@ -15,35 +15,15 @@
  */
 package com.palantir.atlasdb.atomic;
 
-import com.palantir.logsafe.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.logsafe.Unsafe;
-import java.util.Optional;
 import org.immutables.value.Value;
 
 @Unsafe
 @Value.Immutable
 public interface AtomicUpdateResult {
-    boolean isSuccess();
+    ImmutableList<Cell> knownSuccessfullyCommittedKeys();
 
-    // Todo(snanda): we need unified exceptions
-    Optional<RuntimeException> maybeException();
-
-    @Value.Check
-    default void check() {
-        Preconditions.checkState(
-                (isSuccess() && maybeException().isEmpty())
-                        || (!isSuccess() && maybeException().isPresent()),
-                "Should be either successful or failure with exception.");
-    }
-
-    static AtomicUpdateResult failure(RuntimeException ex) {
-        return ImmutableAtomicUpdateResult.builder()
-                .isSuccess(false)
-                .maybeException(ex)
-                .build();
-    }
-
-    static AtomicUpdateResult success() {
-        return ImmutableAtomicUpdateResult.builder().isSuccess(true).build();
-    }
+    ImmutableList<Cell> existingKeys();
 }
