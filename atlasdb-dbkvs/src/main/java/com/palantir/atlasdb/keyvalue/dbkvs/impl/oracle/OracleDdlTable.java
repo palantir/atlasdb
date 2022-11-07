@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -124,10 +125,8 @@ public final class OracleDdlTable implements DbDdlTable {
                     alterTableToHaveOverflowColumn(shortTableName);
                 }
             } catch (TableMappingNotFoundException e) {
-                log.warn(
-                        "Table mapping expected but not found for table when trying to alter table to match metadata.",
-                        UnsafeArg.of("tableRef", tableRef),
-                        e);
+                Throwables.rewrapAndThrowUncheckedException(
+                        "Unable to alter table to have overflow column due to a table mapping error.", e);
             }
         }
     }

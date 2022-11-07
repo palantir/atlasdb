@@ -281,6 +281,33 @@ public final class OracleDdlTableTest {
         verifyNumberOfTimesTableAltered(0);
     }
 
+    @Test
+    public void createThrowsWhenTableMappingMissingAndTableShouldBeAltered() throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(true);
+        when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
+                .thenThrow(new TableMappingNotFoundException("foo"));
+        assertThatThrownBy(() -> tableMappingDdlTable.create(createMetadata(true)))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Unable to alter table to have overflow column due to a table mapping error");
+    }
+
+    @Test
+    public void createDoesNotThrowTableMappingExceptionWhenTableIsNotListedToBeAlertedInConfig()
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setMetadataToHaveOverflow(true);
+        when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
+                .thenThrow(new TableMappingNotFoundException("foo"));
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .alterTablesOrMetadataToMatch(Set.of())
+                .build());
+        assertThatCode(() -> ddlTable.create(createMetadata(true))).doesNotThrowAnyException();
+    }
+
     private void createTable() throws TableMappingNotFoundException {
         // Not all tests will call OracleDdlTable#createTable, which makes sense as this test "creates" it for them!
         lenient()
