@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -47,7 +46,11 @@ public final class TrackingRowColumnRangeIteratorTest {
             createCell(20), createValue(20),
             createCell(30), createValue(30));
 
-    // this has to be an anonymous inner class rather than lambda in order to spy
+    // these have to be anonymous inner classes rather than lambdas in order to spy
+    private static final Consumer<Long> NO_OP = new Consumer<>() {
+        @Override
+        public void accept(Long _unused) {}
+    };
     private static final ToLongFunction<Entry<Cell, Value>> ENTRY_MEASURER = new ToLongFunction<>() {
         @Override
         public long applyAsLong(Entry<Cell, Value> value) {
@@ -57,16 +60,15 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void oneElementTrackingRowColumnRangeIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(TrackingIteratorTestUtils.noOp());
+        Consumer<Long> tracker = spy(NO_OP);
         ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
         TrackingRowColumnRangeIterator trackingIterator =
                 new TrackingRowColumnRangeIterator(ONE_ELEMENT_ITERATOR, tracker, measurer);
 
         assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(ENTRY));
-        verify(measurer, times(1)).applyAsLong(ENTRY);
-        verify(tracker, times(1)).accept(ENTRY_MEASURER.applyAsLong(ENTRY));
-        verifyNoMoreInteractions(tracker);
-        verifyNoMoreInteractions(measurer);
+        verify(measurer).applyAsLong(ENTRY);
+        verify(tracker).accept(ENTRY_MEASURER.applyAsLong(ENTRY));
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
