@@ -39,7 +39,6 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
-import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +46,7 @@ import java.util.function.Consumer;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
-    KeyValueServiceDataTracker tracker;
+    KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
     public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
@@ -73,8 +72,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         return Futures.transform(
                 delegate.getAsync(tableRef, timestampByCell),
                 valueByCell -> {
-                    tracker.readForTable(
-                            tableRef, "getAsync", ExpectationsMeasuringUtils.valueByCellSizeInBytes(valueByCell));
+                    tracker.readForTable(tableRef, "getAsync", ExpectationsMeasuringUtils.sizeInBytes(valueByCell));
                     return valueByCell;
                 },
                 MoreExecutors.directExecutor());
@@ -84,7 +82,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
-        tracker.readForTable(tableRef, "getRows", ExpectationsMeasuringUtils.valueByCellSizeInBytes(result));
+        tracker.readForTable(tableRef, "getRows", ExpectationsMeasuringUtils.sizeInBytes(result));
         return result;
     }
 
@@ -97,8 +95,13 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         tracker.callForTable(tableRef);
         Map<byte[], RowColumnRangeIterator> result =
                 delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
-        result.replaceAll((rowsRead, iterator) -> new TrackingRowColumnRangeIterator(
-                iterator, partialReadForTableConsumer(tableRef), ExpectationsMeasuringUtils::sizeInBytes));
+        // todo(aalouane) this throws if delegate returns an immutable map or a map that does not implement replaceAll
+        // not sure what to do here
+        result.replaceAll((rowsRead, iterator) -> {
+            tracker.partialReadForTable(tableRef, rowsRead.length);
+            return new TrackingRowColumnRangeIterator(
+                    iterator, partialReadForTableConsumer(tableRef), ExpectationsMeasuringUtils::sizeInBytes);
+        });
         return result;
     }
 
@@ -120,14 +123,14 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
-        tracker.readForTable(tableRef, "get", ExpectationsMeasuringUtils.valueByCellSizeInBytes(result));
+        tracker.readForTable(tableRef, "get", ExpectationsMeasuringUtils.sizeInBytes(result));
         return result;
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-        tracker.readForTable(tableRef, "getLatestTimestamps", ExpectationsMeasuringUtils.sizeInBytes(result));
+        tracker.readForTable(tableRef, "getLatestTimestamps", ExpectationsMeasuringUtils.toLongSizeInBytes(result));
         return result;
     }
 
@@ -160,9 +163,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         try (ClosableIterator<List<CandidateCellForSweeping>> result =
                 delegate.getCandidateCellsForSweeping(tableRef, request)) {
             return new TrackingClosableIterator<>(
-                    result, partialReadForTableConsumer(tableRef), candidates -> candidates.stream()
-                            .mapToLong(CandidateCellForSweeping::sizeInBytes)
-                            .sum());
+                    result, partialReadForTableConsumer(tableRef), ExpectationsMeasuringUtils::sizeInBytes);
         }
     }
 
@@ -179,9 +180,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public Set<TableReference> getAllTableNames() {
         Set<TableReference> result = delegate.getAllTableNames();
-        tracker.tableAgnosticRead(
-                "getAllTableNames",
-                result.stream().mapToLong(TableReference::sizeInBytes).sum());
+        tracker.tableAgnosticRead("getAllTableNames", ExpectationsMeasuringUtils.sizeInBytes(result));
         return result;
     }
 
@@ -195,7 +194,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> result = delegate.getMetadataForTables();
-        tracker.tableAgnosticRead("getMetadataForTables", ExpectationsMeasuringUtils.arrayByRefSizeInBytes(result));
+        tracker.tableAgnosticRead("getMetadataForTables", ExpectationsMeasuringUtils.toArraySizeInBytes(result));
         return result;
     }
 
@@ -210,10 +209,7 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
-        tracker.readForTable(
-                tableRef,
-                "getRowKeysInRange",
-                result.stream().mapToLong(Array::getLength).sum());
+        tracker.readForTable(tableRef, "getRowKeysInRange", ExpectationsMeasuringUtils.byteArraysSizeInBytes(result));
         return result;
     }
 
