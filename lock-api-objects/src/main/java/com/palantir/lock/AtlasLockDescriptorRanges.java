@@ -43,9 +43,17 @@ public final class AtlasLockDescriptorRanges {
                 AtlasRowLockDescriptor.of(qualifiedTableName, endExc));
     }
 
+    // If the row is "row", then nextRow will be "row{01}" (UTF-8 row followed by the byte 01 = {72}{6F}{77}{01})
+    // This will match descriptors from "row" to "row{00}{FF}"
+    // 00 is used as a delimiter in cell lock descriptors, separating row bytes from column bytes.
+    // So we will match the RowLockDescriptor, as well as any CellLockDescriptor with the matching table and row.
+    // This is done so that when a client registers a watch for a given row, they get lock and unlock events when
+    // cell-level locks are taken out.
     public static Range<LockDescriptor> exactRow(String qualifiedTableName, byte[] row) {
         LockDescriptor descriptor = AtlasRowLockDescriptor.of(qualifiedTableName, row);
-        return Range.closed(descriptor, descriptor);
+        byte[] nextRow = createExclusiveEndNameWithZeroByteForPrefixScan(row);
+        LockDescriptor nextRowDescriptor = AtlasRowLockDescriptor.of(qualifiedTableName, nextRow);
+        return Range.closedOpen(descriptor, nextRowDescriptor);
     }
 
     public static Range<LockDescriptor> exactCell(String qualifiedTableName, byte[] row, byte[] col) {
@@ -55,6 +63,13 @@ public final class AtlasLockDescriptorRanges {
 
     private static byte[] bytesForTableName(String tableName) {
         return tableName.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] createExclusiveEndNameWithZeroByteForPrefixScan(byte[] prefix) {
+        byte[] prefixWithZero = new byte[prefix.length + 1];
+        System.arraycopy(prefix, 0, prefixWithZero, 0, prefix.length);
+        prefixWithZero[prefix.length] = 1;
+        return prefixWithZero;
     }
 
     private static byte[] createExclusiveEndNameForPrefixScan(byte[] prefix) {

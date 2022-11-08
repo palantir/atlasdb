@@ -199,6 +199,11 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public List<String> get_host_ids() throws TException {
+        return executeHandlingExceptions(client::get_host_ids);
+    }
+
+    @Override
     public String describe_snitch() throws TException {
         return client.describe_snitch();
     }

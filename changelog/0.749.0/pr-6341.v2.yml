@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Test connection sets fetch size to one
+  links:
+  - https://github.com/palantir/atlasdb/pull/6341

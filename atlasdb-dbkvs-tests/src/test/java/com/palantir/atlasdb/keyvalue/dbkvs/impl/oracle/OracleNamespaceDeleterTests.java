@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.ImmutableOracleNamespaceDelet
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.OracleNamespaceDeleter.OracleNamespaceDeleterParameters;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
@@ -409,7 +410,7 @@ public final class OracleNamespaceDeleterTests {
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
         ConnectionSupplier connectionSupplier =
                 new ConnectionSupplier(sqliteOracleAdapter.createSqlConnectionSupplier());
-        Function<TableReference, OracleDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
+        Function<TableReference, DbDdlTable> ddlTableFactory = tableReference -> OracleDdlTable.create(
                 tableReference,
                 connectionSupplier,
                 ddlConfig,
@@ -420,7 +421,7 @@ public final class OracleNamespaceDeleterTests {
                 .tablePrefix(ddlConfig.tablePrefix())
                 .overflowTablePrefix(ddlConfig.overflowTablePrefix())
                 .userId(TEST_USER)
-                .oracleDdlTableFactory(ddlTableFactory)
+                .ddlTableFactory(ddlTableFactory)
                 .connectionSupplier(connectionSupplier)
                 .tableNameGetter(tableNameGetter);
     }
@@ -430,7 +431,7 @@ public final class OracleNamespaceDeleterTests {
                 createDefaultNamespaceDeleterParameters().build();
         return OracleNamespaceDeleterParameters.builder()
                 .from(parameters)
-                .oracleDdlTableFactory(new OnceFailingOracleDdlFactory(parameters.oracleDdlTableFactory()))
+                .ddlTableFactory(new OnceFailingOracleDdlFactory(parameters.ddlTableFactory()))
                 .build();
     }
 
@@ -440,18 +441,18 @@ public final class OracleNamespaceDeleterTests {
      * This is intended to be used for testing resilience to failures for operations that work across multiple
      * OracleDDLTables.
      */
-    private static final class OnceFailingOracleDdlFactory implements Function<TableReference, OracleDdlTable> {
+    private static final class OnceFailingOracleDdlFactory implements Function<TableReference, DbDdlTable> {
         private static final int NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE = 5;
         private final AtomicInteger counter;
-        private final Function<TableReference, OracleDdlTable> factory;
+        private final Function<TableReference, DbDdlTable> factory;
 
-        OnceFailingOracleDdlFactory(Function<TableReference, OracleDdlTable> factory) {
+        OnceFailingOracleDdlFactory(Function<TableReference, DbDdlTable> factory) {
             this.factory = factory;
             this.counter = new AtomicInteger();
         }
 
         @Override
-        public OracleDdlTable apply(TableReference tableReference) {
+        public DbDdlTable apply(TableReference tableReference) {
             if (counter.incrementAndGet() == NUMBER_OF_TABLES_TO_CREATE_BEFORE_THROWING_ONCE) {
                 throw new RuntimeException("induced failure");
             }
