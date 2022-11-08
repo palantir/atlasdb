@@ -150,7 +150,7 @@ public final class TableReference implements Measurable {
 
     @Override
     public long sizeInBytes() {
-        return stringSizeInBytes(tableName) + stringSizeInBytes(namespace.getName());
+        return stringSizeInBytes(tableName) + stringSizeInBytes(namespace.getName()) + Character.BYTES;
     }
 
     private static long stringSizeInBytes(String string) {

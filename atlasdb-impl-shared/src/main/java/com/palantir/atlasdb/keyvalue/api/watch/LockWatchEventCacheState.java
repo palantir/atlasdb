@@ -18,8 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.Unsafe;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @JsonSerialize(as = ImmutableLockWatchEventCacheState.class)
 @JsonDeserialize(as = ImmutableLockWatchEventCacheState.class)

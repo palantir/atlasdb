@@ -147,9 +147,11 @@ public class LockWatchingServiceImplTest {
         LockWatchRequest request = exactRowRequest();
         lockWatcher.startWatching(request);
 
-        List<LockWatchEvent> expectedEvents =
-                ImmutableList.of(createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)));
-        assertLoggedEvents(expectedEvents);
+        Set<LockDescriptor> cellDescriptor = ImmutableSet.of(CELL_DESCRIPTOR);
+        lockWatcher.registerLock(cellDescriptor, TOKEN);
+
+        assertLoggedEvents(ImmutableList.of(
+                createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)), lockEvent(cellDescriptor)));
     }
 
     @Test
@@ -238,7 +240,7 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
-    public void exactRowWatchMatchesExactDescriptorOnly() {
+    public void exactRowWatchMatchesCellAndRowDescriptors() {
         LockWatchRequest rowRequest =
                 LockWatchRequest.of(ImmutableSet.of(LockWatchReferenceUtils.exactRow(TABLE, ROW)));
         lockWatcher.startWatching(rowRequest);
@@ -248,7 +250,7 @@ public class LockWatchingServiceImplTest {
 
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(rowRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                lockEvent(ImmutableSet.of(ROW_DESCRIPTOR)));
+                lockEvent(ImmutableSet.of(ROW_DESCRIPTOR, CELL_DESCRIPTOR)));
         assertLoggedEvents(expectedEvents);
     }
 
