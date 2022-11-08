@@ -16,22 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
+import com.palantir.atlasdb.keyvalue.api.*;
+import com.palantir.atlasdb.keyvalue.dbkvs.*;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -111,7 +100,7 @@ public final class OracleAlterTableIntegrationTest {
         defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
         assertThatThrownBy(() -> fetchData(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1));
 
-        KeyValueService workingKvs = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
         workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
         assertThatOverflowColumnExists();
@@ -121,7 +110,7 @@ public final class OracleAlterTableIntegrationTest {
 
     @Test
     public void whenConfiguredAlterTableDoesNothingWhenMatching() {
-        KeyValueService kvsWithAlter = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
+        KeyValueService kvsWithAlter = createKvs(CONFIG_WITH_ALTER);
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_1, TIMESTAMP_1);
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
@@ -129,6 +118,12 @@ public final class OracleAlterTableIntegrationTest {
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_2, TIMESTAMP_2);
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
+    }
+
+    private KeyValueService createKvs(DbKeyValueServiceConfig config) {
+        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(config);
+        TRM.registerKvs(kvs);
+        return kvs;
     }
 
     private void assertThatOverflowColumnExists() {

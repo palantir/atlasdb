@@ -23,12 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.*;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
@@ -136,11 +131,13 @@ public final class OracleDdlTable implements DbDdlTable {
                 "Altering table to have overflow column to match metadata.",
                 UnsafeArg.of("tableReference", tableRef),
                 UnsafeArg.of("shortTableName", shortTableName));
-        conns.get().executeUnregisteredQuery("ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))");
+        executeIgnoringError(
+                "ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))",
+                OracleErrorConstants.ORACLE_COLUMN_ALREADY_EXISTS);
     }
 
     private boolean overflowTableHasMigrated() {
-        return config.overflowMigrationState() != OverflowMigrationState.UNSTARTED;
+        return config.overflowMigrationState() == OverflowMigrationState.FINISHED;
     }
 
     private boolean needsOverflow(byte[] tableMetadata) {
@@ -180,7 +177,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     /**
-     * Creates the table for the given reference. If the table needs to be modified (i.e. to add an overflow column),
+     * Creates the table for the given reference. If the table needs to alter its schema to have an overflow column,
      * then please see {@link #alterTableToHaveOverflowColumn}.
      */
     private String createTable(boolean needsOverflow) {
