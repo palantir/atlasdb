@@ -19,8 +19,15 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,7 +35,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.*;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.concurrent.PTExecutors;
@@ -247,6 +259,18 @@ public final class OracleDdlTableTest {
         verifyTableNotAltered();
     }
 
+    private void testAlterTableForMigrationState(OverflowMigrationState overflowMigrationState)
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setTableValueStyleCacheOverflowConfigForTable(true);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .overflowMigrationState(overflowMigrationState)
+                .build());
+        ddlTable.create(createMetadata(true));
+    }
+
     @Test
     public void createDoesNothingWhenAlterSpecifiedButOverflowTableDoesNotExist() throws TableMappingNotFoundException {
         createTable();
@@ -321,18 +345,6 @@ public final class OracleDdlTableTest {
                 .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD (overflow NUMBER(38))");
         tableMappingDdlTable.create(createMetadata(true));
         verifyTableAltered();
-    }
-
-    private void testAlterTableForMigrationState(OverflowMigrationState overflowMigrationState)
-            throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(false);
-        setTableValueStyleCacheOverflowConfigForTable(true);
-        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
-                .from(TABLE_MAPPING_DEFAULT_CONFIG)
-                .overflowMigrationState(overflowMigrationState)
-                .build());
-        ddlTable.create(createMetadata(true));
     }
 
     private void createTable() throws TableMappingNotFoundException {

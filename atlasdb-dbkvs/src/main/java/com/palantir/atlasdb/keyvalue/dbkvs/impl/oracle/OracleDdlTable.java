@@ -182,8 +182,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     /**
-     * Creates the table for the given reference. If the table needs to alter its schema to have an overflow column,
-     * then please see {@link #alterTableToHaveOverflowColumn}.
+     * Creates the table for the given reference. If the schema is modified here, please also update it in {@link #alterTableToHaveOverflowColumn}.
      */
     private String createTable(boolean needsOverflow) {
         String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
