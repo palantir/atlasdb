@@ -47,7 +47,7 @@ import org.junit.Test;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(() -> DbKvsOracleTestSuite.createKvs());
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
 
     private static final Namespace NAMESPACE = Namespace.create("test_namespace");
     private static final TableReference TABLE_REFERENCE = TableReference.create(NAMESPACE, "foo");
