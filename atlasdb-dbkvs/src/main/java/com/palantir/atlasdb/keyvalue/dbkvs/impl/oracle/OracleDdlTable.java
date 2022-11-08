@@ -95,7 +95,9 @@ public final class OracleDdlTable implements DbDdlTable {
             if (needsOverflow) {
                 TableValueStyle existingStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
                 if (existingStyle != TableValueStyle.OVERFLOW) {
-                    throwForMissingOverflowTable();
+                    if (!maybeAlterMetadataToHaveOverflow()) {
+                        throwForMissingOverflowTable();
+                    }
                 }
                 maybeAlterTableToHaveOverflowColumn();
             }
@@ -129,6 +131,32 @@ public final class OracleDdlTable implements DbDdlTable {
                         "Unable to alter table to have overflow column due to a table mapping error.", e);
             }
         }
+    }
+
+    private boolean maybeAlterMetadataToHaveOverflow() {
+        try {
+            String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+
+            if (config.alterTablesOrMetadataToMatch().contains(tableRef)
+                    && overflowTableHasMigrated()
+                    && overflowTableExists()
+                    && overflowColumnExists(shortTableName)) {
+                alterMetadataToHaveOverflow();
+                return true;
+            }
+        } catch (TableMappingNotFoundException e) {
+            log.warn("Table mapping expected but not found for table.", UnsafeArg.of("tableRef", tableRef), e);
+        }
+        return false;
+    }
+
+    private void alterMetadataToHaveOverflow() {
+        conns.get()
+                .updateUnregisteredQuery(
+                        "UPDATE " + config.metadataTable().getQualifiedName()
+                                + " SET table_size = ? WHERE table_name = ?",
+                        TableValueStyle.OVERFLOW.getId(),
+                        tableRef.getQualifiedName());
     }
 
     private void alterTableToHaveOverflowColumn(String shortTableName) {
