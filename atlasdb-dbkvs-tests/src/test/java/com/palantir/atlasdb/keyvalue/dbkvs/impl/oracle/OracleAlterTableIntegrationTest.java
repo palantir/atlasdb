@@ -74,12 +74,13 @@ public final class OracleAlterTableIntegrationTest {
     private static final Cell DEFAULT_CELL_1 = createCell("foo", "bar");
     private static final Cell DEFAULT_CELL_2 = createCell("something", "bar");
 
-    private static final byte[] DEFAULT_VALUE = PtBytes.toBytes("amazing");
+    private static final byte[] DEFAULT_VALUE_1 = PtBytes.toBytes("amazing");
+    private static final byte[] DEFAULT_VALUE_2 = PtBytes.toBytes("coolbeans");
     private static final long TIMESTAMP_1 = 1L;
     private static final long TIMESTAMP_2 = 2L;
 
-    private static final Map<Cell, byte[]> ROW_1 = Map.of(DEFAULT_CELL_1, DEFAULT_VALUE);
-    private static final Map<Cell, byte[]> ROW_2 = Map.of(DEFAULT_CELL_2, DEFAULT_VALUE);
+    private static final Map<Cell, byte[]> ROW_1 = Map.of(DEFAULT_CELL_1, DEFAULT_VALUE_1);
+    private static final Map<Cell, byte[]> ROW_2 = Map.of(DEFAULT_CELL_2, DEFAULT_VALUE_2);
 
     private KeyValueService defaultKvs;
     private ConnectionSupplier connectionSupplier;
@@ -104,7 +105,7 @@ public final class OracleAlterTableIntegrationTest {
     public void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable() {
         defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_1, TIMESTAMP_1);
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
 
         dropOverflowColumn();
         defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
@@ -112,10 +113,10 @@ public final class OracleAlterTableIntegrationTest {
 
         KeyValueService workingKvs = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
         workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
         assertThatOverflowColumnExists();
         assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
     }
 
     @Test
@@ -123,11 +124,11 @@ public final class OracleAlterTableIntegrationTest {
         KeyValueService kvsWithAlter = ConnectionManagerAwareDbKvs.create(CONFIG_WITH_ALTER);
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_1, TIMESTAMP_1);
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
 
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_2, TIMESTAMP_2);
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
     }
 
     private void assertThatOverflowColumnExists() {
@@ -161,13 +162,13 @@ public final class OracleAlterTableIntegrationTest {
         return kvs.get(TABLE_REFERENCE, Map.of(cell, timestamp + 1));
     }
 
-    private static void assertThatDataCanBeRead(KeyValueService kvs, Cell cell, long timestamp) {
+    private static void assertThatDataCanBeRead(KeyValueService kvs, Cell cell, long timestamp, byte[] content) {
         Map<Cell, Value> values = fetchData(kvs, cell, timestamp);
         assertThat(values).hasSize(1);
-        assertThat(values).containsKey(DEFAULT_CELL_1);
-        Value value = values.get(DEFAULT_CELL_1);
-        assertThat(value.getTimestamp()).isEqualTo(TIMESTAMP_1);
-        assertThat(value.getContents()).isEqualTo(DEFAULT_VALUE);
+        assertThat(values).containsKey(cell);
+        Value value = values.get(cell);
+        assertThat(value.getTimestamp()).isEqualTo(timestamp);
+        assertThat(value.getContents()).isEqualTo(content);
     }
 
     private static Cell createCell(String row, String columnValue) {
