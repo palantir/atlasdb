@@ -43,8 +43,8 @@ import org.junit.Test;
 
 public final class MeasuringUtilsTest {
     private static final int SIZE_1 = 123;
-    private static final int SIZE_2 = 214;
-    private static final int SIZE_3 = 329;
+    private static final int SIZE_2 = 228;
+    private static final int SIZE_3 = 599;
     private static final Measurable MEASURABLE_1 = () -> SIZE_1;
     private static final Measurable MEASURABLE_2 = () -> SIZE_2;
 
@@ -62,20 +62,18 @@ public final class MeasuringUtilsTest {
 
     @Test
     public void sizeOfMeasurableToLongMapIsCorrect() {
-        Map<Measurable, Long> toLong = ImmutableMap.<Measurable, Long>builder()
-                .put(MEASURABLE_1, 0L)
-                .put(MEASURABLE_2, 1L)
-                .buildOrThrow();
+        Map<Measurable, Long> toLong = ImmutableMap.of(
+                MEASURABLE_1, 0L,
+                MEASURABLE_2, 1L);
 
         assertThat(MeasuringUtils.sizeOfMeasurableLongMap(toLong)).isEqualTo(SIZE_1 + SIZE_2 + 2L * Long.BYTES);
     }
 
     @Test
-    public void sizeOfMeasurableToByteArrayIsCorrect() {
-        Map<Measurable, byte[]> toByteArray = ImmutableMap.<Measurable, byte[]>builder()
-                .put(MEASURABLE_1, createBytes(SIZE_3))
-                .put(MEASURABLE_2, createBytes(SIZE_3))
-                .buildOrThrow();
+    public void sizeOfMeasurableToByteArrayMapIsCorrect() {
+        Map<Measurable, byte[]> toByteArray = ImmutableMap.of(
+                MEASURABLE_1, createBytes(SIZE_3),
+                MEASURABLE_2, createBytes(SIZE_3));
 
         assertThat(MeasuringUtils.sizeOfMeasurableByteMap(toByteArray)).isEqualTo(SIZE_1 + SIZE_2 + 2L * SIZE_3);
     }
@@ -105,31 +103,63 @@ public final class MeasuringUtilsTest {
     }
 
     @Test
-    public void sizeOfPageByRequestIsCorrect() {
+    public void pageByRequestMapWithEmptyPageHasSizeZero() {
         assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(
-                        ImmutableMap.<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>builder()
-                                .put(RangeRequest.all(), createPage(SIZE_1, 1, SIZE_1))
-                                .put(
-                                        RangeRequest.builder()
-                                                .startRowInclusive(createBytes(SIZE_3))
-                                                .build(),
-                                        createPage(SIZE_2, 2, SIZE_3))
-                                .put(
-                                        RangeRequest.builder()
-                                                .endRowExclusive(createBytes(SIZE_3))
-                                                .build(),
-                                        createPage(SIZE_1, 10, SIZE_2))
-                                .buildOrThrow()))
+                        ImmutableMap.of(createRangeRequest(1, 0), createPage(0, 0, 0))))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void pageByRequestMapSizeIncludesValueSizes() {
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(ImmutableMap.of(
+                        createRangeRequest(1, SIZE_2), createPage(SIZE_1, 2, SIZE_1),
+                        createRangeRequest(2, SIZE_2), createPage(SIZE_1, 8, SIZE_1))))
+                .isGreaterThanOrEqualTo(10L * SIZE_1);
+    }
+
+    @Test
+    public void pageByRequestMapSizeIgnoresRangeRequestSizes() {
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstMap = ImmutableMap.of(
+                createRangeRequest(1, SIZE_2), createPage(SIZE_1, 2, SIZE_1),
+                createRangeRequest(2, SIZE_2), createPage(SIZE_1, 5, SIZE_1));
+
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> secondMap = ImmutableMap.of(
+                createRangeRequest(1, SIZE_3), createPage(SIZE_1, 2, SIZE_1),
+                createRangeRequest(2, SIZE_3), createPage(SIZE_1, 5, SIZE_1));
+
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(firstMap))
+                .isEqualTo(MeasuringUtils.sizeOfPageByRangeRequestMap(secondMap));
+    }
+
+    @Test
+    public void pageByRequestMapSizeIgnoresTokenSizes() {
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstMap = ImmutableMap.of(
+                createRangeRequest(1, SIZE_1), createPage(SIZE_2, 2, SIZE_1),
+                createRangeRequest(2, SIZE_1), createPage(SIZE_2, 5, SIZE_1));
+
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> secondMap = ImmutableMap.of(
+                createRangeRequest(1, SIZE_1), createPage(SIZE_3, 2, SIZE_1),
+                createRangeRequest(2, SIZE_1), createPage(SIZE_3, 5, SIZE_1));
+
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(firstMap))
+                .isEqualTo(MeasuringUtils.sizeOfPageByRangeRequestMap(secondMap));
+    }
+
+    @Test
+    public void sizeOfPageByRequestIsCorrect() {
+        assertThat(MeasuringUtils.sizeOfPageByRangeRequestMap(ImmutableMap.of(
+                        createRangeRequest(1, SIZE_1), createPage(SIZE_1, 1, SIZE_1),
+                        createRangeRequest(2, SIZE_2), createPage(SIZE_2, 2, SIZE_3),
+                        createRangeRequest(3, SIZE_3), createPage(SIZE_1, 10, SIZE_2))))
                 .isEqualTo(SIZE_1 + 2L * SIZE_3 + 10L * SIZE_2);
     }
 
     @Test
     public void sizeOfMeasurableToLongMultimapIsCorrect() {
-        Multimap<Measurable, Long> toLong = ImmutableSetMultimap.<Measurable, Long>builder()
-                .put(MEASURABLE_1, 0L)
-                .put(MEASURABLE_2, 0L)
-                .put(MEASURABLE_2, 1L)
-                .build();
+        Multimap<Measurable, Long> toLong = ImmutableSetMultimap.of(
+                MEASURABLE_1, 0L,
+                MEASURABLE_2, 0L,
+                MEASURABLE_2, 1L);
 
         assertThat(MeasuringUtils.sizeOf(toLong)).isEqualTo(SIZE_1 + 2L * SIZE_2 + 3L * Long.BYTES);
     }
@@ -151,10 +181,9 @@ public final class MeasuringUtilsTest {
 
     @Test
     public void sizeOfMeasurableToMeasurableMapIsCorrect() {
-        Map<Measurable, Measurable> map = ImmutableMap.<Measurable, Measurable>builder()
-                .put(MEASURABLE_1, MEASURABLE_2)
-                .put(MEASURABLE_2, MEASURABLE_1)
-                .buildOrThrow();
+        Map<Measurable, Measurable> map = ImmutableMap.of(
+                MEASURABLE_1, MEASURABLE_2,
+                MEASURABLE_2, MEASURABLE_1);
 
         assertThat(MeasuringUtils.sizeOf(map)).isEqualTo(2L * SIZE_1 + 2L * SIZE_2);
     }
@@ -178,6 +207,13 @@ public final class MeasuringUtilsTest {
                 Stream.generate(() -> createRowResultWithByteSize(rowResultSize))
                         .limit(chunksCount)
                         .collect(Collectors.toUnmodifiableList()));
+    }
+
+    private static RangeRequest createRangeRequest(int identifier, int rowSize) {
+        return RangeRequest.builder()
+                .startRowInclusive(createBytes(rowSize))
+                .batchHint(identifier)
+                .build();
     }
 
     private static RowResult<Value> createRowResultWithByteSize(int size) {

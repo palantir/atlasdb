@@ -44,7 +44,7 @@ public final class MeasuringUtils {
     }
 
     public static long sizeOfLongSetRowResult(RowResult<Set<Long>> rowResult) {
-        return sizeOfRowResult(rowResult, set -> (long) set.size() * Long.BYTES);
+        return sizeOfRowResult(rowResult, set -> ((long) set.size()) * Long.BYTES);
     }
 
     /**
@@ -54,13 +54,14 @@ public final class MeasuringUtils {
      */
     public static long sizeOfPageByRangeRequestMap(
             Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRange) {
-        return sizeOfMap(pageByRange, _unused -> 0L, page -> page.getResults().stream()
+        return pageByRange.values().stream()
+                .flatMap(page -> page.getResults().stream())
                 .mapToLong(MeasuringUtils::sizeOf)
-                .sum());
+                .sum();
     }
 
     public static long sizeOf(Multimap<? extends Measurable, Long> map) {
-        return sizeOf(map.keys()) + Long.BYTES * ((long) map.size());
+        return sizeOf(map.keys()) + ((long) map.size()) * Long.BYTES;
     }
 
     public static long sizeOf(Entry<? extends Measurable, ? extends Measurable> entry) {
