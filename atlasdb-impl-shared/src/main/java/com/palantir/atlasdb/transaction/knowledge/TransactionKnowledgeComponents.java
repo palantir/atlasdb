@@ -17,8 +17,13 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.sweep.ConcludedTransactionsUpdaterTask;
 import com.palantir.atlasdb.sweep.queue.LastSeenCommitTsLoader;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -33,25 +38,43 @@ public interface TransactionKnowledgeComponents {
     Supplier<Long> lastSeenCommitSupplier();
 
     static TransactionKnowledgeComponents createForTests(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
-        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), () -> true);
+        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), () -> true,
+                transactionSchemaManager);
     }
 
     static TransactionKnowledgeComponents create(
             KeyValueService kvs,
             TaggedMetricRegistry metricRegistry,
             InternalSchemaInstallConfig config,
-            BooleanSupplier isInitialized) {
-        LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(kvs, isInitialized);
+            BooleanSupplier isInitialized,
+            TransactionSchemaManager transactionSchemaManager) {
+
+        ShardProgress shardProgress = new ShardProgress(kvs);
+        LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(shardProgress, isInitialized);
+        KnownConcludedTransactions concluded = KnownConcludedTransactionsImpl.create(
+                KnownConcludedTransactionsStore.create(kvs), metricRegistry);
+
+
+        scheduleConcludedStoreUpdaterTask(transactionSchemaManager, concluded, shardProgress, isInitialized);
+
         return ImmutableTransactionKnowledgeComponents.builder()
-                .concluded(KnownConcludedTransactionsImpl.create(
-                        KnownConcludedTransactionsStore.create(kvs), metricRegistry))
+                .concluded(concluded)
                 .abandoned(KnownAbandonedTransactionsImpl.create(
-                        KnownConcludedTransactionsImpl.create(
-                                KnownConcludedTransactionsStore.create(kvs), metricRegistry),
+                        concluded,
                         new AbandonedTimestampStoreImpl(kvs),
                         metricRegistry,
                         config))
                 .lastSeenCommitSupplier(lastSeenCommitTsLoader::getLastSeenCommitTs)
                 .build();
+    }
+    private static void scheduleConcludedStoreUpdaterTask(
+            TransactionSchemaManager transactionSchemaManager, KnownConcludedTransactions concluded, ShardProgress shardProgress,
+            BooleanSupplier isInitialized) {
+        CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore =
+                new CoordinationAwareKnownConcludedTransactionsStore(
+                        transactionSchemaManager::getTimestampPartitioningMap,
+                        concluded);
+        ConcludedTransactionsUpdaterTask.create(concludedTransactionsStore, shardProgress,
+                PTExecutors.newSingleThreadScheduledExecutor(), isInitialized);
     }
 }

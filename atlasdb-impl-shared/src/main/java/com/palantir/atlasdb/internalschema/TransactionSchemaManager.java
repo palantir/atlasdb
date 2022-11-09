@@ -74,6 +74,14 @@ public class TransactionSchemaManager {
         return possibleVersion.get();
     }
 
+    // Todo(snanda): this is jank api
+    public TimestampPartitioningMap<Integer> getTimestampPartitioningMap(long timestamp) {
+        return coordinationService.getValueForTimestamp(timestamp)
+                .flatMap(ValueAndBound::value)
+                .orElseGet(InternalSchemaMetadata::defaultValue)
+                .timestampToTransactionsTableSchemaVersion();
+    }
+
     /**
      * Attempts to install a new transactions table schema version, by submitting a relevant transform.
      *

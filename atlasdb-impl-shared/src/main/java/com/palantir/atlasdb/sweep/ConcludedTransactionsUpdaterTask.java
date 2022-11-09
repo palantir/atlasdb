@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -41,6 +42,7 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     // CORRUPTION.
     private final Supplier<Integer> persistedNumShardsSupplier;
 
+    private final BooleanSupplier isInitializedSupplier;
     private final ShardProgress progress;
     private final CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore;
     private final ScheduledExecutorService executor;
@@ -51,10 +53,11 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     @VisibleForTesting
     ConcludedTransactionsUpdaterTask(
             Supplier<Integer> persistedNumShardsSupplier,
-            CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
+            BooleanSupplier isInitializedSupplier, CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executorService) {
         this.persistedNumShardsSupplier = persistedNumShardsSupplier;
+        this.isInitializedSupplier = isInitializedSupplier;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
         this.executor = executorService;
@@ -63,10 +66,10 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     public static ConcludedTransactionsUpdaterTask create(
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
-            ScheduledExecutorService executor) {
+            ScheduledExecutorService executor,
+            BooleanSupplier isInitializedSupplier) {
         ConcludedTransactionsUpdaterTask task = new ConcludedTransactionsUpdaterTask(
-                progress::getNumberOfShards, concludedTransactionsStore, progress, executor);
-        // Todo(Snanda): consider just running this task on the sweep thread at the end
+                progress::getNumberOfShards, isInitializedSupplier, concludedTransactionsStore, progress, executor);
         task.schedule();
         return task;
     }
@@ -81,6 +84,10 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
     @VisibleForTesting
     void runOneIteration() {
+        if (!isInitializedSupplier.getAsBoolean()) {
+            return;
+        }
+
         int numShardsAtStart = persistedNumShardsSupplier.get();
 
         maybeRefreshShardsAndStrategies(numShardsAtStart);

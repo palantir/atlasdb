@@ -99,7 +99,7 @@ public class KeyValueServiceModule {
     public TransactionKnowledgeComponents provideTransactionKnowledgeComponents(
             @Named("kvs") KeyValueService kvs, MetricsManager metricsManager, AtlasDbConfig config) {
         return TransactionKnowledgeComponents.create(
-                kvs, metricsManager.getTaggedRegistry(), config.internalSchema(), () -> true);
+                kvs, metricsManager.getTaggedRegistry(), config.internalSchema(), () -> true, transactionSchemaManager);
     }
 
     @Provides
