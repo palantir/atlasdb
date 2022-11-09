@@ -134,7 +134,7 @@ public final class OracleDdlTable implements DbDdlTable {
     private void alterTableToHaveOverflowColumn(String shortTableName) {
         log.info(
                 "Altering table to have overflow column to match metadata.",
-                UnsafeArg.of("tableReference", tableRef),
+                LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("shortTableName", shortTableName));
         executeIgnoringError(
                 "ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))",

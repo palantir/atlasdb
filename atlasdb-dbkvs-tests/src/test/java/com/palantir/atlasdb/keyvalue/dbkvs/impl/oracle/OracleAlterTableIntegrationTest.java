@@ -16,11 +16,22 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.*;
-import com.palantir.atlasdb.keyvalue.dbkvs.*;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
