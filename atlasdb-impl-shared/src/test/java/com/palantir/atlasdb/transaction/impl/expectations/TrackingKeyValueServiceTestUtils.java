@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.StringUtils;
 
-public final class TrackingKeyValueServiceTestUtils {
+final class TrackingKeyValueServiceTestUtils {
     public static ImmutableMultimap<Cell, Long> createLongByCellMultimapWithSize(int size) {
         int valuesSize = size - 4 * Long.BYTES;
         return ImmutableSetMultimap.of(
