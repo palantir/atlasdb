@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -44,21 +44,19 @@ public final class KeyValueServiceDataTrackerTest {
 
     @Test
     public void noReadsTracksNothing() {
-        TransactionReadInfo readInfo = createTransactionReadInfo(0, 0);
-
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 0));
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
     public void oneReadForTableIsTracked() {
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
 
-        TransactionReadInfo readInfo =
-                createTransactionReadInfo(BYTES_READ_1, 1, createKvsCallReadInfo(BYTES_READ_1, KVS_METHOD_NAME_1));
+        TransactionReadInfo readInfo = createTransactionReadInfo(
+                BYTES_READ_1, 1, createMaximumBytesKvsCallInfo(BYTES_READ_1, KVS_METHOD_NAME_1));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(TABLE_1, readInfo), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
+        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_1, readInfo));
     }
 
     @Test
@@ -70,25 +68,29 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_3, NO_BYTES_READ);
         tracker.readForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_3);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(
-                BYTES_READ_1 + 2 * BYTES_READ_2 + 2 * BYTES_READ_3,
-                6,
-                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2));
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(
+                        BYTES_READ_1 + 2 * BYTES_READ_2 + 2 * BYTES_READ_3,
+                        6,
+                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
-                TABLE_1,
-                        createTransactionReadInfo(
-                                BYTES_READ_1 + BYTES_READ_2, 3, createKvsCallReadInfo(BYTES_READ_2, KVS_METHOD_NAME_2)),
-                TABLE_2,
-                        createTransactionReadInfo(
-                                BYTES_READ_2 + BYTES_READ_3, 2, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
-                TABLE_3,
-                        createTransactionReadInfo(
-                                BYTES_READ_3, 1, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_3)));
-
-        assertEquals(readInfoByTable, tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfoByTable())
+                .containsExactlyEntriesOf(ImmutableMap.of(
+                        TABLE_1,
+                                createTransactionReadInfo(
+                                        BYTES_READ_1 + BYTES_READ_2,
+                                        3,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_2, KVS_METHOD_NAME_2)),
+                        TABLE_2,
+                                createTransactionReadInfo(
+                                        BYTES_READ_2 + BYTES_READ_3,
+                                        2,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
+                        TABLE_3,
+                                createTransactionReadInfo(
+                                        BYTES_READ_3,
+                                        1,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_3))));
     }
 
     @Test
@@ -98,8 +100,8 @@ public final class KeyValueServiceDataTrackerTest {
 
         TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_2, 1);
 
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(TABLE_2, readInfo), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
+        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_2, readInfo));
     }
 
     @Test
@@ -114,8 +116,8 @@ public final class KeyValueServiceDataTrackerTest {
 
         TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3, 2);
 
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(TABLE_1, readInfo), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
+        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_1, readInfo));
     }
 
     @Test
@@ -136,26 +138,22 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.partialReadForTable(TABLE_2, BYTES_READ_3);
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 6);
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 6));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
-                TABLE_1, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2, 1),
-                TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 2),
-                TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 3));
-
-        assertEquals(readInfoByTable, tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfoByTable())
+                .containsExactlyEntriesOf(ImmutableMap.of(
+                        TABLE_1, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2, 1),
+                        TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 2),
+                        TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 3)));
     }
 
     @Test
     public void oneCallForTableIsTracked() {
         tracker.callForTable(TABLE_2);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(0, 1);
-
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 1));
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
@@ -164,10 +162,8 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.callForTable(TABLE_2);
         tracker.callForTable(TABLE_2);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(0, 3);
-
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 3));
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
@@ -178,21 +174,19 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.callForTable(TABLE_3);
         tracker.callForTable(TABLE_2);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(0, 5);
-
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 5));
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
     public void oneTableAgnosticReadIsTracked() {
         tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_3);
 
-        TransactionReadInfo readInfo =
-                createTransactionReadInfo(BYTES_READ_3, 1, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_4));
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(
+                        BYTES_READ_3, 1, createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_4)));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
@@ -203,13 +197,13 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
         tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(
-                2 * BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3,
-                5,
-                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_4));
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(
+                        2 * BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3,
+                        5,
+                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_4)));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-        assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
 
     @Test
@@ -234,31 +228,29 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(
-                5 * BYTES_READ_1 + 6 * BYTES_READ_2 + 4 * BYTES_READ_3,
-                12,
-                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2));
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(
+                        5 * BYTES_READ_1 + 6 * BYTES_READ_2 + 4 * BYTES_READ_3,
+                        12,
+                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)));
 
-        assertEquals(readInfo, tracker.getReadInfo());
-
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
-                TABLE_1,
-                        createTransactionReadInfo(
-                                BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3,
-                                5,
-                                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
-                TABLE_2,
-                        createTransactionReadInfo(
-                                BYTES_READ_1 + 2 * BYTES_READ_2 + BYTES_READ_3,
-                                3,
-                                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_3)),
-                TABLE_3,
-                        createTransactionReadInfo(
-                                2 * BYTES_READ_1 + 2 * BYTES_READ_2,
-                                2,
-                                createKvsCallReadInfo(BYTES_READ_2, KVS_METHOD_NAME_1)));
-
-        assertEquals(readInfoByTable, tracker.getReadInfoByTable());
+        assertThat(tracker.getReadInfoByTable())
+                .containsExactlyEntriesOf(ImmutableMap.of(
+                        TABLE_1,
+                                createTransactionReadInfo(
+                                        BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3,
+                                        5,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
+                        TABLE_2,
+                                createTransactionReadInfo(
+                                        BYTES_READ_1 + 2 * BYTES_READ_2 + BYTES_READ_3,
+                                        3,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_3)),
+                        TABLE_3,
+                                createTransactionReadInfo(
+                                        2 * BYTES_READ_1 + 2 * BYTES_READ_2,
+                                        2,
+                                        createMaximumBytesKvsCallInfo(BYTES_READ_2, KVS_METHOD_NAME_1))));
     }
 
     private static TransactionReadInfo createTransactionReadInfo(
@@ -270,7 +262,7 @@ public final class KeyValueServiceDataTrackerTest {
                 .build();
     }
 
-    private static KvsCallReadInfo createKvsCallReadInfo(long bytesRead, String kvsMethodName) {
+    private static KvsCallReadInfo createMaximumBytesKvsCallInfo(long bytesRead, String kvsMethodName) {
         return ImmutableKvsCallReadInfo.builder()
                 .bytesRead(bytesRead)
                 .methodName(kvsMethodName)
