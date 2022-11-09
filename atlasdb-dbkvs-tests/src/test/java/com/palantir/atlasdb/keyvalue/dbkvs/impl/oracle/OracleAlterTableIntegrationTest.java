@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,16 +42,11 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
@@ -114,7 +113,6 @@ public final class OracleAlterTableIntegrationTest {
         modifyMetadataToNotHaveOverflow();
         // metadata is cached, thus we must create a new kvs to forcefully refresh the cache
         KeyValueService badKvs = createKvs(DbKvsOracleTestSuite.getKvsConfig());
-        badKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
         assertThatThrownBy(() -> fetchData(badKvs, DEFAULT_CELL_1, TIMESTAMP_1));
 
         KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
