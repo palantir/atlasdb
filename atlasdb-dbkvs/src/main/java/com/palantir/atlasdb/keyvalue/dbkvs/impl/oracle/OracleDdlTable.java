@@ -133,6 +133,9 @@ public final class OracleDdlTable implements DbDdlTable {
         }
     }
 
+    /**
+     * @return True if the metadata table altered, false otherwise.
+     */
     private boolean maybeAlterMetadataToHaveOverflow() {
         try {
 

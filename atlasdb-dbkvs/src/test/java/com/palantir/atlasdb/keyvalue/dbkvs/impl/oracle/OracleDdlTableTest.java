@@ -238,38 +238,26 @@ public final class OracleDdlTableTest {
 
     @Test
     public void createAltersTableIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
-        testAlterTableForMigrationState(OverflowMigrationState.FINISHED);
+        alterTableForMigrationState(OverflowMigrationState.FINISHED);
         verifyTableAltered();
     }
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButMigrationUnstarted() throws TableMappingNotFoundException {
-        testAlterTableForMigrationState(OverflowMigrationState.UNSTARTED);
+        alterTableForMigrationState(OverflowMigrationState.UNSTARTED);
         verifyTableNotAltered();
     }
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButMigrationInProgress() throws TableMappingNotFoundException {
-        testAlterTableForMigrationState(OverflowMigrationState.IN_PROGRESS);
+        alterTableForMigrationState(OverflowMigrationState.IN_PROGRESS);
         verifyTableNotAltered();
     }
 
     @Test
     public void createDoesNothingWhenAlterSpecifiedButMigrationFinishing() throws TableMappingNotFoundException {
-        testAlterTableForMigrationState(OverflowMigrationState.FINISHING);
+        alterTableForMigrationState(OverflowMigrationState.FINISHING);
         verifyTableNotAltered();
-    }
-
-    private void testAlterTableForMigrationState(OverflowMigrationState overflowMigrationState)
-            throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(false);
-        setTableValueStyleCacheOverflowConfigForTable(true);
-        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
-                .from(TABLE_MAPPING_DEFAULT_CONFIG)
-                .overflowMigrationState(overflowMigrationState)
-                .build());
-        ddlTable.create(createMetadata(true));
     }
 
     @Test
@@ -444,6 +432,18 @@ public final class OracleDdlTableTest {
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
         verifyTableSizeMetadataNotUpdated();
+    }
+
+    private void alterTableForMigrationState(OverflowMigrationState overflowMigrationState)
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setTableValueStyleCacheOverflowConfigForTable(true);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .overflowMigrationState(overflowMigrationState)
+                .build());
+        ddlTable.create(createMetadata(true));
     }
 
     private void createTable() throws TableMappingNotFoundException {
