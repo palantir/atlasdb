@@ -176,8 +176,10 @@ final class TrackingKeyValueServiceTestUtils {
 
     private static TableReference createTableReferenceWithSize(int size, char identifier) {
         Preconditions.checkArgument(
+                size >= Character.BYTES, "size needs to be at least the number of bytes in an ascii character");
+        Preconditions.checkArgument(
                 size % Character.BYTES == 0, "size needs to be divisible by the number of bytes in an ascii character");
-        return TableReference.createWithEmptyNamespace(StringUtils.repeat(identifier, size / Character.BYTES));
+        return TableReference.createWithEmptyNamespace(StringUtils.repeat(identifier, (size / Character.BYTES) - 1));
     }
 
     private static TokenBackedBasicResultsPage<RowResult<Value>, byte[]> createTokenBackedBasicResultsPageWithSize(
