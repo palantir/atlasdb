@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Removes token ring validation checks and instead checks for user-led
+    split brain by ensuring any host added to our connection pool has its topology
+    validated.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6317

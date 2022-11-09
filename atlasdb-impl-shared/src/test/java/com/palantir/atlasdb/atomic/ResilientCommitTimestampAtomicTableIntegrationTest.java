@@ -29,12 +29,12 @@ import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -148,7 +148,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
         private TimestampReader(long startTimestamp, AtomicTable<Long, TransactionStatus> pueTable) {
             this.startTimestamp = startTimestamp;
             this.pueTable = pueTable;
-            this.timestampReads = new ArrayList<>();
+            this.timestampReads = new CopyOnWriteArrayList<>();
             this.scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
         }
 

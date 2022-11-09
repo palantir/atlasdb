@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCacheImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangePredicateHelper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairInfo;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
@@ -78,7 +78,7 @@ import java.util.List;
 public class OracleCellTsPageLoader implements CellTsPairLoader {
     private final SqlConnectionSupplier connectionPool;
     private final OracleTableNameGetter tableNameGetter;
-    private final TableValueStyleCache valueStyleCache;
+    private final TableValueStyleCacheImpl valueStyleCache;
     private final OracleDdlConfig config;
 
     private static final int DEFAULT_BATCH_SIZE = 1000;
@@ -86,7 +86,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
     public OracleCellTsPageLoader(
             SqlConnectionSupplier connectionPool,
             OracleTableNameGetter tableNameGetter,
-            TableValueStyleCache valueStyleCache,
+            TableValueStyleCacheImpl valueStyleCache,
             OracleDdlConfig config) {
         this.connectionPool = connectionPool;
         this.tableNameGetter = tableNameGetter;

@@ -45,6 +45,8 @@ import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
@@ -78,8 +80,11 @@ public final class LockWatchEventIntegrationTest {
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_4 =
             Cell.create("you".getBytes(StandardCharsets.UTF_8), "give".getBytes(StandardCharsets.UTF_8));
-    private static final String TABLE = "table";
+    private static final byte[] ROW = "up".getBytes(StandardCharsets.UTF_8);
+    private static final String TABLE = LockWatchIntegrationTestUtilities.TABLE;
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
+    private static final TableReference TABLE_2_REF =
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, LockWatchIntegrationTestUtilities.TABLE_2);
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
@@ -100,6 +105,13 @@ public final class LockWatchEventIntegrationTest {
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
+    }
+
+    @Test
+    public void exactRowWatchesCanBeRegistered() {
+        LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
     }
 
     @Test
@@ -201,6 +213,30 @@ public final class LockWatchEventIntegrationTest {
     }
 
     @Test
+    public void eventsGeneratedForRowLevelLockWatches() {
+        LockWatchReference exactRowReference = LockWatchReferences.exactRow(TABLE_2_REF.getQualifiedName(), ROW);
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(exactRowReference));
+        LockWatchIntegrationTestUtilities.awaitLockWatchCreated(txnManager, exactRowReference);
+
+        OpenTransaction firstTxn = startSingleTransaction();
+        LockWatchVersion currentVersion = getCurrentVersion();
+
+        Cell cell = Cell.create(ROW, "down".getBytes(StandardCharsets.UTF_8));
+        performWriteTransactionLockingAndUnlockingCells(TABLE_2_REF, ImmutableMap.of(cell, DATA_1));
+
+        OpenTransaction thirdTxn = startSingleTransaction();
+
+        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), firstTxn, thirdTxn);
+
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), LockEventVisitor.INSTANCE))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), UnlockEventVisitor.INSTANCE))
+                .containsExactlyInAnyOrderElementsOf(getDescriptors(TABLE_2_REF, cell));
+        assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
+                .isEmpty();
+    }
+
+    @Test
     public void leaderElectionDuringTransactionCausesTransactionToFailRetriably() {
         assertThatThrownBy(() -> txnManager.runTaskThrowOnConflict(txn -> {
                     txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
@@ -264,8 +300,12 @@ public final class LockWatchEventIntegrationTest {
     }
 
     private void performWriteTransactionLockingAndUnlockingCells(Map<Cell, byte[]> values) {
+        performWriteTransactionLockingAndUnlockingCells(TABLE_REF, values);
+    }
+
+    private void performWriteTransactionLockingAndUnlockingCells(TableReference tableRef, Map<Cell, byte[]> values) {
         txnManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE_REF, values);
+            txn.put(tableRef, values);
             return null;
         });
         LockWatchIntegrationTestUtilities.awaitAllUnlocked(txnManager);
@@ -291,6 +331,14 @@ public final class LockWatchEventIntegrationTest {
                 .collect(Collectors.toSet()));
     }
 
+    private Set<LockDescriptor> getAllDescriptorsFromLockWatchEvent(
+            Collection<LockWatchEvent> events, LockWatchEvent.Visitor<Set<LockDescriptor>> visitor) {
+        return events.stream()
+                .map(event -> event.accept(visitor))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
+
     private Set<LockDescriptor> filterDescriptors(Set<LockDescriptor> descriptors) {
         return descriptors.stream()
                 .filter(desc -> AtlasLockDescriptorUtils.tryParseTableRef(desc)
@@ -301,9 +349,13 @@ public final class LockWatchEventIntegrationTest {
     }
 
     private Set<LockDescriptor> getDescriptors(Cell... cells) {
+        return getDescriptors(TABLE_REF, cells);
+    }
+
+    private Set<LockDescriptor> getDescriptors(TableReference tableRef, Cell... cells) {
         return Stream.of(cells)
                 .map(cell -> AtlasCellLockDescriptor.of(
-                        TABLE_REF.getQualifiedName(), cell.getRowName(), cell.getColumnName()))
+                        tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()))
                 .collect(Collectors.toSet());
     }
 

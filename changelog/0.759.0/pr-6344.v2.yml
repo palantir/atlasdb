@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: When configured alter Oracle tables on creation to match their metadata
+  links:
+  - https://github.com/palantir/atlasdb/pull/6344

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -67,7 +68,10 @@ public class CassandraClientPoolIntegrationTest {
                 CASSANDRA.getConfig(),
                 CASSANDRA.getRuntimeConfig(),
                 CassandraClientPoolImpl.StartupChecks.RUN,
-                blacklist);
+                blacklist,
+                new CassandraTopologyValidator(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
     }
 
     @Test
@@ -110,7 +114,10 @@ public class CassandraClientPoolIntegrationTest {
                 configHostWithLocation,
                 CASSANDRA.getRuntimeConfig(),
                 CassandraClientPoolImpl.StartupChecks.RUN,
-                blacklist);
+                blacklist,
+                new CassandraTopologyValidator(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
 
         return clientPoolWithLocation.getLocalHosts();
     }
