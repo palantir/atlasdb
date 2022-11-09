@@ -62,7 +62,7 @@ public final class MarkAndCasCassImitatingConsensusForgettingStore extends Cassa
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws CheckAndSetException {
+    public void batchAtomicUpdate(Map<Cell, byte[]> values) throws CheckAndSetException {
         // sort by cells to avoid deadlock
         KeyedStream.ofEntries(values.entrySet().stream().sorted(Map.Entry.comparingByKey()))
                 .forEach(this::atomicUpdate);

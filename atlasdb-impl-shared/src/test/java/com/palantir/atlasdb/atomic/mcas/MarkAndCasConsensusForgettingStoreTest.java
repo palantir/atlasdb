@@ -83,7 +83,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
     public void updatesMultipleMarkedCells() throws ExecutionException, InterruptedException {
         store.mark(ImmutableSet.of(CELL, CELL_2));
 
-        store.atomicUpdate(ImmutableMap.of(CELL, HAPPY, CELL_2, HAPPY));
+        store.batchAtomicUpdate(ImmutableMap.of(CELL, HAPPY, CELL_2, HAPPY));
         TestBatchElement elem1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         TestBatchElement elem2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_SAD);
 

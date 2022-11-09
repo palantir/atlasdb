@@ -42,11 +42,11 @@ public class PueConsensusForgettingStore implements ConsensusForgettingStore {
 
     @Override
     public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        atomicUpdate(ImmutableMap.of(cell, value));
+        batchAtomicUpdate(ImmutableMap.of(cell, value));
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+    public void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         kvs.putUnlessExists(tableRef, values);
     }
 

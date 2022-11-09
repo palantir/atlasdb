@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Comparator;
@@ -87,18 +88,22 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
      */
     @Override
     public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
-        autobatcher.apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)));
+        try {
+            autobatcher
+                    .apply(ImmutableCasRequest.of(cell, inProgressMarkerBuffer, ByteBuffer.wrap(value)))
+                    .get();
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof KeyAlreadyExistsException) {
+                throw (KeyAlreadyExistsException) ex.getCause();
+            }
+            throw new SafeRuntimeException("Could not successfully execute atomic update.", ex);
+        }
     }
 
-    /**
-     * This call serially delegated to {@link MarkAndCasConsensusForgettingStore#atomicUpdate(Cell, byte[])}
-     * and does not guarantee atomicity across cells.
-     * The MCAS calls to KVS are batched and hence, in practice, it is possible that the group of cells is served
-     * atomically.
-     * */
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        values.forEach(this::atomicUpdate);
+    public void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        throw new UnsupportedOperationException("MarkAndCasCFS does not support batch updates currently. Reaching "
+                + "here implied a bug in AtlasDb wiring code.");
     }
 
     @Override
