@@ -225,7 +225,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             ExecutorService executor, OracleDdlConfig oracleDdlConfig, SqlConnectionSupplier connections) {
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(oracleDdlConfig);
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
-        TableValueStyleCache valueStyleCache = new TableValueStyleCache();
+        TableValueStyleCacheImpl valueStyleCache = new TableValueStyleCacheImpl();
         DbTableFactory tableFactory = new OracleDbTableFactory(
                 oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache, executor);
         TableMetadataCache tableMetadataCache = new TableMetadataCache(tableFactory);

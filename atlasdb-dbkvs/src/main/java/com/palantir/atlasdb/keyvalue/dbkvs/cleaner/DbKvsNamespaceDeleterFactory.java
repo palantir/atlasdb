@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCacheImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKeyValueServiceConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.SqlConnectionSuppliers;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
@@ -76,7 +76,7 @@ public final class DbKvsNamespaceDeleterFactory implements NamespaceDeleterFacto
 
         OracleTableNameGetter tableNameGetter = OracleTableNameGetterImpl.createDefault(ddlConfig);
         OraclePrefixedTableNames prefixedTableNames = new OraclePrefixedTableNames(tableNameGetter);
-        TableValueStyleCache cache = new TableValueStyleCache();
+        TableValueStyleCacheImpl cache = new TableValueStyleCacheImpl();
 
         // DDL tables require a compaction executor service. However, namespace deletion doesn't use compaction at
         // all, so we never use the executor service.
