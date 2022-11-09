@@ -16,7 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -38,16 +43,13 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.slf4j.LoggerFactory;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
@@ -184,6 +186,14 @@ public final class OracleAlterTableIntegrationTest {
     }
 
     private void modifyMetadataToNotHaveOverflow() {
+        LoggerFactory.getLogger(OracleAlterTableIntegrationTest.class).info("booboo");
+        AgnosticResultSet results = connectionSupplier
+                .get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT table_size FROM "
+                                + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        TABLE_REFERENCE.getQualifiedName());
+        System.out.println(results);
         connectionSupplier
                 .get()
                 .updateUnregisteredQuery(
@@ -191,6 +201,15 @@ public final class OracleAlterTableIntegrationTest {
                                 + " SET table_size = ? WHERE table_name = ?",
                         TableValueStyle.RAW.getId(),
                         TABLE_REFERENCE.getQualifiedName());
+        LoggerFactory.getLogger(OracleAlterTableIntegrationTest.class).info("boohoo");
+        AgnosticResultSet results = connectionSupplier
+                .get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT table_size FROM "
+                                + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        TABLE_REFERENCE.getQualifiedName());
+        System.out.println(results);
+        Uninterruptibles.sleepUninterruptibly(15, TimeUnit.MINUTES);
     }
 
     private void assertThatMetadataHasOverflow() {
@@ -201,7 +220,7 @@ public final class OracleAlterTableIntegrationTest {
                                 + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName() + " WHERE table_name = ?",
                         TABLE_REFERENCE.getQualifiedName());
         int type = Iterables.getOnlyElement(results.rows()).getInteger("table_size");
-        assertThat(type).isEqualTo(TableValueStyle.OVERFLOW);
+        assertThat(type).isEqualTo(TableValueStyle.OVERFLOW.getId());
     }
 
     private static void writeData(KeyValueService kvs, Map<Cell, byte[]> value, long timestamp) {
