@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -102,6 +103,26 @@ public final class OracleAlterTableIntegrationTest {
     }
 
     @Test
+    public void whenConfiguredAlterMetadataToMatchTableSchemaAndOldDataIsStillReadable() {
+        defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        writeData(defaultKvs, ROW_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
+
+        modifyMetadataToNotHaveOverflow();
+        // metadata is cached, thus we must create a new kvs to forcefully refresh the cache
+        KeyValueService badKvs = createKvs(DbKvsOracleTestSuite.getKvsConfig());
+        badKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
+        assertThatThrownBy(() -> fetchData(badKvs, DEFAULT_CELL_1, TIMESTAMP_1));
+
+        KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
+        workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
+        assertThatOverflowColumnExists();
+        assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
+    }
+
+    @Test
     public void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable() {
         defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_1, TIMESTAMP_1);
@@ -159,6 +180,18 @@ public final class OracleAlterTableIntegrationTest {
             throw new RuntimeException(e);
         }
     }
+
+    private void modifyMetadataToNotHaveOverflow() {
+        connectionSupplier
+                .get()
+                .updateUnregisteredQuery(
+                        "UPDATE " + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName()
+                                + " SET table_size = ? WHERE table_name = ?",
+                        TableValueStyle.OVERFLOW.getId(),
+                        TABLE_REFERENCE.getQualifiedName());
+    }
+
+    private void assertThatMetadataHasOverflow() {}
 
     private static void writeData(KeyValueService kvs, Map<Cell, byte[]> value, long timestamp) {
         kvs.put(TABLE_REFERENCE, value, timestamp);

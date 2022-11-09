@@ -135,17 +135,17 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private boolean maybeAlterMetadataToHaveOverflow() {
         try {
-            String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
 
-            if (config.alterTablesOrMetadataToMatch().contains(tableRef)
-                    && overflowTableHasMigrated()
-                    && overflowTableExists()
-                    && overflowColumnExists(shortTableName)) {
-                alterMetadataToHaveOverflow();
-                return true;
+            if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
+                String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+                if (overflowTableHasMigrated() && overflowTableExists() && overflowColumnExists(shortTableName)) {
+                    alterMetadataToHaveOverflow();
+                    return true;
+                }
             }
         } catch (TableMappingNotFoundException e) {
-            log.warn("Table mapping expected but not found for table.", UnsafeArg.of("tableRef", tableRef), e);
+            Throwables.rewrapAndThrowUncheckedException(
+                    "Unable to alter table to have overflow column due to a table mapping error.", e);
         }
         return false;
     }
