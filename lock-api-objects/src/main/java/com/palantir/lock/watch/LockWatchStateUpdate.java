@@ -25,6 +25,7 @@ import com.google.errorprone.annotations.DoNotMock;
 import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
+import com.palantir.logsafe.Unsafe;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -87,6 +88,7 @@ public interface LockWatchStateUpdate {
      * means that all previous lock watch information must be purged, as it is impossible to know what events were
      * missed, but contains all of the current lock watch information as the state of the world moving forward.
      */
+    @Unsafe
     @Value.Immutable
     @PackageVisibleImmutablesStyle
     @JsonSerialize(as = ImmutableSnapshot.class)

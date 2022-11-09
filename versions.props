@@ -1,7 +1,7 @@
 com.boundary:high-scale-lib = 1.0.6
 com.ea.agentloader:ea-agent-loader = 1.0.3
-com.fasterxml.jackson.*:* = 2.13.4
-com.fasterxml.jackson.core:jackson-databind = 2.13.4.2
+com.fasterxml.jackson.*:* = 2.14.0
+com.fasterxml.jackson.core:jackson-databind = 2.14.0
 com.github.ben-manes.caffeine:caffeine = 3.1.1
 com.github.peterwippermann.junit4:parameterized-suite = 1.1.0
 com.github.rholder:guava-retrying = 2.0.0
@@ -25,11 +25,11 @@ com.palantir.common:streams = 2.0.0
 com.palantir.config.crypto:* = 4.1.0
 com.palantir.conjure.java.api:* = 2.29.0
 com.palantir.conjure.java.runtime:* = 7.39.0
-com.palantir.conjure.java:* = 6.65.0
+com.palantir.conjure.java:* = 6.66.0
 com.palantir.conjure:conjure = 4.35.0
 com.palantir.dialogue:* = 3.69.0
 com.palantir.docker.compose:docker-compose-rule* = 1.8.0
-com.palantir.docker.proxy:docker-proxy-rule* = 1.1.1
+com.palantir.docker.proxy:docker-proxy-rule* = 1.6.0
 com.palantir.goethe:* = 0.9.0
 com.palantir.nylon:* = 0.3.0
 com.palantir.refreshable:refreshable = 2.2.0
@@ -57,6 +57,7 @@ net.jpountz.lz4:lz4 = 1.3.0
 one.util:streamex = 0.8.1
 org.apache.commons:commons-lang3 = 3.12.0
 org.apache.commons:commons-pool2 = 2.11.1
+org.apache.httpcomponents.client5:httpclient5 = 5.1.3
 org.assertj:assertj-* = 3.23.1
 org.assertj:assertj-guava = 3.4.0
 org.awaitility:awaitility = 4.2.0
@@ -94,7 +95,7 @@ ch.qos.logback:* = 1.2.11
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
 com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
-com.palantir.cassandra:* = 2.2.13-1.6.0
+com.palantir.cassandra:* = 2.2.18-1.101.0
 org.postgresql:postgresql = 42.4.1
 
 # transitive dep with API breaks in 0.14.0

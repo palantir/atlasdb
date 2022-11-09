@@ -16,36 +16,69 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.assertj.core.api.Assertions.assertThatIterator;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.ToLongFunction;
+import one.util.streamex.StreamEx;
 import org.junit.Test;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
 
-public class TrackingIteratorTest extends AbstractTrackingIteratorTest {
+public final class TrackingIteratorTest {
+    private static final String STRING = "test";
+    private static final Iterator<String> ONE_ELEMENT_ITERATOR = List.of(STRING).iterator();
+    private static final ImmutableList<String> STRINGS = ImmutableList.of(
+            "test4", "test4", "test200", "composite", "", "t", "twentyElementString1", "tt", "twentyElementString2");
+
+    // these have to be anonymous inner classes rather than lambdas in order to spy
+    private static final Consumer<Long> NO_OP = new Consumer<>() {
+        @Override
+        public void accept(Long _unused) {}
+    };
+    private static final ToLongFunction<String> STRING_LENGTH_MEASURER = new ToLongFunction<>() {
+        @Override
+        public long applyAsLong(String value) {
+            return value.length();
+        }
+    };
+
     @Test
-    public void trackingIteratorForwardsData() {
+    public void oneElementTrackingIteratorIsWiredCorrectly() {
+        Consumer<Long> tracker = spy(NO_OP);
+        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), noOp(), STRING_MEASURER);
-        assertThatIterator(trackingIterator).toIterable().containsExactlyElementsOf(STRINGS);
+                new TrackingIterator<>(ONE_ELEMENT_ITERATOR, tracker, measurer);
+
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(STRING));
+        verify(measurer).applyAsLong(STRING);
+        verify(tracker).accept(STRING_LENGTH_MEASURER.applyAsLong(STRING));
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
-    public void trackerInvokedCorrectlyByTrackingIterator() {
-        Consumer<Long> tracker = spy(noOp());
-        InOrder inOrder = Mockito.inOrder(tracker);
-
+    public void multiElementTrackingIteratorIsWiredCorrectly() {
+        ArrayList<Long> consumed = new ArrayList<>();
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), tracker, STRING_MEASURER);
+                new TrackingIterator<>(createStringIterator(), consumed::add, STRING_LENGTH_MEASURER);
 
-        trackingIterator.forEachRemaining(string -> {
-            inOrder.verify(tracker).accept(STRING_MEASURER.applyAsLong(string));
-        });
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
 
-        verifyNoMoreInteractions(tracker);
+        assertThat(consumed)
+                .containsExactlyElementsOf(StreamEx.of(createStringIterator())
+                        .mapToLong(STRING_LENGTH_MEASURER)
+                        .boxed()
+                        .toList());
+    }
+
+    public static Iterator<String> createStringIterator() {
+        return STRINGS.stream().iterator();
     }
 }

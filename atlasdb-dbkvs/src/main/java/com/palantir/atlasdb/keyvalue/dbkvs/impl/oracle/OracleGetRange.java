@@ -35,7 +35,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValueLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCacheImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRange;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.RangeHelpers;
@@ -133,7 +133,7 @@ public class OracleGetRange implements DbKvsGetRange {
     private final SqlConnectionSupplier connectionPool;
     private final OverflowValueLoader overflowValueLoader;
     private final OracleTableNameGetter tableNameGetter;
-    private final TableValueStyleCache valueStyleCache;
+    private final TableValueStyleCacheImpl valueStyleCache;
     private final TableMetadataCache tableMetadataCache;
     private final OracleDdlConfig config;
 
@@ -141,7 +141,7 @@ public class OracleGetRange implements DbKvsGetRange {
             SqlConnectionSupplier connectionPool,
             OverflowValueLoader overflowValueLoader,
             OracleTableNameGetter tableNameGetter,
-            TableValueStyleCache valueStyleCache,
+            TableValueStyleCacheImpl valueStyleCache,
             TableMetadataCache tableMetadataCache,
             OracleDdlConfig config) {
         this.connectionPool = connectionPool;

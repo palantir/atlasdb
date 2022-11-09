@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -24,11 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public final class CandidateCellForSweepingTest {
     private static final int CELL_NAME_SIZE = 100;
     private static final int TIMESTAMPS_COLLECTION_SIZE = 200;
@@ -36,9 +33,6 @@ public final class CandidateCellForSweepingTest {
     private static final byte[] BYTES = new byte[CELL_NAME_SIZE];
     private static final Cell CELL = Cell.create(BYTES, BYTES);
     private static final List<Long> TIMESTAMPS = Collections.nCopies(TIMESTAMPS_COLLECTION_SIZE, TIMESTAMP);
-
-    @Mock
-    private List<Long> mockTimestamps;
 
     @Test
     public void candidateCellHasCorrectSizeForEmptyTimestampCollection() {
@@ -59,9 +53,11 @@ public final class CandidateCellForSweepingTest {
                 .isEqualTo(Long.sum(CELL.sizeInBytes(), Long.BYTES * ((long) TIMESTAMPS_COLLECTION_SIZE)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void noOverflowFromCollectionSize() {
         // Mocking because otherwise we OOM.
+        List<Long> mockTimestamps = mock(List.class);
         when(mockTimestamps.size()).thenReturn(Integer.MAX_VALUE);
         assertThat(createCandidateCell(mockTimestamps, false).sizeInBytes())
                 .isEqualTo(Long.sum(Integer.MAX_VALUE * 8L, CELL.sizeInBytes()));

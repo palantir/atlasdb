@@ -19,11 +19,13 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @JsonSerialize(as = ImmutableIdentifiedLockRequest.class)
 @JsonDeserialize(as = ImmutableIdentifiedLockRequest.class)

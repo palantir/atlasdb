@@ -36,6 +36,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopingCache {
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueScopingCacheImpl.class);
+    private static final RateLimitedLogger rateLimitedLogger = new RateLimitedLogger(log, (1 / 5.0));
     private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
@@ -54,6 +56,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private final SnapshotStore snapshotStore;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
+
+    private final CacheMetrics cacheMetrics;
 
     @VisibleForTesting
     LockWatchValueScopingCacheImpl(
@@ -67,6 +71,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.eventCache = eventCache;
         this.snapshotStore = snapshotStore;
         this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
+        this.cacheMetrics = metrics;
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
     }
@@ -263,16 +268,23 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             firstEvent = events.get(0);
             lastEvent = events.get(events.size() - 1);
         }
-        log.info(
-                "Clearing all value cache state",
-                SafeArg.of("currentVersion", currentVersion),
-                SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
-                SafeArg.of("firstEventSequence", firstEvent),
-                SafeArg.of("lastEventSequence", lastEvent));
+
+        registerAllClearEventAndMaybeLog(latestVersionFromUpdate, firstEvent, lastEvent);
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
         currentVersion = Optional.empty();
+    }
+
+    private void registerAllClearEventAndMaybeLog(
+            Optional<LockWatchVersion> latestVersionFromUpdate, LockWatchEvent firstEvent, LockWatchEvent lastEvent) {
+        cacheMetrics.increaseCacheStateAllClear();
+        rateLimitedLogger.log(logger -> logger.info(
+                "Clearing all value cache state",
+                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
+                SafeArg.of("firstEventSequence", Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
+                SafeArg.of("lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence))));
     }
 
     private static Multimap<Sequence, StartTimestamp> createSequenceTimestampMultimap(
