@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AtomicLongMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -59,8 +60,8 @@ public final class KeyValueServiceDataTracker {
      * stages (e.g. this can happen with futures/iterators).
      */
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
-        Set<TableReference> tableRefs = Sets.intersection(
-                bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet());
+        Set<TableReference> tableRefs = ImmutableSet.copyOf(Sets.intersection(
+                bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet()));
 
         return tableRefs.stream()
                 .collect(ImmutableMap.toImmutableMap(
