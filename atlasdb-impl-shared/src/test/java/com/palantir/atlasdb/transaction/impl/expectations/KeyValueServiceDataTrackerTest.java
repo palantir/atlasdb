@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import org.junit.Test;
 
@@ -43,8 +44,9 @@ public final class KeyValueServiceDataTrackerTest {
 
     @Test
     public void noReadsTracksNothing() {
-        assertEquals(
-                ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(0).build(), tracker.getReadInfo());
+        TransactionReadInfo readInfo = createTransactionReadInfo(0, 0);
+
+        assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
 
@@ -52,14 +54,8 @@ public final class KeyValueServiceDataTrackerTest {
     public void oneReadForTableIsTracked() {
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(BYTES_READ_1)
-                .kvsCalls(1)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(BYTES_READ_1)
-                        .methodName(KVS_METHOD_NAME_1)
-                        .build())
-                .build();
+        TransactionReadInfo readInfo =
+                createTransactionReadInfo(BYTES_READ_1, 1, createKvsCallReadInfo(BYTES_READ_1, KVS_METHOD_NAME_1));
 
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(TABLE_1, readInfo), tracker.getReadInfoByTable());
@@ -74,50 +70,23 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.readForTable(TABLE_1, KVS_METHOD_NAME_3, NO_BYTES_READ);
         tracker.readForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_3);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(BYTES_READ_1 + 2 * BYTES_READ_2 + 2 * BYTES_READ_3)
-                .kvsCalls(6)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(BYTES_READ_3)
-                        .methodName(KVS_METHOD_NAME_2)
-                        .build())
-                .build();
+        TransactionReadInfo readInfo = createTransactionReadInfo(
+                BYTES_READ_1 + 2 * BYTES_READ_2 + 2 * BYTES_READ_3,
+                6,
+                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2));
 
         assertEquals(readInfo, tracker.getReadInfo());
 
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable =
-                ImmutableMap.<TableReference, TransactionReadInfo>builder()
-                        .put(
-                                TABLE_1,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + BYTES_READ_2)
-                                        .kvsCalls(3)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_2)
-                                                .methodName(KVS_METHOD_NAME_2)
-                                                .build())
-                                        .build())
-                        .put(
-                                TABLE_2,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_2 + BYTES_READ_3)
-                                        .kvsCalls(2)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_3)
-                                                .methodName(KVS_METHOD_NAME_2)
-                                                .build())
-                                        .build())
-                        .put(
-                                TABLE_3,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_3)
-                                        .kvsCalls(1)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_3)
-                                                .methodName(KVS_METHOD_NAME_3)
-                                                .build())
-                                        .build())
-                        .buildOrThrow();
+        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
+                TABLE_1,
+                        createTransactionReadInfo(
+                                BYTES_READ_1 + BYTES_READ_2, 3, createKvsCallReadInfo(BYTES_READ_2, KVS_METHOD_NAME_2)),
+                TABLE_2,
+                        createTransactionReadInfo(
+                                BYTES_READ_2 + BYTES_READ_3, 2, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
+                TABLE_3,
+                        createTransactionReadInfo(
+                                BYTES_READ_3, 1, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_3)));
 
         assertEquals(readInfoByTable, tracker.getReadInfoByTable());
     }
@@ -127,10 +96,7 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.callForTable(TABLE_2);
         tracker.partialReadForTable(TABLE_2, BYTES_READ_2);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(BYTES_READ_2)
-                .kvsCalls(1)
-                .build();
+        TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_2, 1);
 
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(TABLE_2, readInfo), tracker.getReadInfoByTable());
@@ -146,10 +112,7 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.partialReadForTable(TABLE_1, BYTES_READ_2);
         tracker.partialReadForTable(TABLE_1, BYTES_READ_3);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3)
-                .kvsCalls(2)
-                .build();
+        TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3, 2);
 
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(TABLE_1, readInfo), tracker.getReadInfoByTable());
@@ -173,34 +136,14 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.partialReadForTable(TABLE_2, BYTES_READ_3);
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3)
-                .kvsCalls(6)
-                .build();
+        TransactionReadInfo readInfo = createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 6);
 
         assertEquals(readInfo, tracker.getReadInfo());
 
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable =
-                ImmutableMap.<TableReference, TransactionReadInfo>builder()
-                        .put(
-                                TABLE_1,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + BYTES_READ_2)
-                                        .kvsCalls(1)
-                                        .build())
-                        .put(
-                                TABLE_2,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + BYTES_READ_3)
-                                        .kvsCalls(2)
-                                        .build())
-                        .put(
-                                TABLE_3,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + 2 * BYTES_READ_3)
-                                        .kvsCalls(3)
-                                        .build())
-                        .buildOrThrow();
+        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
+                TABLE_1, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2, 1),
+                TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 2),
+                TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 3));
 
         assertEquals(readInfoByTable, tracker.getReadInfoByTable());
     }
@@ -208,8 +151,9 @@ public final class KeyValueServiceDataTrackerTest {
     @Test
     public void oneCallForTableIsTracked() {
         tracker.callForTable(TABLE_2);
-        TransactionReadInfo readInfo =
-                ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(1).build();
+
+        TransactionReadInfo readInfo = createTransactionReadInfo(0, 1);
+
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
@@ -219,8 +163,9 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.callForTable(TABLE_2);
         tracker.callForTable(TABLE_2);
         tracker.callForTable(TABLE_2);
-        TransactionReadInfo readInfo =
-                ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(3).build();
+
+        TransactionReadInfo readInfo = createTransactionReadInfo(0, 3);
+
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
@@ -232,8 +177,9 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.callForTable(TABLE_2);
         tracker.callForTable(TABLE_3);
         tracker.callForTable(TABLE_2);
-        TransactionReadInfo readInfo =
-                ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(5).build();
+
+        TransactionReadInfo readInfo = createTransactionReadInfo(0, 5);
+
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
@@ -241,14 +187,10 @@ public final class KeyValueServiceDataTrackerTest {
     @Test
     public void oneTableAgnosticReadIsTracked() {
         tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_3);
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(BYTES_READ_3)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(BYTES_READ_3)
-                        .methodName(KVS_METHOD_NAME_4)
-                        .build())
-                .kvsCalls(1)
-                .build();
+
+        TransactionReadInfo readInfo =
+                createTransactionReadInfo(BYTES_READ_3, 1, createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_4));
+
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
@@ -260,14 +202,12 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
         tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
         tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_1);
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(2 * BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(BYTES_READ_3)
-                        .methodName(KVS_METHOD_NAME_4)
-                        .build())
-                .kvsCalls(5)
-                .build();
+
+        TransactionReadInfo readInfo = createTransactionReadInfo(
+                2 * BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3,
+                5,
+                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_4));
+
         assertEquals(readInfo, tracker.getReadInfo());
         assertEquals(ImmutableMap.of(), tracker.getReadInfoByTable());
     }
@@ -294,51 +234,53 @@ public final class KeyValueServiceDataTrackerTest {
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
         tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
 
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(5 * BYTES_READ_1 + 6 * BYTES_READ_2 + 4 * BYTES_READ_3)
-                .kvsCalls(12)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(BYTES_READ_3)
-                        .methodName(KVS_METHOD_NAME_2)
-                        .build())
-                .build();
+        TransactionReadInfo readInfo = createTransactionReadInfo(
+                5 * BYTES_READ_1 + 6 * BYTES_READ_2 + 4 * BYTES_READ_3,
+                12,
+                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2));
 
         assertEquals(readInfo, tracker.getReadInfo());
 
-        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable =
-                ImmutableMap.<TableReference, TransactionReadInfo>builder()
-                        .put(
-                                TABLE_1,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3)
-                                        .kvsCalls(5)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_3)
-                                                .methodName(KVS_METHOD_NAME_2)
-                                                .build())
-                                        .build())
-                        .put(
-                                TABLE_2,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(BYTES_READ_1 + 2 * BYTES_READ_2 + BYTES_READ_3)
-                                        .kvsCalls(3)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_3)
-                                                .methodName(KVS_METHOD_NAME_3)
-                                                .build())
-                                        .build())
-                        .put(
-                                TABLE_3,
-                                ImmutableTransactionReadInfo.builder()
-                                        .bytesRead(2 * BYTES_READ_1 + 2 * BYTES_READ_2)
-                                        .kvsCalls(2)
-                                        .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.builder()
-                                                .bytesRead(BYTES_READ_2)
-                                                .methodName(KVS_METHOD_NAME_1)
-                                                .build())
-                                        .build())
-                        .buildOrThrow();
+        ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable = ImmutableMap.of(
+                TABLE_1,
+                        createTransactionReadInfo(
+                                BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3,
+                                5,
+                                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
+                TABLE_2,
+                        createTransactionReadInfo(
+                                BYTES_READ_1 + 2 * BYTES_READ_2 + BYTES_READ_3,
+                                3,
+                                createKvsCallReadInfo(BYTES_READ_3, KVS_METHOD_NAME_3)),
+                TABLE_3,
+                        createTransactionReadInfo(
+                                2 * BYTES_READ_1 + 2 * BYTES_READ_2,
+                                2,
+                                createKvsCallReadInfo(BYTES_READ_2, KVS_METHOD_NAME_1)));
 
         assertEquals(readInfoByTable, tracker.getReadInfoByTable());
+    }
+
+    private static TransactionReadInfo createTransactionReadInfo(
+            long bytesRead, long kvsCalls, KvsCallReadInfo maximumBytesKvsCallInfo) {
+        return ImmutableTransactionReadInfo.builder()
+                .bytesRead(bytesRead)
+                .kvsCalls(kvsCalls)
+                .maximumBytesKvsCallInfo(maximumBytesKvsCallInfo)
+                .build();
+    }
+
+    private static KvsCallReadInfo createKvsCallReadInfo(long bytesRead, String kvsMethodName) {
+        return ImmutableKvsCallReadInfo.builder()
+                .bytesRead(bytesRead)
+                .methodName(kvsMethodName)
+                .build();
+    }
+
+    private static TransactionReadInfo createTransactionReadInfo(long bytesRead, int kvsCalls) {
+        return ImmutableTransactionReadInfo.builder()
+                .bytesRead(bytesRead)
+                .kvsCalls(kvsCalls)
+                .build();
     }
 }
