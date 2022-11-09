@@ -19,14 +19,14 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import com.google.common.collect.ForwardingIterator;
 import java.util.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterator<T> {
-    I delegate;
-    Function<T, Long> measurer;
-    Consumer<Long> tracker;
+    private final I delegate;
+    private final ToLongFunction<T> measurer;
+    private final Consumer<Long> tracker;
 
-    public TrackingIterator(I delegate, Consumer<Long> tracker, Function<T, Long> measurer) {
+    public TrackingIterator(I delegate, Consumer<Long> tracker, ToLongFunction<T> measurer) {
         this.delegate = delegate;
         this.tracker = tracker;
         this.measurer = measurer;
@@ -40,7 +40,7 @@ public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterat
     @Override
     public T next() {
         T result = delegate.next();
-        tracker.accept(measurer.apply(result));
+        tracker.accept(measurer.applyAsLong(result));
         return result;
     }
 }

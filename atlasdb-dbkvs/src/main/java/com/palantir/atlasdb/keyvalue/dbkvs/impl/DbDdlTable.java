@@ -18,7 +18,17 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 public interface DbDdlTable {
     void create(byte[] tableMetadata);
 
+    /**
+     * See {@link #drop(CaseSensitivity)}. This method uses CASE_SENSITIVE deletion.
+     */
     void drop();
+
+    /**
+     * Drops the table, and deletes the table from the mapping table (if present), and from the metadata table.
+     * If referenceCaseSensitivity is CASE_INSENSITIVE, and another table is created with a table reference that is a
+     * case insensitive match with this table, then the behaviour is undefined.
+     */
+    void drop(CaseSensitivity referenceCaseSensitivity);
 
     void truncate();
 

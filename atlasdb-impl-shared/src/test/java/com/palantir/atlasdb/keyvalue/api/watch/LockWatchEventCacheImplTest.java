@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -62,24 +63,35 @@ public final class LockWatchEventCacheImplTest {
     private static final long SEQUENCE_1 = 1L;
     private static final long SEQUENCE_2 = 2L;
     private static final long SEQUENCE_3 = 3L;
+    private static final long SEQUENCE_4 = 4L;
+    private static final long SEQUENCE_5 = 5L;
     private static final long TIMESTAMP_1 = 72L;
     private static final long TIMESTAMP_2 = 97L;
     private static final long TIMESTAMP_3 = 120L;
+    private static final long TIMESTAMP_4 = 144L;
+    private static final long TIMESTAMP_5 = 169L;
 
     private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(INITIAL_LEADER, 0L);
     private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_1);
     private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_2);
     private static final LockWatchVersion VERSION_3 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_3);
+    private static final LockWatchVersion VERSION_4 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_4);
+    private static final LockWatchVersion VERSION_5 = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_5);
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("skeleton-key");
     private static final LockDescriptor DESCRIPTOR_2 = StringLockDescriptor.of("2spook5me");
+    private static final LockDescriptor ROW_DESCRIPTOR = StringLockDescriptor.of("pumpkin");
     private static final LockWatchReference REFERENCE_1 = LockWatchReferences.entireTable("table.one");
     private static final LockWatchReference REFERENCE_2 = LockWatchReferences.entireTable("table.two");
+    private static final LockWatchReference ROW_REFERENCE =
+            LockWatchReferences.exactRow("table.three", PtBytes.toBytes("row.seventeen"));
 
     private static final LockWatchEvent LOCK_DESCRIPTOR_2_VERSION_2 =
             LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN).build(SEQUENCE_2);
     private static final LockWatchEvent UNLOCK_DESCRIPTOR_1_VERSION_3 =
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
+    private static final LockWatchEvent LOCK_ROW_DESCRIPTOR_VERSION_5 =
+            LockEvent.builder(ImmutableSet.of(ROW_DESCRIPTOR), LOCK_TOKEN).build(SEQUENCE_5);
 
     private static final LockWatchStateUpdate.Snapshot SNAPSHOT_VERSION_1 = LockWatchStateUpdate.snapshot(
             INITIAL_LEADER, SEQUENCE_1, ImmutableSet.of(DESCRIPTOR_1), ImmutableSet.of(REFERENCE_1));
@@ -87,6 +99,10 @@ public final class LockWatchEventCacheImplTest {
             LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_2, ImmutableList.of(LOCK_DESCRIPTOR_2_VERSION_2));
     private static final LockWatchStateUpdate.Success SUCCESS_VERSION_3 =
             LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_3, ImmutableList.of(UNLOCK_DESCRIPTOR_1_VERSION_3));
+    private static final LockWatchStateUpdate.Snapshot SNAPSHOT_VERSION_4 = LockWatchStateUpdate.snapshot(
+            INITIAL_LEADER, SEQUENCE_4, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of(REFERENCE_1, ROW_REFERENCE));
+    private static final LockWatchStateUpdate.Success SUCCESS_VERSION_5 =
+            LockWatchStateUpdate.success(INITIAL_LEADER, SEQUENCE_5, ImmutableList.of(LOCK_ROW_DESCRIPTOR_VERSION_5));
 
     private static final CacheMetrics METRICS = CacheMetrics.create(MetricsManagers.createForTests());
 
@@ -164,6 +180,44 @@ public final class LockWatchEventCacheImplTest {
 
         assertThat(update.startTsToSequence())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(TIMESTAMP_2, VERSION_2, TIMESTAMP_3, VERSION_3));
+    }
+
+    @Test
+    public void getUpdateForTransactionsIncludesEventsFromWatchedRows() {
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_1), SNAPSHOT_VERSION_1);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_2), SUCCESS_VERSION_2);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_3), SUCCESS_VERSION_3);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_4), SNAPSHOT_VERSION_4);
+        eventCache.processStartTransactionsUpdate(ImmutableSet.of(TIMESTAMP_5), SUCCESS_VERSION_5);
+
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_1);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_2);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_3);
+        verify(eventLog).processUpdate(SNAPSHOT_VERSION_4);
+        verify(eventLog).processUpdate(SUCCESS_VERSION_5);
+
+        TransactionsLockWatchUpdate update =
+                eventCache.getUpdateForTransactions(ImmutableSet.of(TIMESTAMP_4, TIMESTAMP_5), Optional.of(VERSION_3));
+
+        verify(eventLog)
+                .getEventsBetweenVersions(VersionBounds.builder()
+                        .startVersion(VERSION_3)
+                        .endVersion(VERSION_5)
+                        .earliestSnapshotVersion(VERSION_4.version())
+                        .build());
+
+        assertThat(update.clearCache()).as("provided version is too far behind").isTrue();
+
+        assertThat(update.events())
+                .as("events condensed up to version 4")
+                .containsExactly(
+                        LockWatchCreatedEvent.builder(
+                                        ImmutableSet.of(REFERENCE_1, ROW_REFERENCE), ImmutableSet.of(DESCRIPTOR_2))
+                                .build(SEQUENCE_4),
+                        LOCK_ROW_DESCRIPTOR_VERSION_5);
+
+        assertThat(update.startTsToSequence())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(TIMESTAMP_4, VERSION_4, TIMESTAMP_5, VERSION_5));
     }
 
     @Test

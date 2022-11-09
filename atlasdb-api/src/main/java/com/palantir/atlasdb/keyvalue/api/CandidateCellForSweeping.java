@@ -15,11 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.palantir.atlasdb.util.Measurable;
 import java.util.Collection;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface CandidateCellForSweeping {
+public interface CandidateCellForSweeping extends Measurable {
 
     Cell cell();
 
@@ -42,6 +43,7 @@ public interface CandidateCellForSweeping {
      */
     boolean isLatestValueEmpty();
 
+    @Override
     default long sizeInBytes() {
         return cell().sizeInBytes() + ((long) sortedTimestamps().size()) * Long.BYTES;
     }

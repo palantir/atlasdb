@@ -17,57 +17,68 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
+import one.util.streamex.StreamEx;
 import org.junit.Test;
 
-public class TrackingIteratorTest {
-    private static final ImmutableList<String> STRINGS =
-            ImmutableList.of("test1", "test200", "composite", "", "t", "tt");
-    private static final Function<String, Long> MEASURER = Functions.compose(Long::valueOf, String::length);
+public final class TrackingIteratorTest {
+    private static final String STRING = "test";
+    private static final Iterator<String> ONE_ELEMENT_ITERATOR = List.of(STRING).iterator();
+    private static final ImmutableList<String> STRINGS = ImmutableList.of(
+            "test4", "test4", "test200", "composite", "", "t", "twentyElementString1", "tt", "twentyElementString2");
+
+    // these have to be anonymous inner classes rather than lambdas in order to spy
+    private static final Consumer<Long> NO_OP = new Consumer<>() {
+        @Override
+        public void accept(Long _unused) {}
+    };
+    private static final ToLongFunction<String> STRING_LENGTH_MEASURER = new ToLongFunction<>() {
+        @Override
+        public long applyAsLong(String value) {
+            return value.length();
+        }
+    };
 
     @Test
-    public void trackingStringIteratorForwardsData() {
-        Iterator<String> iterator = spawnIterator();
+    public void oneElementTrackingIteratorIsWiredCorrectly() {
+        Consumer<Long> tracker = spy(NO_OP);
+        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(spawnIterator(), noOp(), MEASURER);
+                new TrackingIterator<>(ONE_ELEMENT_ITERATOR, tracker, measurer);
 
-        trackingIterator.forEachRemaining(string -> {
-            assertThat(iterator.hasNext()).isTrue();
-            assertThat(string).isEqualTo(iterator.next());
-        });
-
-        assertThat(iterator.hasNext()).isFalse();
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(STRING));
+        verify(measurer).applyAsLong(STRING);
+        verify(tracker).accept(STRING_LENGTH_MEASURER.applyAsLong(STRING));
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
-    public void trackingStringIteratorTracksData() {
-        Iterator<String> iterator = spawnIterator();
+    public void multiElementTrackingIteratorIsWiredCorrectly() {
+        ArrayList<Long> consumed = new ArrayList<>();
+        TrackingIterator<String, Iterator<String>> trackingIterator =
+                new TrackingIterator<>(createStringIterator(), consumed::add, STRING_LENGTH_MEASURER);
 
-        TrackingIterator<String, Iterator<String>> trackingIterator = new TrackingIterator<>(
-                spawnIterator(),
-                new Consumer<Long>() {
-                    final Iterator<String> baseIterator = spawnIterator();
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
 
-                    @Override
-                    public void accept(Long bytes) {
-                        assertThat(bytes).isEqualTo(MEASURER.apply(baseIterator.next()));
-                    }
-                },
-                MEASURER);
-
-        trackingIterator.forEachRemaining(noOp());
+        assertThat(consumed)
+                .containsExactlyElementsOf(StreamEx.of(createStringIterator())
+                        .mapToLong(STRING_LENGTH_MEASURER)
+                        .boxed()
+                        .toList());
     }
 
-    private static Iterator<String> spawnIterator() {
+    public static Iterator<String> createStringIterator() {
         return STRINGS.stream().iterator();
-    }
-
-    private static <T> Consumer<T> noOp() {
-        return t -> {};
     }
 }

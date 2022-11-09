@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.CaseSensitivity;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
@@ -89,15 +91,13 @@ public final class OracleDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         boolean needsOverflow = needsOverflow(tableMetadata);
 
-        if (conns.get()
-                .selectExistsUnregisteredQuery(
-                        "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                        tableRef.getQualifiedName())) {
+        if (tableExists()) {
             if (needsOverflow) {
                 TableValueStyle existingStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
                 if (existingStyle != TableValueStyle.OVERFLOW) {
                     throwForMissingOverflowTable();
                 }
+                maybeAlterTableToHaveOverflowColumn();
             }
             return;
         }
@@ -117,6 +117,34 @@ public final class OracleDdlTable implements DbDdlTable {
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)");
     }
 
+    private void maybeAlterTableToHaveOverflowColumn() {
+        if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
+            try {
+                String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+                if (overflowTableHasMigrated() && overflowTableExists() && !overflowColumnExists(shortTableName)) {
+                    alterTableToHaveOverflowColumn(shortTableName);
+                }
+            } catch (TableMappingNotFoundException e) {
+                Throwables.rewrapAndThrowUncheckedException(
+                        "Unable to alter table to have overflow column due to a table mapping error.", e);
+            }
+        }
+    }
+
+    private void alterTableToHaveOverflowColumn(String shortTableName) {
+        log.info(
+                "Altering table to have overflow column to match metadata.",
+                LoggingArgs.tableRef(tableRef),
+                UnsafeArg.of("shortTableName", shortTableName));
+        executeIgnoringError(
+                "ALTER TABLE " + shortTableName + " ADD (overflow NUMBER(38))",
+                OracleErrorConstants.ORACLE_COLUMN_ALREADY_EXISTS);
+    }
+
+    private boolean overflowTableHasMigrated() {
+        return config.overflowMigrationState() == OverflowMigrationState.FINISHED;
+    }
+
     private boolean needsOverflow(byte[] tableMetadata) {
         TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
         return (metadata != null)
@@ -131,6 +159,20 @@ public final class OracleDdlTable implements DbDdlTable {
                         shortTableName.toUpperCase());
     }
 
+    private boolean tableExists() {
+        return conns.get()
+                .selectExistsUnregisteredQuery(
+                        "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        tableRef.getQualifiedName());
+    }
+
+    private boolean overflowTableExists() throws TableMappingNotFoundException {
+        String shortTableName = oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
+        return conns.get()
+                .selectExistsUnregisteredQuery(
+                        "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase());
+    }
+
     private void throwForMissingOverflowTable() {
         throw new SafeIllegalArgumentException(
                 "Unsupported table change from raw to overflow, likely due to a schema change. "
@@ -139,6 +181,9 @@ public final class OracleDdlTable implements DbDdlTable {
                 LoggingArgs.tableRef(tableRef));
     }
 
+    /**
+     * Creates the table for the given reference. If the schema is modified here, please also update it in {@link #alterTableToHaveOverflowColumn}.
+     */
     private String createTable(boolean needsOverflow) {
         String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
         executeIgnoringError(
@@ -204,11 +249,7 @@ public final class OracleDdlTable implements DbDdlTable {
         drop(CaseSensitivity.CASE_SENSITIVE);
     }
 
-    /**
-     * Drops the table, and deletes the table from the mapping table (if present), and from the metadata table.
-     * If referenceCaseSensitivity is CASE_INSENSITIVE, and another table is created with a table reference that is a
-     * case insensitive match with this table, then the behaviour is undefined.
-     */
+    @Override
     public void drop(CaseSensitivity referenceCaseSensitivity) {
         executeIgnoringTableMappingNotFound(() -> dropTableInternal(
                 oracleTableNameGetter.getPrefixedTableName(tableRef),
@@ -457,10 +498,5 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         return sqlConnection;
-    }
-
-    public enum CaseSensitivity {
-        CASE_SENSITIVE,
-        CASE_INSENSITIVE;
     }
 }

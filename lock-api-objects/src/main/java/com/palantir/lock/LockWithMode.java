@@ -16,8 +16,10 @@
 package com.palantir.lock;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.logsafe.Unsafe;
 import java.util.Objects;
 
+@Unsafe
 public class LockWithMode {
     private LockDescriptor lockDescriptor;
     private LockMode lockMode;
@@ -54,6 +56,7 @@ public class LockWithMode {
         return Objects.hash(lockDescriptor, lockMode);
     }
 
+    @Unsafe
     @Override
     public String toString() {
         return "LockWithMode{" + "lockDescriptor=" + lockDescriptor + ", lockMode=" + lockMode + '}';

@@ -19,11 +19,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.util.Measurable;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
-public final class TableReference {
+public final class TableReference implements Measurable {
     private final Namespace namespace;
     private final String tableName;
 
@@ -147,8 +148,9 @@ public final class TableReference {
         return getQualifiedName();
     }
 
+    @Override
     public long sizeInBytes() {
-        return stringSizeInBytes(tableName) + stringSizeInBytes(namespace.getName());
+        return stringSizeInBytes(tableName) + stringSizeInBytes(namespace.getName()) + Character.BYTES;
     }
 
     private static long stringSizeInBytes(String string) {

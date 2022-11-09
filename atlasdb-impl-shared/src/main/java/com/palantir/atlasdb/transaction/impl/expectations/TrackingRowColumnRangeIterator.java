@@ -20,13 +20,14 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
-public class TrackingRowColumnRangeIterator extends TrackingIterator<Map.Entry<Cell, Value>, RowColumnRangeIterator>
-        implements RowColumnRangeIterator {
+public final class TrackingRowColumnRangeIterator
+        extends TrackingIterator<Map.Entry<Cell, Value>, RowColumnRangeIterator> implements RowColumnRangeIterator {
     public TrackingRowColumnRangeIterator(
-            RowColumnRangeIterator delegate, Consumer<Long> tracker, Function<Map.Entry<Cell, Value>, Long> measurer) {
+            RowColumnRangeIterator delegate, Consumer<Long> tracker, ToLongFunction<Entry<Cell, Value>> measurer) {
         super(delegate, tracker, measurer);
     }
 }
