@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -72,8 +71,8 @@ public final class TrackingKeyValueServiceTest {
     private static final int MAX_RESULTS = 25;
     private static final ImmutableMap<Cell, Long> TIMESTAMP_BY_CELL_MAP =
             TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(121, TIMESTAMP);
-    private static final Iterable<byte[]> ROWS =
-            Stream.generate(() -> new byte[100]).limit(3).collect(Collectors.toUnmodifiableList());
+    private static final ImmutableList<byte[]> ROWS =
+            Stream.generate(() -> new byte[100]).limit(3).collect(ImmutableList.toImmutableList());
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace("table1.namespace1");
     private static final RangeRequest RANGE_REQUEST = RangeRequest.all();
     private static final ImmutableList<RangeRequest> RANGE_REQUESTS = ImmutableList.of(
@@ -97,14 +96,14 @@ public final class TrackingKeyValueServiceTest {
                     .shouldCheckIfLatestValueIsEmpty(false)
                     .shouldDeleteGarbageCollectionSentinels(false)
                     .build();
-    private static final Set<Cell> CELLS = ImmutableSet.of(
+    private static final ImmutableSet<Cell> CELLS = ImmutableSet.of(
             TrackingKeyValueServiceTestUtils.createCellWithSize(10, (byte) 0),
             TrackingKeyValueServiceTestUtils.createCellWithSize(20, (byte) 1),
             TrackingKeyValueServiceTestUtils.createCellWithSize(30, (byte) 2));
 
     @Parameterized.Parameters(name = "size = {0}")
     public static Object[] size() {
-        // divisible by 12 to allow creation of TableReference of wanted sizes
+        // divisible by 12 to allow creation of TableReference objects of wanted sizes
         return new Object[] {12 * 129, 12 * 365, 12 * 411};
     }
 
@@ -163,7 +162,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(future.get()).isSameAs(backingValueByCellMapOfSize);
 
-        verify(kvs, times(1)).getAsync(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
+        verify(kvs).getAsync(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
         validateReadInfoForReadForTable("getAsync");
         verifyNoMoreInteractions(kvs);
     }
@@ -175,7 +174,7 @@ public final class TrackingKeyValueServiceTest {
         assertThat(trackingKvs.getRows(TABLE_REF, ROWS, COLUMN_SELECTION, TIMESTAMP))
                 .isSameAs(backingValueByCellMapOfSize);
 
-        verify(kvs, times(1)).getRows(TABLE_REF, ROWS, COLUMN_SELECTION, TIMESTAMP);
+        verify(kvs).getRows(TABLE_REF, ROWS, COLUMN_SELECTION, TIMESTAMP);
         validateReadInfoForReadForTable("getRows");
         verifyNoMoreInteractions(kvs);
     }
@@ -196,7 +195,7 @@ public final class TrackingKeyValueServiceTest {
                     .containsExactlyElementsOf(entry.getValue().entrySet());
         }
 
-        verify(kvs, times(1)).getRowsColumnRange(TABLE_REF, ROWS, BATCH_COLUMN_RANGE_SELECTION, TIMESTAMP);
+        verify(kvs).getRowsColumnRange(TABLE_REF, ROWS, BATCH_COLUMN_RANGE_SELECTION, TIMESTAMP);
         validateReadInfoForPartialRead();
         verifyNoMoreInteractions(kvs);
     }
@@ -211,7 +210,7 @@ public final class TrackingKeyValueServiceTest {
                 .usingElementComparator(identityComparator())
                 .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIteratorOfSize()));
 
-        verify(kvs, times(1)).getRowsColumnRange(TABLE_REF, ROWS, COLUMN_RANGE_SELECTION, CELL_BATCH_HINT, TIMESTAMP);
+        verify(kvs).getRowsColumnRange(TABLE_REF, ROWS, COLUMN_RANGE_SELECTION, CELL_BATCH_HINT, TIMESTAMP);
         validateReadInfoForPartialRead();
         verifyNoMoreInteractions(kvs);
     }
@@ -222,7 +221,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(trackingKvs.get(TABLE_REF, TIMESTAMP_BY_CELL_MAP)).isSameAs(backingValueByCellMapOfSize);
 
-        verify(kvs, times(1)).get(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
+        verify(kvs).get(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
         validateReadInfoForReadForTable("get");
         verifyNoMoreInteractions(kvs);
     }
@@ -234,7 +233,7 @@ public final class TrackingKeyValueServiceTest {
         assertThat(trackingKvs.getLatestTimestamps(TABLE_REF, TIMESTAMP_BY_CELL_MAP))
                 .isSameAs(timestampByCellMapOfSize);
 
-        verify(kvs, times(1)).getLatestTimestamps(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
+        verify(kvs).getLatestTimestamps(TABLE_REF, TIMESTAMP_BY_CELL_MAP);
         validateReadInfoForReadForTable("getLatestTimestamps");
         verifyNoMoreInteractions(kvs);
     }
@@ -250,7 +249,7 @@ public final class TrackingKeyValueServiceTest {
                 .usingElementComparator(identityComparator())
                 .containsExactlyElementsOf(ImmutableList.copyOf(createClosableValueRowResultIteratorOfSize()));
 
-        verify(kvs, times(1)).getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
+        verify(kvs).getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
         validateReadInfoForPartialRead();
         verifyNoMoreInteractions(kvs);
     }
@@ -266,7 +265,7 @@ public final class TrackingKeyValueServiceTest {
                 .usingElementComparator(identityComparator())
                 .containsExactlyElementsOf(ImmutableList.copyOf(createClosableLongSetRowResultIteratorOfSize()));
 
-        verify(kvs, times(1)).getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
+        verify(kvs).getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
         validateReadInfoForPartialRead();
         verifyNoMoreInteractions(kvs);
     }
@@ -283,7 +282,7 @@ public final class TrackingKeyValueServiceTest {
                 .containsExactlyElementsOf(
                         ImmutableList.copyOf(createClosableCandidateCellForSweepingListIteratorOfSize()));
 
-        verify(kvs, times(1)).getCandidateCellsForSweeping(TABLE_REF, CANDIDATE_CELL_FOR_SWEEPING_REQUEST);
+        verify(kvs).getCandidateCellsForSweeping(TABLE_REF, CANDIDATE_CELL_FOR_SWEEPING_REQUEST);
         validateReadInfoForPartialRead();
         verifyNoMoreInteractions(kvs);
     }
@@ -295,7 +294,7 @@ public final class TrackingKeyValueServiceTest {
         assertThat(trackingKvs.getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP))
                 .isSameAs(pageByRangeRequestMapOfSize);
 
-        verify(kvs, times(1)).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
+        verify(kvs).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
         validateReadInfoForReadForTable("getFirstBatchForRanges");
         verifyNoMoreInteractions(kvs);
     }
@@ -306,7 +305,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(trackingKvs.getAllTableNames()).isSameAs(tableRefsOfSize);
 
-        verify(kvs, times(1)).getAllTableNames();
+        verify(kvs).getAllTableNames();
         validateReadInfoForTableAgnosticRead("getAllTableNames");
         verifyNoMoreInteractions(kvs);
     }
@@ -317,7 +316,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(trackingKvs.getMetadataForTable(TABLE_REF)).isSameAs(bytesOfSize);
 
-        verify(kvs, times(1)).getMetadataForTable(TABLE_REF);
+        verify(kvs).getMetadataForTable(TABLE_REF);
         validateReadInfoForTableAgnosticRead("getMetadataForTable");
         verifyNoMoreInteractions(kvs);
     }
@@ -328,7 +327,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(trackingKvs.getMetadataForTables()).isSameAs(metadataForTablesOfSize);
 
-        verify(kvs, times(1)).getMetadataForTables();
+        verify(kvs).getMetadataForTables();
         validateReadInfoForTableAgnosticRead("getMetadataForTables");
         verifyNoMoreInteractions(kvs);
     }
@@ -339,7 +338,7 @@ public final class TrackingKeyValueServiceTest {
 
         assertThat(trackingKvs.getAllTimestamps(TABLE_REF, CELLS, TIMESTAMP)).isSameAs(longByCellMultimapOfSize);
 
-        verify(kvs, times(1)).getAllTimestamps(TABLE_REF, CELLS, TIMESTAMP);
+        verify(kvs).getAllTimestamps(TABLE_REF, CELLS, TIMESTAMP);
         validateReadInfoForReadForTable("getAllTimestamps");
         verifyNoMoreInteractions(kvs);
     }
@@ -352,7 +351,7 @@ public final class TrackingKeyValueServiceTest {
         assertThat(trackingKvs.getRowKeysInRange(TABLE_REF, START_BYTES, END_BYTES, MAX_RESULTS))
                 .isSameAs(byteArrayListOfSize);
 
-        verify(kvs, times(1)).getRowKeysInRange(TABLE_REF, START_BYTES, END_BYTES, MAX_RESULTS);
+        verify(kvs).getRowKeysInRange(TABLE_REF, START_BYTES, END_BYTES, MAX_RESULTS);
         validateReadInfoForReadForTable("getRowKeysInRange");
         verifyNoMoreInteractions(kvs);
     }
