@@ -237,72 +237,6 @@ public final class OracleDdlTableTest {
     }
 
     @Test
-    public void createAltersMetadataIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(true);
-        setTableValueStyleCacheOverflowConfigForTable(false);
-        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true))).doesNotThrowAnyException();
-        verifyNumberOfTimesMetadataUpdated(1);
-    }
-
-    @Test
-    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowTableDoesNotExist()
-            throws TableMappingNotFoundException {
-        createTable();
-        setOverflowTableToNotExist();
-        setTableToHaveOverflowColumn(true);
-        setTableValueStyleCacheOverflowConfigForTable(false);
-        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true)))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
-        verifyNumberOfTimesMetadataUpdated(0);
-    }
-
-    @Test
-    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowColumnDoesNotExist()
-            throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(false);
-        setTableValueStyleCacheOverflowConfigForTable(false);
-        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true)))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
-        verifyNumberOfTimesMetadataUpdated(0);
-    }
-
-    @Test
-    public void createThrowsWhenMetadataDoesNotHaveOverflowAndTableNotConfiguredToBeAltered()
-            throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(true);
-        setTableValueStyleCacheOverflowConfigForTable(false);
-        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
-                .from(TABLE_MAPPING_DEFAULT_CONFIG)
-                .alterTablesOrMetadataToMatch(ImmutableSet.of())
-                .build());
-        assertThatCode(() -> ddlTable.create(createMetadata(true)))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
-        verifyNumberOfTimesMetadataUpdated(0);
-    }
-
-    @Test
-    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowMigraitonStateIsNotFinished()
-            throws TableMappingNotFoundException {
-        createTableAndOverflow();
-        setTableToHaveOverflowColumn(true);
-        setTableValueStyleCacheOverflowConfigForTable(false);
-        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
-                .from(TABLE_MAPPING_DEFAULT_CONFIG)
-                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
-                .build());
-        assertThatCode(() -> ddlTable.create(createMetadata(true)))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
-        verifyNumberOfTimesMetadataUpdated(0);
-    }
-
-    @Test
     public void createAltersTableIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
         testAlterTableForMigrationState(OverflowMigrationState.FINISHED);
         verifyTableAltered();
@@ -414,6 +348,104 @@ public final class OracleDdlTableTest {
         verifyTableAltered();
     }
 
+    @Test
+    public void createThrowsIfAlterConfiguredAndMetadataNeedsUpdateAndMigrationInProgress() {
+        assertThatThrownBy(() -> testAlterMetadataForMigrationState(OverflowMigrationState.IN_PROGRESS))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createThrowsIfAlterConfiguredAndMetadataNeedsUpdateAndMigrationUnstarted() {
+        assertThatThrownBy(() -> testAlterMetadataForMigrationState(OverflowMigrationState.UNSTARTED))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createThrowsIfAlterConfiguredAndMetadataNeedsUpdateAndMigrationFinishing() {
+        assertThatThrownBy(() -> testAlterMetadataForMigrationState(OverflowMigrationState.FINISHING))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createAltersMetadataIfConfiguredAndOverflowTableExists() throws TableMappingNotFoundException {
+        testAlterMetadataForMigrationState(OverflowMigrationState.FINISHED);
+        verifyTableSizeMetadataUpdated();
+    }
+
+    private void testAlterMetadataForMigrationState(OverflowMigrationState state) throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(true);
+        setTableValueStyleCacheOverflowConfigForTable(false);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .overflowMigrationState(state)
+                .build());
+        ddlTable.create(createMetadata(true));
+    }
+
+    @Test
+    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowTableDoesNotExist()
+            throws TableMappingNotFoundException {
+        createTable();
+        setOverflowTableToNotExist();
+        setTableToHaveOverflowColumn(true);
+        setTableValueStyleCacheOverflowConfigForTable(false);
+        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowColumnDoesNotExist()
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(false);
+        setTableValueStyleCacheOverflowConfigForTable(false);
+        assertThatCode(() -> tableMappingDdlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createThrowsWhenMetadataDoesNotHaveOverflowAndTableNotConfiguredToBeAltered()
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(true);
+        setTableValueStyleCacheOverflowConfigForTable(false);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .alterTablesOrMetadataToMatch(ImmutableSet.of())
+                .build());
+        assertThatCode(() -> ddlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
+    @Test
+    public void createThrowsWhenMetadataDoesNotHaveOverflowAndOverflowMigrationStateIsNotFinished()
+            throws TableMappingNotFoundException {
+        createTableAndOverflow();
+        setTableToHaveOverflowColumn(true);
+        setTableValueStyleCacheOverflowConfigForTable(false);
+        OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
+                .from(TABLE_MAPPING_DEFAULT_CONFIG)
+                .overflowMigrationState(OverflowMigrationState.UNSTARTED)
+                .build());
+        assertThatCode(() -> ddlTable.create(createMetadata(true)))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining(MISSING_OVERFLOW_EXCEPTION_MESSAGE);
+        verifyTableSizeMetadataNotUpdated();
+    }
+
     private void createTable() throws TableMappingNotFoundException {
         // Not all tests will call OracleDdlTable#createTable, which makes sense as this test "creates" it for them!
         lenient()
@@ -476,13 +508,21 @@ public final class OracleDdlTableTest {
                 .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD (overflow NUMBER(38))");
     }
 
-    private void verifyNumberOfTimesMetadataUpdated(int numberOfTimes) {
+    private void verifyNumberOfTimesTableSizeMetadataUpdated(int numberOfTimes) {
         verify(sqlConnection, times(numberOfTimes))
                 .updateUnregisteredQuery(
                         "UPDATE " + TABLE_MAPPING_DEFAULT_CONFIG.metadataTable().getQualifiedName()
                                 + " SET table_size = ? WHERE table_name = ?",
                         TableValueStyle.OVERFLOW.getId(),
                         TEST_TABLE.getQualifiedName());
+    }
+
+    private void verifyTableSizeMetadataUpdated() {
+        verifyNumberOfTimesTableSizeMetadataUpdated(1);
+    }
+
+    private void verifyTableSizeMetadataNotUpdated() {
+        verifyNumberOfTimesTableSizeMetadataUpdated(0);
     }
 
     private OracleDdlTable createOracleDdlTable(OracleDdlConfig config) {
