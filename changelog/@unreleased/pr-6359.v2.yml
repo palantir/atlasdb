@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] Actually wire  the concluded store updater task.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6359
