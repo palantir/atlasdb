@@ -442,8 +442,12 @@ public abstract class TransactionManagers {
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
-        TransactionKnowledgeComponents knowledge =
-                initAndGetKnowledgeComponents(metricsManager, keyValueService, targetedSweeper, transactionSchemaManager);
+        TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
+                keyValueService,
+                metricsManager.getTaggedRegistry(),
+                config().internalSchema(),
+                targetedSweeper::isInitialized,
+                transactionSchemaManager);
 
         TransactionComponents components = createTransactionComponents(
                 closeables, metricsManager, knowledge, transactionSchemaManager, keyValueService, runtime);
@@ -553,19 +557,6 @@ public abstract class TransactionManagers {
 
         log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
-    }
-
-    private TransactionKnowledgeComponents initAndGetKnowledgeComponents(
-            MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TargetedSweeper targetedSweeper,
-            TransactionSchemaManager transactionSchemaManager) {
-        return TransactionKnowledgeComponents.create(
-                keyValueService,
-                metricsManager.getTaggedRegistry(),
-                config().internalSchema(),
-                targetedSweeper::isInitialized,
-                transactionSchemaManager);
     }
 
     private MetricsManager setUpMetricsAndGetMetricsManager() {

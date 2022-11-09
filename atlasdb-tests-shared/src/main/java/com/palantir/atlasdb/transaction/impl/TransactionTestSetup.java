@@ -184,7 +184,8 @@ public abstract class TransactionTestSetup {
                 keyValueService,
                 metricsManager.getTaggedRegistry(),
                 ImmutableInternalSchemaInstallConfig.builder().build(),
-                () -> true, transactionSchemaManager);
+                () -> true,
+                transactionSchemaManager);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);

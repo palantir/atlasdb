@@ -25,6 +25,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -67,6 +69,8 @@ public class TableTasksTest {
 
     private TransactionKnowledgeComponents knowledge;
 
+    private TransactionSchemaManager schemaManager;
+
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
@@ -74,7 +78,10 @@ public class TableTasksTest {
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         metricsManager = MetricsManagers.createForTests();
-        knowledge = TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
+        schemaManager = new TransactionSchemaManager(CoordinationServices.createDefault(
+                kvs, inMemoryTimeLockRule.getTimestampService(), metricsManager, false));
+        knowledge =
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry(), schemaManager);
 
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(

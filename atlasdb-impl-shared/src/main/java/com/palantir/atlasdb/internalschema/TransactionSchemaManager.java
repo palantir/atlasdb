@@ -76,7 +76,8 @@ public class TransactionSchemaManager {
 
     // Todo(snanda): this is jank api
     public TimestampPartitioningMap<Integer> getTimestampPartitioningMap(long timestamp) {
-        return coordinationService.getValueForTimestamp(timestamp)
+        return coordinationService
+                .getValueForTimestamp(timestamp)
                 .flatMap(ValueAndBound::value)
                 .orElseGet(InternalSchemaMetadata::defaultValue)
                 .timestampToTransactionsTableSchemaVersion();

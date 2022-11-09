@@ -37,9 +37,9 @@ public interface TransactionKnowledgeComponents {
 
     Supplier<Long> lastSeenCommitSupplier();
 
-    static TransactionKnowledgeComponents createForTests(KeyValueService kvs, TaggedMetricRegistry metricRegistry) {
-        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), () -> true,
-                transactionSchemaManager);
+    static TransactionKnowledgeComponents createForTests(
+            KeyValueService kvs, TaggedMetricRegistry metricRegistry, TransactionSchemaManager schemaManager) {
+        return create(kvs, metricRegistry, InternalSchemaInstallConfig.getDefault(), () -> true, schemaManager);
     }
 
     static TransactionKnowledgeComponents create(
@@ -48,33 +48,32 @@ public interface TransactionKnowledgeComponents {
             InternalSchemaInstallConfig config,
             BooleanSupplier isInitialized,
             TransactionSchemaManager transactionSchemaManager) {
-
         ShardProgress shardProgress = new ShardProgress(kvs);
         LastSeenCommitTsLoader lastSeenCommitTsLoader = new LastSeenCommitTsLoader(shardProgress, isInitialized);
-        KnownConcludedTransactions concluded = KnownConcludedTransactionsImpl.create(
-                KnownConcludedTransactionsStore.create(kvs), metricRegistry);
-
-
+        KnownConcludedTransactions concluded =
+                KnownConcludedTransactionsImpl.create(KnownConcludedTransactionsStore.create(kvs), metricRegistry);
         scheduleConcludedStoreUpdaterTask(transactionSchemaManager, concluded, shardProgress, isInitialized);
 
         return ImmutableTransactionKnowledgeComponents.builder()
                 .concluded(concluded)
                 .abandoned(KnownAbandonedTransactionsImpl.create(
-                        concluded,
-                        new AbandonedTimestampStoreImpl(kvs),
-                        metricRegistry,
-                        config))
+                        concluded, new AbandonedTimestampStoreImpl(kvs), metricRegistry, config))
                 .lastSeenCommitSupplier(lastSeenCommitTsLoader::getLastSeenCommitTs)
                 .build();
     }
+
     private static void scheduleConcludedStoreUpdaterTask(
-            TransactionSchemaManager transactionSchemaManager, KnownConcludedTransactions concluded, ShardProgress shardProgress,
+            TransactionSchemaManager transactionSchemaManager,
+            KnownConcludedTransactions concluded,
+            ShardProgress shardProgress,
             BooleanSupplier isInitialized) {
         CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore =
                 new CoordinationAwareKnownConcludedTransactionsStore(
-                        transactionSchemaManager::getTimestampPartitioningMap,
-                        concluded);
-        ConcludedTransactionsUpdaterTask.create(concludedTransactionsStore, shardProgress,
-                PTExecutors.newSingleThreadScheduledExecutor(), isInitialized);
+                        transactionSchemaManager::getTimestampPartitioningMap, concluded);
+        ConcludedTransactionsUpdaterTask.create(
+                concludedTransactionsStore,
+                shardProgress,
+                PTExecutors.newSingleThreadScheduledExecutor(),
+                isInitialized);
     }
 }

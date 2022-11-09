@@ -53,7 +53,8 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     @VisibleForTesting
     ConcludedTransactionsUpdaterTask(
             Supplier<Integer> persistedNumShardsSupplier,
-            BooleanSupplier isInitializedSupplier, CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
+            BooleanSupplier isInitializedSupplier,
+            CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
             ScheduledExecutorService executorService) {
         this.persistedNumShardsSupplier = persistedNumShardsSupplier;

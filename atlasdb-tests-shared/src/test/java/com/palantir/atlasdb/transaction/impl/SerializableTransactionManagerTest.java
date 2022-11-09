@@ -31,6 +31,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
@@ -67,6 +68,8 @@ public class SerializableTransactionManagerTest {
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
     private Callback<TransactionManager> mockCallback = mock(Callback.class);
 
+    private TransactionSchemaManager mockSchemaManager = mock(TransactionSchemaManager.class);
+
     private DeterministicScheduler executorService;
     private TransactionManager manager;
 
@@ -79,7 +82,8 @@ public class SerializableTransactionManagerTest {
         executorService = new DeterministicSchedulerWithShutdownFlag();
         manager = getManagerWithCallback(true, mockCallback, executorService);
         when(mockKvs.getClusterAvailabilityStatus()).thenReturn(ClusterAvailabilityStatus.ALL_AVAILABLE);
-        knowledge = TransactionKnowledgeComponents.createForTests(mockKvs, metricsManager.getTaggedRegistry());
+        knowledge = TransactionKnowledgeComponents.createForTests(
+                mockKvs, metricsManager.getTaggedRegistry(), mockSchemaManager);
     }
 
     @Test

@@ -19,6 +19,8 @@ import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -73,6 +75,8 @@ public class AtlasDbTestCase {
     protected TransactionService transactionService;
     protected TargetedSweeper sweepQueue;
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
+
+    protected TransactionSchemaManager transactionSchemaManager;
     protected int sweepQueueShards = 128;
 
     protected TransactionKnowledgeComponents knowledge;
@@ -92,7 +96,10 @@ public class AtlasDbTestCase {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
-        knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+        transactionSchemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false));
+        knowledge = TransactionKnowledgeComponents.createForTests(
+                keyValueService, metricsManager.getTaggedRegistry(), transactionSchemaManager);
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
@@ -160,7 +167,8 @@ public class AtlasDbTestCase {
                 inMemoryTimeLockRule.getLockWatchManager(),
                 transactionService,
                 mode,
-                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry()));
+                TransactionKnowledgeComponents.createForTests(
+                        keyValueService, metricsManager.getTaggedRegistry(), transactionSchemaManager));
     }
 
     protected void clearTablesWrittenTo() {
