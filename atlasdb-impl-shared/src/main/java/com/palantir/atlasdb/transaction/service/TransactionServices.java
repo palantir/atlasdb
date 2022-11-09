@@ -121,10 +121,10 @@ public final class TransactionServices {
     public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, initializeAsync);
+        TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.createForTests(
+                keyValueService, metricsManager.getTaggedRegistry(), new TransactionSchemaManager(coordinationService));
         return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
     }
 

@@ -76,14 +76,13 @@ public class TransactionServicesTest {
         MetricsManager metricsManager = MetricsManagers.createForTests();
 
         timestampService = services.getTimestampService();
-        schemaManager = new TransactionSchemaManager(CoordinationServices.createDefault(
-                keyValueService, services.getTimestampService(), metricsManager, false));
         coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
+        schemaManager = new TransactionSchemaManager(coordinationService);
+
         knowledge = TransactionKnowledgeComponents.createForTests(
                 keyValueService, metricsManager.getTaggedRegistry(), schemaManager);
-        transactionService = TransactionServices.createTransactionService(
-                keyValueService, new TransactionSchemaManager(coordinationService), knowledge);
+        transactionService = TransactionServices.createTransactionService(keyValueService, schemaManager, knowledge);
     }
 
     @Test

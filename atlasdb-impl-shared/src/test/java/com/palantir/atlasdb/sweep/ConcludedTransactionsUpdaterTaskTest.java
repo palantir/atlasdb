@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,8 +55,18 @@ public class ConcludedTransactionsUpdaterTaskTest {
     private final ShardProgress shardProgress = mock(ShardProgress.class);
     private final ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
 
+    private final BooleanSupplier isInitializedSupplier = () -> true;
+
     @Captor
     ArgumentCaptor<Set<ShardAndStrategy>> shardAndStrategyArgumentCaptor;
+
+    @Test
+    public void noOpIfNotInitialized() {
+        ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
+                () -> NUM_SHARDS, () -> false, concludedTransactionsStore, shardProgress, executorService);
+        updaterTask.runOneIteration();
+        verifyNoInteractions(shardProgress);
+    }
 
     @Test
     public void queriesAllShardsBeforeSupplementingConcludedTxnStore() {

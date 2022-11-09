@@ -35,6 +35,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -94,7 +95,6 @@ public class KeyValueServiceMigratorsTest {
     private KeyValueService toKvs;
     private TransactionManager toTxManager;
 
-    private TransactionSchemaManager transactionSchemaManager;
     private ImmutableMigratorSpec migratorSpec;
 
     @Before
@@ -105,7 +105,6 @@ public class KeyValueServiceMigratorsTest {
         fromTxManager = fromServices.getTransactionManager();
         toKvs = toServices.getKeyValueService();
         toTxManager = toServices.getTransactionManager();
-        transactionSchemaManager = new TransactionSchemaManager(kvs);
         migratorSpec = ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toServices)
@@ -354,8 +353,12 @@ public class KeyValueServiceMigratorsTest {
         MetricsManager metricsManager = MetricsManagers.createForTests();
 
         TransactionTables.createTables(kvs);
+
+        TransactionSchemaManager schemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(kvs, timestampService, metricsManager, false));
+
         TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry(), schemaManager);
         TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
