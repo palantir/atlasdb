@@ -202,7 +202,7 @@ public final class OracleAlterTableIntegrationTest {
                         TableValueStyle.RAW.getId(),
                         TABLE_REFERENCE.getQualifiedName());
         LoggerFactory.getLogger(OracleAlterTableIntegrationTest.class).info("boohoo");
-        AgnosticResultSet results = connectionSupplier
+        results = connectionSupplier
                 .get()
                 .selectResultSetUnregisteredQuery(
                         "SELECT table_size FROM "
