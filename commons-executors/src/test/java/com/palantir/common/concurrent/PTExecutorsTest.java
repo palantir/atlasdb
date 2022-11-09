@@ -102,7 +102,7 @@ public class PTExecutorsTest {
         Span outerSpan = Tracer.completeSpan().get();
 
         assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
-        assertThat(outerSpan.getSpanId()).describedAs(null).isNotEqualTo(innerSpanId.get());
+        assertThat(outerSpan.getSpanId()).isNotEqualTo(innerSpanId.get());
         assertThat(innerSpanParentId.get()).isEqualTo(outerSpan.getSpanId());
     }
 
