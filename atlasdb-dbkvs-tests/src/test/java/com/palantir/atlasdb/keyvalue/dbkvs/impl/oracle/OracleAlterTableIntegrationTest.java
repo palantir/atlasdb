@@ -16,10 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -40,11 +37,17 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
-import java.util.Map;
+import com.palantir.nexus.db.sql.AgnosticResultSet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
@@ -117,7 +120,7 @@ public final class OracleAlterTableIntegrationTest {
         KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
         workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
-        assertThatOverflowColumnExists();
+        assertThatMetadataHasOverflow();
         assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
     }
@@ -191,7 +194,16 @@ public final class OracleAlterTableIntegrationTest {
                         TABLE_REFERENCE.getQualifiedName());
     }
 
-    private void assertThatMetadataHasOverflow() {}
+    private void assertThatMetadataHasOverflow() {
+        AgnosticResultSet results = connectionSupplier
+                .get()
+                .selectResultSetUnregisteredQuery(
+                        "SELECT table_size FROM "
+                                + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                        TABLE_REFERENCE.getQualifiedName());
+        int type = Iterables.getOnlyElement(results.rows()).getInteger("table_size");
+        assertThat(type).isEqualTo(TableValueStyle.OVERFLOW);
+    }
 
     private static void writeData(KeyValueService kvs, Map<Cell, byte[]> value, long timestamp) {
         kvs.put(TABLE_REFERENCE, value, timestamp);
