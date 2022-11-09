@@ -32,14 +32,14 @@ public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
     private final OracleTableNameGetter oracleTableNameGetter;
     private final OraclePrefixedTableNames oraclePrefixedTableNames;
-    private final TableValueStyleCache valueStyleCache;
+    private final TableValueStyleCacheImpl valueStyleCache;
     private final ExecutorService compactionTimeoutExecutor;
 
     public OracleDbTableFactory(
             OracleDdlConfig config,
             OracleTableNameGetter oracleTableNameGetter,
             OraclePrefixedTableNames oraclePrefixedTableNames,
-            TableValueStyleCache valueStyleCache,
+            TableValueStyleCacheImpl valueStyleCache,
             ExecutorService executorService) {
         this.config = config;
         this.oracleTableNameGetter = oracleTableNameGetter;

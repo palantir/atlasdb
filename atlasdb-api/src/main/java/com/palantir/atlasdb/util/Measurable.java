@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+package com.palantir.atlasdb.util;
 
-public interface TableValueStyleCache {
-
-    TableValueStyle getTableType(
-            ConnectionSupplier connectionSupplier, TableReference tableRef, TableReference metadataTable);
-
-    void clearCacheForTable(TableReference tableRef);
+/*
+ * Implement to provide a best-effort estimate of object size (in bytes) when persisted to key value stores.
+ * Used for transactional expectations.
+ */
+public interface Measurable {
+    long sizeInBytes();
 }

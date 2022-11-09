@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bumped the TimeLock dependency to 0.1295.0
+  links:
+  - https://github.com/palantir/atlasdb/pull/6352
