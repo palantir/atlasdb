@@ -1,0 +1,11 @@
+namespaces:
+  com.palantir.atlasdb.cassandra.topology:
+    shortName: CassandraTopologyValidation
+    docs: Metrics which provide insight on the cassandra topology validation check.
+    metrics:
+      validationFailures:
+        type: counter
+        docs: Count of total failures when performing topology validation.
+      validationLatency:
+        type: histogram
+        docs: Time taken to validate the topology.

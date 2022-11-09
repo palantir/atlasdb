@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate.InvalidateAll;
 import com.palantir.lock.watch.CommitUpdate.InvalidateSome;
+import com.palantir.logsafe.Unsafe;
 import java.util.Set;
 import org.immutables.value.Value;
 
@@ -39,6 +40,7 @@ public interface CommitUpdate {
         return ImmutableInvalidateAll.builder().build();
     }
 
+    @Unsafe
     static CommitUpdate invalidateSome(Set<LockDescriptor> descriptors) {
         return ImmutableInvalidateSome.builder().invalidatedLocks(descriptors).build();
     }
@@ -56,6 +58,7 @@ public interface CommitUpdate {
         }
     }
 
+    @Unsafe
     @Value.Immutable
     @JsonSerialize(as = ImmutableInvalidateSome.class)
     @JsonDeserialize(as = ImmutableInvalidateSome.class)

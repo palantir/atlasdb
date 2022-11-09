@@ -34,9 +34,11 @@ import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -45,7 +47,8 @@ import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
     private static final String TEST_PACKAGE = "package";
-    private static final String TABLE = "table";
+    static final String TABLE = "table";
+    static final String TABLE_2 = "rowLevelTable";
 
     private LockWatchIntegrationTestUtilities() {
         // no-op
@@ -84,6 +87,16 @@ public final class LockWatchIntegrationTestUtilities {
                         .orElse(false));
     }
 
+    public static void awaitLockWatchCreated(TransactionManager txnManager, LockWatchReference lockWatchReference) {
+        LockWatchManagerInternal lockWatchManager = extractInternalLockWatchManager(txnManager);
+        Awaitility.await("Lock watch created event is fired")
+                .atMost(Duration.ofSeconds(5))
+                .pollDelay(Duration.ofMillis(100))
+                .until(() -> getLockWatchEvents(txnManager, lockWatchManager).stream()
+                        .anyMatch(event -> event.accept(new LockWatchCreatedEventVisitor(
+                                createdEvent -> createdEvent.references().contains(lockWatchReference)))));
+    }
+
     /**
      * The internal version of the lock watch manager is hidden from the user, both to reduce API surface area, and
      * because certain classes aren't visible everywhere.
@@ -118,8 +131,18 @@ public final class LockWatchIntegrationTestUtilities {
                 .collect(MoreCollectors.toOptional()));
     }
 
+    private static List<LockWatchEvent> getLockWatchEvents(
+            TransactionManager txnManager, LockWatchManagerInternal lockWatchManager) {
+        return txnManager.runTaskThrowOnConflict(txn -> lockWatchManager
+                .getCache()
+                .getEventCache()
+                .getUpdateForTransactions(ImmutableSet.of(txn.getTimestamp()), Optional.empty())
+                .events());
+    }
+
     private static Schema createSchema() {
         Schema schema = new Schema("table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
+
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
@@ -130,6 +153,17 @@ public final class LockWatchIntegrationTestUtilities {
             }
         };
         schema.addTableDefinition(TABLE, tableDef);
+
+        TableDefinition tableWithoutCaching = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+            }
+        };
+        schema.addTableDefinition(TABLE_2, tableWithoutCaching);
+
         return schema;
     }
 

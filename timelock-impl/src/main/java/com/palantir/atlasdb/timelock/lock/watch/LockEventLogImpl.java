@@ -27,6 +27,7 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.Unsafe;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -85,6 +86,7 @@ public class LockEventLogImpl implements LockEventLog {
                 .map(events -> LockWatchStateUpdate.success(logId, slidingWindow.lastVersion(), events));
     }
 
+    @Unsafe
     private LockWatchStateUpdate calculateSnapshot() {
         long lastVersion = slidingWindow.lastVersion();
         LockWatches currentWatches = watchesSupplier.get();

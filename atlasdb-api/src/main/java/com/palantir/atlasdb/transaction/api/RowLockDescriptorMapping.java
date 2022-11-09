@@ -18,10 +18,12 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.logsafe.Unsafe;
 import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 @PackageVisibleImmutablesStyle
 public abstract class RowLockDescriptorMapping {
