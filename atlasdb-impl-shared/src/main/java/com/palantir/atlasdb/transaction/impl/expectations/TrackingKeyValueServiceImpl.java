@@ -39,6 +39,8 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.util.MeasuringUtils;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +48,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
-    KeyValueService delegate;
-    KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
+    private static final SafeLogger log = SafeLoggerFactory.get(TrackingKeyValueServiceImpl.class);
+
+    private final KeyValueService delegate;
+    private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
     public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
@@ -72,9 +76,10 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return Futures.transform(
                 delegate.getAsync(tableRef, timestampByCell),
-                valueByCell -> {
-                    tracker.readForTable(tableRef, "getAsync", MeasuringUtils.sizeOf(valueByCell));
-                    return valueByCell;
+                result -> {
+                    runWithExceptionHandling(
+                            () -> tracker.readForTable(tableRef, "getAsync", MeasuringUtils.sizeOf(result)));
+                    return result;
                 },
                 MoreExecutors.directExecutor());
     }
@@ -83,7 +88,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
-        tracker.readForTable(tableRef, "getRows", MeasuringUtils.sizeOf(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "getRows", MeasuringUtils.sizeOf(result)));
         return result;
     }
 
@@ -113,7 +119,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
-        tracker.callForTable(tableRef);
+        runWithExceptionHandling(
+                () -> tracker.callForTable(tableRef));
         RowColumnRangeIterator result =
                 delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
 
@@ -124,21 +131,26 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
-        tracker.readForTable(tableRef, "get", MeasuringUtils.sizeOf(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "get",
+                        MeasuringUtils.sizeOf(result)));
         return result;
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-        tracker.readForTable(tableRef, "getLatestTimestamps", MeasuringUtils.sizeOfMeasurableLongMap(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "getLatestTimestamps",
+                        MeasuringUtils.sizeOfMeasurableLongMap(result)));
         return result;
     }
 
     @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        tracker.callForTable(tableRef);
+        runWithExceptionHandling(
+                () -> tracker.callForTable(tableRef));
         try (ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp)) {
             return new TrackingClosableIterator<>(
                     result, partialReadForTableConsumer(tableRef), MeasuringUtils::sizeOf);
@@ -149,7 +161,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp)
             throws InsufficientConsistencyException {
-        tracker.callForTable(tableRef);
+        runWithExceptionHandling(
+                () -> tracker.callForTable(tableRef));
         try (ClosableIterator<RowResult<Set<Long>>> result =
                 delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
             return new TrackingClosableIterator<>(
@@ -160,11 +173,14 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
             TableReference tableRef, CandidateCellForSweepingRequest request) {
-        tracker.callForTable(tableRef);
+        runWithExceptionHandling(
+                () -> tracker.callForTable(tableRef));
         try (ClosableIterator<List<CandidateCellForSweeping>> result =
                 delegate.getCandidateCellsForSweeping(tableRef, request)) {
             return new TrackingClosableIterator<>(
-                    result, partialReadForTableConsumer(tableRef), MeasuringUtils::sizeOf);
+                    result,
+                    partialReadForTableConsumer(tableRef),
+                    MeasuringUtils::sizeOf);
         }
     }
 
@@ -173,28 +189,33 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
                 delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
-        tracker.readForTable(tableRef, "getFirstBatchForRanges", MeasuringUtils.sizeOfPageByRangeRequestMap(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "getFirstBatchForRanges", MeasuringUtils.sizeOfPageByRangeRequestMap(result)));
         return result;
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
         Set<TableReference> result = delegate.getAllTableNames();
-        tracker.tableAgnosticRead("getAllTableNames", MeasuringUtils.sizeOf(result));
+        runWithExceptionHandling(
+                () -> tracker.tableAgnosticRead("getAllTableNames", MeasuringUtils.sizeOf(result)));
         return result;
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         byte[] result = delegate.getMetadataForTable(tableRef);
-        tracker.tableAgnosticRead("getMetadataForTable", result.length);
+        runWithExceptionHandling(
+                () -> tracker.tableAgnosticRead("getMetadataForTable", result.length);
         return result;
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> result = delegate.getMetadataForTables();
-        tracker.tableAgnosticRead("getMetadataForTables", MeasuringUtils.sizeOfMeasurableByteMap(result));
+        runWithExceptionHandling(
+                () -> tracker.tableAgnosticRead("getMetadataForTables",
+                        MeasuringUtils.sizeOfMeasurableByteMap(result)));
         return result;
     }
 
@@ -202,18 +223,28 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
             throws AtlasDbDependencyException {
         Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-        tracker.readForTable(tableRef, "getAllTimestamps", MeasuringUtils.sizeOf(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "getAllTimestamps", MeasuringUtils.sizeOf(result)));
         return result;
     }
 
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
-        tracker.readForTable(tableRef, "getRowKeysInRange", MeasuringUtils.sizeOfByteCollection(result));
+        runWithExceptionHandling(
+                () -> tracker.readForTable(tableRef, "getRowsKeysInRange", MeasuringUtils.sizeOfByteCollection(result)));
         return result;
     }
 
     private Consumer<Long> partialReadForTableConsumer(TableReference tableRef) {
         return bytes -> tracker.partialReadForTable(tableRef, bytes);
+    }
+
+    private static void runWithExceptionHandling(Runnable trackingRunnable) {
+        try {
+            trackingRunnable.run();
+        } catch (Exception exception) {
+            log.warn("Key value service tracking failed", exception);
+        }
     }
 }
