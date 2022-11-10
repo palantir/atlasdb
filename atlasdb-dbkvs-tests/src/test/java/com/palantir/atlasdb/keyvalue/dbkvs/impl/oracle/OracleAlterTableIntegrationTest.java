@@ -47,7 +47,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
@@ -113,8 +112,11 @@ public final class OracleAlterTableIntegrationTest {
 
         modifyMetadataToNotHaveOverflow();
         // metadata is cached, thus we must create a new kvs to forcefully refresh the cache
+        System.out.println("11111111");
         KeyValueService badKvs = createKvs(DbKvsOracleTestSuite.getKvsConfig());
+        System.out.println("22222222");
         assertThatThrownBy(() -> writeData(badKvs, ROW_2, TIMESTAMP_2));
+        System.out.println("33333333");
 
         KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
         workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
@@ -184,7 +186,7 @@ public final class OracleAlterTableIntegrationTest {
     }
 
     private void modifyMetadataToNotHaveOverflow() {
-        LoggerFactory.getLogger(OracleAlterTableIntegrationTest.class).info("booboo");
+        System.out.println("boo!");
         AgnosticResultSet results = connectionSupplier
                 .get()
                 .selectResultSetUnregisteredQuery(
@@ -199,7 +201,7 @@ public final class OracleAlterTableIntegrationTest {
                                 + " SET table_size = ? WHERE table_name = ?",
                         TableValueStyle.RAW.getId(),
                         TABLE_REFERENCE.getQualifiedName());
-        LoggerFactory.getLogger(OracleAlterTableIntegrationTest.class).info("boohoo");
+        System.out.println("moo!");
         results = connectionSupplier
                 .get()
                 .selectResultSetUnregisteredQuery(

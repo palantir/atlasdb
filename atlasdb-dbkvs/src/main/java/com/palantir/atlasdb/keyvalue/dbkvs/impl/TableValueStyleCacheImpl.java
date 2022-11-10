@@ -47,6 +47,7 @@ public final class TableValueStyleCacheImpl implements TableValueStyleCache {
                 Preconditions.checkArgument(
                         !results.rows().isEmpty(), "table %s not found", tableRef.getQualifiedName());
 
+                System.out.println(tableRef + " write has the style " + results);
                 return TableValueStyle.byId(
                         Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
             });
