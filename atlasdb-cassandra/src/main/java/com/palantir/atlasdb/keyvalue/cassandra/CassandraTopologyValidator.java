@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -44,7 +45,6 @@ import org.immutables.value.Value;
 
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
-
     private final CassandraTopologyValidationMetrics metrics;
 
     public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
@@ -214,8 +214,19 @@ public final class CassandraTopologyValidator {
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
-        return EntryStream.of(servers)
-                .mapValues(this::fetchHostIds)
+        Map<CassandraServer, HostIdResult> results =
+                EntryStream.of(servers).mapValues(this::fetchHostIds).toMap();
+
+        if (KeyedStream.stream(results)
+                .values()
+                .anyMatch(result -> result.type() == HostIdResult.Type.SOFT_FAILURE
+                        || result.type() == HostIdResult.Type.HARD_FAILURE)) {
+            log.warn(
+                    "While fetching host id from hosts, some reported soft and hard failures.",
+                    SafeArg.of("results", CassandraLogHelper.mapOfHosts(results)));
+        }
+
+        return EntryStream.of(results)
                 .removeValues(result -> result.type() == HostIdResult.Type.SOFT_FAILURE)
                 .toMap();
     }
@@ -226,15 +237,6 @@ public final class CassandraTopologyValidator {
             return container.<HostIdResult, Exception>runWithPooledResource(
                     client -> HostIdResult.success(client.get_host_ids()));
         } catch (Exception e) {
-            log.warn(
-                    "Failed to get host ids from host due to an exception thrown.",
-                    SafeArg.of("host", container.getCassandraServer().cassandraHostName()),
-                    SafeArg.of(
-                            "proxy",
-                            CassandraLogHelper.host(
-                                    container.getCassandraServer().proxy())),
-                    e);
-
             // If the get_host_ids API endpoint does not exist, then return a soft failure.
             if (e instanceof TApplicationException) {
                 TApplicationException applicationException = (TApplicationException) e;

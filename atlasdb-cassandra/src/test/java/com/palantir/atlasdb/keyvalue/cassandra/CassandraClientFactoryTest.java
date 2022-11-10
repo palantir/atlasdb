@@ -34,6 +34,8 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -168,26 +170,27 @@ public class CassandraClientFactoryTest {
     }
 
     private static SSLSocket createSSLSocket(
-            InetAddress inetAddressForSocket, String cnForCertificate, Optional<String> maybeIpAddressForCertificate) {
+            InetAddress inetAddressForSocket, String hostname, Optional<String> maybeIpAddressForCertificate) {
         SSLSocket sslSocket = mock(SSLSocket.class);
         when(sslSocket.getInetAddress()).thenReturn(inetAddressForSocket);
+
         SSLSession sslSession = mock(SSLSession.class);
         when(sslSocket.getSession()).thenReturn(sslSession);
-        X509Certificate certificate = mock(X509Certificate.class);
+
         X500Principal principal = mock(X500Principal.class);
-        when(principal.toString()).thenReturn("CN=" + cnForCertificate);
-        maybeIpAddressForCertificate.ifPresent(ipAddress -> {
-            try {
-                when(certificate.getSubjectAlternativeNames())
-                        .thenReturn(ImmutableList.of(ImmutableList.of(7, ipAddress)));
-            } catch (CertificateParsingException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        when(certificate.getSubjectX500Principal()).thenReturn(principal);
+        when(principal.toString()).thenReturn("CN=" + hostname);
+
+        ImmutableList.Builder<List<?>> subjectAltsBuilder = ImmutableList.builder();
+        maybeIpAddressForCertificate.ifPresent(ipAddress -> subjectAltsBuilder.add(List.of(7, ipAddress)));
+        subjectAltsBuilder.add(List.of(2, hostname));
+        Collection<List<?>> subjectAlts = subjectAltsBuilder.build();
+
+        X509Certificate certificate = mock(X509Certificate.class);
         try {
+            when(certificate.getSubjectAlternativeNames()).thenReturn(subjectAlts);
+            when(certificate.getSubjectX500Principal()).thenReturn(principal);
             when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] {certificate});
-        } catch (SSLPeerUnverifiedException e) {
+        } catch (CertificateParsingException | SSLPeerUnverifiedException e) {
             throw new RuntimeException(e);
         }
         return sslSocket;

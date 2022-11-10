@@ -24,15 +24,21 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import one.util.streamex.EntryStream;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
 public final class CassandraLogHelper {
     private CassandraLogHelper() {
         // Utility class.
+    }
+
+    public static <T> Map<String, T> mapOfHosts(Map<CassandraServer, T> hosts) {
+        return EntryStream.of(hosts).mapKeys(CassandraServer::cassandraHostName).toMap();
     }
 
     public static HostAndIpAddress host(InetSocketAddress host) {

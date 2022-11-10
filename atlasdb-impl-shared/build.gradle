@@ -117,6 +117,7 @@ dependencies {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
+  testImplementation 'one.util:streamex'
 
   testRuntimeOnly 'ch.qos.logback:logback-classic'
 }
