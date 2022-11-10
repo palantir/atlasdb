@@ -17,11 +17,15 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ForwardingIterator;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
 public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterator<T> {
+    private static final SafeLogger log = SafeLoggerFactory.get(TrackingIterator.class);
+
     private final I delegate;
     private final ToLongFunction<T> measurer;
     private final Consumer<Long> tracker;
@@ -40,7 +44,13 @@ public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterat
     @Override
     public T next() {
         T result = delegate.next();
-        tracker.accept(measurer.applyAsLong(result));
+
+        try {
+            tracker.accept(measurer.applyAsLong(result));
+        } catch (Exception exception) {
+            log.warn("Data tracking failed", exception);
+        }
+
         return result;
     }
 }

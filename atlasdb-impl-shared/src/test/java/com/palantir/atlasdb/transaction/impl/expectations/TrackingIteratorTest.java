@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -76,6 +80,32 @@ public final class TrackingIteratorTest {
                         .mapToLong(STRING_LENGTH_MEASURER)
                         .boxed()
                         .toList());
+    }
+
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
+        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
+        when(measurer.applyAsLong(anyString())).thenThrow(RuntimeException.class);
+
+        TrackingIterator<String, Iterator<String>> trackingIterator =
+                new TrackingIterator<>(createStringIterator(), NO_OP, measurer);
+
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
+    }
+
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
+        Consumer<Long> consumer = spy(NO_OP);
+        doThrow(RuntimeException.class).when(consumer).accept(anyLong());
+
+        TrackingIterator<String, Iterator<String>> trackingIterator =
+                new TrackingIterator<>(createStringIterator(), consumer, STRING_LENGTH_MEASURER);
+
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
     }
 
     public static Iterator<String> createStringIterator() {

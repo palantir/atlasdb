@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -86,6 +90,32 @@ public final class TrackingRowColumnRangeIteratorTest {
                         .mapToLong(ENTRY_MEASURER)
                         .boxed()
                         .toList());
+    }
+
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
+        ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
+        when(measurer.applyAsLong(any())).thenThrow(RuntimeException.class);
+
+        TrackingRowColumnRangeIterator trackingIterator =
+                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), NO_OP, measurer);
+
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIterator()));
+    }
+
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
+        Consumer<Long> consumer = spy(NO_OP);
+        doThrow(RuntimeException.class).when(consumer).accept(anyLong());
+
+        TrackingRowColumnRangeIterator trackingIterator =
+                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), consumer, ENTRY_MEASURER);
+
+        assertThat(trackingIterator)
+                .toIterable()
+                .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIterator()));
     }
 
     private static RowColumnRangeIterator createRowColumnRangeIterator() {
