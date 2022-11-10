@@ -24,6 +24,10 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInf
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.common.concurrent.PTExecutors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public final class KeyValueServiceDataTrackerTest {
@@ -39,6 +43,7 @@ public final class KeyValueServiceDataTrackerTest {
     private static final long BYTES_READ_1 = 83L;
     private static final long BYTES_READ_2 = 103L;
     private static final long BYTES_READ_3 = 971L;
+    private static final int CONCURRENCY_ROUNDS = 20_000;
 
     private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
@@ -49,24 +54,15 @@ public final class KeyValueServiceDataTrackerTest {
     }
 
     @Test
-    public void oneReadForTableIsTracked() {
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
+    public void recordReadForTableCallsAreTracked() {
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, BYTES_READ_2);
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, NO_BYTES_READ);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(
-                BYTES_READ_1, 1, createMaximumBytesKvsCallInfo(BYTES_READ_1, KVS_METHOD_NAME_1));
+        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_2);
+        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_3);
 
-        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
-        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_1, readInfo));
-    }
-
-    @Test
-    public void multipleReadsForTableAreTracked() {
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_2, BYTES_READ_2);
-        tracker.readForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_2);
-        tracker.readForTable(TABLE_3, KVS_METHOD_NAME_3, BYTES_READ_3);
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_3, NO_BYTES_READ);
-        tracker.readForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_3);
+        tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_3, BYTES_READ_3);
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
@@ -94,108 +90,60 @@ public final class KeyValueServiceDataTrackerTest {
     }
 
     @Test
-    public void onePartialReadForTableIsTracked() {
-        tracker.callForTable(TABLE_2);
-        tracker.partialReadForTable(TABLE_2, BYTES_READ_2);
+    public void recordCallForTableAndInteractionsAreTracked() {
+        Consumer<Long> tableOneTracker = tracker.recordCallForTable(TABLE_1);
+        tableOneTracker.accept(NO_BYTES_READ);
+        tableOneTracker.accept(BYTES_READ_1);
+        tableOneTracker.accept(BYTES_READ_2);
 
-        TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_2, 1);
+        Consumer<Long> tableTwoTracker = tracker.recordCallForTable(TABLE_2);
+        tableTwoTracker.accept(BYTES_READ_1);
+        tableTwoTracker.accept(BYTES_READ_3);
 
-        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
-        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_2, readInfo));
-    }
+        Consumer<Long> tableThreeFirstTracker = tracker.recordCallForTable(TABLE_3);
+        tableThreeFirstTracker.accept(NO_BYTES_READ);
+        tableThreeFirstTracker.accept(BYTES_READ_1);
 
-    @Test
-    public void multiplePartialReadForTableAreTracked() {
-        tracker.callForTable(TABLE_1);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_1);
-        tracker.partialReadForTable(TABLE_1, NO_BYTES_READ);
-        tracker.callForTable(TABLE_1);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_3);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_3);
-
-        TransactionReadInfo readInfo = createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3, 2);
-
-        assertThat(tracker.getReadInfo()).isEqualTo(readInfo);
-        assertThat(tracker.getReadInfoByTable()).containsExactlyEntriesOf(ImmutableMap.of(TABLE_1, readInfo));
-    }
-
-    @Test
-    public void multiplePartialReadForTableOnMultipleTablesAreTracked() {
-        tracker.callForTable(TABLE_1);
-        tracker.callForTable(TABLE_2);
-        tracker.callForTable(TABLE_2);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_1);
-        tracker.callForTable(TABLE_3);
-        tracker.partialReadForTable(TABLE_3, NO_BYTES_READ);
-        tracker.partialReadForTable(TABLE_1, NO_BYTES_READ);
-        tracker.callForTable(TABLE_3);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_3);
-        tracker.callForTable(TABLE_3);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_3);
-        tracker.partialReadForTable(TABLE_2, BYTES_READ_1);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_2, BYTES_READ_3);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
+        Consumer<Long> tableThreeSecondTracker = tracker.recordCallForTable(TABLE_3);
+        tableThreeSecondTracker.accept(BYTES_READ_3);
+        tableThreeSecondTracker.accept(BYTES_READ_3);
 
         assertThat(tracker.getReadInfo())
-                .isEqualTo(createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 6));
+                .isEqualTo(createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 4));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
                         TABLE_1, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2, 1),
-                        TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 2),
-                        TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 3)));
+                        TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 1),
+                        TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 2)));
     }
 
     @Test
-    public void oneCallForTableIsTracked() {
-        tracker.callForTable(TABLE_2);
+    public void recordCallForTableCallsAreTracked() {
+        tracker.recordCallForTable(TABLE_1);
 
-        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 1));
-        assertThat(tracker.getReadInfoByTable()).isEmpty();
-    }
+        tracker.recordCallForTable(TABLE_2);
+        tracker.recordCallForTable(TABLE_2);
+        tracker.recordCallForTable(TABLE_2);
 
-    @Test
-    public void multipleCallForTableAreTracked() {
-        tracker.callForTable(TABLE_2);
-        tracker.callForTable(TABLE_2);
-        tracker.callForTable(TABLE_2);
-
-        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 3));
-        assertThat(tracker.getReadInfoByTable()).isEmpty();
-    }
-
-    @Test
-    public void multipleCallForTableOnMultipleTablesAreTracked() {
-        tracker.callForTable(TABLE_2);
-        tracker.callForTable(TABLE_1);
-        tracker.callForTable(TABLE_2);
-        tracker.callForTable(TABLE_3);
-        tracker.callForTable(TABLE_2);
+        tracker.recordCallForTable(TABLE_3);
 
         assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 5));
-        assertThat(tracker.getReadInfoByTable()).isEmpty();
+        assertThat(tracker.getReadInfoByTable())
+                .containsExactlyEntriesOf(ImmutableMap.of(
+                        TABLE_1, createTransactionReadInfo(0, 1),
+                        TABLE_2, createTransactionReadInfo(0, 3),
+                        TABLE_3, createTransactionReadInfo(0, 1)));
     }
 
     @Test
-    public void oneTableAgnosticReadIsTracked() {
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_3);
+    public void recordTableAgnosticReadCallsAreTracked() {
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_3);
 
-        assertThat(tracker.getReadInfo())
-                .isEqualTo(createTransactionReadInfo(
-                        BYTES_READ_3, 1, createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_4)));
-
-        assertThat(tracker.getReadInfoByTable()).isEmpty();
-    }
-
-    @Test
-    public void multipleTableAgnosticReadAreTracked() {
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_3);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_3);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_1);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_1);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_3);
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
@@ -207,26 +155,29 @@ public final class KeyValueServiceDataTrackerTest {
     }
 
     @Test
-    public void multipleTrackingCallsMultipleTablesTest() {
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_3, BYTES_READ_3);
-        tracker.callForTable(TABLE_1);
-        tracker.readForTable(TABLE_1, KVS_METHOD_NAME_2, BYTES_READ_3);
-        tracker.callForTable(TABLE_2);
-        tracker.readForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_3);
-        tracker.tableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
-        tracker.callForTable(TABLE_1);
-        tracker.partialReadForTable(TABLE_2, BYTES_READ_1);
-        tracker.callForTable(TABLE_3);
-        tracker.partialReadForTable(TABLE_2, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_1, BYTES_READ_2);
-        tracker.readForTable(TABLE_2, KVS_METHOD_NAME_3, BYTES_READ_3);
-        tracker.readForTable(TABLE_3, KVS_METHOD_NAME_1, BYTES_READ_2);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
-        tracker.partialReadForTable(TABLE_3, BYTES_READ_1);
+    public void differentMethodCallsAreTracked() {
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1);
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, BYTES_READ_3);
+        tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, BYTES_READ_3);
+        Consumer<Long> tableOneFirstTracker = tracker.recordCallForTable(TABLE_1);
+        tableOneFirstTracker.accept(BYTES_READ_3);
+        Consumer<Long> tableOneSecondTracker = tracker.recordCallForTable(TABLE_1);
+        tableOneSecondTracker.accept(BYTES_READ_2);
+
+        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_2);
+        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_3, BYTES_READ_3);
+        Consumer<Long> tableTwoTracker = tracker.recordCallForTable(TABLE_2);
+        tableTwoTracker.accept(BYTES_READ_1);
+        tableTwoTracker.accept(BYTES_READ_2);
+
+        tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_1, BYTES_READ_2);
+        Consumer<Long> tableThreeTracker = tracker.recordCallForTable(TABLE_3);
+        tableThreeTracker.accept(BYTES_READ_1);
+        tableThreeTracker.accept(BYTES_READ_1);
+        tableThreeTracker.accept(BYTES_READ_2);
+
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2);
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
@@ -253,6 +204,90 @@ public final class KeyValueServiceDataTrackerTest {
                                         createMaximumBytesKvsCallInfo(BYTES_READ_2, KVS_METHOD_NAME_1))));
     }
 
+    /**
+     * Schedules tracking calls from {@link #differentMethodCallsAreTracked} repeatedly ({@link #CONCURRENCY_ROUNDS}
+     * times.
+     */
+    @Test
+    public void concurrencyAndOrderOfExecutionTest() throws InterruptedException {
+        ExecutorService executor = PTExecutors.newFixedThreadPool(100);
+
+        for (int round = 0; round < CONCURRENCY_ROUNDS; round++) {
+            executor.execute(() -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_1, BYTES_READ_1));
+            executor.execute(() -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, BYTES_READ_3));
+            executor.execute(() -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, BYTES_READ_3));
+            executor.execute(() -> {
+                Consumer<Long> tableOneFirstTracker = tracker.recordCallForTable(TABLE_1);
+                tableOneFirstTracker.accept(BYTES_READ_3);
+            });
+            executor.execute(() -> {
+                Consumer<Long> tableOneSecondTracker = tracker.recordCallForTable(TABLE_1);
+                tableOneSecondTracker.accept(BYTES_READ_2);
+            });
+
+            executor.execute(() -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, BYTES_READ_2));
+            executor.execute(() -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_3, BYTES_READ_3));
+            executor.execute(() -> {
+                Consumer<Long> tableTwoTracker = tracker.recordCallForTable(TABLE_2);
+                tableTwoTracker.accept(BYTES_READ_1);
+                tableTwoTracker.accept(BYTES_READ_2);
+            });
+
+            executor.execute(() -> tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_1, BYTES_READ_2));
+            executor.execute(() -> {
+                Consumer<Long> tableThreeTracker = tracker.recordCallForTable(TABLE_3);
+                tableThreeTracker.accept(BYTES_READ_1);
+                tableThreeTracker.accept(BYTES_READ_1);
+                tableThreeTracker.accept(BYTES_READ_2);
+            });
+
+            executor.execute(() -> tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, BYTES_READ_1));
+            executor.execute(() -> tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, BYTES_READ_2));
+
+            executor.execute(tracker::getReadInfo);
+            executor.execute(tracker::getReadInfo);
+            executor.execute(tracker::getReadInfo);
+
+            executor.execute(tracker::getReadInfoByTable);
+            executor.execute(tracker::getReadInfoByTable);
+            executor.execute(tracker::getReadInfoByTable);
+        }
+
+        executor.shutdown();
+        assertThat(executor.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(tracker.getReadInfo())
+                .isEqualTo(createTransactionReadInfo(
+                        CONCURRENCY_ROUNDS * (5 * BYTES_READ_1 + 6 * BYTES_READ_2 + 4 * BYTES_READ_3),
+                        CONCURRENCY_ROUNDS * 12,
+                        createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)));
+
+        assertThat(tracker.getReadInfoByTable())
+                .containsExactlyEntriesOf(ImmutableMap.of(
+                        TABLE_1,
+                        createTransactionReadInfo(
+                                CONCURRENCY_ROUNDS * (BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3),
+                                CONCURRENCY_ROUNDS * 5,
+                                createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_2)),
+                        TABLE_2,
+                        createTransactionReadInfo(
+                                CONCURRENCY_ROUNDS * (BYTES_READ_1 + 2 * BYTES_READ_2 + BYTES_READ_3),
+                                CONCURRENCY_ROUNDS * 3,
+                                createMaximumBytesKvsCallInfo(BYTES_READ_3, KVS_METHOD_NAME_3)),
+                        TABLE_3,
+                        createTransactionReadInfo(
+                                CONCURRENCY_ROUNDS * (2 * BYTES_READ_1 + 2 * BYTES_READ_2),
+                                CONCURRENCY_ROUNDS * 2,
+                                createMaximumBytesKvsCallInfo(BYTES_READ_2, KVS_METHOD_NAME_1))));
+    }
+
+    private static TransactionReadInfo createTransactionReadInfo(long bytesRead, int kvsCalls) {
+        return ImmutableTransactionReadInfo.builder()
+                .bytesRead(bytesRead)
+                .kvsCalls(kvsCalls)
+                .build();
+    }
+
     private static TransactionReadInfo createTransactionReadInfo(
             long bytesRead, long kvsCalls, KvsCallReadInfo maximumBytesKvsCallInfo) {
         return ImmutableTransactionReadInfo.builder()
@@ -266,13 +301,6 @@ public final class KeyValueServiceDataTrackerTest {
         return ImmutableKvsCallReadInfo.builder()
                 .bytesRead(bytesRead)
                 .methodName(kvsMethodName)
-                .build();
-    }
-
-    private static TransactionReadInfo createTransactionReadInfo(long bytesRead, int kvsCalls) {
-        return ImmutableTransactionReadInfo.builder()
-                .bytesRead(bytesRead)
-                .kvsCalls(kvsCalls)
                 .build();
     }
 }
