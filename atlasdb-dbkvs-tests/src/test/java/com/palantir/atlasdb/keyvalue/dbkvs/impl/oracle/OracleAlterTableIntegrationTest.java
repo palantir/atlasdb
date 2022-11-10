@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -44,7 +43,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -209,7 +207,6 @@ public final class OracleAlterTableIntegrationTest {
                                 + CONFIG_WITH_ALTER.ddl().metadataTable().getQualifiedName() + " WHERE table_name = ?",
                         TABLE_REFERENCE.getQualifiedName());
         System.out.println(results);
-        Uninterruptibles.sleepUninterruptibly(15, TimeUnit.MINUTES);
     }
 
     private void assertThatMetadataHasOverflow() {
