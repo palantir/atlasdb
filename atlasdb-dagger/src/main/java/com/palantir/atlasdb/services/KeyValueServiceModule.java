@@ -97,9 +97,16 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public TransactionKnowledgeComponents provideTransactionKnowledgeComponents(
-            @Named("kvs") KeyValueService kvs, MetricsManager metricsManager, AtlasDbConfig config) {
+            @Named("kvs") KeyValueService kvs,
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            MetricsManager metricsManager,
+            AtlasDbConfig config) {
         return TransactionKnowledgeComponents.create(
-                kvs, metricsManager.getTaggedRegistry(), config.internalSchema(), () -> true, transactionSchemaManager);
+                kvs,
+                metricsManager.getTaggedRegistry(),
+                config.internalSchema(),
+                () -> true,
+                new TransactionSchemaManager(coordinationService));
     }
 
     @Provides

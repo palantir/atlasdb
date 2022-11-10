@@ -17,6 +17,8 @@ package com.palantir.atlasdb.sweep;
 
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -44,6 +46,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
@@ -56,6 +59,7 @@ public final class SweepTestUtils {
                 kvs,
                 timelock.getLegacyTimelockService(),
                 timelock.getTimestampManagementService(),
+                timelock.getTimestampService(),
                 SweepStrategyManagers.createDefault(kvs),
                 TransactionServices.createRaw(kvs, timelock.getTimestampService(), false));
     }
@@ -64,6 +68,7 @@ public final class SweepTestUtils {
             KeyValueService kvs,
             TimelockService legacyTimelockService,
             TimestampManagementService tsmService,
+            TimestampService timestampService,
             SweepStrategyManager ssm,
             TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -74,8 +79,12 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
+
+        TransactionSchemaManager schemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(kvs, timestampService, metricsManager, false));
+
         TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry(), schemaManager);
         TransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,

@@ -94,7 +94,6 @@ public class KeyValueServiceMigratorsTest {
     private TransactionManager fromTxManager;
     private KeyValueService toKvs;
     private TransactionManager toTxManager;
-
     private ImmutableMigratorSpec migratorSpec;
 
     @Before
