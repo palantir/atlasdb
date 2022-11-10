@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class KeyValueServiceDataTracker {
@@ -94,12 +95,10 @@ public final class KeyValueServiceDataTracker {
         bytesReadByTable.addAndGet(tableRef, bytesRead);
     }
 
-    /**
-     * Track that a kvs read method was called for some {@link TableReference}.
-     */
-    public void callForTable(TableReference tableRef) {
+    public Consumer<Long> callForTable(TableReference tableRef) {
         kvsCallsOverall.increment();
         kvsCallByTable.incrementAndGet(tableRef);
+        return bytesRead -> partialReadForTable(tableRef, bytesRead);
     }
 
     /**
