@@ -27,9 +27,11 @@ public interface KvsCallReadInfo extends Comparable<KvsCallReadInfo> {
     Comparator<KvsCallReadInfo> COMPARATOR =
             Comparator.comparing(KvsCallReadInfo::bytesRead).thenComparing(KvsCallReadInfo::methodName);
 
-    long bytesRead();
-
+    @Value.Parameter
     String methodName();
+
+    @Value.Parameter
+    long bytesRead();
 
     @Override
     default int compareTo(KvsCallReadInfo other) {
