@@ -78,7 +78,11 @@ public final class KeyValueServiceDataTracker {
      * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
      */
     public void recordReadForTable(TableReference tableRef, String methodName, long bytesRead) {
-        updateKvsMethodTalliesByTable(tableRef, bytesRead, methodName);
+        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
+                .bytesRead(bytesRead)
+                .methodName(methodName)
+                .build();
+        updateKvsMethodTalliesByTable(tableRef, callInfo);
     }
 
     /**
@@ -86,7 +90,11 @@ public final class KeyValueServiceDataTracker {
      * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
      */
     public void recordTableAgnosticRead(String methodName, long bytesRead) {
-        updateKvsMethodTalliesOverall(bytesRead, methodName);
+        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
+                .bytesRead(bytesRead)
+                .methodName(methodName)
+                .build();
+        updateKvsMethodTalliesOverall(callInfo);
     }
 
     /**
@@ -102,28 +110,15 @@ public final class KeyValueServiceDataTracker {
         };
     }
 
-    private void updateKvsMethodTalliesOverall(long bytesRead, String methodName) {
+    private void updateKvsMethodTalliesOverall(KvsCallReadInfo callInfo) {
         kvsCallsOverall.increment();
-        bytesReadOverall.add(bytesRead);
-        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
-                currentMaybeCall,
-                Optional.of(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(bytesRead)
-                        .methodName(methodName)
-                        .build()),
-                Comparators.emptiesFirst(Comparator.naturalOrder())));
-    }
-
-    private void updateKvsMethodTalliesByTable(TableReference tableRef, long bytesRead, String methodName) {
-        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
-                .bytesRead(bytesRead)
-                .methodName(methodName)
-                .build();
-
-        kvsCallsOverall.increment();
-        bytesReadOverall.add(bytesRead);
+        bytesReadOverall.add(callInfo.bytesRead());
         maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
                 currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
+    }
+
+    private void updateKvsMethodTalliesByTable(TableReference tableRef, KvsCallReadInfo callInfo) {
+        updateKvsMethodTalliesOverall(callInfo);
 
         kvsCallByTable.incrementAndGet(tableRef);
         bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
