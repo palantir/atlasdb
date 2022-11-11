@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -28,23 +29,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 import one.util.streamex.StreamEx;
 import org.junit.Test;
 
 public final class TrackingIteratorTest {
     private static final String STRING = "test";
-    private static final Iterator<String> ONE_ELEMENT_ITERATOR = List.of(STRING).iterator();
-    private static final ImmutableList<String> STRINGS = ImmutableList.of(
-            "test4", "test4", "test200", "composite", "", "t", "twentyElementString1", "tt", "twentyElementString2");
-
-    // these have to be anonymous inner classes rather than lambdas in order to spy
-    private static final Consumer<Long> NO_OP = new Consumer<>() {
-        @Override
-        public void accept(Long _unused) {}
-    };
+    // this has to be an anonymous inner class rather than a lambda in order to spy
     private static final ToLongFunction<String> STRING_LENGTH_MEASURER = new ToLongFunction<>() {
         @Override
         public long applyAsLong(String value) {
@@ -54,20 +45,24 @@ public final class TrackingIteratorTest {
 
     @Test
     public void oneElementTrackingIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(NO_OP);
+        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
         ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(ONE_ELEMENT_ITERATOR, tracker, measurer);
 
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(STRING));
+        Iterator<String> oneElementIterator = ImmutableList.of(STRING).stream().iterator();
+
+        TrackingIterator<String, Iterator<String>> trackingIterator =
+                new TrackingIterator<>(oneElementIterator, mockTracker, measurer);
+
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(STRING));
         verify(measurer).applyAsLong(STRING);
-        verify(tracker).accept(STRING_LENGTH_MEASURER.applyAsLong(STRING));
-        verifyNoMoreInteractions(tracker, measurer);
+        verify(mockTracker).record(STRING_LENGTH_MEASURER.applyAsLong(STRING));
+        verifyNoMoreInteractions(mockTracker, measurer);
     }
 
     @Test
     public void multiElementTrackingIteratorIsWiredCorrectly() {
         ArrayList<Long> consumed = new ArrayList<>();
+
         TrackingIterator<String, Iterator<String>> trackingIterator =
                 new TrackingIterator<>(createStringIterator(), consumed::add, STRING_LENGTH_MEASURER);
 
@@ -88,7 +83,7 @@ public final class TrackingIteratorTest {
         when(measurer.applyAsLong(anyString())).thenThrow(RuntimeException.class);
 
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), NO_OP, measurer);
+                new TrackingIterator<>(createStringIterator(), _unused -> {}, measurer);
 
         assertThat(trackingIterator)
                 .toIterable()
@@ -97,11 +92,11 @@ public final class TrackingIteratorTest {
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
-        Consumer<Long> consumer = spy(NO_OP);
-        doThrow(RuntimeException.class).when(consumer).accept(anyLong());
+        BytesReadTracker mockConsumer = mock(BytesReadTracker.class);
+        doThrow(RuntimeException.class).when(mockConsumer).record(anyLong());
 
         TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), consumer, STRING_LENGTH_MEASURER);
+                new TrackingIterator<>(createStringIterator(), mockConsumer, STRING_LENGTH_MEASURER);
 
         assertThat(trackingIterator)
                 .toIterable()
@@ -109,6 +104,17 @@ public final class TrackingIteratorTest {
     }
 
     public static Iterator<String> createStringIterator() {
+        ImmutableList<String> STRINGS = ImmutableList.of(
+                "test4",
+                "test4",
+                "test200",
+                "composite",
+                "",
+                "t",
+                "twentyElementString1",
+                "tt",
+                "twentyElementString2");
+
         return STRINGS.stream().iterator();
     }
 }

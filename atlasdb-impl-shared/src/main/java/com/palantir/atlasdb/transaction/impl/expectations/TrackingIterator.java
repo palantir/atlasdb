@@ -20,7 +20,6 @@ import com.google.common.collect.ForwardingIterator;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Iterator;
-import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
 public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterator<T> {
@@ -28,9 +27,9 @@ public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterat
 
     private final I delegate;
     private final ToLongFunction<T> measurer;
-    private final Consumer<Long> tracker;
+    private final BytesReadTracker tracker;
 
-    public TrackingIterator(I delegate, Consumer<Long> tracker, ToLongFunction<T> measurer) {
+    public TrackingIterator(I delegate, BytesReadTracker tracker, ToLongFunction<T> measurer) {
         this.delegate = delegate;
         this.tracker = tracker;
         this.measurer = measurer;
@@ -46,7 +45,7 @@ public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterat
         T result = delegate.next();
 
         try {
-            tracker.accept(measurer.applyAsLong(result));
+            tracker.record(measurer.applyAsLong(result));
         } catch (Exception exception) {
             log.warn("Data tracking failed", exception);
         }

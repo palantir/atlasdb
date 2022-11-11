@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -33,28 +34,15 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.logsafe.Preconditions;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 import one.util.streamex.StreamEx;
 import org.junit.Test;
 
 public final class TrackingRowColumnRangeIteratorTest {
     private static final Entry<Cell, Value> ENTRY = new SimpleImmutableEntry<>(createCell(10), createValue(10));
-    private static final RowColumnRangeIterator ONE_ELEMENT_ITERATOR =
-            new LocalRowColumnRangeIterator(ImmutableList.of(ENTRY).iterator());
-    private static final Map<Cell, Value> VALUE_BY_CELL = Map.of(
-            createCell(10), createValue(10),
-            createCell(20), createValue(20),
-            createCell(30), createValue(30));
-
-    // these have to be anonymous inner classes rather than lambdas in order to spy
-    private static final Consumer<Long> NO_OP = new Consumer<>() {
-        @Override
-        public void accept(Long _unused) {}
-    };
+    // this has to be an anonymous inner class rather than a lambda in order to spy
     private static final ToLongFunction<Entry<Cell, Value>> ENTRY_MEASURER = new ToLongFunction<>() {
         @Override
         public long applyAsLong(Entry<Cell, Value> value) {
@@ -64,20 +52,25 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void oneElementTrackingRowColumnRangeIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(NO_OP);
+        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
         ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
-        TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(ONE_ELEMENT_ITERATOR, tracker, measurer);
 
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(ENTRY));
+        RowColumnRangeIterator oneElementIterator =
+                new LocalRowColumnRangeIterator(ImmutableList.of(ENTRY).iterator());
+
+        TrackingRowColumnRangeIterator trackingIterator =
+                new TrackingRowColumnRangeIterator(oneElementIterator, mockTracker, measurer);
+
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(ENTRY));
         verify(measurer).applyAsLong(ENTRY);
-        verify(tracker).accept(ENTRY_MEASURER.applyAsLong(ENTRY));
-        verifyNoMoreInteractions(tracker, measurer);
+        verify(mockTracker).record(ENTRY_MEASURER.applyAsLong(ENTRY));
+        verifyNoMoreInteractions(mockTracker, measurer);
     }
 
     @Test
     public void multiElementTrackingRowColumnRangeIteratorIsWiredCorrectly() {
         ArrayList<Long> consumed = new ArrayList<>();
+
         TrackingRowColumnRangeIterator trackingIterator =
                 new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), consumed::add, ENTRY_MEASURER);
 
@@ -94,11 +87,11 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
-        ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
-        when(measurer.applyAsLong(any())).thenThrow(RuntimeException.class);
+        ToLongFunction<Entry<Cell, Value>> mockMeasurer = mock(ToLongFunction.class);
+        when(mockMeasurer.applyAsLong(any())).thenThrow(RuntimeException.class);
 
         TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), NO_OP, measurer);
+                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), _unused -> {}, mockMeasurer);
 
         assertThat(trackingIterator)
                 .toIterable()
@@ -107,11 +100,11 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
-        Consumer<Long> consumer = spy(NO_OP);
-        doThrow(RuntimeException.class).when(consumer).accept(anyLong());
+        BytesReadTracker mockConsumer = mock(BytesReadTracker.class);
+        doThrow(RuntimeException.class).when(mockConsumer).record(anyLong());
 
         TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), consumer, ENTRY_MEASURER);
+                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), mockConsumer, ENTRY_MEASURER);
 
         assertThat(trackingIterator)
                 .toIterable()
@@ -119,7 +112,12 @@ public final class TrackingRowColumnRangeIteratorTest {
     }
 
     private static RowColumnRangeIterator createRowColumnRangeIterator() {
-        return new LocalRowColumnRangeIterator(VALUE_BY_CELL.entrySet().iterator());
+        Map<Cell, Value> valueByCell = Map.of(
+                createCell(10), createValue(10),
+                createCell(20), createValue(20),
+                createCell(30), createValue(30));
+
+        return new LocalRowColumnRangeIterator(valueByCell.entrySet().iterator());
     }
 
     private static Cell createCell(int size) {
