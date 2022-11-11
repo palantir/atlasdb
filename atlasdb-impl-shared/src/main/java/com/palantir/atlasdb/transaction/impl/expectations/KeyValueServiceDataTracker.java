@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AtomicLongMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
@@ -59,8 +59,8 @@ public final class KeyValueServiceDataTracker {
      * stages (e.g. this can happen with futures/iterators).
      */
     public ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable() {
-        Set<TableReference> tableRefs = Sets.intersection(
-                bytesReadByTable.asMap().keySet(), kvsCallByTable.asMap().keySet());
+        Set<TableReference> tableRefs =
+                ImmutableSet.copyOf(kvsCallByTable.asMap().keySet());
 
         return tableRefs.stream()
                 .collect(ImmutableMap.toImmutableMap(
@@ -73,56 +73,47 @@ public final class KeyValueServiceDataTracker {
     }
 
     /**
-     * Tracks an effectively completed kvs read method call for some {@link TableReference}.
-     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
+     * Tracks a fully resolved (i.e., non-lazy) Atlas KVS read all for a given {@link TableReference}.
+     * For lazy calls, see {@link #recordCallForTable}
      */
-    public void readForTable(TableReference tableRef, String methodName, long bytesRead) {
-        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
-                .bytesRead(bytesRead)
-                .methodName(methodName)
-                .build();
-        updateKvsMethodOverallTallies(callInfo);
-        updateKvsMethodByTableTallies(tableRef, callInfo);
+    public void recordReadForTable(TableReference tableRef, String methodName, long bytesRead) {
+        updateKvsMethodTalliesByTable(tableRef, ImmutableKvsCallReadInfo.of(methodName, bytesRead));
     }
 
     /**
-     * Track a lazy kvs read method call for some {@link TableReference}.
+     * Tracks a fully resolved (i.e., non-lazy) Atlas KVS read with no {@link TableReference} information.
      */
-    public void partialReadForTable(TableReference tableRef, long bytesRead) {
-        bytesReadOverall.add(bytesRead);
-        bytesReadByTable.addAndGet(tableRef, bytesRead);
+    public void recordTableAgnosticRead(String methodName, long bytesRead) {
+        updateKvsMethodTalliesOverall(ImmutableKvsCallReadInfo.of(methodName, bytesRead));
     }
 
     /**
-     * Track that a kvs read method was called for some {@link TableReference}.
+     * Registers that an Atlas KVS read method was called for a given {@link TableReference}
+     * and provides a {@link BytesReadTracker} for tracking (see javadoc).
+     * For KVS read methods tracked here, they are not taken into account for {@link #maximumBytesKvsCallInfoOverall}
+     * and {@link #maximumBytesKvsCallInfoByTable}.
      */
-    public void callForTable(TableReference tableRef) {
+    public BytesReadTracker recordCallForTable(TableReference tableRef) {
         kvsCallsOverall.increment();
         kvsCallByTable.incrementAndGet(tableRef);
+        return bytesRead -> {
+            bytesReadOverall.add(bytesRead);
+            bytesReadByTable.addAndGet(tableRef, bytesRead);
+        };
     }
 
-    /**
-     * Track an effectively completed kvs read method call with no {@link TableReference} information.
-     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
-     */
-    public void tableAgnosticRead(String methodName, long bytesRead) {
-        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
-                .bytesRead(bytesRead)
-                .methodName(methodName)
-                .build();
-        updateKvsMethodOverallTallies(callInfo);
+    private void updateKvsMethodTalliesByTable(TableReference tableRef, KvsCallReadInfo callInfo) {
+        updateKvsMethodTalliesOverall(callInfo);
+
+        kvsCallByTable.incrementAndGet(tableRef);
+        bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
+        maximumBytesKvsCallInfoByTable.merge(tableRef, callInfo, Comparators::max);
     }
 
-    private void updateKvsMethodOverallTallies(KvsCallReadInfo callInfo) {
-        bytesReadOverall.add(callInfo.bytesRead());
+    private void updateKvsMethodTalliesOverall(KvsCallReadInfo callInfo) {
         kvsCallsOverall.increment();
+        bytesReadOverall.add(callInfo.bytesRead());
         maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
                 currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
-    }
-
-    private void updateKvsMethodByTableTallies(TableReference tableRef, KvsCallReadInfo callInfo) {
-        bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
-        kvsCallByTable.incrementAndGet(tableRef);
-        maximumBytesKvsCallInfoByTable.merge(tableRef, callInfo, Comparators::max);
     }
 }
