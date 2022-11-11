@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionRea
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.flake.ShouldRetry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,8 +43,7 @@ public final class KeyValueServiceDataTrackerTest {
     private static final long NO_BYTES_READ = 0L;
     private static final long SMALL_BYTES_READ = 83L;
     private static final long MEDIUM_BYTES_READ = 103L;
-    private static final long HIGH_LARGE_BYTES = 971L;
-    private static final int CONCURRENCY_ROUNDS = 20_000;
+    private static final long LARGE_BYTES_READ = 971L;
 
     private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
@@ -62,18 +62,18 @@ public final class KeyValueServiceDataTrackerTest {
 
         int numberOfKvsCallsForTable2 = 2;
         tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, MEDIUM_BYTES_READ);
-        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, HIGH_LARGE_BYTES);
+        tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, LARGE_BYTES_READ);
 
         int numberOfKvsCallsForTable3 = 1;
-        tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_3, HIGH_LARGE_BYTES);
+        tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_3, LARGE_BYTES_READ);
 
         int totalNumberOfKvsCalls = numberOfKvsCallsForTable1 + numberOfKvsCallsForTable2 + numberOfKvsCallsForTable3;
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
-                        SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ + 2 * HIGH_LARGE_BYTES,
+                        SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ + 2 * LARGE_BYTES_READ,
                         totalNumberOfKvsCalls,
-                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, HIGH_LARGE_BYTES)));
+                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
@@ -84,14 +84,14 @@ public final class KeyValueServiceDataTrackerTest {
                                         ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, MEDIUM_BYTES_READ)),
                         TABLE_2,
                                 createTransactionReadInfo(
-                                        MEDIUM_BYTES_READ + HIGH_LARGE_BYTES,
+                                        MEDIUM_BYTES_READ + LARGE_BYTES_READ,
                                         numberOfKvsCallsForTable2,
-                                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, HIGH_LARGE_BYTES)),
+                                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)),
                         TABLE_3,
                                 createTransactionReadInfo(
-                                        HIGH_LARGE_BYTES,
+                                        LARGE_BYTES_READ,
                                         numberOfKvsCallsForTable3,
-                                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_3, HIGH_LARGE_BYTES))));
+                                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_3, LARGE_BYTES_READ))));
     }
 
     @Test
@@ -110,14 +110,14 @@ public final class KeyValueServiceDataTrackerTest {
         tableThreeFirstTracker.record(NO_BYTES_READ);
         tableThreeFirstTracker.record(SMALL_BYTES_READ);
         BytesReadTracker tableThreeSecondTracker = tracker.recordCallForTable(TABLE_3);
-        tableThreeSecondTracker.record(HIGH_LARGE_BYTES);
-        tableThreeSecondTracker.record(HIGH_LARGE_BYTES);
+        tableThreeSecondTracker.record(LARGE_BYTES_READ);
+        tableThreeSecondTracker.record(LARGE_BYTES_READ);
 
         int totalNumberOfKvsCalls = numberOfKvsCallsForTable1 + numberOfKvsCallsForTable2 + numberOfKvsCallsForTable3;
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
-                        2 * SMALL_BYTES_READ + MEDIUM_BYTES_READ + 2 * HIGH_LARGE_BYTES, totalNumberOfKvsCalls));
+                        2 * SMALL_BYTES_READ + MEDIUM_BYTES_READ + 2 * LARGE_BYTES_READ, totalNumberOfKvsCalls));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
@@ -127,23 +127,23 @@ public final class KeyValueServiceDataTrackerTest {
                         TABLE_2, createTransactionReadInfo(0, numberOfKvsCallsForTable2),
                         TABLE_3,
                                 createTransactionReadInfo(
-                                        SMALL_BYTES_READ + 2 * HIGH_LARGE_BYTES, numberOfKvsCallsForTable3)));
+                                        SMALL_BYTES_READ + 2 * LARGE_BYTES_READ, numberOfKvsCallsForTable3)));
     }
 
     @Test
     public void recordTableAgnosticReadCallsAreTracked() {
         tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, SMALL_BYTES_READ);
-        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, HIGH_LARGE_BYTES);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, LARGE_BYTES_READ);
 
         tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, SMALL_BYTES_READ);
         tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, MEDIUM_BYTES_READ);
-        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, HIGH_LARGE_BYTES);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, LARGE_BYTES_READ);
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
-                        2 * SMALL_BYTES_READ + MEDIUM_BYTES_READ + 2 * HIGH_LARGE_BYTES,
+                        2 * SMALL_BYTES_READ + MEDIUM_BYTES_READ + 2 * LARGE_BYTES_READ,
                         5,
-                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_4, HIGH_LARGE_BYTES)));
+                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_4, LARGE_BYTES_READ)));
 
         assertThat(tracker.getReadInfoByTable()).isEmpty();
     }
@@ -154,13 +154,13 @@ public final class KeyValueServiceDataTrackerTest {
         BytesReadTracker bytesReadTracker = tracker.recordCallForTable(TABLE_1);
         bytesReadTracker.record(MEDIUM_BYTES_READ);
 
-        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, HIGH_LARGE_BYTES);
+        tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, LARGE_BYTES_READ);
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
-                        SMALL_BYTES_READ + MEDIUM_BYTES_READ + HIGH_LARGE_BYTES,
+                        SMALL_BYTES_READ + MEDIUM_BYTES_READ + LARGE_BYTES_READ,
                         3,
-                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_5, HIGH_LARGE_BYTES)));
+                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_5, LARGE_BYTES_READ)));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
@@ -171,27 +171,24 @@ public final class KeyValueServiceDataTrackerTest {
                                 ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, SMALL_BYTES_READ))));
     }
 
-    /**
-     * Schedules tracking calls from {@link #differentMethodCallsAreTracked} repeatedly ({@link #CONCURRENCY_ROUNDS}
-     * times.
-     */
     @Test
+    @ShouldRetry
     public void interleavedMethodCallsAreTracked() throws InterruptedException {
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
-
+        int concurrencyRounds = 20_000;
         AtomicInteger exceptionsSeen = new AtomicInteger(0);
 
-        for (int round = 0; round < CONCURRENCY_ROUNDS; round++) {
+        for (int round = 0; round < concurrencyRounds; round++) {
             executor.execute(wrapForExceptionTracking(
                     () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_1, SMALL_BYTES_READ), exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, HIGH_LARGE_BYTES), exceptionsSeen));
+                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, LARGE_BYTES_READ), exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, HIGH_LARGE_BYTES), exceptionsSeen));
+                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, LARGE_BYTES_READ), exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
                     () -> {
                         BytesReadTracker tableOneFirstTracker = tracker.recordCallForTable(TABLE_1);
-                        tableOneFirstTracker.record(HIGH_LARGE_BYTES);
+                        tableOneFirstTracker.record(LARGE_BYTES_READ);
                     },
                     exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
@@ -204,7 +201,7 @@ public final class KeyValueServiceDataTrackerTest {
             executor.execute(wrapForExceptionTracking(
                     () -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, MEDIUM_BYTES_READ), exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_3, HIGH_LARGE_BYTES), exceptionsSeen));
+                    () -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_3, LARGE_BYTES_READ), exceptionsSeen));
             executor.execute(wrapForExceptionTracking(
                     () -> {
                         BytesReadTracker tableTwoTracker = tracker.recordCallForTable(TABLE_2);
@@ -244,26 +241,26 @@ public final class KeyValueServiceDataTrackerTest {
 
         assertThat(tracker.getReadInfo())
                 .isEqualTo(createTransactionReadInfo(
-                        CONCURRENCY_ROUNDS * (5 * SMALL_BYTES_READ + 6 * MEDIUM_BYTES_READ + 4 * HIGH_LARGE_BYTES),
-                        CONCURRENCY_ROUNDS * 12,
-                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, HIGH_LARGE_BYTES)));
+                        concurrencyRounds * (5 * SMALL_BYTES_READ + 6 * MEDIUM_BYTES_READ + 4 * LARGE_BYTES_READ),
+                        concurrencyRounds * 12,
+                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
                         TABLE_1,
                         createTransactionReadInfo(
-                                CONCURRENCY_ROUNDS * (SMALL_BYTES_READ + MEDIUM_BYTES_READ + 3 * HIGH_LARGE_BYTES),
-                                CONCURRENCY_ROUNDS * 5,
-                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, HIGH_LARGE_BYTES)),
+                                concurrencyRounds * (SMALL_BYTES_READ + MEDIUM_BYTES_READ + 3 * LARGE_BYTES_READ),
+                                concurrencyRounds * 5,
+                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)),
                         TABLE_2,
                         createTransactionReadInfo(
-                                CONCURRENCY_ROUNDS * (SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ + HIGH_LARGE_BYTES),
-                                CONCURRENCY_ROUNDS * 3,
-                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_3, HIGH_LARGE_BYTES)),
+                                concurrencyRounds * (SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ + LARGE_BYTES_READ),
+                                concurrencyRounds * 3,
+                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_3, LARGE_BYTES_READ)),
                         TABLE_3,
                         createTransactionReadInfo(
-                                CONCURRENCY_ROUNDS * (2 * SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ),
-                                CONCURRENCY_ROUNDS * 2,
+                                concurrencyRounds * (2 * SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ),
+                                concurrencyRounds * 2,
                                 ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, MEDIUM_BYTES_READ))));
     }
 

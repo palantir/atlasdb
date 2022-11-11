@@ -102,18 +102,18 @@ public final class KeyValueServiceDataTracker {
         };
     }
 
-    private void updateKvsMethodTalliesOverall(KvsCallReadInfo callInfo) {
-        kvsCallsOverall.increment();
-        bytesReadOverall.add(callInfo.bytesRead());
-        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
-                currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
-    }
-
     private void updateKvsMethodTalliesByTable(TableReference tableRef, KvsCallReadInfo callInfo) {
         updateKvsMethodTalliesOverall(callInfo);
 
         kvsCallByTable.incrementAndGet(tableRef);
         bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
         maximumBytesKvsCallInfoByTable.merge(tableRef, callInfo, Comparators::max);
+    }
+
+    private void updateKvsMethodTalliesOverall(KvsCallReadInfo callInfo) {
+        kvsCallsOverall.increment();
+        bytesReadOverall.add(callInfo.bytesRead());
+        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
+                currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
     }
 }
