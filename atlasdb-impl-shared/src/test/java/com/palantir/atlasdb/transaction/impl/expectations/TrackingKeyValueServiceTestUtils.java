@@ -38,6 +38,10 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.StringUtils;
 
+/**
+ * Utilities to create example objects and collection with a given size according to
+ * {@link com.palantir.atlasdb.util.Measurable}
+ */
 final class TrackingKeyValueServiceTestUtils {
     public static ImmutableMultimap<Cell, Long> createLongByCellMultimapWithSize(int size) {
         int valuesSize = size - 4 * Long.BYTES;
@@ -127,16 +131,16 @@ final class TrackingKeyValueServiceTestUtils {
         return Cell.create(createBytesWithSize(size / 2, element), createBytesWithSize(size - (size / 2), element));
     }
 
-    public static byte[] createBytesWithSize(int size, byte identifier) {
-        byte[] bytes = new byte[size];
-        Arrays.fill(bytes, identifier);
-        return bytes;
-    }
-
     public static RangeRequest createRangeRequest(byte identifier) {
         return RangeRequest.builder()
                 .startRowInclusive(createBytesWithSize(10, identifier))
                 .build();
+    }
+
+    public static byte[] createBytesWithSize(int size, byte identifier) {
+        byte[] bytes = new byte[size];
+        Arrays.fill(bytes, identifier);
+        return bytes;
     }
 
     private static ImmutableList<CandidateCellForSweeping> createCandidateCellForSweepingList(

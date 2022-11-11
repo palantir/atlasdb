@@ -111,6 +111,7 @@ public final class TrackingKeyValueServiceTest {
     public MockitoRule rule = MockitoJUnit.rule();
 
     private final int size;
+
     private final byte[] bytesOfSize;
     private final ImmutableSet<TableReference> tableRefsOfSize;
     private final ImmutableMap<Cell, Long> timestampByCellMapOfSize;
@@ -196,7 +197,7 @@ public final class TrackingKeyValueServiceTest {
         }
 
         verify(kvs).getRowsColumnRange(TABLE_REF, ROWS, BATCH_COLUMN_RANGE_SELECTION, TIMESTAMP);
-        validateReadInfoForPartialRead();
+        validateReadInfoForLazyRead();
         verifyNoMoreInteractions(kvs);
     }
 
@@ -211,7 +212,7 @@ public final class TrackingKeyValueServiceTest {
                 .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIteratorOfSize()));
 
         verify(kvs).getRowsColumnRange(TABLE_REF, ROWS, COLUMN_RANGE_SELECTION, CELL_BATCH_HINT, TIMESTAMP);
-        validateReadInfoForPartialRead();
+        validateReadInfoForLazyRead();
         verifyNoMoreInteractions(kvs);
     }
 
@@ -250,7 +251,7 @@ public final class TrackingKeyValueServiceTest {
                 .containsExactlyElementsOf(ImmutableList.copyOf(createClosableValueRowResultIteratorOfSize()));
 
         verify(kvs).getRange(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
-        validateReadInfoForPartialRead();
+        validateReadInfoForLazyRead();
         verifyNoMoreInteractions(kvs);
     }
 
@@ -266,7 +267,7 @@ public final class TrackingKeyValueServiceTest {
                 .containsExactlyElementsOf(ImmutableList.copyOf(createClosableLongSetRowResultIteratorOfSize()));
 
         verify(kvs).getRangeOfTimestamps(TABLE_REF, RANGE_REQUEST, TIMESTAMP);
-        validateReadInfoForPartialRead();
+        validateReadInfoForLazyRead();
         verifyNoMoreInteractions(kvs);
     }
 
@@ -283,7 +284,7 @@ public final class TrackingKeyValueServiceTest {
                         ImmutableList.copyOf(createClosableCandidateCellForSweepingListIteratorOfSize()));
 
         verify(kvs).getCandidateCellsForSweeping(TABLE_REF, CANDIDATE_CELL_FOR_SWEEPING_REQUEST);
-        validateReadInfoForPartialRead();
+        validateReadInfoForLazyRead();
         verifyNoMoreInteractions(kvs);
     }
 
@@ -369,12 +370,12 @@ public final class TrackingKeyValueServiceTest {
         assertThat(trackingKvs.getReadInfoByTable()).containsOnlyKeys(List.of(TABLE_REF));
     }
 
-    private void validateReadInfoForPartialRead() {
-        TransactionReadInfo readInfoForPartialReads = ImmutableTransactionReadInfo.builder()
+    private void validateReadInfoForLazyRead() {
+        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
                 .bytesRead(size)
                 .kvsCalls(1)
                 .build();
-        assertThat(trackingKvs.getOverallReadInfo()).isEqualTo(readInfoForPartialReads);
+        assertThat(trackingKvs.getOverallReadInfo()).isEqualTo(readInfo);
         assertThat(trackingKvs.getReadInfoByTable()).containsOnlyKeys(List.of(TABLE_REF));
     }
 

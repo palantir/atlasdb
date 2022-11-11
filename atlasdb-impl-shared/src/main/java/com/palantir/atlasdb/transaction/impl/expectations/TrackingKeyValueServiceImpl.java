@@ -48,7 +48,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
-public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
+public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     private static final SafeLogger log = SafeLoggerFactory.get(TrackingKeyValueServiceImpl.class);
 
     private final KeyValueService delegate;
@@ -125,8 +125,10 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
-        return wrapIteratorWithExceptionHandling(
-                tableRef, delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp));
+        RowColumnRangeIterator result =
+                delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+
+        return wrapIteratorWithExceptionHandling(result, tracker.recordCallForTable(tableRef));
     }
 
     @Override
@@ -152,7 +154,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         try (ClosableIterator<RowResult<Value>> result = delegate.getRange(tableRef, rangeRequest, timestamp)) {
-            return wrapIteratorWithExceptionHandling(tableRef, result, MeasuringUtils::sizeOf);
+            return wrapIteratorWithExceptionHandling(
+                    result, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOf);
         }
     }
 
@@ -162,7 +165,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             throws InsufficientConsistencyException {
         try (ClosableIterator<RowResult<Set<Long>>> result =
                 delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
-            return wrapIteratorWithExceptionHandling(tableRef, result, MeasuringUtils::sizeOfLongSetRowResult);
+            return wrapIteratorWithExceptionHandling(
+                    result, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOfLongSetRowResult);
         }
     }
 
@@ -171,7 +175,8 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
             TableReference tableRef, CandidateCellForSweepingRequest request) {
         try (ClosableIterator<List<CandidateCellForSweeping>> result =
                 delegate.getCandidateCellsForSweeping(tableRef, request)) {
-            return wrapIteratorWithExceptionHandling(tableRef, result, MeasuringUtils::sizeOf);
+            return wrapIteratorWithExceptionHandling(
+                    result, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOf);
         }
     }
 
@@ -241,27 +246,26 @@ public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService imple
         try {
             trackingRunnable.run();
         } catch (Exception exception) {
-            log.warn("Key value service tracking failed", exception);
+            log.warn("Key value service tracking runnable failed", exception);
         }
     }
 
-    private <T> ClosableIterator<T> wrapIteratorWithExceptionHandling(
-            TableReference tableRef, ClosableIterator<T> iterator, ToLongFunction<T> measurer) {
+    private static <T> ClosableIterator<T> wrapIteratorWithExceptionHandling(
+            ClosableIterator<T> iterator, Consumer<Long> callTracker, ToLongFunction<T> measurer) {
         ClosableIterator<T> result = iterator;
         try {
-            result = new TrackingClosableIterator<>(iterator, tracker.recordCallForTable(tableRef), measurer);
+            result = new TrackingClosableIterator<>(iterator, callTracker, measurer);
         } catch (Exception exception) {
             log.warn("TrackingClosableIterator wrapping failed for tracking", exception);
         }
         return result;
     }
 
-    private RowColumnRangeIterator wrapIteratorWithExceptionHandling(
-            TableReference tableRef, RowColumnRangeIterator iterator) {
+    private static RowColumnRangeIterator wrapIteratorWithExceptionHandling(
+            RowColumnRangeIterator iterator, Consumer<Long> callTracker) {
         RowColumnRangeIterator result = iterator;
         try {
-            result = new TrackingRowColumnRangeIterator(
-                    iterator, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOf);
+            result = new TrackingRowColumnRangeIterator(iterator, callTracker, MeasuringUtils::sizeOf);
         } catch (Exception exception) {
             log.warn("RowColumnRangeIterator wrapping failed for tracking", exception);
         }
