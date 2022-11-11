@@ -32,7 +32,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class KeyValueServiceDataTracker {
@@ -74,26 +73,27 @@ public final class KeyValueServiceDataTracker {
     }
 
     /**
-     * Tracks an effectively completed kvs read method call for some {@link TableReference}.
-     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
+     * Tracks a fully resolved (i.e., non-lazy) Atlas KVS read all for a given {@link TableReference}.
+     * For lazy calls, see {@link #recordCallForTable}
      */
     public void recordReadForTable(TableReference tableRef, String methodName, long bytesRead) {
-        updateKvsMethodTalliesByTable(tableRef, bytesRead, methodName);
+        updateKvsMethodTalliesByTable(tableRef, ImmutableKvsCallReadInfo.of(methodName, bytesRead));
     }
 
     /**
-     * Track an effectively completed kvs read method call with no {@link TableReference} information.
-     * Effectively completed refers to an eager call (i.e. does not spawn futures or iterators for later consumption).
+     * Tracks a fully resolved (i.e., non-lazy) Atlas KVS read with no {@link TableReference} information.
      */
     public void recordTableAgnosticRead(String methodName, long bytesRead) {
-        updateKvsMethodTalliesOverall(bytesRead, methodName);
+        updateKvsMethodTalliesOverall(ImmutableKvsCallReadInfo.of(methodName, bytesRead));
     }
 
     /**
-     * Registers that a kvs read method was called for some {@link TableReference} and provides a consumer that will
-     * register bytes read as they come (e.g. use case is for calls returning iterators).
+     * Registers that an Atlas KVS read method was called for a given {@link TableReference}
+     * and provides a {@link BytesReadTracker} for tracking (see javadoc).
+     * For KVS read methods tracked here, they are not taken into account for {@link #maximumBytesKvsCallInfoOverall}
+     * and {@link #maximumBytesKvsCallInfoByTable}.
      */
-    public Consumer<Long> recordCallForTable(TableReference tableRef) {
+    public BytesReadTracker recordCallForTable(TableReference tableRef) {
         kvsCallsOverall.increment();
         kvsCallByTable.incrementAndGet(tableRef);
         return bytesRead -> {
@@ -102,31 +102,18 @@ public final class KeyValueServiceDataTracker {
         };
     }
 
-    private void updateKvsMethodTalliesOverall(long bytesRead, String methodName) {
-        kvsCallsOverall.increment();
-        bytesReadOverall.add(bytesRead);
-        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
-                currentMaybeCall,
-                Optional.of(ImmutableKvsCallReadInfo.builder()
-                        .bytesRead(bytesRead)
-                        .methodName(methodName)
-                        .build()),
-                Comparators.emptiesFirst(Comparator.naturalOrder())));
-    }
-
-    private void updateKvsMethodTalliesByTable(TableReference tableRef, long bytesRead, String methodName) {
-        KvsCallReadInfo callInfo = ImmutableKvsCallReadInfo.builder()
-                .bytesRead(bytesRead)
-                .methodName(methodName)
-                .build();
-
-        kvsCallsOverall.increment();
-        bytesReadOverall.add(bytesRead);
-        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
-                currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
+    private void updateKvsMethodTalliesByTable(TableReference tableRef, KvsCallReadInfo callInfo) {
+        updateKvsMethodTalliesOverall(callInfo);
 
         kvsCallByTable.incrementAndGet(tableRef);
         bytesReadByTable.addAndGet(tableRef, callInfo.bytesRead());
         maximumBytesKvsCallInfoByTable.merge(tableRef, callInfo, Comparators::max);
+    }
+
+    private void updateKvsMethodTalliesOverall(KvsCallReadInfo callInfo) {
+        kvsCallsOverall.increment();
+        bytesReadOverall.add(callInfo.bytesRead());
+        maximumBytesKvsCallInfoOverall.updateAndGet(currentMaybeCall -> Comparators.max(
+                currentMaybeCall, Optional.of(callInfo), Comparators.emptiesFirst(Comparator.naturalOrder())));
     }
 }

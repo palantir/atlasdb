@@ -34,22 +34,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ExpectationsApiTest {
     public static final String SMALLER_NAME = "test1";
     public static final String LARGER_NAME = "test2";
-    public static final KvsCallReadInfo SMALLER_NAME_10 = ImmutableKvsCallReadInfo.builder()
-            .bytesRead(10)
-            .methodName(SMALLER_NAME)
-            .build();
-    public static final KvsCallReadInfo SMALLER_NAME_20 = ImmutableKvsCallReadInfo.builder()
-            .bytesRead(20)
-            .methodName(SMALLER_NAME)
-            .build();
-    public static final KvsCallReadInfo LARGER_NAME_10 = ImmutableKvsCallReadInfo.builder()
-            .bytesRead(10)
-            .methodName(LARGER_NAME)
-            .build();
-    public static final KvsCallReadInfo LARGER_NAME_20 = ImmutableKvsCallReadInfo.builder()
-            .bytesRead(20)
-            .methodName(LARGER_NAME)
-            .build();
+    public static final KvsCallReadInfo SMALLER_NAME_10 = ImmutableKvsCallReadInfo.of(SMALLER_NAME, 10);
+    public static final KvsCallReadInfo SMALLER_NAME_20 = ImmutableKvsCallReadInfo.of(SMALLER_NAME, 20);
+    public static final KvsCallReadInfo LARGER_NAME_10 = ImmutableKvsCallReadInfo.of(LARGER_NAME, 10);
+    public static final KvsCallReadInfo LARGER_NAME_20 = ImmutableKvsCallReadInfo.of(LARGER_NAME, 20);
 
     public static final ExpectationsConfig DEFAULT_EXPECTATIONS_CONFIG =
             ImmutableExpectationsConfig.builder().build();

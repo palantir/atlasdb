@@ -226,7 +226,7 @@ public class SQLString extends BasicSQLString {
     }
 
     /**
-     * Contructor for unregistered (dynamic) SQL.
+     * Constructor for unregistered (dynamic) SQL.
      *
      * @param sql The string to be used in a query
      */
@@ -235,7 +235,7 @@ public class SQLString extends BasicSQLString {
     }
 
     /**
-     * Contructor for registered SQL.
+     * Constructor for registered SQL.
      *
      * @param key    The query key
      * @param sql    The string to be used in a query
