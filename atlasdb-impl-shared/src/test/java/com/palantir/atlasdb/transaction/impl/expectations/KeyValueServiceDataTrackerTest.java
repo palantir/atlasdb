@@ -96,9 +96,7 @@ public final class KeyValueServiceDataTrackerTest {
         tableOneTracker.accept(BYTES_READ_1);
         tableOneTracker.accept(BYTES_READ_2);
 
-        Consumer<Long> tableTwoTracker = tracker.recordCallForTable(TABLE_2);
-        tableTwoTracker.accept(BYTES_READ_1);
-        tableTwoTracker.accept(BYTES_READ_3);
+        tracker.recordCallForTable(TABLE_2);
 
         Consumer<Long> tableThreeFirstTracker = tracker.recordCallForTable(TABLE_3);
         tableThreeFirstTracker.accept(NO_BYTES_READ);
@@ -109,31 +107,13 @@ public final class KeyValueServiceDataTrackerTest {
         tableThreeSecondTracker.accept(BYTES_READ_3);
 
         assertThat(tracker.getReadInfo())
-                .isEqualTo(createTransactionReadInfo(3 * BYTES_READ_1 + BYTES_READ_2 + 3 * BYTES_READ_3, 4));
+                .isEqualTo(createTransactionReadInfo(2 * BYTES_READ_1 + BYTES_READ_2 + 2 * BYTES_READ_3, 4));
 
         assertThat(tracker.getReadInfoByTable())
                 .containsExactlyEntriesOf(ImmutableMap.of(
                         TABLE_1, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_2, 1),
-                        TABLE_2, createTransactionReadInfo(BYTES_READ_1 + BYTES_READ_3, 1),
+                        TABLE_2, createTransactionReadInfo(0, 1),
                         TABLE_3, createTransactionReadInfo(BYTES_READ_1 + 2 * BYTES_READ_3, 2)));
-    }
-
-    @Test
-    public void recordCallForTableCallsAreTracked() {
-        tracker.recordCallForTable(TABLE_1);
-
-        tracker.recordCallForTable(TABLE_2);
-        tracker.recordCallForTable(TABLE_2);
-        tracker.recordCallForTable(TABLE_2);
-
-        tracker.recordCallForTable(TABLE_3);
-
-        assertThat(tracker.getReadInfo()).isEqualTo(createTransactionReadInfo(0, 5));
-        assertThat(tracker.getReadInfoByTable())
-                .containsExactlyEntriesOf(ImmutableMap.of(
-                        TABLE_1, createTransactionReadInfo(0, 1),
-                        TABLE_2, createTransactionReadInfo(0, 3),
-                        TABLE_3, createTransactionReadInfo(0, 1)));
     }
 
     @Test
