@@ -23,6 +23,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 
 public final class AtlasDbConstants {
     private AtlasDbConstants() {
@@ -215,4 +217,11 @@ public final class AtlasDbConstants {
      * aforementioned limits.
      */
     public static final int MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT = 900;
+
+    /**
+     * This lock is being used to maintain consistency of Rescue backups with transaction table sweep. Do not change
+     * the descriptor without considering correctness implications.
+     * */
+    public static final LockDescriptor BACKUP_LOCK_DESCRIPTOR =
+            StringLockDescriptor.of("Backup_with_transaction_table_sweep");
 }

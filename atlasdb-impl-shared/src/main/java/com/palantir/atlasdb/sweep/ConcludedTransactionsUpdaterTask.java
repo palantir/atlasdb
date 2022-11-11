@@ -19,12 +19,16 @@ package com.palantir.atlasdb.sweep;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,6 +50,9 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
     private final ScheduledExecutorService executor;
 
     private Set<ShardAndStrategy> shardsAndStrategies;
+
+    private final TimelockService timelockService;
+
     private int lastKnownNumShards = -1;
 
     @VisibleForTesting
@@ -53,19 +60,22 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
             Supplier<Integer> persistedNumShardsSupplier,
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
-            ScheduledExecutorService executorService) {
+            ScheduledExecutorService executorService,
+            TimelockService timelockService) {
         this.persistedNumShardsSupplier = persistedNumShardsSupplier;
         this.concludedTransactionsStore = concludedTransactionsStore;
         this.progress = progress;
         this.executor = executorService;
+        this.timelockService = timelockService;
     }
 
     public static ConcludedTransactionsUpdaterTask create(
             CoordinationAwareKnownConcludedTransactionsStore concludedTransactionsStore,
             ShardProgress progress,
-            ScheduledExecutorService executor) {
+            ScheduledExecutorService executor,
+            TimelockService timelockService) {
         ConcludedTransactionsUpdaterTask task = new ConcludedTransactionsUpdaterTask(
-                progress::getNumberOfShards, concludedTransactionsStore, progress, executor);
+                progress::getNumberOfShards, concludedTransactionsStore, progress, executor, timelockService);
         // Todo(Snanda): consider just running this task on the sweep thread at the end
         task.schedule();
         return task;
@@ -81,8 +91,11 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
 
     @VisibleForTesting
     void runOneIteration() {
-        int numShardsAtStart = persistedNumShardsSupplier.get();
+        if (isBackupInProgress()) {
+            return;
+        }
 
+        int numShardsAtStart = persistedNumShardsSupplier.get();
         maybeRefreshShardsAndStrategies(numShardsAtStart);
 
         long minLastSweptTimestamp = progress.getLastSweptTimestamps(shardsAndStrategies).values().stream()
@@ -99,6 +112,16 @@ public final class ConcludedTransactionsUpdaterTask implements AutoCloseable {
         Range<Long> concludedTimestamps =
                 Range.closed(TransactionConstants.LOWEST_POSSIBLE_START_TS, minLastSweptTimestamp);
         concludedTransactionsStore.addConcludedTimestamps(concludedTimestamps);
+    }
+
+    private boolean isBackupInProgress() {
+        WaitForLocksRequest request = WaitForLocksRequest.of(
+                ImmutableSet.of(AtlasDbConstants.BACKUP_LOCK_DESCRIPTOR),
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS);
+        WaitForLocksResponse response = timelockService.waitForLocks(request);
+        // An unsuccessful response implies a backup is in progress and hence it is not safe to update the state of
+        // _kct.
+        return !response.wasSuccessful();
     }
 
     private void maybeRefreshShardsAndStrategies(int currentNumShards) {

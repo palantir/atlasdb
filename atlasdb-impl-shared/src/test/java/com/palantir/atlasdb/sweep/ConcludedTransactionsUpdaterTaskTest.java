@@ -61,7 +61,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardProgress.getLastSweptTimestamps(any())).thenReturn(generateLastSweptTs());
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
-                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
+                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService, timelockService);
 
         updaterTask.runOneIteration();
 
@@ -79,7 +79,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardProgress.getLastSweptTimestamps(any())).thenReturn(lastSweptTs);
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
-                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService);
+                () -> NUM_SHARDS, concludedTransactionsStore, shardProgress, executorService, timelockService);
 
         updaterTask.runOneIteration();
 
@@ -96,7 +96,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
-                shardSupplier, concludedTransactionsStore, shardProgress, executorService);
+                shardSupplier, concludedTransactionsStore, shardProgress, executorService, timelockService);
 
         updaterTask.runOneIteration();
 
@@ -111,7 +111,7 @@ public class ConcludedTransactionsUpdaterTaskTest {
         when(shardSupplier.get()).thenReturn(NUM_SHARDS).thenReturn(NUM_SHARDS * 2);
 
         ConcludedTransactionsUpdaterTask updaterTask = new ConcludedTransactionsUpdaterTask(
-                shardSupplier, concludedTransactionsStore, shardProgress, executorService);
+                shardSupplier, concludedTransactionsStore, shardProgress, executorService, timelockService);
 
         updaterTask.runOneIteration();
 
