@@ -20,19 +20,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.ToLongFunction;
 import one.util.streamex.StreamEx;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class TrackingIteratorTest {
     private static final String STRING = "test";
     // this has to be an anonymous inner class rather than a lambda in order to spy
@@ -43,20 +47,22 @@ public final class TrackingIteratorTest {
         }
     };
 
+    @Mock
+    private BytesReadTracker tracker;
+
+    @Mock
+    private ToLongFunction<String> measurer;
+
     @Test
     public void oneElementTrackingIteratorIsWiredCorrectly() {
-        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
-        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
-
-        Iterator<String> oneElementIterator = ImmutableList.of(STRING).stream().iterator();
-
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(oneElementIterator, mockTracker, measurer);
+        long measuredValue = 1L;
+        when(measurer.applyAsLong(anyString())).thenReturn(measuredValue);
+        when(iterator.next()).thenReturn(STRING).thenThrow(NoSuchElementException.class);
 
         assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(STRING));
         verify(measurer).applyAsLong(STRING);
-        verify(mockTracker).record(STRING_LENGTH_MEASURER.applyAsLong(STRING));
-        verifyNoMoreInteractions(mockTracker, measurer);
+        verify(tracker).record(STRING_LENGTH_MEASURER.applyAsLong(STRING));
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
@@ -79,28 +85,20 @@ public final class TrackingIteratorTest {
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
-        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
         when(measurer.applyAsLong(anyString())).thenThrow(RuntimeException.class);
-
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), _unused -> {}, measurer);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING));
+        assertThat(trackingIterator).toIterable().containsExactlyInAnyOrder(STRING);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
-        BytesReadTracker mockConsumer = mock(BytesReadTracker.class);
-        doThrow(RuntimeException.class).when(mockConsumer).record(anyLong());
+        doThrow(RuntimeException.class).when(tracker).record(anyLong());
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING));
+        assertThat(trackingIterator).toIterable().containsExactlyInAnyOrder(STRING);
+    }
 
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), mockConsumer, STRING_LENGTH_MEASURER);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
+    public Iterator<String> createTrackingIterator(Iterator<String> delegate) {
+        return new TrackingIterator<>(delegate, tracker, measurer);
     }
 
     public static Iterator<String> createStringIterator() {
