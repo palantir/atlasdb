@@ -1605,7 +1605,7 @@ public class TableRenderer {
                         } else {
                             line(
                                     "rowMap.put(row,"
-                                        + " shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
+                                            + " shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
                         }
                     }
                     line("}");
@@ -1661,7 +1661,7 @@ public class TableRenderer {
                         } else {
                             line(
                                     "return"
-                                        + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                                            + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
                         }
                     }
                     line("});");
@@ -1703,7 +1703,7 @@ public class TableRenderer {
                         line(
                                 ColumnValue,
                                 " colValue ="
-                                    + " shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
+                                        + " shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
                     }
                     line("return Maps.immutableEntry(row, colValue);");
                 }
@@ -1755,7 +1755,7 @@ public class TableRenderer {
                         } else {
                             line(
                                     "return"
-                                        + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                                            + " shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
                         }
                     }
                     line("});");
@@ -1965,5 +1965,6 @@ public class TableRenderer {
         ColumnRangeSelection.class,
         Iterators.class,
         ImmutableGetRangesQuery.class,
+        Nullable.class,
     };
 }
