@@ -26,12 +26,10 @@ import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.stream.Collectors;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
@@ -88,15 +86,13 @@ final class VersionedEventStore {
         List<LockWatchEvent> events = new ArrayList<>(numToRetention);
 
         // The correctness of this depends upon eventMap's entrySet returning entries in ascending sorted order.
-        List<Map.Entry<Sequence, LockWatchEvent>> eventsToClear = eventMap.entrySet().stream()
+        eventMap.entrySet().stream()
+                .takeWhile(entry -> entry.getKey().value() < maxVersion.value())
                 .limit(numToRetention)
-                .filter(entry -> entry.getKey().value() < maxVersion.value())
-                .collect(Collectors.toList());
-
-        eventsToClear.forEach(entry -> {
-            eventMap.remove(entry.getKey());
-            events.add(entry.getValue());
-        });
+                .forEachOrdered(entry -> {
+                    eventMap.remove(entry.getKey());
+                    events.add(entry.getValue());
+                });
 
         return events;
     }
