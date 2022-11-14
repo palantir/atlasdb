@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.util;
 
 import com.codahale.metrics.Gauge;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 public class CurrentValueMetric<T> implements Gauge<T> {
     volatile T value = null;
 
