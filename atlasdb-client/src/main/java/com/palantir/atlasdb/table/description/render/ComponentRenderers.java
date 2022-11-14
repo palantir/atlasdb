@@ -23,7 +23,11 @@ final class ComponentRenderers {
     }
 
     static String typeName(NameComponentDescription comp) {
-        return comp.getType().getJavaClassName();
+        String type = comp.getType().getJavaClassName();
+        if (comp.getType().isNullable()) {
+            return "@Nullable " + type;
+        }
+        return type;
     }
 
     @SuppressWarnings("checkstyle:MethodName")
