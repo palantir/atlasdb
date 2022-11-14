@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: 'Transactional Expectations Part 1c: TrackingKeyValueService: utilities
+    for byte size (2)'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6334

@@ -24,9 +24,15 @@ import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.api.OpenSpan;
+import com.palantir.tracing.api.Span;
+import com.palantir.tracing.api.SpanType;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -35,11 +41,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.junit.Test;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {
+
+    private static String INNER_TRACE_ID = "innerTraceId";
+    private static String INNER_SPAN_ID = "innerSpanId";
+    private static String INNER_SPAN_PARENT_ID = "innerSpanParentId";
 
     @Test
     public void testExecutorName_namedThreadFactory() {
@@ -65,6 +76,34 @@ public class PTExecutorsTest {
             return thread;
         };
         assertThat(PTExecutors.getExecutorName(factory)).isEqualTo("PTExecutor");
+    }
+
+    @Test
+    public void testExecutorThreadLocalState_cachedPoolNospan() {
+        Tracer.initTraceWithSpan(Observability.SAMPLE, "RandomID", "outerSpan", SpanType.LOCAL);
+
+        String outerTraceId = Tracer.getTraceId();
+
+        // Because we are doing things within a lamda function, we need to use atomic references outside the lamda
+        AtomicReference<String> innerSpanId = new AtomicReference<>("");
+        AtomicReference<String> innerSpanParentId = new AtomicReference<>("");
+        AtomicReference<String> innerTraceId = new AtomicReference<>("");
+
+        withExecutor(PTExecutors::newCachedThreadPoolWithoutSpan, executor -> {
+            // Submit a task of a function that only starts a span within it
+            Map<String, String> innerTracInfo = executor.submit(this::spanTask).get();
+
+            // Set our AtomicReference variables for use outside lamda
+            innerTraceId.set(innerTracInfo.get(INNER_TRACE_ID));
+            innerSpanId.set(innerTracInfo.get(INNER_SPAN_ID));
+            innerSpanParentId.set(innerTracInfo.get(INNER_SPAN_PARENT_ID));
+        });
+        // Close outer span, which lets us collect information about it
+        Span outerSpan = Tracer.completeSpan().get();
+
+        assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
+        assertThat(outerSpan.getSpanId()).isNotEqualTo(innerSpanId.get());
+        assertThat(innerSpanParentId.get()).isEqualTo(outerSpan.getSpanId());
     }
 
     @Test
@@ -179,6 +218,20 @@ public class PTExecutorsTest {
                     .describedAs("Executor failed to shutdown within 5 seconds")
                     .isTrue();
         }
+    }
+
+    // This method is used only to make a span an return some information about the span
+    private Map<String, String> spanTask() {
+        OpenSpan innerSpan = Tracer.startSpan("innerSpan");
+        Map<String, String> innerTraceInfo = new HashMap<String, String>();
+        String innerTraceId = Tracer.getTraceId();
+        String innerSpanId = innerSpan.getSpanId();
+        String innerSpanParentId = innerSpan.getParentSpanId().get();
+        innerTraceInfo.put(INNER_TRACE_ID, innerTraceId);
+        innerTraceInfo.put(INNER_SPAN_ID, innerSpanId);
+        innerTraceInfo.put(INNER_SPAN_PARENT_ID, innerSpanParentId);
+        Tracer.fastCompleteSpan();
+        return innerTraceInfo;
     }
 
     interface ThrowingConsumer<T> {
