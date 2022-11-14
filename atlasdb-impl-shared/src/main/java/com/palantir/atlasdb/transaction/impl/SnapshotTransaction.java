@@ -100,7 +100,6 @@ import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -273,7 +272,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -347,8 +345,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
-        this.expectationsDataCollectionMetrics =
-                ExpectationsDataCollectionMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -2631,9 +2627,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     // todo(aalouane)
     @Override
-    public void reportExpectationsCollectedData() {
-        throw new NotImplementedException();
-    }
+    public void reportExpectationsCollectedData() {}
 
     private Timer getTimer(String name) {
         return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
