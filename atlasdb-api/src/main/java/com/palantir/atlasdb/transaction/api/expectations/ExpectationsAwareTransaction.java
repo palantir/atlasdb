@@ -29,8 +29,6 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     long getAgeMillis();
 
-    long getAgeMillisAndFreezeTimer();
-
     TransactionReadInfo getReadInfo();
 
     ExpectationsStatistics getCallbackStatistics();

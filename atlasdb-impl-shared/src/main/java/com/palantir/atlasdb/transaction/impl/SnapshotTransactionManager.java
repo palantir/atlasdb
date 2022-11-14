@@ -304,11 +304,6 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public long getAgeMillisAndFreezeTimer() {
-            return delegate.getAgeMillisAndFreezeTimer();
-        }
-
-        @Override
         public TransactionReadInfo getReadInfo() {
             return delegate.getReadInfo();
         }

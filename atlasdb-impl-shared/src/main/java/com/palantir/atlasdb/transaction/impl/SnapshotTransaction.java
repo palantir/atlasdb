@@ -2597,12 +2597,6 @@ public class SnapshotTransaction extends AbstractTransaction
 
     // todo(aalouane)
     @Override
-    public long getAgeMillisAndFreezeTimer() {
-        throw new NotImplementedException();
-    }
-
-    // todo(aalouane)
-    @Override
     public TransactionReadInfo getReadInfo() {
         throw new NotImplementedException();
     }
