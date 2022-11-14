@@ -45,7 +45,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
 
 public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
@@ -89,9 +88,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
-
         runWithExceptionHandling(() -> tracker.recordReadForTable(tableRef, "getRows", MeasuringUtils.sizeOf(result)));
-
         return result;
     }
 
@@ -105,11 +102,11 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
                 delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
 
         try {
-            Consumer<Long> callTracker = tracker.recordCallForTable(tableRef);
+            BytesReadTracker bytesReadTracker = tracker.recordCallForTable(tableRef);
             // throws if the map implementation does not support replaceAll
             result.replaceAll((rowsRead, iterator) -> {
-                callTracker.accept((long) rowsRead.length);
-                return new TrackingRowColumnRangeIterator(iterator, callTracker, MeasuringUtils::sizeOf);
+                bytesReadTracker.record(rowsRead.length);
+                return new TrackingRowColumnRangeIterator(iterator, bytesReadTracker, MeasuringUtils::sizeOf);
             });
         } catch (Exception exception) {
             log.warn("Map<byte[] RowColumnRangeIterator> wrapping failed for tracking", exception);
@@ -134,19 +131,15 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
-
         runWithExceptionHandling(() -> tracker.recordReadForTable(tableRef, "get", MeasuringUtils.sizeOf(result)));
-
         return result;
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
-
         runWithExceptionHandling(() -> tracker.recordReadForTable(
                 tableRef, "getLatestTimestamps", MeasuringUtils.sizeOfMeasurableLongMap(result)));
-
         return result;
     }
 
@@ -185,39 +178,31 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
                 delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
-
         runWithExceptionHandling(() -> tracker.recordReadForTable(
                 tableRef, "getFirstBatchForRanges", MeasuringUtils.sizeOfPageByRangeRequestMap(result)));
-
         return result;
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
         Set<TableReference> result = delegate.getAllTableNames();
-
         runWithExceptionHandling(
                 () -> tracker.recordTableAgnosticRead("getAllTableNames", MeasuringUtils.sizeOf(result)));
-
         return result;
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         byte[] result = delegate.getMetadataForTable(tableRef);
-
         runWithExceptionHandling(() -> tracker.recordTableAgnosticRead("getMetadataForTable", result.length));
-
         return result;
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> result = delegate.getMetadataForTables();
-
         runWithExceptionHandling(() -> tracker.recordTableAgnosticRead(
                 "getMetadataForTables", MeasuringUtils.sizeOfMeasurableByteMap(result)));
-
         return result;
     }
 
@@ -225,20 +210,16 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
             throws AtlasDbDependencyException {
         Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-
         runWithExceptionHandling(
                 () -> tracker.recordReadForTable(tableRef, "getAllTimestamps", MeasuringUtils.sizeOf(result)));
-
         return result;
     }
 
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
         List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
-
         runWithExceptionHandling(() ->
                 tracker.recordReadForTable(tableRef, "getRowKeysInRange", MeasuringUtils.sizeOfByteCollection(result)));
-
         return result;
     }
 
@@ -251,10 +232,10 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     }
 
     private static <T> ClosableIterator<T> wrapIteratorWithExceptionHandling(
-            ClosableIterator<T> iterator, Consumer<Long> callTracker, ToLongFunction<T> measurer) {
+            ClosableIterator<T> iterator, BytesReadTracker bytesReadTracker, ToLongFunction<T> measurer) {
         ClosableIterator<T> result = iterator;
         try {
-            result = new TrackingClosableIterator<>(iterator, callTracker, measurer);
+            result = new TrackingClosableIterator<>(iterator, bytesReadTracker, measurer);
         } catch (Exception exception) {
             log.warn("TrackingClosableIterator wrapping failed for tracking", exception);
         }
@@ -262,10 +243,10 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     }
 
     private static RowColumnRangeIterator wrapIteratorWithExceptionHandling(
-            RowColumnRangeIterator iterator, Consumer<Long> callTracker) {
+            RowColumnRangeIterator iterator, BytesReadTracker bytesReadTracker) {
         RowColumnRangeIterator result = iterator;
         try {
-            result = new TrackingRowColumnRangeIterator(iterator, callTracker, MeasuringUtils::sizeOf);
+            result = new TrackingRowColumnRangeIterator(iterator, bytesReadTracker, MeasuringUtils::sizeOf);
         } catch (Exception exception) {
             log.warn("RowColumnRangeIterator wrapping failed for tracking", exception);
         }

@@ -25,14 +25,18 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -119,28 +123,30 @@ final class TrackingKeyValueServiceTestUtils {
                 createCellWithSize(keySetSize - 2 * (keySetSize / 3), (byte) 3), identifier);
     }
 
-    public static ImmutableMap<byte[], ImmutableMap<Cell, Value>> createRowColumnRangeMap(int size) {
-        return ImmutableMap.of(
-                createBytesWithSize(size / 6, (byte) 0), createValueByCellMapWithSize(size / 6),
-                createBytesWithSize(size / 6, (byte) 1), createValueByCellMapWithSize(size / 6),
-                createBytesWithSize(size / 6, (byte) 2), createValueByCellMapWithSize(size - 5 * (size / 6)));
+    @SuppressWarnings("ArrayAsKeyOfSetOrMap")
+    public static Map<byte[], RowColumnRangeIterator> createRowColumnRangeIteratorByByteArrayMutableMapWithSize(
+            int size) {
+        Map<byte[], RowColumnRangeIterator> mutableMap = new HashMap<>();
+        mutableMap.put(
+                createBytesWithSize(size / 6, (byte) 0),
+                new LocalRowColumnRangeIterator(
+                        createValueByCellMapWithSize(size / 6).entrySet().iterator()));
+        mutableMap.put(
+                createBytesWithSize(size / 6, (byte) 1),
+                new LocalRowColumnRangeIterator(
+                        createValueByCellMapWithSize(size / 6).entrySet().iterator()));
+        mutableMap.put(
+                createBytesWithSize(size / 6, (byte) 2),
+                new LocalRowColumnRangeIterator(createValueByCellMapWithSize(size - 5 * (size / 6))
+                        .entrySet()
+                        .iterator()));
+        return mutableMap;
     }
 
-    public static Cell createCellWithSize(int size, byte element) {
-        Preconditions.checkArgument(size >= 2, "Size should be at least 2");
-        return Cell.create(createBytesWithSize(size / 2, element), createBytesWithSize(size - (size / 2), element));
-    }
-
-    public static RangeRequest createRangeRequest(byte identifier) {
+    private static RangeRequest createRangeRequest(byte identifier) {
         return RangeRequest.builder()
                 .startRowInclusive(createBytesWithSize(10, identifier))
                 .build();
-    }
-
-    public static byte[] createBytesWithSize(int size, byte identifier) {
-        byte[] bytes = new byte[size];
-        Arrays.fill(bytes, identifier);
-        return bytes;
     }
 
     private static ImmutableList<CandidateCellForSweeping> createCandidateCellForSweepingList(
@@ -159,13 +165,6 @@ final class TrackingKeyValueServiceTestUtils {
                 .build();
     }
 
-    private static ImmutableList<RowResult<Value>> createValueRowResultListWithSize(int size, byte identifier) {
-        return ImmutableList.of(
-                createValueRowResultWithSize(size / 3, identifier),
-                createValueRowResultWithSize(size / 3, identifier),
-                createValueRowResultWithSize(size - 2 * (size / 3), identifier));
-    }
-
     private static RowResult<Set<Long>> createLongSetRowResultWithSize(int size, byte identifier) {
         int cellSize = 8 + (size % 8);
         int setSize = (size - cellSize) / 8;
@@ -176,6 +175,11 @@ final class TrackingKeyValueServiceTestUtils {
 
     private static RowResult<Value> createValueRowResultWithSize(int size, byte identifier) {
         return RowResult.of(createCellWithSize(size / 2, identifier), createValueWithSize(size - (size / 2)));
+    }
+
+    private static Cell createCellWithSize(int size, byte element) {
+        Preconditions.checkArgument(size >= 2, "Size should be at least 2");
+        return Cell.create(createBytesWithSize(size / 2, element), createBytesWithSize(size - (size / 2), element));
     }
 
     private static TableReference createTableReferenceWithSize(int size, char identifier) {
@@ -192,12 +196,21 @@ final class TrackingKeyValueServiceTestUtils {
                 createBytesWithSize(10, identifier), createValueRowResultListWithSize(size, identifier));
     }
 
-    private static Value createValueWithSize(int size) {
-        Preconditions.checkArgument(size >= Long.BYTES, "Size should be at least the size in bytes of one long");
-        return Value.create(createBytesWithSize(size - Long.BYTES), Value.INVALID_VALUE_TIMESTAMP);
+    private static ImmutableList<RowResult<Value>> createValueRowResultListWithSize(int size, byte identifier) {
+        return ImmutableList.of(
+                createValueRowResultWithSize(size / 3, identifier),
+                createValueRowResultWithSize(size / 3, identifier),
+                createValueRowResultWithSize(size - 2 * (size / 3), identifier));
     }
 
-    private static byte[] createBytesWithSize(int size) {
-        return createBytesWithSize(size, (byte) 0);
+    private static Value createValueWithSize(int size) {
+        Preconditions.checkArgument(size >= Long.BYTES, "Size should be at least the size in bytes of one long");
+        return Value.create(createBytesWithSize(size - Long.BYTES, (byte) 0), Value.INVALID_VALUE_TIMESTAMP);
+    }
+
+    private static byte[] createBytesWithSize(int size, byte identifier) {
+        byte[] bytes = new byte[size];
+        Arrays.fill(bytes, identifier);
+        return bytes;
     }
 }
