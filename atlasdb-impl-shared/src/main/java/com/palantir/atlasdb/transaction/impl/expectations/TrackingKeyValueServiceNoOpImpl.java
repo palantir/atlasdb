@@ -22,11 +22,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
-public class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
+public class TrackingKeyValueServiceNoOpImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     KeyValueService delegate;
     KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
-    public TrackingKeyValueServiceImpl(KeyValueService delegate) {
+    public TrackingKeyValueServiceNoOpImpl(KeyValueService delegate) {
         this.delegate = delegate;
     }
 

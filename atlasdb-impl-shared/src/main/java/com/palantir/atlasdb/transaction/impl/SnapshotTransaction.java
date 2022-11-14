@@ -25,7 +25,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
@@ -100,11 +99,10 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
-import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
-import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -276,7 +274,6 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
     protected final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
-    protected final Stopwatch stopwatch = Stopwatch.createStarted();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -314,7 +311,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueServiceImpl(tmKeyValueService);
+        this.keyValueService = new TrackingKeyValueServiceNoOpImpl(tmKeyValueService);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -2596,28 +2593,28 @@ public class SnapshotTransaction extends AbstractTransaction
         throw new NotImplementedException();
     }
 
+    // todo(aalouane)
     @Override
     public long getAgeMillis() {
-        return stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        throw new NotImplementedException();
     }
 
+    // todo(aalouane)
     @Override
     public long getAgeMillisAndFreezeTimer() {
-        stopwatch.stop();
-        return getAgeMillis();
+        throw new NotImplementedException();
     }
 
+    // todo(aalouane)
     @Override
     public TransactionReadInfo getReadInfo() {
-        return keyValueService.getOverallReadInfo();
+        throw new NotImplementedException();
     }
 
+    // todo(aalouane)
     @Override
     public ExpectationsStatistics getCallbackStatistics() {
-        return ImmutableExpectationsStatistics.builder()
-                .transactionAgeMillis(getAgeMillisAndFreezeTimer())
-                .readInfoByTable(keyValueService.getReadInfoByTable())
-                .build();
+        throw new NotImplementedException();
     }
 
     // todo(aalouane)
@@ -2632,15 +2629,10 @@ public class SnapshotTransaction extends AbstractTransaction
         throw new NotImplementedException();
     }
 
+    // todo(aalouane)
     @Override
     public void reportExpectationsCollectedData() {
-        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillisAndFreezeTimer());
-        TransactionReadInfo info = getReadInfo();
-        expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
-        expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
-        info.maximumBytesKvsCallInfo()
-                .ifPresent(kvsReadInfo ->
-                        expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsReadInfo.bytesRead()));
+        throw new NotImplementedException();
     }
 
     private Timer getTimer(String name) {
