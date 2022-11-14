@@ -71,7 +71,6 @@ allprojects {
     apply plugin: 'java-library'
     apply plugin: 'org.inferred.processors'  // installs the "processor" configuration needed for baseline-error-prone
     apply plugin: 'com.palantir.java-format'
-    apply plugin: 'com.palantir.revapi'
 
     // temporary until this is merged/fixed inside gradle-processors
     configurations.allProcessors {
