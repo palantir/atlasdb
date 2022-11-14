@@ -116,7 +116,7 @@ public final class TrackingRowColumnRangeIteratorTest {
         return Cell.create(new byte[size / 2], new byte[size - (size / 2)]);
     }
 
-    private static Value createValueWith(int size) {
+    private static Value createValueWithSize(int size) {
         Preconditions.checkArgument(size >= Long.BYTES, "size should be at least the number of bytes in one long");
         return Value.create(new byte[size - Long.BYTES], Value.INVALID_VALUE_TIMESTAMP);
     }
