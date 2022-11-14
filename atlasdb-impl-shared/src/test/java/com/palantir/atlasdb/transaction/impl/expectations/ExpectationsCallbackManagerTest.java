@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
 import org.junit.Test;
 
-public class ExpectationsCallbackManagerTest {
+public final class ExpectationsCallbackManagerTest {
     private final ExpectationsStatistics stats = spy(
             ImmutableExpectationsStatistics.builder().transactionAgeMillis(0L).build());
 
