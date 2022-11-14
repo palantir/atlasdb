@@ -97,9 +97,12 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfigurations;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -272,6 +275,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    private final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -345,6 +349,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.expectationsDataCollectionMetrics =
+                ExpectationsDataCollectionMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -2583,34 +2589,25 @@ public class SnapshotTransaction extends AbstractTransaction
         return tableRefToCells;
     }
 
-    // todo(aalouane)
+    // todo(aalouane): refactor after we have presets and the TEX config API setter method
     @Override
     public ExpectationsConfig expectationsConfig() {
-        throw new NotImplementedException();
+        return ExpectationsConfigurations.DEFAULT;
     }
 
-    // todo(aalouane)
     @Override
     public long getAgeMillis() {
-        throw new NotImplementedException();
+        return System.currentTimeMillis() - timeCreated;
     }
 
-    // todo(aalouane)
-    @Override
-    public long getAgeMillisAndFreezeTimer() {
-        throw new NotImplementedException();
-    }
-
-    // todo(aalouane)
     @Override
     public TransactionReadInfo getReadInfo() {
-        throw new NotImplementedException();
+        return keyValueService.getOverallReadInfo();
     }
 
-    // todo(aalouane)
     @Override
     public ExpectationsStatistics getCallbackStatistics() {
-        throw new NotImplementedException();
+        return ImmutableExpectationsStatistics.of(getAgeMillis(), keyValueService.getReadInfoByTable());
     }
 
     // todo(aalouane)
@@ -2625,9 +2622,18 @@ public class SnapshotTransaction extends AbstractTransaction
         throw new NotImplementedException();
     }
 
-    // todo(aalouane)
     @Override
-    public void reportExpectationsCollectedData() {}
+    public void reportExpectationsCollectedData() {
+        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
+
+        TransactionReadInfo info = getReadInfo();
+
+        expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
+        expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
+        info.maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo ->
+                        expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
+    }
 
     private Timer getTimer(String name) {
         return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);

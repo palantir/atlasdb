@@ -16,18 +16,11 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import org.immutables.value.Value;
+// todo(aalouane): add presets after data collection
+public final class ExpectationsConfigurations {
 
-/**
- * Tracked data for an individual transaction.
- */
-@Value.Immutable
-public interface ExpectationsStatistics {
-    @Value.Parameter
-    long transactionAgeMillis();
+    private ExpectationsConfigurations() {}
 
-    @Value.Parameter
-    ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable();
+    public static final ExpectationsConfig DEFAULT =
+            ImmutableExpectationsConfig.builder().build();
 }
