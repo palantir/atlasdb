@@ -44,11 +44,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class TrackingRowColumnRangeIteratorTest {
     private static final Entry<Cell, Value> ENTRY =
-            new SimpleImmutableEntry<>(createCellWithSize(10), createValueWith(10));
+            new SimpleImmutableEntry<>(createCellWithSize(10), createValueWithSize(10));
     private static final ImmutableMap<Cell, Value> VALUE_BY_CELL = ImmutableMap.of(
-            createCellWithSize(10), createValueWith(10),
-            createCellWithSize(20), createValueWith(20),
-            createCellWithSize(30), createValueWith(30));
+            createCellWithSize(10), createValueWithSize(10),
+            createCellWithSize(20), createValueWithSize(20),
+            createCellWithSize(30), createValueWithSize(30));
 
     @Mock
     private BytesReadTracker tracker;
