@@ -20,112 +20,103 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.logsafe.Preconditions;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.ToLongFunction;
-import one.util.streamex.StreamEx;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class TrackingRowColumnRangeIteratorTest {
-    private static final Entry<Cell, Value> ENTRY = new SimpleImmutableEntry<>(createCell(10), createValue(10));
-    // this has to be an anonymous inner class rather than a lambda in order to spy
-    private static final ToLongFunction<Entry<Cell, Value>> ENTRY_MEASURER = new ToLongFunction<>() {
-        @Override
-        public long applyAsLong(Entry<Cell, Value> value) {
-            return 1L;
-        }
-    };
+    private static final Entry<Cell, Value> ENTRY =
+            new SimpleImmutableEntry<>(createCellWithSize(10), createValueWith(10));
+    private static final ImmutableMap<Cell, Value> VALUE_BY_CELL = ImmutableMap.of(
+            createCellWithSize(10), createValueWith(10),
+            createCellWithSize(20), createValueWith(20),
+            createCellWithSize(30), createValueWith(30));
+
+    @Mock
+    private BytesReadTracker tracker;
+
+    @Mock
+    private ToLongFunction<Entry<Cell, Value>> measurer;
 
     @Test
-    public void oneElementTrackingRowColumnRangeIteratorIsWiredCorrectly() {
-        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
-        ToLongFunction<Entry<Cell, Value>> measurer = spy(ENTRY_MEASURER);
+    public void oneElementTrackingIteratorIsWiredCorrectly() {
+        long measuredValue = 1L;
+        when(measurer.applyAsLong(any())).thenReturn(measuredValue);
+        RowColumnRangeIterator trackingIterator =
+                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
 
-        RowColumnRangeIterator oneElementIterator =
-                new LocalRowColumnRangeIterator(ImmutableList.of(ENTRY).iterator());
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
 
-        TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(oneElementIterator, mockTracker, measurer);
-
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(ENTRY));
         verify(measurer).applyAsLong(ENTRY);
-        verify(mockTracker).record(ENTRY_MEASURER.applyAsLong(ENTRY));
-        verifyNoMoreInteractions(mockTracker, measurer);
+        verify(tracker).record(measuredValue);
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
-    public void multiElementTrackingRowColumnRangeIteratorIsWiredCorrectly() {
-        ArrayList<Long> consumed = new ArrayList<>();
+    public void trackingIteratorDelegatesNext() {
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(
+                new LocalRowColumnRangeIterator(VALUE_BY_CELL.entrySet().iterator()));
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(VALUE_BY_CELL.entrySet());
+    }
 
-        TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), consumed::add, ENTRY_MEASURER);
+    @Test
+    public void trackingIteratorFeedsTracker() {
+        when(measurer.applyAsLong(any())).thenReturn(1L).thenReturn(2L).thenReturn(3L);
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(new LocalRowColumnRangeIterator(
+                VALUE_BY_CELL.entrySet().stream().iterator()));
+        trackingIterator.forEachRemaining(_unused -> {});
 
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIterator()));
-
-        assertThat(consumed)
-                .containsExactlyElementsOf(StreamEx.of(createRowColumnRangeIterator())
-                        .mapToLong(ENTRY_MEASURER)
-                        .boxed()
-                        .toList());
+        InOrder inOrder = inOrder(tracker);
+        inOrder.verify(tracker).record(1L);
+        inOrder.verify(tracker).record(2L);
+        inOrder.verify(tracker).record(3L);
+        verifyNoMoreInteractions(tracker);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
-        ToLongFunction<Entry<Cell, Value>> mockMeasurer = mock(ToLongFunction.class);
-        when(mockMeasurer.applyAsLong(any())).thenThrow(RuntimeException.class);
-
-        TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), _unused -> {}, mockMeasurer);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIterator()));
+        when(measurer.applyAsLong(any())).thenThrow(RuntimeException.class);
+        RowColumnRangeIterator trackingIterator =
+                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
-        BytesReadTracker mockConsumer = mock(BytesReadTracker.class);
-        doThrow(RuntimeException.class).when(mockConsumer).record(anyLong());
-
-        TrackingRowColumnRangeIterator trackingIterator =
-                new TrackingRowColumnRangeIterator(createRowColumnRangeIterator(), mockConsumer, ENTRY_MEASURER);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createRowColumnRangeIterator()));
+        doThrow(RuntimeException.class).when(tracker).record(anyLong());
+        RowColumnRangeIterator trackingIterator =
+                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
     }
 
-    private static RowColumnRangeIterator createRowColumnRangeIterator() {
-        Map<Cell, Value> valueByCell = Map.of(
-                createCell(10), createValue(10),
-                createCell(20), createValue(20),
-                createCell(30), createValue(30));
-
-        return new LocalRowColumnRangeIterator(valueByCell.entrySet().iterator());
+    public RowColumnRangeIterator createTrackingIterator(RowColumnRangeIterator delegate) {
+        return new TrackingRowColumnRangeIterator(delegate, tracker, measurer);
     }
 
-    private static Cell createCell(int size) {
+    private static Cell createCellWithSize(int size) {
         Preconditions.checkArgument(size >= 2, "size should be at least 2");
         return Cell.create(new byte[size / 2], new byte[size - (size / 2)]);
     }
 
-    private static Value createValue(int size) {
+    private static Value createValueWith(int size) {
         Preconditions.checkArgument(size >= Long.BYTES, "size should be at least the number of bytes in one long");
         return Value.create(new byte[size - Long.BYTES], Value.INVALID_VALUE_TIMESTAMP);
     }

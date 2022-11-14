@@ -20,113 +20,97 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.function.ToLongFunction;
-import one.util.streamex.StreamEx;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class TrackingClosableIteratorTest {
     private static final String STRING = "test";
-    // this has to be an anonymous inner class rather than a lambda in order to spy
-    private static final ToLongFunction<String> STRING_LENGTH_MEASURER = new ToLongFunction<>() {
-        @Override
-        public long applyAsLong(String value) {
-            return value.length();
-        }
-    };
+
+    @Mock
+    private BytesReadTracker tracker;
+
+    @Mock
+    private ToLongFunction<String> measurer;
 
     @Test
-    public void oneElementTrackingClosableIteratorIsWiredCorrectly() {
-        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
-        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
+    public void oneElementTrackingIteratorIsWiredCorrectly() {
+        long measuredValue = 1L;
+        when(measurer.applyAsLong(anyString())).thenReturn(measuredValue);
+        ClosableIterator<String> trackingIterator =
+                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.singletonIterator(STRING)));
 
-        ClosableIterator<String> oneElementIterator = ClosableIterators.wrapWithEmptyClose(
-                ImmutableList.of(STRING).stream().iterator());
+        assertThat(trackingIterator).toIterable().containsExactly(STRING);
 
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(oneElementIterator, mockTracker, measurer);
-
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(ImmutableList.of(STRING));
         verify(measurer).applyAsLong(STRING);
-        verify(mockTracker).record(STRING_LENGTH_MEASURER.applyAsLong(STRING));
-        verifyNoMoreInteractions(mockTracker, measurer);
+        verify(tracker).record(measuredValue);
+        verifyNoMoreInteractions(tracker, measurer);
     }
 
     @Test
-    public void multiElementTrackingClosableIteratorIsWiredCorrectly() {
-        ArrayList<Long> consumed = new ArrayList<>();
-
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(createClosableStringIterator(), consumed::add, STRING_LENGTH_MEASURER);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
-
-        assertThat(consumed)
-                .containsExactlyElementsOf(StreamEx.of(createClosableStringIterator())
-                        .mapToLong(STRING_LENGTH_MEASURER)
-                        .boxed()
-                        .toList());
+    public void trackingIteratorDelegatesNext() {
+        List<String> strings = ImmutableList.of("", "length1", "length2", "test");
+        ClosableIterator<String> trackingIterator =
+                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(strings.iterator()));
+        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(strings);
     }
 
     @Test
-    public void trackingClosableStringIteratorDelegatesClose() {
-        ClosableIterator<String> mockIterator = mock(ClosableIterator.class);
-        TrackingClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(mockIterator, _unused -> {}, STRING_LENGTH_MEASURER);
-        trackingIterator.close();
-        verify(mockIterator).close();
-        verifyNoMoreInteractions(mockIterator);
+    public void trackingIteratorFeedsTracker() {
+        when(measurer.applyAsLong(anyString())).thenReturn(1L).thenReturn(2L).thenReturn(3L);
+        ClosableIterator<String> trackingIterator =
+                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.forArray("one", "two", "three")));
+        trackingIterator.forEachRemaining(_unused -> {});
+
+        InOrder inOrder = inOrder(tracker);
+        inOrder.verify(tracker).record(1L);
+        inOrder.verify(tracker).record(2L);
+        inOrder.verify(tracker).record(3L);
+        verifyNoMoreInteractions(tracker);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
-        ToLongFunction<String> mockMeasurer = mock(ToLongFunction.class);
-        when(mockMeasurer.applyAsLong(anyString())).thenThrow(RuntimeException.class);
-
+        when(measurer.applyAsLong(anyString())).thenThrow(RuntimeException.class);
         ClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(createClosableStringIterator(), _unused -> {}, mockMeasurer);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
+                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.singletonIterator(STRING)));
+        assertThat(trackingIterator).toIterable().containsExactly(STRING);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
-        BytesReadTracker mockTracker = mock(BytesReadTracker.class);
-        doThrow(RuntimeException.class).when(mockTracker).record(anyLong());
-
+        doThrow(RuntimeException.class).when(tracker).record(anyLong());
         ClosableIterator<String> trackingIterator =
-                new TrackingClosableIterator<>(createClosableStringIterator(), mockTracker, STRING_LENGTH_MEASURER);
-
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createClosableStringIterator()));
+                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.singletonIterator(STRING)));
+        assertThat(trackingIterator).toIterable().containsExactly(STRING);
     }
 
-    private static ClosableIterator<String> createClosableStringIterator() {
-        ImmutableList<String> STRINGS = ImmutableList.of(
-                "test4",
-                "test4",
-                "test200",
-                "composite",
-                "",
-                "t",
-                "twentyElementString1",
-                "tt",
-                "twentyElementString2");
+    @Test
+    @SuppressWarnings("unchecked")
+    public void trackingClosableStringIteratorDelegatesClose() {
+        ClosableIterator<String> delegate = mock(ClosableIterator.class);
+        ClosableIterator<String> trackingIterator = createTrackingIterator(delegate);
+        trackingIterator.close();
+        verify(delegate).close();
+        verifyNoMoreInteractions(delegate);
+    }
 
-        return ClosableIterators.wrapWithEmptyClose(STRINGS.stream().iterator());
+    public ClosableIterator<String> createTrackingIterator(ClosableIterator<String> delegate) {
+        return new TrackingClosableIterator<>(delegate, tracker, measurer);
     }
 }
