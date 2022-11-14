@@ -16,72 +16,57 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
+import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class ExpectationsCallbackManagerTest {
-    private final ExpectationsStatistics stats = spy(
-            ImmutableExpectationsStatistics.builder().transactionAgeMillis(0L).build());
-
     private final ExpectationsCallbackManager manager = new ExpectationsCallbackManager();
 
+    @Mock
+    private Consumer<ExpectationsStatistics> statsCallback1;
+
+    @Mock
+    private Consumer<ExpectationsStatistics> statsCallback2;
+
+    @Mock
+    private ExpectationsStatistics stats;
+
     @Test
-    public void noCallbacksRegisteredMeansNoInteraction() {
+    public void statsAreNotInteractedWithAfterRunCallbackIsCalledWithNoRegisteredCallbacks() {
         manager.runCallbacksOnce(stats);
         verifyNoInteractions(stats);
     }
 
     @Test
-    public void oneCallbackConsumesStats() {
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
+    public void statsAreConsumedAfterRunCallbacks() {
+        manager.registerCallback(statsCallback1);
+        manager.registerCallback(statsCallback2);
+        manager.registerCallback(statsCallback1);
         manager.runCallbacksOnce(stats);
-        verify(stats, times(1)).readInfoByTable();
-        verifyNoMoreInteractions(stats);
+        verify(statsCallback1, times(2)).accept(stats);
+        verify(statsCallback2).accept(stats);
+        verifyNoMoreInteractions(stats, statsCallback1, statsCallback2);
     }
 
     @Test
-    public void oneCallbackConsumesStatsOnceOnTwoCallbackRunCalls() {
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
+    public void runCallbackOnceIsIdempotent() {
+        manager.registerCallback(statsCallback1);
+        manager.registerCallback(statsCallback2);
+        manager.registerCallback(statsCallback1);
         manager.runCallbacksOnce(stats);
         manager.runCallbacksOnce(stats);
-        verify(stats, times(1)).readInfoByTable();
-        verifyNoMoreInteractions(stats);
-    }
-
-    @Test
-    public void oneCallbackRegisteredTwiceConsumesStatsTwice() {
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
-        manager.runCallbacksOnce(stats);
-        verify(stats, times(2)).readInfoByTable();
-        verifyNoMoreInteractions(stats);
-    }
-
-    @Test
-    public void multipleCallbacksConsumeStats() {
-        manager.registerCallback(ExpectationsStatistics::transactionAgeMillis);
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
-        manager.runCallbacksOnce(stats);
-        verify(stats, times(1)).readInfoByTable();
-        verify(stats, times(1)).transactionAgeMillis();
-        verifyNoMoreInteractions(stats);
-    }
-
-    @Test
-    public void multipleCallbacksConsumeStatsOnceOnTwoCallbackRunCalls() {
-        manager.registerCallback(ExpectationsStatistics::transactionAgeMillis);
-        manager.registerCallback(ExpectationsStatistics::readInfoByTable);
-        manager.runCallbacksOnce(stats);
-        manager.runCallbacksOnce(stats);
-        verify(stats, times(1)).readInfoByTable();
-        verify(stats, times(1)).transactionAgeMillis();
-        verifyNoMoreInteractions(stats);
+        verify(statsCallback1, times(2)).accept(stats);
+        verify(statsCallback2).accept(stats);
+        verifyNoMoreInteractions(stats, statsCallback1, statsCallback2);
     }
 }
