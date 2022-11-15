@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -79,7 +78,7 @@ public final class TrackingRowColumnRangeIteratorTest {
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
-        when(measurer.applyAsLong(any())).thenThrow(RuntimeException.class);
+        when(measurer.applyAsLong(ENTRY_1)).thenThrow(RuntimeException.class);
         RowColumnRangeIterator trackingIterator = createTrackingIterator(Iterators.singletonIterator(ENTRY_1));
         assertThat(trackingIterator).toIterable().containsExactly(ENTRY_1);
     }
