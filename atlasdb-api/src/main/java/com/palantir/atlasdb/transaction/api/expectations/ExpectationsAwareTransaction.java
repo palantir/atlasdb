@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 
 /**
  * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction

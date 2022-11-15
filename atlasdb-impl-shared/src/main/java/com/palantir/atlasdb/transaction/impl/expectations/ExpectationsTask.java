@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionViolationFlags;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.logsafe.SafeArg;
