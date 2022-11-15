@@ -104,7 +104,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         atomicTable.update(1L, TransactionStatuses.committed(2L));
         assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
                 .hasValue(2L);
-        verify(spiedStore).atomicUpdate(anyMap());
+        verify(spiedStore).batchAtomicUpdate(anyMap());
         verify(spiedStore, atLeastOnce()).put(anyMap());
         verify(spiedStore).getMultiple(any());
     }
