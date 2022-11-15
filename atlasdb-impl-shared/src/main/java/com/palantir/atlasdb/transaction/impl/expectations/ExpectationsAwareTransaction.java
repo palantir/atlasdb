@@ -20,7 +20,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import java.util.Set;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 
 /**
  * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
@@ -38,5 +38,5 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     void runExpectationsCallbacks();
 
-    Set<ExpectationsViolation> checkAndGetViolations();
+    TransactionViolationFlags checkAndGetViolations();
 }

@@ -18,14 +18,12 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
@@ -34,7 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ExpectationsManagerTest {
+public final class ExpectationsManagerTest {
     private final DeterministicScheduler executorService = spy(new DeterministicScheduler());
     private final ExpectationsManager manager = ExpectationsManagerImpl.createStarted(executorService);
 
@@ -43,17 +41,14 @@ public class ExpectationsManagerTest {
 
     @Test
     public void runnableWasScheduled() {
-        verify(executorService, times(1)).scheduleWithFixedDelay(any(), anyLong(), anyLong(), any(TimeUnit.class));
+        verify(executorService).scheduleWithFixedDelay(any(), anyLong(), anyLong(), any(TimeUnit.class));
     }
 
     @Test
-    public void scheduledTaskIsNotInterruptedByException() {
+    public void scheduledTaskInteractsWithTransaction() {
         manager.register(transaction);
-        when(transaction.checkAndGetViolations())
-                .thenThrow(new RuntimeException())
-                .thenReturn(Set.of());
-        executorService.tick(2 * ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
-        verify(transaction, atLeast(2)).checkAndGetViolations();
+        executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verify(transaction).checkAndGetViolations();
     }
 
     @Test
@@ -61,14 +56,22 @@ public class ExpectationsManagerTest {
         manager.register(transaction);
         manager.register(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
-        verify(transaction, times(1)).checkAndGetViolations();
+        verify(transaction).checkAndGetViolations();
+    }
+
+    @Test
+    public void scheduledTaskIsNotInterruptedByException() {
+        manager.register(transaction);
+        when(transaction.checkAndGetViolations()).thenThrow(new RuntimeException());
+        executorService.tick(2 * ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+        verify(transaction, times(2)).checkAndGetViolations();
     }
 
     @Test
     public void unregisterLeadsToNoMoreInteractionsWithTransaction() {
         manager.register(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
-        verify(transaction, times(1)).checkAndGetViolations();
+        verify(transaction).checkAndGetViolations();
         manager.unregister(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
         verifyNoMoreInteractions(transaction);
@@ -78,7 +81,7 @@ public class ExpectationsManagerTest {
     public void doubleUnregisterIsRedundant() {
         manager.register(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);
-        verify(transaction, times(1)).checkAndGetViolations();
+        verify(transaction).checkAndGetViolations();
         manager.unregister(transaction);
         manager.unregister(transaction);
         executorService.tick(ExpectationsManagerImpl.SCHEDULER_DELAY_MILLIS, TimeUnit.MILLISECONDS);

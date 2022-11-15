@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-import org.derive4j.Data;
+import org.immutables.value.Value;
 
-@Data
-public interface ExpectationsViolation {
-    interface Cases<R> {
-        R ranForTooLong();
-
-        R readTooMuch();
-
-        R readTooMuchInOneKvsCall();
-
-        R queriedKvsTooManyTimes();
+@Value.Immutable
+public interface TransactionViolationFlags {
+    @Value.Default
+    default boolean ranForTooLong() {
+        return false;
     }
 
-    <R> R match(Cases<R> cases);
+    @Value.Default
+    default boolean readTooMuch() {
+        return false;
+    }
 
-    @Override
-    boolean equals(Object other);
+    @Value.Default
+    default boolean readTooMuchInOneKvsCall() {
+        return false;
+    }
+
+    @Value.Default
+    default boolean queriedKvsTooMuch() {
+        return false;
+    }
 }
