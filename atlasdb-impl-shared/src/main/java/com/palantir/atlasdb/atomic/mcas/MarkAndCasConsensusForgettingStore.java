@@ -116,7 +116,14 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
     @Override
     public void checkAndTouch(Cell cell, byte[] value) throws CheckAndSetException {
         ByteBuffer buffer = ByteBuffer.wrap(value);
-        autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer));
+        try {
+            autobatcher.apply(ImmutableCasRequest.of(cell, buffer, buffer)).get();
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof KeyAlreadyExistsException) {
+                throw (KeyAlreadyExistsException) ex.getCause();
+            }
+            throw new SafeRuntimeException("Could not successfully execute check and set.", ex);
+        }
     }
 
     @Override
