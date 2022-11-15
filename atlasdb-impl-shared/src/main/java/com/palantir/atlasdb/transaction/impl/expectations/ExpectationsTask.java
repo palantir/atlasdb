@@ -16,15 +16,10 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-<<<<<<< HEAD
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
-=======
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionViolationFlags;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
->>>>>>> tex-pr-6
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
