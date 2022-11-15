@@ -16,9 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
-// todo(aalouane): add presets after data collection
 public final class ExpectationsConfigurations {
-
     private ExpectationsConfigurations() {}
 
     public static final ExpectationsConfig DEFAULT =
