@@ -35,4 +35,6 @@ public interface ExpectationsAwareTransaction extends Transaction {
     void runExpectationsCallbacks();
 
     TransactionViolationFlags checkAndGetViolations();
+
+    void reportExpectationsCollectedData();
 }
