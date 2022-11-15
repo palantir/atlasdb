@@ -48,8 +48,8 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -73,7 +73,6 @@ import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -317,7 +316,7 @@ import javax.validation.constraints.NotNull;
         public void runExpectationsCallbacks() {}
 
         @Override
-        public Set<ExpectationsViolation> checkAndGetViolations() {
+        public TransactionViolationFlags checkAndGetViolations() {
             return delegate.checkAndGetViolations();
         }
 
