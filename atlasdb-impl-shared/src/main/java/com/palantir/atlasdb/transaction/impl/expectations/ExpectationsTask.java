@@ -16,29 +16,42 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionViolationFlags;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public final class ExpectationsTask implements Runnable {
     private static final SafeLogger log = SafeLoggerFactory.get(ExpectationsTask.class);
-    private final Set<ExpectationsAwareTransaction> transactions;
 
-    public ExpectationsTask(Set<ExpectationsAwareTransaction> transactions) {
+    private final Set<ExpectationsAwareTransaction> transactions;
+    private final GaugesForExpectationsAlertingMetrics metrics;
+
+    public ExpectationsTask(
+            Set<ExpectationsAwareTransaction> transactions, GaugesForExpectationsAlertingMetrics metrics) {
         this.transactions = transactions;
+        this.metrics = metrics;
     }
 
     @Override
     public void run() {
         try {
-            Set<ExpectationsViolation> violations = transactions.stream()
-                    .flatMap(transaction -> transaction.checkAndGetViolations().stream())
-                    .collect(Collectors.toSet());
-            updateMetrics(violations);
+            Set<TransactionViolationFlags> flagSet = transactions.stream()
+                    .map(ExpectationsAwareTransaction::checkAndGetViolations)
+                    .collect(ImmutableSet.toImmutableSet());
+
+            updateMetrics(ImmutableTransactionViolationFlags.builder()
+                    .ranForTooLong(flagSet.stream().anyMatch(TransactionViolationFlags::ranForTooLong))
+                    .readTooMuch(flagSet.stream().anyMatch(TransactionViolationFlags::readTooMuch))
+                    .readTooMuchInOneKvsCall(
+                            flagSet.stream().anyMatch(TransactionViolationFlags::readTooMuchInOneKvsCall))
+                    .queriedKvsTooMuch(flagSet.stream().anyMatch(TransactionViolationFlags::queriedKvsTooMuch))
+                    .build());
+
         } catch (Throwable throwable) {
             log.warn(
                     "Transactional Expectations task failed",
@@ -47,6 +60,13 @@ public final class ExpectationsTask implements Runnable {
         }
     }
 
-    // todo(aalouane) wire metrics and for each violation type mark violationOccurred-equivalent metric as 1 or 0
-    private void updateMetrics(Set<ExpectationsViolation> violations) {}
+    private void updateMetrics(TransactionViolationFlags violationFlags) {
+        metrics.updateRanForTooLong(violationFlags.ranForTooLong());
+
+        metrics.updateReadTooMuch(violationFlags.readTooMuch());
+
+        metrics.updateReadTooMuchInOneKvsCall(violationFlags.readTooMuchInOneKvsCall());
+
+        metrics.updateQueriedKvsTooMuch(violationFlags.queriedKvsTooMuch());
+    }
 }

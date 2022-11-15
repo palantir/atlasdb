@@ -99,10 +99,12 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfigurations;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionViolationFlags;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.ExpectationsCallbackManager;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -183,7 +185,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -276,6 +277,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
     private final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
+    private final ExpectationsCallbackManager expectationsCallbackManager = new ExpectationsCallbackManager();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -2610,16 +2612,89 @@ public class SnapshotTransaction extends AbstractTransaction
         return ImmutableExpectationsStatistics.of(getAgeMillis(), keyValueService.getReadInfoByTable());
     }
 
-    // todo(aalouane)
     @Override
     public void runExpectationsCallbacks() {
-        throw new NotImplementedException();
+        expectationsCallbackManager.runCallbacksOnce(getCallbackStatistics());
     }
 
-    // todo(aalouane)
     @Override
-    public Set<ExpectationsViolation> checkAndGetViolations() {
-        throw new NotImplementedException();
+    public TransactionViolationFlags checkAndGetViolations() {
+        ExpectationsConfig config = expectationsConfig();
+        TransactionReadInfo readInfo = getReadInfo();
+        return ImmutableTransactionViolationFlags.builder()
+                .ranForTooLong(ranForTooLong(config))
+                .readTooMuch(readTooMuch(config, readInfo))
+                .readTooMuchInOneKvsCall(readTooMuchInOneKvsCall(config, readInfo))
+                .queriedKvsTooMuch(queriedKvsTooMuch(config, readInfo))
+                .build();
+    }
+
+    private boolean ranForTooLong(ExpectationsConfig config) {
+        long ageMillis = getAgeMillis();
+
+        if (ageMillis <= config.transactionAgeMillisLimit()) {
+            return false;
+        }
+
+        log.warn(
+                "Transaction ran for too long",
+                SafeArg.of("name", config.transactionName()),
+                SafeArg.of("ageMillis", ageMillis),
+                SafeArg.of("ageMillisLimit", config.transactionAgeMillisLimit()));
+
+        return true;
+    }
+
+    private boolean readTooMuch(ExpectationsConfig config, TransactionReadInfo readInfo) {
+        long bytesRead = readInfo.bytesRead();
+
+        if (bytesRead <= config.bytesReadLimit()) {
+            return false;
+        }
+
+        log.warn(
+                "Transaction read too much",
+                SafeArg.of("name", config.transactionName()),
+                SafeArg.of("bytesRead", bytesRead),
+                SafeArg.of("bytesReadLimit", config.bytesReadLimit()));
+
+        return true;
+    }
+
+    private boolean queriedKvsTooMuch(ExpectationsConfig config, TransactionReadInfo readInfo) {
+        long kvsCallCount = readInfo.kvsCalls();
+
+        if (kvsCallCount <= config.kvsReadCallCountLimit()) {
+            return false;
+        }
+
+        log.warn(
+                "Transaction made too many atlas kvs calls",
+                SafeArg.of("name", config.transactionName()),
+                SafeArg.of("atlasKvsCalls", kvsCallCount),
+                SafeArg.of("atlasKvsCallsLimit", config.kvsReadCallCountLimit()));
+
+        return true;
+    }
+
+    private boolean readTooMuchInOneKvsCall(ExpectationsConfig config, TransactionReadInfo readInfo) {
+        return readInfo.maximumBytesKvsCallInfo()
+                .map(kvsCallInfo -> {
+                    long bytesRead = kvsCallInfo.bytesRead();
+
+                    if (bytesRead <= config.bytesReadInOneKvsCallLimit()) {
+                        return false;
+                    }
+
+                    log.warn(
+                            "Transaction read too much in one atlas kvs call",
+                            SafeArg.of("name", config.transactionName()),
+                            SafeArg.of("atlasKvsCallBytesRead", bytesRead),
+                            SafeArg.of("atlasKvsCallBytesReadLimit", config.bytesReadInOneKvsCallLimit()));
+
+                    return true;
+                })
+                .orElse(false);
     }
 
     @Override

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,13 +30,18 @@ public final class ExpectationsManagerImpl implements ExpectationsManager {
     private final Set<ExpectationsAwareTransaction> trackedTransactions = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean taskIsScheduled = new AtomicBoolean(false);
     private final ScheduledExecutorService executorService;
+    private final GaugesForExpectationsAlertingMetrics metrics;
 
-    private ExpectationsManagerImpl(ScheduledExecutorService executorService) {
+    private ExpectationsManagerImpl(
+            ScheduledExecutorService executorService, GaugesForExpectationsAlertingMetrics metrics) {
         this.executorService = executorService;
+        this.metrics = metrics;
     }
 
-    public static ExpectationsManager createStarted(ScheduledExecutorService executorService) {
-        ExpectationsManagerImpl manager = new ExpectationsManagerImpl(executorService);
+    public static ExpectationsManager createStarted(
+            ScheduledExecutorService executorService, MetricsManager metricsManager) {
+        ExpectationsManagerImpl manager =
+                new ExpectationsManagerImpl(executorService, new GaugesForExpectationsAlertingMetrics(metricsManager));
         manager.scheduleExpectationsTask();
         return manager;
     }
@@ -43,7 +49,7 @@ public final class ExpectationsManagerImpl implements ExpectationsManager {
     private void scheduleExpectationsTask() {
         if (!taskIsScheduled.compareAndExchange(false, true)) {
             executorService.scheduleWithFixedDelay(
-                    new ExpectationsTask(trackedTransactions),
+                    new ExpectationsTask(trackedTransactions, metrics),
                     SCHEDULER_DELAY_MILLIS,
                     SCHEDULER_DELAY_MILLIS,
                     TimeUnit.MILLISECONDS);

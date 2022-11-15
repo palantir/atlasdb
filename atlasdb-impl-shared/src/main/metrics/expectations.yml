@@ -17,3 +17,18 @@ namespaces:
       worstKvsBytesRead:
         docs: Most bytes read by a transaction in one kvs read call
         type: histogram
+  expectationsAlerting:
+    docs: Metrics to flag violations
+    metrics:
+      ranForTooLong:
+        docs: Some transaction is running for longer than its configured limit
+        type: gauge
+      readTooMuch:
+        docs: Some transaction read more than its configured limit
+        type: gauge
+      readTooMuchInOneKvsCall:
+        docs: Some transaction read more than its configured limit in one Atlas Kvs call
+        type: gauge
+      queriedKvsTooMuch:
+        docs: Some transaction made more than its configured limit of Atlas Kvs calls
+        type: gauge

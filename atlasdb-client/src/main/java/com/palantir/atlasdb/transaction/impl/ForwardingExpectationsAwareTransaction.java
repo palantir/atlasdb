@@ -19,9 +19,8 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import java.util.Set;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 
 public abstract class ForwardingExpectationsAwareTransaction extends ForwardingTransaction
         implements ExpectationsAwareTransaction {
@@ -54,7 +53,7 @@ public abstract class ForwardingExpectationsAwareTransaction extends ForwardingT
     }
 
     @Override
-    public Set<ExpectationsViolation> checkAndGetViolations() {
+    public TransactionViolationFlags checkAndGetViolations() {
         return delegate().checkAndGetViolations();
     }
 
