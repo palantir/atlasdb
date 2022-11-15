@@ -99,9 +99,9 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfigurations;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsViolation;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
@@ -2618,7 +2618,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     // todo(aalouane)
     @Override
-    public Set<ExpectationsViolation> checkAndGetViolations() {
+    public TransactionViolationFlags checkAndGetViolations() {
         throw new NotImplementedException();
     }
 

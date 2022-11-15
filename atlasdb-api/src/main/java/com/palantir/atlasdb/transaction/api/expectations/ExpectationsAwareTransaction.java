@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.util.Set;
 
 /**
  * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
@@ -35,7 +34,7 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     void runExpectationsCallbacks();
 
-    Set<ExpectationsViolation> checkAndGetViolations();
+    TransactionViolationFlags checkAndGetViolations();
 
     void reportExpectationsCollectedData();
 }
