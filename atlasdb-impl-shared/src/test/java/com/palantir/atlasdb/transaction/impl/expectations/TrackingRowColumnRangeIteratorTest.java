@@ -21,11 +21,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -33,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.logsafe.Preconditions;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.function.ToLongFunction;
 import org.junit.Test;
@@ -43,12 +42,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class TrackingRowColumnRangeIteratorTest {
-    private static final Entry<Cell, Value> ENTRY =
+    private static final Entry<Cell, Value> ENTRY_1 =
             new SimpleImmutableEntry<>(createCellWithSize(10), createValueWithSize(10));
-    private static final ImmutableMap<Cell, Value> VALUE_BY_CELL = ImmutableMap.of(
-            createCellWithSize(10), createValueWithSize(10),
-            createCellWithSize(20), createValueWithSize(20),
-            createCellWithSize(30), createValueWithSize(30));
+    private static final Entry<Cell, Value> ENTRY_2 =
+            new SimpleImmutableEntry<>(createCellWithSize(20), createValueWithSize(20));
+    private static final Entry<Cell, Value> ENTRY_3 =
+            new SimpleImmutableEntry<>(createCellWithSize(30), createValueWithSize(30));
 
     @Mock
     private BytesReadTracker tracker;
@@ -57,31 +56,18 @@ public final class TrackingRowColumnRangeIteratorTest {
     private ToLongFunction<Entry<Cell, Value>> measurer;
 
     @Test
-    public void oneElementTrackingIteratorIsWiredCorrectly() {
-        long measuredValue = 1L;
-        when(measurer.applyAsLong(any())).thenReturn(measuredValue);
-        RowColumnRangeIterator trackingIterator =
-                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
-
-        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
-
-        verify(measurer).applyAsLong(ENTRY);
-        verify(tracker).record(measuredValue);
-        verifyNoMoreInteractions(tracker, measurer);
-    }
-
-    @Test
     public void trackingIteratorDelegatesNext() {
-        RowColumnRangeIterator trackingIterator = createTrackingIterator(
-                new LocalRowColumnRangeIterator(VALUE_BY_CELL.entrySet().iterator()));
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(VALUE_BY_CELL.entrySet());
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(Iterators.forArray(ENTRY_1, ENTRY_2, ENTRY_3));
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY_1, ENTRY_2, ENTRY_3);
     }
 
     @Test
-    public void trackingIteratorFeedsTracker() {
-        when(measurer.applyAsLong(any())).thenReturn(1L).thenReturn(2L).thenReturn(3L);
-        RowColumnRangeIterator trackingIterator = createTrackingIterator(new LocalRowColumnRangeIterator(
-                VALUE_BY_CELL.entrySet().stream().iterator()));
+    public void trackingIteratorTracksAndMeasuresInDelegateIteratorOrder() {
+        when(measurer.applyAsLong(ENTRY_1)).thenReturn(1L);
+        when(measurer.applyAsLong(ENTRY_2)).thenReturn(2L);
+        when(measurer.applyAsLong(ENTRY_3)).thenReturn(3L);
+
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(Iterators.forArray(ENTRY_1, ENTRY_2, ENTRY_3));
         trackingIterator.forEachRemaining(_unused -> {});
 
         InOrder inOrder = inOrder(tracker);
@@ -94,21 +80,19 @@ public final class TrackingRowColumnRangeIteratorTest {
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
         when(measurer.applyAsLong(any())).thenThrow(RuntimeException.class);
-        RowColumnRangeIterator trackingIterator =
-                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
-        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(Iterators.singletonIterator(ENTRY_1));
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY_1);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
         doThrow(RuntimeException.class).when(tracker).record(anyLong());
-        RowColumnRangeIterator trackingIterator =
-                createTrackingIterator(new LocalRowColumnRangeIterator(Iterators.singletonIterator(ENTRY)));
-        assertThat(trackingIterator).toIterable().containsExactly(ENTRY);
+        RowColumnRangeIterator trackingIterator = createTrackingIterator(Iterators.singletonIterator(ENTRY_1));
+        assertThat(trackingIterator).toIterable().containsExactly(ENTRY_1);
     }
 
-    public RowColumnRangeIterator createTrackingIterator(RowColumnRangeIterator delegate) {
-        return new TrackingRowColumnRangeIterator(delegate, tracker, measurer);
+    public RowColumnRangeIterator createTrackingIterator(Iterator<Entry<Cell, Value>> delegate) {
+        return new TrackingRowColumnRangeIterator(new LocalRowColumnRangeIterator(delegate), tracker, measurer);
     }
 
     private static Cell createCellWithSize(int size) {
