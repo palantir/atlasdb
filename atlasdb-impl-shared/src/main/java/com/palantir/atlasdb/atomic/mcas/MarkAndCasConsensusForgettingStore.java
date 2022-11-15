@@ -100,10 +100,17 @@ public class MarkAndCasConsensusForgettingStore implements ConsensusForgettingSt
         }
     }
 
+    /**
+     * This endpoint is currently not supported as it's not used or needed as batching is performed within this class
+     * across {@link MarkAndCasConsensusForgettingStore#atomicUpdate(Cell, byte[])} and
+     * {@link MarkAndCasConsensusForgettingStore#checkAndTouch(Cell, byte[])} (Cell, byte[])} endpoints.
+     * Implementation of {@link ConsensusForgettingStore#batchAtomicUpdate(Map)} in other places might be
+     * different from this.
+     * */
     @Override
     public void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        throw new UnsupportedOperationException("MarkAndCasCFS does not support batch updates currently. Reaching "
-                + "here implied a bug in AtlasDb wiring code.");
+        throw new UnsupportedOperationException("MarkAndCasConsensusForgettingStore does not support batch updates "
+                + "currently. Reaching here implied a bug in AtlasDb wiring code.");
     }
 
     @Override
