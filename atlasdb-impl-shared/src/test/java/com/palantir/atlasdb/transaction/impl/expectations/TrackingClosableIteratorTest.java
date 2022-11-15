@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Iterators;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import java.util.Iterator;
 import java.util.function.ToLongFunction;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,8 +50,8 @@ public final class TrackingClosableIteratorTest {
 
     @Test
     public void trackingIteratorDelegatesNext() {
-        ClosableIterator<String> trackingIterator = createTrackingIterator(
-                ClosableIterators.wrapWithEmptyClose(Iterators.forArray(STRING_1, STRING_2, STRING_3)));
+        ClosableIterator<String> trackingIterator =
+                createTrackingIterator(Iterators.forArray(STRING_1, STRING_2, STRING_3));
         assertThat(trackingIterator).toIterable().containsExactly(STRING_1, STRING_2, STRING_3);
     }
 
@@ -60,8 +61,8 @@ public final class TrackingClosableIteratorTest {
         when(measurer.applyAsLong(STRING_2)).thenReturn(2L);
         when(measurer.applyAsLong(STRING_3)).thenReturn(3L);
 
-        ClosableIterator<String> trackingIterator = createTrackingIterator(
-                ClosableIterators.wrapWithEmptyClose(Iterators.forArray(STRING_1, STRING_2, STRING_3)));
+        ClosableIterator<String> trackingIterator =
+                createTrackingIterator(Iterators.forArray(STRING_1, STRING_2, STRING_3));
         trackingIterator.forEachRemaining(_unused -> {});
 
         InOrder inOrder = inOrder(tracker);
@@ -74,16 +75,14 @@ public final class TrackingClosableIteratorTest {
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
         when(measurer.applyAsLong(STRING_1)).thenThrow(RuntimeException.class);
-        ClosableIterator<String> trackingIterator =
-                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.singletonIterator(STRING_1)));
+        ClosableIterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING_1));
         assertThat(trackingIterator).toIterable().containsExactly(STRING_1);
     }
 
     @Test
     public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
         doThrow(RuntimeException.class).when(tracker).record(anyLong());
-        ClosableIterator<String> trackingIterator =
-                createTrackingIterator(ClosableIterators.wrapWithEmptyClose(Iterators.singletonIterator(STRING_1)));
+        ClosableIterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING_1));
         assertThat(trackingIterator).toIterable().containsExactly(STRING_1);
     }
 
@@ -95,6 +94,10 @@ public final class TrackingClosableIteratorTest {
         trackingIterator.close();
         verify(delegate).close();
         verifyNoMoreInteractions(delegate);
+    }
+
+    public ClosableIterator<String> createTrackingIterator(Iterator<String> delegate) {
+        return createTrackingIterator(ClosableIterators.wrapWithEmptyClose(delegate));
     }
 
     public ClosableIterator<String> createTrackingIterator(ClosableIterator<String> delegate) {
