@@ -23,8 +23,10 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -94,6 +96,16 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getMultiple(Iterable<Cell> cells) {
         return delegate.getMultiple(cells);
+    }
+
+    @Override
+    public void mark(Cell cell) {
+        delegate.mark(cell);
+    }
+
+    @Override
+    public void mark(Set<Cell> cells) {
+        delegate.mark(cells);
     }
 
     @Override
