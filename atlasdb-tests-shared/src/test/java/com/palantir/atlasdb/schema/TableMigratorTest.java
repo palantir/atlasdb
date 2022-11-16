@@ -25,6 +25,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -91,6 +93,9 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative();
         final MetricsManager metricsManager = MetricsManagers.createForTests();
+        final TransactionSchemaManager schemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false));
+
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
@@ -101,7 +106,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 ssm2,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
+                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry(), schemaManager),
                 MoreExecutors.newDirectExecutorService());
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
@@ -139,7 +144,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 verifySsm,
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
-                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
+                TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry(), schemaManager),
                 MoreExecutors.newDirectExecutorService());
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {

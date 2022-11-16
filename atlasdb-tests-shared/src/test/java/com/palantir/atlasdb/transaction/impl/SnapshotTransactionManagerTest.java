@@ -34,6 +34,8 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -82,8 +84,10 @@ public class SnapshotTransactionManagerTest {
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
 
-    private final TransactionKnowledgeComponents knowledge =
-            TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+    private final TransactionSchemaManager schemaManager = new TransactionSchemaManager(
+            CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false));
+    private final TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.createForTests(
+            keyValueService, metricsManager.getTaggedRegistry(), schemaManager);
 
     @Before
     public void setUp() {

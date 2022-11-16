@@ -21,6 +21,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-commons')
+    implementation project(":atlasdb-coordination-impl")
     implementation project(':atlasdb-impl-shared')
 
     testImplementation 'com.google.guava:guava'
