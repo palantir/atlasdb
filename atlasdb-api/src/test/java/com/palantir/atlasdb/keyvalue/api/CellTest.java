@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import java.nio.charset.StandardCharsets;
@@ -78,6 +79,18 @@ public final class CellTest {
                         + "row and column values lead to the same hashCode and cannot be changed due "
                         + "to backward compatibility. See CellReference#goodHash")
                 .hasSameHashCodeAs(Cell.create(bytes("col"), bytes("row")));
+    }
+
+    @Test
+    public void testSizeInBytes() {
+        assertThat(createCellWithByteSize(2).sizeInBytes()).isEqualTo(2);
+        assertThat(createCellWithByteSize(63).sizeInBytes()).isEqualTo(63);
+        assertThat(createCellWithByteSize(256).sizeInBytes()).isEqualTo(256);
+    }
+
+    private static Cell createCellWithByteSize(int size) {
+        Preconditions.checkArgument(size >= 2, "Size should be at least 2");
+        return Cell.create(new byte[size / 2], new byte[size - (size / 2)]);
     }
 
     private static byte[] bytes(String value) {

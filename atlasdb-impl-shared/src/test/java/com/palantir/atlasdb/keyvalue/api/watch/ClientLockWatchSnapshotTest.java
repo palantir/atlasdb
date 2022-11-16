@@ -32,6 +32,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.Test;
 
@@ -41,10 +42,13 @@ public class ClientLockWatchSnapshotTest {
     private static final ImmutableSet<LockDescriptor> ONLY_LOCK_DESCRIPTOR_1 = ImmutableSet.of(LOCK_DESCRIPTOR_1);
     private static final LockToken LOCK_TOKEN_1 = LockToken.of(UUID.randomUUID());
     private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
-    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_1 =
+    private static final LockWatchReferences.LockWatchReference ENTIRE_TABLE_REFERENCE_1 =
             LockWatchReferences.entireTable("table.water");
-    private static final LockWatchReferences.LockWatchReference LOCK_WATCH_REFERENCE_2 =
+    private static final LockWatchReferences.LockWatchReference ENTIRE_TABLE_REFERENCE_2 =
             LockWatchReferences.entireTable("table.salt");
+    private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
+    private static final LockWatchReferences.LockWatchReference EXACT_ROW_REFERENCE =
+            LockWatchReferences.exactRow("table.pepper", ROW);
     private static final long SEQUENCE_1 = 1L;
     private static final long SEQUENCE_2 = 2L;
     private static final long SEQUENCE_3 = 3L;
@@ -182,10 +186,10 @@ public class ClientLockWatchSnapshotTest {
     }
 
     @Test
-    public void lockWatchEventTracked() {
+    public void lockWatchEventTrackedForEntireTable() {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(ImmutableLockWatchCreatedEvent.builder()
-                        .addReferences(LOCK_WATCH_REFERENCE_1)
+                        .addReferences(ENTIRE_TABLE_REFERENCE_1)
                         .addLockDescriptors(LOCK_DESCRIPTOR_1)
                         .sequence(SEQUENCE_1)
                         .build())
@@ -193,7 +197,25 @@ public class ClientLockWatchSnapshotTest {
         snapshot.processEvents(events, INITIAL_LEADER_ID);
         assertThat(snapshot.getStateForTesting())
                 .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                        .addWatches(LOCK_WATCH_REFERENCE_1)
+                        .addWatches(ENTIRE_TABLE_REFERENCE_1)
+                        .addLocked(LOCK_DESCRIPTOR_1)
+                        .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
+                        .build());
+    }
+
+    @Test
+    public void lockWatchEventTrackedForExactRow() {
+        LockWatchEvents events = LockWatchEvents.builder()
+                .addEvents(ImmutableLockWatchCreatedEvent.builder()
+                        .addReferences(EXACT_ROW_REFERENCE)
+                        .addLockDescriptors(LOCK_DESCRIPTOR_1)
+                        .sequence(SEQUENCE_1)
+                        .build())
+                .build();
+        snapshot.processEvents(events, INITIAL_LEADER_ID);
+        assertThat(snapshot.getStateForTesting())
+                .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
+                        .addWatches(EXACT_ROW_REFERENCE)
                         .addLocked(LOCK_DESCRIPTOR_1)
                         .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_1))
                         .build());
@@ -204,12 +226,12 @@ public class ClientLockWatchSnapshotTest {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
                         ImmutableLockWatchCreatedEvent.builder()
-                                .addReferences(LOCK_WATCH_REFERENCE_1)
+                                .addReferences(EXACT_ROW_REFERENCE)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_1)
                                 .sequence(SEQUENCE_1)
                                 .build(),
                         ImmutableLockWatchCreatedEvent.builder()
-                                .addReferences(LOCK_WATCH_REFERENCE_2)
+                                .addReferences(ENTIRE_TABLE_REFERENCE_2)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_2)
                                 .sequence(SEQUENCE_2)
                                 .build())
@@ -217,7 +239,7 @@ public class ClientLockWatchSnapshotTest {
         snapshot.processEvents(events, INITIAL_LEADER_ID);
         assertThat(snapshot.getStateForTesting())
                 .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                        .addWatches(LOCK_WATCH_REFERENCE_1, LOCK_WATCH_REFERENCE_2)
+                        .addWatches(EXACT_ROW_REFERENCE, ENTIRE_TABLE_REFERENCE_2)
                         .addLocked(LOCK_DESCRIPTOR_1, LOCK_DESCRIPTOR_2)
                         .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_2))
                         .build());
@@ -228,7 +250,7 @@ public class ClientLockWatchSnapshotTest {
         LockWatchEvents events = LockWatchEvents.builder()
                 .addEvents(
                         ImmutableLockWatchCreatedEvent.builder()
-                                .addReferences(LOCK_WATCH_REFERENCE_1)
+                                .addReferences(ENTIRE_TABLE_REFERENCE_1, EXACT_ROW_REFERENCE)
                                 .addLockDescriptors(LOCK_DESCRIPTOR_2)
                                 .sequence(SEQUENCE_1)
                                 .build(),
@@ -238,7 +260,7 @@ public class ClientLockWatchSnapshotTest {
         snapshot.processEvents(events, INITIAL_LEADER_ID);
         assertThat(snapshot.getStateForTesting())
                 .isEqualTo(ImmutableClientLockWatchSnapshotState.builder()
-                        .addWatches(LOCK_WATCH_REFERENCE_1)
+                        .addWatches(ENTIRE_TABLE_REFERENCE_1, EXACT_ROW_REFERENCE)
                         .addLocked(LOCK_DESCRIPTOR_1)
                         .snapshotVersion(LockWatchVersion.of(INITIAL_LEADER_ID, SEQUENCE_3))
                         .build());

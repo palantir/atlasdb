@@ -479,22 +479,16 @@ public class CassandraService implements AutoCloseable {
         return getRandomGoodHost().getCassandraServer();
     }
 
-    public void addPool(CassandraServer server) {
+    public CassandraClientPoolingContainer createPool(CassandraServer server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        addPoolInternal(
-                server,
-                new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics));
+        return new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics);
     }
 
-    public void returnOrCreatePool(CassandraServer server, Optional<CassandraClientPoolingContainer> container) {
-        if (container.isPresent()) {
-            addPoolInternal(server, container.get());
-        } else {
-            addPool(server);
-        }
+    public void addPool(CassandraServer server) {
+        addPool(server, createPool(server));
     }
 
-    private void addPoolInternal(CassandraServer cassandraServer, CassandraClientPoolingContainer container) {
+    public void addPool(CassandraServer cassandraServer, CassandraClientPoolingContainer container) {
         currentPools.put(cassandraServer, container);
     }
 

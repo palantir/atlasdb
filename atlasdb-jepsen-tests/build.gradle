@@ -6,7 +6,7 @@ buildscript {
         gradlePluginPortal() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
     }
     dependencies {
-        classpath 'com.avast.gradle:docker-compose-gradle-plugin:0.3.5'
+        classpath 'com.avast.gradle:gradle-docker-compose-plugin:0.16.9'
     }
 }
 
@@ -83,7 +83,8 @@ task copyTimelockServer(type: Copy, dependsOn: ':timelock-server-distribution:di
 }
 
 task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) {
-    environment = project.dockerCompose.environment
+    // TODO -- When fixing jepsen tests, uncomment and fix this line
+    // environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
 

@@ -58,8 +58,8 @@ public interface CasRequest {
     private static Exception failureInternal(CasRequest req, Optional<byte[]> actual) {
         return req.rank().equals(UpdateRank.TOUCH)
                 ? new CheckAndSetException(
-                        "There were one or more concurrent updates for the same cell and a higher ranking update was "
-                                + "selected to be executed.",
+                        "Atomic update cannot go through as the expected value for the key does not match the actual "
+                                + "value.",
                         req.cell(),
                         req.expected().array(),
                         actual.map(ImmutableList::of).orElseGet(ImmutableList::of))

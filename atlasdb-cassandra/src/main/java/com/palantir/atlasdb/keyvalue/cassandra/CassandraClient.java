@@ -134,6 +134,8 @@ public interface CassandraClient extends Closeable {
 
     List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException;
 
+    List<String> get_host_ids() throws TException;
+
     String describe_version() throws TException;
 
     Map<String, List<String>> describe_schema_versions() throws InvalidRequestException, TException;

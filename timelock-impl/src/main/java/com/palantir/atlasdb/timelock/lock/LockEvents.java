@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.logsafe.Unsafe;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
@@ -35,6 +36,7 @@ public interface LockEvents {
 
     void explicitlyUnlocked(UUID requestId);
 
+    @Unsafe
     @Value.Immutable
     interface RequestInfo {
 

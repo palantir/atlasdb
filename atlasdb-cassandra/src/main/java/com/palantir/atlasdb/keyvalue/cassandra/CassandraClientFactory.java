@@ -54,7 +54,7 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
-import org.apache.http.conn.ssl.StrictHostnameVerifier;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -69,7 +69,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private static final LoadingCache<SslConfiguration, SSLSocketFactory> sslSocketFactoryCache =
             Caffeine.newBuilder().weakValues().build(SslSocketFactories::createSslSocketFactory);
 
-    private static final StrictHostnameVerifier hostnameVerifier = new StrictHostnameVerifier();
+    private static final DefaultHostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
     private final MetricsManager metricsManager;
     private final CassandraServer cassandraServer;

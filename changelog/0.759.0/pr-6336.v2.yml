@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: 'Transactional Expectations Part 1d1: TrackingKeyValueService: tracking
+    iterator utils'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6336

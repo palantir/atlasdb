@@ -753,6 +753,11 @@ public enum ValueType {
         }
 
         @Override
+        public boolean isNullable() {
+            return true;
+        }
+
+        @Override
         public String getHydrateCode(String inputName, String indexName) {
             return String.format("EncodingUtils.decodeNullableFixedLong(%s,%s)", inputName, indexName);
         }
@@ -889,6 +894,10 @@ public enum ValueType {
 
     public String getJavaObjectClassName() {
         return getJavaObjectClass().getSimpleName();
+    }
+
+    public boolean isNullable() {
+        return false;
     }
 
     public abstract String getPersistCode(String variableName);
