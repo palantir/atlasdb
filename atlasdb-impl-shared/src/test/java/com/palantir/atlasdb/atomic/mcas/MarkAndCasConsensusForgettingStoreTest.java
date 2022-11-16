@@ -30,8 +30,10 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -90,6 +92,34 @@ public class MarkAndCasConsensusForgettingStoreTest {
                         .containsExactly(CELL))
                 .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
+    }
+
+    @Test
+    public void canCheckAndTouch() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        store.atomicUpdate(CELL, HAPPY);
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        assertThatCode(() -> store.checkAndTouch(CELL, HAPPY)).doesNotThrowAnyException();
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        MultiCheckAndSetRequest mcasReq = MultiCheckAndSetRequest.multipleCells(
+                TABLE, CELL.getRowName(), ImmutableMap.of(CELL, HAPPY), ImmutableMap.of(CELL, HAPPY));
+        verify(kvs).multiCheckAndSet(mcasReq);
+    }
+
+    @Test
+    public void throwsCasExceptionIfTouchFails() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
+
+        assertThatThrownBy(() -> store.checkAndTouch(CELL, SAD))
+                .isInstanceOf(CheckAndSetException.class)
+                .satisfies(exception ->
+                        assertThat(((CheckAndSetException) exception).getKey()).isEqualTo(CELL))
+                .hasMessageContaining("Atomic update cannot go through as the expected value for the key does not "
+                        + "match the actual value.");
+        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
     }
 
     @Test
