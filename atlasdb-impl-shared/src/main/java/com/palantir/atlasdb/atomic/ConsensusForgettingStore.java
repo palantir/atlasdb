@@ -62,7 +62,7 @@ public interface ConsensusForgettingStore extends ReadableConsensusForgettingSto
      * Performs atomic updates on multiple cells. This call may or may not guarantee atomicity across cells
      * depending on the underlying implementation.
      */
-    void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
+    void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
      * An atomic operation that verifies the value for a cell. If successful, until a

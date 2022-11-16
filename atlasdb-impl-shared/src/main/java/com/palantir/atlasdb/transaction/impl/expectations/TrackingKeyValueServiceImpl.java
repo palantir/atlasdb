@@ -42,10 +42,12 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.ToLongFunction;
+import one.util.streamex.EntryStream;
 
 public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
     private static final SafeLogger log = SafeLoggerFactory.get(TrackingKeyValueServiceImpl.class);
@@ -104,10 +106,14 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
         try {
             BytesReadTracker bytesReadTracker = tracker.recordCallForTable(tableRef);
             // throws if the map implementation does not support replaceAll
-            result.replaceAll((rowsRead, iterator) -> {
-                bytesReadTracker.record(rowsRead.length);
-                return new TrackingRowColumnRangeIterator(iterator, bytesReadTracker, MeasuringUtils::sizeOf);
-            });
+
+            result.keySet().stream().map(Array::getLength).forEach(bytesReadTracker::record);
+
+            result = EntryStream.of(result)
+                    .<RowColumnRangeIterator>mapValues(iterator ->
+                            new TrackingRowColumnRangeIterator(iterator, bytesReadTracker, MeasuringUtils::sizeOf))
+                    .toImmutableMap();
+
         } catch (Exception exception) {
             log.warn("Map<byte[] RowColumnRangeIterator> wrapping failed for tracking", exception);
         }

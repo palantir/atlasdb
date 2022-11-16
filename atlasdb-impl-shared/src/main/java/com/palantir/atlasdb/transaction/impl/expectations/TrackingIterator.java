@@ -47,7 +47,7 @@ public class TrackingIterator<T, I extends Iterator<T>> extends ForwardingIterat
         try {
             tracker.record(measurer.applyAsLong(result));
         } catch (Exception exception) {
-            log.warn("Data tracking failed", exception);
+            log.error("Data tracking failed", exception);
         }
 
         return result;
