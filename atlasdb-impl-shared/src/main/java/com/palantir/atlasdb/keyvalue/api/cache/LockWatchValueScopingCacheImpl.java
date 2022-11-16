@@ -136,9 +136,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (!cachedValues.isEmpty()) {
-            CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
-
-            commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
+            eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
                 @Override
                 public Void invalidateAll() {
                     // This might happen due to an election or if we exceeded the maximum number of events held in
