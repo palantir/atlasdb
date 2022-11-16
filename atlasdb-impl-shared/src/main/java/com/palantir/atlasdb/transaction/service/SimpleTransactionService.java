@@ -125,8 +125,8 @@ public final class SimpleTransactionService implements EncodingTransactionServic
             TransactionKnowledgeComponents knowledge) {
         AtomicTable<Long, TransactionStatus> delegate =
                 getMcasDelegate(kvs, tableRef, encodingStrategy, metricRegistry, acceptStagingReadsAsCommitted);
-        AtomicTable<Long, Long> atomicTable = new KnowledgeableTimestampExtractingAtomicTable(delegate, knowledge,
-                metricRegistry);
+        AtomicTable<Long, Long> atomicTable =
+                new KnowledgeableTimestampExtractingAtomicTable(delegate, knowledge, metricRegistry);
         return new SimpleTransactionService(atomicTable, delegate, encodingStrategy);
     }
 

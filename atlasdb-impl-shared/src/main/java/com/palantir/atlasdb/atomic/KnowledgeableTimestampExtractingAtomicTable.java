@@ -64,10 +64,14 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     }
 
     @Override
+    public void update(Long key, Long value) throws KeyAlreadyExistsException {
+        delegate.update(key, TransactionStatusUtils.fromTimestamp(value));
+    }
+
+    @Override
     public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
-        delegate.updateMultiple(KeyedStream.stream(keyValues)
-                .map(TransactionStatusUtils::fromTimestamp)
-                .collectToMap());
+        throw new UnsupportedOperationException("Atomic table for transaction schema >= 4 does not support batch "
+                + "atomic updates currently. Reaching here implied a bug in AtlasDb wiring code.");
     }
 
     /**

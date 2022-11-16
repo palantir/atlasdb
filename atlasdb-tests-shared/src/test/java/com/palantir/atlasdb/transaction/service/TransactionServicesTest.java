@@ -198,9 +198,13 @@ public class TransactionServicesTest {
     public void cannotCommitV4TransactionWithoutMarking() {
         forceInstallV4();
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
 
-        assertThatThrownBy(() -> transactionService.getV2(startTs)).isInstanceOf(KeyAlreadyExistsException.class);
+        // This is a lie of an exception but in the real world we should never hit a case where we try to commit a
+        // transaction that is not marked
+        // What this exception denotes is that there were more than one commit requests of which one succeeded and
+        // hence, the key already exists with a desired value.
+        assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test
@@ -232,7 +236,8 @@ public class TransactionServicesTest {
         initializeTimestamps();
         transactionService.markInProgress(startTs);
         transactionService.putUnlessExists(startTs, commitTs);
-        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.committed(commitTs));
+        assertThat(TransactionStatusUtils.maybeGetCommitTs(transactionService.getV2(startTs)))
+                .hasValue(commitTs);
     }
 
     private void initializeTimestamps() {
