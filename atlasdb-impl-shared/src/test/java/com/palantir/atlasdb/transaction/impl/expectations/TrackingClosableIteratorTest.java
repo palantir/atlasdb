@@ -56,7 +56,7 @@ public final class TrackingClosableIteratorTest {
     }
 
     @Test
-    public void trackingIteratorFeedsTracker() {
+    public void trackingIteratorTracksAndMeasuresInDelegateIteratorOrder() {
         when(measurer.applyAsLong(STRING_1)).thenReturn(1L);
         when(measurer.applyAsLong(STRING_2)).thenReturn(2L);
         when(measurer.applyAsLong(STRING_3)).thenReturn(3L);
