@@ -112,7 +112,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
     @Test
     public void throwsCasExceptionIfTouchFails() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
 
         assertThatThrownBy(() -> store.checkAndTouch(CELL, SAD))
                 .isInstanceOf(CheckAndSetException.class)
@@ -120,7 +120,7 @@ public class MarkAndCasConsensusForgettingStoreTest {
                         assertThat(((CheckAndSetException) exception).getKey()).isEqualTo(CELL))
                 .hasMessageContaining("Atomic update cannot go through as the expected value for the key does not "
                         + "match the actual value.");
-        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
     }
 
     @Test
