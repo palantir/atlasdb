@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[TTS] MCAS should not support batch atomic updates.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6357

@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -158,15 +159,15 @@ public final class AllValueTypesTestTable implements
         private final Sha256Hash component4;
         private final String component5;
         private final byte[] component8;
-        private final Long component9;
+        private final @Nullable Long component9;
         private final UUID component10;
         private final byte[] blobComponent;
 
-        public static AllValueTypesTestRow of(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
+        public static AllValueTypesTestRow of(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, @Nullable Long component9, UUID component10, byte[] blobComponent) {
             return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
         }
 
-        private AllValueTypesTestRow(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, Long component9, UUID component10, byte[] blobComponent) {
+        private AllValueTypesTestRow(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, @Nullable Long component9, UUID component10, byte[] blobComponent) {
             this.component0 = component0;
             this.component1 = component1;
             this.component2 = component2;
@@ -207,7 +208,7 @@ public final class AllValueTypesTestTable implements
             return component8;
         }
 
-        public Long getComponent9() {
+        public @Nullable Long getComponent9() {
             return component9;
         }
 
@@ -2108,6 +2109,7 @@ public final class AllValueTypesTestTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -2131,5 +2133,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HX/idsmO5nvI4dNwqhElWg==";
+    static String __CLASS_HASH = "Wiqs1OWnWhpAhvVYVCck2w==";
 }

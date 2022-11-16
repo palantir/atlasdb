@@ -74,8 +74,21 @@ public class MarkAndCasConsensusForgettingStoreTest {
     @Test
     public void updatesMarkedCell() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        store.processBatch(
-                kvs, TABLE, ImmutableList.of(TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY)));
+        store.atomicUpdate(CELL, HAPPY);
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+    }
+
+    @Test
+    public void cannotUpdateSameCellTwice() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        store.atomicUpdate(CELL, HAPPY);
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        assertThatThrownBy(() -> store.atomicUpdate(CELL, SAD))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
+                        .containsExactly(CELL))
+                .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
     }
 
@@ -83,21 +96,18 @@ public class MarkAndCasConsensusForgettingStoreTest {
     public void updatesMultipleMarkedCells() throws ExecutionException, InterruptedException {
         store.mark(ImmutableSet.of(CELL, CELL_2));
 
-        store.atomicUpdate(ImmutableMap.of(CELL, HAPPY, CELL_2, HAPPY));
         TestBatchElement elem1 = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
         TestBatchElement elem2 = TestBatchElement.of(CELL_2, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_SAD);
 
         store.processBatch(kvs, TABLE, ImmutableList.of(elem1, elem2));
-        assertThat(store.get(CELL).get()).hasValue(elem1.argument().update().array());
-        assertThat(store.get(CELL_2).get()).hasValue(elem2.argument().update().array());
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+        assertThat(store.get(CELL_2).get()).hasValue(SAD);
     }
 
     @Test
     public void cannotUpdateUnmarkedCell() throws ExecutionException, InterruptedException {
-        TestBatchElement element = TestBatchElement.of(CELL, BUFFERED_IN_PROGRESS_MARKER, BUFFERED_HAPPY);
-        store.processBatch(kvs, TABLE, ImmutableList.of(element));
-        assertThatThrownBy(() -> element.result().get())
-                .hasCauseInstanceOf(KeyAlreadyExistsException.class)
+        assertThatThrownBy(() -> store.atomicUpdate(CELL, HAPPY))
+                .isInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).isEmpty();
     }
