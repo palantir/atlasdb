@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.transaction.api.expectations;
 
+/**
+ * Default/Presets in a separate utility class to avoid class loading deadlock.
+ */
 public final class ExpectationsConfigurations {
     private ExpectationsConfigurations() {}
 

@@ -71,8 +71,8 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.atomicUpdate(values);
+    public void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        delegate.batchAtomicUpdate(values);
     }
 
     @Override
