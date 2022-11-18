@@ -17,20 +17,12 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 
 public abstract class ForwardingExpectationsAwareTransaction extends ForwardingTransaction
         implements ExpectationsAwareTransaction {
     @Override
     public abstract ExpectationsAwareTransaction delegate();
-
-    @Override
-    public ExpectationsConfig expectationsConfig() {
-        return delegate().expectationsConfig();
-    }
 
     @Override
     public long getAgeMillis() {
@@ -40,21 +32,6 @@ public abstract class ForwardingExpectationsAwareTransaction extends ForwardingT
     @Override
     public TransactionReadInfo getReadInfo() {
         return delegate().getReadInfo();
-    }
-
-    @Override
-    public ExpectationsStatistics getCallbackStatistics() {
-        return delegate().getCallbackStatistics();
-    }
-
-    @Override
-    public void runExpectationsCallbacks() {
-        delegate().runExpectationsCallbacks();
-    }
-
-    @Override
-    public TransactionViolationFlags checkAndGetViolations() {
-        return delegate().checkAndGetViolations();
     }
 
     @Override

@@ -96,10 +96,8 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -180,7 +178,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -273,6 +270,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
 
+    private final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
      *                           lock for it because we know that no writers exist.
@@ -345,6 +343,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.expectationsDataCollectionMetrics =
+                ExpectationsDataCollectionMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -2583,45 +2583,30 @@ public class SnapshotTransaction extends AbstractTransaction
         return tableRefToCells;
     }
 
-    // todo(aalouane)
-    @Override
-    public ExpectationsConfig expectationsConfig() {
-        throw new NotImplementedException();
-    }
-
-    // todo(aalouane)
     @Override
     public long getAgeMillis() {
-        throw new NotImplementedException();
+        return System.currentTimeMillis() - timeCreated;
     }
 
-    // todo(aalouane)
     @Override
     public TransactionReadInfo getReadInfo() {
-        throw new NotImplementedException();
+        return keyValueService.getOverallReadInfo();
     }
 
-    // todo(aalouane)
     @Override
-    public ExpectationsStatistics getCallbackStatistics() {
-        throw new NotImplementedException();
-    }
+    public void reportExpectationsCollectedData() {
+        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
 
-    // todo(aalouane)
-    @Override
-    public void runExpectationsCallbacks() {
-        throw new NotImplementedException();
-    }
+        TransactionReadInfo info = getReadInfo();
 
-    // todo(aalouane)
-    @Override
-    public TransactionViolationFlags checkAndGetViolations() {
-        throw new NotImplementedException();
-    }
+        expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
 
-    // todo(aalouane)
-    @Override
-    public void reportExpectationsCollectedData() {}
+        expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
+
+        info.maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo ->
+                        expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
+    }
 
     private Timer getTimer(String name) {
         return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);

@@ -46,10 +46,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -293,11 +290,6 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public ExpectationsConfig expectationsConfig() {
-            return delegate.expectationsConfig();
-        }
-
-        @Override
         public long getAgeMillis() {
             return delegate.getAgeMillis();
         }
@@ -305,19 +297,6 @@ import javax.validation.constraints.NotNull;
         @Override
         public TransactionReadInfo getReadInfo() {
             return delegate.getReadInfo();
-        }
-
-        @Override
-        public ExpectationsStatistics getCallbackStatistics() {
-            return delegate.getCallbackStatistics();
-        }
-
-        @Override
-        public void runExpectationsCallbacks() {}
-
-        @Override
-        public TransactionViolationFlags checkAndGetViolations() {
-            return delegate.checkAndGetViolations();
         }
 
         @Override
