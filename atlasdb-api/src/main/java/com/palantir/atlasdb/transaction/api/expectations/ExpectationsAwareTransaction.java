@@ -18,11 +18,6 @@ package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-/**
- * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
- * post-commit/post-abort or outside the user task.
- * todo(aalouane) move this javadoc to the user-exposed API when implemented
- */
 public interface ExpectationsAwareTransaction extends Transaction {
     ExpectationsConfig expectationsConfig();
 
