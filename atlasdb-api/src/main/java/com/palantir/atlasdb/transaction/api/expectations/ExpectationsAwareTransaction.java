@@ -28,13 +28,14 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     long getAgeMillis();
 
+    /**
+     * Returns a point-in-time snapshot of transaction read information.
+     */
     TransactionReadInfo getReadInfo();
 
-    ExpectationsStatistics getCallbackStatistics();
-
-    void runExpectationsCallbacks();
-
-    TransactionViolationFlags checkAndGetViolations();
-
+    /**
+     * Update TEX data collection metrics for post-mortem transactions.
+     * Invoke only after the transaction committed or aborted.
+     */
     void reportExpectationsCollectedData();
 }
