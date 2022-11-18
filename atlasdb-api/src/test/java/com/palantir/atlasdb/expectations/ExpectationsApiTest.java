@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsConfig;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
