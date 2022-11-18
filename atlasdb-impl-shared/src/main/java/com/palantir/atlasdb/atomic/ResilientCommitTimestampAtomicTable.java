@@ -133,6 +133,14 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
     }
 
     @Override
+    public void update(Long key, TransactionStatus value) throws KeyAlreadyExistsException {
+        Cell cell = encodingStrategy.encodeStartTimestampAsCell(key);
+        byte[] stagingValue = encodingStrategy.encodeCommitStatusAsValue(key, AtomicValue.staging(value));
+        store.atomicUpdate(cell, stagingValue);
+        store.put(cell, encodingStrategy.transformStagingToCommitted(stagingValue));
+    }
+
+    @Override
     public void updateMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
         Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
                 .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
@@ -140,7 +148,7 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
                 .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
                         startTs, AtomicValue.staging(keyValues.get(startTs))))
                 .collectToMap();
-        store.atomicUpdate(stagingValues);
+        store.batchAtomicUpdate(stagingValues);
         store.put(KeyedStream.stream(stagingValues)
                 .map(encodingStrategy::transformStagingToCommitted)
                 .collectToMap());

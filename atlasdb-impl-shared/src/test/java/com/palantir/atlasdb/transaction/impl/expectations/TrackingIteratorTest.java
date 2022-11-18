@@ -17,68 +17,70 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import com.google.common.collect.Iterators;
 import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.ToLongFunction;
-import one.util.streamex.StreamEx;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class TrackingIteratorTest {
-    private static final String STRING = "test";
-    private static final Iterator<String> ONE_ELEMENT_ITERATOR = List.of(STRING).iterator();
-    private static final ImmutableList<String> STRINGS = ImmutableList.of(
-            "test4", "test4", "test200", "composite", "", "t", "twentyElementString1", "tt", "twentyElementString2");
+    private static final String STRING_1 = "one";
+    private static final String STRING_2 = "two";
+    private static final String STRING_3 = "three";
 
-    // these have to be anonymous inner classes rather than lambdas in order to spy
-    private static final Consumer<Long> NO_OP = new Consumer<>() {
-        @Override
-        public void accept(Long _unused) {}
-    };
-    private static final ToLongFunction<String> STRING_LENGTH_MEASURER = new ToLongFunction<>() {
-        @Override
-        public long applyAsLong(String value) {
-            return value.length();
-        }
-    };
+    @Mock
+    private BytesReadTracker tracker;
+
+    @Mock
+    private ToLongFunction<String> measurer;
 
     @Test
-    public void oneElementTrackingIteratorIsWiredCorrectly() {
-        Consumer<Long> tracker = spy(NO_OP);
-        ToLongFunction<String> measurer = spy(STRING_LENGTH_MEASURER);
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(ONE_ELEMENT_ITERATOR, tracker, measurer);
-
-        assertThat(trackingIterator).toIterable().containsExactlyElementsOf(List.of(STRING));
-        verify(measurer).applyAsLong(STRING);
-        verify(tracker).accept(STRING_LENGTH_MEASURER.applyAsLong(STRING));
-        verifyNoMoreInteractions(tracker, measurer);
+    public void trackingIteratorDelegatesNext() {
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.forArray(STRING_1, STRING_2, STRING_3));
+        assertThat(trackingIterator).toIterable().containsExactly(STRING_1, STRING_2, STRING_3);
     }
 
     @Test
-    public void multiElementTrackingIteratorIsWiredCorrectly() {
-        ArrayList<Long> consumed = new ArrayList<>();
-        TrackingIterator<String, Iterator<String>> trackingIterator =
-                new TrackingIterator<>(createStringIterator(), consumed::add, STRING_LENGTH_MEASURER);
+    public void trackingIteratorTracksAndMeasuresInDelegateIteratorOrder() {
+        when(measurer.applyAsLong(STRING_1)).thenReturn(1L);
+        when(measurer.applyAsLong(STRING_2)).thenReturn(2L);
+        when(measurer.applyAsLong(STRING_3)).thenReturn(3L);
 
-        assertThat(trackingIterator)
-                .toIterable()
-                .containsExactlyElementsOf(ImmutableList.copyOf(createStringIterator()));
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.forArray(STRING_1, STRING_2, STRING_3));
+        trackingIterator.forEachRemaining(_unused -> {});
 
-        assertThat(consumed)
-                .containsExactlyElementsOf(StreamEx.of(createStringIterator())
-                        .mapToLong(STRING_LENGTH_MEASURER)
-                        .boxed()
-                        .toList());
+        InOrder inOrder = inOrder(tracker);
+        inOrder.verify(tracker).record(1L);
+        inOrder.verify(tracker).record(2L);
+        inOrder.verify(tracker).record(3L);
+        verifyNoMoreInteractions(tracker);
     }
 
-    public static Iterator<String> createStringIterator() {
-        return STRINGS.stream().iterator();
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtMeasurement() {
+        when(measurer.applyAsLong(STRING_1)).thenThrow(RuntimeException.class);
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING_1));
+        assertThat(trackingIterator).toIterable().containsExactly(STRING_1);
+    }
+
+    @Test
+    public void trackingIteratorForwardsValuesDespiteExceptionAtConsumption() {
+        doThrow(RuntimeException.class).when(tracker).record(anyLong());
+        Iterator<String> trackingIterator = createTrackingIterator(Iterators.singletonIterator(STRING_1));
+        assertThat(trackingIterator).toIterable().containsExactly(STRING_1);
+    }
+
+    public Iterator<String> createTrackingIterator(Iterator<String> delegate) {
+        return new TrackingIterator<>(delegate, tracker, measurer);
     }
 }

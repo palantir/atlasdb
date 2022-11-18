@@ -430,7 +430,11 @@ public class SerializableTransaction extends SnapshotTransaction {
         // If the metadata is null, we assume that the conflict handler is not SERIALIZABLE.
         // In that case the transaction will fail on commit if it has writes.
         Optional<ConflictHandler> conflictHandler = conflictDetectionManager.get(table);
-        return conflictHandler.map(ConflictHandler::checkReadWriteConflicts).orElse(false);
+        //noinspection OptionalIsPresent - Avoiding Optional::map to avoid additional Optional allocation on hot paths
+        if (conflictHandler.isPresent()) {
+            return conflictHandler.get().checkReadWriteConflicts();
+        }
+        return false;
     }
 
     /**
