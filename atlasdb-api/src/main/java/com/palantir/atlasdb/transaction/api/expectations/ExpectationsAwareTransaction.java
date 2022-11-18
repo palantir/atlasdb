@@ -19,8 +19,6 @@ package com.palantir.atlasdb.transaction.api.expectations;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public interface ExpectationsAwareTransaction extends Transaction {
-    ExpectationsConfig expectationsConfig();
-
     long getAgeMillis();
 
     /**
