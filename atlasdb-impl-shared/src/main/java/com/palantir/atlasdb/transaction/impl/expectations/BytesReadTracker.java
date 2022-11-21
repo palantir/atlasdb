@@ -16,19 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.palantir.common.base.ClosableIterator;
-import java.util.function.ToLongFunction;
-
-public final class TrackingClosableIterator<T> extends TrackingIterator<T, ClosableIterator<T>>
-        implements ClosableIterator<T> {
-
-    public TrackingClosableIterator(
-            ClosableIterator<T> delegate, BytesReadTracker tracker, ToLongFunction<T> measurer) {
-        super(delegate, tracker, measurer);
-    }
-
-    @Override
-    public void close() {
-        delegate().close();
-    }
+/**
+ * Allows lazy Atlas KVS calls to record bytes read as they come in for tracking purposes.
+ * See {@link com.palantir.atlasdb.transaction.impl.expectations.TrackingIterator} for a use case.
+ */
+@FunctionalInterface
+public interface BytesReadTracker {
+    void record(long bytesRead);
 }

@@ -31,6 +31,7 @@ public interface TransactionReadInfo {
     /**
      * Data about the {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} read/get call that read the
      * most amount of data  for a given transaction.
+     * If no reads were made or if the only kvs reads were not eager (e.g. iterators), this will be empty.
      */
     Optional<KvsCallReadInfo> maximumBytesKvsCallInfo();
 }
