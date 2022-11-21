@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -109,7 +110,7 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    public void getRowsBatchColumnRangeTest() {
+    public void getRowsBatchColumnRangeForwardsDelegateResult() {
         BatchColumnRangeSelection batchColumnRangeSelection = mock(BatchColumnRangeSelection.class);
 
         Map<byte[], Map<Cell, Value>> backingRowColumnRangeMap = ImmutableMap.of(
@@ -128,6 +129,10 @@ public final class TrackingKeyValueServiceForwardingTest {
                     .toIterable()
                     .usingElementComparator(identityComparator())
                     .containsExactlyElementsOf(entry.getValue().entrySet());
+            Streams.forEachPair(
+                    Streams.stream(rowsColumnRangeMap.get(entry.getKey())),
+                    entry.getValue().entrySet().stream(),
+                    (first, second) -> assertThat(first).isSameAs(second));
         }
     }
 
@@ -151,6 +156,11 @@ public final class TrackingKeyValueServiceForwardingTest {
                 .toIterable()
                 .usingElementComparator(identityComparator())
                 .containsExactlyElementsOf(valueByCellEntries);
+
+        Streams.forEachPair(
+                Streams.stream(rowsColumnRangeMap.get(entry.getKey())),
+                entry.getValue().entrySet().stream(),
+                (first, second) -> assertThat(first).isSameAs(second));
     }
 
     @Test
@@ -195,7 +205,7 @@ public final class TrackingKeyValueServiceForwardingTest {
 
     @Test
     @SuppressWarnings("MustBeClosedChecker")
-    public void getCandidateCellsForSweepingTest() {
+    public void getCandidateCellsForSweepingForwardsDelegateResult() {
         CandidateCellForSweepingRequest candidateCellForSweepingRequest = mock(CandidateCellForSweepingRequest.class);
 
         List<List<CandidateCellForSweeping>> candidateCellForSweepingTable = ImmutableList.of(
