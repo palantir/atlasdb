@@ -240,6 +240,20 @@ public class TransactionServicesTest {
                 .hasValue(commitTs);
     }
 
+    @Test
+    public void emptyValueReadsAsInProgressInV3() {
+        forceInstallV3();
+        initializeTimestamps();
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.inProgress());
+    }
+
+    @Test
+    public void emptyValueReadsAsUnknownInV4() {
+        forceInstallV4();
+        initializeTimestamps();
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.unknown());
+    }
+
     private void initializeTimestamps() {
         startTs = timestampService.getFreshTimestamp();
         commitTs = timestampService.getFreshTimestamp();
