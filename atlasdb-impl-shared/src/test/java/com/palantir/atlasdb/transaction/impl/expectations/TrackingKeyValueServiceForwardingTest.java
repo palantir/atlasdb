@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -129,10 +128,6 @@ public final class TrackingKeyValueServiceForwardingTest {
                     .toIterable()
                     .usingElementComparator(identityComparator())
                     .containsExactlyElementsOf(entry.getValue().entrySet());
-            Streams.forEachPair(
-                    Streams.stream(rowsColumnRangeMap.get(entry.getKey())),
-                    entry.getValue().entrySet().stream(),
-                    (first, second) -> assertThat(first).isSameAs(second));
         }
     }
 
@@ -156,11 +151,6 @@ public final class TrackingKeyValueServiceForwardingTest {
                 .toIterable()
                 .usingElementComparator(identityComparator())
                 .containsExactlyElementsOf(valueByCellEntries);
-
-        Streams.forEachPair(
-                Streams.stream(rowsColumnRangeMap.get(entry.getKey())),
-                entry.getValue().entrySet().stream(),
-                (first, second) -> assertThat(first).isSameAs(second));
     }
 
     @Test

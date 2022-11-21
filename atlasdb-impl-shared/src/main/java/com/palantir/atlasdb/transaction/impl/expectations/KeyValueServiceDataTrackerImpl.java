@@ -100,7 +100,7 @@ public final class KeyValueServiceDataTrackerImpl implements KeyValueServiceData
     /**
      * Creates a {@link KeyValueServiceDataTracker} which handles exceptions thrown for record methods.
      */
-    public static KeyValueServiceDataTracker createFailSafeKeyValueServiceDataTracker() {
+    public static KeyValueServiceDataTracker createFailSafe() {
         return new FailSafeKeyValueServiceDataTracker(new KeyValueServiceDataTrackerImpl());
     }
 

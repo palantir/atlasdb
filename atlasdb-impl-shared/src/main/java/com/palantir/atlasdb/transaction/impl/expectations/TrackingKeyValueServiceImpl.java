@@ -53,8 +53,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     private static final SafeLogger log = SafeLoggerFactory.get(TrackingKeyValueServiceImpl.class);
 
     private final KeyValueService delegate;
-    private final KeyValueServiceDataTracker tracker =
-            KeyValueServiceDataTrackerImpl.createFailSafeKeyValueServiceDataTracker();
+    private final KeyValueServiceDataTracker tracker = KeyValueServiceDataTrackerImpl.createFailSafe();
 
     public TrackingKeyValueServiceImpl(KeyValueService delegate) {
         this.delegate = delegate;
