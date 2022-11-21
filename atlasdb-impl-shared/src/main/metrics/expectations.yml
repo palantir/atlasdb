@@ -6,14 +6,14 @@ namespaces:
     docs: Data collection on transaction patterns
     metrics:
       bytesRead:
-        docs: Bytes read by a transaction through kvs read calls
+        docs: Bytes read by a transaction through Atlas kvs read calls
         type: histogram
       kvsCalls:
-        docs: Number of kvs read calls made by a transaction
+        docs: Number of Atlas kvs read calls made by a transaction
         type: histogram
       ageMillis:
         docs: Elapsed duration in milliseconds for a transaction
         type: histogram
       worstKvsBytesRead:
-        docs: Most bytes read by a transaction in one kvs read call
+        docs: Most bytes read by a transaction in one Atlas kvs read call
         type: histogram
