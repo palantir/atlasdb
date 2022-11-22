@@ -84,14 +84,16 @@ public class SnapshotTransactionManagerTest {
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
 
-    private final TransactionSchemaManager schemaManager = new TransactionSchemaManager(
-            CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false));
-    private final TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.createForTests(
-            keyValueService, metricsManager.getTaggedRegistry(), schemaManager);
+    private TransactionSchemaManager schemaManager;
+    private TransactionKnowledgeComponents knowledge;
 
     @Before
     public void setUp() {
         timestampService = services.getManagedTimestampService();
+        schemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false));
+        knowledge = TransactionKnowledgeComponents.createForTests(
+                keyValueService, metricsManager.getTaggedRegistry(), schemaManager);
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
