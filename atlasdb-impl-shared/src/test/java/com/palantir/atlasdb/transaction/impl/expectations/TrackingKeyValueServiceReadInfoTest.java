@@ -114,7 +114,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @Test
-    public void readInfoIsEmptyForThrowingGetAsyncDelegateResult() {
+    public void throwingGetAsyncResultTracksNothing() {
         when(kvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFailedFuture(new RuntimeException()));
 
