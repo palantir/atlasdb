@@ -1,0 +1,15 @@
+acceptedBreaks:
+  "0.770.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsConfig"
+      justification: "we need more configurable things"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics"
+      justification: "we need more configurable things"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig"
+      justification: "we need more configurable things"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics"
+      justification: "we need more configurable things"
