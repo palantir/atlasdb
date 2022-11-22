@@ -18,6 +18,11 @@ package com.palantir.atlasdb.transaction.api.expectations;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
 
+/**
+ * Implementors of this interface provide methods useful for tracking transactional expectations and whether
+ * they were breached as well as relevant metrics and alerts. Transactional expectations represent transaction-level
+ * limits and rules for proper usage of AtlasDB transactions (e.g. reading too much data overall).
+ */
 public interface ExpectationsAwareTransaction extends Transaction {
     long getAgeMillis();
 
@@ -28,7 +33,7 @@ public interface ExpectationsAwareTransaction extends Transaction {
 
     /**
      * Update TEX data collection metrics for post-mortem transactions.
-     * Invoke only after the transaction committed or aborted.
+     * Invoke only after the transaction committed or aborted, and only once.
      */
     void reportExpectationsCollectedData();
 }
