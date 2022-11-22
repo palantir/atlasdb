@@ -32,8 +32,10 @@ public class TimestampRangeSetTest {
             .add(Range.openClosed(10L, 20L))
             .add(Range.openClosed(30L, 40L))
             .build();
-    private static final TimestampRangeSet BASE_RANGE_SET =
-            ImmutableTimestampRangeSet.builder().timestampRanges(BASE_RANGES).build();
+    private static final TimestampRangeSet BASE_RANGE_SET = ImmutableTimestampRangeSet.builder()
+            .timestampRanges(BASE_RANGES)
+            .minimumTimestamp(2515L)
+            .build();
 
     @Test
     public void enclosesIdentifiesDirectMatch() {
@@ -64,7 +66,8 @@ public class TimestampRangeSetTest {
     @Test
     public void copyAndAddWorksWithEmptyRange() {
         Range<Long> newRange = Range.openClosed(3L, 71L);
-        assertThat(TimestampRangeSet.empty().copyAndAdd(newRange)).isEqualTo(TimestampRangeSet.singleRange(newRange));
+        assertThat(TimestampRangeSet.empty().copyAndAdd(newRange))
+                .isEqualTo(TimestampRangeSet.singleRange(newRange, 0L));
     }
 
     @Test
@@ -89,5 +92,12 @@ public class TimestampRangeSetTest {
                         .addAll(BASE_RANGES)
                         .add(outsideRange)
                         .build());
+    }
+
+    @Test
+    public void copyAndAddCopiesMinimumTimestamp() {
+        Range<Long> randomRange = Range.openClosed(50L, 55L);
+        assertThat(BASE_RANGE_SET.copyAndAdd(randomRange).minimumTimestamp())
+                .isEqualTo(BASE_RANGE_SET.minimumTimestamp());
     }
 }

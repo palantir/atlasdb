@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -92,8 +93,11 @@ public final class KnownConcludedTransactionsStore {
             Optional<ReadResult> readResult = getInternal();
 
             Optional<TimestampRangeSet> timestampRangesRead = readResult.map(ReadResult::timestampRangeSet);
+            Optional<Long> maybeMinimumTimestamp = timestampRangesRead.map(TimestampRangeSet::minimumTimestamp);
             Set<Range<Long>> rangesToSupplement = timestampRangesToAdd.stream()
                     .filter(range -> !isRangeContained(timestampRangesRead, range))
+                    .filter(range -> maybeFilterRangeIfUpperBoundLessThanMinimumTimestamp(maybeMinimumTimestamp, range))
+                    .map(range -> maybeModifyRangeLowerBoundToMinimumTimestamp(maybeMinimumTimestamp, range))
                     .collect(Collectors.toSet());
 
             if (rangesToSupplement.isEmpty()) {
@@ -115,6 +119,21 @@ public final class KnownConcludedTransactionsStore {
         log.warn("Unable to supplement the set of concluded timestamps with a new timestamp range. This may be "
                 + "because the database is momentarily unavailable, or because of particularly high contention.");
         throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
+    }
+
+    @VisibleForTesting
+    Range<Long> maybeModifyRangeLowerBoundToMinimumTimestamp(Optional<Long> maybeMinimumTimestamp, Range<Long> range) {
+        return maybeMinimumTimestamp
+                .filter(range)
+                .map(minimumTimestamp -> Range.openClosed(minimumTimestamp, range.upperEndpoint()))
+                .orElse(range);
+    }
+
+    private boolean maybeFilterRangeIfUpperBoundLessThanMinimumTimestamp(
+            Optional<Long> maybeMinimumTimestamp, Range<Long> range) {
+        return maybeMinimumTimestamp
+                .map(minimumTimestamp -> minimumTimestamp <= range.upperEndpoint())
+                .orElse(true);
     }
 
     private boolean isRangeContained(Optional<TimestampRangeSet> timestampRangesRead, Range<Long> range) {
@@ -145,7 +164,7 @@ public final class KnownConcludedTransactionsStore {
     private TimestampRangeSet getTargetSet(
             Optional<TimestampRangeSet> originalSet, Set<Range<Long>> timestampRangesToAdd) {
         if (originalSet.isEmpty()) {
-            return TimestampRangeSet.initRanges(timestampRangesToAdd);
+            return TimestampRangeSet.initRanges(timestampRangesToAdd, 0L);
         }
         return originalSet.get().copyAndAdd(timestampRangesToAdd);
     }

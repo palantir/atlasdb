@@ -31,6 +31,10 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableTimestampRangeSet.class)
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public interface TimestampRangeSet {
+
+    @Value.Parameter
+    Long minimumTimestamp();
+
     @Value.Parameter
     RangeSet<Long> timestampRanges();
 
@@ -46,17 +50,20 @@ public interface TimestampRangeSet {
         return ImmutableTimestampRangeSet.builder()
                 .timestampRanges(
                         ImmutableRangeSet.unionOf(Sets.union(timestampRanges().asRanges(), additionalTimestampRanges)))
+                .minimumTimestamp(minimumTimestamp())
                 .build();
     }
 
-    static TimestampRangeSet singleRange(Range<Long> timestampRange) {
+    static TimestampRangeSet singleRange(Range<Long> timestampRange, long minimumTimestamp) {
         return ImmutableTimestampRangeSet.builder()
                 .timestampRanges(ImmutableRangeSet.of(timestampRange))
+                .minimumTimestamp(minimumTimestamp)
                 .build();
     }
 
-    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRanges) {
+    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRanges, long minimumTimestamp) {
         return ImmutableTimestampRangeSet.builder()
+                .minimumTimestamp(minimumTimestamp)
                 .timestampRanges(ImmutableRangeSet.unionOf(timestampRanges))
                 .build();
     }
@@ -64,6 +71,7 @@ public interface TimestampRangeSet {
     static TimestampRangeSet empty() {
         return ImmutableTimestampRangeSet.builder()
                 .timestampRanges(ImmutableRangeSet.of())
+                .minimumTimestamp(0L)
                 .build();
     }
 }

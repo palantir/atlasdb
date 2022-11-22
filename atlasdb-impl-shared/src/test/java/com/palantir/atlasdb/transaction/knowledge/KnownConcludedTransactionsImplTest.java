@@ -112,7 +112,7 @@ public class KnownConcludedTransactionsImplTest {
         verify(knownConcludedTransactionsStore, times(3)).get();
 
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L), 0L)));
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
                 .isTrue();
         verify(knownConcludedTransactionsStore, times(4)).get();
@@ -144,7 +144,7 @@ public class KnownConcludedTransactionsImplTest {
     @Test
     public void metricPublishesNumberOfDisjointCachedRanges() {
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L))));
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L), 0L)));
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
                 .isTrue();
         assertDisjointCacheIntervalMetricIsPublishedAndHasValue(1);
@@ -214,7 +214,7 @@ public class KnownConcludedTransactionsImplTest {
 
     private void setupStoreWithDefaultRange() {
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(DEFAULT_RANGE)));
+                .thenReturn(Optional.of(TimestampRangeSet.singleRange(DEFAULT_RANGE, 0L)));
     }
 
     private void assertDisjointCacheIntervalMetricIsPublishedAndHasValue(int expected) {

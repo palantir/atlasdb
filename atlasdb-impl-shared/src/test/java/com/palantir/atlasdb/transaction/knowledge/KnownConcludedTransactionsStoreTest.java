@@ -22,10 +22,13 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import java.util.Optional;
 import org.junit.Test;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public class KnownConcludedTransactionsStoreTest {
+
+    private static final Optional<Long> MINIMUM_TIMESTAMP = Optional.of(25L);
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
             KnownConcludedTransactionsStore.create(keyValueService);
@@ -39,7 +42,7 @@ public class KnownConcludedTransactionsStoreTest {
     public void canRetrieveStoredRange() {
         knownConcludedTransactionsStore.supplement(Range.closedOpen(1L, 100L));
         assertThat(knownConcludedTransactionsStore.get())
-                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 100L)));
+                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 100L), 0L));
     }
 
     @Test
@@ -47,7 +50,7 @@ public class KnownConcludedTransactionsStoreTest {
         knownConcludedTransactionsStore.supplement(Range.closedOpen(1L, 100L));
         knownConcludedTransactionsStore.supplement(Range.closedOpen(50L, 200L));
         assertThat(knownConcludedTransactionsStore.get())
-                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 200L)));
+                .contains(TimestampRangeSet.singleRange(Range.closedOpen(1L, 200L), 0L));
     }
 
     @Test
@@ -60,6 +63,25 @@ public class KnownConcludedTransactionsStoreTest {
                                 .add(Range.closedOpen(1L, 100L))
                                 .add(Range.closedOpen(150L, 200L))
                                 .build())
+                        .minimumTimestamp(0L)
                         .build());
+    }
+
+    @Test
+    public void rangesThatContainMinimumTimestampModifiedToHaveMinimumTimestampAsLowerBound() {
+        Range<Long> range = Range.closed(10L, 100L);
+        Range<Long> modifiedRange =
+                knownConcludedTransactionsStore.maybeModifyRangeLowerBoundToMinimumTimestamp(MINIMUM_TIMESTAMP, range);
+        assertThat(modifiedRange.lowerEndpoint()).isEqualTo(MINIMUM_TIMESTAMP.get());
+        assertThat(modifiedRange.upperEndpoint()).isEqualTo(range.upperEndpoint());
+    }
+
+    @Test
+    public void rangesThatDoesNotContainMinimumTimestampShouldNotHaveLowerBoundModified() {
+        Range<Long> range = Range.closed(50L, 100L);
+        Range<Long> maybeModifiedRange =
+                knownConcludedTransactionsStore.maybeModifyRangeLowerBoundToMinimumTimestamp(MINIMUM_TIMESTAMP, range);
+        assertThat(maybeModifiedRange.lowerEndpoint()).isEqualTo(range.lowerEndpoint());
+        assertThat(maybeModifiedRange.upperEndpoint()).isEqualTo(range.upperEndpoint());
     }
 }

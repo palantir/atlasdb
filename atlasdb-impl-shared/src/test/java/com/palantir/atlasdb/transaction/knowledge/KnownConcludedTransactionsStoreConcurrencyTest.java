@@ -77,7 +77,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
         for (Optional<TimestampRangeSet> read : reads) {
-            assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
+            assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L), 0L));
         }
 
         verify(delegateKeyValueService, atMost(50))
