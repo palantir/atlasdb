@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -44,7 +46,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,12 +104,31 @@ public final class TrackingKeyValueServiceReadInfoTest {
     private Map<Cell, Long> timestampByCellMap;
 
     @Test
-    public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption()
-            throws ExecutionException, InterruptedException {
+    public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption() {
         when(kvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFuture(valueByCellMapOfSize));
 
-        trackingKvs.getAsync(tableReference, timestampByCellMap).get();
+        trackingKvs.getAsync(tableReference, timestampByCellMap);
+
+        validateReadInfoForReadForTable("getAsync");
+    }
+
+    @Test
+    public void getAsyncTracksNothingBeforeDelegateResultCompletionAndTracksReadsAfterCompletion() {
+        SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
+        when(kvs.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
+        trackingKvs.getAsync(tableReference, timestampByCellMap);
+
+        // tracking nothing
+        assertThat(trackingKvs.getOverallReadInfo())
+                .isEqualTo(ImmutableTransactionReadInfo.builder()
+                        .kvsCalls(0)
+                        .bytesRead(0)
+                        .build());
+        assertThat(trackingKvs.getReadInfoByTable()).isEmpty();
+
+        // completes the future
+        delegateFuture.set(valueByCellMapOfSize);
 
         validateReadInfoForReadForTable("getAsync");
     }
@@ -119,10 +139,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .thenReturn(Futures.immediateFailedFuture(new RuntimeException()));
 
         // ignore exception
-        try {
-            trackingKvs.getAsync(tableReference, timestampByCellMap).get();
-        } catch (Exception ignored) {
-        }
+        assertThatThrownBy(
+                () -> trackingKvs.getAsync(tableReference, timestampByCellMap).get());
 
         assertThat(trackingKvs.getOverallReadInfo())
                 .isEqualTo(ImmutableTransactionReadInfo.builder()

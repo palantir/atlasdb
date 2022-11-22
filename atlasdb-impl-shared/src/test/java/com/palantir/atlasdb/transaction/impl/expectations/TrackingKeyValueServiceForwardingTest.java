@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -112,7 +112,8 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    public void getAsyncResultCompletesIffDelegateResultCompletes() {
+    public void getAsyncResultCompletesAndForwardsIffDelegateResultCompletes()
+            throws ExecutionException, InterruptedException {
         SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
         when(delegate.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
 
@@ -120,18 +121,20 @@ public final class TrackingKeyValueServiceForwardingTest {
         assertThat(future).isNotDone();
 
         // completes the delegate future
-        delegateFuture.set(ImmutableMap.of());
+        delegateFuture.set(valueByCellMap);
 
         assertThat(future).isDone();
+        assertThat(future.get()).isSameAs(valueByCellMap);
     }
 
     @Test
     public void getAsyncResultThrowsIfDelegateResultThrows() {
-        ListenableFuture<Map<Cell, Value>> delegateFuture = Futures.immediateFailedFuture(new RuntimeException());
+        Exception exception = new RuntimeException();
+        ListenableFuture<Map<Cell, Value>> delegateFuture = Futures.immediateFailedFuture(exception);
         when(delegate.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
 
         ListenableFuture<Map<Cell, Value>> future = trackingKvs.getAsync(tableReference, timestampByCellMap);
-        assertThatCode(future::get).hasCauseExactlyInstanceOf(RuntimeException.class);
+        assertThatThrownBy(future::get).isSameAs(exception);
     }
 
     @Test
