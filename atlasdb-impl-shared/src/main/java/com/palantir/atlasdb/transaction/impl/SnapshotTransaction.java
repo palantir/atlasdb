@@ -2595,6 +2595,11 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void reportExpectationsCollectedData() {
+        if (!isDefinitivelyCommitted() && !isAborted()) {
+            log.error("reportExpectationsCollectedData is called on an in-progress transaction");
+            return;
+        }
+
         expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
 
         TransactionReadInfo info = getReadInfo();
