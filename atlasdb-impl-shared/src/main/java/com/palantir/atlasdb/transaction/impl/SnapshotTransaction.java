@@ -271,6 +271,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
 
     private final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
+
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
      *                           lock for it because we know that no writers exist.
