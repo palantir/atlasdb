@@ -43,9 +43,12 @@ import java.util.stream.LongStream;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Utilities to create example objects and collection with a given size according to
+ * Utilities to create example objects and collections with a given size according to
  * {@link com.palantir.atlasdb.util.Measurable} and {@link com.palantir.atlasdb.util.MeasuringUtils}.
  * For methods returning collections, examples have 3 elements as that is the simplest non-trivial count to implement.
+ * Some objects are size-constrained (e.g. {@link Cell} names cannot surpass {@link Cell#MAX_NAME_LENGTH} characters)
+ * while others have byte sizes which are always divisible by some number (e.g. {@link TableReference#sizeInBytes()}
+ * is divisible by {@link Character#BYTES}).
  */
 final class TrackingKeyValueServiceTestUtils {
     static ImmutableMultimap<Cell, Long> createLongByCellMultimapWithSize(int size) {

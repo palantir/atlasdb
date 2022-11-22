@@ -54,11 +54,17 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+/**
+ * {@link #size} must be divisible by 12 due to
+ * {@link TrackingKeyValueServiceTestUtils#createByteArrayByTableReferenceMapWithSize}.
+ * Refer to {@link TrackingKeyValueServiceTestUtils} javadoc.
+ * Also, the range of permitted sizes is constrained as some objects have size bounds.
+ * Note that the range of possible sizes will be larger if we use different sizes for different tests.
+ */
 @RunWith(Parameterized.class)
 public final class TrackingKeyValueServiceReadInfoTest {
     @Parameterized.Parameters(name = "size = {0}")
     public static Object[] size() {
-        // divisible by 12 to allow creation of TableReference objects of wanted sizes
         return new Object[] {12 * 129, 12 * 365, 12 * 411};
     }
 
@@ -105,6 +111,25 @@ public final class TrackingKeyValueServiceReadInfoTest {
         trackingKvs.getAsync(tableReference, timestampByCellMap).get();
 
         validateReadInfoForReadForTable("getAsync");
+    }
+
+    @Test
+    public void readInfoIsEmptyForThrowingGetAsyncDelegateResult() {
+        when(kvs.getAsync(tableReference, timestampByCellMap))
+                .thenReturn(Futures.immediateFailedFuture(new RuntimeException()));
+
+        // ignore exception
+        try {
+            trackingKvs.getAsync(tableReference, timestampByCellMap).get();
+        } catch (Exception ignored) {
+        }
+
+        assertThat(trackingKvs.getOverallReadInfo())
+                .isEqualTo(ImmutableTransactionReadInfo.builder()
+                        .kvsCalls(0)
+                        .bytesRead(0)
+                        .build());
+        assertThat(trackingKvs.getReadInfoByTable()).isEmpty();
     }
 
     @Test
@@ -215,7 +240,6 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void readInfoIsCorrectAfterGetFirstBatchForRangesCall() {
         Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRangeRequestMapOfSize =
@@ -260,7 +284,6 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void readInfoIsCorrectAfterGetAllTimestampsCall() {
         Set<Cell> cells = mock(Set.class);
         Multimap<Cell, Long> longByCellMultimapOfSize =

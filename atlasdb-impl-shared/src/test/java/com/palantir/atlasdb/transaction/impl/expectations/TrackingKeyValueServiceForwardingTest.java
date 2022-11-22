@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +27,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -106,6 +109,29 @@ public final class TrackingKeyValueServiceForwardingTest {
 
         assertThat(trackingKvs.getAsync(tableReference, timestampByCellMap).get())
                 .isSameAs(valueByCellMap);
+    }
+
+    @Test
+    public void getAsyncResultCompletesIffDelegateResultCompletes() {
+        SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
+        when(delegate.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
+
+        ListenableFuture<Map<Cell, Value>> future = trackingKvs.getAsync(tableReference, timestampByCellMap);
+        assertThat(future).isNotDone();
+
+        // completes the delegate future
+        delegateFuture.set(ImmutableMap.of());
+
+        assertThat(future).isDone();
+    }
+
+    @Test
+    public void getAsyncResultThrowsIfDelegateResultThrows() {
+        ListenableFuture<Map<Cell, Value>> delegateFuture = Futures.immediateFailedFuture(new RuntimeException());
+        when(delegate.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
+
+        ListenableFuture<Map<Cell, Value>> future = trackingKvs.getAsync(tableReference, timestampByCellMap);
+        assertThatCode(future::get).hasCauseExactlyInstanceOf(RuntimeException.class);
     }
 
     @Test
