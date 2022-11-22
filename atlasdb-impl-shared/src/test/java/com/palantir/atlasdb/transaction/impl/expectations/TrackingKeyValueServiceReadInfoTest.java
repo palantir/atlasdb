@@ -158,8 +158,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
     @Test
     public void readInfoIsCorrectAfterGetLatestTimestampsCall() {
-        Map<Cell, Long> timestampByCellMapOfSize =
-                TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size, 0L);
+        Map<Cell, Long> timestampByCellMapOfSize = TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size);
         when(kvs.getLatestTimestamps(tableReference, timestampByCellMap)).thenReturn(timestampByCellMapOfSize);
 
         trackingKvs.getLatestTimestamps(tableReference, timestampByCellMap);

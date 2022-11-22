@@ -34,7 +34,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,19 +44,19 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * Utilities to create example objects and collection with a given size according to
- * {@link com.palantir.atlasdb.util.Measurable}
+ * {@link com.palantir.atlasdb.util.Measurable} and {@link com.palantir.atlasdb.util.MeasuringUtils}.
+ * For methods returning collections, examples have 3 elements as that is the simplest non-trivial count to implement.
  */
 final class TrackingKeyValueServiceTestUtils {
-    public static ImmutableMultimap<Cell, Long> createLongByCellMultimapWithSize(int size) {
-        int valuesSize = size - 4 * Long.BYTES;
+    static ImmutableMultimap<Cell, Long> createLongByCellMultimapWithSize(int size) {
+        int valuesSize = size - 3 * Long.BYTES;
         return ImmutableSetMultimap.of(
-                createCellWithSize(valuesSize / 4, (byte) 0), 0L,
-                createCellWithSize(valuesSize / 4, (byte) 0), 1L,
-                createCellWithSize(valuesSize / 4, (byte) 2), 2L,
-                createCellWithSize(valuesSize - 3 * (valuesSize / 4), (byte) 3), 3L);
+                createCellWithSize(valuesSize / 3, (byte) 0), 0L,
+                createCellWithSize(valuesSize / 3, (byte) 0), 1L,
+                createCellWithSize(valuesSize - 2 * (valuesSize / 3), (byte) 2), 2L);
     }
 
-    public static ImmutableMap<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
+    static ImmutableMap<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
             createPageByRangeRequestMapWithSize(int size) {
         return ImmutableMap.of(
                 createRangeRequest((byte) 1), createTokenBackedBasicResultsPageWithSize(size / 3, (byte) 1),
@@ -65,42 +65,42 @@ final class TrackingKeyValueServiceTestUtils {
                         createTokenBackedBasicResultsPageWithSize(size - 2 * (size / 3), (byte) 3));
     }
 
-    public static ImmutableList<byte[]> createListOfByteArraysWithSize(int size) {
+    static ImmutableList<byte[]> createListOfByteArraysWithSize(int size) {
         return ImmutableList.of(
                 createBytesWithSize(size / 3, (byte) 1),
                 createBytesWithSize(size / 3, (byte) 2),
                 createBytesWithSize(size - 2 * (size / 3), (byte) 3));
     }
 
-    public static ImmutableMap<TableReference, byte[]> createByteArrayByTableReferenceMapWithSize(int size) {
+    static ImmutableMap<TableReference, byte[]> createByteArrayByTableReferenceMapWithSize(int size) {
         return ImmutableMap.of(
                 createTableReferenceWithSize(size / 6, 'A'), createBytesWithSize(size / 6, (byte) 0),
                 createTableReferenceWithSize(size / 6, 'B'), createBytesWithSize(size / 6, (byte) 1),
                 createTableReferenceWithSize(size / 6, 'C'), createBytesWithSize(size - 5 * (size / 6), (byte) 2));
     }
 
-    public static ImmutableSet<TableReference> createTableReferenceSetWithSize(int size) {
+    static ImmutableSet<TableReference> createTableReferenceSetWithSize(int size) {
         return ImmutableSet.of(
                 createTableReferenceWithSize(size / 3, 'A'),
                 createTableReferenceWithSize(size / 3, 'B'),
                 createTableReferenceWithSize(size - 2 * (size / 3), 'C'));
     }
 
-    public static ImmutableList<RowResult<Value>> createValueRowResultListWithSize(int size) {
+    static ImmutableList<RowResult<Value>> createValueRowResultListWithSize(int size) {
         return ImmutableList.of(
                 createValueRowResultWithSize(size / 3, (byte) 0),
                 createValueRowResultWithSize(size / 3, (byte) 1),
                 createValueRowResultWithSize(size - 2 * (size / 3), (byte) 2));
     }
 
-    public static ImmutableList<RowResult<Set<Long>>> createLongSetRowResultListWithSize(int size) {
+    static ImmutableList<RowResult<Set<Long>>> createLongSetRowResultListWithSize(int size) {
         return ImmutableList.of(
                 createLongSetRowResultWithSize(size / 3, (byte) 0),
                 createLongSetRowResultWithSize(size / 3, (byte) 1),
                 createLongSetRowResultWithSize(size - 2 * (size / 3), (byte) 2));
     }
 
-    public static ImmutableList<ImmutableList<CandidateCellForSweeping>> createCandidateCellForSweepingTableWithSize(
+    static ImmutableList<ImmutableList<CandidateCellForSweeping>> createCandidateCellForSweepingTableWithSize(
             int size) {
         return ImmutableList.of(
                 createCandidateCellForSweepingList(size / 3, (byte) 0),
@@ -108,25 +108,23 @@ final class TrackingKeyValueServiceTestUtils {
                 createCandidateCellForSweepingList(size - 2 * (size / 3), (byte) 2));
     }
 
-    public static ImmutableMap<Cell, Value> createValueByCellMapWithSize(int size) {
+    static ImmutableMap<Cell, Value> createValueByCellMapWithSize(int size) {
         return ImmutableMap.of(
                 createCellWithSize(size / 6, (byte) 0), createValueWithSize(size / 6),
                 createCellWithSize(size / 6, (byte) 1), createValueWithSize(size / 6),
                 createCellWithSize(size / 6, (byte) 2), createValueWithSize(size - 5 * (size / 6)));
     }
 
-    public static ImmutableMap<Cell, Long> createLongByCellMapWithSize(int size, long identifier) {
+    static ImmutableMap<Cell, Long> createLongByCellMapWithSize(int size) {
         int keySetSize = size - 3 * Long.BYTES;
         return ImmutableMap.of(
-                createCellWithSize(keySetSize / 3, (byte) 1), identifier,
-                createCellWithSize(keySetSize / 3, (byte) 2), identifier,
-                createCellWithSize(keySetSize - 2 * (keySetSize / 3), (byte) 3), identifier);
+                createCellWithSize(keySetSize / 3, (byte) 1), 1L,
+                createCellWithSize(keySetSize / 3, (byte) 2), 2L,
+                createCellWithSize(keySetSize - 2 * (keySetSize / 3), (byte) 3), 3L);
     }
 
-    @SuppressWarnings("ArrayAsKeyOfSetOrMap")
-    public static Map<byte[], RowColumnRangeIterator> createRowColumnRangeIteratorByByteArrayMutableMapWithSize(
-            int size) {
-        Map<byte[], RowColumnRangeIterator> mutableMap = new HashMap<>();
+    static Map<byte[], RowColumnRangeIterator> createRowColumnRangeIteratorByByteArrayMutableMapWithSize(int size) {
+        IdentityHashMap<byte[], RowColumnRangeIterator> mutableMap = new IdentityHashMap<>();
         mutableMap.put(
                 createBytesWithSize(size / 6, (byte) 0),
                 new LocalRowColumnRangeIterator(
@@ -183,10 +181,8 @@ final class TrackingKeyValueServiceTestUtils {
     }
 
     private static TableReference createTableReferenceWithSize(int size, char identifier) {
-        Preconditions.checkArgument(
-                size >= Character.BYTES, "size needs to be at least the number of bytes in an ascii character");
-        Preconditions.checkArgument(
-                size % Character.BYTES == 0, "size needs to be divisible by the number of bytes in an ascii character");
+        Preconditions.checkArgument(size >= Character.BYTES, "size needs to be at least Character.BYTES");
+        Preconditions.checkArgument(size % Character.BYTES == 0, "size needs to be divisible by Character.BYTES");
         return TableReference.createWithEmptyNamespace(StringUtils.repeat(identifier, (size / Character.BYTES) - 1));
     }
 

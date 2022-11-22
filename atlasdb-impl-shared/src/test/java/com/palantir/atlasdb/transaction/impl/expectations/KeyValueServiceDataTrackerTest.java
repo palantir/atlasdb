@@ -45,7 +45,7 @@ public final class KeyValueServiceDataTrackerTest {
     private static final long MEDIUM_BYTES_READ = 103L;
     private static final long LARGE_BYTES_READ = 971L;
 
-    private final KeyValueServiceDataTracker tracker = KeyValueServiceDataTrackerImpl.createFailSafe();
+    private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
     @Test
     public void noReadsTracksNothing() {

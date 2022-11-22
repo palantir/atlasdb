@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Comparator;
@@ -49,13 +50,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+/**
+ * Broadly tests that {@link TrackingKeyValueServiceImpl} methods forward delegate results using: physical equality
+ * when relevant, and element/component physical equality when the semantics are different (methods returning
+ * iterators or collections of iterators).
+ * Mocks are used whenever possible. Exceptions include: types which cannot be mocked (e.g. byte arrays),
+ * interfaces/implementations annotated with {@link org.mockito.DoNotMock} or similar (e.g. {@link Multimap}), and
+ * when the method semantics and resulting tests impose it (e.g. methods where an iterator is wrapped can only be tested
+ * by equality/in-order testing of its components, {@link TrackingKeyValueServiceImpl#getCandidateCellsForSweeping}).
+ */
 @RunWith(MockitoJUnitRunner.class)
 public final class TrackingKeyValueServiceForwardingTest {
     private static final long TIMESTAMP = 12L;
@@ -112,9 +121,9 @@ public final class TrackingKeyValueServiceForwardingTest {
     public void getRowsBatchColumnRangeForwardsDelegateResult() {
         BatchColumnRangeSelection batchColumnRangeSelection = mock(BatchColumnRangeSelection.class);
 
-        Map<byte[], Map<Cell, Value>> backingRowColumnRangeMap = ImmutableMap.of(
-                BYTES_1, ImmutableMap.of(CELL_1, VALUE_1),
-                BYTES_2, ImmutableMap.of(CELL_2, VALUE_2));
+        Map<byte[], List<Entry<Cell, Value>>> backingRowColumnRangeMap = ImmutableMap.of(
+                BYTES_1, ImmutableList.of(new SimpleEntry<>(CELL_1, VALUE_1)),
+                BYTES_2, ImmutableList.of(new SimpleEntry<>(CELL_2, VALUE_2)));
 
         when(delegate.getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP))
                 .thenReturn(convertMapValuesToRowColumnRangeIterators(backingRowColumnRangeMap));
@@ -123,11 +132,11 @@ public final class TrackingKeyValueServiceForwardingTest {
                 trackingKvs.getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP);
 
         assertThat(rowsColumnRangeMap).containsOnlyKeys(backingRowColumnRangeMap.keySet());
-        for (Entry<byte[], Map<Cell, Value>> entry : backingRowColumnRangeMap.entrySet()) {
+        for (Entry<byte[], List<Entry<Cell, Value>>> entry : backingRowColumnRangeMap.entrySet()) {
             assertThat(rowsColumnRangeMap.get(entry.getKey()))
                     .toIterable()
                     .usingElementComparator(identityComparator())
-                    .containsExactlyElementsOf(entry.getValue().entrySet());
+                    .containsExactlyElementsOf(entry.getValue());
         }
     }
 
@@ -141,8 +150,8 @@ public final class TrackingKeyValueServiceForwardingTest {
     public void getRowsColumnRangeWrapsAndForwardsDelegateResult() {
         int cellBatchHint = 12;
         ColumnRangeSelection columnRangeSelection = mock(ColumnRangeSelection.class);
-        Set<Entry<Cell, Value>> valueByCellEntries =
-                ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2).entrySet();
+        List<Entry<Cell, Value>> valueByCellEntries =
+                ImmutableList.of(new SimpleEntry<>(CELL_1, VALUE_1), new SimpleEntry<>(CELL_2, VALUE_2));
 
         when(delegate.getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP))
                 .thenReturn(new LocalRowColumnRangeIterator(valueByCellEntries.iterator()));
@@ -154,7 +163,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void getLatestTimestampsForwardsDelegateResult() {
         Map<Cell, Long> timestampByCellMapAsReturnValue = mock(Map.class);
         when(delegate.getLatestTimestamps(tableReference, timestampByCellMap))
@@ -220,7 +228,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void getFirstBatchForRangesForwardsDelegateResult() {
         Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> batchForRangesMap = mock(Map.class);
@@ -231,7 +238,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void getAllTableNamesForwardsDelegatesResult() {
         Set<TableReference> tableReferences = mock(Set.class);
         when(delegate.getAllTableNames()).thenReturn(tableReferences);
@@ -245,7 +251,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void getMetadataForTablesForwardsDelegateResult() {
         Map<TableReference, byte[]> metadataForTablesMap = mock(Map.class);
         when(delegate.getMetadataForTables()).thenReturn(metadataForTablesMap);
@@ -253,7 +258,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void getAllTimestampsForwardsDelegateResult() {
         Set<Cell> cells = mock(Set.class);
         Multimap<Cell, Long> timestampByCellMultimap = ImmutableSetMultimap.of(CELL_1, TIMESTAMP);
@@ -272,17 +276,19 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     private static Map<byte[], RowColumnRangeIterator> convertMapValuesToRowColumnRangeIterators(
-            Map<byte[], ? extends Map<Cell, Value>> map) {
-        return map.entrySet().stream()
-                .map(entry -> new SimpleEntry<>(
-                        entry.getKey(),
-                        new LocalRowColumnRangeIterator(
-                                entry.getValue().entrySet().iterator())))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+            Map<byte[], ? extends List<Entry<Cell, Value>>> map) {
+        return KeyedStream.stream(map)
+                .map(List::iterator)
+                .<RowColumnRangeIterator>map(LocalRowColumnRangeIterator::new)
+                .collectToMap();
     }
 
-    // this is in breach with comparator invariants but is only used for equality
-    // todo(aalouane): I do not know how to do this differently
+    /**
+     * This is clearly in violation of the {@link Comparator} contract and should only be used for equality testing.
+     * It is used to test that iterables/iterators have the same objects in order with respect to == (in idiomatic
+     * AssertJ). In the absence of an iterable equivalent to {@link org.assertj.core.api.AbstractAssert#isSameAs}, we
+     * use this as a custom comparator fed to {@link org.assertj.core.api.IterableAssert#usingElementComparator}.
+     */
     private static <T> Comparator<T> identityComparator() {
         return (o1, o2) -> {
             if (o1 == o2) {
