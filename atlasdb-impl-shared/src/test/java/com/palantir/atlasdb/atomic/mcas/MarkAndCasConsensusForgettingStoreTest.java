@@ -30,12 +30,15 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -55,17 +58,17 @@ public class MarkAndCasConsensusForgettingStoreTest {
     private static final Cell CELL_2 = Cell.create(ROW, PtBytes.toBytes("col2"));
     public static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");
 
-    private static final byte[] IN_PROGRESS_MARKER = new byte[] {1};
-    private static final ByteBuffer BUFFERED_IN_PROGRESS_MARKER = ByteBuffer.wrap(IN_PROGRESS_MARKER);
+    private static final ByteBuffer BUFFERED_IN_PROGRESS_MARKER =
+            ByteBuffer.wrap(TransactionConstants.TTS_IN_PROGRESS_MARKER);
 
     private final InMemoryKeyValueService kvs = spy(new InMemoryKeyValueService(true));
     private final MarkAndCasConsensusForgettingStore store =
-            new MarkAndCasConsensusForgettingStore(IN_PROGRESS_MARKER, kvs, TABLE);
+            new MarkAndCasConsensusForgettingStore(TransactionConstants.TTS_IN_PROGRESS_MARKER, kvs, TABLE);
 
     @Test
     public void canMarkCell() throws ExecutionException, InterruptedException {
         store.mark(CELL);
-        assertThat(store.get(CELL).get()).hasValue(IN_PROGRESS_MARKER);
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
         assertThat(kvs.getAllTimestamps(TABLE, ImmutableSet.of(CELL), Long.MAX_VALUE)
                         .size())
                 .isEqualTo(1);
@@ -90,6 +93,34 @@ public class MarkAndCasConsensusForgettingStoreTest {
                         .containsExactly(CELL))
                 .hasMessageContaining("Atomic update cannot go through as the key already exists in the KVS.");
         assertThat(store.get(CELL).get()).hasValue(HAPPY);
+    }
+
+    @Test
+    public void canCheckAndTouch() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        store.atomicUpdate(CELL, HAPPY);
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        assertThatCode(() -> store.checkAndTouch(CELL, HAPPY)).doesNotThrowAnyException();
+        assertThat(store.get(CELL).get()).hasValue(HAPPY);
+
+        MultiCheckAndSetRequest mcasReq = MultiCheckAndSetRequest.multipleCells(
+                TABLE, CELL.getRowName(), ImmutableMap.of(CELL, HAPPY), ImmutableMap.of(CELL, HAPPY));
+        verify(kvs).multiCheckAndSet(mcasReq);
+    }
+
+    @Test
+    public void throwsCasExceptionIfTouchFails() throws ExecutionException, InterruptedException {
+        store.mark(CELL);
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
+
+        assertThatThrownBy(() -> store.checkAndTouch(CELL, SAD))
+                .isInstanceOf(CheckAndSetException.class)
+                .satisfies(exception ->
+                        assertThat(((CheckAndSetException) exception).getKey()).isEqualTo(CELL))
+                .hasMessageContaining("Atomic update cannot go through as the expected value for the key does not "
+                        + "match the actual value.");
+        assertThat(store.get(CELL).get()).hasValue(TransactionConstants.TTS_IN_PROGRESS_MARKER);
     }
 
     @Test

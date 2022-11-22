@@ -13,6 +13,7 @@ license {
   exclude '**/TargetedSweepProgressMetrics.java'
   exclude '**/TimestampCorrectnessMetrics.java'
   exclude '**/ExpectationsDataCollectionMetrics.java'
+  exclude '**/VerificationModeMetrics.java'
 }
 
 dependencies {
