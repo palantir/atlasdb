@@ -134,7 +134,7 @@ public final class TrackingKeyValueServiceForwardingTest {
         when(delegate.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
 
         ListenableFuture<Map<Cell, Value>> future = trackingKvs.getAsync(tableReference, timestampByCellMap);
-        assertThatThrownBy(future::get).isSameAs(exception);
+        assertThatThrownBy(future::get).hasCauseReference(exception);
     }
 
     @Test
