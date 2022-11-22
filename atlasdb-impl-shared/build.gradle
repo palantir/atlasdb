@@ -12,6 +12,7 @@ license {
   exclude '**/PutUnlessExistsTableMetrics.java'
   exclude '**/TargetedSweepProgressMetrics.java'
   exclude '**/TimestampCorrectnessMetrics.java'
+  exclude '**/ExpectationsDataCollectionMetrics.java'
 }
 
 dependencies {

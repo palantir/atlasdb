@@ -46,7 +46,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -287,21 +286,6 @@ import javax.validation.constraints.NotNull;
             scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
             postTaskContext.stop();
             return result;
-        }
-
-        @Override
-        public long getAgeMillis() {
-            return delegate.getAgeMillis();
-        }
-
-        @Override
-        public TransactionReadInfo getReadInfo() {
-            return delegate.getReadInfo();
-        }
-
-        @Override
-        public void reportExpectationsCollectedData() {
-            delegate.reportExpectationsCollectedData();
         }
     }
 
