@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'com.palantir.metric-schema'
+apply plugin: 'com.palantir.revapi'
 
 configurations {
   explicitShadow
