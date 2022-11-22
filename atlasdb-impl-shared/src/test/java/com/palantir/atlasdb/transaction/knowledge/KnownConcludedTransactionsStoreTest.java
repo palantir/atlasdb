@@ -84,4 +84,13 @@ public class KnownConcludedTransactionsStoreTest {
         assertThat(maybeModifiedRange.lowerEndpoint()).isEqualTo(range.lowerEndpoint());
         assertThat(maybeModifiedRange.upperEndpoint()).isEqualTo(range.upperEndpoint());
     }
+
+    @Test
+    public void rangesAreNotModifiedIfMinimumTimestampEmpty() {
+        Range<Long> range = Range.closed(10L, 100L);
+        Range<Long> maybeModifiedRange =
+                knownConcludedTransactionsStore.maybeModifyRangeLowerBoundToMinimumTimestamp(Optional.empty(), range);
+        assertThat(maybeModifiedRange.lowerEndpoint()).isEqualTo(range.lowerEndpoint());
+        assertThat(maybeModifiedRange.upperEndpoint()).isEqualTo(range.upperEndpoint());
+    }
 }
