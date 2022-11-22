@@ -33,16 +33,11 @@ public interface ExpectationsAwareTransaction extends Transaction {
     TransactionReadInfo getReadInfo();
 
     /**
-     * <<<<<<< HEAD
-     * Update TEX data collection metrics for post-mortem transactions.
-     * Invoke only after the transaction committed or aborted, and only once.
-     * =======
      * Update TEX data collection metrics for (post-mortem) transactions.
      * Expected usage is that this method is called once after the transaction has been committed or aborted.
      * This method won't report metrics if called on an in-progress transaction.
      * Calling this twice after the transaction has committed or aborted will result in duplication.
      * Clients should not call this method directly.
-     * >>>>>>> develop
      */
     void reportExpectationsCollectedData();
 }
