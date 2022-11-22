@@ -23,6 +23,7 @@ import com.palantir.atlasdb.sweep.ConcludedTransactionsUpdaterTask;
 import com.palantir.atlasdb.sweep.queue.LastSeenCommitTsLoader;
 import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownConcludedTransactionsStore;
+import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.function.BooleanSupplier;
@@ -73,7 +74,8 @@ public interface TransactionKnowledgeComponents {
         ConcludedTransactionsUpdaterTask.create(
                 concludedTransactionsStore,
                 shardProgress,
-                PTExecutors.newSingleThreadScheduledExecutor(),
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("known-concluded-txn-updater-task")),
                 isInitialized);
     }
 }
