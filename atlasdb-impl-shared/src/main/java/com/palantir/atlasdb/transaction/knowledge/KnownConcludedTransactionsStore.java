@@ -121,6 +121,12 @@ public final class KnownConcludedTransactionsStore {
         throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
     }
 
+    /**
+     * Modifies a range that contains the minimum timestamp to have it's lower-bound set (exclusive) to the minimum timestamp.
+     *
+     * This is needed as we do not want to not conclude a range that encompasses the minimum timestamp.
+     * We also do not want to prevent our ability to conclude the subrange which is above the minimum timestamp.
+     */
     @VisibleForTesting
     Range<Long> maybeModifyRangeLowerBoundToMinimumTimestamp(Optional<Long> maybeMinimumTimestamp, Range<Long> range) {
         return maybeMinimumTimestamp
