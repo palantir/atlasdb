@@ -1,0 +1,15 @@
+acceptedBreaks:
+  "0.770.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsConfig"
+      justification: "removing TEX until ready"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics"
+      justification: "removing TEX until ready"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig"
+      justification: "removing until TEX is ready"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics"
+      justification: "removing TEX until ready"
