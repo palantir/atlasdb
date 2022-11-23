@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.util.Measurable;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
@@ -154,7 +153,7 @@ public final class TableReference implements Measurable {
     }
 
     private static long stringSizeInBytes(String string) {
-        return Character.BYTES * ((long) string.getBytes(StandardCharsets.UTF_8).length);
+        return (long) Character.BYTES * string.length();
     }
 
     public static TableReference fromString(String tableReferenceAsString) {
