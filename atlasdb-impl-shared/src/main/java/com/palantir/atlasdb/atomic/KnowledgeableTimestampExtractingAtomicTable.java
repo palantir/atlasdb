@@ -22,24 +22,38 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
+import com.palantir.atlasdb.transaction.knowledge.VerificationModeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
+    private static final SafeLogger log = SafeLoggerFactory.get(KnowledgeableTimestampExtractingAtomicTable.class);
+    private static final boolean IS_VALIDATION_MODE = true;
+
     private final AtomicTable<Long, TransactionStatus> delegate;
     private final KnownConcludedTransactions knownConcludedTransactions;
     private final KnownAbandonedTransactions knownAbandonedTransactions;
+    private final VerificationModeMetrics metrics;
 
     public KnowledgeableTimestampExtractingAtomicTable(
-            AtomicTable<Long, TransactionStatus> delegate, TransactionKnowledgeComponents knowledge) {
+            AtomicTable<Long, TransactionStatus> delegate,
+            TransactionKnowledgeComponents knowledge,
+            TaggedMetricRegistry metricRegistry) {
         this.delegate = delegate;
+        this.metrics = VerificationModeMetrics.of(metricRegistry);
         this.knownConcludedTransactions = knowledge.concluded();
         this.knownAbandonedTransactions = knowledge.abandoned();
     }
@@ -50,10 +64,14 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
     }
 
     @Override
+    public void update(Long key, Long value) throws KeyAlreadyExistsException {
+        delegate.update(key, TransactionStatusUtils.fromTimestamp(value));
+    }
+
+    @Override
     public void updateMultiple(Map<Long, Long> keyValues) throws KeyAlreadyExistsException {
-        delegate.updateMultiple(KeyedStream.stream(keyValues)
-                .map(TransactionStatusUtils::fromTimestamp)
-                .collectToMap());
+        throw new UnsupportedOperationException("Atomic table for transaction schema >= 4 does not support batch "
+                + "atomic updates currently. Reaching here implied a bug in AtlasDb wiring code.");
     }
 
     /**
@@ -67,6 +85,12 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
      * */
     @Override
     public ListenableFuture<Long> get(Long startTimestamp) {
+        if (IS_VALIDATION_MODE) {
+            return Futures.transform(
+                    delegate.get(startTimestamp),
+                    status -> verifyAndGetCommitTs(startTimestamp, status).orElse(null),
+                    MoreExecutors.directExecutor());
+        }
         return getInternal(startTimestamp);
     }
 
@@ -77,11 +101,59 @@ public class KnowledgeableTimestampExtractingAtomicTable implements AtomicTable<
      * */
     @Override
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
-        Map<Long, ListenableFuture<Long>> futures = KeyedStream.of(
-                        StreamSupport.stream(keys.spliterator(), false).sorted(Comparator.reverseOrder()))
-                .map(this::getInternal)
-                .collectToMap();
-        return AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor());
+        if (IS_VALIDATION_MODE) {
+            // No verification for in-progress transactions right now.
+            return Futures.transform(
+                    delegate.get(keys),
+                    statuses -> KeyedStream.stream(statuses)
+                            .map(this::verifyAndGetCommitTs)
+                            .flatMap(Optional::stream)
+                            .collectToMap(),
+                    MoreExecutors.directExecutor());
+        } else {
+            Map<Long, ListenableFuture<Long>> futures = KeyedStream.of(
+                            StreamSupport.stream(keys.spliterator(), false).sorted(Comparator.reverseOrder()))
+                    .map(this::getInternal)
+                    .collectToMap();
+            return AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor());
+        }
+    }
+
+    private Optional<Long> verifyAndGetCommitTs(long startTimestamp, TransactionStatus transactionStatus) {
+        Optional<Long> maybeGetCommitTs = Optional.ofNullable(TransactionStatusUtils.getCommitTsFromStatus(
+                startTimestamp, transactionStatus, knownAbandonedTransactions::isKnownAbandoned));
+
+        maybeGetCommitTs.ifPresent(commitTs -> {
+            boolean isConcluded = knownConcludedTransactions.isKnownConcluded(
+                    startTimestamp, KnownConcludedTransactions.Consistency.REMOTE_READ);
+
+            if (!isConcluded) {
+                return;
+            }
+
+            boolean abandonedTransaction = knownAbandonedTransactions.isKnownAbandoned(startTimestamp);
+            boolean transactionStatusAborted = commitTs == TransactionConstants.FAILED_COMMIT_TS;
+
+            if (abandonedTransaction && !transactionStatusAborted) {
+                metrics.inconsistencies().inc();
+                log.error(
+                        "Found a transaction marked abandoned that was actually committed.",
+                        SafeArg.of("startTimestamp", startTimestamp),
+                        SafeArg.of("commitTs", commitTs),
+                        SafeArg.of(
+                                "lastKnownConcluded", knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()));
+            } else if (!abandonedTransaction && transactionStatusAborted) {
+                metrics.inconsistencies().inc();
+                log.error(
+                        "Found a concluded non-abandoned transaction that was actually aborted.",
+                        SafeArg.of("startTimestamp", startTimestamp),
+                        SafeArg.of(
+                                "lastKnownConcluded", knownConcludedTransactions.lastLocallyKnownConcludedTimestamp()));
+            } else {
+                metrics.success().inc();
+            }
+        });
+        return maybeGetCommitTs;
     }
 
     @VisibleForTesting
