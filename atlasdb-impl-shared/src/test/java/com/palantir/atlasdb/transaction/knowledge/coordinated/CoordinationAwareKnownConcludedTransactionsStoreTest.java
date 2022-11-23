@@ -92,6 +92,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
         Range<Long> rangeToSupplement = Range.closedOpen(201L, 400L);
         assertThatCode(() -> coordinationAwareStore.addConcludedTimestamps(rangeToSupplement))
                 .doesNotThrowAnyException();
+        verifyNoMoreInteractions(delegate);
     }
 
     @Test
