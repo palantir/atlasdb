@@ -99,7 +99,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
-import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceNoOpImpl;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -308,7 +308,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueServiceNoOpImpl(tmKeyValueService);
+        this.keyValueService = new TrackingKeyValueServiceImpl(tmKeyValueService);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
