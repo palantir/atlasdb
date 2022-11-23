@@ -25,7 +25,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
