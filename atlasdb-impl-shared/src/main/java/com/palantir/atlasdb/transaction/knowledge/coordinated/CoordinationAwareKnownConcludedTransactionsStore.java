@@ -25,6 +25,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -82,6 +83,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStore implements K
             Range<Long> closedTsRangeToConclude, Map<Range<Long>, Integer> timestampRanges) {
         return KeyedStream.stream(timestampRanges)
                 .filter(schemaVersion -> schemaVersion >= TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .filterKeys(closedTsRangeToConclude::isConnected)
                 .mapKeys(closedTsRangeToConclude::intersection)
                 .keys()
                 .collect(Collectors.toSet());

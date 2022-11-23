@@ -16,11 +16,6 @@
 
 package com.palantir.atlasdb.transaction.knowledge.coordinated;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -29,6 +24,11 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     private final KnownConcludedTransactionsImpl delegate = mock(KnownConcludedTransactionsImpl.class);
@@ -77,6 +77,21 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
         coordinationAwareStore.addConcludedTimestamps(rangeToSupplement);
         verify(delegate)
                 .addConcludedTimestamps(ImmutableSet.of(Range.closedOpen(100L, 200L), Range.closedOpen(300L, 400L)));
+    }
+
+    @Test
+    public void supplementDoesNotThrowWhenRangeDoesNotIntersect() {
+        RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
+                .put(Range.closedOpen(1L, 100L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(100L, 200L), TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.atLeast(200L), TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .build();
+        CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
+                getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
+
+        Range<Long> rangeToSupplement = Range.closedOpen(201L, 400L);
+        assertThatCode(() -> coordinationAwareStore.addConcludedTimestamps(rangeToSupplement))
+                .doesNotThrowAnyException();
     }
 
     @Test
