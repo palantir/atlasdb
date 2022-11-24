@@ -20,6 +20,7 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 public abstract class ForwardingExpectationsAwareTransaction extends ForwardingTransaction
         implements ExpectationsAwareTransaction {
+
     @Override
     public abstract ExpectationsAwareTransaction delegate();
 
