@@ -24,17 +24,17 @@ import org.junit.Test;
 
 /**
  * Tests on this class are fairly lightweight, as they focus primarily on correct deferral to the range-set
- * underlying a {@link TimestampRangeSet}.
+ * underlying a {@link ConcludedRangeState}.
  */
 @SuppressWarnings("UnstableApiUsage") // RangeSet
-public class TimestampRangeSetTest {
+public class ConcludedRangeStateTest {
     private static final ImmutableRangeSet<Long> BASE_RANGES = ImmutableRangeSet.<Long>builder()
             .add(Range.openClosed(10L, 20L))
             .add(Range.openClosed(30L, 40L))
             .build();
-    private static final TimestampRangeSet BASE_RANGE_SET = ImmutableTimestampRangeSet.builder()
+    private static final ConcludedRangeState BASE_RANGE_SET = ImmutableConcludedRangeState.builder()
             .timestampRanges(BASE_RANGES)
-            .minimumTimestamp(2515L)
+            .minimumConcludeableTimestamp(2515L)
             .build();
 
     @Test
@@ -66,8 +66,8 @@ public class TimestampRangeSetTest {
     @Test
     public void copyAndAddWorksWithEmptyRange() {
         Range<Long> newRange = Range.openClosed(3L, 71L);
-        assertThat(TimestampRangeSet.empty().copyAndAdd(newRange))
-                .isEqualTo(TimestampRangeSet.singleRange(newRange, 0L));
+        assertThat(ConcludedRangeState.empty().copyAndAdd(newRange))
+                .isEqualTo(ConcludedRangeState.singleRange(newRange, 0L));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class TimestampRangeSetTest {
     @Test
     public void copyAndAddCopiesMinimumTimestamp() {
         Range<Long> randomRange = Range.openClosed(50L, 55L);
-        assertThat(BASE_RANGE_SET.copyAndAdd(randomRange).minimumTimestamp())
-                .isEqualTo(BASE_RANGE_SET.minimumTimestamp());
+        assertThat(BASE_RANGE_SET.copyAndAdd(randomRange).minimumConcludeableTimestamp())
+                .isEqualTo(BASE_RANGE_SET.minimumConcludeableTimestamp());
     }
 }

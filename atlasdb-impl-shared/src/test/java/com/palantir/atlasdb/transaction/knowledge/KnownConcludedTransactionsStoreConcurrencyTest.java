@@ -72,12 +72,14 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
         startBlockingKeyValueServiceCalls();
         int numThreads = 100;
 
-        List<Future<Optional<TimestampRangeSet>>> readFutures =
+        List<Future<Optional<ConcludedRangeState>>> readFutures =
                 scheduleTasksInParallel(numThreads, taskIndex -> knownConcludedTransactionsStore.get());
 
-        List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
-        for (Optional<TimestampRangeSet> read : reads) {
-            assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L), 0L));
+        List<Optional<ConcludedRangeState>> reads = letTasksRunToCompletion(readFutures, false);
+        for (Optional<ConcludedRangeState> read : reads) {
+            assertThat(read)
+                    .contains(ConcludedRangeState.singleRange(
+                            Range.closedOpen(10L, 50L), TransactionConstants.LOWEST_POSSIBLE_START_TS));
         }
 
         verify(delegateKeyValueService, atMost(50))
@@ -100,7 +102,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .isSubsetOf(candidateTimestampRanges));
@@ -123,7 +125,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .as("Given similarity of ranges, concurrency should be handled smoothly")

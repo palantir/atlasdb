@@ -23,17 +23,24 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableTimestampRangeSet.class)
-@JsonDeserialize(as = ImmutableTimestampRangeSet.class)
+@JsonSerialize(as = ImmutableConcludedRangeState.class)
+@JsonDeserialize(as = ImmutableConcludedRangeState.class)
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
-public interface TimestampRangeSet {
+public interface ConcludedRangeState {
 
+    /**
+     * The minimum timestamp is used to ensure we do not conclude ranges that are below this timestamp [-∞, ts).
+     * This is necessary for backup/restore, as we must not conclude any ranges post-restore that are before
+     * the fast-forward timestamp. This is to prevent concluding transactions which have written to the KVS,
+     * but had not committed.
+     */
     @Value.Parameter
-    Long minimumTimestamp();
+    Long minimumConcludeableTimestamp();
 
     @Value.Parameter
     RangeSet<Long> timestampRanges();
@@ -42,36 +49,36 @@ public interface TimestampRangeSet {
         return timestampRanges().encloses(timestampRange);
     }
 
-    default TimestampRangeSet copyAndAdd(Range<Long> additionalTimestampRange) {
+    default ConcludedRangeState copyAndAdd(Range<Long> additionalTimestampRange) {
         return copyAndAdd(ImmutableSet.of(additionalTimestampRange));
     }
 
-    default TimestampRangeSet copyAndAdd(Set<Range<Long>> additionalTimestampRanges) {
-        return ImmutableTimestampRangeSet.builder()
+    default ConcludedRangeState copyAndAdd(Set<Range<Long>> additionalTimestampRanges) {
+        return ImmutableConcludedRangeState.builder()
                 .timestampRanges(
                         ImmutableRangeSet.unionOf(Sets.union(timestampRanges().asRanges(), additionalTimestampRanges)))
-                .minimumTimestamp(minimumTimestamp())
+                .minimumConcludeableTimestamp(minimumConcludeableTimestamp())
                 .build();
     }
 
-    static TimestampRangeSet singleRange(Range<Long> timestampRange, long minimumTimestamp) {
-        return ImmutableTimestampRangeSet.builder()
+    static ConcludedRangeState singleRange(Range<Long> timestampRange, long minimumTimestamp) {
+        return ImmutableConcludedRangeState.builder()
                 .timestampRanges(ImmutableRangeSet.of(timestampRange))
-                .minimumTimestamp(minimumTimestamp)
+                .minimumConcludeableTimestamp(minimumTimestamp)
                 .build();
     }
 
-    static TimestampRangeSet initRanges(Set<Range<Long>> timestampRanges, long minimumTimestamp) {
-        return ImmutableTimestampRangeSet.builder()
-                .minimumTimestamp(minimumTimestamp)
+    static ConcludedRangeState initRanges(Set<Range<Long>> timestampRanges, long minimumTimestamp) {
+        return ImmutableConcludedRangeState.builder()
+                .minimumConcludeableTimestamp(minimumTimestamp)
                 .timestampRanges(ImmutableRangeSet.unionOf(timestampRanges))
                 .build();
     }
 
-    static TimestampRangeSet empty() {
-        return ImmutableTimestampRangeSet.builder()
+    static ConcludedRangeState empty() {
+        return ImmutableConcludedRangeState.builder()
                 .timestampRanges(ImmutableRangeSet.of())
-                .minimumTimestamp(0L)
+                .minimumConcludeableTimestamp(TransactionConstants.LOWEST_POSSIBLE_START_TS)
                 .build();
     }
 }

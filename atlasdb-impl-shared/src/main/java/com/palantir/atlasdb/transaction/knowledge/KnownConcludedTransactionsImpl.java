@@ -122,7 +122,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     private void updateCacheFromRemote() {
         ensureRangesCached(knownConcludedTransactionsStore
                 .get()
-                .map(TimestampRangeSet::timestampRanges)
+                .map(ConcludedRangeState::timestampRanges)
                 .orElseGet(ImmutableRangeSet::of));
     }
 

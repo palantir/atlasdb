@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -112,7 +113,7 @@ public class KnownConcludedTransactionsImplTest {
         verify(knownConcludedTransactionsStore, times(3)).get();
 
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L), 0L)));
+                .thenReturn(Optional.of(ConcludedRangeState.singleRange(Range.closed(0L, 100L), 0L)));
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
                 .isTrue();
         verify(knownConcludedTransactionsStore, times(4)).get();
@@ -144,7 +145,7 @@ public class KnownConcludedTransactionsImplTest {
     @Test
     public void metricPublishesNumberOfDisjointCachedRanges() {
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(Range.closed(0L, 100L), 0L)));
+                .thenReturn(Optional.of(ConcludedRangeState.singleRange(Range.closed(0L, 100L), 0L)));
         assertThat(defaultKnownConcludedTransactions.isKnownConcluded(2L, Consistency.REMOTE_READ))
                 .isTrue();
         assertDisjointCacheIntervalMetricIsPublishedAndHasValue(1);
@@ -214,7 +215,8 @@ public class KnownConcludedTransactionsImplTest {
 
     private void setupStoreWithDefaultRange() {
         when(knownConcludedTransactionsStore.get())
-                .thenReturn(Optional.of(TimestampRangeSet.singleRange(DEFAULT_RANGE, 0L)));
+                .thenReturn(Optional.of(
+                        ConcludedRangeState.singleRange(DEFAULT_RANGE, TransactionConstants.LOWEST_POSSIBLE_START_TS)));
     }
 
     private void assertDisjointCacheIntervalMetricIsPublishedAndHasValue(int expected) {
