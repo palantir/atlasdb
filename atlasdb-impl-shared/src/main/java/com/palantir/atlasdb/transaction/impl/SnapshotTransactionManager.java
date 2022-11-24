@@ -45,7 +45,6 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -185,15 +184,8 @@ import javax.validation.constraints.NotNull;
             throw e;
         }
 
-        T result;
-        try {
-            result = openTransaction.finishWithCallback(
-                    transaction -> task.execute(transaction, condition), condition::cleanup);
-        } finally {
-            openTransaction.reportExpectationsCollectedData();
-        }
-
-        return result;
+        return openTransaction.finishWithCallback(
+                transaction -> task.execute(transaction, condition), condition::cleanup);
     }
 
     @Override
@@ -244,7 +236,7 @@ import javax.validation.constraints.NotNull;
         }
     }
 
-    private final class OpenTransactionImpl extends ForwardingExpectationsAwareTransaction implements OpenTransaction {
+    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
         private final CallbackAwareTransaction delegate;
         private final LockToken immutableTsLock;
@@ -255,7 +247,7 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public ExpectationsAwareTransaction delegate() {
+        public CallbackAwareTransaction delegate() {
             return delegate;
         }
 
@@ -383,16 +375,10 @@ import javax.validation.constraints.NotNull;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge);
-        T result;
-        try {
-            result = runTaskThrowOnConflictWithCallback(
-                    txn -> task.execute(txn, condition),
-                    new ReadTransaction(transaction, sweepStrategyManager),
-                    condition::cleanup);
-        } finally {
-            transaction.reportExpectationsCollectedData();
-        }
-        return result;
+        return runTaskThrowOnConflictWithCallback(
+                txn -> task.execute(txn, condition),
+                new ReadTransaction(transaction, sweepStrategyManager),
+                condition::cleanup);
     }
 
     @Override

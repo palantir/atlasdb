@@ -279,7 +279,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService tmKeyValueService,
+            KeyValueService delegateKeyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -308,7 +308,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueServiceImpl(tmKeyValueService);
+        this.keyValueService = new TrackingKeyValueServiceImpl(delegateKeyValueService);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
