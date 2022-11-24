@@ -13,3 +13,8 @@ acceptedBreaks:
     - code: "java.class.removed"
       old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics"
       justification: "removing TEX until ready"
+  "0.772.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction"
+      justification: "moving this out of API"
