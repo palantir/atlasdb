@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 /**
  * Implementors of this interface provide methods useful for tracking transactional expectations and whether

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 /**

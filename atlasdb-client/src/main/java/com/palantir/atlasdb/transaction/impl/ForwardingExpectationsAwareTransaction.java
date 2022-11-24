@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 public abstract class ForwardingExpectationsAwareTransaction extends ForwardingTransaction
