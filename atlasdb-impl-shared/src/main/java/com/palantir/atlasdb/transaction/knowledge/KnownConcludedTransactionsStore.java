@@ -98,10 +98,14 @@ public final class KnownConcludedTransactionsStore {
     }
 
     public void setMinimumConcludableTimestamp(Long timestamp) {
-        boolean checkAndSetSucceeded = checkAndSet(currentRangeState -> ImmutableConcludedRangeState.builder()
-                .from(currentRangeState)
-                .minimumConcludeableTimestamp(timestamp)
-                .build());
+        boolean checkAndSetSucceeded = checkAndSet(currentRangeState -> {
+            log.info(
+                    "Attempting to set minimum concludable range state.",
+                    SafeArg.of("newMinimumConcludeableTimestamp", timestamp),
+                    SafeArg.of(
+                            "currentMinimumConcludeableTimestamp", currentRangeState.minimumConcludeableTimestamp()));
+            return currentRangeState.copyAndSetMinimumConcludeableTimestamp(timestamp);
+        });
         if (!checkAndSetSucceeded) {
             log.warn("Unable to set the minimum concludable timestamp. This may be "
                     + "because the database is momentarily unavailable, or because of particularly high contention.");

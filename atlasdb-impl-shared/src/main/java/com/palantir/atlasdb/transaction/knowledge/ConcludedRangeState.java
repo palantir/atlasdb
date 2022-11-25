@@ -50,6 +50,13 @@ public interface ConcludedRangeState {
         return timestampRanges().encloses(timestampRange);
     }
 
+    default ConcludedRangeState copyAndSetMinimumConcludeableTimestamp(long timestamp) {
+        return ImmutableConcludedRangeState.builder()
+                .from(this)
+                .minimumConcludeableTimestamp(timestamp)
+                .build();
+    }
+
     default ConcludedRangeState copyAndAdd(Range<Long> additionalTimestampRange) {
         return copyAndAdd(ImmutableSet.of(additionalTimestampRange));
     }
