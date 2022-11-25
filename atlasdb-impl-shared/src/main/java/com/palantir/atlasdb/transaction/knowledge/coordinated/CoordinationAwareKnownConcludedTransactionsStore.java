@@ -74,6 +74,11 @@ public final class CoordinationAwareKnownConcludedTransactionsStore implements K
     }
 
     @Override
+    public void setMinimumConcludableTimestamp(Long timestamp) {
+        delegate.setMinimumConcludableTimestamp(timestamp);
+    }
+
+    @Override
     public long lastLocallyKnownConcludedTimestamp() {
         return delegate.lastLocallyKnownConcludedTimestamp();
     }

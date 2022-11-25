@@ -39,8 +39,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -89,30 +88,47 @@ public final class KnownConcludedTransactionsStore {
     }
 
     public void supplement(Set<Range<Long>> timestampRangesToAdd) {
+        boolean checkAndSetSucceeded =
+                checkAndSet(currentRangeState -> currentRangeState.copyAndAdd(timestampRangesToAdd));
+        if (!checkAndSetSucceeded) {
+            log.warn("Unable to supplement the set of concluded timestamps with a new timestamp range. This may be "
+                    + "because the database is momentarily unavailable, or because of particularly high contention.");
+            throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
+        }
+    }
+
+    public void setMinimumConcludableTimestamp(Long timestamp) {
+        boolean checkAndSetSucceeded = checkAndSet(currentRangeState -> ImmutableConcludedRangeState.builder()
+                .from(currentRangeState)
+                .minimumConcludeableTimestamp(timestamp)
+                .build());
+        if (!checkAndSetSucceeded) {
+            log.warn("Unable to set the minimum concludable timestamp. This may be "
+                    + "because the database is momentarily unavailable, or because of particularly high contention.");
+            throw new SafeIllegalStateException("Unable to set the minimum concludable timestamp.");
+        }
+    }
+
+    private boolean checkAndSet(Function<ConcludedRangeState, ConcludedRangeState> newConcludedRangeStateFunction) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             Optional<ReadResult> readResult = getInternal();
 
-            ConcludedRangeState timestampRangesRead =
+            ConcludedRangeState currentState =
                     readResult.map(ReadResult::concludedRangeState).orElseGet(ConcludedRangeState::empty);
 
-            Range<Long> minimumTimestampRange = Range.atLeast(timestampRangesRead.minimumConcludeableTimestamp());
+            ConcludedRangeState newConcludedRangeState = newConcludedRangeStateFunction.apply(currentState);
 
-            Set<Range<Long>> rangesToSupplement = timestampRangesToAdd.stream()
-                    .filter(Predicate.not(timestampRangesRead::encloses))
-                    .filter(minimumTimestampRange::isConnected)
-                    .map(minimumTimestampRange::intersection)
-                    .filter(Predicate.not(Range::isEmpty))
-                    .collect(Collectors.toSet());
-
-            if (rangesToSupplement.isEmpty()) {
-                return;
+            if (readResult
+                    .map(ReadResult::concludedRangeState)
+                    .map(newConcludedRangeState::equals)
+                    .orElse(false)) {
+                return false;
             }
 
-            CheckAndSetRequest checkAndSetRequest =
-                    getCheckAndSetRequest(readResult, timestampRangesRead.copyAndAdd(rangesToSupplement));
+            CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, newConcludedRangeState);
             try {
                 keyValueService.checkAndSet(checkAndSetRequest);
-                return;
+                return true;
             } catch (CheckAndSetException checkAndSetException) {
                 // swallow for retrying
                 log.info(
@@ -121,9 +137,7 @@ public final class KnownConcludedTransactionsStore {
                         checkAndSetException);
             }
         }
-        log.warn("Unable to supplement the set of concluded timestamps with a new timestamp range. This may be "
-                + "because the database is momentarily unavailable, or because of particularly high contention.");
-        throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
+        return true;
     }
 
     private CheckAndSetRequest getCheckAndSetRequest(

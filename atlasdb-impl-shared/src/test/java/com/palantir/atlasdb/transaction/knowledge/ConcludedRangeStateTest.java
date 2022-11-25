@@ -19,7 +19,9 @@ package com.palantir.atlasdb.transaction.knowledge;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import org.junit.Test;
 
 /**
@@ -28,13 +30,14 @@ import org.junit.Test;
  */
 @SuppressWarnings("UnstableApiUsage") // RangeSet
 public class ConcludedRangeStateTest {
+    private static final long MINIMUM_TIMESTAMP = TransactionConstants.LOWEST_POSSIBLE_START_TS;
     private static final ImmutableRangeSet<Long> BASE_RANGES = ImmutableRangeSet.<Long>builder()
             .add(Range.openClosed(10L, 20L))
             .add(Range.openClosed(30L, 40L))
             .build();
     private static final ConcludedRangeState BASE_RANGE_SET = ImmutableConcludedRangeState.builder()
             .timestampRanges(BASE_RANGES)
-            .minimumConcludeableTimestamp(2515L)
+            .minimumConcludeableTimestamp(MINIMUM_TIMESTAMP)
             .build();
 
     @Test
@@ -67,7 +70,7 @@ public class ConcludedRangeStateTest {
     public void copyAndAddWorksWithEmptyRange() {
         Range<Long> newRange = Range.openClosed(3L, 71L);
         assertThat(ConcludedRangeState.empty().copyAndAdd(newRange))
-                .isEqualTo(ConcludedRangeState.singleRange(newRange, 0L));
+                .isEqualTo(ConcludedRangeState.singleRange(newRange, TransactionConstants.LOWEST_POSSIBLE_START_TS));
     }
 
     @Test
@@ -99,5 +102,32 @@ public class ConcludedRangeStateTest {
         Range<Long> randomRange = Range.openClosed(50L, 55L);
         assertThat(BASE_RANGE_SET.copyAndAdd(randomRange).minimumConcludeableTimestamp())
                 .isEqualTo(BASE_RANGE_SET.minimumConcludeableTimestamp());
+    }
+
+    @Test
+    public void copyAndAddModifiesRangeToHaveMinimumTimestampAsLowerBound() {
+        long minimumTs = 100L;
+        long upperbound = 150L;
+        ConcludedRangeState state = ConcludedRangeState.initRanges(ImmutableSet.of(), minimumTs);
+        Range<Long> range = Range.closed(50L, upperbound);
+        assertThat(state.copyAndAdd(range).timestampRanges().asRanges())
+                .containsExactly(Range.closed(minimumTs, upperbound));
+    }
+
+    @Test
+    public void copyAndAddDoesNotModifyLowerBoundOnRangeIfAboveMinimumTimestamp() {
+        ConcludedRangeState state = ConcludedRangeState.initRanges(ImmutableSet.of(), MINIMUM_TIMESTAMP);
+        Range<Long> range = Range.atLeast(MINIMUM_TIMESTAMP + 1);
+        assertThat(state.copyAndAdd(range).timestampRanges().asRanges()).containsExactly(range);
+    }
+
+    @Test
+    public void copyAndAddDoesNotModifyLowerBoundOnPreExistingRanges() {
+        long minimumTimestamp = 50l;
+        long upperbound = 100l;
+        Range<Long> initialRange = Range.closed(MINIMUM_TIMESTAMP, upperbound);
+        ConcludedRangeState state = ConcludedRangeState.singleRange(initialRange, minimumTimestamp);
+        Range<Long> range = Range.atLeast(upperbound + 1);
+        assertThat(state.copyAndAdd(range).timestampRanges().asRanges()).containsExactly(initialRange, range);
     }
 }

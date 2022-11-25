@@ -25,6 +25,8 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -33,14 +35,13 @@ import org.immutables.value.Value;
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public interface ConcludedRangeState {
 
-    /**
-     * The minimum timestamp is used to ensure we do not conclude ranges that are below this timestamp [-∞, ts).
-     * This is necessary for backup/restore, as we must not conclude any ranges post-restore that are before
-     * the fast-forward timestamp. This is to prevent concluding transactions which have written to the KVS,
-     * but had not committed.
-     */
     @Value.Parameter
     Long minimumConcludeableTimestamp();
+
+    @Value.Derived
+    default Range<Long> minimumConcludeableTimestampRange() {
+        return Range.atLeast(minimumConcludeableTimestamp());
+    }
 
     @Value.Parameter
     RangeSet<Long> timestampRanges();
@@ -54,9 +55,20 @@ public interface ConcludedRangeState {
     }
 
     default ConcludedRangeState copyAndAdd(Set<Range<Long>> additionalTimestampRanges) {
+        Set<Range<Long>> rangesToSupplement = additionalTimestampRanges.stream()
+                .filter(Predicate.not(timestampRanges()::encloses))
+                .filter(minimumConcludeableTimestampRange()::isConnected)
+                .map(minimumConcludeableTimestampRange()::intersection)
+                .filter(Predicate.not(Range::isEmpty))
+                .collect(Collectors.toSet());
+
+        if (rangesToSupplement.isEmpty()) {
+            return this;
+        }
+
         return ImmutableConcludedRangeState.builder()
                 .timestampRanges(
-                        ImmutableRangeSet.unionOf(Sets.union(timestampRanges().asRanges(), additionalTimestampRanges)))
+                        ImmutableRangeSet.unionOf(Sets.union(timestampRanges().asRanges(), rangesToSupplement)))
                 .minimumConcludeableTimestamp(minimumConcludeableTimestamp())
                 .build();
     }

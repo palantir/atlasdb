@@ -27,8 +27,6 @@ import org.junit.Test;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public class KnownConcludedTransactionsStoreTest {
-
-    private static final long MINIMUM_TIMESTAMP = 25l;
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final KnownConcludedTransactionsStore knownConcludedTransactionsStore =
             KnownConcludedTransactionsStore.create(keyValueService);
