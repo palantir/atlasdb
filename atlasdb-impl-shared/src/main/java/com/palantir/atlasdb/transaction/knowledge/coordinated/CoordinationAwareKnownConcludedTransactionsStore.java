@@ -80,6 +80,7 @@ public final class CoordinationAwareKnownConcludedTransactionsStore implements K
             Range<Long> closedTsRangeToConclude, Map<Range<Long>, Integer> timestampRanges) {
         return KeyedStream.stream(timestampRanges)
                 .filter(schemaVersion -> schemaVersion >= TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .filterKeys(closedTsRangeToConclude::isConnected)
                 .mapKeys(closedTsRangeToConclude::intersection)
                 .keys()
                 .collect(Collectors.toSet());
