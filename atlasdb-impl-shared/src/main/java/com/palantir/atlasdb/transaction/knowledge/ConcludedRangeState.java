@@ -24,6 +24,8 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -51,6 +53,11 @@ public interface ConcludedRangeState {
     }
 
     default ConcludedRangeState copyAndSetMinimumConcludeableTimestamp(long timestamp) {
+        Preconditions.checkArgument(
+                timestamp >= minimumConcludeableTimestamp(),
+                "Must set minimum concludable timestamp to be higher than the present value.",
+                SafeArg.of("currentMinimumConcludeableTimestamp", minimumConcludeableTimestamp()),
+                SafeArg.of("newMinimumConcludeableTimestamp", minimumConcludeableTimestamp()));
         return ImmutableConcludedRangeState.builder()
                 .from(this)
                 .minimumConcludeableTimestamp(timestamp)
