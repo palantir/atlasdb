@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
@@ -71,9 +72,9 @@ public class TestSingleBackendCommand {
                 services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
                 Preconditions.checkArgument(
                         services.getKeyValueService().getAllTableNames().contains(table),
-                        "kvs contains tables %s, but not table %s",
-                        services.getKeyValueService().getAllTableNames(),
-                        table.getQualifiedName());
+                        "kvs contains tables, but not table",
+                        UnsafeArg.of("tables", services.getKeyValueService().getAllTableNames()),
+                        UnsafeArg.of("table", table.getQualifiedName()));
                 services.getKeyValueService().dropTable(table);
             }
             return 0;
