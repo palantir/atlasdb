@@ -126,7 +126,7 @@ public final class KnownConcludedTransactionsStore {
                     .map(ReadResult::concludedRangeState)
                     .map(newConcludedRangeState::equals)
                     .orElse(false)) {
-                return false;
+                return true;
             }
 
             CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, newConcludedRangeState);
