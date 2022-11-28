@@ -2603,7 +2603,7 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        log.info("reportExpectationsCollectedData is running successfully", SafeArg.of("state", state));
+        log.info("reportExpectationsCollectedData is running successfully", SafeArg.of("state", state.get()));
 
         expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
 
