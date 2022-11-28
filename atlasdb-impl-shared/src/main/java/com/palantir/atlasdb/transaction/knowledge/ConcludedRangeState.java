@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeSet;
@@ -40,6 +41,7 @@ public interface ConcludedRangeState {
     @Value.Parameter
     Long minimumConcludeableTimestamp();
 
+    @JsonIgnore
     @Value.Derived
     default Range<Long> minimumConcludeableTimestampRange() {
         return Range.atLeast(minimumConcludeableTimestamp());
@@ -70,7 +72,6 @@ public interface ConcludedRangeState {
 
     default ConcludedRangeState copyAndAdd(Set<Range<Long>> additionalTimestampRanges) {
         Set<Range<Long>> rangesToSupplement = additionalTimestampRanges.stream()
-                .filter(Predicate.not(timestampRanges()::encloses))
                 .filter(minimumConcludeableTimestampRange()::isConnected)
                 .map(minimumConcludeableTimestampRange()::intersection)
                 .filter(Predicate.not(Range::isEmpty))

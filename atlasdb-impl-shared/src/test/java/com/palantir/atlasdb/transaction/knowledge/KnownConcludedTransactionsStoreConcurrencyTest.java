@@ -91,7 +91,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
         startBlockingKeyValueServiceCalls();
 
         int numThreads = 300;
-        List<Range<Long>> candidateTimestampRanges = LongStream.range(0, numThreads)
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads)
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 
@@ -114,7 +114,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         int numThreads = 300;
         int threadsPerRange = 25;
-        List<Range<Long>> candidateTimestampRanges = LongStream.range(0, numThreads / threadsPerRange)
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads / threadsPerRange)
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 

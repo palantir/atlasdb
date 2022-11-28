@@ -17,11 +17,13 @@
 package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.Test;
 
 /**
@@ -31,9 +33,11 @@ import org.junit.Test;
 @SuppressWarnings("UnstableApiUsage") // RangeSet
 public class ConcludedRangeStateTest {
     private static final long MINIMUM_TIMESTAMP = TransactionConstants.LOWEST_POSSIBLE_START_TS;
+
+    private static final long BASE_RANGE_UPPERBOUND = 40L;
     private static final ImmutableRangeSet<Long> BASE_RANGES = ImmutableRangeSet.<Long>builder()
             .add(Range.openClosed(10L, 20L))
-            .add(Range.openClosed(30L, 40L))
+            .add(Range.openClosed(30L, BASE_RANGE_UPPERBOUND))
             .build();
     private static final ConcludedRangeState BASE_RANGE_SET = ImmutableConcludedRangeState.builder()
             .timestampRanges(BASE_RANGES)
@@ -129,5 +133,62 @@ public class ConcludedRangeStateTest {
         ConcludedRangeState state = ConcludedRangeState.singleRange(initialRange, minimumTimestamp);
         Range<Long> range = Range.atLeast(upperbound + 1);
         assertThat(state.copyAndAdd(range).timestampRanges().asRanges()).containsExactly(initialRange, range);
+    }
+
+    @Test
+    public void copyAndAddDoesNotAddRangesWhichAreBelowMinimumTimestamp() {
+        long minimumTimestamp = 50l;
+        long initialRangeUpperbound = 10L;
+        Range<Long> initialRange = Range.closed(MINIMUM_TIMESTAMP, initialRangeUpperbound);
+        ConcludedRangeState state = ConcludedRangeState.singleRange(initialRange, minimumTimestamp);
+        assertThat(state.copyAndAdd(Range.closed(initialRangeUpperbound, minimumTimestamp - 1))
+                        .timestampRanges()
+                        .asRanges())
+                .containsExactly(initialRange);
+    }
+
+    @Test
+    public void copyAndAddDoesNotAddEmptyRanges() {
+        Range<Long> emptyRange = Range.openClosed(1L, 1L);
+        assertThat(ConcludedRangeState.empty()
+                        .copyAndAdd(emptyRange)
+                        .timestampRanges()
+                        .isEmpty())
+                .isTrue();
+    }
+
+    @Test
+    public void copyAndAddDoesNotAddRangeIfIntersectionIsEmpty() {
+        long upperbound = 50L;
+        Range<Long> range = Range.closedOpen(1L, 50L);
+        assertThat(ConcludedRangeState.initRanges(ImmutableSet.of(), upperbound)
+                        .copyAndAdd(range)
+                        .timestampRanges()
+                        .isEmpty())
+                .isTrue();
+    }
+
+    @Test
+    public void copyAndSetMinimumConcludeableTimestampThrowsWhenNotMonotonicallyIncreasing() {
+        assertThatThrownBy(() -> ConcludedRangeState.empty().copyAndSetMinimumConcludeableTimestamp(-1))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("Must set minimum concludable timestamp to be higher than the present value.");
+    }
+
+    @Test
+    public void copyAndSetMinimumConcludeableTimestampUpdatesTimestamp() {
+        long newTimestamp = 100L;
+        ConcludedRangeState emptyState = ConcludedRangeState.empty();
+        assertThat(emptyState.minimumConcludeableTimestamp()).isEqualTo(TransactionConstants.LOWEST_POSSIBLE_START_TS);
+        assertThat(emptyState
+                        .copyAndSetMinimumConcludeableTimestamp(newTimestamp)
+                        .minimumConcludeableTimestamp())
+                .isEqualTo(newTimestamp);
+    }
+
+    @Test
+    public void emptySetsMinimumTimestampToLowestPossibleStartTs() {
+        assertThat(ConcludedRangeState.empty().minimumConcludeableTimestamp())
+                .isEqualTo(TransactionConstants.LOWEST_POSSIBLE_START_TS);
     }
 }
