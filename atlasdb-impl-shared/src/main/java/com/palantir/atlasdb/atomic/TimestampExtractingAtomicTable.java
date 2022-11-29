@@ -24,6 +24,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,7 +64,7 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
                 delegate.get(keys),
                 statuses -> {
                     if (statuses.values().stream().anyMatch(TransactionStatuses.unknown()::equals)) {
-                        throw new IllegalStateException("There has been a mistake in the wiring as "
+                        throw new SafeIllegalStateException("There has been a mistake in the wiring as "
                                 + "transactions that do not support transaction table sweep should not be seeing "
                                 + "`unknown` transaction status.");
                     }

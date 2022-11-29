@@ -28,6 +28,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -98,7 +99,7 @@ public class TimestampExtractingAtomicTableTest {
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         assertThatThrownBy(() -> timestampExtractingAtomicTable.get(keys).get())
-                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasCauseInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("There has been a mistake in the wiring as "
                         + "transactions that do not support transaction table sweep should not be seeing "
                         + "`unknown` transaction status.");
