@@ -65,13 +65,14 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
         return Futures.transform(
                 delegate.get(keys),
                 statuses -> {
-                    Set<TransactionStatus> unknowns = statuses.values()
-                            .stream()
-                            .filter(status -> status.equals(TransactionStatuses.unknown()))
+                    Set<TransactionStatus> unknowns = statuses.values().stream()
+                            .filter(TransactionStatuses.unknown()::equals)
                             .collect(Collectors.toSet());
-                    Preconditions.checkState(unknowns.isEmpty(), "There has been a mistake in the wiring as "
-                            + "transactions that do not support transaction table sweep should not be seeing "
-                            + "`unknown` transaction status.");
+                    Preconditions.checkState(
+                            unknowns.isEmpty(),
+                            "There has been a mistake in the wiring as "
+                                    + "transactions that do not support transaction table sweep should not be seeing "
+                                    + "`unknown` transaction status.");
                     return KeyedStream.stream(statuses)
                             .map(TransactionStatusUtils::maybeGetCommitTs)
                             .flatMap(Optional::stream)
