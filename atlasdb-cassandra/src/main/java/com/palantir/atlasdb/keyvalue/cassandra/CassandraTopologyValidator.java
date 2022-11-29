@@ -223,7 +223,7 @@ public final class CassandraTopologyValidator {
                         || result.type() == HostIdResult.Type.HARD_FAILURE)) {
             log.warn(
                     "While fetching host id from hosts, some reported soft and hard failures.",
-                    SafeArg.of("results", CassandraLogHelper.mapOfHosts(results)));
+                    SafeArg.of("results", results));
         }
 
         return EntryStream.of(results)
