@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -90,13 +91,17 @@ public class TimestampExtractingAtomicTableTest {
     }
 
     @Test
-    public void ignoresUnknownTransaction() throws ExecutionException, InterruptedException {
+    public void throwsOnUnknownTransaction() {
         Iterable<Long> keys = ImmutableList.of(1L);
         Map<Long, TransactionStatus> commits =
                 KeyedStream.of(keys).map(_key -> TransactionConstants.UNKNOWN).collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
-        assertThat(timestampExtractingAtomicTable.get(keys).get()).isEmpty();
+        assertThatThrownBy(() -> timestampExtractingAtomicTable.get(keys).get())
+                .hasCauseInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("There has been a mistake in the wiring as "
+                        + "transactions that do not support transaction table sweep should not be seeing "
+                        + "`unknown` transaction status.");
     }
 
     private long commitTs(long startTs) {

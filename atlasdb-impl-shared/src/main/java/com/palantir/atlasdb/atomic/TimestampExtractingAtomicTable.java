@@ -22,9 +22,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A layer on top of {@code AtomicTable<Long, TransactionStatus>} that transforms a TransactionStatus to {@code Long}
@@ -60,10 +64,19 @@ public class TimestampExtractingAtomicTable implements AtomicTable<Long, Long> {
     public ListenableFuture<Map<Long, Long>> get(Iterable<Long> keys) {
         return Futures.transform(
                 delegate.get(keys),
-                statuses -> KeyedStream.stream(statuses)
-                        .map(TransactionStatusUtils::maybeGetCommitTs)
-                        .flatMap(Optional::stream)
-                        .collectToMap(),
+                statuses -> {
+                    Set<TransactionStatus> unknowns = statuses.values()
+                            .stream()
+                            .filter(status -> status.equals(TransactionStatuses.unknown()))
+                            .collect(Collectors.toSet());
+                    Preconditions.checkState(unknowns.isEmpty(), "There has been a mistake in the wiring as "
+                            + "transactions that do not support transaction table sweep should not be seeing "
+                            + "`unknown` transaction status.");
+                    return KeyedStream.stream(statuses)
+                            .map(TransactionStatusUtils::maybeGetCommitTs)
+                            .flatMap(Optional::stream)
+                            .collectToMap();
+                },
                 MoreExecutors.directExecutor());
     }
 }
