@@ -72,12 +72,14 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
         startBlockingKeyValueServiceCalls();
         int numThreads = 100;
 
-        List<Future<Optional<TimestampRangeSet>>> readFutures =
+        List<Future<Optional<ConcludedRangeState>>> readFutures =
                 scheduleTasksInParallel(numThreads, taskIndex -> knownConcludedTransactionsStore.get());
 
-        List<Optional<TimestampRangeSet>> reads = letTasksRunToCompletion(readFutures, false);
-        for (Optional<TimestampRangeSet> read : reads) {
-            assertThat(read).contains(TimestampRangeSet.singleRange(Range.closedOpen(10L, 50L)));
+        List<Optional<ConcludedRangeState>> reads = letTasksRunToCompletion(readFutures, false);
+        for (Optional<ConcludedRangeState> read : reads) {
+            assertThat(read)
+                    .contains(ConcludedRangeState.singleRange(
+                            Range.closedOpen(10L, 50L), TransactionConstants.LOWEST_POSSIBLE_START_TS));
         }
 
         verify(delegateKeyValueService, atMost(50))
@@ -85,11 +87,42 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
     }
 
     @Test
+    public void writesPreserveCorrectnessUnderHighConcurrencyAndMinimumTimestampSet() throws InterruptedException {
+        long minimumConcludableTimestamp = 10L;
+        int numThreads = 300;
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads)
+                .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
+                .collect(Collectors.toList());
+
+        List<Range<Long>> expectedTimestampRanges = candidateTimestampRanges.stream()
+                .filter(range -> !range.isConnected(Range.closed(Long.MIN_VALUE, minimumConcludableTimestamp - 1)))
+                .collect(Collectors.toList());
+
+        knownConcludedTransactionsStore.setMinimumConcludableTimestamp(minimumConcludableTimestamp);
+        assertThat(knownConcludedTransactionsStore.get())
+                .map(ConcludedRangeState::minimumConcludeableTimestamp)
+                .contains(minimumConcludableTimestamp);
+        startBlockingKeyValueServiceCalls();
+
+        List<Future<Void>> supplementFutures = scheduleTasksInParallel(numThreads, taskIndex -> {
+            knownConcludedTransactionsStore.supplement(candidateTimestampRanges.get(taskIndex));
+            return null;
+        });
+
+        letTasksRunToCompletion(supplementFutures, true);
+
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
+        assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
+                        timestampRangeSet.timestampRanges().asRanges())
+                .isSubsetOf(expectedTimestampRanges));
+    }
+
+    @Test
     public void writesPreserveCorrectnessUnderHighConcurrency() throws InterruptedException {
         startBlockingKeyValueServiceCalls();
 
         int numThreads = 300;
-        List<Range<Long>> candidateTimestampRanges = LongStream.range(0, numThreads)
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads)
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 
@@ -100,7 +133,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .isSubsetOf(candidateTimestampRanges));
@@ -112,7 +145,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         int numThreads = 300;
         int threadsPerRange = 25;
-        List<Range<Long>> candidateTimestampRanges = LongStream.range(0, numThreads / threadsPerRange)
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads / threadsPerRange)
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
                 .collect(Collectors.toList());
 
@@ -123,7 +156,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
 
         letTasksRunToCompletion(supplementFutures, true);
 
-        Optional<TimestampRangeSet> rangesInDb = knownConcludedTransactionsStore.get();
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
                 .as("Given similarity of ranges, concurrency should be handled smoothly")

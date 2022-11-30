@@ -39,11 +39,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * Stores information about a {@link TimestampRangeSet} in a single cell in a single table in an underlying
+ * Stores information about a {@link ConcludedRangeState} in a single cell in a single table in an underlying
  * key-value-service.
  */
 @ThreadSafe
@@ -71,39 +71,68 @@ public final class KnownConcludedTransactionsStore {
                 keyValueService, TransactionConstants.KNOWN_CONCLUDED_TRANSACTIONS_TABLE, DEFAULT_CELL);
     }
 
-    public Optional<TimestampRangeSet> get() {
-        return valueReader.get().map(ReadResult::timestampRangeSet);
+    public Optional<ConcludedRangeState> get() {
+        return valueReader.get().map(ReadResult::concludedRangeState);
     }
 
     /**
-     * If this method completes non-exceptionally, it is guaranteed that the {@link TimestampRangeSet} persisted in
+     * If this method completes non-exceptionally, it is guaranteed that the {@link ConcludedRangeState} persisted in
      * the database contains the provided {@code timestampRangeToAdd}.
      *
      * In the event of multiple concurrent calls to this method, it is guaranteed that if they all resolve, then all
      * of the {@code timestampRangeToAdd} arguments will be enclosed in the final state of the
-     * {@link TimestampRangeSet} that has been persisted in the database.
+     * {@link ConcludedRangeState} that has been persisted in the database.
      */
     public void supplement(Range<Long> timestampRangeToAdd) {
         supplement(ImmutableSet.of(timestampRangeToAdd));
     }
 
     public void supplement(Set<Range<Long>> timestampRangesToAdd) {
+        boolean checkAndSetSucceeded =
+                checkAndSet(currentRangeState -> currentRangeState.copyAndAdd(timestampRangesToAdd));
+        if (!checkAndSetSucceeded) {
+            log.warn("Unable to supplement the set of concluded timestamps with a new timestamp range. This may be "
+                    + "because the database is momentarily unavailable, or because of particularly high contention.");
+            throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
+        }
+    }
+
+    public void setMinimumConcludableTimestamp(Long timestamp) {
+        boolean checkAndSetSucceeded = checkAndSet(currentRangeState -> {
+            log.info(
+                    "Attempting to set minimum concludable range state.",
+                    SafeArg.of("newMinimumConcludeableTimestamp", timestamp),
+                    SafeArg.of(
+                            "currentMinimumConcludeableTimestamp", currentRangeState.minimumConcludeableTimestamp()));
+            return currentRangeState.copyAndSetMinimumConcludeableTimestamp(timestamp);
+        });
+        if (!checkAndSetSucceeded) {
+            log.warn("Unable to set the minimum concludable timestamp. This may be "
+                    + "because the database is momentarily unavailable, or because of particularly high contention.");
+            throw new SafeIllegalStateException("Unable to set the minimum concludable timestamp.");
+        }
+    }
+
+    private boolean checkAndSet(Function<ConcludedRangeState, ConcludedRangeState> newConcludedRangeStateFunction) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             Optional<ReadResult> readResult = getInternal();
 
-            Optional<TimestampRangeSet> timestampRangesRead = readResult.map(ReadResult::timestampRangeSet);
-            Set<Range<Long>> rangesToSupplement = timestampRangesToAdd.stream()
-                    .filter(range -> !isRangeContained(timestampRangesRead, range))
-                    .collect(Collectors.toSet());
+            ConcludedRangeState currentState =
+                    readResult.map(ReadResult::concludedRangeState).orElseGet(ConcludedRangeState::empty);
 
-            if (rangesToSupplement.isEmpty()) {
-                return;
+            ConcludedRangeState newConcludedRangeState = newConcludedRangeStateFunction.apply(currentState);
+
+            if (readResult
+                    .map(ReadResult::concludedRangeState)
+                    .map(newConcludedRangeState::equals)
+                    .orElse(false)) {
+                return true;
             }
 
-            CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, rangesToSupplement);
+            CheckAndSetRequest checkAndSetRequest = getCheckAndSetRequest(readResult, newConcludedRangeState);
             try {
                 keyValueService.checkAndSet(checkAndSetRequest);
-                return;
+                return true;
             } catch (CheckAndSetException checkAndSetException) {
                 // swallow for retrying
                 log.info(
@@ -112,19 +141,12 @@ public final class KnownConcludedTransactionsStore {
                         checkAndSetException);
             }
         }
-        log.warn("Unable to supplement the set of concluded timestamps with a new timestamp range. This may be "
-                + "because the database is momentarily unavailable, or because of particularly high contention.");
-        throw new SafeIllegalStateException("Unable to supplement set of concluded timestamps.");
-    }
-
-    private boolean isRangeContained(Optional<TimestampRangeSet> timestampRangesRead, Range<Long> range) {
-        return timestampRangesRead.map(ranges -> ranges.encloses(range)).orElse(false);
+        return true;
     }
 
     private CheckAndSetRequest getCheckAndSetRequest(
-            Optional<ReadResult> oldValue, Set<Range<Long>> timestampRangesToAdd) {
-        byte[] serializedTargetSet = serializeTimestampRangeSet(
-                getTargetSet(oldValue.map(ReadResult::timestampRangeSet), timestampRangesToAdd));
+            Optional<ReadResult> oldValue, ConcludedRangeState concludedRangeState) {
+        byte[] serializedTargetSet = serializeTimestampRangeSet(concludedRangeState);
 
         if (oldValue.isEmpty()) {
             return CheckAndSetRequest.newCell(tableReference, valueCell, serializedTargetSet);
@@ -133,21 +155,13 @@ public final class KnownConcludedTransactionsStore {
                 tableReference, valueCell, oldValue.get().valueReadFromDatabase(), serializedTargetSet);
     }
 
-    private byte[] serializeTimestampRangeSet(TimestampRangeSet targetSet) {
+    private byte[] serializeTimestampRangeSet(ConcludedRangeState targetSet) {
         try {
             return OBJECT_MAPPER.writeValueAsBytes(targetSet);
         } catch (JsonProcessingException e) {
             log.warn("Error serializing timestamp range set", SafeArg.of("targetSet", targetSet), e);
             throw new RuntimeException(e);
         }
-    }
-
-    private TimestampRangeSet getTargetSet(
-            Optional<TimestampRangeSet> originalSet, Set<Range<Long>> timestampRangesToAdd) {
-        if (originalSet.isEmpty()) {
-            return TimestampRangeSet.initRanges(timestampRangesToAdd);
-        }
-        return originalSet.get().copyAndAdd(timestampRangesToAdd);
     }
 
     private Optional<ReadResult> getInternal() {
@@ -162,9 +176,9 @@ public final class KnownConcludedTransactionsStore {
         byte[] valueReadFromDatabase();
 
         @org.immutables.value.Value.Lazy
-        default TimestampRangeSet timestampRangeSet() {
+        default ConcludedRangeState concludedRangeState() {
             try {
-                return OBJECT_MAPPER.readValue(valueReadFromDatabase(), TimestampRangeSet.class);
+                return OBJECT_MAPPER.readValue(valueReadFromDatabase(), ConcludedRangeState.class);
             } catch (IOException e) {
                 log.warn(
                         "Error occurred when deserializing a timestamp range-set from the database",

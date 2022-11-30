@@ -98,6 +98,11 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
         ensureRangesCached(ImmutableRangeSet.copyOf(knownConcludedIntervals));
     }
 
+    @Override
+    public void setMinimumConcludableTimestamp(Long timestamp) {
+        knownConcludedTransactionsStore.setMinimumConcludableTimestamp(timestamp);
+    }
+
     private boolean verifyConcludedRanges(Set<Range<Long>> knownConcludedIntervals) {
         return knownConcludedIntervals.stream().allMatch(this::verifyConcludedRange);
     }
@@ -122,7 +127,7 @@ public final class KnownConcludedTransactionsImpl implements KnownConcludedTrans
     private void updateCacheFromRemote() {
         ensureRangesCached(knownConcludedTransactionsStore
                 .get()
-                .map(TimestampRangeSet::timestampRanges)
+                .map(ConcludedRangeState::timestampRanges)
                 .orElseGet(ImmutableRangeSet::of));
     }
 
