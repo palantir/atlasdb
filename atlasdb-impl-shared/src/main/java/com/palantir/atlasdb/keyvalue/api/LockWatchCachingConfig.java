@@ -34,6 +34,11 @@ public interface LockWatchCachingConfig {
         return 20_000_000;
     }
 
+    @Value.Default
+    default int maxEvents() {
+        return 10_000;
+    }
+
     /**
      * Determines how frequently to validate reads from the cache. This involves a read to the KVS, and thus negates
      * the performance gain from the cache. A value of 1.0 will always read from the remote; a value of 0.0 will

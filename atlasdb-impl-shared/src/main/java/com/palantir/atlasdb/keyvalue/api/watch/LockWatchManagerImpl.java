@@ -87,7 +87,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
         CacheMetrics metrics = CacheMetrics.create(metricsManager);
-        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics);
+        LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics, config.maxEvents());
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
         return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);

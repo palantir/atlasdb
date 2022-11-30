@@ -39,15 +39,14 @@ import javax.annotation.concurrent.ThreadSafe;
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     // The minimum number of events should be the same as Timelock's LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
-    private static final int MAX_EVENTS = 10_000;
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
     private final RateLimiter rateLimiter = RateLimiter.create(1.0);
 
-    public static LockWatchEventCache create(CacheMetrics metrics) {
+    public static LockWatchEventCache create(CacheMetrics metrics, int maxEvents) {
         return ResilientLockWatchProxy.newEventCacheProxy(
-                new LockWatchEventCacheImpl(LockWatchEventLog.create(metrics, MIN_EVENTS, MAX_EVENTS)),
+                new LockWatchEventCacheImpl(LockWatchEventLog.create(metrics, MIN_EVENTS, maxEvents)),
                 NoOpLockWatchEventCache.create(),
                 metrics);
     }
