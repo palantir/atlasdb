@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -31,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.UnmodifiableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import com.palantir.util.Pair;

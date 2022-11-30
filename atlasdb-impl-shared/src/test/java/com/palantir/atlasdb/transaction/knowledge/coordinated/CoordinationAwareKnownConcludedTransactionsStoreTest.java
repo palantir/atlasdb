@@ -80,6 +80,22 @@ public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     }
 
     @Test
+    public void supplementDoesNotThrowWhenRangeDoesNotIntersect() {
+        RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
+                .put(Range.closedOpen(1L, 100L), TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.closedOpen(100L, 200L), TransactionConstants.TTS_TRANSACTIONS_SCHEMA_VERSION)
+                .put(Range.atLeast(200L), TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .build();
+        CoordinationAwareKnownConcludedTransactionsStore coordinationAwareStore =
+                getCoordinationAwareStore(TimestampPartitioningMap.of(rangeMap));
+
+        Range<Long> rangeToSupplement = Range.closedOpen(201L, 400L);
+        assertThatCode(() -> coordinationAwareStore.addConcludedTimestamps(rangeToSupplement))
+                .doesNotThrowAnyException();
+        verifyNoMoreInteractions(delegate);
+    }
+
+    @Test
     public void canSupplementForNewerSchemas() {
         RangeMap<Long, Integer> rangeMap = ImmutableRangeMap.<Long, Integer>builder()
                 .put(Range.atLeast(1L), 7)

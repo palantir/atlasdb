@@ -18,10 +18,10 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
@@ -37,13 +37,14 @@ public class ColumnRangeSelection implements Serializable {
 
     @JsonCreator
     public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol, @JsonProperty("endCol") byte[] endCol) {
-        this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
-        this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
-        Preconditions.checkArgument(
-                isValidRange(this.startCol, this.endCol),
-                "Start and end columns (%s, %s respectively) do not form a valid range.",
-                startCol,
-                endCol);
+        this.startCol = Objects.requireNonNullElse(startCol, PtBytes.EMPTY_BYTE_ARRAY);
+        this.endCol = Objects.requireNonNullElse(endCol, PtBytes.EMPTY_BYTE_ARRAY);
+        if (!isValidRange(this.startCol, this.endCol)) {
+            throw new SafeIllegalArgumentException(
+                    "Start and end columns do not form a valid range.",
+                    UnsafeArg.of("startColumn", startCol),
+                    UnsafeArg.of("endColumn", endCol));
+        }
     }
 
     public byte[] getStartCol() {
