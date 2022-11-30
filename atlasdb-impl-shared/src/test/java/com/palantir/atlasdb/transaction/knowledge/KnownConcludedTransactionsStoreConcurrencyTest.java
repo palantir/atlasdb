@@ -87,6 +87,31 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
     }
 
     @Test
+    public void writesPreserveCorrectnessUnderHighConcurrencyAndMinimumTimestampSet() throws InterruptedException {
+        long minimumConcludableTimestamp = 10L;
+        int numThreads = 300;
+        List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads)
+                .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
+                .filter(range -> !range.isConnected(Range.closed(Long.MIN_VALUE, minimumConcludableTimestamp)))
+                .collect(Collectors.toList());
+
+        knownConcludedTransactionsStore.setMinimumConcludableTimestamp(10L);
+        startBlockingKeyValueServiceCalls();
+
+        List<Future<Void>> supplementFutures = scheduleTasksInParallel(numThreads, taskIndex -> {
+            knownConcludedTransactionsStore.supplement(candidateTimestampRanges.get(taskIndex));
+            return null;
+        });
+
+        letTasksRunToCompletion(supplementFutures, true);
+
+        Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
+        assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
+                        timestampRangeSet.timestampRanges().asRanges())
+                .isSubsetOf(candidateTimestampRanges));
+    }
+
+    @Test
     public void writesPreserveCorrectnessUnderHighConcurrency() throws InterruptedException {
         startBlockingKeyValueServiceCalls();
 

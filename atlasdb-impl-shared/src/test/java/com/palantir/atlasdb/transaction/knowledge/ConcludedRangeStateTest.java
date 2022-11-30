@@ -16,15 +16,15 @@
 
 package com.palantir.atlasdb.transaction.knowledge;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests on this class are fairly lightweight, as they focus primarily on correct deferral to the range-set
