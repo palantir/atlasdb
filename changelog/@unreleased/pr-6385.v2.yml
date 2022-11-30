@@ -1,0 +1,10 @@
+type: fix
+fix:
+  description: |-
+    RC from 0.754.0 without CassandraClientPoolHostLevelMetric outlier filtering
+
+    For RC cut from 0.754.0.
+
+    Effectively no-ops metrics filtering based on outliers.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6385
