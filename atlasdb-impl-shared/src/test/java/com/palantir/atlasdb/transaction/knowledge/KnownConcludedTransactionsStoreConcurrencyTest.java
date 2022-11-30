@@ -92,10 +92,16 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
         int numThreads = 300;
         List<Range<Long>> candidateTimestampRanges = LongStream.range(1, numThreads)
                 .mapToObj(index -> Range.closed(2 * index, 2 * index + 1))
-                .filter(range -> !range.isConnected(Range.closed(Long.MIN_VALUE, minimumConcludableTimestamp)))
                 .collect(Collectors.toList());
 
-        knownConcludedTransactionsStore.setMinimumConcludableTimestamp(10L);
+        List<Range<Long>> expectedTimestampRanges = candidateTimestampRanges.stream()
+                .filter(range -> !range.isConnected(Range.closed(Long.MIN_VALUE, minimumConcludableTimestamp - 1)))
+                .collect(Collectors.toList());
+
+        knownConcludedTransactionsStore.setMinimumConcludableTimestamp(minimumConcludableTimestamp);
+        assertThat(knownConcludedTransactionsStore.get())
+                .map(ConcludedRangeState::minimumConcludeableTimestamp)
+                .contains(minimumConcludableTimestamp);
         startBlockingKeyValueServiceCalls();
 
         List<Future<Void>> supplementFutures = scheduleTasksInParallel(numThreads, taskIndex -> {
@@ -108,7 +114,7 @@ public class KnownConcludedTransactionsStoreConcurrencyTest {
         Optional<ConcludedRangeState> rangesInDb = knownConcludedTransactionsStore.get();
         assertThat(rangesInDb).hasValueSatisfying(timestampRangeSet -> assertThat(
                         timestampRangeSet.timestampRanges().asRanges())
-                .isSubsetOf(candidateTimestampRanges));
+                .isSubsetOf(expectedTimestampRanges));
     }
 
     @Test
