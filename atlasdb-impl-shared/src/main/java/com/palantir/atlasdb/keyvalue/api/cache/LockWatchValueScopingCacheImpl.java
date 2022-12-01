@@ -152,11 +152,17 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                             .flatMap(List::stream)
                             .collect(ImmutableSet.toImmutableSet());
 
+                    Map<CellReference, CacheValue> toUpdate;
+                    if (invalidatedCells.isEmpty()) {
+                        toUpdate = cachedValues;
+                    } else {
+                        toUpdate = KeyedStream.stream(cachedValues)
+                                .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                                .collectToMap();
+                    }
+
                     synchronized (LockWatchValueScopingCacheImpl.this) {
-                        KeyedStream.stream(cachedValues)
-                                .filterKeys(cellReference ->
-                                        invalidatedCells.isEmpty() || !invalidatedCells.contains(cellReference))
-                                .forEach(valueStore::putValue);
+                        toUpdate.forEach(valueStore::putValue);
                     }
                     return null;
                 }
@@ -206,24 +212,25 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion.map(LockWatchVersion::version).map(Sequence::of).ifPresent(sequence -> {
+        Optional<Sequence> maybeSeq =
+                currentVersion.map(LockWatchVersion::version).map(Sequence::of);
+        if (maybeSeq.isPresent()) {
             synchronized (this) {
-                snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+                snapshotStore.storeSnapshot(maybeSeq.get(), reversedMap.get(maybeSeq.get()), valueStore.getSnapshot());
             }
-        });
+        }
 
-        updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
-            synchronized (this) {
+        for (LockWatchEvent event : updateForTransactions.events()) {
+            if (isNewEvent(event)) {
                 valueStore.applyEvent(event);
                 Sequence sequence = Sequence.of(event.sequence());
                 snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
             }
-        });
+        }
 
-        updateForTransactions
-                .startTsToSequence()
-                .keySet()
-                .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
+        for (Long timestamp : updateForTransactions.startTsToSequence().keySet()) {
+            cacheStore.createCache(StartTimestamp.of(timestamp));
+        }
 
         if (valueStore.getSnapshot().hasAnyTablesWatched()) {
             assertNoSnapshotsMissing(reversedMap);
