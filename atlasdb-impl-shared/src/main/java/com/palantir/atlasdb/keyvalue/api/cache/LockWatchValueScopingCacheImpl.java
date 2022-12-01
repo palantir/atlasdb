@@ -152,7 +152,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                             .flatMap(List::stream)
                             .collect(ImmutableSet.toImmutableSet());
 
-                    Map<CellReference, CacheValue> toUpdate;
+                    final Map<CellReference, CacheValue> toUpdate;
                     if (invalidatedCells.isEmpty()) {
                         toUpdate = cachedValues;
                     } else {
@@ -228,9 +228,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             }
         }
 
-        for (Long timestamp : updateForTransactions.startTsToSequence().keySet()) {
-            cacheStore.createCache(StartTimestamp.of(timestamp));
-        }
+        updateForTransactions.startTsToSequence().keySet().stream()
+                .map(StartTimestamp::of)
+                .forEach(cacheStore::createCache);
 
         if (valueStore.getSnapshot().hasAnyTablesWatched()) {
             assertNoSnapshotsMissing(reversedMap);
