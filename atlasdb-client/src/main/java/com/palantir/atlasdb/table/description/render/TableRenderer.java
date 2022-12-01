@@ -1965,5 +1965,6 @@ public class TableRenderer {
         ColumnRangeSelection.class,
         Iterators.class,
         ImmutableGetRangesQuery.class,
+        Nullable.class,
     };
 }

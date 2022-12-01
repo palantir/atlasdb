@@ -17,10 +17,10 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Callables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;

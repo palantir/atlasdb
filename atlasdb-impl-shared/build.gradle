@@ -12,6 +12,7 @@ license {
   exclude '**/PutUnlessExistsTableMetrics.java'
   exclude '**/TargetedSweepProgressMetrics.java'
   exclude '**/TimestampCorrectnessMetrics.java'
+  exclude '**/VerificationModeMetrics.java'
 }
 
 dependencies {
@@ -29,6 +30,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.google.protobuf:protobuf-java'
+  implementation 'one.util:streamex'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-core'
@@ -117,6 +119,7 @@ dependencies {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
+  testImplementation 'one.util:streamex'
 
   testRuntimeOnly 'ch.qos.logback:logback-classic'
 }

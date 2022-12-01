@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -194,22 +195,22 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         if (getProtocol() == ConnectionProtocol.TCPS) {
             Preconditions.checkArgument(
                     getTruststorePath().isPresent(), "ConnectionProtocol.TCPS requires a truststore");
-            com.google.common.base.Preconditions.checkArgument(
+            Preconditions.checkArgument(
                     new File(getTruststorePath().get()).exists(),
-                    "truststore file not found at %s",
-                    getTruststorePath().get());
+                    "truststore file not found",
+                    UnsafeArg.of("truststorePath", getTruststorePath().get()));
             Preconditions.checkArgument(
                     getTruststorePassword().isPresent(), "ConnectionProtocol.TCPS requires a truststore password");
             if (getTwoWaySsl()) {
                 Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
-                com.google.common.base.Preconditions.checkArgument(
+                Preconditions.checkArgument(
                         new File(getKeystorePath().get()).exists(),
-                        "keystore file not found at %s",
-                        getKeystorePath().get());
+                        "keystore file not found",
+                        UnsafeArg.of("keystorePath", getKeystorePath().get()));
                 Preconditions.checkArgument(
                         getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
             }
-            if (!getServerDn().isPresent()) {
+            if (getServerDn().isEmpty()) {
                 Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
             }
         } else {

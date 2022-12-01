@@ -94,6 +94,8 @@ public final class LockWatchValueScopingCacheImplTest {
     private static final LockWatchStateUpdate.Success LOCK_WATCH_UNLOCK_SUCCESS =
             LockWatchStateUpdate.success(LEADER, 2L, ImmutableList.of(UNLOCK_EVENT));
 
+    private static final int MAX_EVENTS = 10_000;
+
     private final CacheMetrics metrics = mock(CacheMetrics.class);
     private LockWatchEventCache eventCache;
     private LockWatchValueScopingCache valueCache;
@@ -102,7 +104,7 @@ public final class LockWatchValueScopingCacheImplTest {
     @Before
     public void before() {
         snapshotStore = SnapshotStoreImpl.create(metrics);
-        eventCache = LockWatchEventCacheImpl.create(metrics);
+        eventCache = LockWatchEventCacheImpl.create(metrics, MAX_EVENTS);
         valueCache = new LockWatchValueScopingCacheImpl(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
     }

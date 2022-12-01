@@ -50,6 +50,18 @@ public interface KnownConcludedTransactions {
     void addConcludedTimestamps(Set<Range<Long>> knownConcludedIntervals);
 
     /**
+     * Sets the minimum timestamp required for any range to be concluded.
+     *
+     * The minimum timestamp is used to ensure we do not conclude ranges that are below this timestamp [-∞, ts).
+     * This is necessary for backup/restore, as we must not conclude any ranges post-restore that are before
+     * the fast-forward timestamp. This is to prevent concluding transactions which have written to the KVS,
+     * but had not committed.
+     *
+     * @param timestamp minimum timestamp
+     */
+    void setMinimumConcludableTimestamp(Long timestamp);
+
+    /**
      * Returns the greatest known concluded timestamp for which transaction is known to have concluded. This call
      * relies on local cache. Hence, it is possible for the view to be out of date.
      *

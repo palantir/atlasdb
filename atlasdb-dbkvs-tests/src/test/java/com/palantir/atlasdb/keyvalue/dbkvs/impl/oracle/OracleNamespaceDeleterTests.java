@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCacheImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.TableDetails;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import java.io.IOException;
@@ -415,7 +415,7 @@ public final class OracleNamespaceDeleterTests {
                 connectionSupplier,
                 ddlConfig,
                 tableNameGetter,
-                new TableValueStyleCache(),
+                new TableValueStyleCacheImpl(),
                 MoreExecutors.newDirectExecutorService());
         return OracleNamespaceDeleterParameters.builder()
                 .tablePrefix(ddlConfig.tablePrefix())

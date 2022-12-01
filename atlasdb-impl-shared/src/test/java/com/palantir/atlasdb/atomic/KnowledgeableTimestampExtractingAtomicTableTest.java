@@ -18,15 +18,22 @@ package com.palantir.atlasdb.atomic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
+import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
+import com.palantir.atlasdb.transaction.knowledge.VerificationModeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
@@ -34,6 +41,8 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> delegate = mock(AtomicTable.class);
     private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
     private final KnownAbandonedTransactions knownAbandonedTransactions = mock(KnownAbandonedTransactions.class);
+    private final DefaultTaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
+    private final VerificationModeMetrics metrics = VerificationModeMetrics.of(registry);
     private final KnowledgeableTimestampExtractingAtomicTable tsExtractingTable =
             new KnowledgeableTimestampExtractingAtomicTable(
                     delegate,
@@ -41,7 +50,8 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
                             .concluded(knownConcludedTransactions)
                             .abandoned(knownAbandonedTransactions)
                             .lastSeenCommitSupplier(() -> Long.MAX_VALUE)
-                            .build());
+                            .build(),
+                    registry);
 
     @Test
     public void canGetTsOfConcludedTxn() throws ExecutionException, InterruptedException {
@@ -114,5 +124,118 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
+    }
+
+    // Verification mode tests
+    @Test
+    public void noVerificationIfTransactionInProgress() {
+        long startTs = 27l;
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.inProgress()));
+        tsExtractingTable.get(startTs);
+
+        verifyNoInteractions(knownAbandonedTransactions);
+        verifyNoInteractions(knownConcludedTransactions);
+        assertNoVerification();
+    }
+
+    @Test
+    public void noVerificationInBatchedGetIfTransactionInProgress() {
+        long startTs = 27l;
+        when(delegate.get(ImmutableSet.of(startTs)))
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of(startTs, TransactionStatuses.inProgress())));
+        tsExtractingTable.get(ImmutableSet.of(startTs));
+
+        verifyNoInteractions(knownAbandonedTransactions);
+        verifyNoInteractions(knownConcludedTransactions);
+        assertNoVerification();
+    }
+
+    @Test
+    public void noVerificationIfTransactionNotConcluded() {
+        long startTs = 27l;
+        long commitTs = 35l;
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
+                .thenReturn(false);
+
+        tsExtractingTable.get(startTs);
+
+        verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
+        verifyNoInteractions(knownAbandonedTransactions);
+        assertNoVerification();
+    }
+
+    @Test
+    public void verifiesConcludedTransaction() {
+        long startTs = 27l;
+        long commitTs = 35l;
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
+                .thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
+
+        tsExtractingTable.get(startTs);
+
+        verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
+        verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(1);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
+    }
+
+    @Test
+    public void verifiesConcludedAbandonedTransaction() {
+        long startTs = 27l;
+
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.aborted()));
+        when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
+                .thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
+
+        tsExtractingTable.get(startTs);
+
+        verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
+        verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(1);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
+    }
+
+    @Test
+    public void catchesInconsistencyIfCommittedTransactionIsMarkedAbandoned() {
+        long startTs = 27l;
+        long commitTs = 35l;
+
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
+                .thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
+
+        tsExtractingTable.get(startTs);
+
+        verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
+        verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(0);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void catchesInconsistencyIfAbortedTransactionIsNotMarkedAbandoned() {
+        long startTs = 27l;
+
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.aborted()));
+        when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
+                .thenReturn(true);
+        when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
+
+        tsExtractingTable.get(startTs);
+
+        verify(knownConcludedTransactions).isKnownConcluded(startTs, Consistency.REMOTE_READ);
+        verify(knownAbandonedTransactions).isKnownAbandoned(startTs);
+        assertThat(metrics.success().getCount()).isEqualTo(0);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(1);
+    }
+
+    private void assertNoVerification() {
+        assertThat(metrics.success().getCount()).isEqualTo(0);
+        assertThat(metrics.inconsistencies().getCount()).isEqualTo(0);
     }
 }

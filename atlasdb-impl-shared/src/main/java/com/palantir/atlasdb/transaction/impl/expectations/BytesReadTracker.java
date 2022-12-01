@@ -16,22 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl.expectations;
 
-import org.derive4j.Data;
-
-@Data
-public interface ExpectationsViolation {
-    interface Cases<R> {
-        R ranForTooLong();
-
-        R readTooMuch();
-
-        R readTooMuchInOneKvsCall();
-
-        R queriedKvsTooManyTimes();
-    }
-
-    <R> R match(Cases<R> cases);
-
-    @Override
-    boolean equals(Object other);
+/**
+ * Allows lazy Atlas KVS calls to record bytes read as they come in for tracking purposes.
+ * See {@link com.palantir.atlasdb.transaction.impl.expectations.TrackingIterator} for a use case.
+ */
+@FunctionalInterface
+public interface BytesReadTracker {
+    void record(long bytesRead);
 }

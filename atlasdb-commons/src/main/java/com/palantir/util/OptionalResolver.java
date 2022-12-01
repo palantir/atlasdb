@@ -15,8 +15,8 @@
  */
 package com.palantir.util;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,14 +38,16 @@ public final class OptionalResolver {
     public static <T> T resolve(Optional<T> optional1, Optional<T> optional2) {
         Set<T> values = Stream.of(optional1, optional2)
                 .filter(Objects::nonNull)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
 
-        com.palantir.logsafe.Preconditions.checkArgument(
-                values.size() >= 1, "All Optionals provided were empty, couldn't determine a value.");
-        Preconditions.checkArgument(
-                values.size() <= 1, "Contradictory values %s found, expected a single common value", values);
-        return Iterables.getOnlyElement(values);
+        if (values.size() == 1) {
+            return values.iterator().next();
+        } else if (values.size() > 1) {
+            throw new SafeIllegalArgumentException(
+                    "Contradictory values found, expected a single common value", UnsafeArg.of("values", values));
+        } else {
+            throw new SafeIllegalArgumentException("All Optionals provided were empty, couldn't determine a value.");
+        }
     }
 }

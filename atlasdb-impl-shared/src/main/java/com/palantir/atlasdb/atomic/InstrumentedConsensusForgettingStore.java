@@ -25,6 +25,7 @@ import com.palantir.atlasdb.pue.ConsensusForgettingStoreMetrics;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -66,13 +67,23 @@ public class InstrumentedConsensusForgettingStore implements ConsensusForgetting
     }
 
     @Override
+    public void mark(Cell cell) {
+        delegate.mark(cell);
+    }
+
+    @Override
+    public void mark(Set<Cell> cells) {
+        delegate.mark(cells);
+    }
+
+    @Override
     public void atomicUpdate(Cell cell, byte[] value) throws KeyAlreadyExistsException {
         delegate.atomicUpdate(cell, value);
     }
 
     @Override
-    public void atomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-        delegate.atomicUpdate(values);
+    public void batchAtomicUpdate(Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        delegate.batchAtomicUpdate(values);
     }
 
     @Override

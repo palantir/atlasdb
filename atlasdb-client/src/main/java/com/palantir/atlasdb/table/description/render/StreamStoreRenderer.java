@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.table.description.render;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
@@ -50,7 +49,9 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.compression.StreamCompression;
 import com.palantir.common.io.ConcatenatedInputStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -305,7 +306,7 @@ public class StreamStoreRenderer {
                     line("StreamMetadata metadata ="
                             + " metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
                     line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being"
-                            + " cleaned up while storing blocks: %s\", id);");
+                            + " cleaned up while storing blocks\", SafeArg.of(\"id\", id));");
                     line("StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
                     line("metaTable.putMetadata(row, builder.build());");
@@ -688,8 +689,11 @@ public class StreamStoreRenderer {
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {");
                     {
                         line("StreamMetadata metadata = e.getValue();");
-                        line("Preconditions.checkState(metadata.getStatus() == Status.STORED,");
-                        line("\"Stream: %s has status: %s\", e.getKey().getId(), metadata.getStatus());");
+                        line("Preconditions.checkState(");
+                        line("        metadata.getStatus() == Status.STORED,");
+                        line("        \"Stream has stored status\",");
+                        line("        SafeArg.of(\"streamId\", e.getKey().getId()),");
+                        line("        SafeArg.of(\"status\", metadata.getStatus()));");
                         line("metaTable.putMetadata(e.getKey(), metadata);");
                     }
                     line("}");
@@ -1026,6 +1030,7 @@ public class StreamStoreRenderer {
         TimeUnit.class,
         BiConsumer.class,
         SafeArg.class,
+        UnsafeArg.class,
         SafeLogger.class,
         SafeLoggerFactory.class,
         Preconditions.class,

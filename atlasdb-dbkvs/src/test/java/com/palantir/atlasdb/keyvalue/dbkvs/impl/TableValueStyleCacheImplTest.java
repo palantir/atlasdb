@@ -36,11 +36,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TableValueStyleCacheTest {
+public class TableValueStyleCacheImplTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test_table");
     private static final TableReference TEST_TABLE_2 = TableReference.createFromFullyQualifiedName("ns.test_table_2");
     private final ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
-    private final TableValueStyleCache valueStyleCache = new TableValueStyleCache();
+    private final TableValueStyleCacheImpl valueStyleCache = new TableValueStyleCacheImpl();
 
     @Before
     public void setup() {

@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl.expectations;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import org.immutables.value.Value;
+import com.palantir.common.base.ClosableIterator;
+import java.util.function.ToLongFunction;
 
-/**
- * Tracked data for an individual transaction.
- */
-@Value.Immutable
-public interface ExpectationsStatistics {
-    long transactionAgeMillis();
+public final class TrackingClosableIterator<T> extends TrackingIterator<T, ClosableIterator<T>>
+        implements ClosableIterator<T> {
 
-    ImmutableMap<TableReference, TransactionReadInfo> readInfoByTable();
+    public TrackingClosableIterator(
+            ClosableIterator<T> delegate, BytesReadTracker tracker, ToLongFunction<T> measurer) {
+        super(delegate, tracker, measurer);
+    }
+
+    @Override
+    public void close() {
+        delegate().close();
+    }
 }
