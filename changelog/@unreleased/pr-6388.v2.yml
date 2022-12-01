@@ -1,0 +1,6 @@
+type: manualTask
+manualTask:
+  description: '[DNM] RC from 0.754.0 without CassandraClientPoolHostLevelMetric outlier
+    filtering'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6388
