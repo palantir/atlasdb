@@ -24,9 +24,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
@@ -36,7 +36,7 @@ final class CacheStoreImpl implements CacheStore {
 
     private final int maxCacheCount;
     private final SnapshotStore snapshotStore;
-    private final Map<StartTimestamp, Caches> cacheMap;
+    private final ConcurrentMap<StartTimestamp, Caches> cacheMap;
     private final double validationProbability;
     private final Runnable failureCallback;
     private final CacheMetrics metrics;
