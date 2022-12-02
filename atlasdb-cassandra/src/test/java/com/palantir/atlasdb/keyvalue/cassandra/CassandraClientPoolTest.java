@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.SafeArg;
@@ -495,7 +496,7 @@ public final class CassandraClientPoolTest {
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                _numThreads -> deterministicExecutor,
+                InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
                 cassandra,
                 cassandraTopologyValidator,
