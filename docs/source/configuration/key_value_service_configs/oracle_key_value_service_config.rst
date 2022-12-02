@@ -214,7 +214,7 @@ To resolve, simply add the following configuration to your Oracle ddl configurat
         type: relational
         ddl:
           type: oracle
-          alter-tables-or-metadata-to-match-and-i-know-what-i-am-doing:
+          alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
             - <table name>
 
 Note: Table names are case sensitive
@@ -223,6 +223,8 @@ Generally speaking the operation is safe to perform, although it's on the operat
 effects are. For example, if the issue arose as two services are configured to use this table, but only one is
 performing table mapping, then it is expected that this could break one of the services. However, that condition
 still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
+
+The action that is ran is idempotent
 
 
 
