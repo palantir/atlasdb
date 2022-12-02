@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.List;
@@ -196,6 +199,76 @@ public final class SnapshotStoreImplTest {
         assertThat(anySnapshotPresentForSequences(sequences)).isTrue();
         forceRunSnapshotRetention();
         assertThat(anySnapshotPresentForSequences(sequences)).isFalse();
+    }
+
+    @Test
+    public void exceedMaxSize() {
+        final int maximumSize = 1000;
+        snapshotStore = new SnapshotStoreImpl(0, maximumSize, CACHE_METRICS);
+        LongStream.range(0, maximumSize + 1)
+                .forEach(i ->
+                        snapshotStore.storeSnapshot(Sequence.of(i), ImmutableSet.of(StartTimestamp.of(i)), SNAPSHOT_1));
+
+        assertThatLoggableExceptionThrownBy(() -> snapshotStore.storeSnapshot(
+                        Sequence.of(maximumSize + 1), ImmutableSet.of(StartTimestamp.of(maximumSize + 1)), SNAPSHOT_2))
+                .hasMessageContaining("Exceeded max snapshot store size")
+                .isInstanceOf(SafeIllegalStateException.class)
+                .args()
+                .hasSize(7)
+                .allMatch(Arg::isSafeForLogging)
+                .extracting(Arg::getName)
+                .contains(
+                        "maximumSize",
+                        "snapshotMapSize",
+                        "liveSequencesSize",
+                        "timestampMapSize",
+                        "earliestTimestamp",
+                        "earliestSnapshotSequence",
+                        "earliestLiveSequence");
+
+        // can remove and add once back under max size threshold
+        assertThat(anySnapshotPresentForSequences(List.of(Sequence.of(0)))).isTrue();
+        snapshotStore.removeTimestamp(StartTimestamp.of(0));
+        assertThat(anySnapshotPresentForSequences(List.of(Sequence.of(0)))).isFalse();
+        snapshotStore.storeSnapshot(
+                Sequence.of(maximumSize + 1), ImmutableSet.of(StartTimestamp.of(maximumSize + 1)), SNAPSHOT_3);
+        assertThat(snapshotStore.getSnapshotForSequence(Sequence.of(maximumSize + 1)))
+                .isPresent()
+                .hasValue(SNAPSHOT_3);
+        assertThat(anySnapshotPresentForSequences(List.of(Sequence.of(maximumSize + 1))))
+                .isTrue();
+    }
+
+    @Test
+    public void parallelAdd() {
+        final int maximumSize = 1000;
+        final int half = maximumSize / 2;
+        snapshotStore = new SnapshotStoreImpl(0, maximumSize, CACHE_METRICS);
+        LongStream.range(0, half)
+                .parallel()
+                .forEach(i ->
+                        snapshotStore.storeSnapshot(Sequence.of(i), ImmutableSet.of(StartTimestamp.of(i)), SNAPSHOT_1));
+
+        for (int i = 0; i < half; i++) {
+            assertThat(snapshotStore.getSnapshotForSequence(Sequence.of(i)))
+                    .isPresent()
+                    .hasValue(SNAPSHOT_1);
+        }
+
+        snapshotStore.storeSnapshot(
+                Sequence.of(maximumSize + 1), ImmutableSet.of(StartTimestamp.of(maximumSize + 1)), SNAPSHOT_2);
+        assertThat(snapshotStore.getSnapshotForSequence(Sequence.of(maximumSize + 1)))
+                .isPresent()
+                .hasValue(SNAPSHOT_2);
+
+        assertThatLoggableExceptionThrownBy(() -> LongStream.range(half, maximumSize + 1)
+                        .parallel()
+                        .forEach(i -> snapshotStore.storeSnapshot(
+                                Sequence.of(i), ImmutableSet.of(StartTimestamp.of(i)), SNAPSHOT_3)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .cause()
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Exceeded max snapshot store size");
     }
 
     private boolean anySnapshotPresentForSequences(List<Sequence> sequences) {
