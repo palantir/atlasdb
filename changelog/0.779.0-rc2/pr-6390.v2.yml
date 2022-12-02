@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '[DNM] RC without CassandraClientPoolHostLevelMetric outlier filtering'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6390
