@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.common.remoting.HeaderAccessUtils;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class HeaderAccessUtilsTest {
     @Test
     public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {
         assertCaseInsensitiveContainsEntry(KEY_1, FOO, true);
-        assertCaseInsensitiveContainsEntry(KEY_1.toUpperCase(), FOO, true);
+        assertCaseInsensitiveContainsEntry(KEY_1.toUpperCase(Locale.ROOT), FOO, true);
         assertCaseInsensitiveContainsEntry("VaRiAbLES", FOO, true);
     }
 
@@ -69,7 +70,7 @@ public class HeaderAccessUtilsTest {
         Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
-        testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
+        testMap.put(KEY_2.toUpperCase(Locale.ROOT), ImmutableList.of(additionalCommand));
         assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand))
                 .isFalse();
     }
@@ -82,7 +83,7 @@ public class HeaderAccessUtilsTest {
     @Test
     public void caseInsensitiveGetIgnoresCaseOnKeys() {
         assertCaseInsensitiveGet(KEY_1, VALUE_1);
-        assertCaseInsensitiveGet(KEY_1.toUpperCase(), VALUE_1);
+        assertCaseInsensitiveGet(KEY_1.toUpperCase(Locale.ROOT), VALUE_1);
     }
 
     @Test
@@ -90,8 +91,8 @@ public class HeaderAccessUtilsTest {
         Map<String, Collection<String>> testMap = new LinkedHashMap<>();
         String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
         testMap.put(KEY_2, VALUE_2);
-        testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()))
+        testMap.put(KEY_2.toUpperCase(Locale.ROOT), ImmutableList.of(additionalCommand));
+        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase(Locale.ROOT)))
                 .containsExactlyElementsOf(VALUE_2);
     }
 

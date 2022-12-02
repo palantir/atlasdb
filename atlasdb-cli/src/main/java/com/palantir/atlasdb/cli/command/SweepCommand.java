@@ -39,6 +39,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -283,6 +284,6 @@ public class SweepCommand extends SingleBackendCommand {
     }
 
     private byte[] decodeStartRow(String rowString) {
-        return BaseEncoding.base16().decode(rowString.toUpperCase());
+        return BaseEncoding.base16().decode(rowString.toUpperCase(Locale.ROOT));
     }
 }

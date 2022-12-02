@@ -22,6 +22,7 @@ import com.palantir.nexus.db.DBType;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Locale;
 
 public final class ConnectionDbTypes {
     private static final SafeLogger log = SafeLoggerFactory.get(ConnectionDbTypes.class);
@@ -33,7 +34,7 @@ public final class ConnectionDbTypes {
     public static DBType getDbType(Connection conn) {
         try {
             DatabaseMetaData metaData = conn.getMetaData();
-            String driverName = metaData.getDriverName().toLowerCase();
+            String driverName = metaData.getDriverName().toLowerCase(Locale.ROOT);
             if (driverName.contains("oracle")) {
                 return DBType.ORACLE;
             } else if (driverName.contains("postgres")) {

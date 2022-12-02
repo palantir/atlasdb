@@ -126,6 +126,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -1540,7 +1541,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         // try and get with a single-key lookup
-        String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase();
+        String lowerCaseTableName = tableRef.getQualifiedName().toLowerCase(Locale.ROOT);
         Map<Cell, Value> rows = getRows(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableSet.of(lowerCaseTableName.getBytes(StandardCharsets.UTF_8)),

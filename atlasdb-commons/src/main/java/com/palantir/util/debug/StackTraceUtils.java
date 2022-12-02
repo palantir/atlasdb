@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -388,12 +389,12 @@ public final class StackTraceUtils {
             char[] textArray = text.toCharArray();
             if (Character.isUpperCase(textArray[0])) {
                 capsType = false; // Camel Case
-                if (text.equals(text.toUpperCase())) {
+                if (text.equals(text.toUpperCase(Locale.ROOT))) {
                     capsType = true; // UPPER CASE
                 }
             }
         }
-        String lowerText = text.toLowerCase();
+        String lowerText = text.toLowerCase(Locale.ROOT);
         String plural = plurals.get(lowerText) == null ? (lowerText + "s") : plurals.get(lowerText);
         if (capsType == null) {
             return plural; // lower case
@@ -404,7 +405,7 @@ public final class StackTraceUtils {
                 return plural;
             }
         } else {
-            return plural.toUpperCase(); // UPPER CASE
+            return plural.toUpperCase(Locale.ROOT); // UPPER CASE
         }
     }
 
