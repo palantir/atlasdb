@@ -199,7 +199,7 @@ This migration can be reversed trivially (just by changing the config to referen
 using embedded timestamp and lock services.
 
 Altering Table To Match Metadata
---------------------------------git
+--------------------------------
 
 On rare occasions, the metadata in Oracle can mismatch the expected metadata by the service. This can happen as a result
 of a rare race condition on table creation, where one service expects the table to have an overflow column, while
