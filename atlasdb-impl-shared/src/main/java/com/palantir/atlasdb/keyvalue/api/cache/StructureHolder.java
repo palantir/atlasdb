@@ -18,13 +18,18 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * Utility class to make manipulating {@link io.vavr.collection.Map} and {@link io.vavr.collection.Set} less
  * error-prone as all methods that modify state return a *new* instance in vavr.
  */
+@ThreadSafe
 final class StructureHolder<V> {
     private final Supplier<V> initialValueSupplier;
+
+    @GuardedBy("this")
     private V structure;
 
     private StructureHolder(Supplier<V> initialValueSupplier) {

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils.TableRefAndRemainder;
@@ -38,11 +39,11 @@ import io.vavr.collection.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-@NotThreadSafe
+@ThreadSafe
 final class ValueStoreImpl implements ValueStore {
     /**
      * We introduce some overhead to storing each value. This makes caching numerous empty values with small cell
@@ -52,13 +53,13 @@ final class ValueStoreImpl implements ValueStore {
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
-    private final Set<TableReference> allowedTables;
+    private final ImmutableSet<TableReference> allowedTables;
     private final Cache<CellReference, Integer> loadedValues;
     private final LockWatchVisitor visitor = new LockWatchVisitor();
     private final CacheMetrics metrics;
 
     ValueStoreImpl(Set<TableReference> allowedTables, long maxCacheSize, CacheMetrics metrics) {
-        this.allowedTables = allowedTables;
+        this.allowedTables = ImmutableSet.copyOf(allowedTables);
         this.values = StructureHolder.create(HashMap::empty);
         this.watchedTables = StructureHolder.create(HashSet::empty);
         this.loadedValues = Caffeine.newBuilder()
