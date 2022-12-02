@@ -17,8 +17,9 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
@@ -27,33 +28,32 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
+import java.util.Iterator;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-import javax.annotation.concurrent.NotThreadSafe;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 
-@NotThreadSafe
+@ThreadSafe
 final class SnapshotStoreImpl implements SnapshotStore {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotStoreImpl.class);
 
-    private final NavigableMap<Sequence, ValueCacheSnapshot> snapshotMap;
-    private final Multimap<Sequence, StartTimestamp> liveSequences;
-    private final Map<StartTimestamp, Sequence> timestampMap;
+    private final ConcurrentNavigableMap<Sequence, ValueCacheSnapshot> snapshotMap;
+    private final SetMultimap<Sequence, StartTimestamp> liveSequences;
+    private final ConcurrentNavigableMap<StartTimestamp, Sequence> timestampMap;
     private final RateLimiter retentionRateLimiter = RateLimiter.create(1.0);
     private final int minimumUnusedSnapshots;
     private final int maximumSize;
 
     @VisibleForTesting
     SnapshotStoreImpl(int minimumUnusedSnapshots, int maximumSize, CacheMetrics cacheMetrics) {
-        this.snapshotMap = new TreeMap<>();
-        this.timestampMap = new HashMap<>();
-        this.liveSequences = MultimapBuilder.treeKeys().hashSetValues().build();
+        this.snapshotMap = new ConcurrentSkipListMap<>();
+        this.timestampMap = new ConcurrentSkipListMap<>();
+        this.liveSequences = Multimaps.newSetMultimap(new ConcurrentSkipListMap<>(), ConcurrentSkipListSet::new);
         this.minimumUnusedSnapshots = minimumUnusedSnapshots;
         this.maximumSize = maximumSize;
         cacheMetrics.setSnapshotsHeldInMemory(snapshotMap::size);
@@ -76,10 +76,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
         if (!timestamps.isEmpty()) {
             snapshotMap.put(sequence, snapshot);
-            timestamps.forEach(timestamp -> {
-                liveSequences.put(sequence, timestamp);
-                timestampMap.put(timestamp, sequence);
-            });
+            liveSequences.putAll(sequence, timestamps);
+            timestamps.forEach(timestamp -> timestampMap.put(timestamp, sequence));
         }
     }
 
@@ -91,7 +89,8 @@ final class SnapshotStoreImpl implements SnapshotStore {
     @Override
     public void removeTimestamp(StartTimestamp timestamp) {
         Optional.ofNullable(timestampMap.remove(timestamp))
-                .ifPresent(sequence -> liveSequences.remove(sequence, timestamp));
+                .map(liveSequences::get)
+                .ifPresent(ts -> ts.remove(timestamp));
 
         if (retentionRateLimiter.tryAcquire()) {
             retentionSnapshots();
@@ -112,16 +111,17 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
     @VisibleForTesting
     void retentionSnapshots() {
-        Set<Sequence> currentLiveSequences = liveSequences.keySet();
+        Set<Sequence> currentLiveSequences = ImmutableSet.copyOf(liveSequences.keySet());
         int nonEssentialSnapshotCount = snapshotMap.size() - currentLiveSequences.size();
         if (nonEssentialSnapshotCount > minimumUnusedSnapshots) {
             int numToRetention = nonEssentialSnapshotCount - minimumUnusedSnapshots;
-
-            List<Sequence> sequencesToRemove = snapshotMap.keySet().stream()
-                    .filter(sequence -> !currentLiveSequences.contains(sequence))
-                    .limit(numToRetention)
-                    .collect(Collectors.toList());
-            sequencesToRemove.forEach(snapshotMap::remove);
+            Iterator<Sequence> sequences = snapshotMap.keySet().iterator();
+            while (sequences.hasNext()) {
+                Sequence sequence = sequences.next();
+                if (!currentLiveSequences.contains(sequence) && (numToRetention-- > 0)) {
+                    sequences.remove();
+                }
+            }
         }
     }
 
@@ -133,22 +133,25 @@ final class SnapshotStoreImpl implements SnapshotStore {
         }
 
         if (maxSizeExceeded()) {
-            log.warn(
-                    "Snapshot store has exceeded its maximum size. This likely indicates a memory leak.",
+            RuntimeException maxSizeExceededException = new SafeIllegalStateException(
+                    "Exceeded max snapshot store size",
                     SafeArg.of("snapshotMapSize", snapshotMap.size()),
                     SafeArg.of("liveSequencesSize", liveSequences.size()),
                     SafeArg.of("timestampMapSize", timestampMap.size()),
-                    SafeArg.of(
-                            "earliestTimestamp", timestampMap.keySet().stream().min(Comparator.naturalOrder())),
-                    SafeArg.of(
-                            "earliestSnapshotSequence",
-                            snapshotMap.keySet().stream().min(Comparator.naturalOrder())),
-                    SafeArg.of(
-                            "earliestLiveSequence",
-                            liveSequences.keySet().stream().min(Comparator.naturalOrder())),
+                    SafeArg.of("earliestTimestamp", min(timestampMap.keySet())),
+                    SafeArg.of("earliestSnapshotSequence", min(snapshotMap.keySet())),
+                    SafeArg.of("earliestLiveSequence", min((NavigableSet<Sequence>) liveSequences.keySet())),
                     SafeArg.of("maximumSize", maximumSize));
-            throw new SafeIllegalStateException("Exceeded max snapshot store size");
+            log.warn(
+                    "Snapshot store has exceeded its maximum size. This likely indicates a memory leak.",
+                    maxSizeExceededException);
+            throw maxSizeExceededException;
         }
+    }
+
+    @Nullable
+    private static <T extends Comparable<T>> T min(NavigableSet<T> set) {
+        return set.isEmpty() ? null : set.first();
     }
 
     private boolean maxSizeExceeded() {

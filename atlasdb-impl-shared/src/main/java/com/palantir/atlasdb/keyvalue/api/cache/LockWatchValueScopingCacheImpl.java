@@ -58,7 +58,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     @GuardedBy("this")
     private final ValueStore valueStore;
 
-    @GuardedBy("this")
     private final SnapshotStore snapshotStore;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
@@ -215,9 +214,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Optional<Sequence> maybeSeq =
                 currentVersion.map(LockWatchVersion::version).map(Sequence::of);
         if (maybeSeq.isPresent()) {
-            synchronized (this) {
-                snapshotStore.storeSnapshot(maybeSeq.get(), reversedMap.get(maybeSeq.get()), valueStore.getSnapshot());
-            }
+            snapshotStore.storeSnapshot(maybeSeq.get(), reversedMap.get(maybeSeq.get()), valueStore.getSnapshot());
         }
 
         for (LockWatchEvent event : updateForTransactions.events()) {
