@@ -21,7 +21,9 @@ import com.codahale.metrics.Gauge;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 public final class CacheMetrics {
     private final Counter hits;
     private final Counter misses;

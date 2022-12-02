@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -52,7 +54,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private static final int MAX_CACHE_COUNT = 20_000;
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
+
+    @GuardedBy("this")
     private final ValueStore valueStore;
+
+    @GuardedBy("this")
     private final SnapshotStore snapshotStore;
 
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
@@ -124,16 +130,13 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void onSuccessfulCommit(long startTimestamp) {
-        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
-        TransactionScopedCache cache = cacheStore.getCache(startTs);
+    public void onSuccessfulCommit(long startTimestamp) {
+        TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
         cache.finalise();
 
         Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
         if (!cachedValues.isEmpty()) {
-
-            CommitUpdate commitUpdate = eventCache.getEventUpdate(startTimestamp);
-            commitUpdate.accept(new CommitUpdate.Visitor<Void>() {
+            eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
                 @Override
                 public Void invalidateAll() {
                     // This might happen due to an election or if we exceeded the maximum number of events held in
@@ -147,10 +150,20 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                     Set<CellReference> invalidatedCells = invalidatedLocks.stream()
                             .map(AtlasLockDescriptorUtils::candidateCells)
                             .flatMap(List::stream)
-                            .collect(Collectors.toSet());
-                    KeyedStream.stream(cachedValues)
-                            .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                            .forEach(valueStore::putValue);
+                            .collect(ImmutableSet.toImmutableSet());
+
+                    final Map<CellReference, CacheValue> toUpdate;
+                    if (invalidatedCells.isEmpty()) {
+                        toUpdate = cachedValues;
+                    } else {
+                        toUpdate = KeyedStream.stream(cachedValues)
+                                .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
+                                .collectToMap();
+                    }
+
+                    synchronized (LockWatchValueScopingCacheImpl.this) {
+                        toUpdate.forEach(valueStore::putValue);
+                    }
                     return null;
                 }
             });
@@ -184,7 +197,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     /**
      * In order to maintain the necessary invariants, we need to do the following:
-     *
+     * <p>
      *  1. For each new event, we apply it to the cache. The effects of this application is described in
      *     {@link LockWatchValueScopingCache}.
      *  2. For each transaction, we must ensure that we store a snapshot of the cache at the sequence corresponding
@@ -199,22 +212,25 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion
-                .map(LockWatchVersion::version)
-                .map(Sequence::of)
-                .ifPresent(sequence ->
-                        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot()));
+        Optional<Sequence> maybeSeq =
+                currentVersion.map(LockWatchVersion::version).map(Sequence::of);
+        if (maybeSeq.isPresent()) {
+            synchronized (this) {
+                snapshotStore.storeSnapshot(maybeSeq.get(), reversedMap.get(maybeSeq.get()), valueStore.getSnapshot());
+            }
+        }
 
-        updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
-            valueStore.applyEvent(event);
-            Sequence sequence = Sequence.of(event.sequence());
-            snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
-        });
+        for (LockWatchEvent event : updateForTransactions.events()) {
+            if (isNewEvent(event)) {
+                valueStore.applyEvent(event);
+                Sequence sequence = Sequence.of(event.sequence());
+                snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+            }
+        }
 
-        updateForTransactions
-                .startTsToSequence()
-                .keySet()
-                .forEach(timestamp -> cacheStore.createCache(StartTimestamp.of(timestamp)));
+        updateForTransactions.startTsToSequence().keySet().stream()
+                .map(StartTimestamp::of)
+                .forEach(cacheStore::createCache);
 
         if (valueStore.getSnapshot().hasAnyTablesWatched()) {
             assertNoSnapshotsMissing(reversedMap);
@@ -256,7 +272,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
-        return currentVersion.isEmpty() || currentVersion.get().version() < updateVersion.version();
+        return currentVersion.isEmpty() || currentVersion.orElseThrow().version() < updateVersion.version();
     }
 
     private synchronized void clearCache(

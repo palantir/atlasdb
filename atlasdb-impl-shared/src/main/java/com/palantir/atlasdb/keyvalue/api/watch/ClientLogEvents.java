@@ -34,7 +34,6 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -95,8 +94,9 @@ interface ClientLogEvents {
         verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
 
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.map(CommitInfo::commitLockToken));
-        Set<LockDescriptor> locksTakenOut = new HashSet<>();
-        events().events().forEach(event -> locksTakenOut.addAll(event.accept(eventVisitor)));
+        Set<LockDescriptor> locksTakenOut = events().events().stream()
+                .flatMap(event -> event.accept(eventVisitor).stream())
+                .collect(ImmutableSet.toImmutableSet());
         return CommitUpdate.invalidateSome(locksTakenOut);
     }
 

@@ -21,11 +21,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.ThreadSafe;
 
+@ThreadSafe
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
     private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
-    private Optional<LockWatchVersion> currentVersion = Optional.empty();
+    private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private NoOpLockWatchEventCache() {}
 

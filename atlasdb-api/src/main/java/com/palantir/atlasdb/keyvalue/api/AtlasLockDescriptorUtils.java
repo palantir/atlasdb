@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Bytes;
 import com.google.protobuf.ByteString;
 import com.palantir.lock.LockDescriptor;
@@ -25,6 +24,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,9 +40,12 @@ public final class AtlasLockDescriptorUtils {
     }
 
     public static List<CellReference> candidateCells(LockDescriptor lockDescriptor) {
-        return tryParseTableRef(lockDescriptor)
-                .map(AtlasLockDescriptorUtils::candidateCells)
-                .orElseGet(ImmutableList::of);
+        Optional<TableRefAndRemainder> tableRef = tryParseTableRef(lockDescriptor);
+        //noinspection OptionalIsPresent - avoid Optional#map to avoid Optional allocations
+        if (tableRef.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return candidateCells(tableRef.get());
     }
 
     public static List<CellReference> candidateCells(TableRefAndRemainder parsedLockDescriptor) {
