@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Locale;
 import java.util.Objects;
 import org.junit.Test;
 
@@ -29,8 +30,9 @@ public class TableReferenceTest {
         TableReference upper = TableReference.create(Namespace.create(upperFoo), upperBar);
         TableReference lower = TableReference.createLowerCased(upper);
 
-        assertThat(upperFoo.toLowerCase()).isEqualTo(lower.getNamespace().getName());
-        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTableName());
+        assertThat(upperFoo.toLowerCase(Locale.ROOT))
+                .isEqualTo(lower.getNamespace().getName());
+        assertThat(upperBar.toLowerCase(Locale.ROOT)).isEqualTo(lower.getTableName());
     }
 
     @Test
@@ -41,7 +43,7 @@ public class TableReferenceTest {
         TableReference lower = TableReference.createLowerCased(upper);
 
         assertThat(Namespace.EMPTY_NAMESPACE).isEqualTo(lower.getNamespace());
-        assertThat(upperBar.toLowerCase()).isEqualTo(lower.getTableName());
+        assertThat(upperBar.toLowerCase(Locale.ROOT)).isEqualTo(lower.getTableName());
     }
 
     @Test

@@ -57,6 +57,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -168,9 +169,9 @@ public class CassandraService implements AutoCloseable {
                     hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
 
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getStart_token().toUpperCase()));
+                            .decode(tokenRange.getStart_token().toUpperCase(Locale.ROOT)));
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getEnd_token().toUpperCase()));
+                            .decode(tokenRange.getEnd_token().toUpperCase(Locale.ROOT)));
                     if (startToken.compareTo(endToken) <= 0) {
                         newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
                     } else {

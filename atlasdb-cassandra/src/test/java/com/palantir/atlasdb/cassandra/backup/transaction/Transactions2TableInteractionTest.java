@@ -38,6 +38,7 @@ import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +81,7 @@ public class Transactions2TableInteractionTest {
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, ROWS_PER_QUANTUM - 1);
         assertThat(selects)
-                .extracting(statement -> statement.toString().trim().toLowerCase())
+                .extracting(statement -> statement.toString().trim().toLowerCase(Locale.ROOT))
                 .containsExactlyInAnyOrderElementsOf(correctSelects);
     }
 
@@ -92,7 +93,7 @@ public class Transactions2TableInteractionTest {
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0, 2 * ROWS_PER_QUANTUM - 1);
         assertThat(selects)
-                .extracting(statement -> statement.toString().trim().toLowerCase())
+                .extracting(statement -> statement.toString().trim().toLowerCase(Locale.ROOT))
                 .containsExactlyInAnyOrderElementsOf(correctSelects);
     }
 
@@ -104,7 +105,7 @@ public class Transactions2TableInteractionTest {
         List<Statement> selects = txnInteraction.createSelectStatementsForScanningFullTimestampRange(tableMetadata);
         List<String> correctSelects = createSelectStatement(0L, 15L);
         assertThat(selects)
-                .extracting(statement -> statement.toString().trim().toLowerCase())
+                .extracting(statement -> statement.toString().trim().toLowerCase(Locale.ROOT))
                 .containsExactlyInAnyOrderElementsOf(correctSelects);
     }
 

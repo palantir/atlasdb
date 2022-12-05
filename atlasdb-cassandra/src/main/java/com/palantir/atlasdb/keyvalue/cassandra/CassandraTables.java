@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,7 +75,7 @@ class CassandraTables {
     }
 
     private Set<String> getExistingLowerCased(CassandraClient client, String keyspace) throws TException {
-        return getTableNames(client, keyspace, cf -> cf.getName().toLowerCase());
+        return getTableNames(client, keyspace, cf -> cf.getName().toLowerCase(Locale.ROOT));
     }
 
     private Set<String> getTableNames(CassandraClient client, String keyspace, Function<CfDef, String> nameGetter)

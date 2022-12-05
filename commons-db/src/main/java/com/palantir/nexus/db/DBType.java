@@ -19,6 +19,7 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.sql.Connections;
 import java.sql.Connection;
+import java.util.Locale;
 import javax.annotation.Nullable;
 
 /**
@@ -68,7 +69,7 @@ public enum DBType {
         if (strName == null) {
             return null;
         }
-        return DBType.valueOf(strName.toUpperCase());
+        return DBType.valueOf(strName.toUpperCase(Locale.ROOT));
     }
 
     public static DBType getTypeFromConnection(Connection c) throws PalantirSqlException {

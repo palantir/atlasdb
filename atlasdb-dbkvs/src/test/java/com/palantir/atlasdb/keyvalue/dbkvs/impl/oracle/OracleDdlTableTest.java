@@ -50,6 +50,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.After;
@@ -387,7 +388,7 @@ public final class OracleDdlTableTest {
     private void setTableToHaveOverflowColumn(boolean hasColumn) {
         when(sqlConnection.selectExistsUnregisteredQuery(
                         eq("SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'"),
-                        eq(INTERNAL_TABLE_NAME.toUpperCase())))
+                        eq(INTERNAL_TABLE_NAME.toUpperCase(Locale.ROOT))))
                 .thenReturn(hasColumn);
     }
 
@@ -420,7 +421,7 @@ public final class OracleDdlTableTest {
                 .thenReturn(INTERNAL_OVERFLOW_TABLE_NAME);
         when(sqlConnection.selectExistsUnregisteredQuery(
                         eq("SELECT 1 FROM user_tables WHERE TABLE_NAME = ?"),
-                        eq(INTERNAL_OVERFLOW_TABLE_NAME.toUpperCase())))
+                        eq(INTERNAL_OVERFLOW_TABLE_NAME.toUpperCase(Locale.ROOT))))
                 .thenReturn(exists);
     }
 }

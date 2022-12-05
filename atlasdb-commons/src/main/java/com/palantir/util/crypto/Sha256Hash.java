@@ -29,6 +29,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * A SHA-256 hash. This class provides type-safety and equals/hashCode
@@ -103,7 +104,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     }
 
     public static Sha256Hash deSerializeFromHexString(String s) {
-        return new Sha256Hash(BaseEncoding.base16().lowerCase().decode(s.toLowerCase()));
+        return new Sha256Hash(BaseEncoding.base16().lowerCase().decode(s.toLowerCase(Locale.ROOT)));
     }
 
     public byte[] getBytes() {

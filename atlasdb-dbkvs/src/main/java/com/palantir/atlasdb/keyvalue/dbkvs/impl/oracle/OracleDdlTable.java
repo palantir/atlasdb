@@ -46,6 +46,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.VersionStrings;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -156,7 +157,7 @@ public final class OracleDdlTable implements DbDdlTable {
         return conns.get()
                 .selectExistsUnregisteredQuery(
                         "SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'",
-                        shortTableName.toUpperCase());
+                        shortTableName.toUpperCase(Locale.ROOT));
     }
 
     private boolean tableExists() {
@@ -170,7 +171,7 @@ public final class OracleDdlTable implements DbDdlTable {
         String shortTableName = oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
         return conns.get()
                 .selectExistsUnregisteredQuery(
-                        "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase());
+                        "SELECT 1 FROM user_tables WHERE TABLE_NAME = ?", shortTableName.toUpperCase(Locale.ROOT));
     }
 
     private void throwForMissingOverflowTable() {

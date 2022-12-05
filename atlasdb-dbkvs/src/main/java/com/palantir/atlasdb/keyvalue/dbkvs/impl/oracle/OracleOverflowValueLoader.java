@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class OracleOverflowValueLoader implements OverflowValueLoader {
@@ -133,6 +134,6 @@ public class OracleOverflowValueLoader implements OverflowValueLoader {
     }
 
     private String structArrayPrefix() {
-        return config.tablePrefix().toUpperCase();
+        return config.tablePrefix().toUpperCase(Locale.ROOT);
     }
 }

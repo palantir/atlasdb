@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Locale;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
@@ -56,9 +57,9 @@ public final class TableReference implements Measurable {
     }
 
     public static TableReference createLowerCased(TableReference table) {
-        String name = table.namespace.getName().toLowerCase();
+        String name = table.namespace.getName().toLowerCase(Locale.ROOT);
         Namespace namespace = name.isEmpty() ? Namespace.EMPTY_NAMESPACE : Namespace.create(name);
-        return create(namespace, table.tableName.toLowerCase());
+        return create(namespace, table.tableName.toLowerCase(Locale.ROOT));
     }
 
     /**

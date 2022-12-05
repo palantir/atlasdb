@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Map;
 
 public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
@@ -45,9 +46,9 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
     private static boolean isValidCaseInsensitiveMap(Map<String, ?> cmap) {
         boolean isValid = true;
         for (String colName : cmap.keySet()) {
-            isValid &= cmap.containsKey(colName.toLowerCase());
-            isValid &= cmap.containsKey(colName.toUpperCase());
-            isValid &= (cmap.get(colName.toLowerCase()) == cmap.get(colName.toUpperCase()));
+            isValid &= cmap.containsKey(colName.toLowerCase(Locale.ROOT));
+            isValid &= cmap.containsKey(colName.toUpperCase(Locale.ROOT));
+            isValid &= (cmap.get(colName.toLowerCase(Locale.ROOT)) == cmap.get(colName.toUpperCase(Locale.ROOT)));
         }
         return isValid;
     }
@@ -57,7 +58,7 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
         Integer colIdx = columnMap.get(colname);
         if (colIdx == null) {
             // column name is mixed case or invalid, fall back on slow path
-            colIdx = columnMap.get(colname.toLowerCase());
+            colIdx = columnMap.get(colname.toLowerCase(Locale.ROOT));
             if (colIdx == null) {
                 throw new IllegalArgumentException(
                         "Column named {" + colname + "} not found in result set"); // $NON-NLS-1$ //$NON-NLS-2$
@@ -76,7 +77,7 @@ public abstract class AbstractAgnosticResultRow implements AgnosticResultRow {
         // Interestingly, toLowerCase optimizes by returning self if no change is required,
         // and all lower case values will commonly be supplied by the callers,
         // so this is the fastest way to get a false answer
-        return (columnMap.containsKey(colname) || columnMap.containsKey(colname.toLowerCase()));
+        return (columnMap.containsKey(colname) || columnMap.containsKey(colname.toLowerCase(Locale.ROOT)));
     }
 
     @Override
