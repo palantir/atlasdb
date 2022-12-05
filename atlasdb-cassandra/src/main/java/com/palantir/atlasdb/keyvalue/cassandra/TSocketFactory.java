@@ -23,7 +23,7 @@ import org.apache.thrift.transport.TTransportException;
 interface TSocketFactory {
     TSocket create(Socket socket) throws TTransportException;
 
-    TSocket create(String host, int port, int timeout) throws TTransportException;
+    TSocket create(String host, int port, int timeout);
 
     enum Default implements TSocketFactory {
         INSTANCE;
@@ -34,7 +34,7 @@ interface TSocketFactory {
         }
 
         @Override
-        public TSocket create(String host, int port, int timeout) throws TTransportException {
+        public TSocket create(String host, int port, int timeout) {
             return new TSocket(host, port, timeout);
         }
     }

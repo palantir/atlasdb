@@ -38,8 +38,7 @@ public final class InstrumentedTSocket extends TSocket {
         this.bytesWritten = bytesWritten;
     }
 
-    private InstrumentedTSocket(String host, int port, int timeout, Counter bytesRead, Counter bytesWritten)
-            throws TTransportException {
+    private InstrumentedTSocket(String host, int port, int timeout, Counter bytesRead, Counter bytesWritten) {
         super(host, port, timeout);
         this.bytesRead = bytesRead;
         this.bytesWritten = bytesWritten;
@@ -86,7 +85,7 @@ public final class InstrumentedTSocket extends TSocket {
         }
 
         @Override
-        public TSocket create(String host, int port, int timeout) throws TTransportException {
+        public TSocket create(String host, int port, int timeout) {
             return new InstrumentedTSocket(host, port, timeout, bytesRead, bytesWritten);
         }
     }
