@@ -51,11 +51,15 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -67,12 +71,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchValueIntegrationTest {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueIntegrationTest.class);
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);
@@ -99,8 +105,17 @@ public final class LockWatchValueIntegrationTest {
                     builder -> builder.clientPaxosBuilder(
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
-    private static final String NAMESPACE =
-            String.valueOf(ThreadLocalRandom.current().nextLong());
+
+    private static final Random random = createRandom();
+
+    private static Random createRandom() {
+        long seed = ThreadLocalRandom.current().nextLong();
+        log.info("Random seed", SafeArg.of("seed", seed));
+        return new Random(seed);
+    }
+
+    private static final String NAMESPACE = String.valueOf(random.nextLong());
+
     private static final byte[] ROW_1 = PtBytes.toBytes("final");
     private static final byte[] ROW_2 = PtBytes.toBytes("destination");
     private static final byte[] ROW_3 = PtBytes.toBytes("awaits");
@@ -119,6 +134,11 @@ public final class LockWatchValueIntegrationTest {
     public void before() {
         createTransactionManager(0.0);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
+    }
+
+    @After
+    public void after() {
+        txnManager.close();
     }
 
     @Test
@@ -539,28 +559,58 @@ public final class LockWatchValueIntegrationTest {
 
     @Test
     public void valueStressTest() {
+        int numTransactions = 1_000;
+        for (int i = 1; i <= 1_024; i *= 2) {
+            stress(i * numTransactions);
+        }
+    }
+
+    @Test
+    public void valueStressTest_1_000() {
+        stress(1_000);
+    }
+
+    @Test
+    public void valueStressTest_10_000() {
+        stress(10_000);
+    }
+
+    @Test
+    public void valueStressTest_100_000() {
+        stress(100_000);
+    }
+
+    @Test
+    public void valueStressTest_1_000_000() {
+        stress(1_000_000);
+    }
+
+    private void stress(int numTransactions) {
+        log.info("Stress testing transactions", SafeArg.of("numTransactions", numTransactions));
         createTransactionManager(1.0);
         int numThreads = 200;
-        int numTransactions = 10_000;
 
+        List<Future<?>> transactions;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        try {
+            transactions = IntStream.range(0, numTransactions)
+                    .mapToObj(_num -> executor.submit(this::randomTransactionTask))
+                    .collect(Collectors.toList());
+        } finally {
+            executor.shutdown();
+        }
 
-        List<Future<?>> transactions = IntStream.range(0, numTransactions)
-                .mapToObj(_num -> executor.submit(this::randomTransactionTask))
-                .collect(Collectors.toList());
         for (Future<?> transaction : transactions) {
             try {
                 transaction.get(60, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
                 if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
-                    fail("Encountered nonretriable exception", e);
+                    fail("Encountered non-retryable exception", e);
                 }
             } catch (InterruptedException | TimeoutException e) {
                 fail("Transaction took too long", e);
             }
         }
-
-        executor.shutdown();
     }
 
     private void randomTransactionTask() {
@@ -670,6 +720,10 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private void createTransactionManager(double validationProbability) {
+        if (txnManager != null) {
+            log.info("Closing previous transaction manager");
+            txnManager.close();
+        }
         txnManager =
                 LockWatchIntegrationTestUtilities.createTransactionManager(validationProbability, CLUSTER, NAMESPACE);
     }
@@ -683,15 +737,15 @@ public final class LockWatchValueIntegrationTest {
     }
 
     private static int randomIndex() {
-        return ThreadLocalRandom.current().nextInt(0, ROWS.size());
+        return random.nextInt(ROWS.size());
     }
 
     private static boolean chance() {
-        return ThreadLocalRandom.current().nextBoolean();
+        return random.nextBoolean();
     }
 
     private static byte[] randomData() {
-        return PtBytes.toBytes(ThreadLocalRandom.current().nextLong(0, 1_000_000));
+        return PtBytes.toBytes(random.nextLong() % 1_000_000L);
     }
 
     private static LockWatchStateUpdate.Success createUnlockSuccessUpdate(LockWatchVersion lastKnownVersion) {
