@@ -558,14 +558,6 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    public void valueStressTest() {
-        int numTransactions = 1_000;
-        for (int i = 1; i <= 1_024; i *= 2) {
-            stress(i * numTransactions);
-        }
-    }
-
-    @Test
     public void valueStressTest_1_000() {
         stress(1_000);
     }
@@ -580,13 +572,9 @@ public final class LockWatchValueIntegrationTest {
         stress(100_000);
     }
 
-    @Test
-    public void valueStressTest_1_000_000() {
-        stress(1_000_000);
-    }
-
     private void stress(int numTransactions) {
         log.info("Stress testing transactions", SafeArg.of("numTransactions", numTransactions));
+
         createTransactionManager(1.0);
         int numThreads = 200;
 
