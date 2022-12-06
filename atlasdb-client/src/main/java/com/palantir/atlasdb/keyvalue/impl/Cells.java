@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
@@ -113,12 +116,13 @@ public final class Cells {
     }
 
     public static NavigableMap<byte[], Set<Cell>> groupCellsByRow(Set<Cell> cells) {
-        NavigableMap<byte[], Set<Cell>> result = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
+        SetMultimap<byte[], Cell> cellsByRow = MultimapBuilder.treeKeys(UnsignedBytes.lexicographicalComparator())
+                .hashSetValues()
+                .build();
         for (Cell cell : cells) {
-            byte[] row = cell.getRowName();
-            result.computeIfAbsent(row, _row -> new HashSet<>()).add(cell);
+            cellsByRow.put(cell.getRowName(), cell);
         }
-        return result;
+        return ImmutableSortedMap.copyOf(Multimaps.asMap(cellsByRow), UnsignedBytes.lexicographicalComparator());
     }
 
     /**
