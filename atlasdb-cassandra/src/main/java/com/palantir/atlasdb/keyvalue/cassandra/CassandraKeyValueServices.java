@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -346,17 +347,17 @@ public final class CassandraKeyValueServices {
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
-        return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
+        return tableRef.getQualifiedName().toLowerCase(Locale.ROOT).getBytes(Charset.defaultCharset());
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static byte[] upperCaseTableReferenceToBytes(TableReference tableRef) {
-        return tableRef.getQualifiedName().toUpperCase().getBytes(Charset.defaultCharset());
+        return tableRef.getQualifiedName().toUpperCase(Locale.ROOT).getBytes(Charset.defaultCharset());
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static TableReference lowerCaseTableReferenceFromBytes(byte[] name) {
-        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()).toLowerCase());
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()).toLowerCase(Locale.ROOT));
     }
 
     static TableReference tableReferenceFromCfDef(CfDef cf) {

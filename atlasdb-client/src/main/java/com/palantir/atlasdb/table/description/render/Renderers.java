@@ -23,6 +23,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.squareup.javapoet.MethodSpec;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public final class Renderers {
@@ -67,7 +68,7 @@ public final class Renderers {
     }
 
     static String UPPER_CASE(String string) {
-        return lower_case(string).toUpperCase();
+        return lower_case(string).toUpperCase(Locale.ROOT);
     }
 
     public static String getClassTableName(String rawTableName, TableDefinition table) {

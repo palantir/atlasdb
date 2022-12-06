@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;

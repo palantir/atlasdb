@@ -113,7 +113,8 @@ allprojects {
                 'Slf4jLogsafeArgs',
                 'StaticAssignmentInConstructor',
                 'StrictUnusedVariable'
-        options.errorprone.error 'SafeLoggingPropagation'
+        options.errorprone.error 'DefaultLocale',
+                'SafeLoggingPropagation'
     }
 }
 

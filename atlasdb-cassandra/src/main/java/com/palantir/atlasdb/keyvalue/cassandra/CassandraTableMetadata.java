@@ -32,6 +32,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -204,6 +205,6 @@ public class CassandraTableMetadata {
     private static boolean nonNullMatchingIgnoreCase(TableReference t1, TableReference t2) {
         return t1 != null
                 && t2 != null
-                && t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName().toLowerCase());
+                && t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName().toLowerCase(Locale.ROOT));
     }
 }

@@ -22,6 +22,7 @@ import com.palantir.sql.ResultSets;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class AgnosticResultSetImpl implements AgnosticResultSet {
@@ -52,8 +53,8 @@ public class AgnosticResultSetImpl implements AgnosticResultSet {
         int columnCount = ResultSets.getColumnCount(meta);
         columnMap = Maps.newHashMapWithExpectedSize(2 * columnCount);
         for (int i = 0; i < columnCount; i++) {
-            columnMap.put(ResultSets.getColumnLabel(meta, i + 1).toLowerCase(), i);
-            columnMap.put(ResultSets.getColumnLabel(meta, i + 1).toUpperCase(), i);
+            columnMap.put(ResultSets.getColumnLabel(meta, i + 1).toLowerCase(Locale.ROOT), i);
+            columnMap.put(ResultSets.getColumnLabel(meta, i + 1).toUpperCase(Locale.ROOT), i);
         }
     }
 

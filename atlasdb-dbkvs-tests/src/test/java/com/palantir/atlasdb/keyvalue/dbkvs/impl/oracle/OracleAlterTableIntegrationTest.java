@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
@@ -145,7 +146,7 @@ public final class OracleAlterTableIntegrationTest {
                             .get()
                             .selectExistsUnregisteredQuery(
                                     "SELECT 1 FROM user_tab_cols WHERE TABLE_NAME = ? AND COLUMN_NAME = 'OVERFLOW'",
-                                    tableName.toUpperCase());
+                                    tableName.toUpperCase(Locale.ROOT));
                     assertThat(columnExists).isTrue();
                 })
                 .doesNotThrowAnyException();

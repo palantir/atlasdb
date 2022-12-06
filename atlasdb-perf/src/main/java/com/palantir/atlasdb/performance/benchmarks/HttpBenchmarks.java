@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HttpHeaders;
 import com.palantir.common.remoting.HeaderAccessUtils;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.MediaType;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -32,19 +33,19 @@ import org.openjdk.jmh.infra.Blackhole;
 
 @State(Scope.Thread)
 public class HttpBenchmarks {
-    private static final String LOWERCASE_CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
+    private static final String LOWERCASE_CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase(Locale.ROOT);
 
     // The headers here are all in lowercase, following OkHttp3.3.0+
     private static final ImmutableMap<String, Collection<String>> HEADERS =
             ImmutableMap.<String, Collection<String>>builder()
-                    .put(HttpHeaders.ACCEPT.toLowerCase(), ImmutableList.of(MediaType.APPLICATION_JSON))
-                    .put(HttpHeaders.ACCEPT_ENCODING.toLowerCase(), ImmutableList.of("UTF-8"))
-                    .put(HttpHeaders.CACHE_CONTROL.toLowerCase(), ImmutableList.of("no cache"))
-                    .put(HttpHeaders.CONTENT_TYPE.toLowerCase(), ImmutableList.of(MediaType.TEXT_PLAIN))
-                    .put(HttpHeaders.FROM.toLowerCase(), ImmutableList.of("TimeLock"))
-                    .put(HttpHeaders.USER_AGENT.toLowerCase(), ImmutableList.of("atlasdb/atlasdb-atlasdb"))
-                    .put(HttpHeaders.SET_COOKIE.toLowerCase(), ImmutableList.of("cookie"))
-                    .put(HttpHeaders.EXPECT.toLowerCase(), ImmutableList.of("12391572384129734"))
+                    .put(HttpHeaders.ACCEPT.toLowerCase(Locale.ROOT), ImmutableList.of(MediaType.APPLICATION_JSON))
+                    .put(HttpHeaders.ACCEPT_ENCODING.toLowerCase(Locale.ROOT), ImmutableList.of("UTF-8"))
+                    .put(HttpHeaders.CACHE_CONTROL.toLowerCase(Locale.ROOT), ImmutableList.of("no cache"))
+                    .put(HttpHeaders.CONTENT_TYPE.toLowerCase(Locale.ROOT), ImmutableList.of(MediaType.TEXT_PLAIN))
+                    .put(HttpHeaders.FROM.toLowerCase(Locale.ROOT), ImmutableList.of("TimeLock"))
+                    .put(HttpHeaders.USER_AGENT.toLowerCase(Locale.ROOT), ImmutableList.of("atlasdb/atlasdb-atlasdb"))
+                    .put(HttpHeaders.SET_COOKIE.toLowerCase(Locale.ROOT), ImmutableList.of("cookie"))
+                    .put(HttpHeaders.EXPECT.toLowerCase(Locale.ROOT), ImmutableList.of("12391572384129734"))
                     .buildOrThrow();
 
     @Benchmark

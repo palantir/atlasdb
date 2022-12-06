@@ -18,8 +18,9 @@ package com.palantir.atlasdb.config;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Preconditions;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.io.File;
 import java.time.Duration;
 import java.util.Optional;
@@ -98,19 +99,18 @@ public abstract class LeaderConfig {
     protected final void check() {
         Preconditions.checkState(
                 quorumSize() > leaders().size() / 2,
-                "The quorumSize '%s' must be over half the amount of leader entries %s.",
-                quorumSize(),
-                leaders());
+                "The quorumSize must be over half the amount of leader entries.",
+                SafeArg.of("quorumSize", quorumSize()),
+                SafeArg.of("leaders", leaders()));
         Preconditions.checkState(
                 leaders().size() >= quorumSize(),
-                "The quorumSize '%s' must be less than or equal to the amount of leader entries %s.",
-                quorumSize(),
-                leaders());
-
+                "The quorumSize must be less than or equal to the amount of leader entries.",
+                SafeArg.of("quorumSize", quorumSize()),
+                SafeArg.of("leaders", leaders()));
         Preconditions.checkArgument(
                 leaders().contains(localServer()),
-                "The localServer '%s' must included in the leader entries %s.",
-                localServer(),
-                leaders());
+                "The localServer must included in the leader entries.",
+                SafeArg.of("localServer", localServer()),
+                SafeArg.of("leaders", leaders()));
     }
 }

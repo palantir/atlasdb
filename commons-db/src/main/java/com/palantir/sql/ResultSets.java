@@ -28,6 +28,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Locale;
 import java.util.Map;
 
 public class ResultSets {
@@ -60,8 +61,8 @@ public class ResultSets {
         Map<String, Integer> columnMap = Maps.newHashMapWithExpectedSize(2 * columnCount);
         for (int i = 0; i < columnCount; i++) {
             String columnLabel = getColumnLabel(meta, i + 1);
-            columnMap.put(columnLabel.toLowerCase(), i + columnOffset);
-            columnMap.put(columnLabel.toUpperCase(), i + columnOffset);
+            columnMap.put(columnLabel.toLowerCase(Locale.ROOT), i + columnOffset);
+            columnMap.put(columnLabel.toUpperCase(Locale.ROOT), i + columnOffset);
         }
         return columnMap;
     }

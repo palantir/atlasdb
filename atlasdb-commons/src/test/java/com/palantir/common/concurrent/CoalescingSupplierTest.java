@@ -15,7 +15,6 @@
  */
 package com.palantir.common.concurrent;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeast;
@@ -33,6 +32,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -175,8 +176,12 @@ public class CoalescingSupplierTest {
         long last = supplier.get();
         for (int i = 0; i < 128; i++) {
             long current = supplier.get();
-            checkState(current > last, "current > last");
-            last = current;
+            if (current > last) {
+                last = current;
+            } else {
+                throw new SafeIllegalStateException(
+                        "current > last", SafeArg.of("current", current), SafeArg.of("last", last));
+            }
         }
     }
 

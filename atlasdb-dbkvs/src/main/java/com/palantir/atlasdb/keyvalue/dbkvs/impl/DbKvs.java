@@ -101,6 +101,8 @@ import com.palantir.common.concurrent.SharedFixedExecutors;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
@@ -1108,8 +1110,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             // Track the loading of the overflow values (used e.g. by Oracle for large values)
             TraceStatistics.incBytesRead(val);
 
-            com.google.common.base.Preconditions.checkNotNull(
-                    val, "Failed to load overflow data: cell=%s, overflowId=%s", cell, ov.id());
+            if (val == null) {
+                throw new SafeNullPointerException(
+                        "Failed to load overflow data",
+                        UnsafeArg.of("cell", cell),
+                        UnsafeArg.of("overflowId", ov.id()));
+            }
             values.put(cell, Value.create(val, ov.ts()));
         }
     }

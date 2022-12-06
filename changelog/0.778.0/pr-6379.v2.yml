@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Adds support for minimum timestamp for transactions4
+  links:
+  - https://github.com/palantir/atlasdb/pull/6379

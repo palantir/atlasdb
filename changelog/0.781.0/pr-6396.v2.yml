@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert "Bump libthrift to latest (#6339)"
+  links:
+  - https://github.com/palantir/atlasdb/pull/6396

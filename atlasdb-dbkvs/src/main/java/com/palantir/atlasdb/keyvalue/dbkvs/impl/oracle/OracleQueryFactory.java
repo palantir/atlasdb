@@ -29,6 +29,7 @@ import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class OracleQueryFactory extends AbstractDbQueryFactory {
@@ -453,6 +454,6 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     }
 
     private String structArrayPrefix() {
-        return config.tablePrefix().toUpperCase();
+        return config.tablePrefix().toUpperCase(Locale.ROOT);
     }
 }
