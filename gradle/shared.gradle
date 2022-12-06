@@ -88,6 +88,14 @@ afterEvaluate {
 
 tasks.withType(Test) {
     enableAssertions = true
+    testLogging {
+        // set options for log level LIFECYCLE
+        events "started", "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showCauses true
+        showExceptions true
+        showStackTraces true
+    }
 }
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'

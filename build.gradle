@@ -159,5 +159,12 @@ allprojects {
     // decide whether to call gradle themselves or not
     tasks.withType(Test) {
         systemProperty 'RUNNING_IN_GRADLE', 'true'
+        testLogging {
+            events "started", "passed", "skipped", "failed"
+            exceptionFormat "full"
+            showCauses true
+            showExceptions true
+            showStackTraces true
+        }
     }
 }
