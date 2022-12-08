@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -26,11 +27,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
+    private static final AtomicLong REMOVED_ELEMENTS = new AtomicLong(0);
+    private static final ScheduledExecutorService SCHEDULED_EXECUTOR_SERVICE =
+            PTExecutors.newSingleThreadScheduledExecutor();
+
+    static {
+        SCHEDULED_EXECUTOR_SERVICE.scheduleWithFixedDelay(() -> {
+                    log.warn("Logging information about removed hosts",
+                            SafeArg.of("removedHosts", REMOVED_ELEMENTS.get()));
+                }, 10, 10, TimeUnit.SECONDS);
+    }
 
     private final int absenceLimit;
 
@@ -92,6 +106,8 @@ public final class CassandraAbsentHostTracker {
                     "While removing a host ({}) from the pool, we were unable to gently cleanup resources.",
                     SafeArg.of("removedServer", cassandraServer),
                     e);
+        } finally {
+            REMOVED_ELEMENTS.incrementAndGet();
         }
     }
 
