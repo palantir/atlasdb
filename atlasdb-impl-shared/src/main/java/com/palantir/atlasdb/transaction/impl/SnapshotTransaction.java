@@ -2605,15 +2605,28 @@ public class SnapshotTransaction extends AbstractTransaction
 
         log.info("reportExpectationsCollectedData is running successfully", SafeArg.of("state", state.get()));
 
-        expectationsDataCollectionMetrics.ageMillis().update(getAgeMillis());
-
+        long ageMillis = getAgeMillis();
         TransactionReadInfo info = getReadInfo();
+
+        log.info("ageMillis", SafeArg.of("age", ageMillis));
+        log.info("txnInfo", SafeArg.of("info", info));
+
+        expectationsDataCollectionMetrics.ageMillis().update(ageMillis);
         expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
         expectationsDataCollectionMetrics.kvsCalls().update(info.kvsCalls());
 
         info.maximumBytesKvsCallInfo()
                 .ifPresent(kvsCallReadInfo ->
                         expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
+
+        log.info(
+                "values in histogram",
+                SafeArg.of(
+                        "kvsCalls",
+                        expectationsDataCollectionMetrics
+                                .kvsCalls()
+                                .getSnapshot()
+                                .getValues()));
     }
 
     private Timer getTimer(String name) {
