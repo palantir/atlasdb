@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: |-
+    Transactional expectations: enables metrics collections for key value service read calls on transactions post-mortem.
+    Metrics tracked per transaction: transaction age, number of bytes read, number of Atlas kvs method queries and number of bytes read for the worse Atlas kvs call (one with the most bytes read).
+  links:
+  - https://github.com/palantir/atlasdb/pull/6340
