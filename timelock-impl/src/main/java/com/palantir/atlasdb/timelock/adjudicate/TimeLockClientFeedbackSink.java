@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.adjudicate;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import java.util.List;
@@ -32,10 +33,11 @@ public final class TimeLockClientFeedbackSink {
 
     static TimeLockClientFeedbackSink createAndInstrument(
             MetricsManager metricsManager, Cache<UUID, ConjureTimeLockClientFeedback> trackedFeedbackReports) {
-        metricsManager.registerOrGetGauge(
+        metricsManager.registerOrGet(
                 TimeLockClientFeedbackSink.class,
                 "numberOfFeedbackReports",
-                () -> trackedFeedbackReports::estimatedSize);
+                trackedFeedbackReports::estimatedSize,
+                ImmutableMap.of());
         return create(trackedFeedbackReports);
     }
 
