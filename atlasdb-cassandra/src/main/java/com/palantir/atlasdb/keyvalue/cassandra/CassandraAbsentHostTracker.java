@@ -51,10 +51,14 @@ public final class CassandraAbsentHostTracker {
                             SafeArg.of("elementsMadeAbsent", ELEMENTS_MADE_ABSENT.get()),
                             SafeArg.of("removedHosts", REMOVED_ELEMENTS.get()));
                     Set<CassandraAbsentHostTracker> trackerSnapshot = ImmutableSet.copyOf(KNOWN_TRACKERS);
-                    trackerSnapshot.forEach(tracker -> log.warn(
-                            "Individual tracker information",
-                            SafeArg.of("identifier", tracker.identifier),
-                            SafeArg.of("hosts", tracker.absentCassandraServers)));
+                    trackerSnapshot.forEach(tracker -> {
+                        synchronized (tracker) {
+                            log.warn(
+                                    "Individual tracker information",
+                                    SafeArg.of("identifier", tracker.identifier),
+                                    SafeArg.of("hosts", tracker.absentCassandraServers));
+                        }
+                    });
                 },
                 10,
                 10,
