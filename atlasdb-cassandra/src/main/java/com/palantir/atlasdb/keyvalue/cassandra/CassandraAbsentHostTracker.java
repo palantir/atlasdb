@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
@@ -25,10 +25,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,7 +41,7 @@ public final class CassandraAbsentHostTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraAbsentHostTracker.class);
     private static final AtomicLong ELEMENTS_MADE_ABSENT = new AtomicLong(0);
     private static final AtomicLong REMOVED_ELEMENTS = new AtomicLong(0);
-    private static final Set<CassandraAbsentHostTracker> KNOWN_TRACKERS = Sets.newConcurrentHashSet();
+    private static final Set<CassandraAbsentHostTracker> KNOWN_TRACKERS = ConcurrentHashMap.newKeySet();
     private static final ScheduledExecutorService SCHEDULED_EXECUTOR_SERVICE =
             PTExecutors.newSingleThreadScheduledExecutor();
 
@@ -50,7 +52,7 @@ public final class CassandraAbsentHostTracker {
                             "Logging information about removed hosts",
                             SafeArg.of("elementsMadeAbsent", ELEMENTS_MADE_ABSENT.get()),
                             SafeArg.of("removedHosts", REMOVED_ELEMENTS.get()));
-                    Set<CassandraAbsentHostTracker> trackerSnapshot = ImmutableSet.copyOf(KNOWN_TRACKERS);
+                    List<CassandraAbsentHostTracker> trackerSnapshot = ImmutableList.copyOf(KNOWN_TRACKERS);
                     trackerSnapshot.forEach(tracker -> {
                         synchronized (tracker) {
                             log.warn(
