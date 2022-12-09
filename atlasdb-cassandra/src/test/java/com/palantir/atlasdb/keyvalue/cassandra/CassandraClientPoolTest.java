@@ -573,7 +573,7 @@ public final class CassandraClientPoolTest {
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist,
                 cassandraTopologyValidator,
-                new CassandraAbsentHostTracker(1));
+                CassandraAbsentHostTracker.createAndTrack(1));
 
         serversInPool.forEach(address -> cassandraClientPool
                 .getCurrentPools()
