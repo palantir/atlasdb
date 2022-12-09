@@ -24,7 +24,6 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
@@ -46,13 +45,10 @@ public final class TransactionConstants {
     public static final byte[] DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE = getValueForTimestamp(FAILED_COMMIT_TS);
     public static final byte[] TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
-    public static final TransactionStatus ABORTED = TransactionStatuses.aborted();
-    public static final TransactionStatus IN_PROGRESS = TransactionStatuses.inProgress();
-    public static final TransactionStatus UNKNOWN = TransactionStatuses.unknown();
     public static final byte[] TTS_IN_PROGRESS_MARKER = getTtsInProgressMarker();
     public static final long LOWEST_POSSIBLE_START_TS = 1L;
     public static long PRE_START_COMMITTED_TS = TransactionConstants.LOWEST_POSSIBLE_START_TS - 1;
-    public static final TransactionStatus PRE_START_COMMITTED = TransactionStatuses.committed(PRE_START_COMMITTED_TS);
+    public static final TransactionStatus PRE_START_COMMITTED = TransactionStatus.committed(PRE_START_COMMITTED_TS);
 
     public static final long WARN_LEVEL_FOR_QUEUED_BYTES = 10 * 1024 * 1024;
 

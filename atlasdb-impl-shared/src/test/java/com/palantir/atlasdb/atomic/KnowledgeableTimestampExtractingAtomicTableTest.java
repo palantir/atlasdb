@@ -32,7 +32,6 @@ import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Consistency;
 import com.palantir.atlasdb.transaction.knowledge.VerificationModeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -79,7 +78,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long commitTs = 127L;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.committed(commitTs)));
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(commitTs);
     }
@@ -89,7 +88,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.aborted()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.aborted()));
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
     }
@@ -99,7 +98,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.inProgress()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.inProgress()));
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isNull();
     }
@@ -109,7 +108,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.unknown()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.unknown()));
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(startTs);
@@ -120,7 +119,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         when(knownConcludedTransactions.isKnownConcluded(startTs, KnownConcludedTransactions.Consistency.LOCAL_READ))
                 .thenReturn(false);
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.unknown()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.unknown()));
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
 
         assertThat(tsExtractingTable.getInternal(startTs).get()).isEqualTo(TransactionConstants.FAILED_COMMIT_TS);
@@ -130,7 +129,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     @Test
     public void noVerificationIfTransactionInProgress() {
         long startTs = 27l;
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.inProgress()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.inProgress()));
         tsExtractingTable.get(startTs);
 
         verifyNoInteractions(knownAbandonedTransactions);
@@ -142,7 +141,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     public void noVerificationInBatchedGetIfTransactionInProgress() {
         long startTs = 27l;
         when(delegate.get(ImmutableSet.of(startTs)))
-                .thenReturn(Futures.immediateFuture(ImmutableMap.of(startTs, TransactionStatuses.inProgress())));
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of(startTs, TransactionStatus.inProgress())));
         tsExtractingTable.get(ImmutableSet.of(startTs));
 
         verifyNoInteractions(knownAbandonedTransactions);
@@ -154,7 +153,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     public void noVerificationIfTransactionNotConcluded() {
         long startTs = 27l;
         long commitTs = 35l;
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.committed(commitTs)));
         when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
                 .thenReturn(false);
 
@@ -169,7 +168,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     public void verifiesConcludedTransaction() {
         long startTs = 27l;
         long commitTs = 35l;
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.committed(commitTs)));
         when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
                 .thenReturn(true);
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);
@@ -186,7 +185,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     public void verifiesConcludedAbandonedTransaction() {
         long startTs = 27l;
 
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.aborted()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.aborted()));
         when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
                 .thenReturn(true);
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
@@ -204,7 +203,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
         long startTs = 27l;
         long commitTs = 35l;
 
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.committed(commitTs)));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.committed(commitTs)));
         when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
                 .thenReturn(true);
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(true);
@@ -221,7 +220,7 @@ public class KnowledgeableTimestampExtractingAtomicTableTest {
     public void catchesInconsistencyIfAbortedTransactionIsNotMarkedAbandoned() {
         long startTs = 27l;
 
-        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatuses.aborted()));
+        when(delegate.get(startTs)).thenReturn(Futures.immediateFuture(TransactionStatus.aborted()));
         when(knownConcludedTransactions.isKnownConcluded(startTs, Consistency.REMOTE_READ))
                 .thenReturn(true);
         when(knownAbandonedTransactions.isKnownAbandoned(startTs)).thenReturn(false);

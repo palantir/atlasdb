@@ -95,3 +95,18 @@ acceptedBreaks:
       new: "method com.google.common.collect.ImmutableMap<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
         \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin> com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::refreshTokenRangesAndGetServers()"
       justification: "Internal Cassandra KVS APIs"
+  "0.808.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.service.TransactionStatuses"
+      justification: "Internal methods"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.service.TransactionStatus.Cases<R\
+        \ extends java.lang.Object>"
+      justification: "Internal methods"
+    - code: "java.method.removed"
+      old: "method <R> R com.palantir.atlasdb.transaction.service.TransactionStatus::match(com.palantir.atlasdb.transaction.service.TransactionStatus.Cases<R>)"
+      justification: "Internal methods"
+    - code: "java.method.removed"
+      old: "method boolean com.palantir.atlasdb.transaction.service.TransactionStatus::equals(java.lang.Object)"
+      justification: "Internal methods"

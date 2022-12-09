@@ -37,7 +37,6 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -68,8 +67,7 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
             assertThat(commitValue.isCommitted()).isTrue();
-            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
-                    .hasValue(200L);
+            assertThat(commitValue.value()).isEqualTo(TransactionStatus.committed(200L));
         });
     }
 
@@ -80,8 +78,7 @@ public class Transactions3TableInteractionTest {
         TransactionTableEntryAssertions.assertTwoPhase(entry, (startTs, commitValue) -> {
             assertThat(startTs).isEqualTo(150L);
             assertThat(commitValue.isCommitted()).isFalse();
-            assertThat(TransactionStatuses.getCommitTimestamp(commitValue.value()))
-                    .hasValue(200L);
+            assertThat(commitValue.value()).isEqualTo(TransactionStatus.committed(200L));
         });
     }
 

@@ -43,7 +43,6 @@ import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.time.Clock;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
@@ -101,9 +100,8 @@ public class ResilientCommitTimestampAtomicTableTest {
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
-        atomicTable.update(1L, TransactionStatuses.committed(2L));
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
-                .hasValue(2L);
+        atomicTable.update(1L, TransactionStatus.committed(2L));
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedStore).batchAtomicUpdate(anyMap());
         verify(spiedStore, atLeastOnce()).put(anyMap());
         verify(spiedStore).getMultiple(any());
@@ -111,25 +109,19 @@ public class ResilientCommitTimestampAtomicTableTest {
 
     @Test
     public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
-        assertThat(TransactionStatuses.caseOf(atomicTable.get(3L).get())
-                        .inProgress_(true)
-                        .otherwise_(false))
-                .isTrue();
+        assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
     @Test
     public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
-        atomicTable.update(1L, TransactionStatuses.aborted());
-        assertThat(TransactionStatuses.caseOf(atomicTable.get(1L).get())
-                        .aborted_(true)
-                        .otherwise_(false))
-                .isTrue();
+        atomicTable.update(1L, TransactionStatus.aborted());
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.aborted());
     }
 
     @Test
     public void cannotPueTwice() {
-        atomicTable.update(1L, TransactionStatuses.committed(2L));
-        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
+        atomicTable.update(1L, TransactionStatus.committed(2L));
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
@@ -137,31 +129,29 @@ public class ResilientCommitTimestampAtomicTableTest {
     public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(
                 1L,
-                TransactionStatuses.committed(2L),
+                TransactionStatus.committed(2L),
                 3L,
-                TransactionStatuses.committed(4L),
+                TransactionStatus.committed(4L),
                 7L,
-                TransactionStatuses.committed(8L));
+                TransactionStatus.committed(8L));
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
         assertThat(result).hasSize(4);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
-        assertThat(TransactionStatuses.caseOf(result.get(5L)).inProgress_(true).otherwise_(false))
-                .isTrue();
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(7L))).hasValue(8L);
+        assertThat(result.get(1L)).isEqualTo(TransactionStatus.committed(2L));
+        assertThat(result.get(3L)).isEqualTo(TransactionStatus.committed(4L));
+        assertThat(result.get(5L)).isEqualTo(TransactionStatus.inProgress());
+        assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
     }
 
     @Test
     public void pueThatThrowsIsCorrectedOnGet() throws ExecutionException, InterruptedException {
         spiedStore.startFailingPuts();
-        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(RuntimeException.class);
         spiedStore.stopFailingPuts();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
-                .hasValue(2L);
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedStore, times(2)).put(anyMap());
     }
 
@@ -170,7 +160,7 @@ public class ResilientCommitTimestampAtomicTableTest {
             throws ExecutionException, InterruptedException {
 
         long startTimestamp = 1L;
-        TransactionStatus commitStatus = TransactionStatuses.committed(2L);
+        TransactionStatus commitStatus = TransactionStatus.committed(2L);
         Cell timestampAsCell = encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
         byte[] stagingValue =
                 encodingStrategy.encodeCommitStatusAsValue(startTimestamp, AtomicValue.staging(commitStatus));
@@ -184,9 +174,7 @@ public class ResilientCommitTimestampAtomicTableTest {
                 .when(spiedStore)
                 .checkAndTouch(timestampAsCell, stagingValue);
 
-        assertThat(TransactionStatuses.getCommitTimestamp(
-                        atomicTable.get(startTimestamp).get()))
-                .isEqualTo(TransactionStatuses.getCommitTimestamp(commitStatus));
+        assertThat(atomicTable.get(startTimestamp).get()).isEqualTo(commitStatus);
     }
 
     @Test
@@ -209,14 +197,14 @@ public class ResilientCommitTimestampAtomicTableTest {
             for (int i = 0; i < 30; i++) {
                 TransactionStatus valueRead = firstSuccessfulRead(putUnlessExistsTable, startTs);
                 onlyAllowedCommitTs.ifPresentOrElse(
-                        commit -> assertThat(TransactionStatuses.getCommitTimestamp(valueRead))
-                                .hasValue(commit),
-                        () -> assertThat(TransactionStatuses.caseOf(valueRead)
-                                        .inProgress_(true)
-                                        .committed(commitTs -> commitTs >= ts && commitTs <= ts + 2)
-                                        .otherwise_(false))
-                                .isTrue());
-                onlyAllowedCommitTs = TransactionStatuses.getCommitTimestamp(valueRead);
+                        commit -> assertThat(valueRead).isEqualTo(TransactionStatus.committed(commit)),
+                        () -> assertThat(valueRead)
+                                .satisfiesAnyOf(
+                                        status -> assertThat(status).isEqualTo(TransactionStatus.inProgress()),
+                                        status -> assertThat(status).isEqualTo(TransactionStatus.committed(ts)),
+                                        status -> assertThat(status).isEqualTo(TransactionStatus.committed(ts + 1)),
+                                        status -> assertThat(status).isEqualTo(TransactionStatus.committed(ts + 2))));
+                onlyAllowedCommitTs = TransactionStatus.getCommitTimestamp(valueRead);
             }
         }
     }
@@ -242,9 +230,7 @@ public class ResilientCommitTimestampAtomicTableTest {
 
         spiedStore.stopFailingPuts();
         for (long i = 0; i < 100; i++) {
-            assertThat(TransactionStatuses.getCommitTimestamp(
-                            atomicTable.get(0L).get()))
-                    .hasValue(0L);
+            assertThat(atomicTable.get(0L).get()).isEqualTo(TransactionStatus.committed(0L));
         }
 
         if (validating) {
@@ -343,8 +329,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         setupStagingValues(1);
         spiedStore.enableCommittingUnderUs();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
-                .hasValue(0L);
+        assertThat(atomicTable.get(0L).get()).isEqualTo(TransactionStatus.committed(0L));
         verify(spiedKvs, times(1)).checkAndSet(any());
         // only the put from the original PUE was registered
         verify(spiedStore, times(1)).put(anyMap());
@@ -357,18 +342,15 @@ public class ResilientCommitTimestampAtomicTableTest {
         spiedStore.stopFailingPuts();
         spiedStore.startSlowPue();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(0L).get()))
-                .hasValue(0L);
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
-                .hasValue(1L);
+        assertThat(atomicTable.get(0L).get()).isEqualTo(TransactionStatus.committed(0L));
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(1L));
 
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(2L).get()))
-                .hasValue(2L);
+        assertThat(atomicTable.get(2L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }
@@ -384,15 +366,13 @@ public class ResilientCommitTimestampAtomicTableTest {
                 .hasCauseInstanceOf(RetryLimitReachedException.class);
         spiedStore.stopFailingPuts();
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
-                .hasValue(1L);
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(1L));
         verify(spiedKvs, times(1)).checkAndSet(any());
         verify(spiedStore, times(1 + 2)).put(anyMap());
 
         clockLong.accumulateAndGet(Duration.ofSeconds(62).toMillis(), Long::sum);
 
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(2L).get()))
-                .hasValue(2L);
+        assertThat(atomicTable.get(2L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }
@@ -400,7 +380,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     private void setupStagingValues(int num) {
         spiedStore.startFailingPuts();
         Map<Long, TransactionStatus> initialWrites =
-                LongStream.range(0, num).boxed().collect(Collectors.toMap(x -> x, TransactionStatuses::committed));
+                LongStream.range(0, num).boxed().collect(Collectors.toMap(x -> x, TransactionStatus::committed));
         assertThatThrownBy(() -> atomicTable.updateMultiple(initialWrites))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to set value");
@@ -409,7 +389,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     private static Optional<Long> tryPue(
             AtomicTable<Long, TransactionStatus> atomicTable, long startTs, long commitTs) {
         try {
-            atomicTable.update(startTs, TransactionStatuses.committed(commitTs));
+            atomicTable.update(startTs, TransactionStatus.committed(commitTs));
             return Optional.of(commitTs);
         } catch (Exception e) {
             // this is ok, we may have failed because it already exists or randomly. Either way, continue.

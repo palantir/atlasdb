@@ -35,7 +35,6 @@ import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.LockToken;
@@ -59,7 +58,7 @@ public class CommitTimestampLoaderTest {
     private final KnownConcludedTransactions knownConcludedTransactions = mock(KnownConcludedTransactions.class);
 
     private void setup(long startTs, long commitTs) {
-        TransactionStatus commitStatus = TransactionStatuses.committed(commitTs);
+        TransactionStatus commitStatus = TransactionStatus.committed(commitTs);
         setup(startTs, commitStatus, false);
     }
 
@@ -87,7 +86,7 @@ public class CommitTimestampLoaderTest {
     public void throwIfTTSBeyondReadOnlyForSweptTTSCell() {
         long transactionTs = 27l;
         long startTs = 5l;
-        TransactionStatus commitStatus = TransactionStatuses.unknown();
+        TransactionStatus commitStatus = TransactionStatus.unknown();
 
         setup(startTs, commitStatus, true);
 
@@ -160,7 +159,7 @@ public class CommitTimestampLoaderTest {
         long commitTsKnown = startTsKnown + 1;
 
         long startTsUnknown = 7l;
-        TransactionStatus commitUnknown = TransactionStatuses.unknown();
+        TransactionStatus commitUnknown = TransactionStatus.unknown();
 
         CommitTimestampLoader commitTimestampLoader =
                 getCommitTsLoader(Optional.empty(), transactionTs, transactionTs - 1);
