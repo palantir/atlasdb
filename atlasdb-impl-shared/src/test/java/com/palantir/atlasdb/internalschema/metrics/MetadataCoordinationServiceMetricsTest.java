@@ -35,6 +35,7 @@ import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -124,6 +125,10 @@ public class MetadataCoordinationServiceMetricsTest {
     }
 
     private static <T> Gauge<T> getGauge(MetricsManager manager, String shortName) {
-        return manager.getRegistry().getGauges().get(buildFullyQualifiedMetricName(shortName));
+        return (Gauge<T>) manager.getTaggedRegistry()
+                .gauge(MetricName.builder()
+                        .safeName(buildFullyQualifiedMetricName(shortName))
+                        .build())
+                .orElseThrow();
     }
 }
