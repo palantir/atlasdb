@@ -1,38 +1,23 @@
 apply from: "../gradle/shared.gradle"
-apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'com.palantir.metric-schema'
 apply plugin: 'com.palantir.revapi'
 
-configurations {
-  explicitShadow
-  shadow.extendsFrom(explicitShadow)
-  implementation.extendsFrom(explicitShadow)
-}
-
 dependencies {
-  // does shadowing statically analysed annotations really buy us anything?
-  explicitShadow 'com.google.code.findbugs:findbugs-annotations'
-  explicitShadow 'com.google.code.findbugs:jsr305'
-  explicitShadow 'com.google.guava:guava'
-  explicitShadow 'com.palantir.conjure.java.api:ssl-config'
-  explicitShadow 'com.palantir.conjure.java.runtime:keystores'
-  explicitShadow 'com.palantir.nylon:nylon-threads'
-  explicitShadow 'com.palantir.safe-logging:safe-logging'
-  explicitShadow 'com.palantir.tracing:tracing'
-  explicitShadow 'org.apache.commons:commons-pool2'
-  explicitShadow 'org.jboss.marshalling:jboss-marshalling'
-  explicitShadow project(":atlasdb-api")
-  explicitShadow project(":atlasdb-client")
-  explicitShadow project(":atlasdb-impl-shared")
-  explicitShadow project(":commons-api")
-  explicitShadow project(':timestamp-impl')
-  shadow ('com.palantir.cassandra:cassandra-thrift') {
-    exclude group: 'org.apache.httpcomponents'
-  }
+  implementation 'com.google.guava:guava'
+  implementation 'com.palantir.conjure.java.api:ssl-config'
+  implementation 'com.palantir.conjure.java.runtime:keystores'
+  implementation 'com.palantir.nylon:nylon-threads'
+  implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'com.palantir.tracing:tracing'
+  implementation 'org.apache.commons:commons-pool2'
+  implementation 'org.jboss.marshalling:jboss-marshalling'
+  implementation project(":atlasdb-api")
+  implementation project(":atlasdb-client")
+  implementation project(":atlasdb-impl-shared")
+  implementation project(":commons-api")
+  implementation project(':timestamp-impl')
   implementation ('com.palantir.cassandra:cassandra-thrift')
-  explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
-    exclude(group: 'com.codahale.metrics', module: 'metrics-core')
-  }
+  implementation ('com.datastax.cassandra:cassandra-driver-core')
   implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -99,20 +84,6 @@ dependencies {
   compileOnly project(":atlasdb-processors")
   testCompileOnly 'org.immutables:value::annotations'
 }
-
-shadowJar {
-  mergeServiceFiles()
-  classifier ''
-
-  relocate('org.hibernate', 'shadowed')
-
-  dependencies {
-      include(dependency { false })
-  }
-}
-
-jar.dependsOn shadowJar
-jar.onlyIf { false }
 
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 
