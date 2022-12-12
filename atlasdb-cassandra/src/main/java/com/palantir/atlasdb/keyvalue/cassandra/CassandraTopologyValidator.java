@@ -175,6 +175,8 @@ public final class CassandraTopologyValidator {
      */
     private Optional<ConsistentClusterTopology> maybeGetConsistentClusterTopology(
             Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures) {
+        log.info("Trying to get a consistent cluster topology",
+                SafeArg.of("results", hostIdsByServerWithoutSoftFailures));
         // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
             return Optional.of(ConsistentClusterTopology.builder()
@@ -214,6 +216,8 @@ public final class CassandraTopologyValidator {
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
+        log.info("Attempting to fetch host IDs, ignoring soft failures",
+                SafeArg.of("servers", servers.keySet()));
         Map<CassandraServer, HostIdResult> results =
                 EntryStream.of(servers).mapValues(this::fetchHostIds).toMap();
 
@@ -223,6 +227,9 @@ public final class CassandraTopologyValidator {
                         || result.type() == HostIdResult.Type.HARD_FAILURE)) {
             log.warn(
                     "While fetching host id from hosts, some reported soft and hard failures.",
+                    SafeArg.of("results", results));
+        } else {
+            log.info("Looks like host ids were ok",
                     SafeArg.of("results", results));
         }
 

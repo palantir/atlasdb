@@ -35,6 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.concurrent.GuardedBy;
+import one.util.streamex.EntryStream;
 import org.immutables.value.Value;
 
 public final class CassandraAbsentHostTracker {
@@ -55,10 +56,15 @@ public final class CassandraAbsentHostTracker {
                     List<CassandraAbsentHostTracker> trackerSnapshot = ImmutableList.copyOf(KNOWN_TRACKERS);
                     trackerSnapshot.forEach(tracker -> {
                         synchronized (tracker) {
+                            Map<CassandraServer, PoolAndCount> absentServers = tracker.absentCassandraServers;
+                            Map<CassandraServer, Integer> activeCheckoutsForAbsentServers = EntryStream.of(absentServers)
+                                            .mapValues(PoolAndCount::container)
+                                    .mapValues(CassandraClientPoolingContainer::getActiveCheckouts).toMap();
                             log.warn(
                                     "Individual tracker information",
                                     SafeArg.of("identifier", tracker.identifier),
-                                    SafeArg.of("hosts", tracker.absentCassandraServers));
+                                    SafeArg.of("hosts", absentServers),
+                                    SafeArg.of("activeCheckouts", activeCheckoutsForAbsentServers));
                         }
                     });
                 },
@@ -135,6 +141,9 @@ public final class CassandraAbsentHostTracker {
                     SafeArg.of("removedServer", cassandraServer),
                     e);
         } finally {
+            log.info("We tried to shut down a client pool.",
+                    SafeArg.of("cassandraServer", cassandraServer),
+                    SafeArg.of("remainingConnections", container.getActiveCheckouts()));
             REMOVED_ELEMENTS.incrementAndGet();
         }
     }
