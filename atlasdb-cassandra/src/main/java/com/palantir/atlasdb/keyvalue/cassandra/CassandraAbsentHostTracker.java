@@ -143,7 +143,7 @@ public final class CassandraAbsentHostTracker {
                     SafeArg.of("removedServer", cassandraServer),
                     e);
         } finally {
-            log.info(
+            log.warn(
                     "We tried to shut down a client pool.",
                     SafeArg.of("cassandraServer", cassandraServer),
                     SafeArg.of("remainingConnections", container.getActiveCheckouts()));
