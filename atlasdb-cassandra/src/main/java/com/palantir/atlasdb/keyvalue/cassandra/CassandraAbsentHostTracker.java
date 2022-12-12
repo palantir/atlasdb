@@ -70,9 +70,9 @@ public final class CassandraAbsentHostTracker {
                         }
                     });
                 },
-                10,
-                10,
-                TimeUnit.SECONDS);
+                2,
+                2,
+                TimeUnit.MINUTES);
     }
 
     private final UUID identifier = UUID.randomUUID();
