@@ -45,9 +45,9 @@ public class CassandraAbsentHostTrackerTest {
     private CassandraClientPoolingContainer container1 = mock(CassandraClientPoolingContainer.class);
     private CassandraClientPoolingContainer container2 = mock(CassandraClientPoolingContainer.class);
     private CassandraClientPoolingContainer container3 = mock(CassandraClientPoolingContainer.class);
-
+    
     @Test
-    public void returnEmptyIfNothingThePool() {
+    public void returnEmptyIfNothingInThePool() {
         assertThat(hostTracker.returnPool(SERVER_1)).isEmpty();
     }
 
@@ -70,6 +70,7 @@ public class CassandraAbsentHostTrackerTest {
         });
         Set<CassandraServer> removedHosts = hostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(SERVER_1);
+        verify(container1).getActiveCheckouts();
         verifyPoolShutdown(container1);
     }
 
@@ -86,6 +87,9 @@ public class CassandraAbsentHostTrackerTest {
         IntStream.range(0, REQUIRED_CONSECUTIVE_REQUESTS - 1).forEach(_u -> hostTracker.incrementAbsenceAndRemove());
         Set<CassandraServer> removedHosts = hostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactlyInAnyOrder(SERVER_1, SERVER_2);
+        // Wow
+        verify(container1).getActiveCheckouts();
+        verify(container2).getActiveCheckouts();
         verifyPoolShutdown(container1);
         verifyPoolShutdown(container2);
         verifyNoInteractions(container3);
@@ -97,6 +101,7 @@ public class CassandraAbsentHostTrackerTest {
         oneShotHostTracker.trackAbsentCassandraServer(SERVER_1, container1);
         Set<CassandraServer> removedHosts = oneShotHostTracker.incrementAbsenceAndRemove();
         assertThat(removedHosts).containsExactly(SERVER_1);
+        verify(container1).getActiveCheckouts();
         verifyPoolShutdown(container1);
     }
 
