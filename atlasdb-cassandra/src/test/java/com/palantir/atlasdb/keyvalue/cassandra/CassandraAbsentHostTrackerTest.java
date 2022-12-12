@@ -45,7 +45,7 @@ public class CassandraAbsentHostTrackerTest {
     private CassandraClientPoolingContainer container1 = mock(CassandraClientPoolingContainer.class);
     private CassandraClientPoolingContainer container2 = mock(CassandraClientPoolingContainer.class);
     private CassandraClientPoolingContainer container3 = mock(CassandraClientPoolingContainer.class);
-    
+
     @Test
     public void returnEmptyIfNothingInThePool() {
         assertThat(hostTracker.returnPool(SERVER_1)).isEmpty();
