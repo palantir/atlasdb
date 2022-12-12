@@ -57,9 +57,11 @@ public final class CassandraAbsentHostTracker {
                     trackerSnapshot.forEach(tracker -> {
                         synchronized (tracker) {
                             Map<CassandraServer, PoolAndCount> absentServers = tracker.absentCassandraServers;
-                            Map<CassandraServer, Integer> activeCheckoutsForAbsentServers = EntryStream.of(absentServers)
-                                            .mapValues(PoolAndCount::container)
-                                    .mapValues(CassandraClientPoolingContainer::getActiveCheckouts).toMap();
+                            Map<CassandraServer, Integer> activeCheckoutsForAbsentServers = EntryStream.of(
+                                            absentServers)
+                                    .mapValues(PoolAndCount::container)
+                                    .mapValues(CassandraClientPoolingContainer::getActiveCheckouts)
+                                    .toMap();
                             log.warn(
                                     "Individual tracker information",
                                     SafeArg.of("identifier", tracker.identifier),
@@ -141,7 +143,8 @@ public final class CassandraAbsentHostTracker {
                     SafeArg.of("removedServer", cassandraServer),
                     e);
         } finally {
-            log.info("We tried to shut down a client pool.",
+            log.info(
+                    "We tried to shut down a client pool.",
                     SafeArg.of("cassandraServer", cassandraServer),
                     SafeArg.of("remainingConnections", container.getActiveCheckouts()));
             REMOVED_ELEMENTS.incrementAndGet();
