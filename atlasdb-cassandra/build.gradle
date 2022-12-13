@@ -16,8 +16,8 @@ dependencies {
   implementation project(":atlasdb-impl-shared")
   implementation project(":commons-api")
   implementation project(':timestamp-impl')
-  implementation ('com.palantir.cassandra:cassandra-thrift')
-  implementation ('com.datastax.cassandra:cassandra-driver-core')
+  implementation 'com.palantir.cassandra:cassandra-thrift'
+  implementation 'com.datastax.cassandra:cassandra-driver-core'
   implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
