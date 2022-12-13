@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Use the latest javax-compatible undertow release
+  links:
+  - https://github.com/palantir/atlasdb/pull/6404
