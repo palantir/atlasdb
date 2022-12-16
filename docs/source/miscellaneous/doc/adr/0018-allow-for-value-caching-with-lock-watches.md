@@ -55,7 +55,10 @@ For example, the lock descriptor `0x61006200630064` could be any of:
 
 A good solution to this problem should demonstrate the following characteristics:
 
-- *Correctness*: Lock watches must be accurate with respect to actual lock and unlock events under all circumstances.
+- *Correctness*: Lock watches must accurately report all lock and unlock events for lock descriptors that are being
+  watched, under all circumstances.
+- *Minimal noise*: Lock watches may report lock and unlock events for lock descriptors that are not being watched, but
+  this should be kept to a minimum.
 - *Independence to wall-clock time*: AtlasDB operates under the assumption that wall-clock time is not to be relied on,
   and this should not be changed by Lock Watches.
 - *No excessive performance overhead on critical path operations*: Lock refreshes, transaction starts or transaction 
@@ -119,20 +122,56 @@ The implementation internally tracks a bit more state to facilitate updates, inc
 - a long indicating what the sequence number of the next event should be.
 - a reference to the `HeldLocksCollection`, mainly for taking snapshots.
 
-As lock and unlock are called, TimeLock will evaluate the lock descriptor against the set of registered lock watches.
-If there is a match, timelock will enqueue a `LockEvent` indicating that a given descriptor was locked or unlocked into
-the ring buffer before returning. This is done synchronously.
+The UUID is generated on the creation of the event log, and is used to ensure that clients know that the state of the
+log needs to be completely invalidated after each leader election (in particular, even in the edge case where a node
+loses and regains leadership; since all lock state is cleared).
 
-User queries consider the provided `fromVersion` argument: if this is either absent or too far (more than 1,000 events)
-behind, we use the `HeldLocksCollection` to give the user a snapshot of the world (that is, the version, the set of
-active lock watches, and the set of lock descriptors matching the lock watches that had been taken out at this point).
-Otherwise, the relevant part of the ring buffer is served to users.
+As lock and unlock are called, TimeLock will evaluate the relevant lock descriptor against the set of registered lock 
+watches. If there is a match, timelock will enqueue a `LockEvent` indicating that a given descriptor was locked or 
+unlocked into the ring buffer before returning. This is done synchronously.
+
+User queries to `getLogDiff` must then consider the provided `fromVersion` argument: if this is 
+- absent, or 
+- from a different log, as determined by the UUID not matching, or
+- too far (more than 1,000 events) behind
+
+we use the `HeldLocksCollection` to give the user a snapshot of the world (that is, the version, the set of
+active lock watches, and the set of lock descriptors corresponding to locks that had already been taken out that are
+also matching the lock watches). Otherwise, the relevant part of the ring buffer is served to users.
 
 #### Creation Events
 
+We implement registration of a new lock watch as being another event in the log. Recall our definitions of correctness
+and minimal noise: it is costly to synchronise all matching lock and unlock requests when a lock watch is being
+created, and we don't make or need those guarantees. It suffices to first add the lock watch to the set of tracked lock
+watches (so that new lock/unlock requests evaluate themselves against it), then look at currently open locks and add
+lock/unlock events so clients are aware of the open locks, *then* add a LockWatchCreated event to the log.
+
+We haven't implemented deregistration, though this is conceptually simpler: the client needs to flush everything that it
+has cached, but that's about it.
+
+#### Starting Transactions
+
+TimeLock provides an API through which Atlas clients start transactions. The Atlas client will track the last version
+it knows about and provides this as part of the request body. That said, starting an AtlasDB transaction requires
+TimeLock to do multiple things, and we need to be careful about ordering. Starting a batch of transactions requires
+
+- Locking the immutable timestamp.
+- Getting fresh timestamps, which will be the start timestamp of the transactions.
+- Providing the correct `LockWatchStateUpdate` to the client, based on a `lastKnownVersion` they provide in the 
+  `StartTransactionRequest`.
+
+The update we return need not be entirely up to date, but we must ensure that information about all lock requests 
+completed before this request started has already been included in the log returned to the user. So we take out the
+start timestamps before looking at the lock log - there could be more events that occurred in the interim that we
+didn't see, but that's allowed. Consider that any lock event happening in parallel must relate to a transaction that
+has already started and run its transaction task, but by definition of the Atlas transaction protocol has not got its
+commit timestamp yet. Since we had already taken out our start timestamp, we know that our start timestamp must be less
+than the other transaction's commit timestamp, and so we cannot see their write so it doesn't matter to us.
+
 ### Implementation: AtlasDB
 
-#### R
+We associate every transaction in AtlasDB with a version of the
 
 ## Deployment and Testing
 TODO
