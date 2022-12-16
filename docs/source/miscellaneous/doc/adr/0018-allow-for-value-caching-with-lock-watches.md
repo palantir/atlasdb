@@ -171,7 +171,18 @@ than the other transaction's commit timestamp, and so we cannot see their write 
 
 ### Implementation: AtlasDB
 
-We associate every transaction in AtlasDB with a version of the
+#### Requirements
+
+We need AtlasDB to track where we are in terms of events we know about (so our `lastKnownVersion`). We also
+need to ensure that transactions are able to read transactionally from the cache; in particular, if an older transaction
+runs for some time, and we have subsequent transactions which write and read a watched cell, the old transaction should
+not have to invalidate values it reads from that cell.
+
+AtlasDB also needs to expose schema configuration points to allow users to specify that they want caching on some of
+their tables, and based on that also needs to actually register the watches with TimeLock.
+
+#### Starting a Transaction
+TODO
 
 ## Deployment and Testing
 TODO
