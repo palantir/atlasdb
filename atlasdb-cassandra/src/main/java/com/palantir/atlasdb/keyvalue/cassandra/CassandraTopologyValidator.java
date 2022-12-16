@@ -163,9 +163,11 @@ public final class CassandraTopologyValidator {
         switch (topologyFromCurrentServers.type()) {
             case CONSENSUS:
                 quorumFailures.set(0);
-                Preconditions.checkState(topologyFromCurrentServers.agreedTopology().isPresent(),
+                Preconditions.checkState(
+                        topologyFromCurrentServers.agreedTopology().isPresent(),
                         "Expected to have a consistent topology for a CONSENSUS result, but did not.");
-                ConsistentClusterTopology topology = topologyFromCurrentServers.agreedTopology().get();
+                ConsistentClusterTopology topology =
+                        topologyFromCurrentServers.agreedTopology().get();
                 return EntryStream.of(newServersWithoutSoftFailures)
                         .removeValues(result -> result.type() == HostIdResult.Type.SUCCESS
                                 && result.hostIds().equals(topology.hostIds()))
@@ -179,7 +181,8 @@ public final class CassandraTopologyValidator {
                 // In the event of no quorum, we need to trust the new servers at some point since in containerised
                 // deployments things can actually move on like that between refreshes.
                 if (quorumFailures.incrementAndGet() >= 10) {
-                    log.warn("We have not been able to get a quorum of the existing Cassandra nodes for ten "
+                    log.warn(
+                            "We have not been able to get a quorum of the existing Cassandra nodes for ten "
                                     + "attempts. Based on this, we are just going to look at the remaining hosts and "
                                     + "accept their consensus, if they have one.",
                             SafeArg.of("currentServersWithoutSoftFailures", currentServersWithoutSoftFailures),
@@ -189,12 +192,15 @@ public final class CassandraTopologyValidator {
                             .agreedTopology()
                             .<Set<CassandraServer>>map(newServerTopology ->
                                     // Do not add new servers which were unreachable
-                                    Sets.difference(newServersWithoutSoftFailures.keySet(), newServerTopology.serversInConsensus()))
+                                    Sets.difference(
+                                            newServersWithoutSoftFailures.keySet(),
+                                            newServerTopology.serversInConsensus()))
                             .orElseGet(newServersWithoutSoftFailures::keySet);
                 }
                 return newServersWithoutSoftFailures.keySet();
             default:
-                throw new SafeIllegalStateException("Unexpected cluster topology result type",
+                throw new SafeIllegalStateException(
+                        "Unexpected cluster topology result type",
                         SafeArg.of("type", topologyFromCurrentServers.type()));
         }
     }
@@ -306,6 +312,7 @@ public final class CassandraTopologyValidator {
     @Value.Immutable
     public interface ClusterTopologyResult {
         ClusterTopologyResultType type();
+
         Optional<ConsistentClusterTopology> agreedTopology();
 
         static ClusterTopologyResult consensus(ConsistentClusterTopology consistentClusterTopology) {
@@ -320,6 +327,7 @@ public final class CassandraTopologyValidator {
                     .type(ClusterTopologyResultType.DISSENT)
                     .build();
         }
+
         static ClusterTopologyResult noQuorum() {
             return ImmutableClusterTopologyResult.builder()
                     .type(ClusterTopologyResultType.NO_QUORUM)
