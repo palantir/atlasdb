@@ -223,14 +223,23 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void validateNewlyAddedHostsNoNewHostsAddedIfOldHostsDoNotHaveQuorum() {
+    public void validateNewlyAddedHostsAddsNewHostsOnlyAfterRepeatedQuorumFailures() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
         Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE, OLD_HOST_TWO);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
         assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
+                .as("no new hosts added if old hosts do not have quorum at first")
                 .containsExactlyElementsOf(newCassandraServers);
+
+        for (int i = 0; i < 20; i++) {
+            validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts);
+        }
+        assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
+                .as("new hosts can be added if old hosts repeatedly fail to have quorum")
+                .containsExactlyElementsOf(newCassandraServers);
+
     }
 
     @Test
