@@ -238,7 +238,7 @@ public final class CassandraTopologyValidatorTest {
         }
         assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
                 .as("new hosts can be added if old hosts repeatedly fail to have quorum")
-                .containsExactlyElementsOf(newCassandraServers);
+                .isEmpty();
 
     }
 
