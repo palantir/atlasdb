@@ -86,20 +86,49 @@ A `LockWatchRequest` wraps a set of `LockWatchReference`s, which indicate to Tim
 client wants to watch. Currently, only two types are supported: *full table* lock watches and *exact row match* lock
 watches; the former is generally exposed to users while the latter is currently not.
 
+We currently only expose full table lock watches to users because these are in many cases sufficient, and are also less
+prone to error; for various reasons, lock watches work effectively for cells that are not updated frequently, but are
+extremely sensitive to an accidental inclusion of a cell that is, and exposing a more complex and expressive API would
+allow users to shoot themselves in the foot easily.
+
 #### Lock Event Log
 
-The TimeLock leader maintains a `LockEventLog` on the server side; this event log wraps a ring buffer tracking up to
-1000 `LockEvent`s, and this limit is not currently configurable. 
+The TimeLock leader maintains a `LockEventLog` for each namespace on the server side. The purpose of this event log is
+to be able to answer user queries on what the state of the locks that are watched might be.
 
-#### Lock and Unlock Workflows
+```java
+@Value.Immutable
+public interface LockWatchVersion {
+  UUID id();
+  long version();
+}
 
-When lock or unlock are called, TimeLock will evaluate the lock descriptor against the set of registered lock watches.
-If there is a match, timelock will enqueue an event encoding the fact that a lock or unlock happened in a ring buffer;
-this buffer
+public interface LockEventLog {
+  LockWatchStateUpdate getLogDiff(Optional<LockWatchVersion> fromVersion);
+}
+```
 
-It is worth noting that in the general case, because of how Atlas generates lock descriptors from its schema, it is
-not always possible to determine definitively whether a row
+A `LockWatchStateUpdate` is a union type that is either a `Success` indicating events that happened since the last known
+version up to some fixed sequence number, or a `Snapshot` indicating the state of the world (as far as watched locks are
+concerned) and its sequence number.
 
+The implementation internally tracks a bit more state to facilitate updates, including:
+
+- a UUID which identifies this lock event log,
+- a ring buffer tracking the 1,000 most recent `LockEvent`s, and
+- a long indicating what the sequence number of the next event should be.
+- a reference to the `HeldLocksCollection`, mainly for taking snapshots.
+
+As lock and unlock are called, TimeLock will evaluate the lock descriptor against the set of registered lock watches.
+If there is a match, timelock will enqueue a `LockEvent` indicating that a given descriptor was locked or unlocked into
+the ring buffer before returning. This is done synchronously.
+
+User queries consider the provided `fromVersion` argument: if this is either absent or too far (more than 1,000 events)
+behind, we use the `HeldLocksCollection` to give the user a snapshot of the world (that is, the version, the set of
+active lock watches, and the set of lock descriptors matching the lock watches that had been taken out at this point).
+Otherwise, the relevant part of the ring buffer is served to users.
+
+#### Creation Events
 
 ### Implementation: AtlasDB
 
