@@ -15,15 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
-import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -35,8 +38,12 @@ public final class CassandraLogHelper {
         // Utility class.
     }
 
-    public static HostAndIpAddress host(InetSocketAddress host) {
-        return HostAndIpAddress.fromAddress(host);
+    // Cache instances as there should be a relatively small, generally fixed number of Cassandra servers.
+    private static final LoadingCache<HostAndIpAddress, String> hostAddressToString =
+            Caffeine.newBuilder().maximumSize(1_000).build(HostAndIpAddress::asString);
+
+    public static String host(InetSocketAddress host) {
+        return hostAddressToString.get(HostAndIpAddress.fromAddress(host));
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
@@ -81,9 +88,7 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    // Weakly intern instances as there should be a relatively small, generally fixed number of Cassandra servers.
-    @Value.Immutable(lazyhash = true, intern = true, builder = false)
-    @WeakInterningImmutablesStyle
+    @Value.Immutable(lazyhash = true, builder = false, copy = false)
     interface HostAndIpAddress {
         @Value.Parameter
         String host();
@@ -92,12 +97,21 @@ public final class CassandraLogHelper {
         @Value.Parameter
         String ipAddress();
 
+        @Value.Auxiliary
+        default String asString() {
+            if (ipAddress() == null) {
+                // unresolved IP
+                return host();
+            }
+            return host() + '/' + ipAddress();
+        }
+
+        @VisibleForTesting
         static HostAndIpAddress fromAddress(InetSocketAddress address) {
             InetAddress inetAddress = address.getAddress();
-            if (inetAddress != null) {
-                return ImmutableHostAndIpAddress.of(address.getHostString(), inetAddress.getHostAddress());
-            }
-            return ImmutableHostAndIpAddress.of(address.getHostString(), /* unresolved IP */ null);
+            String host = address.getHostString().toLowerCase(Locale.ROOT);
+            String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
+            return ImmutableHostAndIpAddress.of(host, ip);
         }
     }
 }

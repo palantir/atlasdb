@@ -81,24 +81,24 @@ public class CassandraLogHelperTest {
 
     @Test
     public void unresolvedHost() {
-        assertThat(CassandraLogHelper.host(InetSocketAddress.createUnresolved("localhost", 1234)))
-                .satisfies(hostAndIpAddress -> {
-                    assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
-                    assertThat(hostAndIpAddress.ipAddress()).isNull();
-                })
-                .asString()
-                .isEqualTo("HostAndIpAddress{host=localhost}");
+        InetSocketAddress address = InetSocketAddress.createUnresolved("localhost", 1234);
+        assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost");
+        assertThat(CassandraLogHelper.HostAndIpAddress.fromAddress(address)).satisfies(hostAndIpAddress -> {
+            assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
+            assertThat(hostAndIpAddress.ipAddress()).isNull();
+            assertThat(hostAndIpAddress.asString()).isEqualTo("localhost");
+        });
     }
 
     @Test
     @SuppressWarnings("DnsLookup") // we want the DNS lookup to resolve localhost
     public void resolvedHost() {
-        assertThat(CassandraLogHelper.host(new InetSocketAddress("localhost", 1234)))
-                .satisfies(hostAndIpAddress -> {
-                    assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
-                    assertThat(hostAndIpAddress.ipAddress()).isEqualTo("127.0.0.1");
-                })
-                .asString()
-                .isEqualTo("HostAndIpAddress{host=localhost, ipAddress=127.0.0.1}");
+        InetSocketAddress address = new InetSocketAddress("localhost", 1234);
+        assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost/127.0.0.1");
+        assertThat(CassandraLogHelper.HostAndIpAddress.fromAddress(address)).satisfies(hostAndIpAddress -> {
+            assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
+            assertThat(hostAndIpAddress.ipAddress()).isEqualTo("127.0.0.1");
+            assertThat(hostAndIpAddress.asString()).isEqualTo("localhost/127.0.0.1");
+        });
     }
 }
