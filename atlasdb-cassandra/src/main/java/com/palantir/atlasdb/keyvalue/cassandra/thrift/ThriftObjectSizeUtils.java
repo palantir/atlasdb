@@ -119,7 +119,6 @@ public final class ThriftObjectSizeUtils {
         if (mutation == null) {
             return getNullSize();
         }
-
         return getColumnOrSuperColumnSize(mutation.getColumn_or_supercolumn())
                 + getDeletionSize(mutation.getDeletion());
     }
@@ -138,8 +137,7 @@ public final class ThriftObjectSizeUtils {
         if (keySlice == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(keySlice.getKey())
+        return getBytesSize(keySlice, KeySlice::bufferForKey, KeySlice::getKey)
                 + getCollectionSize(keySlice.getColumns(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize);
     }
 
@@ -147,7 +145,6 @@ public final class ThriftObjectSizeUtils {
         if (string == null) {
             return getNullSize();
         }
-
         return string.length();
     }
 
@@ -155,9 +152,8 @@ public final class ThriftObjectSizeUtils {
         if (column == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(column.getValue())
-                + getByteArraySize(column.getName())
+        return getBytesSize(column, Column::bufferForName, Column::getName)
+                + getBytesSize(column, Column::bufferForValue, Column::getValue)
                 + getTtlSize()
                 + getTimestampSize();
     }
@@ -166,8 +162,7 @@ public final class ThriftObjectSizeUtils {
         if (counterSuperColumn == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(counterSuperColumn.getName())
+        return getBytesSize(counterSuperColumn, CounterSuperColumn::bufferForName, CounterSuperColumn::getName)
                 + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
     }
 
@@ -175,16 +170,15 @@ public final class ThriftObjectSizeUtils {
         if (counterColumn == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(counterColumn.getName()) + getCounterValueSize();
+        return getBytesSize(counterColumn, CounterColumn::bufferForName, CounterColumn::getName)
+                + getCounterValueSize();
     }
 
     private static long getSuperColumnSize(SuperColumn superColumn) {
         if (superColumn == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(superColumn.getName())
+        return getBytesSize(superColumn, SuperColumn::bufferForName, SuperColumn::getName)
                 + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
@@ -192,9 +186,8 @@ public final class ThriftObjectSizeUtils {
         if (deletion == null) {
             return getNullSize();
         }
-
         return getTimestampSize()
-                + getByteArraySize(deletion.getSuper_column())
+                + getBytesSize(deletion, Deletion::bufferForSuper_column, Deletion::getSuper_column)
                 + getSlicePredicateSize(deletion.getPredicate());
     }
 
@@ -211,9 +204,8 @@ public final class ThriftObjectSizeUtils {
         if (sliceRange == null) {
             return getNullSize();
         }
-
-        return getByteArraySize(sliceRange.getStart())
-                + getByteArraySize(sliceRange.getFinish())
+        return getBytesSize(sliceRange, SliceRange::bufferForStart, SliceRange::getStart)
+                + getBytesSize(sliceRange, SliceRange::bufferForFinish, SliceRange::getFinish)
                 + getReversedBooleanSize()
                 + getSliceRangeCountSize();
     }
@@ -240,7 +232,7 @@ public final class ThriftObjectSizeUtils {
         if (cqlRow == null) {
             return getNullSize();
         }
-        return getByteArraySize(cqlRow.getKey())
+        return getBytesSize(cqlRow, CqlRow::bufferForKey, CqlRow::getKey)
                 + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
@@ -277,6 +269,19 @@ public final class ThriftObjectSizeUtils {
 
     private static long getNullSize() {
         return Integer.BYTES;
+    }
+
+    private static <T> long getBytesSize(T data, Function<T, ByteBuffer> toByteBuffer, Function<T, byte[]> toBytes) {
+        // determine the size of bytes for the given slice of data,
+        // ideally without having to copy that data into an array.
+        ByteBuffer byteBuffer = toByteBuffer.apply(data);
+        if (byteBuffer == null) {
+            // fallback to slow path that potentially copies array and creates ByteBuffer
+            byte[] bytes = toBytes.apply(data);
+            return getByteArraySize(bytes);
+        }
+        // fast-path where no copies are needed
+        return byteBuffer.remaining();
     }
 
     public static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
