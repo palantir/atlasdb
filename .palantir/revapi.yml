@@ -27,3 +27,10 @@ acceptedBreaks:
       new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
         \ int, int)"
       justification: "revert"
+  "0.782.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.returnTypeChanged"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper.HostAndIpAddress\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper::host(java.net.InetSocketAddress)"
+      new: "method java.lang.String com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper::host(java.net.InetSocketAddress)"
+      justification: "Internal logging diagnostics"
