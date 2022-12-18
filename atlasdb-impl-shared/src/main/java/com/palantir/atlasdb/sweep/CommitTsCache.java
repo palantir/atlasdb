@@ -25,7 +25,7 @@ import java.util.Optional;
 
 public final class CommitTsCache {
     private static final Long ONE_MILLION = 1_000_000L;
-    private LoadingCache<Long, Long> cache;
+    private final LoadingCache<Long, Long> cache;
 
     private CommitTsCache(TransactionService transactionService, long maxSize) {
         cache = Caffeine.newBuilder()
