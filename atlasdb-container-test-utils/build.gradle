@@ -7,6 +7,7 @@ dependencies {
     implementation project(':atlasdb-tests-shared')
     implementation project(":flake-rule")
 
+    implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
     implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'

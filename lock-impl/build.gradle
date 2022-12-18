@@ -5,6 +5,7 @@ dependencies {
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
