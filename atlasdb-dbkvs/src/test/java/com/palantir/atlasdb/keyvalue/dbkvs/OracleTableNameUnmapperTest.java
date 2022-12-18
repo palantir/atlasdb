@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -94,7 +95,16 @@ public class OracleTableNameUnmapperTest {
         assertThatThrownBy(() -> oracleTableNameUnmapper.getShortTableNameFromMappingTable(
                         connectionSupplier, TEST_PREFIX, TABLE_REF))
                 .isInstanceOf(TableMappingNotFoundException.class)
-                .hasMessageContaining("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
+                .hasMessageContaining("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed")
+                .hasRootCauseInstanceOf(SafeIllegalStateException.class)
+                .rootCause()
+                .asInstanceOf(type(SafeIllegalStateException.class))
+                .extracting(SafeIllegalStateException::getArgs)
+                .satisfies(args -> assertThat(args)
+                        .hasSize(1)
+                        .first()
+                        .isEqualTo(
+                                UnsafeArg.of("tableName", "a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed")));
     }
 
     @Test

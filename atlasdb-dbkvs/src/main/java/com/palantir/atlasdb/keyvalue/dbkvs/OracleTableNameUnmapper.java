@@ -72,7 +72,10 @@ class OracleTableNameUnmapper {
                 return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
             });
         } catch (SafeIllegalStateException e) {
-            throw new TableMappingNotFoundException(e);
+            throw new TableMappingNotFoundException(
+                    "The table " + fullTableName
+                            + " does not have a mapping. This might be because the table does not exist.",
+                    e);
         }
     }
 
