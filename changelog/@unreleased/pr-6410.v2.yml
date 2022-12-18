@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Use Caffeine instead of Guava caches
+  links:
+  - https://github.com/palantir/atlasdb/pull/6410
