@@ -21,12 +21,11 @@ import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -98,7 +97,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -189,14 +187,8 @@ public final class LockServiceImpl
     private final LockClientIndices clientIndices = new LockClientIndices();
 
     /** The backing client-aware read write lock for each lock descriptor. */
-    private final LoadingCache<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(new CacheLoader<LockDescriptor, ClientAwareReadWriteLock>() {
-                @Override
-                public ClientAwareReadWriteLock load(LockDescriptor from) {
-                    return new LockServerLock(from, clientIndices);
-                }
-            });
+    private final LoadingCache<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap =
+            Caffeine.newBuilder().weakValues().build(from -> new LockServerLock(from, clientIndices));
 
     /** The locks (and canonical token) associated with each HeldLocksToken. */
     private final ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap = new MapMaker().makeMap();
@@ -523,12 +515,7 @@ public final class LockServiceImpl
                     continue;
                 }
 
-                ClientAwareReadWriteLock lock;
-                try {
-                    lock = descriptorToLockMap.get(entry.getKey());
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e.getCause());
-                }
+                ClientAwareReadWriteLock lock = descriptorToLockMap.get(entry.getKey());
                 if (locks.containsKey(lock)) {
                     // This is the 2nd time we are calling tryLocks and we already locked this one.
                     continue;
@@ -1215,7 +1202,7 @@ public final class LockServiceImpl
         logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
         logString
                 .append("descriptorToLockMap.size = ")
-                .append(descriptorToLockMap.size())
+                .append(descriptorToLockMap.estimatedSize())
                 .append("\n");
         logString
                 .append("outstandingLockRequestMultimap.size = ")

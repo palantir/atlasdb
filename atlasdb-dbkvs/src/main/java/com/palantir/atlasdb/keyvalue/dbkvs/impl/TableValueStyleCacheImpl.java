@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -26,36 +25,35 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
-import java.util.concurrent.ExecutionException;
 
 public final class TableValueStyleCacheImpl implements TableValueStyleCache {
     private static final SafeLogger log = SafeLoggerFactory.get(TableValueStyleCacheImpl.class);
 
     private final Cache<TableReference, TableValueStyle> valueStyleByTableRef =
-            CacheBuilder.newBuilder().build();
+            Caffeine.newBuilder().build();
 
     @Override
     public TableValueStyle getTableType(
             final ConnectionSupplier connectionSupplier, final TableReference tableRef, TableReference metadataTable) {
         try {
-            return valueStyleByTableRef.get(tableRef, () -> {
+            return valueStyleByTableRef.get(tableRef, tableRefKey -> {
                 SqlConnection conn = connectionSupplier.get();
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                         String.format(
                                 "SELECT table_size FROM %s WHERE table_name = ?", metadataTable.getQualifiedName()),
-                        tableRef.getQualifiedName());
+                        tableRefKey.getQualifiedName());
                 Preconditions.checkArgument(
-                        !results.rows().isEmpty(), "table %s not found", tableRef.getQualifiedName());
+                        !results.rows().isEmpty(), "table %s not found", tableRefKey.getQualifiedName());
 
                 return TableValueStyle.byId(
                         Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
             });
-        } catch (ExecutionException e) {
+        } catch (RuntimeException e) {
             log.error(
                     "TableValueStyle for the table {} could not be retrieved.",
                     LoggingArgs.safeInternalTableName(tableRef.getQualifiedName()),
                     e);
-            throw Throwables.propagate(e);
+            throw e;
         }
     }
 

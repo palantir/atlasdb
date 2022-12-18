@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,6 +28,7 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -37,17 +38,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 class OracleTableNameUnmapper {
     private static final SafeLogger log = SafeLoggerFactory.get(OracleTableNameUnmapper.class);
 
-    private Cache<String, String> unmappingCache;
+    private final Cache<String, String> unmappingCache;
 
     OracleTableNameUnmapper() {
-        unmappingCache = CacheBuilder.newBuilder().build();
+        unmappingCache = Caffeine.newBuilder().build();
     }
 
     @SuppressWarnings("checkstyle:NestedTryDepth")
@@ -56,22 +56,23 @@ class OracleTableNameUnmapper {
             throws TableMappingNotFoundException {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         try {
-            return unmappingCache.get(fullTableName, () -> {
+            return unmappingCache.get(fullTableName, tableNameKey -> {
                 SqlConnection conn = connectionSupplier.get();
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                         "SELECT short_table_name "
                                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
                                 + " WHERE table_name = ?",
-                        fullTableName);
+                        tableNameKey);
                 if (results.size() == 0) {
-                    throw new TableMappingNotFoundException("The table " + fullTableName + " does not have a mapping."
-                            + "This might be because the table does not exist.");
+                    throw new SafeIllegalStateException(
+                            "The table does not have a mapping. This might be because the table does not exist.",
+                            UnsafeArg.of("tableName", tableNameKey));
                 }
 
                 return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
             });
-        } catch (ExecutionException e) {
-            throw new TableMappingNotFoundException(e.getCause());
+        } catch (SafeIllegalStateException e) {
+            throw new TableMappingNotFoundException(e);
         }
     }
 

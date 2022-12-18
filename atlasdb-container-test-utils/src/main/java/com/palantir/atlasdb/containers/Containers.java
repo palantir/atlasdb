@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.containers;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
@@ -56,7 +55,7 @@ public class Containers extends ExternalResource {
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
     private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies =
-            CacheBuilder.newBuilder().build(CacheLoader.from(Containers::getDockerComposeFile));
+            Caffeine.newBuilder().build(Containers::getDockerComposeFile);
 
     private static volatile DockerComposeRule dockerComposeRule;
     private static volatile InterruptibleFileLogCollector currentLogCollector;
@@ -132,10 +131,11 @@ public class Containers extends ExternalResource {
     }
 
     private void setupDockerComposeRule() throws InterruptedException, IOException {
-        Set<String> containerDockerComposeFiles = containersToStart.stream()
+        DockerComposeFiles files = DockerComposeFiles.from(containersToStart.stream()
                 .map(Container::getDockerComposeFile)
-                .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
-                .collect(Collectors.toSet());
+                .map(dockerComposeFilesToTemporaryCopies::get)
+                .distinct()
+                .toArray(String[]::new));
 
         Map<String, String> environment = containersToStart.stream()
                 .flatMap(container -> container.getEnvironment().entrySet().stream())
@@ -145,7 +145,7 @@ public class Containers extends ExternalResource {
                 DockerMachine.localMachine().withEnvironment(environment).build();
 
         dockerComposeRule = DockerComposeRule.builder()
-                .files(DockerComposeFiles.from(containerDockerComposeFiles.toArray(new String[0])))
+                .files(files)
                 .projectName(PROJECT_NAME)
                 .machine(machine)
                 .logCollector(currentLogCollector)

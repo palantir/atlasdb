@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -63,7 +63,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
     public CachingTransaction(Transaction delegate, long maxCachedCells) {
         this.delegate = delegate;
-        cellCache = CacheBuilder.newBuilder()
+        cellCache = Caffeine.newBuilder()
                 .maximumSize(maxCachedCells)
                 .softValues()
                 .recordStats()
