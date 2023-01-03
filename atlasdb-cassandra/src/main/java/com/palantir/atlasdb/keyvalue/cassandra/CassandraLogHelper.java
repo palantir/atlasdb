@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
@@ -40,10 +43,10 @@ public final class CassandraLogHelper {
 
     // Cache instances as there should be a relatively small, generally fixed number of Cassandra servers.
     private static final LoadingCache<HostAndIpAddress, String> hostAddressToString =
-            Caffeine.newBuilder().maximumSize(1_000).build(HostAndIpAddress::asString);
+            Caffeine.newBuilder().maximumSize(1_000).build(HostAndIpAddress::toString);
 
     public static String host(InetSocketAddress host) {
-        return hostAddressToString.get(HostAndIpAddress.fromAddress(host));
+        return hostAddressToString.get(hostAndIp(host));
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
@@ -89,16 +92,19 @@ public final class CassandraLogHelper {
     }
 
     @Value.Immutable(lazyhash = true, builder = false, copy = false)
-    interface HostAndIpAddress {
+    @JsonDeserialize(as = ImmutableHostAndIpAddress.class)
+    @JsonSerialize(as = ImmutableHostAndIpAddress.class)
+    abstract static class HostAndIpAddress {
         @Value.Parameter
-        String host();
+        abstract String host();
 
         @Nullable
         @Value.Parameter
-        String ipAddress();
+        abstract String ipAddress();
 
-        @Value.Auxiliary
-        default String asString() {
+        @JsonIgnore
+        @Value.Lazy
+        String asString() {
             if (ipAddress() == null) {
                 // unresolved IP
                 return host();
@@ -106,12 +112,17 @@ public final class CassandraLogHelper {
             return host() + '/' + ipAddress();
         }
 
-        @VisibleForTesting
-        static HostAndIpAddress fromAddress(InetSocketAddress address) {
-            InetAddress inetAddress = address.getAddress();
-            String host = address.getHostString().toLowerCase(Locale.ROOT);
-            String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
-            return ImmutableHostAndIpAddress.of(host, ip);
+        @Override
+        public final String toString() {
+            return asString();
         }
+    }
+
+    @VisibleForTesting
+    static HostAndIpAddress hostAndIp(InetSocketAddress address) {
+        InetAddress inetAddress = address.getAddress();
+        String host = address.getHostString().toLowerCase(Locale.ROOT);
+        String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
+        return ImmutableHostAndIpAddress.of(host, ip);
     }
 }

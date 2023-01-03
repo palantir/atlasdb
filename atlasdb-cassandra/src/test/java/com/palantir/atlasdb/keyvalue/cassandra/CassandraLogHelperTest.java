@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper.HostAndIpAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Set;
@@ -81,24 +83,44 @@ public class CassandraLogHelperTest {
 
     @Test
     public void unresolvedHost() {
+        ObjectMapper objectMapper = new ObjectMapper();
         InetSocketAddress address = InetSocketAddress.createUnresolved("localhost", 1234);
         assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost");
-        assertThat(CassandraLogHelper.HostAndIpAddress.fromAddress(address)).satisfies(hostAndIpAddress -> {
+        assertThat(CassandraLogHelper.hostAndIp(address)).satisfies(hostAndIpAddress -> {
             assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
             assertThat(hostAndIpAddress.ipAddress()).isNull();
-            assertThat(hostAndIpAddress.asString()).isEqualTo("localhost");
+            assertThat(hostAndIpAddress)
+                    .asString()
+                    .isEqualTo("localhost")
+                    .isSameAs(hostAndIpAddress.asString())
+                    .isSameAs(hostAndIpAddress.toString());
+            String json = objectMapper.writeValueAsString(hostAndIpAddress);
+            assertThat(json).isEqualTo("{\"host\":\"localhost\",\"ipAddress\":null}");
+            HostAndIpAddress deserialized = objectMapper.readValue(json, HostAndIpAddress.class);
+            assertThat(deserialized).isEqualTo(hostAndIpAddress);
+            assertThat(deserialized).asString().isEqualTo(hostAndIpAddress.toString());
         });
     }
 
     @Test
     @SuppressWarnings("DnsLookup") // we want the DNS lookup to resolve localhost
     public void resolvedHost() {
+        ObjectMapper objectMapper = new ObjectMapper();
         InetSocketAddress address = new InetSocketAddress("localhost", 1234);
         assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost/127.0.0.1");
-        assertThat(CassandraLogHelper.HostAndIpAddress.fromAddress(address)).satisfies(hostAndIpAddress -> {
+        assertThat(CassandraLogHelper.hostAndIp(address)).satisfies(hostAndIpAddress -> {
             assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
             assertThat(hostAndIpAddress.ipAddress()).isEqualTo("127.0.0.1");
-            assertThat(hostAndIpAddress.asString()).isEqualTo("localhost/127.0.0.1");
+            assertThat(hostAndIpAddress)
+                    .asString()
+                    .isEqualTo("localhost/127.0.0.1")
+                    .isSameAs(hostAndIpAddress.asString())
+                    .isSameAs(hostAndIpAddress.toString());
+            String json = objectMapper.writeValueAsString(hostAndIpAddress);
+            assertThat(json).isEqualTo("{\"host\":\"localhost\",\"ipAddress\":\"127.0.0.1\"}");
+            HostAndIpAddress deserialized = objectMapper.readValue(json, HostAndIpAddress.class);
+            assertThat(deserialized).isEqualTo(hostAndIpAddress);
+            assertThat(deserialized).asString().isEqualTo(hostAndIpAddress.toString());
         });
     }
 }
