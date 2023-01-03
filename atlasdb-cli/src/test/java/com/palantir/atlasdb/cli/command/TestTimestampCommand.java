@@ -44,6 +44,9 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
 import java.io.IOException;
@@ -155,14 +158,16 @@ public class TestTimestampCommand {
 
         runAndVerifyCli((runner, tss, immutableTs, prePunch, lastFreshTs, shouldTestImmutable) -> {
             String output = runner.run(true, false);
+            long timestamp = -1;
+            long wallClockTimestamp = -1;
             try {
-                Scanner scanner = new Scanner(output);
-                String shouldBeDeprecationLine = scanner.nextLine();
-                verifyDeprecation(shouldBeDeprecationLine);
-                long timestamp = getTimestampFromStdout(scanner);
-                scanner.nextLine();
-                long wallClockTimestamp = getWallClockTimestamp(scanner);
-                scanner.close();
+                try (Scanner scanner = new Scanner(output)) {
+                    String shouldBeDeprecationLine = scanner.nextLine();
+                    verifyDeprecation(shouldBeDeprecationLine);
+                    timestamp = getTimestampFromStdout(scanner);
+                    scanner.nextLine();
+                    wallClockTimestamp = getWallClockTimestamp(scanner);
+                }
                 if (shouldTestImmutable && isImmutable) {
                     verifyImmutableTs(
                             timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
@@ -170,7 +175,11 @@ public class TestTimestampCommand {
                     verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
-                throw new RuntimeException("Failed " + e.getMessage() + " while processing result:\n" + output, e);
+                throw new RuntimeException(
+                        "Failed " + e.getMessage() + " while processing result: "
+                                + " timestamp: " + timestamp
+                                + ", wallClockTimestamp: " + wallClockTimestamp + "\n" + output,
+                        e);
             }
         });
     }
@@ -215,14 +224,16 @@ public class TestTimestampCommand {
         cliArgs.add("-d");
         runAndVerifyCli((runner, tss, immutableTs, prePunch, lastFreshTs, shouldTestImmutable) -> {
             String output = runner.run(true, false);
+            long timestamp = -1;
+            long wallClockTimestamp = -1;
             try {
-                Scanner scanner = new Scanner(output);
-                String shouldBeDeprecationLine = scanner.nextLine();
-                verifyDeprecation(shouldBeDeprecationLine);
-                long timestamp = getTimestampFromFile(inputFileString);
-                scanner.nextLine();
-                long wallClockTimestamp = getWallClockTimestamp(scanner);
-                scanner.close();
+                try (Scanner scanner = new Scanner(output)) {
+                    String shouldBeDeprecationLine = scanner.nextLine();
+                    verifyDeprecation(shouldBeDeprecationLine);
+                    timestamp = getTimestampFromFile(inputFileString);
+                    scanner.nextLine();
+                    wallClockTimestamp = getWallClockTimestamp(scanner);
+                }
                 if (shouldTestImmutable && isImmutable) {
                     verifyImmutableTs(
                             timestamp, immutableTs, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
@@ -230,7 +241,11 @@ public class TestTimestampCommand {
                     verifyFreshTs(timestamp, prePunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
                 }
             } catch (RuntimeException e) {
-                throw new RuntimeException("Failed " + e.getMessage() + " while verifying result:\n" + output, e);
+                throw new RuntimeException(
+                        "Failed " + e.getMessage() + " while verifying result: "
+                                + " timestamp: " + timestamp
+                                + ", wallClockTimestamp: " + wallClockTimestamp + "\n" + output,
+                        e);
             }
         });
     }
@@ -278,6 +293,12 @@ public class TestTimestampCommand {
 
     private long getWallClockTimestamp(Scanner scanner) {
         String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
+        if (line == null || line.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "Could not find wall clock timestamp",
+                    UnsafeArg.of("scanner", scanner),
+                    SafeArg.of("hasNext", scanner.hasNext()));
+        }
         List<String> parts = Splitter.on(' ').splitToList(line);
         return ISODateTimeFormat.dateTime()
                 .parseDateTime(parts.get(parts.size() - 1))
@@ -286,6 +307,12 @@ public class TestTimestampCommand {
 
     private long getTimestampFromStdout(Scanner scanner) {
         String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
+        if (line == null || line.isEmpty()) {
+            throw new SafeIllegalStateException(
+                    "Could not find timestamp",
+                    UnsafeArg.of("scanner", scanner),
+                    SafeArg.of("hasNext", scanner.hasNext()));
+        }
         List<String> parts = Splitter.on(' ').splitToList(line);
         return Long.parseLong(parts.get(parts.size() - 1));
     }
