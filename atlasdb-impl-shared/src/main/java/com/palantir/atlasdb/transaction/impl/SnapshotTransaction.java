@@ -2596,20 +2596,15 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void reportExpectationsCollectedData() {
-        if (!(isDefinitivelyCommitted() || isAborted())) {
+        if (!List.of(State.COMMITTED, State.ABORTED, State.FAILED).contains(state.get())) {
             log.error(
                     "reportExpectationsCollectedData is called on an in-progress transaction",
                     SafeArg.of("state", state.get()));
             return;
         }
 
-        log.info("reportExpectationsCollectedData is running successfully", SafeArg.of("state", state.get()));
-
         long ageMillis = getAgeMillis();
         TransactionReadInfo info = getReadInfo();
-
-        log.info("ageMillis", SafeArg.of("age", ageMillis));
-        log.info("txnInfo", SafeArg.of("info", info));
 
         expectationsDataCollectionMetrics.ageMillis().update(ageMillis);
         expectationsDataCollectionMetrics.bytesRead().update(info.bytesRead());
@@ -2618,15 +2613,6 @@ public class SnapshotTransaction extends AbstractTransaction
         info.maximumBytesKvsCallInfo()
                 .ifPresent(kvsCallReadInfo ->
                         expectationsDataCollectionMetrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
-
-        log.info(
-                "values in histogram",
-                SafeArg.of(
-                        "kvsCalls",
-                        expectationsDataCollectionMetrics
-                                .kvsCalls()
-                                .getSnapshot()
-                                .getValues()));
     }
 
     private Timer getTimer(String name) {
