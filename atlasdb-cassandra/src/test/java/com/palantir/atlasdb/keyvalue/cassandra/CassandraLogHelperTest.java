@@ -85,8 +85,9 @@ public class CassandraLogHelperTest {
     public void unresolvedHost() {
         ObjectMapper objectMapper = new ObjectMapper();
         InetSocketAddress address = InetSocketAddress.createUnresolved("localhost", 1234);
-        assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost");
-        assertThat(CassandraLogHelper.hostAndIp(address)).satisfies(hostAndIpAddress -> {
+        assertThat(CassandraLogHelper.host(address)).satisfies(hostAndIpAddress -> {
+            HostAndIpAddress host2 = CassandraLogHelper.host(address);
+            assertThat(hostAndIpAddress).isNotNull().isEqualTo(host2).isSameAs(host2);
             assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
             assertThat(hostAndIpAddress.ipAddress()).isNull();
             assertThat(hostAndIpAddress)
@@ -107,8 +108,9 @@ public class CassandraLogHelperTest {
     public void resolvedHost() {
         ObjectMapper objectMapper = new ObjectMapper();
         InetSocketAddress address = new InetSocketAddress("localhost", 1234);
-        assertThat(CassandraLogHelper.host(address)).isEqualTo("localhost/127.0.0.1");
-        assertThat(CassandraLogHelper.hostAndIp(address)).satisfies(hostAndIpAddress -> {
+        assertThat(CassandraLogHelper.host(address)).satisfies(hostAndIpAddress -> {
+            HostAndIpAddress host2 = CassandraLogHelper.host(address);
+            assertThat(hostAndIpAddress).isNotNull().isEqualTo(host2).isSameAs(host2);
             assertThat(hostAndIpAddress.host()).isEqualTo("localhost");
             assertThat(hostAndIpAddress.ipAddress()).isEqualTo("127.0.0.1");
             assertThat(hostAndIpAddress)

@@ -18,8 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Interner;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -42,11 +41,10 @@ public final class CassandraLogHelper {
     }
 
     // Cache instances as there should be a relatively small, generally fixed number of Cassandra servers.
-    private static final LoadingCache<HostAndIpAddress, String> hostAddressToString =
-            Caffeine.newBuilder().maximumSize(1_000).build(HostAndIpAddress::toString);
+    private static final Interner<HostAndIpAddress> hostAddresses = Interner.newWeakInterner();
 
-    public static String host(InetSocketAddress host) {
-        return hostAddressToString.get(hostAndIp(host));
+    public static HostAndIpAddress host(InetSocketAddress host) {
+        return hostAddresses.intern(hostAndIp(host));
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
