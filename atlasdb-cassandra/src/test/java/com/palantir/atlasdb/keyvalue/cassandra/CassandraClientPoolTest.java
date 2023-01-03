@@ -653,7 +653,10 @@ public final class CassandraClientPoolTest {
 
     private Object getAggregateMetricValueForMetricName(String metricName) {
         String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, metricName);
-        return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
+        return taggedMetricRegistry
+                .gauge(MetricName.builder().safeName(fullyQualifiedMetricName).build())
+                .orElseThrow()
+                .getValue();
     }
 
     private void setupThriftServers(Set<InetSocketAddress> servers) {

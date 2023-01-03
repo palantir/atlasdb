@@ -27,6 +27,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -37,8 +39,8 @@ import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -68,7 +70,7 @@ public class TimelockNamespacesTest {
     private DisabledNamespaces disabledNamespaces;
 
     private final MetricsManager metricsManager =
-            new MetricsManager(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault(), unused -> false);
+            new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
     private TimelockNamespaces namespaces;
 
     @Before
@@ -258,12 +260,14 @@ public class TimelockNamespacesTest {
     }
 
     private int getGaugeValueForTimeLockResource(String gaugeName) {
-        Object value = Optional.ofNullable(metricsManager
-                        .getRegistry()
-                        .getGauges()
-                        .get(TimelockNamespaces.class.getCanonicalName() + "." + gaugeName)
-                        .getValue())
-                .orElseThrow(() -> new IllegalStateException("Gauge with gauge name " + gaugeName + " did not exist."));
+        MetricName metricName = MetricName.builder()
+                .safeName(TimelockNamespaces.class.getCanonicalName() + "." + gaugeName)
+                .build();
+        Metric metric = metricsManager.getTaggedRegistry().getMetrics().get(metricName);
+        assertThat(metric).as("Metric name should exist: '%s'", metricName).isInstanceOf(Gauge.class);
+        Gauge<Long> gauge = (Gauge<Long>) metric;
+        Object value = gauge.getValue();
+        assertThat(value).isInstanceOf(Integer.class);
         return (int) value;
     }
 }

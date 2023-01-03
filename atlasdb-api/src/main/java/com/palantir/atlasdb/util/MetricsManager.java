@@ -19,7 +19,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableMap;
@@ -122,7 +121,7 @@ public class MetricsManager {
     }
 
     public void registerMetric(Class<?> clazz, String metricName, Gauge<?> gauge) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), gauge);
+        registerOrGet(clazz, metricName, gauge, Map.of());
     }
 
     /**
@@ -160,80 +159,47 @@ public class MetricsManager {
         return ImmutableMap.of("tableName", tableName);
     }
 
-    private void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
-        try {
-            metricRegistry.register(fullyQualifiedMetricName, metric);
-            registerMetricName(fullyQualifiedMetricName);
-        } catch (Exception e) {
-            // Primarily to handle integration tests that instantiate this class multiple times in a row
-            log.warn(
-                    "Unable to register metric {}. This may occur if you are running integration tests that "
-                            + "don't clean up completely after themselves, or if you are trying to use multiple "
-                            + "TransactionManagers concurrently in the same JVM (e.g. in a KVS migration). If this is "
-                            + "not the case, this is likely to be a product and/or an AtlasDB bug. This is no cause "
-                            + "for immediate alarm, but it does mean that your telemetry for the aforementioned metric "
-                            + "may be reported incorrectly. Turn on TRACE logging to see the full exception.",
-                    SafeArg.of("metricName", fullyQualifiedMetricName));
-            log.trace("Full exception follows:", e);
-        }
-    }
-
+    /**
+     * @deprecated use {@link #registerOrGet(Class, String, Gauge, Map)}
+     */
+    @Deprecated
     public <M extends Gauge<?>> M registerOrGetGauge(Class<?> clazz, String metricName, Supplier<M> gaugeSupplier) {
-        String fullyQualifiedGaugeName = MetricRegistry.name(clazz, metricName);
-        M gauge = (M) metricRegistry.gauge(fullyQualifiedGaugeName, gaugeSupplier::get);
-        registerMetricName(fullyQualifiedGaugeName);
-        return gauge;
+        return (M) registerOrGet(clazz, metricName, (Gauge<?>) gaugeSupplier.get(), Map.of());
     }
 
     public Histogram registerOrGetHistogram(Class<?> clazz, String metricName) {
-        return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
+        return registerOrGetTaggedHistogram(clazz, metricName, Map.of());
     }
 
+    /**
+     * @deprecated use {@link #registerOrGetTaggedHistogram(Class, String, Map, Supplier)}
+     */
+    @Deprecated
     public Histogram registerOrGetHistogram(Class<?> clazz, String metricName, Supplier<Histogram> histogramSupplier) {
-        String fullyQualifiedHistogramName = MetricRegistry.name(clazz, metricName);
-        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName, histogramSupplier::get);
-        registerMetricName(fullyQualifiedHistogramName);
-        return histogram;
-    }
-
-    private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
-        Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
-        registerMetricName(fullyQualifiedHistogramName);
-        return histogram;
+        return registerOrGetTaggedHistogram(clazz, metricName, Map.of(), histogramSupplier);
     }
 
     public Timer registerOrGetTimer(Class<?> clazz, String metricName) {
-        return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
-    }
-
-    private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
-        Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
-        registerMetricName(fullyQualifiedHistogramName);
+        MetricName name = getTaggedMetricName(clazz, metricName, Map.of());
+        Timer timer = taggedMetricRegistry.timer(name);
+        registerTaggedMetricName(name);
         return timer;
     }
 
     public Counter registerOrGetCounter(Class<?> clazz, String counterName) {
-        return registerOrGetCounter(MetricRegistry.name(clazz, "", counterName));
-    }
-
-    private Counter registerOrGetCounter(String fullyQualifiedCounterName) {
-        Counter counter = metricRegistry.counter(fullyQualifiedCounterName);
-        registerMetricName(fullyQualifiedCounterName);
-        return counter;
+        return registerOrGetTaggedCounter(clazz, counterName, Map.of());
     }
 
     public Meter registerOrGetMeter(Class<?> clazz, String meterName) {
-        return registerOrGetMeter(MetricRegistry.name(clazz, "", meterName));
+        return registerOrGetTaggedMeter(clazz, meterName, Map.of());
     }
 
+    /**
+     * @deprecated use {@link #registerOrGetTaggedMeter(Class, String, Map)}
+     */
+    @Deprecated
     public Meter registerOrGetMeter(Class<?> clazz, String metricPrefix, String meterName) {
-        return registerOrGetMeter(MetricRegistry.name(clazz, metricPrefix, meterName));
-    }
-
-    private Meter registerOrGetMeter(String fullyQualifiedMeterName) {
-        Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
-        registerMetricName(fullyQualifiedMeterName);
-        return meter;
+        return registerOrGetTaggedMeter(clazz, MetricRegistry.name(metricPrefix, meterName), Map.of());
     }
 
     public Meter registerOrGetTaggedMeter(Class<?> clazz, String metricName, Map<String, String> tags) {
@@ -263,15 +229,6 @@ public class MetricsManager {
         Counter counter = taggedMetricRegistry.counter(name);
         registerTaggedMetricName(name);
         return counter;
-    }
-
-    private void registerMetricName(String fullyQualifiedMeterName) {
-        lock.readLock().lock();
-        try {
-            registeredMetrics.add(fullyQualifiedMeterName);
-        } finally {
-            lock.readLock().unlock();
-        }
     }
 
     private void registerTaggedMetricName(MetricName name) {
