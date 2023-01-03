@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -165,8 +162,8 @@ until they succeed on the leader.</p>
 not typically exposed to AtlasDB clients. One can use it to advance the timestamp on the Timelock Server to <code class="docutils literal notranslate"><span class="pre">TS</span></code>, as
 follows:</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/&lt;namespace&gt;/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS <span class="se">\</span>
-  -H <span class="s2">&quot;Authorization: Bearer q&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-iXPOST<span class="w"> </span>&lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/&lt;namespace&gt;/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -189,8 +186,8 @@ As fast-forward is idempotent (it sets the timestamp to be the maximum of its cu
 </div>
 <p>To verify that this step was completed correctly, you may curl the Timelock Server’s fresh-timestamp endpoint.</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt; <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-iXPOST<span class="w"> </span>&lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -203,7 +200,7 @@ As fast-forward is idempotent (it sets the timestamp to be the maximum of its cu
 <li><p>If using Postgres or Oracle, it suffices to rename the relevant column in the timestamp table (use <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">TABLE</span></code>).
 For example, for Postgres:</p>
 <blockquote>
-<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="p">;</span><span class="w"></span>
+<div><div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="p">;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -217,10 +214,10 @@ block for the first time).
 This can be done easily using <code class="docutils literal notranslate"><span class="pre">cqlsh</span></code>. The timestamp table is stored in the same keyspace that your
 AtlasDB client uses for its key-value service.</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SELECT * FROM atlasdb.<span class="s2">&quot;_timestamp&quot;</span><span class="p">;</span>
-&lt;note the value returned by this - call this K&gt;
-INSERT INTO atlasdb.<span class="s2">&quot;_timestamp&quot;</span> <span class="o">(</span>key, column1, column2, value<span class="o">)</span> VALUES <span class="o">(</span>0x7473, 0x7472, -1, K<span class="o">)</span><span class="p">;</span>
-INSERT INTO atlasdb.<span class="s2">&quot;_timestamp&quot;</span> <span class="o">(</span>key, column1, column2, value<span class="o">)</span> VALUES <span class="o">(</span>0x7473, 0x7473, -1, 0x00<span class="o">)</span><span class="p">;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>SELECT<span class="w"> </span>*<span class="w"> </span>FROM<span class="w"> </span>atlasdb.<span class="s2">&quot;_timestamp&quot;</span><span class="p">;</span>
+&lt;note<span class="w"> </span>the<span class="w"> </span>value<span class="w"> </span>returned<span class="w"> </span>by<span class="w"> </span>this<span class="w"> </span>-<span class="w"> </span>call<span class="w"> </span>this<span class="w"> </span>K&gt;
+INSERT<span class="w"> </span>INTO<span class="w"> </span>atlasdb.<span class="s2">&quot;_timestamp&quot;</span><span class="w"> </span><span class="o">(</span>key,<span class="w"> </span>column1,<span class="w"> </span>column2,<span class="w"> </span>value<span class="o">)</span><span class="w"> </span>VALUES<span class="w"> </span><span class="o">(</span>0x7473,<span class="w"> </span>0x7472,<span class="w"> </span>-1,<span class="w"> </span>K<span class="o">)</span><span class="p">;</span>
+INSERT<span class="w"> </span>INTO<span class="w"> </span>atlasdb.<span class="s2">&quot;_timestamp&quot;</span><span class="w"> </span><span class="o">(</span>key,<span class="w"> </span>column1,<span class="w"> </span>column2,<span class="w"> </span>value<span class="o">)</span><span class="w"> </span>VALUES<span class="w"> </span><span class="o">(</span>0x7473,<span class="w"> </span>0x7473,<span class="w"> </span>-1,<span class="w"> </span>0x00<span class="o">)</span><span class="p">;</span>
 </pre></div>
 </div>
 </div></blockquote>

@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -110,12 +107,12 @@ The basic method is to first install Timelock without any clients, and then for 
 </div>
 <ol class="arabic">
 <li><p>Clone the git repository.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:palantir/atlasdb.git<span class="p">;</span> <span class="nb">cd</span> atlasdb
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:palantir/atlasdb.git<span class="p">;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>atlasdb
 </pre></div>
 </div>
 </li>
 <li><p>Generate a tar file with Gradle:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew timelock-server:distTar
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./gradlew<span class="w"> </span>timelock-server:distTar
 </pre></div>
 </div>
 </li>
@@ -137,7 +134,7 @@ A 3-node cluster will provide better performance, whereas a 5-node cluster has g
 <ol class="arabic" start="3">
 <li><p>Copy this tar file to each machine on which you want to deploy Timelock Server.</p></li>
 <li><p>On each machine which you intend to deploy Timelock Server, untar the archive.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tar -zxvf timelock-server-0.25.0.sls.tgz<span class="p">;</span> <span class="nb">cd</span> timelock-server-0.25.0
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tar<span class="w"> </span>-zxvf<span class="w"> </span>timelock-server-0.25.0.sls.tgz<span class="p">;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>timelock-server-0.25.0
 </pre></div>
 </div>
 </li>
@@ -148,14 +145,14 @@ This should output the process ID of the Timelock Server. You can view the logs 
 directory.</p></li>
 <li><p>It may be useful to run a health-check to verify that the Timelock Server is running. To do this, you can curl
 the server’s <code class="docutils literal notranslate"><span class="pre">healthcheck</span></code> endpoint on its admin port (default: 8081).</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl localhost:8081/healthcheck
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>localhost:8081/healthcheck
 </pre></div>
 </div>
 <p>The output should indicate that the Timelock Server is healthy. The output should resemble the following:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
-    <span class="s2">&quot;deadlocks&quot;</span>: <span class="o">{</span>
-        <span class="s2">&quot;healthy&quot;</span>: <span class="nb">true</span>
-    <span class="o">}</span>
+<span class="w">    </span><span class="s2">&quot;deadlocks&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;healthy&quot;</span>:<span class="w"> </span><span class="nb">true</span>
+<span class="w">    </span><span class="o">}</span>
 <span class="o">}</span>
 </pre></div>
 </div>
@@ -170,24 +167,24 @@ the server’s <code class="docutils literal notranslate"><span class="pre">heal
 Detailed documentation is <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">here</span></a>.
 You must remove any <code class="docutils literal notranslate"><span class="pre">leader</span></code>, <code class="docutils literal notranslate"><span class="pre">timestamp</span></code>, or <code class="docutils literal notranslate"><span class="pre">lock</span></code> blocks; the <code class="docutils literal notranslate"><span class="pre">timelock</span></code> block to add looks like this:</p></li>
 </ol>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
-<span class="w">   </span><span class="nt">timelock</span><span class="p">:</span><span class="w"></span>
-<span class="w">     </span><span class="nt">serversList</span><span class="p">:</span><span class="w"></span>
-<span class="w">       </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
-<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span><span class="w"></span>
-<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span><span class="w"></span>
-<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span><span class="w"></span>
-<span class="w">       </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
-<span class="w">         </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">atlasdb</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">timelock</span><span class="p">:</span>
+<span class="w">     </span><span class="nt">serversList</span><span class="p">:</span>
+<span class="w">       </span><span class="nt">servers</span><span class="p">:</span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span>
+<span class="w">         </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span>
+<span class="w">       </span><span class="nt">sslConfiguration</span><span class="p">:</span>
+<span class="w">         </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
 <ol class="arabic simple" start="10">
 <li><p>(Optional) For verification purposes, you may retrieve a timestamp from each client you are configuring to use TimeLock.
 This can typically be performed with the Fetch Timestamp CLI or Dropwizard bundle. For example, using the Dropwizard bundle:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb timestamp fetch
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt;<span class="w"> </span>atlasdb<span class="w"> </span>timestamp<span class="w"> </span>fetch
 
- Note down the value of the timestamp returned<span class="p">;</span> we will subsequently use these values to ensure that migration took place.
+<span class="w"> </span>Note<span class="w"> </span>down<span class="w"> </span>the<span class="w"> </span>value<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>timestamp<span class="w"> </span>returned<span class="p">;</span><span class="w"> </span>we<span class="w"> </span>will<span class="w"> </span>subsequently<span class="w"> </span>use<span class="w"> </span>these<span class="w"> </span>values<span class="w"> </span>to<span class="w"> </span>ensure<span class="w"> </span>that<span class="w"> </span>migration<span class="w"> </span>took<span class="w"> </span>place.
 </pre></div>
 </div>
 <ol class="arabic simple" start="11">

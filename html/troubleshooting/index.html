@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -125,7 +122,7 @@ is indeed the case, run the clean-cass-locks-state cli command.
 <p>One runs the CLIs as a separate distribution. These distributions are published on
 <a class="reference external" href="https://search.maven.org/artifact/com.palantir.atlasdb/atlasdb-cli-distribution">Maven Central</a> - please make
 sure to use the corresponding version of the CLIs with your service. The command can then be invoked as</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/atlasdb-cli --offline -c var/conf/&lt;service&gt;.yml clean-cass-locks-state
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./service/bin/atlasdb-cli<span class="w"> </span>--offline<span class="w"> </span>-c<span class="w"> </span>var/conf/&lt;service&gt;.yml<span class="w"> </span>clean-cass-locks-state
 </pre></div>
 </div>
 </section>

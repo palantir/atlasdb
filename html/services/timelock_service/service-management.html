@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -122,8 +119,8 @@ Leave TimeLock running; you’ll need it for the remaining steps.</p>
 <h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this heading"></a></h3>
 <p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
 less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -iXPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/old_namespace <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-iXPOST<span class="w"> </span>&lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/old_namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 <p>A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you’ll receive
@@ -134,7 +131,7 @@ either a HTTP 503 or 308. In this case, try the same request on other nodes unti
 <h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this heading"></a></h3>
 <p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
 on TimeLock.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-XPOST<span class="w"> </span>&lt;protocol&gt;://&lt;host:&lt;port&gt;/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
 </pre></div>
 </div>
 <p>As before, this command needs to be run on the TimeLock leader.

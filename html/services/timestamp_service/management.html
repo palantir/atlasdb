@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -115,7 +112,7 @@ TS.</p>
 <section id="fast-forward-on-timelock">
 <h3>Fast Forward on TimeLock<a class="headerlink" href="#fast-forward-on-timelock" title="Permalink to this heading"></a></h3>
 <p>The following command needs to be run on the TimeLock leader, and will fast forward the timestamp to TS.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-XPOST<span class="w"> </span>localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp<span class="o">=</span>TS
 </pre></div>
 </div>
 <p>On success, timestamps serviced for this namespace will now return values greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>

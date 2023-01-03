@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -135,12 +132,12 @@ is made for that client for the first time.</p>
 Timelock Server, clients must supply a namespace for which they are requesting timestamps or locks in the form of a
 path variable. There are no guarantees of relationships between timestamps requested from different namespaces.</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST https://localhost:8421/timelock/api/tl/ts/tom <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-XPOST<span class="w"> </span>https://localhost:8421/timelock/api/tl/ts/tom<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span>
 
 <span class="c1"># No guarantee of any relationship between the values</span>
-curl -XPOST https://localhost:8421/timelock/api/tl/ts/jerry <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+curl<span class="w"> </span>-XPOST<span class="w"> </span>https://localhost:8421/timelock/api/tl/ts/jerry<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -161,12 +158,12 @@ in leader election and consensus.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">cluster</span></code> block is used to identify the servers which make up a Timelock Service cluster. An example is as
 follows:</p>
 <blockquote>
-<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">cluster</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span><span class="w"></span>
-<span class="w">  </span><span class="nt">servers</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span><span class="w"></span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">cluster</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">localServer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+<span class="w">  </span><span class="nt">servers</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-1.com:8080</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-2.com:8080</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">palantir-3.com:8080</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -202,14 +199,14 @@ customisable parameters as well.</p>
 <p>The algorithm has several configurable parameters; all parameters (apart from <code class="docutils literal notranslate"><span class="pre">type</span></code>) are optional and have
 default values.</p>
 <blockquote>
-<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">algorithm</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">paxos</span><span class="w"></span>
-<span class="w">  </span><span class="nt">paxosDataDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/log/paxos</span><span class="w"></span>
-<span class="w">  </span><span class="nt">sslConfiguration</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/trustStore.jks</span><span class="w"></span>
-<span class="w">  </span><span class="nt">pingRateMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span><span class="w"></span>
-<span class="w">  </span><span class="nt">maximumWaitBeforeProposalMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span><span class="w"></span>
-<span class="w">  </span><span class="nt">leaderPingResponseWaitMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span><span class="w"></span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">algorithm</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">paxos</span>
+<span class="w">  </span><span class="nt">paxosDataDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/log/paxos</span>
+<span class="w">  </span><span class="nt">sslConfiguration</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">trustStorePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/security/trustStore.jks</span>
+<span class="w">  </span><span class="nt">pingRateMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span>
+<span class="w">  </span><span class="nt">maximumWaitBeforeProposalMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="w">  </span><span class="nt">leaderPingResponseWaitMs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5000</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -270,9 +267,9 @@ over to non-leaders and they will redirect us back.</p>
 now if the blocking time is longer than the connection timeout, then it is possible for the locks to not behave
 fairly.</p>
 <blockquote>
-<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">timeLimiter</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">enableTimeLimiting</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
-<span class="w">  </span><span class="nt">blockingTimeoutErrorMargin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.03</span><span class="w"></span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">timeLimiter</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enableTimeLimiting</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">blockingTimeoutErrorMargin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.03</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -313,9 +310,9 @@ successfully commit.</p>
 This relies on new <code class="docutils literal notranslate"><span class="pre">/timelock</span></code> APIs (as opposed to the previous <code class="docutils literal notranslate"><span class="pre">/timestamp</span></code> and <code class="docutils literal notranslate"><span class="pre">/lock</span></code> APIs). Configuring
 the asynchronous lock service may be done as follows:</p>
 <blockquote>
-<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">asyncLock</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">useAsyncLockService</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
-<span class="w">  </span><span class="nt">disableLegacySafetyChecksWarningPotentialDataCorruption</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
+<div><div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">asyncLock</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">useAsyncLockService</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">disableLegacySafetyChecksWarningPotentialDataCorruption</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -383,13 +380,13 @@ extremely useful in improving the latency of timestamp and lock requests, which 
 Timelock Server is compatible with HTTP/2 as of AtlasDB v0.34.0; to configure this, one should change the protocol
 used by the Dropwizard application and admin connectors to <code class="docutils literal notranslate"><span class="pre">h2</span></code> instead of <code class="docutils literal notranslate"><span class="pre">https</span></code>. For example, this block can be
 added to the root of the Timelock server configuration:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">applicationConnectors</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">h2</span><span class="w"></span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8421</span><span class="w"></span>
-<span class="w">  </span><span class="nt">adminConnectors</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">h2</span><span class="w"></span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8422</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">server</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">applicationConnectors</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">h2</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8421</span>
+<span class="w">  </span><span class="nt">adminConnectors</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">h2</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8422</span>
 </pre></div>
 </div>
 <p>Note that because Timelock Server uses the OkHttp library, it is currently not compatible with HTTP/2 via cleartext
@@ -413,15 +410,15 @@ rolled), though this could mean that a very small proportion of log lines may be
 <p>This is configured in the same way as a standard Dropwizard
 <a class="reference external" href="http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#file">file</a> appender, except that the <code class="docutils literal notranslate"><span class="pre">type</span></code>
 should be <code class="docutils literal notranslate"><span class="pre">non-blocking-file</span></code> instead of just <code class="docutils literal notranslate"><span class="pre">file</span></code>.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">requestLog</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">appenders</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">archivedFileCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
-<span class="w">      </span><span class="nt">maxFileSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1GB</span><span class="w"></span>
-<span class="w">      </span><span class="nt">archivedLogFilenamePattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;var/log/timelock-server-request-%i.log.gz&quot;</span><span class="w"></span>
-<span class="w">      </span><span class="nt">currentLogFilename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/log/timelock-server-request.log</span><span class="w"></span>
-<span class="w">      </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INFO</span><span class="w"></span>
-<span class="w">      </span><span class="nt">timeZone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">UTC</span><span class="w"></span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">non-blocking-file</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">requestLog</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">appenders</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">archivedFileCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">      </span><span class="nt">maxFileSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1GB</span>
+<span class="w">      </span><span class="nt">archivedLogFilenamePattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;var/log/timelock-server-request-%i.log.gz&quot;</span>
+<span class="w">      </span><span class="nt">currentLogFilename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">var/log/timelock-server-request.log</span>
+<span class="w">      </span><span class="nt">threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INFO</span>
+<span class="w">      </span><span class="nt">timeZone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">UTC</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">non-blocking-file</span>
 </pre></div>
 </div>
 </section>

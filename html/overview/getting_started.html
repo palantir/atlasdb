@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -109,17 +106,17 @@ directory</a>.</p>
 <p>Mac users will need to install <cite>docker-machine</cite> and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:</p>
 <ol class="arabic">
 <li><p>Install <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code>, <code class="docutils literal notranslate"><span class="pre">docker</span></code> and <code class="docutils literal notranslate"><span class="pre">docker-compose</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>brew install docker docker-machine docker-compose
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>brew<span class="w"> </span>install<span class="w"> </span>docker<span class="w"> </span>docker-machine<span class="w"> </span>docker-compose
 </pre></div>
 </div>
 </li>
 <li><p>Set up a <code class="docutils literal notranslate"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal notranslate"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-machine create atlas --driver virtualbox
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-machine<span class="w"> </span>create<span class="w"> </span>atlas<span class="w"> </span>--driver<span class="w"> </span>virtualbox
 </pre></div>
 </div>
 </li>
 <li><p>Set up the environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">eval</span> <span class="k">$(</span>docker-machine env atlas<span class="k">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">eval</span><span class="w"> </span><span class="k">$(</span>docker-machine<span class="w"> </span>env<span class="w"> </span>atlas<span class="k">)</span>
 </pre></div>
 </div>
 <p>These environment variables need to always be set before running the tests through <cite>gradle</cite>, or set manually as environment variables for the launch configurations in any IDE.</p>
@@ -133,16 +130,16 @@ directory</a>.</p>
 include in a gradle project:</p>
 <ol class="arabic">
 <li><p>Add Maven Central to your repository list:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">repositories</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nx">mavenCentral</span><span class="p">()</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">repositories</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">mavenCentral</span><span class="p">()</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </li>
 <li><p>Add the atlasdb-client dependency to projects using AtlasDB:</p>
-<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">dependencies</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nx">compile</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight-javascript notranslate"><div class="highlight"><pre><span></span><span class="nx">dependencies</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">compile</span><span class="w"> </span><span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </li>

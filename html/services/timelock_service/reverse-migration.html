@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
         <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -137,8 +134,8 @@ of timestamps across TimeLock and the key-value service backed services is monot
 <p>This can be obtained using <code class="docutils literal notranslate"><span class="pre">curl</span></code> as follows. Note that if you obtain an HTTP 503 error, this is because you curled a
 node that was not the leader; please try the other nodes.</p>
 <blockquote>
-<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl -XPOST &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt; <span class="se">\</span>
-  --data <span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span> -H <span class="s2">&quot;Authorization: Bearer q&quot;</span> -H <span class="s2">&quot;Content-Type: application/json&quot;</span>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-XPOST<span class="w"> </span>&lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/timelock/api/tl/ts/&lt;namespace&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data<span class="w"> </span><span class="s1">&#39;{&quot;numTimestamps&quot;: 1}&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer q&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span>
 </pre></div>
 </div>
 </div></blockquote>
@@ -203,17 +200,17 @@ cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 </li>
 <li><p>If you are using DBKVS and have followed the steps outlined in <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual TimeLock Migration</span></a>,
 you will first want to rename the column back to its original name.</p>
-<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">last_allocated</span><span class="p">;</span><span class="w"></span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">ALTER</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="k">RENAME</span><span class="w"> </span><span class="n">LEGACY_last_allocated</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="n">last_allocated</span><span class="p">;</span>
 </pre></div>
 </div>
 <p>After that, you will want to set the value stored in that table in the database to be <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
-<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="n">_timestamp</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">314159265</span><span class="p">;</span><span class="w"></span>
-<span class="k">UPDATE</span><span class="w"> </span><span class="mi">1</span><span class="w"></span>
-<span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">_timestamp</span><span class="p">;</span><span class="w"></span>
-<span class="w"> </span><span class="n">last_allocated</span><span class="w"></span>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">UPDATE</span><span class="w"> </span><span class="n">_timestamp</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">last_allocated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">314159265</span><span class="p">;</span>
+<span class="k">UPDATE</span><span class="w"> </span><span class="mi">1</span>
+<span class="n">a_db</span><span class="o">=#</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">_timestamp</span><span class="p">;</span>
+<span class="w"> </span><span class="n">last_allocated</span>
 <span class="c1">----------------</span>
-<span class="w">      </span><span class="mi">314159265</span><span class="w"></span>
-<span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="mi">314159265</span>
+<span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="k">row</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>

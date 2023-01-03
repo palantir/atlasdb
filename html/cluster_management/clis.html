@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -165,7 +162,7 @@ and then pass in this flag to the CLI.</p></td>
 </section>
 <section id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli-distribution:distTar
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./gradlew<span class="w"> </span>atlasdb-cli-distribution:distTar
 </pre></div>
 </div>
 <p>This will create a tar file in <code class="docutils literal notranslate"><span class="pre">atlasdb-cli-distribution/build/distributions</span></code>, which you can untar on the machine where your AtlasDB client is installed.</p>
@@ -191,7 +188,7 @@ For more information, check out <a class="reference internal" href="sweep/standa
 <section id="read-punch-table">
 <h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this heading"></a></h3>
 <p>Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --config config.yml read-punch-table --epoch
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli<span class="w"> </span>--config<span class="w"> </span>config.yml<span class="w"> </span>read-punch-table<span class="w"> </span>--epoch
 </pre></div>
 </div>
 </section>

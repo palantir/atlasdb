@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -107,9 +104,9 @@ AtlasDB will automatically segment large objects in a stream store into
 smaller chunks, and storage of streams happens on separate transactions and
 does not count toward your byte limit for your local trasaction.</p>
 <p>The minimal parameters required to define a stream store are shown below:</p>
-<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">addStreamStoreDefinition</span><span class="p">(</span><span class="w"></span>
-<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">StreamStoreDefinitionBuilder</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">shortName</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">longName</span><span class="p">,</span><span class="w"> </span><span class="n">ValueType</span><span class="w"> </span><span class="n">valueType</span><span class="p">).</span><span class="na">build</span><span class="p">();</span><span class="w"></span>
-<span class="p">)</span><span class="w"></span>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">addStreamStoreDefinition</span><span class="p">(</span>
+<span class="w">    </span><span class="k">new</span><span class="w"> </span><span class="n">StreamStoreDefinitionBuilder</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">shortName</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">longName</span><span class="p">,</span><span class="w"> </span><span class="n">ValueType</span><span class="w"> </span><span class="n">valueType</span><span class="p">).</span><span class="na">build</span><span class="p">();</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">

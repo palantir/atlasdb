@@ -14,9 +14,6 @@
   <![endif]-->
   
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -171,18 +168,18 @@ Atlas should connect to the destination KVS.</p>
 <p>By default, these configurations should be a YAML object where a standard <code class="docutils literal notranslate"><span class="pre">AtlasDbConfig</span></code> is stored underneath
 the <code class="docutils literal notranslate"><span class="pre">atlasdb</span></code> key. Users may also specify their own <code class="docutils literal notranslate"><span class="pre">config-root</span></code> (note the case difference). The configurations
 may contain unrelated YAML objects. For example:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">applicationConnectors</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span><span class="w"></span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3828</span><span class="w"></span>
-<span class="w">  </span><span class="nt">adminConnectors</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span><span class="w"></span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3829</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">server</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">applicationConnectors</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3828</span>
+<span class="w">  </span><span class="nt">adminConnectors</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3829</span>
 
-<span class="nt">atlasdb</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span><span class="w"></span>
-<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">memory</span><span class="w"></span>
+<span class="nt">atlasdb</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
+<span class="w">  </span><span class="nt">keyValueService</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">memory</span>
 </pre></div>
 </div>
 <p>Running the migration is typically done by invoking the CLI three times, one for each main stage of the migration.</p>
@@ -200,7 +197,7 @@ you restart your service with the new KVS.</p>
 <p>All tables in the destination KVS will be dropped as part of setup! Please ensure that data there may be safely
 deleted.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --setup
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli<span class="w"> </span>--offline<span class="w"> </span>migrate<span class="w"> </span>--fromConfig<span class="w"> </span>from.yml<span class="w"> </span><span class="o">[</span>--fromRuntimeConfig<span class="w"> </span>fromRuntime.yml<span class="o">]</span><span class="w"> </span>--migrateConfig<span class="w"> </span>to.yml<span class="w"> </span><span class="o">[</span>--migrateRuntimeConfig<span class="w"> </span>toRuntime.yml<span class="o">]</span><span class="w"> </span>--setup
 </pre></div>
 </div>
 <p>Running this command will prepare the target KVS for the migration.
@@ -210,7 +207,7 @@ metadata is created in the target KVS.</p>
 </section>
 <section id="migrate">
 <h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --migrate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli<span class="w"> </span>--offline<span class="w"> </span>migrate<span class="w"> </span>--fromConfig<span class="w"> </span>from.yml<span class="w"> </span><span class="o">[</span>--fromRuntimeConfig<span class="w"> </span>fromRuntime.yml<span class="o">]</span><span class="w"> </span>--migrateConfig<span class="w"> </span>to.yml<span class="w"> </span><span class="o">[</span>--migrateRuntimeConfig<span class="w"> </span>toRuntime.yml<span class="o">]</span><span class="w"> </span>--migrate
 </pre></div>
 </div>
 <p>Running this command will migrate the actual data from source KVS to target KVS.
@@ -231,7 +228,7 @@ Running setup at this point will reset the migration state and force a fresh mig
 </section>
 <section id="validate">
 <h3>Validate<a class="headerlink" href="#validate" title="Permalink to this heading"></a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml <span class="o">[</span>--fromRuntimeConfig fromRuntime.yml<span class="o">]</span> --migrateConfig to.yml <span class="o">[</span>--migrateRuntimeConfig toRuntime.yml<span class="o">]</span> --validate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli<span class="w"> </span>--offline<span class="w"> </span>migrate<span class="w"> </span>--fromConfig<span class="w"> </span>from.yml<span class="w"> </span><span class="o">[</span>--fromRuntimeConfig<span class="w"> </span>fromRuntime.yml<span class="o">]</span><span class="w"> </span>--migrateConfig<span class="w"> </span>to.yml<span class="w"> </span><span class="o">[</span>--migrateRuntimeConfig<span class="w"> </span>toRuntime.yml<span class="o">]</span><span class="w"> </span>--validate
 </pre></div>
 </div>
 <p>Running this command will validate the correctness of the migration.
@@ -244,7 +241,7 @@ respective KVSs might diverge as a result of the writes performed during the mig
 <p>All three commands can be combined in a single invocation of the client, with the caveat that if the migration
 fails, care should be taken to identify which step failed before further actions are determined.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup --migrate --validate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli<span class="w"> </span>--offline<span class="w"> </span>migrate<span class="w"> </span>--fromConfig<span class="w"> </span>from.yml<span class="w"> </span>--migrateConfig<span class="w"> </span>to.yml<span class="w"> </span>--setup<span class="w"> </span>--migrate<span class="w"> </span>--validate
 </pre></div>
 </div>
 </section>
