@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.benmanes.caffeine.cache.Interner;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
@@ -44,7 +43,10 @@ public final class CassandraLogHelper {
     private static final Interner<HostAndIpAddress> hostAddresses = Interner.newWeakInterner();
 
     public static HostAndIpAddress host(InetSocketAddress host) {
-        return hostAddresses.intern(hostAndIp(host));
+        String hostString = host.getHostString().toLowerCase(Locale.ROOT);
+        InetAddress inetAddress = host.getAddress();
+        String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
+        return hostAddresses.intern(ImmutableHostAndIpAddress.of(hostString, ip));
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
@@ -114,13 +116,5 @@ public final class CassandraLogHelper {
         public final String toString() {
             return asString();
         }
-    }
-
-    @VisibleForTesting
-    static HostAndIpAddress hostAndIp(InetSocketAddress address) {
-        InetAddress inetAddress = address.getAddress();
-        String host = address.getHostString().toLowerCase(Locale.ROOT);
-        String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
-        return ImmutableHostAndIpAddress.of(host, ip);
     }
 }
