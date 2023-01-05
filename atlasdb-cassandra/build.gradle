@@ -106,6 +106,7 @@ shadowJar {
   classifier ''
 
   relocate('org.hibernate', 'shadowed')
+  relocate('org.apache.thrift:libthrift', 'shadowed')
 
   dependencies {
       include(dependency { false })
