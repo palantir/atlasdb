@@ -51,7 +51,7 @@ dependencies {
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.apache.thrift:libthrift'
+  api 'org.apache.thrift:libthrift'
   implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
   implementation project(':commons-annotations')
@@ -106,7 +106,6 @@ shadowJar {
   classifier ''
 
   relocate('org.hibernate', 'shadowed')
-  relocate('org.apache.thrift:libthrift', 'shadowed')
 
   dependencies {
       include(dependency { false })
