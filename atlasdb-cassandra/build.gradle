@@ -69,7 +69,7 @@ dependencies {
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'jakarta.xml.bind:jakarta.xml.bind-api'
   testImplementation 'org.apache.commons:commons-lang3'
-  testImplementation 'org.apache.thrift:libthrift'
+  testApi 'org.apache.thrift:libthrift'
   testImplementation 'commons-codec:commons-codec'
   testImplementation 'com.palantir.safe-logging:preconditions-assertj'
   testImplementation 'org.assertj:assertj-core'
