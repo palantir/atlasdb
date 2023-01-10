@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '`atlasdb-cassandra` dependencies are no longer shaded.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6403
