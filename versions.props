@@ -43,6 +43,7 @@ commons-cli:* = 1.5.0
 commons-codec:* = 1.15
 commons-dbutils:* = 1.7
 commons-io:* = 2.11.0
+commons-logging:commons-logging = 1.2
 io.airlift:airline = 0.9
 io.dropwizard:* = 2.1.2
 io.netty:* = 4.1.85.Final
