@@ -39,7 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TApplicationException;
@@ -48,11 +48,11 @@ import org.immutables.value.Value;
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
     private final CassandraTopologyValidationMetrics metrics;
-    private final AtomicInteger quorumFailures;
+    private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
 
     public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
         this.metrics = metrics;
-        this.quorumFailures = new AtomicInteger();
+        this.pastConsistentTopology = new AtomicReference<>();
     }
 
     /**
@@ -147,12 +147,16 @@ public final class CassandraTopologyValidator {
         // This means currently we've no servers or no server without the get_host_ids endpoint.
         // Therefore, we need to come to a consensus on the new servers.
         if (currentServersWithoutSoftFailures.isEmpty()) {
-            return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
-                    .agreedTopology()
-                    .<Set<CassandraServer>>map(topology ->
-                            // Do not add new servers which were unreachable
-                            Sets.difference(newServersWithoutSoftFailures.keySet(), topology.serversInConsensus()))
-                    .orElseGet(newServersWithoutSoftFailures::keySet);
+            Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
+                            newServersWithoutSoftFailures)
+                    .agreedTopology();
+            if (maybeTopology.isPresent()) {
+                ConsistentClusterTopology topology = maybeTopology.get();
+                pastConsistentTopology.set(topology);
+                // Do not add new servers which were unreachable
+                return Sets.difference(newServersWithoutSoftFailures.keySet(), topology.serversInConsensus());
+            }
+            return newServersWithoutSoftFailures.keySet();
         }
 
         // If a consensus can be reached from the current servers,
@@ -162,12 +166,12 @@ public final class CassandraTopologyValidator {
                 maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures);
         switch (topologyFromCurrentServers.type()) {
             case CONSENSUS:
-                quorumFailures.set(0);
                 Preconditions.checkState(
                         topologyFromCurrentServers.agreedTopology().isPresent(),
                         "Expected to have a consistent topology for a CONSENSUS result, but did not.");
                 ConsistentClusterTopology topology =
                         topologyFromCurrentServers.agreedTopology().get();
+                pastConsistentTopology.set(topology);
                 return EntryStream.of(newServersWithoutSoftFailures)
                         .removeValues(result -> result.type() == HostIdResult.Type.SUCCESS
                                 && result.hostIds().equals(topology.hostIds()))
@@ -175,29 +179,22 @@ public final class CassandraTopologyValidator {
                         .toSet();
             case DISSENT:
                 // In the event of *active* dissent, we want to hard fail.
-                quorumFailures.set(0);
                 return newServersWithoutSoftFailures.keySet();
             case NO_QUORUM:
-                // In the event of no quorum, we need to trust the new servers at some point since in containerised
+                // In the event of no quorum, we need to trust the new servers since in containerised
                 // deployments things can actually move on like that between refreshes.
-                if (quorumFailures.incrementAndGet() >= 10) {
-                    log.warn(
-                            "We have not been able to get a quorum of the existing Cassandra nodes for ten "
-                                    + "attempts. Based on this, we are just going to look at the remaining hosts and "
-                                    + "accept their consensus, if they have one.",
-                            SafeArg.of("currentServersWithoutSoftFailures", currentServersWithoutSoftFailures),
-                            SafeArg.of("newServersWithoutSoftFailures", newServersWithoutSoftFailures));
-                    // TODO (jkong): Code duplication is bad, I know...
-                    return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
-                            .agreedTopology()
-                            .<Set<CassandraServer>>map(newServerTopology ->
-                                    // Do not add new servers which were unreachable
-                                    Sets.difference(
-                                            newServersWithoutSoftFailures.keySet(),
-                                            newServerTopology.serversInConsensus()))
-                            .orElseGet(newServersWithoutSoftFailures::keySet);
+                if (pastConsistentTopology.get() == null) {
+                    // We don't have a record of what worked in the past, so just reject.
+                    return newServersWithoutSoftFailures.keySet();
                 }
-                return newServersWithoutSoftFailures.keySet();
+                return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
+                        .agreedTopology()
+                        .filter(newNodesTopology -> newNodesTopology
+                                .hostIds()
+                                .equals(pastConsistentTopology.get().hostIds()))
+                        .<Set<CassandraServer>>map(newTopology -> Sets.difference(
+                                newServersWithoutSoftFailures.keySet(), newTopology.serversInConsensus()))
+                        .orElseGet(newServersWithoutSoftFailures::keySet);
             default:
                 throw new SafeIllegalStateException(
                         "Unexpected cluster topology result type",
@@ -301,6 +298,13 @@ public final class CassandraTopologyValidator {
         static ImmutableConsistentClusterTopology.Builder builder() {
             return ImmutableConsistentClusterTopology.builder();
         }
+    }
+
+    @Value.Immutable
+    public interface ClusterAgreementHistory {
+        int consecutiveQuorumFailures();
+
+        Optional<ConsistentClusterTopology> lastAgreedTopology();
     }
 
     enum ClusterTopologyResultType {
