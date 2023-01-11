@@ -159,9 +159,8 @@ public final class CassandraTopologyValidator {
             return newServersWithoutSoftFailures.keySet();
         }
 
-        // If a consensus can be reached from the current servers,
-        // filter all new servers which have the same set of host ids.
-        // Otherwise, if we cannot come to consensus on the current topology, just refuse to add any new servers.
+        // If a consensus can be reached from the current servers, filter all new servers which have the same set of
+        // host ids. Accept dissent as such, but permit
         ClusterTopologyResult topologyFromCurrentServers =
                 maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures);
         switch (topologyFromCurrentServers.type()) {
@@ -181,8 +180,10 @@ public final class CassandraTopologyValidator {
                 // In the event of *active* dissent, we want to hard fail.
                 return newServersWithoutSoftFailures.keySet();
             case NO_QUORUM:
-                // In the event of no quorum, we need to trust the new servers since in containerised
-                // deployments things can actually move on like that between refreshes.
+                // In the event of no quorum, we trust the new servers iff they agree with our historical knowledge
+                // of what the old servers were thinking, since in containerised deployments all nodes can change
+                // between refreshes for legitimate reasons (but they should still refer to the same underlying
+                // cluster).
                 if (pastConsistentTopology.get() == null) {
                     // We don't have a record of what worked in the past, so just reject.
                     return newServersWithoutSoftFailures.keySet();
