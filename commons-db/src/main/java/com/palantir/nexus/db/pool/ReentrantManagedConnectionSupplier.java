@@ -20,33 +20,61 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.ReentrantConnectionSupplier;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.function.BooleanSupplier;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSupplier {
+public final class ReentrantManagedConnectionSupplier implements ReentrantConnectionSupplier {
 
     private final ConnectionManager delegate;
     private final ThreadLocal<ResourceSharer<Connection, SQLException>> threadLocal;
+    private final BooleanSupplier isCloseTrackingEnabled;
 
-    public ReentrantManagedConnectionSupplier(final ConnectionManager delegate) {
-        this.delegate = Preconditions.checkNotNull(delegate);
-        this.threadLocal =
-                ThreadLocal.withInitial(() -> new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
-                    @Override
-                    public Connection open() {
-                        return delegate.getConnectionUnchecked();
-                    }
-                });
+    private ReentrantManagedConnectionSupplier(
+            ConnectionManager delegate,
+            ThreadLocal<ResourceSharer<Connection, SQLException>> threadLocal,
+            BooleanSupplier isCloseTrackingEnabled) {
+        this.delegate = Preconditions.checkNotNull(delegate, "delegate");
+        this.threadLocal = Preconditions.checkNotNull(threadLocal, "threadLocal");
+        this.isCloseTrackingEnabled = Preconditions.checkNotNull(isCloseTrackingEnabled, "isCloseTrackingEnabled");
+    }
+
+    public static ReentrantManagedConnectionSupplier createForTesting(ConnectionManager connectionManager) {
+        return new ReentrantManagedConnectionSupplier(
+                connectionManager, createThreadLocal(connectionManager), () -> true);
+    }
+
+    public static ReentrantManagedConnectionSupplier create(
+            ConnectionManager delegate, BooleanSupplier isCloseTrackingEnabled) {
+        return new ReentrantManagedConnectionSupplier(delegate, createThreadLocal(delegate), isCloseTrackingEnabled);
+    }
+
+    private static ThreadLocal<ResourceSharer<Connection, SQLException>> createThreadLocal(ConnectionManager delegate) {
+        //noinspection Convert2Diamond - <> causes compiler failure https://bugs.openjdk.org/browse/JDK-8246111
+        return ThreadLocal.withInitial(() -> new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
+            @Override
+            public Connection open() {
+                return delegate.getConnectionUnchecked();
+            }
+        });
     }
 
     @Override
     public Connection get() throws PalantirSqlException {
-        return CloseTracking.wrap(threadLocal.get().get());
+        Connection connection = threadLocal.get().get();
+        if (isCloseTrackingEnabled.getAsBoolean()) {
+            return CloseTracking.wrap(connection);
+        }
+        return connection;
     }
 
     @Override
     public Connection getUnsharedConnection() throws PalantirSqlException {
-        return CloseTracking.wrap(delegate.getConnectionUnchecked());
+        Connection connection = delegate.getConnectionUnchecked();
+        if (isCloseTrackingEnabled.getAsBoolean()) {
+            return CloseTracking.wrap(connection);
+        }
+        return connection;
     }
 
     @Override

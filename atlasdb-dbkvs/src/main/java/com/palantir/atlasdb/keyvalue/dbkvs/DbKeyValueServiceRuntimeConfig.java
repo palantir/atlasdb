@@ -37,4 +37,9 @@ public abstract class DbKeyValueServiceRuntimeConfig implements KeyValueServiceR
     }
 
     public abstract MaskedValue getDbPassword();
+
+    @Value.Default
+    public boolean enableCloseTracking() {
+        return false;
+    }
 }

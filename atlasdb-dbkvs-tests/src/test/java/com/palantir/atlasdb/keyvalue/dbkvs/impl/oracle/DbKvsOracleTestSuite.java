@@ -112,7 +112,7 @@ public final class DbKvsOracleTestSuite {
 
     public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
         ReentrantManagedConnectionSupplier connSupplier =
-                new ReentrantManagedConnectionSupplier(getConnectionManager(kvs));
+                ReentrantManagedConnectionSupplier.createForTesting(getConnectionManager(kvs));
         return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
     }
 
