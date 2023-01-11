@@ -16,11 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.github.rholder.retry.RetryException;
-import com.github.rholder.retry.Retryer;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
+import com.github.rholder.retry.*;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
@@ -188,14 +184,40 @@ public final class CassandraTopologyValidator {
                     // We don't have a record of what worked in the past, so just reject.
                     return newServersWithoutSoftFailures.keySet();
                 }
-                return maybeGetConsistentClusterTopology(newServersWithoutSoftFailures)
-                        .agreedTopology()
-                        .filter(newNodesTopology -> newNodesTopology
-                                .hostIds()
-                                .equals(pastConsistentTopology.get().hostIds()))
-                        .<Set<CassandraServer>>map(newTopology -> Sets.difference(
-                                newServersWithoutSoftFailures.keySet(), newTopology.serversInConsensus()))
-                        .orElseGet(newServersWithoutSoftFailures::keySet);
+                Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
+                                newServersWithoutSoftFailures)
+                        .agreedTopology();
+                if (maybeTopology.isEmpty()) {
+                    log.info(
+                            "No quorum was detected among old servers, and new servers were also not in"
+                                    + " agreement. Not adding new servers in this case.",
+                            SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
+                            SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
+                    return newServersWithoutSoftFailures.keySet();
+                }
+                ConsistentClusterTopology newNodesAgreedTopology = maybeTopology.get();
+                if (!newNodesAgreedTopology
+                        .hostIds()
+                        .equals(pastConsistentTopology.get().hostIds())) {
+                    log.info(
+                            "No quorum was detected among old servers. While new servers could reach a consensus, this"
+                                + " differed from the last agreed value among the old servers. Not adding new servers"
+                                + " in this case.",
+                            SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
+                            SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
+                            SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
+                            SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
+                    return newServersWithoutSoftFailures.keySet();
+                }
+                log.info(
+                        "No quorum was detected among old servers. New servers reached a consensus that matched the"
+                            + " last agreed value among the old servers. Adding new servers that were in consensus.",
+                        SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
+                        SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
+                        SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
+                        SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
+                return Sets.difference(
+                        newServersWithoutSoftFailures.keySet(), newNodesAgreedTopology.serversInConsensus());
             default:
                 throw new SafeIllegalStateException(
                         "Unexpected cluster topology result type",
