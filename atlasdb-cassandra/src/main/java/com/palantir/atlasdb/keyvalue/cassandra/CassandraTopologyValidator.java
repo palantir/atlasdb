@@ -300,13 +300,6 @@ public final class CassandraTopologyValidator {
         }
     }
 
-    @Value.Immutable
-    public interface ClusterAgreementHistory {
-        int consecutiveQuorumFailures();
-
-        Optional<ConsistentClusterTopology> lastAgreedTopology();
-    }
-
     enum ClusterTopologyResultType {
         CONSENSUS,
         DISSENT,
