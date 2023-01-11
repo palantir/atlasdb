@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.benmanes.caffeine.cache.Interner;
 import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -26,6 +27,8 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 public final class TableReference implements Measurable {
+    private static final Interner<String> tableNames = Interner.newWeakInterner();
+
     private final Namespace namespace;
     private final String tableName;
 
@@ -78,7 +81,7 @@ public final class TableReference implements Measurable {
     private TableReference(
             @JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tableName) {
         this.namespace = namespace;
-        this.tableName = tableName;
+        this.tableName = tableNames.intern(tableName);
     }
 
     /**
