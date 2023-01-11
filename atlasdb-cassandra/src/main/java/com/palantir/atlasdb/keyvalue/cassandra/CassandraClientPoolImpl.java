@@ -496,7 +496,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     (cassandraServer, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tServer: %s was marked unreachable via proxy: %s, with exception: %s%n",
                             cassandraServer.cassandraHostName(),
-                            cassandraServer.proxy().getHostString(),
+                            CassandraLogHelper.host(cassandraServer.proxy()),
                             exception.toString())));
         }
 

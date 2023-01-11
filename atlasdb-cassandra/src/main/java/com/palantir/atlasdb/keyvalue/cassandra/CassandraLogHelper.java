@@ -15,15 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.github.benmanes.caffeine.cache.Interner;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
-import com.palantir.common.annotations.ImmutablesStyles.WeakInterningImmutablesStyle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -35,8 +39,14 @@ public final class CassandraLogHelper {
         // Utility class.
     }
 
+    // Cache instances as there should be a relatively small, generally fixed number of Cassandra servers.
+    private static final Interner<HostAndIpAddress> hostAddresses = Interner.newWeakInterner();
+
     public static HostAndIpAddress host(InetSocketAddress host) {
-        return HostAndIpAddress.fromAddress(host);
+        String hostString = host.getHostString().toLowerCase(Locale.ROOT);
+        InetAddress inetAddress = host.getAddress();
+        String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
+        return hostAddresses.intern(ImmutableHostAndIpAddress.of(hostString, ip));
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
@@ -81,23 +91,30 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    // Weakly intern instances as there should be a relatively small, generally fixed number of Cassandra servers.
-    @Value.Immutable(lazyhash = true, intern = true, builder = false)
-    @WeakInterningImmutablesStyle
-    interface HostAndIpAddress {
+    @Value.Immutable(lazyhash = true, builder = false, copy = false)
+    @JsonDeserialize(as = ImmutableHostAndIpAddress.class)
+    @JsonSerialize(as = ImmutableHostAndIpAddress.class)
+    abstract static class HostAndIpAddress {
         @Value.Parameter
-        String host();
+        abstract String host();
 
         @Nullable
         @Value.Parameter
-        String ipAddress();
+        abstract String ipAddress();
 
-        static HostAndIpAddress fromAddress(InetSocketAddress address) {
-            InetAddress inetAddress = address.getAddress();
-            if (inetAddress != null) {
-                return ImmutableHostAndIpAddress.of(address.getHostString(), inetAddress.getHostAddress());
+        @JsonIgnore
+        @Value.Lazy
+        String asString() {
+            if (ipAddress() == null) {
+                // unresolved IP
+                return host();
             }
-            return ImmutableHostAndIpAddress.of(address.getHostString(), /* unresolved IP */ null);
+            return host() + '/' + ipAddress();
+        }
+
+        @Override
+        public final String toString() {
+            return asString();
         }
     }
 }

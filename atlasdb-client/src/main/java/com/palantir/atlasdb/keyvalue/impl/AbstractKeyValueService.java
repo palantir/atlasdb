@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -48,6 +51,12 @@ import java.util.concurrent.Future;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
+
+    private static final LoadingCache<TableReference, String> internalTableNames = Caffeine.newBuilder()
+            .weigher((TableReference key, String value) -> Ints.saturatedCast(key.sizeInBytes() + value.length()))
+            .maximumWeight(1_000_000)
+            .build(AbstractKeyValueService::computeInternalTableName);
+
     protected ExecutorService executor;
 
     /**
@@ -195,6 +204,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     public static String internalTableName(TableReference tableRef) {
+        return internalTableNames.get(tableRef);
+    }
+
+    private static String computeInternalTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         if (tableName.startsWith("_")) {
             return tableName;
