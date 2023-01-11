@@ -40,7 +40,9 @@ import org.apache.commons.lang3.Validate;
 @SuppressWarnings({"WeakerAccess", "BadAssert"}) // performance sensitive asserts
 public class SQLString extends BasicSQLString {
     private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); // $NON-NLS-1$
-    private static final String UNREGISTERED_SQL_COMMENT = "/* UnregisteredSQLString */";
+    private static final String UNREGISTERED_SQL_STRING = "UnregisteredSQLString"; // $NON-NLS-1$
+    private static final String UNREGISTERED_SQL_COMMENT =
+            "/* " + UNREGISTERED_SQL_STRING + " */"; // $NON-NLS-1$  // $NON-NLS-2$
 
     /**
      * Callers changing the value of cachedUnregistered and
@@ -49,24 +51,18 @@ public class SQLString extends BasicSQLString {
      * to be in sync with each other.
      */
     private static final Object cacheLock = new Object();
-    // TODO (DCohen): Combine cachedKeyed and cachedUnregistered maps into one.
-    /**
-     * Rewritten unregistered queries.
-     * Key: String with all whitespace removed
-     * Value: the new SQLString to run instead.
-     */
-    @GuardedBy("cacheLock")
-    private static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
+
     /**
      * Rewritten registered queries.
      */
     @GuardedBy("cacheLock")
     private static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
+
     /**
      * All registered queries.
      */
-    protected static final ConcurrentMap<String, FinalSQLString> registeredValues =
-            new ConcurrentHashMap<String, FinalSQLString>();
+    protected static final ConcurrentMap<String, FinalSQLString> registeredValues = new ConcurrentHashMap<>();
+
     /**
      * DB-specific registered queries.
      */
@@ -140,7 +136,7 @@ public class SQLString extends BasicSQLString {
         }
 
         SQLString sqlString = new SQLString(key, sql, dbType);
-        ConcurrentMap<DBType, FinalSQLString> newHash = new ConcurrentHashMap<DBType, FinalSQLString>();
+        ConcurrentMap<DBType, FinalSQLString> newHash = new ConcurrentHashMap<>();
 
         ConcurrentMap<DBType, FinalSQLString> dbTypeHash = registeredValuesOverride.putIfAbsent(key, newHash);
         if (null == dbTypeHash) {
@@ -207,7 +203,7 @@ public class SQLString extends BasicSQLString {
 
     /**
      * A Factory used by the SQL class to turn a string sql query into an SQLString object.
-     * This may just contain the sql given, or the given SQL may be overriden in the database and the object returned
+     * This may just contain the sql given, or the given SQL may be overridden in the database and the object returned
      * will reflect that new SQL from the DB.
      *
      * @param sql The string to be used in a query
@@ -216,16 +212,6 @@ public class SQLString extends BasicSQLString {
     @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; // $NON-NLS-1$
-        ImmutableMap<String, FinalSQLString> cache = cachedUnregistered; // volatile read
-        if (!cache.isEmpty()) {
-            String cacheKey = canonicalizeStringAndRemoveWhitespaceEntirely(sql);
-            FinalSQLString cached = cache.get(cacheKey);
-            if (null != cached) {
-                callbackOnUse.noteUse((SQLString) cached.delegate);
-                return cached;
-            }
-        }
-
         return new FinalSQLString(new SQLString(sql));
     }
 
@@ -235,7 +221,7 @@ public class SQLString extends BasicSQLString {
      * @param sql The string to be used in a query
      */
     private SQLString(String sql) {
-        super(null, makeCommentString(null, null) + sql);
+        super(null, unregisteredSql(sql));
     }
 
     /**
@@ -246,27 +232,29 @@ public class SQLString extends BasicSQLString {
      * @param dbType This is only used in making the SQL comment
      */
     protected SQLString(String key, String sql, DBType dbType) {
-        super(key, makeCommentString(key, dbType) + sql);
+        super(key, prependPrefix(key, dbType, sql));
     }
 
     /**
-     * Creates an appropriate comment string for the beginning of a SQL statement.
-     *
+     * Creates a SQL string prepended with a comment indicating the registration and DB type.
      * @param keyString Identifier for the SQL; will be null if the SQL is unregistered
      * @param dbType    The database type
+     * @param sql       The SQL to append
+     * @return string with comment prepended
      */
-    private static String makeCommentString(String keyString, DBType dbType) {
-        String registrationState;
-        if (keyString != null) {
-            registrationState = "SQLString Identifier: " + keyString; // $NON-NLS-1$
-        } else {
-            registrationState = "UnregisteredSQLString"; // $NON-NLS-1$
+    @VisibleForTesting
+    static String prependPrefix(String keyString, DBType dbType, String sql) {
+        if (keyString == null && dbType == null) {
+            return unregisteredSql(sql);
         }
-        String dbTypeString = ""; // $NON-NLS-1$
-        if (dbType != null) {
-            dbTypeString = " dbType: " + dbType; // $NON-NLS-1$
-        }
-        return "/* " + registrationState + dbTypeString + " */ "; // $NON-NLS-1$ //$NON-NLS-2$
+        return "/* " // $NON-NLS-1$
+                + (keyString == null ? UNREGISTERED_SQL_STRING : "SQLString Identifier: " + keyString) // $NON-NLS-1$
+                + (dbType == null ? "" : " dbType: " + dbType) // $NON-NLS-1$
+                + " */ " + sql; // $NON-NLS-1$
+    }
+
+    private static String unregisteredSql(String sql) {
+        return UNREGISTERED_SQL_COMMENT + ' ' + sql;
     }
 
     @VisibleForTesting
@@ -360,18 +348,18 @@ public class SQLString extends BasicSQLString {
     public static void registerQueryVariants(
             String baseKey, Map<Set<String>, String> map, String sqlFormat, DBType type, List<SqlClause> clauses) {
         Validate.noNullElements(clauses);
-        Set<Integer> indexes = new HashSet<Integer>();
+        Set<Integer> indexes = new HashSet<>();
         for (int i = 0; i < clauses.size(); i++) {
             indexes.add(i);
         }
 
         Set<Set<Integer>> variants = Sets.powerSet(indexes);
         for (Set<Integer> variantSet : variants) {
-            List<Integer> variant = new ArrayList<Integer>(variantSet);
+            List<Integer> variant = new ArrayList<>(variantSet);
             Collections.sort(variant);
             StringBuilder key = new StringBuilder(baseKey);
             StringBuilder whereClause = new StringBuilder();
-            Set<String> keySet = new HashSet<String>();
+            Set<String> keySet = new HashSet<>();
             for (int i : variant) {
                 SqlClause clause = clauses.get(i);
                 keySet.add(clause.getKey());
@@ -419,16 +407,21 @@ public class SQLString extends BasicSQLString {
         return new RegisteredSQLString(key.delegate);
     }
 
-    @SuppressWarnings("GuardedByChecker")
+    /**
+     * Returns an empty map.
+     * @deprecated No longer performs any work.
+     */
+    @Deprecated
     protected static ImmutableMap<String, FinalSQLString> getCachedUnregistered() {
-        return cachedUnregistered;
+        return ImmutableMap.of();
     }
 
-    protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> cachedUnregistered) {
-        synchronized (cacheLock) {
-            SQLString.cachedUnregistered = cachedUnregistered;
-        }
-    }
+    /**
+     * No-op.
+     * @deprecated No longer performs any work.
+     */
+    @Deprecated
+    protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> _cachedUnregistered) {}
 
     @SuppressWarnings("GuardedByChecker")
     protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
