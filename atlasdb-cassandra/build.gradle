@@ -16,7 +16,7 @@ dependencies {
   implementation project(":atlasdb-impl-shared")
   implementation project(":commons-api")
   implementation project(':timestamp-impl')
-  implementation 'com.palantir.cassandra:cassandra-thrift'
+  implementation project(path: ':cassandra-thrift-shadow', configuration: 'shadow')
   implementation 'com.datastax.cassandra:cassandra-driver-core'
   implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -68,11 +68,6 @@ dependencies {
   testImplementation project(':commons-executors')
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
-  }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift') {
-    exclude group: 'commons-logging'
-    exclude module: 'junit'
-    exclude group: 'org.apache.httpcomponents'
   }
 
   annotationProcessor 'com.google.auto.service:auto-service'
