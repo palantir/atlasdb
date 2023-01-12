@@ -2,7 +2,7 @@ options:
   javaPackage: 'com.palantir.atlasdb.transaction.expectations'
 
 namespaces:
-  expectationsDataCollection:
+  expectations:
     docs: Data collection on transaction patterns
     metrics:
       bytesRead:
