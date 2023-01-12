@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Reduce allocations from observability
+  links:
+  - https://github.com/palantir/atlasdb/pull/6409

@@ -29,7 +29,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -52,6 +51,8 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
@@ -233,10 +234,20 @@ public class SnapshotTransactionManagerTest {
     public void registersMetrics() throws InterruptedException {
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         snapshotTransactionManager.runTaskWithRetry(tx -> 42);
-        MetricRegistry registry = snapshotTransactionManager.metricsManager.getRegistry();
-        assertThat(registry.getNames()).contains(SETUP_TASK_METRIC_NAME).contains(FINISH_TASK_METRIC_NAME);
-        assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
-        assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
+        TaggedMetricRegistry registry = snapshotTransactionManager.metricsManager.getTaggedRegistry();
+        assertThat(registry.getMetrics().keySet().stream().map(MetricName::safeName))
+                .contains(SETUP_TASK_METRIC_NAME)
+                .contains(FINISH_TASK_METRIC_NAME);
+        assertThat(registry.timer(MetricName.builder()
+                                .safeName(SETUP_TASK_METRIC_NAME)
+                                .build())
+                        .getCount())
+                .isGreaterThanOrEqualTo(1);
+        assertThat(registry.timer(MetricName.builder()
+                                .safeName(FINISH_TASK_METRIC_NAME)
+                                .build())
+                        .getCount())
+                .isGreaterThanOrEqualTo(1);
     }
 
     @Test

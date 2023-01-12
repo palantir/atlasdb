@@ -110,7 +110,7 @@ jobs:
       - attach_workspace: { at: . }
       - add_ssh_keys:
           fingerprints:
-            - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
+            - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
       - run: sudo apt-get update
       - run: sudo apt-get install python python3-pip
       - run:

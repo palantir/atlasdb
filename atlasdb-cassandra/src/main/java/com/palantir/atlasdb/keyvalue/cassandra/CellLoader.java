@@ -162,6 +162,8 @@ final class CellLoader {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         List<List<Cell>> batches = batcher.partitionIntoBatches(cells, cassandraServer, tableRef);
         List<Callable<Void>> tasks = new ArrayList<>(batches.size());
+        String threadNameSuffix = " cells from " + tableRef + " on " + cassandraServer.cassandraHostName()
+                + " via proxy " + CassandraLogHelper.host(cassandraServer.proxy());
         for (final List<Cell> partition : batches) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnServer(
                     cassandraServer, new FunctionCheckedException<CassandraClient, Void, Exception>() {
@@ -195,9 +197,7 @@ final class CellLoader {
                     });
             tasks.add(AnnotatedCallable.wrapWithThreadName(
                     AnnotationType.PREPEND,
-                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on "
-                            + cassandraServer.cassandraHostName() + " via proxy "
-                            + CassandraLogHelper.host(cassandraServer.proxy()),
+                    "Atlas loadWithTs " + partition.size() + threadNameSuffix,
                     multiGetCallable));
         }
         return tasks;
