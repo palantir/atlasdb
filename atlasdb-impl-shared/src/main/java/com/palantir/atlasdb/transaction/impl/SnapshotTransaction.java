@@ -344,8 +344,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
-        this.expectationsDataCollectionMetrics =
-                ExpectationsDataCollectionMetrics.of(metricsManager.getTaggedRegistry());
+        this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
