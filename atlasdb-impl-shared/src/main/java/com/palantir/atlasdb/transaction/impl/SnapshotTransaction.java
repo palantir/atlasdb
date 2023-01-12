@@ -97,7 +97,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.atlasdb.transaction.expectations.ExpectationsDataCollectionMetrics;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -270,7 +270,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
 
-    private final ExpectationsDataCollectionMetrics expectationsDataCollectionMetrics;
+    private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
