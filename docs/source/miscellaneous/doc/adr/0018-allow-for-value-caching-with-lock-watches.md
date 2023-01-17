@@ -92,7 +92,9 @@ watches; the former is generally exposed to users while the latter is currently 
 We currently only expose full table lock watches to users because these are in many cases sufficient, and are also less
 prone to error; for various reasons, lock watches work effectively for cells that are not updated frequently, but are
 extremely sensitive to an accidental inclusion of a cell that is, and exposing a more complex and expressive API would
-allow users to shoot themselves in the foot easily.
+allow users to shoot themselves in the foot easily: for example, if a user was to enable lock watches on a row prefix 
+`foo` without realising that a specific row with this prefix, say `food`, was actually updated very frequently, this
+would cause _all_ Lock Watch caching to become much less effective.
 
 #### Lock Event Log
 
@@ -118,8 +120,8 @@ concerned) and its sequence number.
 The implementation internally tracks a bit more state to facilitate updates, including:
 
 - a UUID which identifies this lock event log,
-- a ring buffer tracking the 1,000 most recent `LockEvent`s, and
-- a long indicating what the sequence number of the next event should be.
+- a ring buffer tracking the 1,000 most recent `LockEvent`s,
+- a long indicating what the sequence number of the next event should be, and
 - a reference to the `HeldLocksCollection`, mainly for taking snapshots.
 
 The UUID is generated on the creation of the event log, and is used to ensure that clients know that the state of the
