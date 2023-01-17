@@ -69,7 +69,7 @@ public final class CassandraTopologyValidator {
      * Servers that do not have support for the get_host_ids endpoint are always considered consistent,
      * even if we cannot come to a consensus on the hosts that do support the endpoint.
      *
-     * Consensus is defined as:
+     * Consensus may be demonstrated independently by a set of nodes. In this case, we require that:
      * (1) A quorum of nodes (excluding those without `get_host_ids` support) are reachable.
      * (2) All reachable nodes have the same set of hostIds.
      * (3) All Cassandra nodes without get_host_ids support are considered to be matching.
@@ -77,6 +77,14 @@ public final class CassandraTopologyValidator {
      * The above should be sufficient to prevent user-led split-brain as:
      * (1) The initial list of servers validate that they've at least quorum for consensus of topology.
      * (2) All new hosts added then must match the set of pre-existing hosts topology.
+     *
+     * Consensus may also be demonstrated and new hosts added without a quorum of nodes being reachable, if:
+     * (4) New hosts support get_host_ids, and have the same set of hostIds as the most recent previous consensus
+     * satisfied through conditions (1) - (3).
+     *
+     * In this case, we know that a previous set of servers had quorum for a consensus, which we are also agreeing to.
+     * Since we aren't agreeing on any new values, values that were agreed upon must have passed conditions (1) - (3)
+     * at the time of their inception, and that required a quorum of nodes to agree.
      *
      * There does exist an edge case of, two sets of Cassandra clusters being added (3 and 6 respectively).
      * On initialization, the Cassandra cluster with 6 will be used as the base case if the other 3 nodes
@@ -150,13 +158,12 @@ public final class CassandraTopologyValidator {
             Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
                             newServersWithoutSoftFailures)
                     .agreedTopology();
-            if (maybeTopology.isPresent()) {
-                ConsistentClusterTopology topology = maybeTopology.get();
-                pastConsistentTopology.set(topology);
-                // Do not add new servers which were unreachable
-                return Sets.difference(newServersWithoutSoftFailures.keySet(), topology.serversInConsensus());
-            }
-            return newServersWithoutSoftFailures.keySet();
+            maybeTopology.ifPresent(pastConsistentTopology::set);
+
+            return maybeTopology
+                    .<Set<CassandraServer>>map(topology ->
+                            Sets.difference(newServersWithoutSoftFailures.keySet(), topology.serversInConsensus()))
+                    .orElseGet(newServersWithoutSoftFailures::keySet);
         }
 
         // If a consensus can be reached from the current servers, filter all new servers which have the same set of

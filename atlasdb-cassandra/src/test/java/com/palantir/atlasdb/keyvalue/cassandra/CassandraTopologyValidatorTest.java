@@ -241,7 +241,7 @@ public final class CassandraTopologyValidatorTest {
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts = EntryStream.of(allHosts)
                 .filterKeys(key -> OLD_HOSTS.contains(key.cassandraHostName()))
                 .toMap();
-        Set<CassandraServer> oldCassandraServers = filterServers(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
         Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
@@ -267,9 +267,9 @@ public final class CassandraTopologyValidatorTest {
         Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
 
-        setHostIds(filterContainers(newHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
+        setHostIds(filterContainers(newHosts, Predicate.not(hostsOffline::contains)), HostIdResult.success(UUIDS));
         setHostIds(
-                filterContainers(oldHosts, server -> !hostsOffline.contains(server)),
+                filterContainers(oldHosts, Predicate.not(hostsOffline::contains)),
                 HostIdResult.success(DIFFERENT_UUIDS));
 
         validator.getNewHostsWithInconsistentTopologies(oldCassandraServers, oldHosts);
