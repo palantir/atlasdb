@@ -43,7 +43,7 @@ public interface SanitizedLockRequestProgress {
     static SanitizedLockRequestProgress create(
             LockServiceStateDebugger.LockRequestProgress progress,
             LockDescriptorMapper descriptorMapper,
-            String clientId) {
+            ClientId clientId) {
         return ImmutableSanitizedLockRequestProgress.builder()
                 .totalNumLocks(progress.getTotalNumLocks())
                 .numLocksAcquired(progress.getNumLocksAcquired())

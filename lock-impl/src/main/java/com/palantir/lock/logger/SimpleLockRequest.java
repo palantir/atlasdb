@@ -29,7 +29,7 @@ import org.immutables.value.Value;
 public abstract class SimpleLockRequest {
 
     public static SimpleLockRequest of(
-            LockRequest request, ObfuscatedLockDescriptor lockDescriptor, LockMode lockMode, String clientId) {
+            LockRequest request, ObfuscatedLockDescriptor lockDescriptor, LockMode lockMode, ClientId clientId) {
         return ImmutableSimpleLockRequest.builder()
                 .lockDescriptor(lockDescriptor)
                 .lockMode(lockMode)
@@ -71,7 +71,7 @@ public abstract class SimpleLockRequest {
     public abstract Long getVersionId();
 
     @Value.Parameter
-    public abstract String getClientId();
+    public abstract ClientId getClientId();
 
     @Value.Parameter
     public abstract String getCreatingThread();

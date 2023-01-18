@@ -32,7 +32,8 @@ public abstract class SimpleTokenInfo {
                 .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
                 .createdAtTs(token.getCreationDateMs())
                 .tokenId(token.getTokenId().toString())
-                .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
+                .clientId(ClientId.of(
+                        Preconditions.checkNotNull(token.getClient()).getClientId()))
                 .requestThread(token.getRequestingThread())
                 .createAt(Instant.ofEpochMilli(token.getCreationDateMs()).toString())
                 .versionId(token.getVersionId())
@@ -52,7 +53,7 @@ public abstract class SimpleTokenInfo {
     public abstract String getTokenId();
 
     @Value.Parameter
-    public abstract String getClientId();
+    public abstract ClientId getClientId();
 
     @Value.Parameter
     public abstract String getRequestThread();

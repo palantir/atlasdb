@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class LockServiceStateLogger {
-    private static SafeLogger log = SafeLoggerFactory.get(LockServiceStateLogger.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(LockServiceStateLogger.class);
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
 
@@ -61,7 +61,7 @@ public class LockServiceStateLogger {
                 generateOutstandingLocks(outstandingLockRequests);
         Map<ObfuscatedLockDescriptor, SimpleTokenInfo> generatedHeldLocks = generateHeldLocks(heldLocks);
         Map<ObfuscatedLockDescriptor, String> generatedSyncState = generateSyncState(descriptorToLockMap);
-        Map<String, List<SanitizedLockRequestProgress>> synthesizedRequestState =
+        Map<ClientId, List<SanitizedLockRequestProgress>> synthesizedRequestState =
                 synthesizeRequestState(outstandingLockRequests, descriptorToLockMap);
 
         LogState state = ImmutableLogState.builder()
@@ -75,7 +75,7 @@ public class LockServiceStateLogger {
         return state;
     }
 
-    private Map<String, List<SanitizedLockRequestProgress>> synthesizeRequestState(
+    private Map<ClientId, List<SanitizedLockRequestProgress>> synthesizeRequestState(
             Map<LockClient, Set<LockRequest>> outstandingLockRequests,
             Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
         LockServiceStateDebugger debugger = new LockServiceStateDebugger(outstandingLockRequests, descriptorToLockMap);
@@ -83,12 +83,13 @@ public class LockServiceStateLogger {
                 debugger.getSuspectedLockProgress();
 
         return progressMultimap.asMap().entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().toString(), entry -> entry.getValue().stream()
-                        .map(lockRequestProgress -> SanitizedLockRequestProgress.create(
-                                lockRequestProgress,
-                                lockDescriptorMapper,
-                                entry.getKey().toString()))
-                        .collect(Collectors.toList())));
+                .collect(Collectors.toMap(
+                        entry -> ClientId.of(entry.getKey().getClientId()), entry -> entry.getValue().stream()
+                                .map(lockRequestProgress -> SanitizedLockRequestProgress.create(
+                                        lockRequestProgress,
+                                        lockDescriptorMapper,
+                                        ClientId.of(entry.getKey().getClientId())))
+                                .collect(Collectors.toList())));
     }
 
     private List<SimpleLockRequestsWithSameDescriptor> generateOutstandingLocks(
@@ -149,7 +150,7 @@ public class LockServiceStateLogger {
                         request,
                         this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
                         lock.getLockMode(),
-                        client.getClientId()))
+                        ClientId.of(client.getClientId())))
                 .collect(Collectors.toList());
     }
 

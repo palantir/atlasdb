@@ -39,7 +39,7 @@ public interface LogState {
     Map<ObfuscatedLockDescriptor, String> getSyncState();
 
     @Safe
-    Map<String, List<SanitizedLockRequestProgress>> getSynthesizedRequestState();
+    Map<ClientId, List<SanitizedLockRequestProgress>> getSynthesizedRequestState();
 
     @Unsafe
     Map<ObfuscatedLockDescriptor, LockDescriptor> getLockDescriptorMapping();
