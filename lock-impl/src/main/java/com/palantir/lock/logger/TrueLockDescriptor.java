@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.lock.logger;
 
-import com.palantir.logsafe.Safe;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.palantir.logsafe.Unsafe;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@Safe
-public interface SimpleLockRequestsWithSameDescriptor {
-    ObfuscatedLockDescriptor getLockDescriptor();
-
-    List<SimpleLockRequest> getLockRequests();
-
-    default int getLockRequestsCount() {
-        return getLockRequests().size();
-    }
+@Unsafe
+public interface TrueLockDescriptor {
+    @JsonValue
+    @Value.Parameter
+    String get();
 }

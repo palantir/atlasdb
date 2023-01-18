@@ -18,11 +18,13 @@ package com.palantir.lock.logger;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import java.time.Instant;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Safe
 public abstract class SimpleTokenInfo {
     public static SimpleTokenInfo of(HeldLocksToken token, LockMode lockMode) {
         return ImmutableSimpleTokenInfo.builder()
