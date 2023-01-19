@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: SQLString skips cache lookup when not cachine unregistered queries
+  description: SQLString skips cache lookup when not caching unregistered queries
   links:
   - https://github.com/palantir/atlasdb/pull/6414
