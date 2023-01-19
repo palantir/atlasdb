@@ -125,7 +125,8 @@ public class LockServiceStateLogger {
 
         return outstandingRequestMap.values().stream()
                 .map(ImmutableSimpleLockRequestsWithSameDescriptor.Builder::build)
-                .sorted(Comparator.comparing(SimpleLockRequestsWithSameDescriptor::getLockRequestsCount))
+                .sorted(Comparator.comparing(SimpleLockRequestsWithSameDescriptor::getLockRequestsCount)
+                        .reversed())
                 .collect(Collectors.toList());
     }
 
