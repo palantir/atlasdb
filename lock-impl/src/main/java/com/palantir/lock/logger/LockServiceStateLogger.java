@@ -132,15 +132,10 @@ public class LockServiceStateLogger {
     private Map<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
             ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         return heldLocksTokenMap.values().stream()
-                .flatMap(locks -> {
-                    HeldLocksToken realToken = locks.getRealToken();
-                    return realToken.getLocks().stream().map(lock -> {
-                        ObfuscatedLockDescriptor descriptor =
-                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor());
-                        SimpleTokenInfo tokenInfo = SimpleTokenInfo.of(realToken, lock.getLockMode());
-                        return Map.entry(descriptor, tokenInfo);
-                    });
-                })
+                .flatMap(locks -> locks.getRealToken().getLocks().stream()
+                        .map(lock -> Map.entry(
+                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
+                                SimpleTokenInfo.of(locks.getRealToken(), lock.getLockMode()))))
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
