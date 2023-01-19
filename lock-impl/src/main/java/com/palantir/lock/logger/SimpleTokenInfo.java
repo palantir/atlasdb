@@ -18,11 +18,13 @@ package com.palantir.lock.logger;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import java.time.Instant;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Safe
 public abstract class SimpleTokenInfo {
     public static SimpleTokenInfo of(HeldLocksToken token, LockMode lockMode) {
         return ImmutableSimpleTokenInfo.builder()
@@ -30,7 +32,8 @@ public abstract class SimpleTokenInfo {
                 .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
                 .createdAtTs(token.getCreationDateMs())
                 .tokenId(token.getTokenId().toString())
-                .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
+                .clientId(ClientId.of(
+                        Preconditions.checkNotNull(token.getClient()).getClientId()))
                 .requestThread(token.getRequestingThread())
                 .createAt(Instant.ofEpochMilli(token.getCreationDateMs()).toString())
                 .versionId(token.getVersionId())
@@ -50,7 +53,7 @@ public abstract class SimpleTokenInfo {
     public abstract String getTokenId();
 
     @Value.Parameter
-    public abstract String getClientId();
+    public abstract ClientId getClientId();
 
     @Value.Parameter
     public abstract String getRequestThread();

@@ -31,18 +31,19 @@ class LockDescriptorMapper {
 
     private static final String LOCK_PREFIX = "Lock-";
 
-    private Map<LockDescriptor, String> mapper = new ConcurrentHashMap<>();
+    private Map<LockDescriptor, ObfuscatedLockDescriptor> mapper = new ConcurrentHashMap<>();
     private AtomicInteger lockCounter = new AtomicInteger();
 
-    String getDescriptorMapping(LockDescriptor descriptor) {
-        return mapper.computeIfAbsent(descriptor, k -> LOCK_PREFIX + lockCounter.incrementAndGet());
+    ObfuscatedLockDescriptor getDescriptorMapping(LockDescriptor descriptor) {
+        return mapper.computeIfAbsent(
+                descriptor, k -> ImmutableObfuscatedLockDescriptor.of(LOCK_PREFIX + lockCounter.incrementAndGet()));
     }
 
     /**
      *
      * @return map from mapping to real descriptor.
      */
-    Map<String, LockDescriptor> getReversedMapper() {
+    Map<ObfuscatedLockDescriptor, LockDescriptor> getReversedMapper() {
         return mapper.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 }

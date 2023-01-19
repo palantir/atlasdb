@@ -82,7 +82,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -184,7 +183,6 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxNormalLockAge;
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
-    private final String lockStateLoggerDir;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
 
@@ -264,7 +262,6 @@ public final class LockServiceImpl
         this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
-        this.lockStateLoggerDir = options.getLockStateLoggerDir();
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
     }
 
@@ -1187,17 +1184,12 @@ public final class LockServiceImpl
         StringBuilder logString = getGeneralLockStats();
         log.info("Current State: {}", SafeArg.of("state", logString.toString()));
 
-        try {
-            logAllHeldAndOutstandingLocks();
-        } catch (IOException e) {
-            log.error("Can't dump state to Yaml", e);
-            throw new IllegalStateException(e);
-        }
+        logAllHeldAndOutstandingLocks();
     }
 
-    private void logAllHeldAndOutstandingLocks() throws IOException {
+    private void logAllHeldAndOutstandingLocks() {
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
-                heldLocksTokenMap, outstandingLockRequestMultimap, descriptorToLockMap.asMap(), lockStateLoggerDir);
+                heldLocksTokenMap, outstandingLockRequestMultimap, descriptorToLockMap.asMap());
         lockServiceStateLogger.logLocks();
     }
 
