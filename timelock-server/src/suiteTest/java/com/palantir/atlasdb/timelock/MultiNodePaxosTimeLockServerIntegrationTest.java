@@ -340,6 +340,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         Set<String> knownNamespaces = getKnownNamespaces();
         assertThat(knownNamespaces).contains(randomNamespace);
+        Set<String> activeNamespaces = getActiveNamespaces();
+        assertThat(activeNamespaces).contains(randomNamespace);
 
         for (TestableTimelockServer server : cluster.servers()) {
             server.killSync();
@@ -349,16 +351,29 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(
                 ImmutableList.of(cluster.clientForRandomNamespace().namespace()));
 
-        Set<String> namespacesAfterRestart = getKnownNamespaces();
-        assertThat(namespacesAfterRestart).contains(randomNamespace);
-        assertThat(namespacesAfterRestart).doesNotContain("learner", "acceptor");
-        assertThat(Sets.difference(knownNamespaces, namespacesAfterRestart)).isEmpty();
+        Set<String> knownNamespacesAfterRestart = getKnownNamespaces();
+        assertThat(knownNamespacesAfterRestart).contains(randomNamespace);
+        assertThat(knownNamespacesAfterRestart).contains(randomNamespace);
+        assertThat(knownNamespacesAfterRestart).doesNotContain("learner", "acceptor");
+        assertThat(Sets.difference(knownNamespaces, knownNamespacesAfterRestart))
+                .isEmpty();
+
+        Set<String> activeNamespacesAfterRestart = getActiveNamespaces();
+        assertThat(activeNamespacesAfterRestart).doesNotContain(randomNamespace);
     }
 
     private Set<String> getKnownNamespaces() {
         return cluster.servers().stream()
                 .map(TestableTimelockServer::timeLockManagementService)
                 .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> getActiveNamespaces() {
+        return cluster.servers().stream()
+                .map(TestableTimelockServer::timeLockManagementService)
+                .map(resource -> resource.getActiveNamespaces(AuthHeader.valueOf("Bearer omitted")))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
     }

@@ -88,6 +88,15 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
+    public ListenableFuture<Set<String>> getActiveNamespaces(AuthHeader authHeader) {
+        // This endpoint is not used frequently (only called by migration cli), so it's okay to NOT make it async.
+        return Futures.immediateFuture(timelockNamespaces.getActiveClients().stream()
+                .map(Client::value)
+                .filter(value -> !value.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
+                .collect(Collectors.toSet()));
+    }
+
+    @Override
     public ListenableFuture<Set<String>> getNamespaces(AuthHeader authHeader) {
         // This endpoint is not used frequently (only called by migration cli), so it's okay to NOT make it async.
         return Futures.immediateFuture(namespaceLoaders.stream()
@@ -156,6 +165,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public Set<String> getNamespaces(AuthHeader authHeader) {
             return unwrap(resource.getNamespaces(authHeader));
+        }
+
+        @Override
+        public Set<String> getActiveNamespaces(AuthHeader authHeader) {
+            return unwrap(resource.getActiveNamespaces(authHeader));
         }
 
         @Override
