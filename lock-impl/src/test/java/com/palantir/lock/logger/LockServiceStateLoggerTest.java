@@ -113,14 +113,14 @@ public class LockServiceStateLoggerTest {
                 .map(request -> loggedState.getLockDescriptorMapping().get(request.getLockDescriptor()))
                 .collect(Collectors.toSet());
         Set<LockDescriptor> outstandingDescriptors = getOutstandingDescriptors();
-        assertThat(outstandingDescriptors).isEqualTo(loggedOutstandingRequests);
+        assertThat(outstandingDescriptors).containsExactlyInAnyOrderElementsOf(loggedOutstandingRequests);
 
         Set<LockDescriptor> loggedHeldLocks = loggedState.getHeldLocks().keySet().stream()
                 .map(obfuscatedLockDescriptor ->
                         loggedState.getLockDescriptorMapping().get(obfuscatedLockDescriptor))
                 .collect(Collectors.toSet());
         Set<LockDescriptor> heldDescriptors = getHeldDescriptors();
-        assertThat(heldDescriptors).isEqualTo(loggedHeldLocks);
+        assertThat(heldDescriptors).containsExactlyInAnyOrderElementsOf(loggedHeldLocks);
     }
 
     @Test
@@ -141,13 +141,13 @@ public class LockServiceStateLoggerTest {
         Set<LockDescriptor> loggedSyncStateDescriptors = loggedState.getSyncState().keySet().stream()
                 .map(lockDescriptor -> loggedState.getLockDescriptorMapping().get(lockDescriptor))
                 .collect(Collectors.toSet());
-        assertThat(getSyncStateDescriptors()).isEqualTo(loggedSyncStateDescriptors);
+        assertThat(getSyncStateDescriptors()).containsExactlyInAnyOrderElementsOf(loggedSyncStateDescriptors);
     }
 
     @Test
     public void testSynthesizedRequestState() {
-        assertThat(loggedState.getSynthesizedRequestState().size())
-                .isEqualTo(getSyncStateDescriptors().size());
+        assertThat(loggedState.getSynthesizedRequestState())
+                .hasSize(getSyncStateDescriptors().size());
     }
 
     private static void assertDescriptorsNotPresentInString(String serialized) {
