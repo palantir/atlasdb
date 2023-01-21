@@ -63,6 +63,20 @@ public class GenericTestSchema implements AtlasSchema {
             }
         });
 
+        schema.addTableDefinition("issue6422", new TableDefinition() {
+            {
+                javaTableName("Issue6422");
+
+                rowName();
+                hashFirstRowComponent();
+                rowComponent("row", ValueType.VAR_LONG);
+
+                dynamicColumns();
+                columnComponent("column", ValueType.VAR_LONG);
+                value(ValueType.VAR_LONG);
+            }
+        });
+
         return schema;
     }
 

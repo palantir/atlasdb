@@ -103,6 +103,7 @@ dependencies {
   testImplementation project(':commons-annotations')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
+  testImplementation project(':atlasdb-config')
 
 
   testImplementation 'junit:junit'

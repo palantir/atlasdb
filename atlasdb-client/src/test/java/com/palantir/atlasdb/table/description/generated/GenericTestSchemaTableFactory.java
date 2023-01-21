@@ -47,13 +47,19 @@ public final class GenericTestSchemaTableFactory {
         return GenericRangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public Issue6422Table getIssue6422Table(Transaction t, Issue6422Table.Issue6422Trigger... triggers) {
+        return Issue6422Table.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public RangeScanTestTable getRangeScanTestTable(
             Transaction t, RangeScanTestTable.RangeScanTestTrigger... triggers) {
         return RangeScanTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers
-            extends GenericRangeScanTestTable.GenericRangeScanTestTrigger, RangeScanTestTable.RangeScanTestTrigger {}
+            extends GenericRangeScanTestTable.GenericRangeScanTestTrigger,
+                    Issue6422Table.Issue6422Trigger,
+                    RangeScanTestTable.RangeScanTestTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
@@ -62,6 +68,12 @@ public final class GenericTestSchemaTableFactory {
                                 GenericRangeScanTestTable.GenericRangeScanTestRow,
                                 ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue>
                         newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putIssue6422(
+                Multimap<Issue6422Table.Issue6422Row, ? extends Issue6422Table.Issue6422ColumnValue> newRows) {
             // do nothing
         }
 
