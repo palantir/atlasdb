@@ -64,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -1179,7 +1180,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void getRowsColumnRangeIncludesLocalWrites() {
+    public void getRowsColumnRangeMergesLocalWrites() {
         byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
         Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
         Cell secondCell = Cell.create(row, "b".getBytes(StandardCharsets.UTF_8));
@@ -1198,7 +1199,41 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                             tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
                     Map.Entry::getKey);
         });
-        assertThat(cells).containsExactly(firstCell, secondCell);
+        assertThat(cells).containsExactly(firstCell, inBetweenCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeIncludesLocalWritesWhenRowEntirelyAbsentFromKvs() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell beforeRange = Cell.create(row, "james".getBytes(StandardCharsets.UTF_8));
+        Cell inRangeOne = Cell.create(row, "jeremy".getBytes(StandardCharsets.UTF_8));
+        Cell inRangeTwo = Cell.create(row, "tom".getBytes(StandardCharsets.UTF_8));
+        Cell afterRange = Cell.create(row, "will".getBytes(StandardCharsets.UTF_8));
+        byte[] value = new byte[1];
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> {
+            tx.put(TABLE, ImmutableMap.of(beforeRange, value, inRangeOne, value, inRangeTwo, value, afterRange, value));
+            return Lists.transform(
+                    Lists.newArrayList(
+                            tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(
+                                    RangeRequests.previousLexicographicName(beforeRange.getColumnName()),
+                                    RangeRequests.nextLexicographicName(afterRange.getColumnName())), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(inRangeOne, inRangeTwo);
+    }
+
+    @Test
+    public void getRowsColumnRangeHandlesTotallyEmptyRows() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> {
+            return Lists.transform(
+                    Lists.newArrayList(
+                            tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null),
+                                    10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).isEmpty();
     }
 
     @Test

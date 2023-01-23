@@ -150,6 +150,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -472,16 +473,18 @@ public class SnapshotTransaction extends AbstractTransaction
                 keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp());
         ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResultsBuilder =
                 ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
-        for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-
-            // Sadly we can't close properly here without an ABI break :/
-            @SuppressWarnings("MustBeClosedChecker")
-            ClosableIterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
-                    getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-
-            postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
+        for (byte[] row : rows) {
+            Iterator<Entry<Cell, byte[]>> entryIterator = Optional.ofNullable(rawResults.get(row))
+                    .<Iterator<Entry<Cell, byte[]>>>map(rawIterator -> {
+                        // Sadly we can't close properly here without an ABI break :/
+                        @SuppressWarnings("MustBeClosedChecker")
+                        ClosableIterator<Entry<Cell, byte[]>> postFilteredIterator =
+                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+                        return postFilteredIterator;
+                    })
+                    .orElseGet(() -> getLocalWritesForColumnRange(tableRef, columnRangeSelection, row).entrySet()
+                            .iterator());
+            postFilteredResultsBuilder.put(row, scopeToTransaction(entryIterator));
         }
         SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
                 postFilteredResultsBuilder.buildOrThrow();
