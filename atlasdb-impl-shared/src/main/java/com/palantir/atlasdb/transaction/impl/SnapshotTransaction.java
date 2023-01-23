@@ -625,6 +625,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
+            Iterable<byte[]> requestedRows,
             RowColumnRangeIterator rawIterator) {
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
