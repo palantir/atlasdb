@@ -1179,6 +1179,29 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void getRowsColumnRangeIncludesLocalWrites() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row, "b".getBytes(StandardCharsets.UTF_8));
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        Cell inBetweenCell = Cell.create(row, "abba".getBytes(StandardCharsets.UTF_8));
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> {
+            tx.put(TABLE, ImmutableMap.of(inBetweenCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(
+                            tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(firstCell, secondCell);
+    }
+
+    @Test
     public void testRowsColumnRangesSingleIteratorVersion() {
         runTestForGetRowsColumnRangeSingleIteratorVersion(1, 1, 0);
         runTestForGetRowsColumnRangeSingleIteratorVersion(1, 10, 0);
