@@ -28,12 +28,13 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableSanitizedLockRequestProgress.class)
 @JsonDeserialize(as = ImmutableSanitizedLockRequestProgress.class)
 public interface SanitizedLockRequestProgress {
-    String UNKNOWN_NEXT_LOCK_MESSAGE = "<unknown; this may have happened if the request has been serviced,"
-            + " but we have not cleared it from the map>";
+    ObfuscatedLockDescriptor UNKNOWN_NEXT_LOCK_MESSAGE =
+            ImmutableObfuscatedLockDescriptor.of("<unknown; this may have happened if the request has been serviced,"
+                    + " but we have not cleared it from the map>");
 
     List<SimpleLockRequest> getRequests();
 
-    String getNextLock();
+    ObfuscatedLockDescriptor getNextLock();
 
     int getNumLocksAcquired();
 
@@ -42,7 +43,7 @@ public interface SanitizedLockRequestProgress {
     static SanitizedLockRequestProgress create(
             LockServiceStateDebugger.LockRequestProgress progress,
             LockDescriptorMapper descriptorMapper,
-            String clientId) {
+            ClientId clientId) {
         return ImmutableSanitizedLockRequestProgress.builder()
                 .totalNumLocks(progress.getTotalNumLocks())
                 .numLocksAcquired(progress.getNumLocksAcquired())
