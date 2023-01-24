@@ -43,6 +43,7 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -266,6 +267,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final Closer closer = Closer.create();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -478,7 +480,8 @@ public class SnapshotTransaction extends AbstractTransaction
                     Iterator<Map.Entry<Cell, byte[]>> entryIterator;
                     RowColumnRangeIterator rawIterator = rawResults.get(row);
                     if (rawIterator != null) {
-                        entryIterator = getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+                        entryIterator = closer.register(
+                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator));
                     } else {
                         entryIterator = ClosableIterators.wrapWithEmptyClose(
                                 getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
@@ -1750,6 +1753,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void abort() {
         if (state.get() == State.ABORTED) {
+            close();
             return;
         }
         while (true) {
@@ -1770,8 +1774,17 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
                     }
                 }
+                close();
                 return;
             }
+        }
+    }
+
+    private void close() {
+        try {
+            closer.close();
+        } catch (Exception | Error e) {
+            log.warn("Error while closing transaction resources", e);
         }
     }
 
@@ -1820,6 +1833,7 @@ public class SnapshotTransaction extends AbstractTransaction
     public void commit(TransactionService transactionService) {
         commitWithoutCallbacks(transactionService);
         runSuccessCallbacksIfDefinitivelyCommitted();
+        close();
     }
 
     @Override
