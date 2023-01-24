@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: The methods `getRowsColumnRange()` (both 3-argument and 4-argument
+    signatures) and `getRowsColumnRangeIterator()` now correctly account for local
+    writes in cases where a row does not exist in the KVS. Previously these local
+    writes would simply be ignored and not returned in the output.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6424
