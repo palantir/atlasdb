@@ -150,7 +150,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -463,6 +462,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
+    @SuppressWarnings("MustBeClosedChecker") // Sadly we can't close properly here without an ABI break :/
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkGetPreconditions(tableRef);
@@ -472,24 +472,22 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
         Map<byte[], RowColumnRangeIterator> rawResults =
                 keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp());
-        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResultsBuilder =
-                ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
-        for (byte[] row : rows) {
-            Iterator<Entry<Cell, byte[]>> entryIterator = Optional.ofNullable(rawResults.get(row))
-                    .<Iterator<Entry<Cell, byte[]>>>map(rawIterator -> {
-                        // Sadly we can't close properly here without an ABI break :/
-                        @SuppressWarnings("MustBeClosedChecker")
-                        ClosableIterator<Entry<Cell, byte[]>> postFilteredIterator =
-                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-                        return postFilteredIterator;
-                    })
-                    .orElseGet(() -> getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
-                            .entrySet()
-                            .iterator());
-            postFilteredResultsBuilder.put(row, scopeToTransaction(entryIterator));
-        }
-        SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                postFilteredResultsBuilder.buildOrThrow();
+        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
+                .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
+                    // explicitly not using Optional due to allocation perf overhead
+                    Iterator<Map.Entry<Cell, byte[]>> entryIterator;
+                    RowColumnRangeIterator rawIterator = rawResults.get(row);
+                    if (rawIterator != null) {
+                        entryIterator = getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+                    } else {
+                        entryIterator = ClosableIterators.wrapWithEmptyClose(
+                                getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
+                                        .entrySet()
+                                        .iterator());
+                    }
+                    return scopeToTransaction(entryIterator);
+                }));
+
         // validate requirements here as the first batch for each of the above iterators will not check
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return postFilteredResults;
@@ -581,8 +579,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
             Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
-        Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
-        return Iterators.mergeSorted(iterators, comp);
+        return Iterators.mergeSorted(iterators, Map.Entry.comparingByKey(cellComparator));
     }
 
     /**
@@ -737,31 +734,32 @@ public class SnapshotTransaction extends AbstractTransaction
     private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
             Iterator<Map.Entry<Cell, Value>> rawResults, Iterator<byte[]> expectedRows) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
-        return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
+        return new AbstractIterator<>() {
             byte[] prevRowName;
 
             @Override
             protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
                 finishConsumingPreviousRow(peekableRawResults);
                 if (!expectedRows.hasNext()) {
-                    Preconditions.checkState(
-                            !peekableRawResults.hasNext(),
-                            "Iterators are not consistent: there is some data returned by getRowsColumnRange()"
-                                    + " even when we expect no more rows. This is likely an AtlasDB product bug.",
-                            UnsafeArg.of("nextRawResult", peekableRawResults.peek()));
+                    if (peekableRawResults.hasNext()) {
+                        throw new SafeIllegalStateException(
+                                "Iterators are not consistent: there is some data returned by getRowsColumnRange()"
+                                        + " even when we expect no more rows. This is likely an AtlasDB product bug.",
+                                UnsafeArg.of("nextRawResult", peekableRawResults.peek()));
+                    }
                     return endOfData();
                 }
                 byte[] nextExpectedRow = expectedRows.next();
 
                 if (!peekableRawResults.hasNext()) {
-                    return Maps.immutableEntry(nextExpectedRow, emptyRowColumnRangeIterator());
+                    return Maps.immutableEntry(nextExpectedRow, EmptyRowColumnRangeIterator.INSTANCE);
                 }
                 byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
                 if (!Arrays.equals(nextRowName, nextExpectedRow)) {
-                    return Maps.immutableEntry(nextExpectedRow, emptyRowColumnRangeIterator());
+                    return Maps.immutableEntry(nextExpectedRow, EmptyRowColumnRangeIterator.INSTANCE);
                 }
 
-                Iterator<Map.Entry<Cell, Value>> columnsIterator = new AbstractIterator<Map.Entry<Cell, Value>>() {
+                Iterator<Map.Entry<Cell, Value>> columnsIterator = new AbstractIterator<>() {
                     @Override
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
@@ -792,18 +790,18 @@ public class SnapshotTransaction extends AbstractTransaction
         };
     }
 
-    private static RowColumnRangeIterator emptyRowColumnRangeIterator() {
-        return new RowColumnRangeIterator() {
-            @Override
-            public boolean hasNext() {
-                return false;
-            }
+    private enum EmptyRowColumnRangeIterator implements RowColumnRangeIterator {
+        INSTANCE;
 
-            @Override
-            public Map.Entry<Cell, Value> next() {
-                throw new NoSuchElementException();
-            }
-        };
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Map.Entry<Cell, Value> next() {
+            throw new NoSuchElementException();
+        }
     }
 
     @Override
