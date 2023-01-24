@@ -152,6 +152,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -448,7 +449,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
-        Iterable<byte[]> stableRows = ImmutableList.copyOf(rows);
+        ImmutableList<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
         RowColumnRangeIterator rawResults = keyValueService.getRowsColumnRange(
                 tableRef, stableRows, columnRangeSelection, batchHint, getStartTimestamp());
@@ -458,7 +459,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults));
+        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, stableRows, rawResults));
     }
 
     @Override
@@ -482,7 +483,8 @@ public class SnapshotTransaction extends AbstractTransaction
                                 getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
                         return postFilteredIterator;
                     })
-                    .orElseGet(() -> getLocalWritesForColumnRange(tableRef, columnRangeSelection, row).entrySet()
+                    .orElseGet(() -> getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
+                            .entrySet()
                             .iterator());
             postFilteredResultsBuilder.put(row, scopeToTransaction(entryIterator));
         }
@@ -625,11 +627,12 @@ public class SnapshotTransaction extends AbstractTransaction
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
-            Iterable<byte[]> requestedRows,
+            List<byte[]> expectedRows,
             RowColumnRangeIterator rawIterator) {
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow =
+                partitionByRow(postFilterIterator, expectedRows.iterator());
         Iterator<Map.Entry<Cell, byte[]>> merged = Iterators.concat(Iterators.transform(rawResultsByRow, row -> {
             SortedMap<Cell, byte[]> localWrites =
                     getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row.getKey());
@@ -732,7 +735,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * per non-empty row.
      */
     private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
-            Iterator<Map.Entry<Cell, Value>> rawResults) {
+            Iterator<Map.Entry<Cell, Value>> rawResults, Iterator<byte[]> expectedRows) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
         return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
             byte[] prevRowName;
@@ -740,10 +743,23 @@ public class SnapshotTransaction extends AbstractTransaction
             @Override
             protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
                 finishConsumingPreviousRow(peekableRawResults);
-                if (!peekableRawResults.hasNext()) {
+                if (!expectedRows.hasNext()) {
+                    Preconditions.checkState(
+                            !peekableRawResults.hasNext(),
+                            "Iterators are not consistent: there is some data returned by getRowsColumnRange()"
+                                    + "even when we expect no more rows. This is likely an AtlasDB product bug.");
                     return endOfData();
                 }
+                byte[] nextExpectedRow = expectedRows.next();
+
+                if (!peekableRawResults.hasNext()) {
+                    return Maps.immutableEntry(nextExpectedRow, emptyRowColumnRangeIterator());
+                }
                 byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
+                if (!Arrays.equals(nextRowName, nextExpectedRow)) {
+                    return Maps.immutableEntry(nextExpectedRow, emptyRowColumnRangeIterator());
+                }
+
                 Iterator<Map.Entry<Cell, Value>> columnsIterator = new AbstractIterator<Map.Entry<Cell, Value>>() {
                     @Override
                     protected Map.Entry<Cell, Value> computeNext() {
@@ -771,6 +787,20 @@ public class SnapshotTransaction extends AbstractTransaction
                             UnsafeArg.of("row", Arrays.toString(prevRowName)),
                             SafeArg.of("numColumnsDiscarded", numConsumed));
                 }
+            }
+        };
+    }
+
+    private static RowColumnRangeIterator emptyRowColumnRangeIterator() {
+        return new RowColumnRangeIterator() {
+            @Override
+            public boolean hasNext() {
+                return false;
+            }
+
+            @Override
+            public Map.Entry<Cell, Value> next() {
+                throw new NoSuchElementException();
             }
         };
     }
