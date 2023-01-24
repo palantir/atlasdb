@@ -472,8 +472,9 @@ public class SnapshotTransaction extends AbstractTransaction
             return ImmutableMap.of();
         }
         hasReads = true;
-        Map<byte[], RowColumnRangeIterator> rawResults =
-                keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp());
+        ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
+                keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp()),
+                PtBytes.BYTES_COMPARATOR);
         ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
                 .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
                     // explicitly not using Optional due to allocation perf overhead
