@@ -747,7 +747,8 @@ public class SnapshotTransaction extends AbstractTransaction
                     Preconditions.checkState(
                             !peekableRawResults.hasNext(),
                             "Iterators are not consistent: there is some data returned by getRowsColumnRange()"
-                                    + "even when we expect no more rows. This is likely an AtlasDB product bug.");
+                                    + " even when we expect no more rows. This is likely an AtlasDB product bug.",
+                            UnsafeArg.of("nextRawResult", peekableRawResults.peek()));
                     return endOfData();
                 }
                 byte[] nextExpectedRow = expectedRows.next();
