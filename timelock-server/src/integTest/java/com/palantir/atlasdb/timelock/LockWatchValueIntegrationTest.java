@@ -53,6 +53,9 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -79,6 +82,7 @@ import org.junit.rules.TestRule;
 // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
 @ShouldRetry(numAttempts = 15)
 public final class LockWatchValueIntegrationTest {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueIntegrationTest.class);
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_3 = "canis est in via".getBytes(StandardCharsets.UTF_8);
@@ -553,28 +557,37 @@ public final class LockWatchValueIntegrationTest {
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.
     public void valueStressTest() {
+        int numTransactions = 1_000;
+        for (int i = 1; i < 1024; i *= 2) {
+            stress(i * numTransactions);
+        }
+    }
+
+    private void stress(int numTransactions) {
+        log.info("Stress testing transactions", SafeArg.of("numTransactions", numTransactions));
         createTransactionManager(1.0);
-        int numThreads = 200;
-        int numTransactions = 10_000;
+        int numThreads = Runtime.getRuntime().availableProcessors() * 10;
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-
-        List<Future<?>> transactions = IntStream.range(0, numTransactions)
-                .mapToObj(_num -> executor.submit(this::randomTransactionTask))
-                .collect(Collectors.toList());
-        for (Future<?> transaction : transactions) {
-            try {
-                transaction.get(60, TimeUnit.SECONDS);
-            } catch (ExecutionException e) {
-                if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
-                    fail("Encountered nonretriable exception", e);
+        try {
+            List<Future<?>> transactions = IntStream.range(0, numTransactions)
+                    .mapToObj(_num -> executor.submit(this::randomTransactionTask))
+                    .collect(Collectors.toList());
+            executor.shutdown();
+            for (Future<?> transaction : transactions) {
+                try {
+                    transaction.get(60, TimeUnit.SECONDS);
+                } catch (ExecutionException e) {
+                    if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
+                        fail("Encountered nonretriable exception", e);
+                    }
+                } catch (InterruptedException | TimeoutException e) {
+                    fail("Transaction took too long", e);
                 }
-            } catch (InterruptedException | TimeoutException e) {
-                fail("Transaction took too long", e);
             }
+        } finally {
+            executor.shutdownNow();
         }
-
-        executor.shutdown();
     }
 
     private void randomTransactionTask() {
