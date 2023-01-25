@@ -58,5 +58,9 @@ public interface CacheEntry {
         boolean isUnlocked() {
             return this.equals(Status.UNLOCKED);
         }
+
+        boolean isLocked() {
+            return this.equals(Status.LOCKED);
+        }
     }
 }

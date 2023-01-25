@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -132,10 +133,11 @@ public final class ValueStoreImplTest {
         valueStore.putValue(TABLE_CELL, VALUE_1);
 
         assertThatCode(() -> valueStore.putValue(TABLE_CELL, VALUE_1)).doesNotThrowAnyException();
-        assertPutThrows(VALUE_2);
+        assertThat(VALUE_1).isNotEqualTo(VALUE_2);
+        assertPutThrows(TABLE_CELL, VALUE_2, "Trying to cache a value that is not equal to currently cached value");
 
         valueStore.applyEvent(LOCK_EVENT);
-        assertPutThrows(VALUE_1);
+        assertPutThrows(TABLE_CELL, VALUE_1, "Trying to cache a value that is currently locked");
     }
 
     @Test
@@ -202,15 +204,14 @@ public final class ValueStoreImplTest {
         verify(metrics).increaseCacheSize(expectedSize);
     }
 
-    private void assertPutThrows(CacheValue value) {
-        assertPutThrows(TABLE_CELL, value);
-    }
-
-    private void assertPutThrows(CellReference cellReference, CacheValue value) {
+    private void assertPutThrows(CellReference cellReference, CacheValue value, String message) {
         assertThatThrownBy(() -> valueStore.putValue(cellReference, value))
                 .isExactlyInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining(
-                        "Trying to cache a value which is either locked or is not equal to a currently cached value");
+                .hasMessageContaining(message)
+                .asInstanceOf(type(SafeIllegalStateException.class))
+                .extracting(SafeIllegalStateException::getArgs)
+                .asList()
+                .isNotEmpty();
     }
 
     private void assertExpectedValue(Cell cell, CacheEntry entry) {

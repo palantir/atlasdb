@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils.TableRefAndRemainder;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -32,8 +33,9 @@ import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferenceTableExtractor;
 import com.palantir.lock.watch.UnlockEvent;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Optional;
@@ -96,19 +98,34 @@ final class ValueStoreImpl implements ValueStore {
     @Override
     public void putValue(CellReference cellReference, CacheValue value) {
         values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
-            Preconditions.checkState(
-                    oldValue.status().isUnlocked() && oldValue.equals(newValue),
-                    "Trying to cache a value which is either locked or is not equal to a currently cached value",
-                    UnsafeArg.of("table", cellReference.tableRef()),
-                    UnsafeArg.of("cell", cellReference.cell()),
-                    UnsafeArg.of("oldValue", oldValue),
-                    UnsafeArg.of("newValue", newValue));
+            if (oldValue.status().isLocked()) {
+                throw invalidPut("Trying to cache a value that is currently locked", cellReference, oldValue, newValue);
+            } else if (!oldValue.equals(newValue)) {
+                throw invalidPut(
+                        "Trying to cache a value that is not equal to currently cached value",
+                        cellReference,
+                        oldValue,
+                        newValue);
+            }
             metrics.decreaseCacheSize(
                     EntryWeigher.INSTANCE.weigh(cellReference, oldValue.value().size()));
             return newValue;
         }));
         loadedValues.put(cellReference, value.size());
         metrics.increaseCacheSize(EntryWeigher.INSTANCE.weigh(cellReference, value.size()));
+    }
+
+    private static SafeIllegalStateException invalidPut(
+            @CompileTimeConstant @Safe String message,
+            CellReference cellReference,
+            CacheEntry oldValue,
+            CacheEntry newValue) {
+        throw new SafeIllegalStateException(
+                message,
+                UnsafeArg.of("table", cellReference.tableRef()),
+                UnsafeArg.of("cell", cellReference.cell()),
+                UnsafeArg.of("oldValue", oldValue),
+                UnsafeArg.of("newValue", newValue));
     }
 
     @Override
@@ -128,7 +145,7 @@ final class ValueStoreImpl implements ValueStore {
     private void clearLockedCell(CellReference cellReference) {
         values.with(map -> map.get(cellReference)
                 .toJavaOptional()
-                .filter(entry -> !entry.status().isUnlocked())
+                .filter(entry -> entry.status().isLocked())
                 .map(_unused -> map.remove(cellReference))
                 .orElse(map));
     }
