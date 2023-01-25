@@ -223,12 +223,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             storeSnapshot(reversedMap, lockWatchVersion.version());
         }
 
-        updateForTransactions.events().stream()
-                .filter(event -> (lockWatchVersion == null) || lockWatchVersion.version() < event.sequence())
-                .forEach(event -> {
-                    valueStore.applyEvent(event);
-                    storeSnapshot(reversedMap, event.sequence());
-                });
+        for (LockWatchEvent event : updateForTransactions.events()) {
+            if ((lockWatchVersion == null) || lockWatchVersion.version() < event.sequence()) {
+                valueStore.applyEvent(event);
+                storeSnapshot(reversedMap, event.sequence());
+            }
+        }
 
         updateForTransactions.startTsToSequence().keySet().stream()
                 .map(StartTimestamp::of)
