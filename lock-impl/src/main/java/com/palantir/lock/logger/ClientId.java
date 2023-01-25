@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.lock.logger;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.palantir.lock.LockClient;
 import com.palantir.logsafe.Safe;
-import java.util.List;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
-@Value.Immutable
+/**
+ * Corresponds to {@link LockClient#getClientId()}, which is safe.
+ */
 @Safe
-public interface SimpleLockRequestsWithSameDescriptor {
-    ObfuscatedLockDescriptor getLockDescriptor();
+@Value.Immutable
+public interface ClientId {
+    @JsonValue
+    @Value.Parameter
+    String get();
 
-    List<SimpleLockRequest> getLockRequests();
-
-    default int getLockRequestsCount() {
-        return getLockRequests().size();
+    /**
+     * Null client ID on the API means "anonymous"; replace with empty
+     * string.
+     */
+    static ClientId of(@Nullable String apiClientId) {
+        if (apiClientId == null) {
+            return ImmutableClientId.of("");
+        } else {
+            return ImmutableClientId.of(apiClientId);
+        }
     }
 }
