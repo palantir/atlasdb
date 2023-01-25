@@ -95,8 +95,9 @@ public class LockServiceStateLoggerTest {
         lock2.get(clientA, LockMode.WRITE).lock();
         syncStateMap.put(DESCRIPTOR_2, lock2);
 
+        String lockStats = "test lock stats";
         LockServiceStateLogger logger =
-                new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap, syncStateMap);
+                new LockServiceStateLogger(heldLocksTokenMap, outstandingLockRequestMultimap, syncStateMap, lockStats);
         loggedState = logger.logLocks();
     }
 

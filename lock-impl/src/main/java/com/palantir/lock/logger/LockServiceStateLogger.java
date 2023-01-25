@@ -26,14 +26,16 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.impl.ClientAwareReadWriteLock;
 import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -47,13 +49,18 @@ public class LockServiceStateLogger {
     private final Map<LockClient, Set<LockRequest>> outstandingLockRequests;
     private final Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap;
 
+    @Safe
+    private final String lockStats;
+
     public LockServiceStateLogger(
-            ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
+            ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap,
             SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap,
-            Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
+            Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap,
+            @Safe String lockStats) {
         this.heldLocks = heldLocksTokenMap;
         this.outstandingLockRequests = Multimaps.asMap(outstandingLockRequestMultimap);
         this.descriptorToLockMap = descriptorToLockMap;
+        this.lockStats = lockStats;
     }
 
     public LogState logLocks() {
@@ -70,6 +77,7 @@ public class LockServiceStateLogger {
                 .syncState(generatedSyncState)
                 .synthesizedRequestState(synthesizedRequestState)
                 .lockDescriptorMapping(lockDescriptorMapper.getReversedMapper())
+                .lockStats(lockStats)
                 .build();
         state.logTo(log);
         return state;
@@ -87,7 +95,7 @@ public class LockServiceStateLogger {
                         entry -> ClientId.of(entry.getKey().getClientId()), entry -> entry.getValue().stream()
                                 .map(lockRequestProgress -> SanitizedLockRequestProgress.create(
                                         lockRequestProgress,
-                                        lockDescriptorMapper,
+                                        this.lockDescriptorMapper,
                                         ClientId.of(entry.getKey().getClientId())))
                                 .collect(Collectors.toList())));
     }
@@ -99,41 +107,37 @@ public class LockServiceStateLogger {
 
         outstandingLockRequestsMap.forEach((client, requestSet) -> {
             if (requestSet != null) {
-                ImmutableSet<LockRequest> lockRequests = ImmutableSet.copyOf(requestSet);
-                lockRequests.forEach(lockRequest -> {
-                    List<SimpleLockRequest> requestList = getDescriptorSimpleRequestMap(client, lockRequest);
-                    requestList.forEach(request -> {
-                        outstandingRequestMap.putIfAbsent(
-                                request.getLockDescriptor(),
-                                ImmutableSimpleLockRequestsWithSameDescriptor.builder()
-                                        .lockDescriptor(request.getLockDescriptor()));
-                        outstandingRequestMap.get(request.getLockDescriptor()).addLockRequests(request);
-                    });
-                });
+                ImmutableSet.copyOf(requestSet).forEach(lockRequest -> lockRequest.getLocks().stream()
+                        .map(lock -> SimpleLockRequest.of(
+                                lockRequest,
+                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
+                                lock.getLockMode(),
+                                ClientId.of(client.getClientId())))
+                        .forEach(request -> outstandingRequestMap
+                                .computeIfAbsent(
+                                        request.getLockDescriptor(),
+                                        obfuscatedLockDescriptor ->
+                                                ImmutableSimpleLockRequestsWithSameDescriptor.builder()
+                                                        .lockDescriptor(obfuscatedLockDescriptor))
+                                .addLockRequests(request)));
             }
         });
-        List<SimpleLockRequestsWithSameDescriptor> aggregatedRequests = new ArrayList<>();
-        outstandingRequestMap.forEach((_descriptor, builder) -> aggregatedRequests.add(builder.build()));
 
-        return sortOutstandingRequests(aggregatedRequests);
-    }
-
-    private List<SimpleLockRequestsWithSameDescriptor> sortOutstandingRequests(
-            Collection<SimpleLockRequestsWithSameDescriptor> outstandingRequestsByDescriptor) {
-
-        List<SimpleLockRequestsWithSameDescriptor> sortedEntries = new ArrayList<>(outstandingRequestsByDescriptor);
-        sortedEntries.sort((o1, o2) -> Integer.compare(o2.getLockRequestsCount(), o1.getLockRequestsCount()));
-        return sortedEntries;
+        return outstandingRequestMap.values().stream()
+                .map(ImmutableSimpleLockRequestsWithSameDescriptor.Builder::build)
+                .sorted(Comparator.comparing(SimpleLockRequestsWithSameDescriptor::getLockRequestsCount)
+                        .reversed())
+                .collect(Collectors.toList());
     }
 
     private Map<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
             ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
-        Map<ObfuscatedLockDescriptor, SimpleTokenInfo> mappedLocksToToken = new HashMap<>();
-        heldLocksTokenMap
-                .values()
-                .forEach(locks -> mappedLocksToToken.putAll(getDescriptorToTokenMap(locks.getRealToken())));
-
-        return mappedLocksToToken;
+        return heldLocksTokenMap.values().stream()
+                .flatMap(locks -> locks.getRealToken().getLocks().stream()
+                        .map(lock -> Map.entry(
+                                this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
+                                SimpleTokenInfo.of(locks.getRealToken(), lock.getLockMode()))))
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
 
     private Map<ObfuscatedLockDescriptor, String> generateSyncState(
@@ -142,26 +146,5 @@ public class LockServiceStateLogger {
                 .collect(Collectors.toMap(
                         entry -> lockDescriptorMapper.getDescriptorMapping(entry.getKey()),
                         entry -> ((LockServerLock) entry.getValue()).toSanitizedString()));
-    }
-
-    private List<SimpleLockRequest> getDescriptorSimpleRequestMap(LockClient client, LockRequest request) {
-        return request.getLocks().stream()
-                .map(lock -> SimpleLockRequest.of(
-                        request,
-                        this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
-                        lock.getLockMode(),
-                        ClientId.of(client.getClientId())))
-                .collect(Collectors.toList());
-    }
-
-    private Map<ObfuscatedLockDescriptor, SimpleTokenInfo> getDescriptorToTokenMap(HeldLocksToken realToken) {
-        Map<ObfuscatedLockDescriptor, SimpleTokenInfo> lockToLockInfo = new HashMap<>();
-
-        realToken
-                .getLocks()
-                .forEach(lock -> lockToLockInfo.put(
-                        this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
-                        SimpleTokenInfo.of(realToken, lock.getLockMode())));
-        return lockToLockInfo;
     }
 }

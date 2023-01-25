@@ -44,13 +44,17 @@ public interface LogState {
     @Unsafe
     Map<ObfuscatedLockDescriptor, LockDescriptor> getLockDescriptorMapping();
 
+    @Safe
+    String lockStats();
+
     default void logTo(SafeLogger log) {
         log.info(
                 "Lock server state",
-                SafeArg.of("oustandingLockRequests", getOutstandingRequests()),
+                SafeArg.of("outstandingLockRequests", getOutstandingRequests()),
                 SafeArg.of("heldLocks", getHeldLocks()),
                 SafeArg.of("syncState", getSyncState()),
                 SafeArg.of("synthesizedRequestState", getSynthesizedRequestState()),
-                UnsafeArg.of("lockDescriptorMapping", getLockDescriptorMapping()));
+                UnsafeArg.of("lockDescriptorMapping", getLockDescriptorMapping()),
+                SafeArg.of("lockStats", lockStats()));
     }
 }
