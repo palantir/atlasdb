@@ -77,6 +77,10 @@ task testSubset2(type: Test) {
 tasks.withType(Test) {
     testLogging {
         // set options for log level LIFECYCLE
-        events "passed", "skipped", "failed"
+        events "started", "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showCauses true
+        showExceptions true
+        showStackTraces true
     }
 }
