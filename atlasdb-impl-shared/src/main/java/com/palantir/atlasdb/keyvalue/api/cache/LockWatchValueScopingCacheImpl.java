@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -55,7 +56,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private final CacheStore cacheStore;
     private final ValueStore valueStore;
     private final SnapshotStore snapshotStore;
-    private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
+    private final AtomicReference<LockWatchVersion> currentVersion = new AtomicReference<>();
 
     private final CacheMetrics cacheMetrics;
 
@@ -99,7 +100,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     @Override
     public void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
-                eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+                eventCache.getUpdateForTransactions(startTimestamps, Optional.ofNullable(currentVersion.get()));
 
         Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
 
@@ -108,7 +109,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
 
         updateStores(updateForTransactions);
-        updateCurrentVersion(latestVersionFromUpdate);
+        latestVersionFromUpdate.ifPresent(this::updateCurrentVersion);
     }
 
     @Override
@@ -204,16 +205,14 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        currentVersion
-                .map(LockWatchVersion::version)
-                .map(Sequence::of)
-                .ifPresent(sequence ->
-                        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot()));
+        LockWatchVersion lockWatchVersion = currentVersion.get();
+        if (lockWatchVersion != null) {
+            storeSnapshot(reversedMap, lockWatchVersion.version());
+        }
 
         updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
             valueStore.applyEvent(event);
-            Sequence sequence = Sequence.of(event.sequence());
-            snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+            storeSnapshot(reversedMap, event.sequence());
         });
 
         updateForTransactions.startTsToSequence().keySet().stream()
@@ -225,11 +224,18 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
+    private void storeSnapshot(Multimap<Sequence, StartTimestamp> reversedMap, long version) {
+        Sequence sequence = Sequence.of(version);
+        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+    }
+
+    @SuppressWarnings("OptionalIsPresent") // performance & allocation sensitive, avoid Optional.map
     private boolean isNewEvent(LockWatchEvent event) {
-        return currentVersion
-                .map(LockWatchVersion::version)
-                .map(current -> current < event.sequence())
-                .orElse(true);
+        LockWatchVersion lockWatchVersion = currentVersion.get();
+        if (lockWatchVersion != null) {
+            return lockWatchVersion.version() < event.sequence();
+        }
+        return true;
     }
 
     private void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
@@ -241,7 +247,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                     SafeArg.of(
                             "firstHundredSequences",
                             sequences.stream().limit(100).collect(Collectors.toSet())),
-                    SafeArg.of("currentVersion", currentVersion),
+                    SafeArg.of("currentVersion", currentVersion.get()),
                     SafeArg.of("numTransactions", reversedMap.values().size()));
             throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
@@ -252,19 +258,18 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         return snapshotStore.getSnapshotForSequence(sequence);
     }
 
-    private void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
-        maybeUpdateVersion
-                .filter(this::shouldUpdateVersion)
-                .ifPresent(updateVersion -> currentVersion = Optional.of(updateVersion));
+    private void updateCurrentVersion(LockWatchVersion updateVersion) {
+        currentVersion.accumulateAndGet(updateVersion, (previous, updated) -> {
+            if (previous == null || previous.version() < updated.version()) {
+                return updated;
+            }
+            return previous;
+        });
     }
 
     private Optional<LockWatchVersion> computeMaxUpdateVersion(TransactionsLockWatchUpdate updateForTransactions) {
         return updateForTransactions.startTsToSequence().values().stream()
                 .max(Comparator.comparingLong(LockWatchVersion::version));
-    }
-
-    private boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
-        return currentVersion.isEmpty() || currentVersion.orElseThrow().version() < updateVersion.version();
     }
 
     private void clearCache(
@@ -281,7 +286,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
-        currentVersion = Optional.empty();
+        currentVersion.set(null);
     }
 
     private void registerAllClearEventAndMaybeLog(
@@ -289,7 +294,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         cacheMetrics.increaseCacheStateAllClear();
         rateLimitedLogger.log(logger -> logger.info(
                 "Clearing all value cache state",
-                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("currentVersion", currentVersion.get()),
                 SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
                 SafeArg.of("firstEventSequence", Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
                 SafeArg.of("lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence))));
