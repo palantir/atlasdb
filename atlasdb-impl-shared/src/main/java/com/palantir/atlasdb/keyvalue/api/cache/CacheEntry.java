@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.logsafe.Unsafe;
 import org.immutables.value.Value;
 
 /**
@@ -25,6 +26,7 @@ import org.immutables.value.Value;
  *  2. A value that is cached because the last seen event for it was an unlock event (or there was never a lock event in
  *     the first place). This has a status of UNLOCKED and a value which may be present or empty.
  */
+@Unsafe
 @Value.Immutable
 public interface CacheEntry {
     Status status();

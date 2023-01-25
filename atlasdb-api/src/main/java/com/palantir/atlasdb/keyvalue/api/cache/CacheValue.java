@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Unsafe;
 import java.util.Arrays;
 import java.util.Optional;
 
+@Unsafe
 public final class CacheValue {
     private final Optional<byte[]> value;
 
@@ -67,5 +70,10 @@ public final class CacheValue {
         // Optionals do return 0 for empty values, but the hash code uses Object, which bases array hash codes on the
         // reference, not the values.
         return value.map(Arrays::hashCode).orElse(0);
+    }
+
+    @Override
+    public String toString() {
+        return "CacheValue{" + value.map(PtBytes::encodeHexString).orElse("") + '}';
     }
 }

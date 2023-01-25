@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionCacheValueStoreImpl.LocalCacheEntry.Status;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
@@ -194,6 +195,7 @@ final class TransactionCacheValueStoreImpl implements TransactionCacheValueStore
         return cacheValue.orElseThrow(() -> new SafeIllegalStateException("Reads must have a cache value present"));
     }
 
+    @Unsafe
     @Value.Immutable
     interface LocalCacheEntry {
 
