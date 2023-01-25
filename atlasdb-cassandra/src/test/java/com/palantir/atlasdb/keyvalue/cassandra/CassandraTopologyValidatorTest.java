@@ -280,7 +280,11 @@ public final class CassandraTopologyValidatorTest {
 
     @Test
     public void validateNewlyAddedHostsNoNewHostsAddedIfNewHostsDoNotHaveQuorumAndNoCurrentServers() {
-        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
+        Set<String> hosts = ImmutableSet.<String>builder()
+                .addAll(NEW_HOSTS)
+                .add(OLD_HOST_ONE)
+                .build();
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(hosts);
         Set<String> hostsOffline = ImmutableSet.of(NEW_HOST_ONE, NEW_HOST_TWO);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
