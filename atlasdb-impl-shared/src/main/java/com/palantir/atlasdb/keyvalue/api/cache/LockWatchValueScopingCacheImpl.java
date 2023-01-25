@@ -211,10 +211,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             storeSnapshot(reversedMap, lockWatchVersion.version());
         }
 
-        updateForTransactions.events().stream().filter(this::isNewEvent).forEach(event -> {
-            valueStore.applyEvent(event);
-            storeSnapshot(reversedMap, event.sequence());
-        });
+        updateForTransactions.events().stream()
+                .filter(event -> (lockWatchVersion == null) || lockWatchVersion.version() < event.sequence())
+                .forEach(event -> {
+                    valueStore.applyEvent(event);
+                    storeSnapshot(reversedMap, event.sequence());
+                });
 
         updateForTransactions.startTsToSequence().keySet().stream()
                 .map(StartTimestamp::of)
@@ -228,15 +230,6 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private void storeSnapshot(Multimap<Sequence, StartTimestamp> reversedMap, long version) {
         Sequence sequence = Sequence.of(version);
         snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
-    }
-
-    @SuppressWarnings("OptionalIsPresent") // performance & allocation sensitive, avoid Optional.map
-    private boolean isNewEvent(LockWatchEvent event) {
-        LockWatchVersion lockWatchVersion = currentVersion.get();
-        if (lockWatchVersion != null) {
-            return lockWatchVersion.version() < event.sequence();
-        }
-        return true;
     }
 
     private void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
