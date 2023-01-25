@@ -129,39 +129,40 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
         cache.finalise();
 
-        Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
-        if (!cachedValues.isEmpty()) {
-            eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
-                @Override
-                public Void invalidateAll() {
-                    // This might happen due to an election or if we exceeded the maximum number of events held in
-                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                    // because of read-write conflicts, that is handled in the PreCommitCondition.
-                    return null;
-                }
-
-                @Override
-                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                            .map(AtlasLockDescriptorUtils::candidateCells)
-                            .flatMap(List::stream)
-                            .collect(ImmutableSet.toImmutableSet());
-
-                    final Map<CellReference, CacheValue> toUpdate;
-                    if (invalidatedCells.isEmpty()) {
-                        toUpdate = cachedValues;
-                    } else {
-                        toUpdate = KeyedStream.stream(cachedValues)
-                                .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                                .collectToMap();
-                    }
-
-                    toUpdate.forEach(valueStore::putValue);
-                    return null;
-                }
-            });
-        }
+        invalidateEventCache(startTimestamp, cache.getValueDigest().loadedValues());
         ensureStateRemoved(startTimestamp);
+    }
+
+    private void invalidateEventCache(long startTimestamp, Map<CellReference, CacheValue> cachedValues) {
+        if (cachedValues.isEmpty()) {
+            return;
+        }
+
+        eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                // This might happen due to an election or if we exceeded the maximum number of events held in
+                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                // because of read-write conflicts, that is handled in the PreCommitCondition.
+                return null;
+            }
+
+            @Override
+            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                        .map(AtlasLockDescriptorUtils::candidateCells)
+                        .flatMap(List::stream)
+                        .collect(ImmutableSet.toImmutableSet());
+
+                KeyedStream<CellReference, CacheValue> toUpdate = KeyedStream.stream(cachedValues);
+                if (!invalidatedCells.isEmpty()) {
+                    toUpdate = toUpdate.filterKeys(cellReference -> !invalidatedCells.contains(cellReference));
+                }
+
+                toUpdate.forEach(valueStore::putValue);
+                return null;
+            }
+        });
     }
 
     /**
