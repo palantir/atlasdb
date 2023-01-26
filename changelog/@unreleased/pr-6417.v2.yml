@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Disable connection close tracking by default
+  links:
+  - https://github.com/palantir/atlasdb/pull/6417
