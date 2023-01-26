@@ -74,7 +74,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -550,17 +549,18 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Ignore
-    // TODO(#6699): make this test less flakey before re-enabling
-    @Test
+    // TODO(#6699): make this test less flaky before re-enabling
     // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.
-    public void valueStressTest() {
-        int numTransactions = 1_000;
-        for (int i = 1; i < 1024; i *= 2) {
-            stress(i * numTransactions);
-        }
+    @Test
+    public void valueStress_1_000() {
+        stress(1_000);
+    }
+
+    @Test
+    public void valueStress_10_000() {
+        stress(10_000);
     }
 
     private void stress(int numTransactions) {
@@ -579,7 +579,7 @@ public final class LockWatchValueIntegrationTest {
                     transaction.get(60, TimeUnit.SECONDS);
                 } catch (ExecutionException e) {
                     if (!(e.getCause() instanceof TransactionFailedRetriableException)) {
-                        fail("Encountered nonretriable exception", e);
+                        fail("Encountered non-retryable exception", e);
                     }
                 } catch (InterruptedException | TimeoutException e) {
                     fail("Transaction took too long", e);
