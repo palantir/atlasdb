@@ -212,8 +212,8 @@ public final class CassandraTopologyValidator {
                         .equals(pastConsistentTopology.get().hostIds())) {
                     log.info(
                             "No quorum was detected among old servers. While new servers could reach a consensus, this"
-                                + " differed from the last agreed value among the old servers. Not adding new servers"
-                                + " in this case.",
+                                    + " differed from the last agreed value among the old servers. Not adding new servers"
+                                    + " in this case.",
                             SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
                             SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
@@ -222,7 +222,7 @@ public final class CassandraTopologyValidator {
                 }
                 log.info(
                         "No quorum was detected among old servers. New servers reached a consensus that matched the"
-                            + " last agreed value among the old servers. Adding new servers that were in consensus.",
+                                + " last agreed value among the old servers. Adding new servers that were in consensus.",
                         SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
                         SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
@@ -264,7 +264,7 @@ public final class CassandraTopologyValidator {
 
         // Only consider hosts that have the endpoint for quorum calculations.
         // Otherwise, we will never add hosts when we're in a mixed state
-        int quorum = (hostIdsByServerWithoutSoftFailures.size() + 1) / 2;
+        int quorum = (hostIdsByServerWithoutSoftFailures.size() / 2) + 1;
 
         // If too many hosts are unreachable, then we cannot come to a consensus
         if (hostIdsWithoutFailures.size() < quorum) {
