@@ -147,8 +147,7 @@ public class LockServiceStateLoggerTest {
 
     @Test
     public void testSynthesizedRequestState() {
-        assertThat(loggedState.getSynthesizedRequestState())
-                .hasSize(getSyncStateDescriptors().size());
+        assertThat(loggedState.getSynthesizedRequestState()).hasSameSizeAs(getSyncStateDescriptors());
     }
 
     private static void assertDescriptorsNotPresentInString(String serialized) {
