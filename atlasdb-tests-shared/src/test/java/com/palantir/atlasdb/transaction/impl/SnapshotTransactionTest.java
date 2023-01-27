@@ -131,6 +131,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Random;
@@ -154,6 +155,7 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import one.util.streamex.EntryStream;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1655,6 +1657,43 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThat(keyValueService.get(TABLE_SWEPT_CONSERVATIVE, ImmutableMap.of(TEST_CELL, 0L)))
                 .isNotEmpty();
+    }
+
+    @Test
+    public void getRowsColumnRangeIteratorHandlesLocalWrites() {
+        byte[] row1 = "brass".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "percussion".getBytes(StandardCharsets.UTF_8);
+        byte[] row3 = "woodwinds".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstRowFirstColumn = Cell.create(row1, "trombone".getBytes(StandardCharsets.UTF_8));
+        Cell firstRowSecondColumn = Cell.create(row1, "trumpet".getBytes(StandardCharsets.UTF_8));
+        Cell secondRow = Cell.create(row2, "gong".getBytes(StandardCharsets.UTF_8));
+        Cell thirdRowFirstColumn = Cell.create(row3, "clarinet".getBytes(StandardCharsets.UTF_8));
+        Cell thirdRowSecondColumn = Cell.create(row3, "flute".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstRowFirstColumn, value, thirdRowSecondColumn, value));
+            return null;
+        });
+
+        Map<byte[], List<Cell>> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstRowSecondColumn, value, secondRow, value, thirdRowFirstColumn, value));
+            Map<byte[], Iterator<Entry<Cell, byte[]>>> rowsToIterators = tx.getRowsColumnRangeIterator(
+                    TABLE, ImmutableList.of(row1, row2, row3), BatchColumnRangeSelection.create(null, null, 10));
+            return EntryStream.of(rowsToIterators)
+                    .mapValues(iterator -> Iterators.transform(iterator, Entry::getKey))
+                    .<List<Cell>>mapValues(Lists::newArrayList)
+                    .toMap();
+        });
+        assertThat(cells)
+                .isEqualTo(ImmutableMap.of(
+                        row1,
+                        ImmutableList.of(firstRowFirstColumn, firstRowSecondColumn),
+                        row2,
+                        ImmutableList.of(secondRow),
+                        row3,
+                        ImmutableList.of(thirdRowFirstColumn, thirdRowSecondColumn)));
     }
 
     @Test
