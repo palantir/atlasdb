@@ -1229,15 +1229,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void getRowsColumnRangeIncludesIntermediateRowsWithOnlyLocalWritesCorrectly() {
+    public void getRowsColumnRangeIncludesRowsWithOnlyLocalWritesCorrectly() {
         byte[] row1 = "apple".getBytes(StandardCharsets.UTF_8);
         byte[] row2 = "banana".getBytes(StandardCharsets.UTF_8);
         byte[] row3 = "cherry".getBytes(StandardCharsets.UTF_8);
+        byte[] row4 = "durian".getBytes(StandardCharsets.UTF_8);
         byte[] value = new byte[1];
 
         Cell firstCell = Cell.create(row1, "apricot".getBytes(StandardCharsets.UTF_8));
         Cell secondCell = Cell.create(row2, "bamboo".getBytes(StandardCharsets.UTF_8));
         Cell thirdCell = Cell.create(row3, "coconut".getBytes(StandardCharsets.UTF_8));
+        Cell fourthCell = Cell.create(row3, "dragonfruit".getBytes(StandardCharsets.UTF_8));
 
         serializableTxManager.runTaskWithRetry(tx -> {
             tx.put(TABLE, ImmutableMap.of(firstCell, value, thirdCell, value));
@@ -1252,6 +1254,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     Map.Entry::getKey);
         });
         assertThat(cells).containsExactly(firstCell, secondCell, thirdCell);
+
+        cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(fourthCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row3, row4, row1, row2), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(thirdCell, fourthCell, firstCell, secondCell);
     }
 
     @Test
