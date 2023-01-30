@@ -290,7 +290,7 @@ public class TestTimestampCommand {
         return Long.parseLong(parts.get(parts.size() - 1));
     }
 
-    private String findFirstLineMatching(Scanner scanner, String pattern) {
+    private static String findFirstLineMatching(Scanner scanner, String pattern) {
         String line = scanner.findInLine(pattern);
         while (line == null) {
             scanner.nextLine();
