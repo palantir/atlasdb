@@ -96,8 +96,11 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.ExpectationsCallbackManager;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -270,6 +273,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
 
+    private final ExpectationsCallbackManager expectationsCallbackManager = new ExpectationsCallbackManager();
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     /**
@@ -2591,6 +2595,16 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public TransactionReadInfo getReadInfo() {
         return keyValueService.getOverallReadInfo();
+    }
+
+    @Override
+    public ExpectationsStatistics getCallbackStatistics() {
+        return ImmutableExpectationsStatistics.of(getAgeMillis(), keyValueService.getReadInfoByTable());
+    }
+
+    @Override
+    public void runExpectationsCallbacks() {
+        expectationsCallbackManager.runCallbacksOnce(getCallbackStatistics());
     }
 
     @Override

@@ -17,7 +17,11 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfig;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsConfigurations;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsStatistics;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionViolationFlags;
 
 /**
  * Implementors of this interface provide methods useful for tracking transactional expectations and whether
@@ -25,12 +29,32 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
  * limits and rules for proper usage of AtlasDB transactions (e.g. reading too much data overall).
  */
 public interface ExpectationsAwareTransaction extends Transaction {
+    // todo(aalouane) remove when we (a) define presets (b) wire user controlled config
+    default ExpectationsConfig expectationsConfig() {
+        return ExpectationsConfigurations.DEFAULT;
+    }
+
     long getAgeMillis();
 
     /**
      * Returns a point-in-time snapshot of transaction read information.
      */
     TransactionReadInfo getReadInfo();
+
+    /**
+     * A consistent view of {@link ExpectationsStatistics} is not guaranteed if the user interacts with the transaction
+     * post-commit/post-abort or outside the user task.
+     * todo(aalouane) move this javadoc to the user-exposed API when implemented
+     * todo(aalouane) improve this javadoc
+     */
+    ExpectationsStatistics getCallbackStatistics();
+
+    // todo(aalouane) add javadoc, run once?
+    void runExpectationsCallbacks();
+
+    default TransactionViolationFlags checkAndGetViolations() {
+        return ExpectationsViolationsChecker.checkAndGetViolations(this);
+    }
 
     /**
      * Update TEX data collection metrics for (post-mortem) transactions.
