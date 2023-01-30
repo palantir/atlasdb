@@ -1239,7 +1239,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Cell firstCell = Cell.create(row1, "apricot".getBytes(StandardCharsets.UTF_8));
         Cell secondCell = Cell.create(row2, "bamboo".getBytes(StandardCharsets.UTF_8));
         Cell thirdCell = Cell.create(row3, "coconut".getBytes(StandardCharsets.UTF_8));
-        Cell fourthCell = Cell.create(row3, "dragonfruit".getBytes(StandardCharsets.UTF_8));
+        Cell fourthCell = Cell.create(row4, "dragonfruit".getBytes(StandardCharsets.UTF_8));
 
         serializableTxManager.runTaskWithRetry(tx -> {
             tx.put(TABLE, ImmutableMap.of(firstCell, value, thirdCell, value));
@@ -1321,6 +1321,52 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertThat(cells).isEmpty();
+    }
+
+    @Test
+    public void getRowsColumnRangeReturnsRowsInUserProvidedOrdering() {
+        byte[] row1 = "eggplant".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "fig".getBytes(StandardCharsets.UTF_8);
+        byte[] row3 = "guava".getBytes(StandardCharsets.UTF_8);
+        byte[] row4 = "honeydew".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstCell = Cell.create(row1, "eclair".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row2, "flambe".getBytes(StandardCharsets.UTF_8));
+        Cell thirdCell = Cell.create(row3, "gateau".getBytes(StandardCharsets.UTF_8));
+        Cell fourthCell = Cell.create(row4, "halva".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value, thirdCell, value, fourthCell, value));
+            return null;
+        });
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(
+                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row2, row3, row1, row4),
+                                new ColumnRangeSelection(null,
+                                        null),
+                                10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(secondCell, thirdCell, firstCell, fourthCell);
+
+        cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(
+                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row4, row3, row2, row1),
+                                new ColumnRangeSelection(null,
+                                        null),
+                                10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(fourthCell, thirdCell, secondCell, firstCell);
+
+        cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(
+                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row3, row1, row4, row2),
+                                new ColumnRangeSelection(null,
+                                        null),
+                                10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(thirdCell, firstCell, fourthCell, secondCell);
     }
 
     @Test
