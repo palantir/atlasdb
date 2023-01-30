@@ -28,7 +28,6 @@ dependencies {
     implementation 'org.awaitility:awaitility'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-api')
-    implementation project(':atlasdb-backup')
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')
