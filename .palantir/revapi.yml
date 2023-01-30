@@ -27,3 +27,27 @@ acceptedBreaks:
       new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
         \ int, int)"
       justification: "revert"
+  "0.792.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.CqlCluster"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.ImmutableRangesForRepair"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.RangesForRepair"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.backup.KvsRunner"
+      justification: "Unused backup restore code"
+    - code: "java.method.removed"
+      old: "method java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken>\
+        \ com.palantir.atlasdb.cassandra.backup.CqlSession::retrieveRowKeysAtConsistencyAll(java.util.List<com.datastax.driver.core.Statement>)"
+      justification: "Unused backup restore code"
