@@ -264,7 +264,7 @@ public final class CassandraTopologyValidator {
 
         // Only consider hosts that have the endpoint for quorum calculations.
         // Otherwise, we will never add hosts when we're in a mixed state
-        int quorum = (hostIdsByServerWithoutSoftFailures.size() + 1) / 2;
+        int quorum = (hostIdsByServerWithoutSoftFailures.size() / 2) + 1;
 
         // If too many hosts are unreachable, then we cannot come to a consensus
         if (hostIdsWithoutFailures.size() < quorum) {

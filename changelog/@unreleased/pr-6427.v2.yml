@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: 'Fixes bug where quorum calculation was incorrect for topology validation. '
+  links:
+  - https://github.com/palantir/atlasdb/pull/6427
