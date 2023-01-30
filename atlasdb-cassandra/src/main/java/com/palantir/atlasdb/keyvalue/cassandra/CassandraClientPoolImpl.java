@@ -32,8 +32,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -67,9 +67,9 @@ import java.util.concurrent.TimeUnit;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-
-    private static final ScheduledExecutorServiceFactory REFRESH_DAEMON_FACTORY =
-            ScheduledExecutorServiceFactory.of(new NamedThreadFactory("CassandraClientPoolRefresh", true));
+    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
+            new InitializeableScheduledExecutorServiceSupplier(
+                    new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
@@ -146,7 +146,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            ScheduledExecutorServiceFactory refreshDaemonFactory,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraTopologyValidator cassandraTopologyValidator,
@@ -156,7 +156,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                refreshDaemonFactory,
+                initializeableExecutorSupplier,
                 exceptionHandler,
                 blacklist,
                 cassandra,
@@ -208,7 +208,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                REFRESH_DAEMON_FACTORY,
+                SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
@@ -221,7 +221,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            ScheduledExecutorServiceFactory refreshDaemonFactory,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
@@ -231,7 +231,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = refreshDaemonFactory.create(config.numPoolRefreshingThreads());
+        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
+        this.refreshDaemon = initializeableExecutorSupplier.get();
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
