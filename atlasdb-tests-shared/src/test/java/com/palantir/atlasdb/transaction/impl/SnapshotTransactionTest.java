@@ -1342,29 +1342,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
-                Lists.newArrayList(
-                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row2, row3, row1, row4),
-                                new ColumnRangeSelection(null,
-                                        null),
-                                10)),
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row2, row3, row1, row4), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertThat(cells).containsExactly(secondCell, thirdCell, firstCell, fourthCell);
 
         cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
-                Lists.newArrayList(
-                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row4, row3, row2, row1),
-                                new ColumnRangeSelection(null,
-                                        null),
-                                10)),
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row4, row3, row2, row1), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertThat(cells).containsExactly(fourthCell, thirdCell, secondCell, firstCell);
 
         cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
-                Lists.newArrayList(
-                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row3, row1, row4, row2),
-                                new ColumnRangeSelection(null,
-                                        null),
-                                10)),
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row3, row1, row4, row2), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertThat(cells).containsExactly(thirdCell, firstCell, fourthCell, secondCell);
     }
