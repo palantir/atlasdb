@@ -95,7 +95,7 @@ ch.qos.logback:* = 1.2.11
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
 com.oracle.database.jdbc:ojdbc11 = 21.5.0.0
-com.palantir.cassandra:* = 2.2.18-1.108.0-rc1
+com.palantir.cassandra:* = 2.2.18-1.108.0
 org.postgresql:postgresql = 42.4.1
 
 # transitive dep with API breaks in 0.14.0
