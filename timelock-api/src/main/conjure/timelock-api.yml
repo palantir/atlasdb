@@ -251,16 +251,19 @@ services:
         args:
           request: PrepareBackupRequest
         returns: PrepareBackupResponse
+        deprecated: Unused. Rescue should perform the work for backups itself.
       refreshBackup:
         http: POST /refresh
         args:
           request: RefreshBackupRequest
         returns: RefreshBackupResponse
+        deprecated: Unused. Rescue should perform the work for backups itself.
       completeBackup:
         http: POST /complete
         args:
           request: CompleteBackupRequest
         returns: CompleteBackupResponse
+        deprecated: Unused. Rescue should perform the work for backups itself.
   AtlasRestoreClient:
     name: Internal restore service
     default-auth: header
@@ -272,6 +275,7 @@ services:
         args:
           request: CompleteRestoreRequest
         returns: CompleteRestoreResponse
+        deprecated: Unused. Rescue should perform the work for restore itself.
   ConjureTimelockService:
     name: Timelock service
     default-auth: header
