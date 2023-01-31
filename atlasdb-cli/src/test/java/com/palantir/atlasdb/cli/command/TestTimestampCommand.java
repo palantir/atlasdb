@@ -277,7 +277,7 @@ public class TestTimestampCommand {
     }
 
     private long getWallClockTimestamp(Scanner scanner) {
-        String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
+        String line = findFirstLineMatching(scanner, ".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
         List<String> parts = Splitter.on(' ').splitToList(line);
         return ISODateTimeFormat.dateTime()
                 .parseDateTime(parts.get(parts.size() - 1))
@@ -285,9 +285,18 @@ public class TestTimestampCommand {
     }
 
     private long getTimestampFromStdout(Scanner scanner) {
-        String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
+        String line = findFirstLineMatching(scanner, ".*timestamp\\sis\\:\\s(\\d+.*)");
         List<String> parts = Splitter.on(' ').splitToList(line);
         return Long.parseLong(parts.get(parts.size() - 1));
+    }
+
+    private static String findFirstLineMatching(Scanner scanner, String pattern) {
+        String line = scanner.findInLine(pattern);
+        while (line == null) {
+            scanner.nextLine();
+            line = scanner.findInLine(pattern);
+        }
+        return line;
     }
 
     private long getTimestampFromFile(String fileString) throws IOException {
