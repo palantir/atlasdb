@@ -83,10 +83,6 @@ public final class TimelockNamespaces {
         return timeLockServices;
     }
 
-    public BackupTimeLockServiceView getForRestore(String namespace) {
-        return getIgnoringDisabled(namespace).getTimelockService();
-    }
-
     public TimeLockServices getIgnoringDisabled(String namespace) {
         return services.computeIfAbsent(namespace, ns -> createNewClient(ns, true));
     }

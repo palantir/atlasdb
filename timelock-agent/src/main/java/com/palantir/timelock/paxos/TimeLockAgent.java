@@ -24,8 +24,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.backup.AtlasBackupResource;
-import com.palantir.atlasdb.backup.AtlasRestoreResource;
 import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
@@ -38,7 +36,6 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.BackupTimeLockServiceView;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockResource;
@@ -352,8 +349,6 @@ public class TimeLockAgent {
                 namespace -> namespaces.get(namespace).getLockService();
         Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
-        Function<String, BackupTimeLockServiceView> backupTimeLockServiceViewGetter =
-                namespace -> namespaces.getForRestore(namespace);
 
         AuthHeaderValidator authHeaderValidator = getAuthHeaderValidator();
         if (undertowRegistrar.isPresent()) {
@@ -374,14 +369,6 @@ public class TimeLockAgent {
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    AtlasBackupResource.undertow(
-                            authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
-            registerCorruptionHandlerWrappedService(
-                    presentUndertowRegistrar,
-                    AtlasRestoreResource.undertow(
-                            authHeaderValidator, redirectRetryTargeter, backupTimeLockServiceViewGetter));
-            registerCorruptionHandlerWrappedService(
-                    presentUndertowRegistrar,
                     DisabledNamespacesUpdaterResource.undertow(authHeaderValidator, redirectRetryTargeter, namespaces));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -390,10 +377,6 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(
-                    AtlasBackupResource.jersey(authHeaderValidator, redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(AtlasRestoreResource.jersey(
-                    authHeaderValidator, redirectRetryTargeter, backupTimeLockServiceViewGetter));
             registrar.accept(
                     DisabledNamespacesUpdaterResource.jersey(authHeaderValidator, redirectRetryTargeter, namespaces));
         }
