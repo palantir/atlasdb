@@ -216,10 +216,14 @@ public class SQLString extends BasicSQLString {
     @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; // $NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(canonicalizeStringAndRemoveWhitespaceEntirely(sql));
-        if (null != cached) {
-            callbackOnUse.noteUse((SQLString) cached.delegate);
-            return cached;
+        ImmutableMap<String, FinalSQLString> cache = cachedUnregistered; // volatile read
+        if (!cache.isEmpty()) {
+            String cacheKey = canonicalizeStringAndRemoveWhitespaceEntirely(sql);
+            FinalSQLString cached = cache.get(cacheKey);
+            if (null != cached) {
+                callbackOnUse.noteUse((SQLString) cached.delegate);
+                return cached;
+            }
         }
 
         return new FinalSQLString(new SQLString(sql));
