@@ -1,11 +1,11 @@
-FROM cimg/openjdk:11.0
+FROM amd64/eclipse-temurin:11-jdk-focal
 
 ENV DOCKERIZE_VERSION v0.2.0
 
-RUN sudo apt-get update \
-    && sudo apt-get install -y procps wget \
+RUN apt-get update \
+    && apt-get install -y procps wget \
     && wget "https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz" \
-    && sudo tar -C /usr/local/bin -xzvf "dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz"
+    && tar -C /usr/local/bin -xzvf "dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz"
 
 EXPOSE 3828
 
