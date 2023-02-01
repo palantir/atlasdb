@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:x86_64-debian-jre-11.0.18_10
+FROM amd64/eclipse-temurin:11-jdk
 
 ENV DOCKERIZE_VERSION v0.2.0
 
