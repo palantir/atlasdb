@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:jre-11.0.9_11.1-alpine
+FROM amd64/eclipse-temurin:17-jdk-alpine
 MAINTAINER AtlasDB Team
 
 # Bash is useful for monitoring; curl is used by our healthchecks.
