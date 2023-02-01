@@ -1,4 +1,4 @@
-FROM amd64/eclipse-temurin:11-jdk
+FROM cimg/openjdk:11.0
 
 ENV DOCKERIZE_VERSION v0.2.0
 
