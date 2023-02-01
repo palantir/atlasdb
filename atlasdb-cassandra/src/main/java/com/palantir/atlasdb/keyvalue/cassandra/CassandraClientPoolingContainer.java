@@ -49,10 +49,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.layered.TFramedTransport;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);

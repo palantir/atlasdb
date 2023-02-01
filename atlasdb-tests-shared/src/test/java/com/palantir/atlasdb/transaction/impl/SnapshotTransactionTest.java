@@ -64,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -131,6 +132,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Random;
@@ -154,6 +156,7 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import one.util.streamex.EntryStream;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1176,6 +1179,222 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
                 Map.Entry::getKey));
         assertThat(cells).containsExactly(firstCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeMergesLocalWrites() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, "a".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row, "b".getBytes(StandardCharsets.UTF_8));
+        byte[] value = new byte[1];
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
+            return null;
+        });
+
+        Cell inBetweenCell = Cell.create(row, "abba".getBytes(StandardCharsets.UTF_8));
+        List<Cell> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(inBetweenCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(firstCell, inBetweenCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeIncludesLocalWritesWhenRowEntirelyAbsentFromKvs() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        Cell beforeRange = Cell.create(row, "james".getBytes(StandardCharsets.UTF_8));
+        Cell inRangeOne = Cell.create(row, "jeremy".getBytes(StandardCharsets.UTF_8));
+        Cell inRangeTwo = Cell.create(row, "tom".getBytes(StandardCharsets.UTF_8));
+        Cell afterRange = Cell.create(row, "will".getBytes(StandardCharsets.UTF_8));
+        byte[] value = new byte[1];
+
+        List<Cell> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(beforeRange, value, inRangeOne, value, inRangeTwo, value, afterRange, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE,
+                            ImmutableList.of(row),
+                            new ColumnRangeSelection(
+                                    RangeRequests.nextLexicographicName(beforeRange.getColumnName()),
+                                    RangeRequests.previousLexicographicName(afterRange.getColumnName())),
+                            10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(inRangeOne, inRangeTwo);
+    }
+
+    @Test
+    public void getRowsColumnRangeIncludesRowsWithOnlyLocalWritesCorrectly() {
+        byte[] row1 = "apple".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "banana".getBytes(StandardCharsets.UTF_8);
+        byte[] row3 = "cherry".getBytes(StandardCharsets.UTF_8);
+        byte[] row4 = "durian".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstCell = Cell.create(row1, "apricot".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row2, "bamboo".getBytes(StandardCharsets.UTF_8));
+        Cell thirdCell = Cell.create(row3, "coconut".getBytes(StandardCharsets.UTF_8));
+        Cell fourthCell = Cell.create(row4, "dragonfruit".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, thirdCell, value));
+            return null;
+        });
+
+        List<Cell> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(secondCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row1, row2, row3), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(firstCell, secondCell, thirdCell);
+
+        cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(fourthCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row3, row4, row1, row2), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(thirdCell, fourthCell, firstCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeIncludesPrefixRowsWithOnlyLocalWritesCorrectly() {
+        byte[] row1 = "first".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "second".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstCell = Cell.create(row1, "1st".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row2, "2nd".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(secondCell, value));
+            return null;
+        });
+
+        List<Cell> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row1, row2), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(firstCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeIncludesSuffixRowsWithOnlyLocalWritesCorrectly() {
+        byte[] row1 = "first".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "second".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstCell = Cell.create(row1, "1st".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row2, "2nd".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value));
+            return null;
+        });
+
+        List<Cell> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(secondCell, value));
+            return Lists.transform(
+                    Lists.newArrayList(tx.getRowsColumnRange(
+                            TABLE, ImmutableList.of(row1, row2), new ColumnRangeSelection(null, null), 10)),
+                    Map.Entry::getKey);
+        });
+        assertThat(cells).containsExactly(firstCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeHandlesTotallyEmptyRows() {
+        byte[] row = "foo".getBytes(StandardCharsets.UTF_8);
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(
+                        tx.getRowsColumnRange(TABLE, ImmutableList.of(row), new ColumnRangeSelection(null, null), 10)),
+                Map.Entry::getKey));
+        assertThat(cells).isEmpty();
+    }
+
+    @Test
+    public void getRowsColumnRangeReturnsRowsInUserProvidedOrdering() {
+        byte[] row1 = "eggplant".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "fig".getBytes(StandardCharsets.UTF_8);
+        byte[] row3 = "guava".getBytes(StandardCharsets.UTF_8);
+        byte[] row4 = "honeydew".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstCell = Cell.create(row1, "eclair".getBytes(StandardCharsets.UTF_8));
+        Cell secondCell = Cell.create(row2, "flambe".getBytes(StandardCharsets.UTF_8));
+        Cell thirdCell = Cell.create(row3, "gateau".getBytes(StandardCharsets.UTF_8));
+        Cell fourthCell = Cell.create(row4, "halva".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstCell, value, secondCell, value, thirdCell, value, fourthCell, value));
+            return null;
+        });
+
+        List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row2, row3, row1, row4), new ColumnRangeSelection(null, null), 10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(secondCell, thirdCell, firstCell, fourthCell);
+
+        cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row4, row3, row2, row1), new ColumnRangeSelection(null, null), 10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(fourthCell, thirdCell, secondCell, firstCell);
+
+        cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
+                Lists.newArrayList(tx.getRowsColumnRange(
+                        TABLE, ImmutableList.of(row3, row1, row4, row2), new ColumnRangeSelection(null, null), 10)),
+                Map.Entry::getKey));
+        assertThat(cells).containsExactly(thirdCell, firstCell, fourthCell, secondCell);
+    }
+
+    @Test
+    public void getRowsColumnRangeIteratorHandlesLocalWrites() {
+        byte[] row1 = "brass".getBytes(StandardCharsets.UTF_8);
+        byte[] row2 = "percussion".getBytes(StandardCharsets.UTF_8);
+        byte[] row3 = "woodwinds".getBytes(StandardCharsets.UTF_8);
+        byte[] value = new byte[1];
+
+        Cell firstRowFirstColumn = Cell.create(row1, "trombone".getBytes(StandardCharsets.UTF_8));
+        Cell firstRowSecondColumn = Cell.create(row1, "trumpet".getBytes(StandardCharsets.UTF_8));
+        Cell secondRow = Cell.create(row2, "gong".getBytes(StandardCharsets.UTF_8));
+        Cell thirdRowFirstColumn = Cell.create(row3, "clarinet".getBytes(StandardCharsets.UTF_8));
+        Cell thirdRowSecondColumn = Cell.create(row3, "flute".getBytes(StandardCharsets.UTF_8));
+
+        serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstRowFirstColumn, value, thirdRowSecondColumn, value));
+            return null;
+        });
+
+        Map<byte[], List<Cell>> cells = serializableTxManager.runTaskWithRetry(tx -> {
+            tx.put(TABLE, ImmutableMap.of(firstRowSecondColumn, value, secondRow, value, thirdRowFirstColumn, value));
+            Map<byte[], Iterator<Entry<Cell, byte[]>>> rowsToIterators = tx.getRowsColumnRangeIterator(
+                    TABLE, ImmutableList.of(row1, row2, row3), BatchColumnRangeSelection.create(null, null, 10));
+            return EntryStream.of(rowsToIterators)
+                    .mapValues(iterator -> Iterators.transform(iterator, Entry::getKey))
+                    .<List<Cell>>mapValues(Lists::newArrayList)
+                    .toMap();
+        });
+        assertThat(cells)
+                .isEqualTo(ImmutableMap.of(
+                        row1,
+                        ImmutableList.of(firstRowFirstColumn, firstRowSecondColumn),
+                        row2,
+                        ImmutableList.of(secondRow),
+                        row3,
+                        ImmutableList.of(thirdRowFirstColumn, thirdRowSecondColumn)));
     }
 
     @Test
