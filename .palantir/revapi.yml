@@ -27,6 +27,14 @@ acceptedBreaks:
       new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
         \ int, int)"
       justification: "revert"
+  "0.787.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+      - code: "java.method.exception.checkedAdded"
+        old: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
+        \ int, int)"
+        new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
+        \ int, int) throws org.apache.thrift.transport.TTransportException"
+        justification: "required for libthrift upgrade"
   "0.792.0":
     com.palantir.atlasdb:atlasdb-cassandra:
     - code: "java.class.removed"
