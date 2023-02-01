@@ -12,7 +12,7 @@ EXPOSE 3828
 ADD build/docker/atlasdb-ete-snapshot.tgz /atlasdb-ete
 
 # Remove possible version prefix
-RUN for file in atlasdb-ete/*; do sudo mv "$file" "atlasdb-ete/atlasdb-ete-snapshot"; done
+RUN for file in atlasdb-ete/*; do mv "$file" "atlasdb-ete/atlasdb-ete-snapshot"; done
 
 ADD docker/ /atlasdb-ete/atlasdb-ete-snapshot/var/
 
