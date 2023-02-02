@@ -100,7 +100,7 @@ public class SimpleCommitTimestampAtomicTableTest {
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L)).get();
         assertThat(result).hasSize(1);
-        assertThat(result.get(1L)).isEqualTo(TransactionConstants.ABORTED);
+        assertThat(result).containsEntry(1L, TransactionConstants.ABORTED);
     }
 
     @Test
@@ -111,7 +111,7 @@ public class SimpleCommitTimestampAtomicTableTest {
                 atomicTable.get(ImmutableList.of(1L, 3L)).get();
         assertThat(result).hasSize(2);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(result).containsEntry(3L, TransactionConstants.IN_PROGRESS);
     }
 
     @Test
@@ -125,7 +125,7 @@ public class SimpleCommitTimestampAtomicTableTest {
 
         assertThat(result).hasSize(2);
         assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(result.get(3L)).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(result).containsEntry(3L, TransactionConstants.IN_PROGRESS);
     }
 
     private AtomicTable<Long, TransactionStatus> createPueTable() {
