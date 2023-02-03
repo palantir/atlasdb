@@ -183,8 +183,53 @@ not have to invalidate values it reads from that cell.
 AtlasDB also needs to expose schema configuration points to allow users to specify that they want caching on some of
 their tables, and based on that also needs to actually register the watches with TimeLock.
 
-#### Starting a Transaction
-TODO
+#### Introduction to the Event Cache
+
+An AtlasDB client keeps track of a `LockWatchEventCache`. This has two main components:
+
+- a `LockWatchEventLog`, which is intended to be a client-side copy of the TimeLock server's ring buffer of events.
+  The client needs to know what events have occurred, so that it can decide whether
+  values read from the cache by transactions trying to commit may or may not have updated.
+- a `TimestampStateStore`, which associates Atlas timestamps to lock-watch versions and is primarily used for handling
+  retention of events, so Atlas clients only remember events that would be relevant to them.
+
+AtlasDB starts transactions in batched requests made to the TimeLock Server. Nonetheless, when `startTransactions()` is
+called, we pass to timelock the latest `LockWatchVersion` that the event cache knows about. Based on that, TimeLock
+will return a `LockWatchStateUpdate` as part of the response, along with the start timestamps of transactions that
+were successfully started. `processStartTransactionsUpdate` will be called with the returned update, which associates
+the start timestamps of transactions to the latest lock-watch version in the timestamp state store.
+
+As transactions commit, they will register that they are done, and the event log is permitted to clear events that no
+live transaction on this node will care about. This will have some implications in the value cache; we will revisit this
+point when discussing its operation.
+
+#### Motivation of Value Caching
+
+When a transaction commits, a value that has been read is eligible to be cached if it has not been modified since the
+start of the transaction. We thus modify the `getCommitTimestamps()` request we make to timelock towards the end of
+committing a transaction to also ask for what the latest lock watch version is - as with starting transactions, timelock
+also gets the timestamps strictly before looking at the lock log.
+
+We then ask the event store for the range of events in between starting and committing; if this does not include any
+writes to a (watched) row that we have read, we can cache what we read - and this value can be used for future reads as
+long as we don't encounter a lock event that means that someone wrote to said row.
+
+Conceptually, some version of write-through caching should be possible, though this was not prioritised during the
+initial design or implementation of Lock Watches, and an attempt to implement this in 2021 ended in failure.
+
+#### Global and Local Scoped Caches
+
+AtlasDB has isolation in its transactions, and this needs to be considered when implementing cache behaviour - for
+example, if we are a relatively long-running snapshot transaction and started while some cell `C` was in the cache, 
+another transaction that writes to `C` and the resulting lock watch events from that should not affect us.
+
+We thus maintain two layers of value caches: there is a global cache (`LockWatchValueScopingCache`), which allows users
+to create copies (`TransactionScopedCache`). This uses the vavr library / persistent data structures to minimise memory
+footprint and overheads of copying large objects.
+
+#### Supporting Serializable Isolation
+
+#### Retention and Memory Efficiency
 
 ## Deployment and Testing
 TODO
