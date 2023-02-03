@@ -1,82 +1,4 @@
-types:
-  conjure-imports:
-    api: timelock-api.yml
-  imports:
-    SingleNodeUpdateResponse:
-      external:
-        java: com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse
-  definitions:
-    default-package: com.palantir.atlasdb.timelock.api
-    objects:
-      DisableNamespacesRequest:
-        fields:
-          namespaces: set<api.Namespace>
-          lockId:
-            type: string
-            safety: safe
-      SuccessfulDisableNamespacesResponse:
-        fields:
-          lockId:
-            type: string
-            safety: safe
-      UnsuccessfulDisableNamespacesResponse:
-        fields:
-          consistentlyDisabledNamespaces:
-            type: set<api.Namespace>
-            docs: Namespaces where we can assume another restore is in progress
-          partiallyDisabledNamespaces:
-            type: set<api.Namespace>
-            docs: |
-              Either another restore is in progress for this namespace (and we've hit a race condition), or
-              the namespace is stuck and needs to be manually fixed.
-      DisableNamespacesResponse:
-        union:
-          successful: SuccessfulDisableNamespacesResponse
-          unsuccessful: UnsuccessfulDisableNamespacesResponse
-      ReenableNamespacesRequest:
-        fields:
-          namespaces: set<api.Namespace>
-          lockId:
-            type: string
-            safety: safe
-      SuccessfulReenableNamespacesResponse:
-        alias: boolean
-        safety: safe
-      UnsuccessfulReenableNamespacesResponse:
-        fields:
-          consistentlyLockedNamespaces:
-            type: set<api.Namespace>
-            docs: We can assume another restore is in progress for this namespace (we lost our lock)
-          partiallyLockedNamespaces:
-            type: set<api.Namespace>
-            docs: |
-              Either another restore is in progress for this namespace (and we lost our lock), or
-              the namespace is stuck and needs to be manually fixed.
-      ReenableNamespacesResponse:
-        union:
-          successful: SuccessfulReenableNamespacesResponse
-          unsuccessful: UnsuccessfulReenableNamespacesResponse
-
 services:
-  DisabledNamespacesUpdaterService:
-    name: Internal updater service, for propagating disabled namespace updates across nodes.
-    default-auth: header
-    package: com.palantir.atlasdb.timelock.api
-    base-path: /dn
-    endpoints:
-      ping:
-        http: GET /ping
-        returns: boolean
-      disable:
-        http: POST /disable
-        args:
-          request: DisableNamespacesRequest
-        returns: SingleNodeUpdateResponse
-      reenable:
-        http: POST /reenable
-        args:
-          request: ReenableNamespacesRequest
-        returns: SingleNodeUpdateResponse
   TimeLockManagementService:
     name: TimeLock Management Service
     default-auth: header
@@ -113,22 +35,6 @@ services:
           same startTransactions request), but not atomic as a whole. Additionally, if this method throws, it is
           nondeterministic which, if any, namespaces have been invalidated; some may even be invalidated only on a
           subset of nodes. This state can be cleared by re-enabling all namespaces.
-
-      disableTimelock:
-        http: POST /disable
-        args:
-          request: DisableNamespacesRequest
-        returns: DisableNamespacesResponse
-        docs: |
-          Disables the TimeLock server in a persistant way for the specified namespaces. This includes invalidating
-          all currently held locks, all lock watch state, as well as refusing to serve new requests.
-      reenableTimelock:
-        http: POST /reenable
-        args:
-          request: ReenableNamespacesRequest
-        returns: ReenableNamespacesResponse
-        docs: |
-          Allows the TimeLock server to once again serve requests for these namespaces.
 
       getServerLifecycleId:
         http: POST /getServerLifecycleId
