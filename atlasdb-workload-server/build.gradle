@@ -1,27 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    implementation project(':lock-impl')
-    implementation project(':leader-election-impl')
-    implementation project(':atlasdb-config')
-    implementation 'jakarta.inject:jakarta.inject-api'
-
-    testImplementation 'org.mockito:mockito-core'
-
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.google.guava:guava'
-    implementation 'com.google.protobuf:protobuf-java'
-    implementation 'com.palantir.safe-logging:preconditions'
-    implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
-    implementation project(':atlasdb-api')
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-client-protobufs')
-    implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-impl-shared')
-    implementation project(':commons-annotations')
 }
