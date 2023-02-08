@@ -26,6 +26,9 @@ public interface WriteTransactionAction extends TransactionAction {
     @Value.Parameter
     Integer key();
 
+    /**
+     * Cell to write for the given key.
+     */
     @Value.Parameter
     WorkloadCell value();
 
