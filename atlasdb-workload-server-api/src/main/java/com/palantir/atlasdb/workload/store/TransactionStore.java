@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransaction;
 import java.util.List;

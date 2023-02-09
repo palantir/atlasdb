@@ -16,20 +16,16 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.WorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface HistoricalReadTransactionAction extends TransactionAction {
+public interface ReadTransactionAction extends TransactionAction {
 
-    @Override
-    @Value.Parameter
-    Integer key();
-
-    /** Value of the cell from the row read. Empty if it does not exist. */
-    @Value.Parameter
-    Optional<WorkloadCell> value();
+    default HistoricalReadTransactionAction record(WorkloadCell workloadCell) {
+        return ImmutableHistoricalReadTransactionAction.of(key(), Optional.of(workloadCell));
+    }
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {

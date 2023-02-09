@@ -16,21 +16,20 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.WorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import java.util.Optional;
 import org.immutables.value.Value;
 
-@Value.Immutable
-public interface WriteTransactionAction extends TransactionAction {
+@Value.Immutable(builder = false)
+public interface HistoricalReadTransactionAction extends TransactionAction {
 
     @Override
     @Value.Parameter
     Integer key();
 
-    /**
-     * Cell to write for the given key.
-     */
+    /** Value of the cell from the row read. Empty if it does not exist. */
     @Value.Parameter
-    WorkloadCell value();
+    Optional<WorkloadCell> value();
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
