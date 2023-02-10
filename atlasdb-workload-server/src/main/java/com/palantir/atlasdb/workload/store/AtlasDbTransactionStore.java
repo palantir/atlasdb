@@ -29,14 +29,10 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
-import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.HistoricalReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ImmutableWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
-import com.palantir.atlasdb.workload.transaction.TransactionActionVisitor;
-import com.palantir.atlasdb.workload.transaction.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.*;
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -65,24 +61,26 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
     @Override
     public Optional<Integer> get(WorkloadCell cell) {
+        Cell atlasCell = toAtlasCell(cell);
         return transactionManager.runTaskWithRetry(task -> {
-            Cell atlasCell = cell.toCell();
-            Map<Cell, byte[]> values = task.get(tableReference, Set.of(cell.toCell()));
+            Map<Cell, byte[]> values = task.get(tableReference, Set.of(atlasCell));
             return Optional.ofNullable(values.get(atlasCell)).map(Ints::fromByteArray);
         });
     }
 
     @Override
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
+        AtomicReference<Long> startTimestampReference = new AtomicReference<>();
+        AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
         try {
-            AtomicReference<Long> startTimestampReference = new AtomicReference<>();
-            List<TransactionAction> executedActions = transactionManager.runTaskWithRetry(txn -> {
+            transactionManager.runTaskWithRetry(txn -> {
                 AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
                 startTimestampReference.set(txn.getTimestamp());
-                return actions.stream()
+                witnessedActionsReference.set(actions.stream()
                         .sequential()
                         .map(action -> action.accept(visitor))
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toList()));
+                return null;
             });
 
             TransactionStatus status =
@@ -97,7 +95,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
             return Optional.of(ImmutableWitnessedTransaction.builder()
                     .startTimestamp(startTimestampReference.get())
                     .commitTimestamp(commitTimestamp)
-                    .actions(executedActions)
+                    .actions(witnessedActionsReference.get())
                     .build());
         } catch (Exception e) {
             log.info("Failed to record transaction due to an exception", e);
@@ -105,7 +103,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
         }
     }
 
-    private class AtlasDbTransactionActionVisitor implements TransactionActionVisitor<TransactionAction> {
+    private class AtlasDbTransactionActionVisitor implements TransactionActionVisitor<WitnessedTransactionAction> {
 
         private final Transaction transaction;
 
@@ -114,38 +112,38 @@ public final class AtlasDbTransactionStore implements TransactionStore {
         }
 
         @Override
-        public TransactionAction visit(ReadTransactionAction readTransactionAction) {
-            Cell cell = readTransactionAction.cell().toCell();
-            Map<Cell, byte[]> cells = transaction.get(
-                    tableReference, Set.of(readTransactionAction.cell().toCell()));
+        public WitnessedTransactionAction visit(ReadTransactionAction readTransactionAction) {
+            Cell cell = toAtlasCell(readTransactionAction.cell());
+            Map<Cell, byte[]> cells =
+                    transaction.get(tableReference, Set.of(toAtlasCell(readTransactionAction.cell())));
             Optional<Integer> value = Optional.ofNullable(cells.get(cell)).map(Ints::fromByteArray);
-            return readTransactionAction.record(value);
+            return readTransactionAction.witness(value);
         }
 
         @Override
-        public TransactionAction visit(HistoricalReadTransactionAction historicalReadTransactionAction) {
-            throw new SafeIllegalStateException("This should never be possible.");
-        }
-
-        @Override
-        public TransactionAction visit(WriteTransactionAction writeTransactionAction) {
+        public WitnessedTransactionAction visit(WriteTransactionAction writeTransactionAction) {
             transaction.put(
                     tableReference,
-                    Map.of(writeTransactionAction.cell().toCell(), Ints.toByteArray(writeTransactionAction.value())));
+                    Map.of(
+                            toAtlasCell(writeTransactionAction.cell()),
+                            Ints.toByteArray(writeTransactionAction.value())));
             transaction.put(
                     indexTableReference,
                     Map.of(
-                            writeTransactionAction.indexCell().toCell(),
+                            toAtlasCell(writeTransactionAction.indexCell()),
                             Ints.toByteArray(writeTransactionAction.indexValue())));
-            return writeTransactionAction;
+            return writeTransactionAction.witness();
         }
 
         @Override
-        public TransactionAction visit(DeleteTransactionAction deleteTransactionAction) {
-            transaction.delete(
-                    tableReference, Set.of(deleteTransactionAction.cell().toCell()));
-            return deleteTransactionAction;
+        public WitnessedTransactionAction visit(DeleteTransactionAction deleteTransactionAction) {
+            transaction.delete(tableReference, Set.of(toAtlasCell(deleteTransactionAction.cell())));
+            return deleteTransactionAction.witness();
         }
+    }
+
+    public static Cell toAtlasCell(WorkloadCell cell) {
+        return Cell.create(Ints.toByteArray(cell.key()), Ints.toByteArray(cell.column()));
     }
 
     public static AtlasDbTransactionStore create(

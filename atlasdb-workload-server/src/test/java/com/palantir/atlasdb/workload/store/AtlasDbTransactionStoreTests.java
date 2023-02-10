@@ -21,16 +21,15 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
-import com.palantir.atlasdb.workload.transaction.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.*;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -80,19 +79,15 @@ public class AtlasDbTransactionStoreTests {
     public void witnessedTransactionMaintainsOrder() {
         AtlasDbTransactionStore store =
                 AtlasDbTransactionStore.create(manager, TABLE_REFERENCE, ConflictHandler.SERIALIZABLE);
-        List<TransactionAction> actions = List.of(
-                ImmutableWriteTransactionAction.builder()
-                        .cell(WORKLOAD_CELL_TWO)
-                        .value(100)
-                        .build(),
-                ImmutableReadTransactionAction.of(WORKLOAD_CELL_TWO),
-                ImmutableReadTransactionAction.of(WORKLOAD_CELL_THREE),
-                ImmutableWriteTransactionAction.builder()
-                        .cell(WORKLOAD_CELL_ONE)
-                        .value(24)
-                        .build(),
-                ImmutableReadTransactionAction.of(WORKLOAD_CELL_ONE));
-        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions);
+        List<WitnessedTransactionAction> actions = List.of(
+                ImmutableWitnessedWriteTransactionAction.of(WORKLOAD_CELL_TWO, 100),
+                ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL_TWO, Optional.of(100)),
+                ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL_THREE, Optional.empty()),
+                ImmutableWitnessedWriteTransactionAction.of(WORKLOAD_CELL_ONE, 24),
+                ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL_ONE, Optional.of(24)));
+        WitnessToActionVisitor visitor = new WitnessToActionVisitor();
+        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(
+                actions.stream().map(action -> action.accept(visitor)).collect(Collectors.toList()));
         assertThat(maybeTransaction)
                 .isPresent()
                 .map(WitnessedTransaction::actions)
