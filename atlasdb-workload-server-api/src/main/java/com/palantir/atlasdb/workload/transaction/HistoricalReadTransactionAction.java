@@ -25,11 +25,11 @@ public interface HistoricalReadTransactionAction extends TransactionAction {
 
     @Override
     @Value.Parameter
-    Integer key();
+    WorkloadCell cell();
 
     /** Value of the cell from the row read. Empty if it does not exist. */
     @Value.Parameter
-    Optional<WorkloadCell> value();
+    Optional<Integer> value();
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {

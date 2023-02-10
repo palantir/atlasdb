@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import java.util.List;
+import org.immutables.value.Value;
 
+@Value.Immutable
 public interface WitnessedTransaction {
     /** Start timestamp of the transaction. */
     long startTimestamp();

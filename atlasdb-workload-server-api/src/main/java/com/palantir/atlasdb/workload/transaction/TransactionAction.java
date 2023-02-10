@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
 public interface TransactionAction {
-    /** Key to apply the action to. */
+
+    /** Cell (Key, Column) to apply the action to. */
     @Value.Parameter
-    Integer key();
+    WorkloadCell cell();
 
     <T> T accept(TransactionActionVisitor<T> visitor);
 }

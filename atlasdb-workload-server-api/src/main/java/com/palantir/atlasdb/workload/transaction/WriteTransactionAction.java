@@ -24,13 +24,13 @@ public interface WriteTransactionAction extends TransactionAction {
 
     @Override
     @Value.Parameter
-    Integer key();
+    WorkloadCell cell();
 
     /**
-     * Cell to write for the given key.
+     * Value for the given cell.
      */
     @Value.Parameter
-    WorkloadCell value();
+    Integer value();
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {

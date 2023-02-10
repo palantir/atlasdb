@@ -21,15 +21,18 @@ import com.palantir.atlasdb.workload.transaction.WitnessedTransaction;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * A transactional store for the workload server to read/write from.
+ */
 public interface TransactionStore {
     /**
      * Perform a read for a given row and return a cell if it exists.
      * Ideally this endpoint is only used for verification purposes, as it does not return a witnessed transaction.
      *
-     * @param key Key of row you wish to fetch
+     * @param cell Workload cell you wish to fetch
      * @return The corresponding workload cell, if any exists.
      */
-    Optional<WorkloadCell> get(Integer key);
+    Optional<Integer> get(WorkloadCell cell);
 
     /**
      * Performs a list of transaction actions in order, and returns the transaction executed if it committed

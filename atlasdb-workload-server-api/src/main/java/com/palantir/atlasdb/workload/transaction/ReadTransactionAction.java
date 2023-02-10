@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.WorkloadCell;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface ReadTransactionAction extends TransactionAction {
 
-    default HistoricalReadTransactionAction record(WorkloadCell workloadCell) {
-        return ImmutableHistoricalReadTransactionAction.of(key(), Optional.of(workloadCell));
+    default HistoricalReadTransactionAction record(Optional<Integer> value) {
+        return ImmutableHistoricalReadTransactionAction.of(cell(), value);
     }
 
     @Override
