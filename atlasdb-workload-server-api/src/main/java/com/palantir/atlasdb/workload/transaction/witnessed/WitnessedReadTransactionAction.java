@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -36,9 +34,5 @@ public interface WitnessedReadTransactionAction extends WitnessedTransactionActi
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
-    }
-
-    default ReadTransactionAction toAction() {
-        return ImmutableReadTransactionAction.of(cell());
     }
 }
