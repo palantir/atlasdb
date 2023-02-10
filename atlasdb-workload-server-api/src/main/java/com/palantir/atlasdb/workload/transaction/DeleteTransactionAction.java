@@ -16,10 +16,17 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedDeleteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface DeleteTransactionAction extends TransactionAction {
+
+    default WitnessedDeleteTransactionAction witness() {
+        return ImmutableWitnessedDeleteTransactionAction.of(cell());
+    }
+
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);

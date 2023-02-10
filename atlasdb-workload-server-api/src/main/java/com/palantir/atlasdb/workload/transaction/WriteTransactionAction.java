@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -35,5 +37,12 @@ public interface WriteTransactionAction extends TransactionAction {
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    default WitnessedWriteTransactionAction witness() {
+        return ImmutableWitnessedWriteTransactionAction.builder()
+                .cell(cell())
+                .value(value())
+                .build();
     }
 }

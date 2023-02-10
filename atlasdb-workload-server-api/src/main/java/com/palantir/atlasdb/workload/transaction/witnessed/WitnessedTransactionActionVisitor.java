@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import java.util.List;
-import org.immutables.value.Value;
+public interface WitnessedTransactionActionVisitor<T> {
+    T visit(WitnessedReadTransactionAction readTransactionAction);
 
-@Value.Immutable
-public interface WitnessedTransaction {
-    /** Start timestamp of the transaction. */
-    long startTimestamp();
+    T visit(WitnessedWriteTransactionAction writeTransactionAction);
 
-    /** Commit timestamp of the transaction. */
-    long commitTimestamp();
-
-    /** Provides an in-order list of actions that were performed during the transaction's execution. */
-    List<TransactionAction> actions();
+    T visit(WitnessedDeleteTransactionAction deleteTransactionAction);
 }

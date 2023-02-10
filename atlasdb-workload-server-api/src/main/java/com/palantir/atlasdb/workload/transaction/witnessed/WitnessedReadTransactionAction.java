@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface HistoricalReadTransactionAction extends TransactionAction {
+public interface WitnessedReadTransactionAction extends WitnessedTransactionAction {
 
     @Override
     @Value.Parameter
@@ -32,7 +34,11 @@ public interface HistoricalReadTransactionAction extends TransactionAction {
     Optional<Integer> value();
 
     @Override
-    default <T> T accept(TransactionActionVisitor<T> visitor) {
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    default ReadTransactionAction toAction() {
+        return ImmutableReadTransactionAction.of(cell());
     }
 }

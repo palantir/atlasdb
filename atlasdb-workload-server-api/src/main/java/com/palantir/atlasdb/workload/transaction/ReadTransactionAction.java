@@ -16,14 +16,16 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface ReadTransactionAction extends TransactionAction {
 
-    default HistoricalReadTransactionAction record(Optional<Integer> value) {
-        return ImmutableHistoricalReadTransactionAction.of(cell(), value);
+    default WitnessedReadTransactionAction witness(Optional<Integer> value) {
+        return ImmutableWitnessedReadTransactionAction.of(cell(), value);
     }
 
     @Override

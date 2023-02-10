@@ -1,11 +1,10 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    implementation project(':atlasdb-api')
-    annotationProcessor 'org.immutables:value'
-    compileOnly 'org.immutables:value::annotations'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.guava:guava'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'org.immutables:value'
 }
