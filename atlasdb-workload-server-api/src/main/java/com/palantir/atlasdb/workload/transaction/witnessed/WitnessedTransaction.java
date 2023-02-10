@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -29,5 +28,5 @@ public interface WitnessedTransaction {
     long commitTimestamp();
 
     /** Provides an in-order list of actions that were performed during the transaction's execution. */
-    List<TransactionAction> actions();
+    List<WitnessedTransactionAction> actions();
 }
