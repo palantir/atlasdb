@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import org.immutables.value.Value;
-
 import java.util.List;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public interface WitnessedTransaction {
