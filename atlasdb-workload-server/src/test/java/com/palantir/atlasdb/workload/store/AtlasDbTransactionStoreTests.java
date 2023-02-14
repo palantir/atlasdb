@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.workload.transaction.ImmutableDeleteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.WitnessToActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.*;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +49,8 @@ public class AtlasDbTransactionStoreTests {
             ImmutableWorkloadCell.builder().key(1257).column(521).build();
     private static final WorkloadCell WORKLOAD_CELL_THREE =
             ImmutableWorkloadCell.builder().key(567).column(405234).build();
+
+    private static final Integer VALUE_ONE = 100;
 
     private TransactionManager manager;
 
@@ -85,12 +91,28 @@ public class AtlasDbTransactionStoreTests {
                 ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL_THREE, Optional.empty()),
                 ImmutableWitnessedWriteTransactionAction.of(WORKLOAD_CELL_ONE, 24),
                 ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL_ONE, Optional.of(24)));
-        WitnessToActionVisitor visitor = new WitnessToActionVisitor();
-        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(
-                actions.stream().map(action -> action.accept(visitor)).collect(Collectors.toList()));
+        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions.stream()
+                .map(action -> action.accept(WitnessToActionVisitor.INSTANCE))
+                .collect(Collectors.toList()));
         assertThat(maybeTransaction)
                 .isPresent()
                 .map(WitnessedTransaction::actions)
                 .contains(actions);
+    }
+
+    @Test
+    public void readWriteHandlesAllTransactionTypes() {
+        AtlasDbTransactionStore store =
+                AtlasDbTransactionStore.create(manager, TABLE_REFERENCE, ConflictHandler.SERIALIZABLE);
+        store.readWrite(List.of(ImmutableWriteTransactionAction.of(WORKLOAD_CELL_ONE, VALUE_ONE)));
+        assertThat(store.readWrite(List.of(ImmutableReadTransactionAction.of(WORKLOAD_CELL_ONE))))
+                .isPresent()
+                .map(WitnessedTransaction::actions)
+                .map(Iterables::getOnlyElement)
+                .map(WitnessedReadTransactionAction.class::cast)
+                .map(WitnessedReadTransactionAction::value)
+                .isEqualTo(VALUE_ONE);
+        store.readWrite(List.of(ImmutableDeleteTransactionAction.of(WORKLOAD_CELL_ONE)));
+        assertThat(store.get(WORKLOAD_CELL_ONE)).isEmpty();
     }
 }
