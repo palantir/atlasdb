@@ -1,0 +1,10 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.guava:guava'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'org.immutables:value'
+}
