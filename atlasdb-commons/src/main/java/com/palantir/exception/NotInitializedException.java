@@ -20,12 +20,13 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+
 import java.util.List;
 
 public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
 
     private static final String EXCEPTION_MESSAGE =
-            "The object is not initialized yet, and as a result, all calls to it will fail. Interactions with this"
+            "The object is not yet initialized, and as a result, all calls to it will fail. Interactions with this"
                     + " object should not take place until after initialization has completed. For example, if your"
                     + " service that handles REST requests relies on this object, it should not service REST requests"
                     + " until initialization has completed, as otherwise all calls are guaranteed to fail. It is"
