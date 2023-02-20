@@ -73,7 +73,7 @@ public abstract class AsyncInitializer {
                     SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
         } catch (Throwable throwable) {
             log.info(
-                    "Failed to initialize {} on the attempt {}",
+                    "Failed to initialize {} on the attempt {}.",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
                     throwable);
