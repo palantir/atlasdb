@@ -72,10 +72,7 @@ public class AtlasDbTransactionStoreTests {
                 ImmutableWorkloadCell.builder().key(50).column(10).build();
         Integer value = 100;
         Optional<WitnessedTransaction> witnessedTransaction =
-                store.readWrite(List.of(ImmutableWriteTransactionAction.builder()
-                        .cell(workloadCell)
-                        .value(value)
-                        .build()));
+                store.readWrite(List.of(ImmutableWriteTransactionAction.of(workloadCell, value)));
         assertThat(witnessedTransaction).isPresent();
         assertThat(store.get(workloadCell)).contains(value);
     }
@@ -113,5 +110,13 @@ public class AtlasDbTransactionStoreTests {
                 .contains(Optional.of(VALUE_ONE));
         store.readWrite(List.of(ImmutableDeleteTransactionAction.of(WORKLOAD_CELL_ONE)));
         assertThat(store.get(WORKLOAD_CELL_ONE)).isEmpty();
+    }
+
+    @Test
+    public void getReturnsExpectedValue() {
+        AtlasDbTransactionStore store =
+                AtlasDbTransactionStore.create(manager, TABLE_REFERENCE, ConflictHandler.SERIALIZABLE);
+        store.readWrite(List.of(ImmutableWriteTransactionAction.of(WORKLOAD_CELL_ONE, VALUE_ONE)));
+        assertThat(store.get(WORKLOAD_CELL_ONE)).isPresent().contains(VALUE_ONE);
     }
 }

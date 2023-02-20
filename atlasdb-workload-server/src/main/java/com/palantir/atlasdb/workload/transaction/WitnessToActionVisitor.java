@@ -25,17 +25,17 @@ public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<
     INSTANCE;
 
     @Override
-    public TransactionAction visit(WitnessedReadTransactionAction readTransactionAction) {
+    public ReadTransactionAction visit(WitnessedReadTransactionAction readTransactionAction) {
         return ImmutableReadTransactionAction.of(readTransactionAction.cell());
     }
 
     @Override
-    public TransactionAction visit(WitnessedWriteTransactionAction writeTransactionAction) {
+    public WriteTransactionAction visit(WitnessedWriteTransactionAction writeTransactionAction) {
         return ImmutableWriteTransactionAction.of(writeTransactionAction.cell(), writeTransactionAction.value());
     }
 
     @Override
-    public TransactionAction visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
+    public DeleteTransactionAction visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         return ImmutableDeleteTransactionAction.of(deleteTransactionAction.cell());
     }
 }

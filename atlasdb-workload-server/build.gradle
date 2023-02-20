@@ -6,11 +6,13 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
 
-    annotationProcessor 'org.immutables:value'
-    compileOnly 'org.immutables:value::annotations'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
 }
