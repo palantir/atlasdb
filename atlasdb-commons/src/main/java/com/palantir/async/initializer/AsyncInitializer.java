@@ -21,12 +21,11 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
-import javax.annotation.concurrent.ThreadSafe;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * Implements basic infrastructure to allow an object to be asynchronously initialized.
