@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -27,15 +29,12 @@ import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessToActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.*;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AtlasDbTransactionStoreTests {
 
@@ -111,7 +110,7 @@ public class AtlasDbTransactionStoreTests {
                 .map(Iterables::getOnlyElement)
                 .map(WitnessedReadTransactionAction.class::cast)
                 .map(WitnessedReadTransactionAction::value)
-                .isEqualTo(VALUE_ONE);
+                .contains(Optional.of(VALUE_ONE));
         store.readWrite(List.of(ImmutableDeleteTransactionAction.of(WORKLOAD_CELL_ONE)));
         assertThat(store.get(WORKLOAD_CELL_ONE)).isEmpty();
     }

@@ -33,12 +33,8 @@ import com.palantir.atlasdb.workload.transaction.*;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,14 +83,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
             TransactionStatus status =
                     transactionManager.getTransactionService().getV2(startTimestampReference.get());
 
-            Preconditions.checkState(status instanceof TransactionStatus.);
-
-            long commitTimestamp = TransactionStatuses.getCommitTimestamp(status)
-                    .orElseThrow(() -> new SafeIllegalStateException(
-                            "Transaction reported that it had committed, despite that it has not."
-                                    + " This should never happen.",
-                            SafeArg.of("transactionStatus", status),
-                            SafeArg.of("startTimestamp", startTimestampReference.get())));
+            Optional<Long> commitTimestamp = TransactionStatuses.getCommitTimestamp(status);
 
             return Optional.of(ImmutableWitnessedTransaction.builder()
                     .startTimestamp(startTimestampReference.get())
@@ -146,16 +135,16 @@ public final class AtlasDbTransactionStore implements TransactionStore {
         }
     }
 
-    public static Cell toAtlasCell(WorkloadCell cell) {
-        return Cell.create(Ints.toByteArray(cell.key()), Ints.toByteArray(cell.column()));
-    }
-
     public static AtlasDbTransactionStore create(
             TransactionManager transactionManager, TableReference table, ConflictHandler conflictHandler) {
         TableReference indexTable = TableReference.create(table.getNamespace(), table.getTableName() + "_index");
         transactionManager.getKeyValueService().createTable(table, tableMetadata(conflictHandler));
         transactionManager.getKeyValueService().createTable(indexTable, indexMetadata());
         return new AtlasDbTransactionStore(transactionManager, table, indexTable);
+    }
+
+    private static Cell toAtlasCell(WorkloadCell cell) {
+        return Cell.create(Ints.toByteArray(cell.key()), Ints.toByteArray(cell.column()));
     }
 
     private static byte[] tableMetadata(ConflictHandler conflictHandler) {
