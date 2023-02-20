@@ -33,6 +33,7 @@ import com.palantir.atlasdb.workload.transaction.*;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -85,6 +86,9 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
             TransactionStatus status =
                     transactionManager.getTransactionService().getV2(startTimestampReference.get());
+
+            Preconditions.checkState(status instanceof TransactionStatus.);
+
             long commitTimestamp = TransactionStatuses.getCommitTimestamp(status)
                     .orElseThrow(() -> new SafeIllegalStateException(
                             "Transaction reported that it had committed, despite that it has not."
