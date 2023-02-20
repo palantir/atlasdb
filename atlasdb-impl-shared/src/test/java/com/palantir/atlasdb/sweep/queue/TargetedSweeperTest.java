@@ -16,50 +16,22 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.BATCH_SIZE_KVS;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_COARSE_GRANULARITY;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.TS_FINE_GRANULARITY;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.maxTsForFinePartition;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForCoarsePartition;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFinePartition;
-import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
+import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.*;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atMost;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
-import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.*;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
@@ -81,13 +53,9 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -230,11 +198,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void callingEnqueueAndSweepOnUninitializedSweeperThrows() {
         TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
+                .isInstanceOf(NotInitializedException.class);
+        assertThatLoggableExceptionThrownBy(
+                        () -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
                 .isInstanceOf(NotInitializedException.class)
-                .hasMessageContaining("Targeted Sweeper");
-        assertThatThrownBy(() -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
-                .isInstanceOf(NotInitializedException.class)
-                .hasMessageContaining("Targeted Sweeper");
+                .hasExactlyArgs(SafeArg.of("objectName", "Targeted Sweeper"));
     }
 
     @Test
