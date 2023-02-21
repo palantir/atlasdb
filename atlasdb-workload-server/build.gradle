@@ -13,6 +13,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'one.util:streamex'
 
+    testImplementation 'org.mockito:mockito-core'
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'

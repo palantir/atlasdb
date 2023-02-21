@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -35,13 +33,20 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public final class AtlasDbTransactionStoreTest {
 
@@ -104,10 +109,10 @@ public final class AtlasDbTransactionStoreTest {
         Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions.stream()
                 .map(action -> action.accept(WitnessToActionVisitor.INSTANCE))
                 .collect(Collectors.toList()));
-        assertThat(maybeTransaction)
-                .isPresent()
-                .map(WitnessedTransaction::actions)
-                .contains(actions);
+        assertThat(maybeTransaction).isPresent();
+        WitnessedTransaction transaction = maybeTransaction.get();
+        assertThat(transaction.commitTimestamp()).isNotEmpty();
+        assertThat(transaction.actions()).containsExactlyElementsOf(actions);
     }
 
     @Test
@@ -129,5 +134,25 @@ public final class AtlasDbTransactionStoreTest {
         assertThatThrownBy(() -> store.readWrite(List.of(ReadTransactionAction.of("chocolate", WORKLOAD_CELL_ONE))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Transaction action has unknown table.");
+    }
+
+    @Test
+    public void readWriteReturnsEmptyWhenExceptionThrown() {
+        TransactionManager transactionManager = mock(TransactionManager.class);
+        KeyValueService keyValueService = mock(KeyValueService.class);
+        when(transactionManager.getKeyValueService()).thenReturn(keyValueService);
+        when(transactionManager.runTaskWithRetry(any())).thenThrow(new RuntimeException());
+        AtlasDbTransactionStore transactionStore = AtlasDbTransactionStore.create(
+                transactionManager, Map.of(TABLE_REFERENCE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
+        assertThat(transactionStore.readWrite(List.of(ReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))))
+                .isEmpty();
+    }
+
+    @Test
+    public void readWriteHandlesReadOnlyTransaction() {
+        Optional<WitnessedTransaction> witnessedTransaction =
+                store.readWrite(List.of(ReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE)));
+        assertThat(witnessedTransaction).isPresent();
+        assertThat(witnessedTransaction.get().commitTimestamp()).isEmpty();
     }
 }
