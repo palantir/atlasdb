@@ -24,6 +24,7 @@ import java.util.Optional;
 /**
  * A transactional store for the workload server to read/write from.
  */
+<<<<<<< Updated upstream
 public interface TransactionStore {
     /**
      * Perform a read for a given row and return a cell if it exists.
@@ -35,6 +36,9 @@ public interface TransactionStore {
      */
     Optional<Integer> get(String table, WorkloadCell cell);
 
+=======
+public interface TransactionStore extends ReadableTransactionStore {
+>>>>>>> Stashed changes
     /**
      * Performs a list of transaction actions in order, and returns the transaction executed if it committed
      * successfully.
