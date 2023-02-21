@@ -30,7 +30,7 @@ public interface TransactionStore {
      * Ideally this endpoint is only used for verification purposes, as it does not return a witnessed transaction.
      *
      * @param table Table to read from
-     * @Param cell Cell to read from
+     * @param cell Cell to read from
      * @return The value of the cell for a given table.
      */
     Optional<Integer> get(String table, WorkloadCell cell);

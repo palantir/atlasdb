@@ -91,6 +91,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
         } catch (SafeIllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
+            // TODO: Need to eventually handle PuE exceptions, as they could've succeeded in committing.
             log.info("Failed to record transaction due to an exception", e);
             return Optional.empty();
         }
@@ -147,9 +148,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
     public static AtlasDbTransactionStore create(
             TransactionManager transactionManager, Map<TableReference, byte[]> tables) {
-        EntryStream.of(tables)
-                .forKeyValue((table, metadata) ->
-                        transactionManager.getKeyValueService().createTable(table, metadata));
+        transactionManager.getKeyValueService().createTables(tables);
         Map<String, TableReference> tableMapping = EntryStream.of(tables)
                 .keys()
                 .mapToEntry(TableReference::getTableName, Function.identity())
