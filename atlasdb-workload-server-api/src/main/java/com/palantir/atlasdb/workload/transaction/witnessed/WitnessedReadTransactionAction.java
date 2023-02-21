@@ -25,6 +25,10 @@ public interface WitnessedReadTransactionAction extends WitnessedTransactionActi
 
     @Override
     @Value.Parameter
+    String table();
+
+    @Override
+    @Value.Parameter
     WorkloadCell cell();
 
     /** Value of the cell from the row read. Empty if it does not exist. */
@@ -34,5 +38,9 @@ public interface WitnessedReadTransactionAction extends WitnessedTransactionActi
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static WitnessedReadTransactionAction of(String table, WorkloadCell cell, Optional<Integer> value) {
+        return ImmutableWitnessedReadTransactionAction.of(table, cell, value);
     }
 }

@@ -21,6 +21,10 @@ import org.immutables.value.Value;
 
 public interface TransactionAction {
 
+    /** Table to apply transaction to. */
+    @Value.Parameter
+    String table();
+
     /** Cell (Key, Column) to apply the action to. */
     @Value.Parameter
     WorkloadCell cell();

@@ -16,12 +16,18 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface WitnessedDeleteTransactionAction extends WitnessedTransactionAction {
+
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static WitnessedDeleteTransactionAction of(String table, WorkloadCell cell) {
+        return ImmutableWitnessedDeleteTransactionAction.of(table, cell);
     }
 }

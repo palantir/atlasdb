@@ -17,14 +17,8 @@
 package com.palantir.atlasdb.workload.store;
 
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -33,6 +27,9 @@ import com.palantir.atlasdb.workload.transaction.*;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -40,25 +37,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import one.util.streamex.EntryStream;
 
 public final class AtlasDbTransactionStore implements TransactionStore {
 
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbTransactionStore.class);
     private final TransactionManager transactionManager;
-    private final TableReference tableReference;
-    private final TableReference indexTableReference;
 
-    private AtlasDbTransactionStore(
-            TransactionManager transactionManager, TableReference tableReference, TableReference indexTableReference) {
+    private final Map<String, TableReference> tables;
+
+    private AtlasDbTransactionStore(TransactionManager transactionManager, Map<String, TableReference> tables) {
         this.transactionManager = transactionManager;
-        this.tableReference = tableReference;
-        this.indexTableReference = indexTableReference;
+        this.tables = tables;
     }
 
     @Override
-    public Optional<Integer> get(WorkloadCell cell) {
-        Cell atlasCell = toAtlasCell(cell);
+    public Optional<Integer> get(String table, WorkloadCell cell) {
+        Cell atlasCell = AtlasDbUtils.toAtlasCell(cell);
+        TableReference tableReference = getTableReferenceOrThrow(table);
         return transactionManager.runTaskWithRetry(task -> {
             Map<Cell, byte[]> values = task.get(tableReference, Set.of(atlasCell));
             return Optional.ofNullable(values.get(atlasCell)).map(Ints::fromByteArray);
@@ -90,10 +88,24 @@ public final class AtlasDbTransactionStore implements TransactionStore {
                     .commitTimestamp(commitTimestamp)
                     .actions(witnessedActionsReference.get())
                     .build());
+        } catch (SafeIllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             log.info("Failed to record transaction due to an exception", e);
             return Optional.empty();
         }
+    }
+
+    private TableReference getTableReferenceOrThrow(TransactionAction action) {
+        return getTableReferenceOrThrow(action.table());
+    }
+
+    private TableReference getTableReferenceOrThrow(String table) {
+        return Optional.ofNullable(tables.get(table))
+                .orElseThrow(() -> new SafeIllegalArgumentException(
+                        "Transaction action has unknown table.",
+                        SafeArg.of("readTransactionTableName", table),
+                        SafeArg.of("availableTables", tables)));
     }
 
     private class AtlasDbTransactionActionVisitor implements TransactionActionVisitor<WitnessedTransactionAction> {
@@ -106,76 +118,42 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
         @Override
         public WitnessedTransactionAction visit(ReadTransactionAction readTransactionAction) {
-            Cell cell = toAtlasCell(readTransactionAction.cell());
+            Cell cell = AtlasDbUtils.toAtlasCell(readTransactionAction.cell());
+            TableReference tableReference = getTableReferenceOrThrow(readTransactionAction);
             Map<Cell, byte[]> cells =
-                    transaction.get(tableReference, Set.of(toAtlasCell(readTransactionAction.cell())));
+                    transaction.get(tableReference, Set.of(AtlasDbUtils.toAtlasCell(readTransactionAction.cell())));
             Optional<Integer> value = Optional.ofNullable(cells.get(cell)).map(Ints::fromByteArray);
             return readTransactionAction.witness(value);
         }
 
         @Override
         public WitnessedTransactionAction visit(WriteTransactionAction writeTransactionAction) {
+            TableReference tableReference = getTableReferenceOrThrow(writeTransactionAction);
             transaction.put(
                     tableReference,
                     Map.of(
-                            toAtlasCell(writeTransactionAction.cell()),
+                            AtlasDbUtils.toAtlasCell(writeTransactionAction.cell()),
                             Ints.toByteArray(writeTransactionAction.value())));
-            transaction.put(
-                    indexTableReference,
-                    Map.of(
-                            toAtlasCell(writeTransactionAction.indexCell()),
-                            Ints.toByteArray(writeTransactionAction.indexValue())));
             return writeTransactionAction.witness();
         }
 
         @Override
         public WitnessedTransactionAction visit(DeleteTransactionAction deleteTransactionAction) {
-            transaction.delete(tableReference, Set.of(toAtlasCell(deleteTransactionAction.cell())));
+            TableReference tableReference = getTableReferenceOrThrow(deleteTransactionAction);
+            transaction.delete(tableReference, Set.of(AtlasDbUtils.toAtlasCell(deleteTransactionAction.cell())));
             return deleteTransactionAction.witness();
         }
     }
 
     public static AtlasDbTransactionStore create(
-            TransactionManager transactionManager, TableReference table, ConflictHandler conflictHandler) {
-        TableReference indexTable = TableReference.create(table.getNamespace(), table.getTableName() + "_index");
-        transactionManager.getKeyValueService().createTable(table, tableMetadata(conflictHandler));
-        transactionManager.getKeyValueService().createTable(indexTable, indexMetadata());
-        return new AtlasDbTransactionStore(transactionManager, table, indexTable);
-    }
-
-    private static Cell toAtlasCell(WorkloadCell cell) {
-        return Cell.create(Ints.toByteArray(cell.key()), Ints.toByteArray(cell.column()));
-    }
-
-    private static byte[] tableMetadata(ConflictHandler conflictHandler) {
-        return new TableMetadata.Builder()
-                .rowMetadata(new NameMetadataDescription())
-                .columns(new ColumnMetadataDescription())
-                .conflictHandler(conflictHandler)
-                .cachePriority(TableMetadataPersistence.CachePriority.WARM)
-                .rangeScanAllowed(true)
-                .explicitCompressionBlockSizeKB(AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB)
-                .negativeLookups(true)
-                .sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
-                .appendHeavyAndReadLight(false)
-                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-                .build()
-                .persistToBytes();
-    }
-
-    private static byte[] indexMetadata() {
-        return new TableMetadata.Builder()
-                .rowMetadata(new NameMetadataDescription())
-                .columns(new ColumnMetadataDescription())
-                .conflictHandler(ConflictHandler.SERIALIZABLE_INDEX)
-                .cachePriority(TableMetadataPersistence.CachePriority.WARM)
-                .rangeScanAllowed(true)
-                .explicitCompressionBlockSizeKB(AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB)
-                .negativeLookups(true)
-                .sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
-                .appendHeavyAndReadLight(false)
-                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-                .build()
-                .persistToBytes();
+            TransactionManager transactionManager, Map<TableReference, byte[]> tables) {
+        EntryStream.of(tables)
+                .forKeyValue((table, metadata) ->
+                        transactionManager.getKeyValueService().createTable(table, metadata));
+        Map<String, TableReference> tableMapping = EntryStream.of(tables)
+                .keys()
+                .mapToEntry(TableReference::getTableName, Function.identity())
+                .toMap();
+        return new AtlasDbTransactionStore(transactionManager, tableMapping);
     }
 }

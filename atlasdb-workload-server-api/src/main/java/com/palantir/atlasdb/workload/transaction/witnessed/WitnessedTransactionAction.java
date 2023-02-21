@@ -21,6 +21,10 @@ import org.immutables.value.Value;
 
 public interface WitnessedTransactionAction {
 
+    /** Table action was applied to. */
+    @Value.Parameter
+    String table();
+
     /** Cell (Key, Column) the action applied to. */
     @Value.Parameter
     WorkloadCell cell();

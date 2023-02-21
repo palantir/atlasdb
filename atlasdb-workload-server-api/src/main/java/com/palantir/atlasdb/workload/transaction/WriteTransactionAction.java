@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -24,6 +23,10 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface WriteTransactionAction extends TransactionAction {
+
+    @Override
+    @Value.Parameter
+    String table();
 
     @Override
     @Value.Parameter
@@ -35,19 +38,6 @@ public interface WriteTransactionAction extends TransactionAction {
     @Value.Parameter
     Integer value();
 
-    @Value.Derived
-    default WorkloadCell indexCell() {
-        return ImmutableWorkloadCell.builder()
-                .key(value() % 255)
-                .column(cell().key())
-                .build();
-    }
-
-    @Value.Derived
-    default Integer indexValue() {
-        return cell().column();
-    }
-
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
@@ -55,8 +45,13 @@ public interface WriteTransactionAction extends TransactionAction {
 
     default WitnessedWriteTransactionAction witness() {
         return ImmutableWitnessedWriteTransactionAction.builder()
+                .table(table())
                 .cell(cell())
                 .value(value())
                 .build();
+    }
+
+    static WriteTransactionAction of(String table, WorkloadCell cell, Integer value) {
+        return ImmutableWriteTransactionAction.of(table, cell, value);
     }
 }

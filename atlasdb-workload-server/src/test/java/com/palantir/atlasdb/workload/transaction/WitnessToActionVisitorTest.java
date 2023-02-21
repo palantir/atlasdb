@@ -20,36 +20,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import java.util.Optional;
 import org.junit.Test;
 
-public class WitnessToActionVisitorTest {
+public final class WitnessToActionVisitorTest {
 
+    private static final String TABLE = "table";
     private static final WorkloadCell WORKLOAD_CELL = ImmutableWorkloadCell.of(523, 2999);
     private static final Integer VALUE = 912;
 
     @Test
     public void convertsReadsCorrectly() {
-        ReadTransactionAction action = WitnessToActionVisitor.INSTANCE.visit(
-                ImmutableWitnessedReadTransactionAction.of(WORKLOAD_CELL, Optional.of(VALUE)));
-        assertThat(action.cell()).isEqualTo(WORKLOAD_CELL);
+        WitnessedReadTransactionAction witnessedRead =
+                WitnessedReadTransactionAction.of(TABLE, WORKLOAD_CELL, Optional.of(VALUE));
+        ReadTransactionAction read = WitnessToActionVisitor.INSTANCE.visit(witnessedRead);
+        assertThat(read.table()).isEqualTo(witnessedRead.table());
+        assertThat(read.cell()).isEqualTo(witnessedRead.cell());
     }
 
     @Test
     public void convertsWritesCorrectly() {
-        WriteTransactionAction action = WitnessToActionVisitor.INSTANCE.visit(
-                ImmutableWitnessedWriteTransactionAction.of(WORKLOAD_CELL, VALUE));
-        assertThat(action.cell()).isEqualTo(WORKLOAD_CELL);
-        assertThat(action.value()).isEqualTo(VALUE);
+        WitnessedWriteTransactionAction witnessedWrite =
+                WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL, VALUE);
+        WriteTransactionAction write = WitnessToActionVisitor.INSTANCE.visit(witnessedWrite);
+        assertThat(write.table()).isEqualTo(witnessedWrite.table());
+        assertThat(write.cell()).isEqualTo(witnessedWrite.cell());
+        assertThat(write.value()).isEqualTo(witnessedWrite.value());
     }
 
     @Test
     public void convertsDeletesCorrectly() {
-        DeleteTransactionAction action =
-                WitnessToActionVisitor.INSTANCE.visit(ImmutableWitnessedDeleteTransactionAction.of(WORKLOAD_CELL));
-        assertThat(action.cell()).isEqualTo(WORKLOAD_CELL);
+        WitnessedDeleteTransactionAction witnessedDelete = WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL);
+        DeleteTransactionAction delete = WitnessToActionVisitor.INSTANCE.visit(witnessedDelete);
+        assertThat(delete.table()).isEqualTo(witnessedDelete.table());
+        assertThat(delete.cell()).isEqualTo(witnessedDelete.cell());
     }
 }
