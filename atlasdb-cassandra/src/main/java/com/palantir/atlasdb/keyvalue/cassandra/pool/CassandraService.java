@@ -56,6 +56,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -293,17 +294,28 @@ public class CassandraService implements AutoCloseable {
     }
 
     private int getKnownPort() throws UnknownHostException {
-        Set<Integer> allKnownPorts = Stream.concat(
+        return onlyPort(Stream.concat(
                         currentPools.keySet().stream().map(CassandraServer::proxy),
                         getServersSocketAddressesFromConfig().stream())
                 .map(InetSocketAddress::getPort)
-                .collect(Collectors.toSet());
+                .iterator());
+    }
 
-        if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
-            return Iterables.getOnlyElement(allKnownPorts);
-        } else {
+    @VisibleForTesting
+    static int onlyPort(Iterator<Integer> iterator) throws UnknownHostException {
+        int knownPort = -1;
+        while (iterator.hasNext()) {
+            int port = iterator.next();
+            if (knownPort == -1) {
+                knownPort = port;
+            } else if (knownPort != port) {
+                throw new UnknownHostException("No single known port");
+            }
+        }
+        if (knownPort == -1) {
             throw new UnknownHostException("No single known port");
         }
+        return knownPort;
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {
