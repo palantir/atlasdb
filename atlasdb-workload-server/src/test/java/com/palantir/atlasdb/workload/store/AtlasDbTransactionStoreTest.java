@@ -77,7 +77,7 @@ public final class AtlasDbTransactionStoreTest {
                         TABLE_REFERENCE,
                         AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
                         INDEX_REFERENCE,
-                        AtlasDbUtils.indexMetadata()));
+                        AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE)));
     }
 
     @Test
