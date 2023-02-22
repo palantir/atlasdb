@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
-public class DefaultWorkflow implements Workflow {
+public final class DefaultWorkflow implements Workflow {
     private final ConcurrentTransactionRunner concurrentTransactionRunner;
     private final HistoryConsumptionRegistrar historyConsumptionRegistrar;
     private final IndexedTransactionTask transactionTask;

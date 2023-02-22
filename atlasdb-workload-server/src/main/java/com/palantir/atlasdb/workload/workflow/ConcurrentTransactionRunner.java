@@ -30,7 +30,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ConcurrentTransactionRunner {
+public final class ConcurrentTransactionRunner {
     private final TransactionStore transactionStore;
     private final ListeningExecutorService listeningExecutorService;
 

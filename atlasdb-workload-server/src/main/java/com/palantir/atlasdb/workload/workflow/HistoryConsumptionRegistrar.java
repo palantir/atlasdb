@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
-public class HistoryConsumptionRegistrar {
+public final class HistoryConsumptionRegistrar {
     private static final SafeLogger log = SafeLoggerFactory.get(HistoryConsumptionRegistrar.class);
 
     private final ReadableTransactionStore readableTransactionStore;
