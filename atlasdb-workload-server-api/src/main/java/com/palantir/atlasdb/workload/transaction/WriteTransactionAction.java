@@ -26,6 +26,10 @@ public interface WriteTransactionAction extends TransactionAction {
 
     @Override
     @Value.Parameter
+    String table();
+
+    @Override
+    @Value.Parameter
     WorkloadCell cell();
 
     /**
@@ -41,8 +45,13 @@ public interface WriteTransactionAction extends TransactionAction {
 
     default WitnessedWriteTransactionAction witness() {
         return ImmutableWitnessedWriteTransactionAction.builder()
+                .table(table())
                 .cell(cell())
                 .value(value())
                 .build();
+    }
+
+    static WriteTransactionAction of(String table, WorkloadCell cell, Integer value) {
+        return ImmutableWriteTransactionAction.of(table, cell, value);
     }
 }

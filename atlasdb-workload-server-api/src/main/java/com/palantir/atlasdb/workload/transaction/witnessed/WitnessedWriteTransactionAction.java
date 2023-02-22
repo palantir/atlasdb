@@ -24,6 +24,10 @@ public interface WitnessedWriteTransactionAction extends WitnessedTransactionAct
 
     @Override
     @Value.Parameter
+    String table();
+
+    @Override
+    @Value.Parameter
     WorkloadCell cell();
 
     /**
@@ -35,5 +39,9 @@ public interface WitnessedWriteTransactionAction extends WitnessedTransactionAct
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static WitnessedWriteTransactionAction of(String table, WorkloadCell cell, Integer value) {
+        return ImmutableWitnessedWriteTransactionAction.of(table, cell, value);
     }
 }

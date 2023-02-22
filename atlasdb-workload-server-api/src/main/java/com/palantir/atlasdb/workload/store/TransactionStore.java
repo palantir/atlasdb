@@ -29,10 +29,11 @@ public interface TransactionStore {
      * Perform a read for a given row and return a cell if it exists.
      * Ideally this endpoint is only used for verification purposes, as it does not return a witnessed transaction.
      *
-     * @param cell Workload cell you wish to fetch
-     * @return The corresponding workload cell, if any exists.
+     * @param table Table to read from
+     * @param cell Cell to read from
+     * @return The value of the cell for a given table.
      */
-    Optional<Integer> get(WorkloadCell cell);
+    Optional<Integer> get(String table, WorkloadCell cell);
 
     /**
      * Performs a list of transaction actions in order, and returns the transaction executed if it committed
