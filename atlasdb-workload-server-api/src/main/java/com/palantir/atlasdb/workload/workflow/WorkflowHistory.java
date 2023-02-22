@@ -16,18 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import java.util.function.Consumer;
+import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import java.util.List;
+import org.immutables.value.Value;
 
-public interface Workflow {
-    /**
-     * Runs desired workflow asynchronously until completion.
-     */
-    void run();
+@Value.Immutable
+public interface WorkflowHistory {
+    // We may want to query the KVS during verification.
+    ReadableTransactionStore transactionStore();
 
-    /**
-     * Registers a callback that will be called when the workflow has completed.
-     * If multiple callbacks are registered, there are no guarantees on the order in which they execute, or that they
-     * will execute sequentially or in parallel.
-     */
-    Workflow onComplete(Consumer<WorkflowHistory> consumer);
+    List<WitnessedTransaction> history();
 }

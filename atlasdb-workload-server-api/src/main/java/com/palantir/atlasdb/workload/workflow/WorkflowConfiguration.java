@@ -16,14 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import java.util.List;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import org.immutables.value.Value;
 
-public interface WorkflowHistory {
-    // We may want to query the KVS during verification
-    ReadableTransactionStore transactionStore();
+@Value.Immutable
+public interface WorkflowConfiguration {
+    int iterationCount();
 
-    // Precondition: This list must be sorted by commit timestamp.
-    List<WitnessedTransaction> history();
+    /**
+     * Executor used to execute workload threads (i.e., transactions).
+     */
+    ListeningExecutorService executionExecutor();
 }

@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.store;
+package com.palantir.atlasdb.workload.workflow;
 
+import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
-public interface ReadableTransactionStore {
-    /**
-     * Perform a read for a given row and return a cell if it exists.
-     * Ideally this endpoint is only used for verification purposes, as it does not return a witnessed transaction.
-     *
-     * @param table Table to read from
-     * @param cell Cell to read from
-     * @return The value of the cell for a given table.
-     */
-    Optional<Integer> get(String table, WorkloadCell cell);
-}
+/**
+ * A task that performs some operations on an {@link AtlasDbTransactionStore}, possibly using the index of the task
+ * as an input, and returns an {@link Optional<WitnessedTransaction>}.
+ */
+@FunctionalInterface
+public interface IndexedTransactionTask
+        extends BiFunction<AtlasDbTransactionStore, Integer, Optional<WitnessedTransaction>> {}

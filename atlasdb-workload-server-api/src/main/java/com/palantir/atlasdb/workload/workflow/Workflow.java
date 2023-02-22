@@ -16,11 +16,20 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import java.util.concurrent.Executor;
-import org.immutables.value.Value;
+import java.util.function.Consumer;
 
-@Value.Immutable
-public interface WorkflowConfiguration {
-    int iterationCount();
-    Executor transactionExecutor();
+public interface Workflow {
+    /**
+     * Runs desired workflow asynchronously until completion.
+     */
+    void run();
+
+    /**
+     * Registers a callback that will be called synchronously when the workflow has completed.
+     * If multiple callbacks are registered, there are no guarantees on the order in which they execute, or that they
+     * will execute sequentially or in parallel.
+     *
+     * Behaviour if consumers are added after a call of {@link #run()} has started are undefined.
+     */
+    Workflow onComplete(Consumer<WorkflowHistory> consumer);
 }
