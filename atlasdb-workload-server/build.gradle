@@ -14,6 +14,9 @@ dependencies {
     implementation 'one.util:streamex'
 
     testImplementation 'org.mockito:mockito-core'
+    testImplementation('org.jmock:jmock') {
+        exclude group: 'org.hamcrest'
+    }
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'

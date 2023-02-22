@@ -22,6 +22,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -40,6 +42,10 @@ public class ConcurrentTransactionRunner {
 
     public Future<List<WitnessedTransaction>> runConcurrentTransactionTask(
             IndexedTransactionTask transactionTask, int taskMultiplicity) {
+        Preconditions.checkArgument(
+                taskMultiplicity >= 0,
+                "Tasks must be run a non-negative number of times",
+                SafeArg.of("providedTaskMultiplicity", taskMultiplicity));
         List<ListenableFuture<Optional<WitnessedTransaction>>> taskFutures = IntStream.range(0, taskMultiplicity)
                 .mapToObj(index ->
                         listeningExecutorService.submit(() -> transactionTask.apply(atlasDbTransactionStore, index)))
