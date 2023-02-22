@@ -51,7 +51,7 @@ public final class AtlasDbUtils {
     }
 
     public static byte[] indexMetadata(ConflictHandler baseTableConflictHandler) {
-        ConflictHandler conflictHandler = (baseTableConflictHandler.checkReadWriteConflicts())
+        ConflictHandler conflictHandler = baseTableConflictHandler.checkReadWriteConflicts()
                 ? ConflictHandler.SERIALIZABLE_INDEX
                 : ConflictHandler.IGNORE_ALL;
         return new TableMetadata.Builder()
