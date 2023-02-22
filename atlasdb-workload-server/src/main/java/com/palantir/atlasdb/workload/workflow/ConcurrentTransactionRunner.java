@@ -31,12 +31,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ConcurrentTransactionRunner {
-    private final TransactionStore atlasDbTransactionStore;
+    private final TransactionStore transactionStore;
     private final ListeningExecutorService listeningExecutorService;
 
     public ConcurrentTransactionRunner(
-            TransactionStore atlasDbTransactionStore, ListeningExecutorService listeningExecutorService) {
-        this.atlasDbTransactionStore = atlasDbTransactionStore;
+            TransactionStore transactionStore, ListeningExecutorService listeningExecutorService) {
+        this.transactionStore = transactionStore;
         this.listeningExecutorService = listeningExecutorService;
     }
 
@@ -48,7 +48,7 @@ public class ConcurrentTransactionRunner {
                 SafeArg.of("providedTaskMultiplicity", taskMultiplicity));
         List<ListenableFuture<Optional<WitnessedTransaction>>> taskFutures = IntStream.range(0, taskMultiplicity)
                 .mapToObj(index ->
-                        listeningExecutorService.submit(() -> transactionTask.apply(atlasDbTransactionStore, index)))
+                        listeningExecutorService.submit(() -> transactionTask.apply(transactionStore, index)))
                 .collect(Collectors.toList());
         return Futures.transform(
                 Futures.allAsList(taskFutures),

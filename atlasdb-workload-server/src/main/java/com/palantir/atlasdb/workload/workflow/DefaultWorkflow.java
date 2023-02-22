@@ -40,9 +40,7 @@ public class DefaultWorkflow implements Workflow {
     }
 
     public static Workflow create(
-            TransactionStore store,
-            IndexedTransactionTask transactionTask,
-            WorkflowConfiguration configuration) {
+            TransactionStore store, IndexedTransactionTask transactionTask, WorkflowConfiguration configuration) {
         return new DefaultWorkflow(
                 new ConcurrentTransactionRunner(store, configuration.executionExecutor()),
                 new HistoryConsumptionRegistrar(store),

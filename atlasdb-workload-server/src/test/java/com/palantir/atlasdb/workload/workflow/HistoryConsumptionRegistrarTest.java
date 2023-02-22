@@ -83,8 +83,7 @@ public class HistoryConsumptionRegistrarTest {
 
         registrar.addConsumer(historyConsumerOne);
         registrar.addConsumer(historyConsumerTwo);
-        assertThatThrownBy(() -> registrar.runOnConsumersBlocking(Futures.immediateFailedFuture(
-                taskException)))
+        assertThatThrownBy(() -> registrar.runOnConsumersBlocking(Futures.immediateFailedFuture(taskException)))
                 .isInstanceOf(SafeRuntimeException.class)
                 .hasMessageContaining("Error when running workflow.")
                 .hasCause(taskException);
