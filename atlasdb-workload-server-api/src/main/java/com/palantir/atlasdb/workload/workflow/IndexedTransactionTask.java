@@ -16,15 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
- * A task that performs some operations on an {@link AtlasDbTransactionStore}, possibly using the index of the task
+ * A task that performs some operations on a {@link TransactionStore}, possibly using the index of the task
  * as an input, and returns an {@link Optional<WitnessedTransaction>}.
  */
 @FunctionalInterface
 public interface IndexedTransactionTask
-        extends BiFunction<AtlasDbTransactionStore, Integer, Optional<WitnessedTransaction>> {}
+        extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}

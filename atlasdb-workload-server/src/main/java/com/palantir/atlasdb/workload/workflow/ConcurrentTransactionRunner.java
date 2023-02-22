@@ -20,7 +20,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -31,11 +31,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ConcurrentTransactionRunner {
-    private final AtlasDbTransactionStore atlasDbTransactionStore;
+    private final TransactionStore atlasDbTransactionStore;
     private final ListeningExecutorService listeningExecutorService;
 
     public ConcurrentTransactionRunner(
-            AtlasDbTransactionStore atlasDbTransactionStore, ListeningExecutorService listeningExecutorService) {
+            TransactionStore atlasDbTransactionStore, ListeningExecutorService listeningExecutorService) {
         this.atlasDbTransactionStore = atlasDbTransactionStore;
         this.listeningExecutorService = listeningExecutorService;
     }

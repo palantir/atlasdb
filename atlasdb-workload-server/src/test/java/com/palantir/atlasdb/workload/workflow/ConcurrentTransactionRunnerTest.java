@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -50,7 +50,7 @@ public class ConcurrentTransactionRunnerTest {
     private static final int DEFAULT_TASK_MULTIPLICITY = 100;
 
     private final IndexedTransactionTask task = mock(IndexedTransactionTask.class);
-    private final AtlasDbTransactionStore store = mock(AtlasDbTransactionStore.class);
+    private final TransactionStore store = mock(TransactionStore.class);
     private final DeterministicScheduler scheduler = new DeterministicScheduler();
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(scheduler);
     private final ConcurrentTransactionRunner runner = new ConcurrentTransactionRunner(store, executorService);
@@ -115,7 +115,7 @@ public class ConcurrentTransactionRunnerTest {
     @Test
     public void storePassedThroughToIndividualTasks() {
         when(task.apply(any(), anyInt())).thenAnswer(invocation -> {
-            AtlasDbTransactionStore transactionStore = invocation.getArgument(0);
+            TransactionStore transactionStore = invocation.getArgument(0);
             transactionStore.readWrite(ImmutableList.of());
             return Optional.of(createWitnessedTransactionWithStartTimestamp(invocation.getArgument(1)));
         });
