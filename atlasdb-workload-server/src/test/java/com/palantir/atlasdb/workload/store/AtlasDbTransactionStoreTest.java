@@ -77,7 +77,7 @@ public final class AtlasDbTransactionStoreTest {
                         TABLE_REFERENCE,
                         AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
                         INDEX_REFERENCE,
-                        AtlasDbUtils.indexMetadata()));
+                        AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE)));
     }
 
     @Test
@@ -108,10 +108,10 @@ public final class AtlasDbTransactionStoreTest {
         Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions.stream()
                 .map(action -> action.accept(WitnessToActionVisitor.INSTANCE))
                 .collect(Collectors.toList()));
-        assertThat(maybeTransaction).isPresent();
-        WitnessedTransaction transaction = maybeTransaction.get();
-        assertThat(transaction.commitTimestamp()).isNotEmpty();
-        assertThat(transaction.actions()).containsExactlyElementsOf(actions);
+        assertThat(maybeTransaction).isPresent().hasValueSatisfying(txn -> {
+            assertThat(txn.actions()).containsExactlyElementsOf(actions);
+            assertThat(txn.commitTimestamp()).isNotEmpty();
+        });
     }
 
     @Test

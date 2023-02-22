@@ -50,11 +50,14 @@ public final class AtlasDbUtils {
                 .persistToBytes();
     }
 
-    public static byte[] indexMetadata() {
+    public static byte[] indexMetadata(ConflictHandler baseTableConflictHandler) {
+        ConflictHandler conflictHandler = baseTableConflictHandler.checkReadWriteConflicts()
+                ? ConflictHandler.SERIALIZABLE_INDEX
+                : ConflictHandler.IGNORE_ALL;
         return new TableMetadata.Builder()
                 .rowMetadata(new NameMetadataDescription())
                 .columns(new ColumnMetadataDescription())
-                .conflictHandler(ConflictHandler.SERIALIZABLE_INDEX)
+                .conflictHandler(conflictHandler)
                 .cachePriority(TableMetadataPersistence.CachePriority.WARM)
                 .rangeScanAllowed(true)
                 .explicitCompressionBlockSizeKB(AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB)
