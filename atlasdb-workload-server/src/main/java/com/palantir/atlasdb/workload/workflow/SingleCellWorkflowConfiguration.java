@@ -16,20 +16,14 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import java.util.function.Consumer;
+import com.google.common.util.concurrent.RateLimiter;
+import org.immutables.value.Value;
 
-public interface Workflow {
-    /**
-     * Runs desired workflow until completion, including calling callbacks registered via {@link #onComplete(Consumer)}.
-     */
-    void run();
+@Value.Immutable
+public interface SingleCellWorkflowConfiguration extends WorkflowConfiguration {
+    String tableName();
 
-    /**
-     * Registers a callback that will be called synchronously when the workflow has completed.
-     * If multiple callbacks are registered, there are no guarantees on the order in which they execute, or that they
-     * will execute sequentially or in parallel.
-     *
-     * Behaviour if consumers are added after a call of {@link #run()} has started are undefined.
-     */
-    Workflow onComplete(Consumer<WorkflowHistory> consumer);
+    default RateLimiter transactionRateLimiter() {
+        return RateLimiter.create(100);
+    }
 }

@@ -47,8 +47,8 @@ public final class ConcurrentTransactionRunner {
                 "Tasks must be run a non-negative number of times",
                 SafeArg.of("providedTaskMultiplicity", taskMultiplicity));
         List<ListenableFuture<Optional<WitnessedTransaction>>> taskFutures = IntStream.range(0, taskMultiplicity)
-                .mapToObj(index ->
-                        listeningExecutorService.submit(() -> transactionTask.apply(transactionStore, index)))
+                .mapToObj(
+                        index -> listeningExecutorService.submit(() -> transactionTask.apply(transactionStore, index)))
                 .collect(Collectors.toList());
         return Futures.transform(
                 Futures.allAsList(taskFutures),
