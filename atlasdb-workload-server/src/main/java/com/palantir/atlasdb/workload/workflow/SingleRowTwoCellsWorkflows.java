@@ -50,7 +50,7 @@ public final class SingleRowTwoCellsWorkflows {
         return DefaultWorkflow.create(
                 store,
                 (txnStore, index) -> run(txnStore, index, singleCellWorkflowConfiguration),
-                singleCellWorkflowConfiguration);
+                singleCellWorkflowConfiguration.genericWorkflowConfiguration());
     }
 
     private static Optional<WitnessedTransaction> run(

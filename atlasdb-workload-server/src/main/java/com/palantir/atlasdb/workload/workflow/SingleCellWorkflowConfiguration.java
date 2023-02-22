@@ -20,7 +20,9 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SingleCellWorkflowConfiguration extends WorkflowConfiguration {
+public interface SingleCellWorkflowConfiguration {
+    WorkflowConfiguration genericWorkflowConfiguration();
+
     String tableName();
 
     default RateLimiter transactionRateLimiter() {
