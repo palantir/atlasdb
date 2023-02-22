@@ -26,5 +26,4 @@ import java.util.function.BiFunction;
  * as an input, and returns an {@link Optional<WitnessedTransaction>}.
  */
 @FunctionalInterface
-public interface IndexedTransactionTask
-        extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}
+public interface IndexedTransactionTask extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}

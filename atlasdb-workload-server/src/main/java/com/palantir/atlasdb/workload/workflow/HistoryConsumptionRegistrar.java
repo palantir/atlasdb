@@ -53,7 +53,7 @@ public class HistoryConsumptionRegistrar {
             }
         } catch (ExecutionException e) {
             log.warn("Error when running workflow.", e);
-            throw new SafeRuntimeException(e.getCause());
+            throw new SafeRuntimeException("Error when running workflow.", e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new SafeRuntimeException(e);

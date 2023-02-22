@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -40,7 +40,7 @@ public class DefaultWorkflow implements Workflow {
     }
 
     public static Workflow create(
-            AtlasDbTransactionStore store,
+            TransactionStore store,
             IndexedTransactionTask transactionTask,
             WorkflowConfiguration configuration) {
         return new DefaultWorkflow(
