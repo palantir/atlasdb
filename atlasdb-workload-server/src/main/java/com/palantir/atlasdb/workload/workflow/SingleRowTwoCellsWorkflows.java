@@ -31,6 +31,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Consider a single row in a database that has two cells, which should between them maintain the invariant that
+ * at most one cell has a value (this workflow is extremely common in AtlasDB Proxy). This workflow maintains
+ * concurrent transactions that read the row (both cells), and then sends an update to one of the cells and attempts
+ * to delete the other.
+ */
 public final class SingleRowTwoCellsWorkflows {
     private static final int SINGLE_ROW = 1;
     private static final int FIRST_COLUMN = 1;
