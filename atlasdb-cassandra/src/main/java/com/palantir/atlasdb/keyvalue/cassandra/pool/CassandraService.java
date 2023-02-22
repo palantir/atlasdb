@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableRangeMap;
@@ -294,28 +295,26 @@ public class CassandraService implements AutoCloseable {
     }
 
     private int getKnownPort() throws UnknownHostException {
-        return onlyPort(Stream.concat(
-                        currentPools.keySet().stream().map(CassandraServer::proxy),
-                        getServersSocketAddressesFromConfig().stream())
-                .map(InetSocketAddress::getPort)
-                .iterator());
+        // explicitly not using streams due to allocation overhead
+        return onlyPort(FluentIterable.concat(
+                        FluentIterable.from(currentPools.keySet()).transform(CassandraServer::proxy),
+                        getServersSocketAddressesFromConfig())
+                .transform(InetSocketAddress::getPort));
     }
 
     @VisibleForTesting
-    static int onlyPort(Iterator<Integer> iterator) throws UnknownHostException {
-        int knownPort = -1;
+    static int onlyPort(Iterable<? extends Integer> iterable) throws UnknownHostException {
+        Iterator<? extends Integer> iterator = iterable.iterator();
+        if (!iterator.hasNext()) {
+            throw new UnknownHostException("No single known port");
+        }
+        int port = iterator.next();
         while (iterator.hasNext()) {
-            int port = iterator.next();
-            if (knownPort == -1) {
-                knownPort = port;
-            } else if (knownPort != port) {
+            if (port != iterator.next()) {
                 throw new UnknownHostException("No single known port");
             }
         }
-        if (knownPort == -1) {
-            throw new UnknownHostException("No single known port");
-        }
-        return knownPort;
+        return port;
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {
