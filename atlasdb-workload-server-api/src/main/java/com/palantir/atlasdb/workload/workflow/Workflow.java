@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 public interface Workflow {
     /**
-     * Runs desired workflow asynchronously until completion.
+     * Runs desired workflow until completion.
      */
     void run();
 

@@ -79,7 +79,7 @@ public class HistoryConsumptionRegistrarTest {
 
     @Test
     public void propagatesExceptionsFromTransactionTasks() {
-        RuntimeException taskException = new RuntimeException();
+        RuntimeException taskException = new RuntimeException("boom");
 
         registrar.addConsumer(historyConsumerOne);
         registrar.addConsumer(historyConsumerTwo);
