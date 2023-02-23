@@ -23,8 +23,9 @@ import java.util.function.BiFunction;
 
 /**
  * A task that performs some operations on a {@link TransactionStore}, possibly using the index of the task
- * as an input, and returns an {@link Optional<WitnessedTransaction>}. Here, "index" refers to an integer between 0
- * and the {@link WorkflowConfiguration#iterationCount()} - each copy of the task will receive a different integer.
+ * as an input, and returns an {@link Optional} of {@link WitnessedTransaction}. Here, "index" refers to an integer
+ * between 0 and the {@link WorkflowConfiguration#iterationCount()} - each copy of the task will receive a different
+ * integer.
  */
 @FunctionalInterface
 public interface IndexedTransactionTask extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}
