@@ -137,7 +137,7 @@ public class SingleRowTwoCellsWorkflowsTest {
                 .isBetween(0, ITERATION_COUNT);
     }
 
-    private static class ReadValidationVisitor implements WitnessedTransactionActionVisitor<Void> {
+    private static final class ReadValidationVisitor implements WitnessedTransactionActionVisitor<Void> {
         private final WitnessedReadTransactionAction readWitness;
 
         private ReadValidationVisitor(WitnessedReadTransactionAction readWitness) {
