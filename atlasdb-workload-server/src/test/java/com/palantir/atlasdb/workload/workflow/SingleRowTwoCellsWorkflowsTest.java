@@ -57,9 +57,12 @@ public class SingleRowTwoCellsWorkflowsTest {
         Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                 TRANSACTION_STORE,
                 ImmutableSingleCellWorkflowConfiguration.builder()
-                        .iterationCount(ITERATION_COUNT)
                         .tableName(TEST_TABLE.getTableName())
-                        .executionExecutor(MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
+                        .genericWorkflowConfiguration(ImmutableWorkflowConfiguration.builder()
+                                .iterationCount(ITERATION_COUNT)
+                                .executionExecutor(
+                                        MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
+                                .build())
                         .build());
         workflow.onComplete(this::assertWorkflowHistoryConsistent);
         workflow.run();
@@ -82,8 +85,8 @@ public class SingleRowTwoCellsWorkflowsTest {
             WitnessedTransaction successor = transactionsByCommitTime.get(index);
 
             assertThat(predecessor.commitTimestamp().orElseThrow())
-                    .as("given all transactions touch the same cells, they should conflict and so concurrency should "
-                            + "not be allowed")
+                    .as("given all transactions touch the same cells, overlapping transactions should conflict and so "
+                            + "they should not be allowed")
                     .isLessThan(successor.startTimestamp());
 
             validatePredecessorWritesSeenBySuccessor(predecessor, successor);
