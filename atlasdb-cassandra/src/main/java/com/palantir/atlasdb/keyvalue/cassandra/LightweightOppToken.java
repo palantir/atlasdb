@@ -45,15 +45,6 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         return new LightweightOppToken(bytes);
     }
 
-    public static LightweightOppToken getLowerExclusive(Range<LightweightOppToken> range) {
-        Preconditions.checkArgument(
-                !range.hasLowerBound() || range.lowerBoundType().equals(BoundType.OPEN),
-                "Token range lower bound should be open",
-                SafeArg.of("range", range));
-
-        return range.hasLowerBound() ? range.lowerEndpoint() : new LightweightOppToken(new byte[0]);
-    }
-
     public static LightweightOppToken getUpperInclusive(Range<LightweightOppToken> range) {
         Preconditions.checkArgument(
                 !range.hasUpperBound() || range.upperBoundType().equals(BoundType.CLOSED),

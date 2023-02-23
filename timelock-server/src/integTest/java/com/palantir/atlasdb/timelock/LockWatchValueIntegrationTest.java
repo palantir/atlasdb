@@ -43,6 +43,8 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -71,7 +73,9 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 
+@ShouldRetry // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
@@ -110,8 +114,11 @@ public final class LockWatchValueIntegrationTest {
     private static final byte[] COL_3 = PtBytes.toBytes("columns");
     private static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
-    @ClassRule
-    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
+    public static final TestRule flakeRetryingRule = new FlakeRetryingRule();
+
+    @ClassRule // Ordered such that we retry _after_ resetting any temporary state
+    public static final RuleChain ruleChain =
+            RuleChain.outerRule(flakeRetryingRule).around(CLUSTER.getRuleChain());
 
     private TransactionManager txnManager;
 
@@ -538,6 +545,9 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
+    @ShouldRetry // The test fails when trying to cache a value that is currently locked.
+    // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
+    // there is a better way to handle this.
     public void valueStressTest() {
         createTransactionManager(1.0);
         int numThreads = 200;

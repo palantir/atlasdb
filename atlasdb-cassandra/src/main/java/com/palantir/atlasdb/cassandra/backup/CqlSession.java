@@ -16,18 +16,11 @@
 
 package com.palantir.atlasdb.cassandra.backup;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
-import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import java.io.Closeable;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class CqlSession implements Closeable {
     private final Session session;
@@ -43,15 +36,6 @@ public class CqlSession implements Closeable {
 
     public CqlMetadata getMetadata() {
         return new CqlMetadata(session.getCluster().getMetadata());
-    }
-
-    public Set<LightweightOppToken> retrieveRowKeysAtConsistencyAll(List<Statement> selectStatements) {
-        return selectStatements.stream()
-                .map(statement -> statement.setConsistencyLevel(ConsistencyLevel.ALL))
-                .flatMap(select -> StreamSupport.stream(session.execute(select).spliterator(), false))
-                .map(row -> row.getToken(CassandraConstants.ROW))
-                .map(LightweightOppToken::serialize)
-                .collect(Collectors.toSet());
     }
 
     public PreparedStatement prepare(Statement statement) {

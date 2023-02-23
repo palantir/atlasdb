@@ -30,7 +30,6 @@ import org.junit.runners.Suite;
     TargetedSweepEteTest.class,
     CassandraTimestampsEteTest.class,
     TimestampManagementEteTest.class,
-    BackupAndRestoreEteTest.class,
     CoordinationEteTest.class,
     MultipleSchemaVersionsCoordinationEteTest.class,
     LockWithTimelockEteTest.class

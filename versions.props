@@ -1,7 +1,7 @@
 com.boundary:high-scale-lib = 1.0.6
 com.ea.agentloader:ea-agent-loader = 1.0.3
-com.fasterxml.jackson.*:* = 2.14.1
-com.fasterxml.jackson.core:jackson-databind = 2.14.1
+com.fasterxml.jackson.*:* = 2.14.2
+com.fasterxml.jackson.core:jackson-databind = 2.14.2
 com.github.ben-manes.caffeine:caffeine = 3.1.2
 com.github.peterwippermann.junit4:parameterized-suite = 1.1.0
 com.github.rholder:guava-retrying = 2.0.0

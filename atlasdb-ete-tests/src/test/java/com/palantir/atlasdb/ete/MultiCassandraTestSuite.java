@@ -26,7 +26,6 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    CassandraRepairEteTest.class,
     TodoEteTest.class,
     ServiceExposureEteTest.class,
     MultiCassandraSingleNodeDownEteTest.class,

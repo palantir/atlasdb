@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -30,17 +29,9 @@ import static org.mockito.Mockito.when;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.SingleNodeUpdateResponse;
-import com.palantir.atlasdb.timelock.management.DisabledNamespaces;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -66,21 +57,16 @@ public class TimelockNamespacesTest {
     @Mock
     private Supplier<Integer> maxNumberOfClientsSupplier;
 
-    @Mock
-    private DisabledNamespaces disabledNamespaces;
-
     private final MetricsManager metricsManager =
             new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
     private TimelockNamespaces namespaces;
 
     @Before
     public void before() {
-        namespaces =
-                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier, disabledNamespaces);
+        namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
-        when(disabledNamespaces.isEnabled(any())).thenReturn(true);
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
@@ -97,23 +83,6 @@ public class TimelockNamespacesTest {
         namespaces.get(CLIENT_A);
 
         verify(serviceFactory, times(1)).apply(any());
-    }
-
-    @Test
-    public void cannotCreateServiceForDisabledNamespace() {
-        when(disabledNamespaces.isEnabled(Namespace.of(CLIENT_A))).thenReturn(false);
-
-        assertThatThrownBy(() -> namespaces.get(CLIENT_A)).isInstanceOf(SafeIllegalArgumentException.class);
-    }
-
-    @Test
-    public void canGetIgnoringDisabledWithoutFillingCache() {
-        when(disabledNamespaces.isEnabled(Namespace.of(CLIENT_A))).thenReturn(false);
-
-        TimeLockServices servicesIgnoringDisabled = namespaces.getIgnoringDisabled(CLIENT_A);
-        assertThat(servicesIgnoringDisabled).isEqualTo(servicesA);
-
-        assertThatThrownBy(() -> namespaces.get(CLIENT_A)).isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @Test
@@ -211,32 +180,6 @@ public class TimelockNamespacesTest {
     public void handlesInvalidationOfNonexistentClients() {
         assertThatCode(() -> namespaces.invalidateResourcesForClient("somethingUnknown"))
                 .doesNotThrowAnyException();
-    }
-
-    @Test
-    public void disableInvalidatesServices() {
-        String client = uniqueClient();
-        TimeLockServices services = namespaces.get(client);
-
-        String lockId = "lockId";
-        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.successful());
-
-        namespaces.disable(DisableNamespacesRequest.of(ImmutableSet.of(Namespace.of(client)), lockId));
-        verify(services).close();
-    }
-
-    @Test
-    public void disableDoesNotInvalidateServicesOnFailure() {
-        String client = uniqueClient();
-        TimeLockServices services = namespaces.get(client);
-
-        ImmutableSet<Namespace> namespacesToDisable = ImmutableSet.of(Namespace.of(client));
-        String lockId = "lockId";
-        Map<Namespace, String> lockedNamespace = ImmutableMap.of(Namespace.of(client), lockId);
-        when(disabledNamespaces.disable(any())).thenReturn(SingleNodeUpdateResponse.failed(lockedNamespace));
-
-        namespaces.disable(DisableNamespacesRequest.of(namespacesToDisable, lockId));
-        verify(services, never()).close();
     }
 
     private void createMaximumNumberOfClients() {
