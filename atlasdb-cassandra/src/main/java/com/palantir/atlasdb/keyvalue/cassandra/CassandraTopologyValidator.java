@@ -170,7 +170,8 @@ public final class CassandraTopologyValidator {
         }
 
         // If a consensus can be reached from the current servers, filter all new servers which have the same set of
-        // host ids. Accept dissent as such, but permit
+        // host ids. Accept dissent as such, but permit new servers if they are in quorum _and_ match the previously
+        // accepted set of host IDs
         ClusterTopologyResult topologyFromCurrentServers =
                 maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures);
 
