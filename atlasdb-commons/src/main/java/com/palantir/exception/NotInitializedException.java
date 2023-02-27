@@ -15,12 +15,12 @@
  */
 package com.palantir.exception;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+
 import java.util.List;
 
 public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
@@ -33,12 +33,12 @@ public class NotInitializedException extends AtlasDbDependencyException implemen
                     + " expected that initialization of some object types do take some time.";
     private final String objectNotInitialized;
 
-    public NotInitializedException(@CompileTimeConstant String objectNotInitialized) {
+    public NotInitializedException(@Safe String objectNotInitialized) {
         super(EXCEPTION_MESSAGE);
         this.objectNotInitialized = objectNotInitialized;
     }
 
-    public NotInitializedException(@CompileTimeConstant String objectNotInitialized, Throwable throwable) {
+    public NotInitializedException(@Safe String objectNotInitialized, Throwable throwable) {
         super(EXCEPTION_MESSAGE, throwable);
         this.objectNotInitialized = objectNotInitialized;
     }
