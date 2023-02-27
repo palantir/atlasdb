@@ -20,7 +20,6 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
-
 import java.util.List;
 
 public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
