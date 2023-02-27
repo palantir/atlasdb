@@ -27,6 +27,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +82,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -228,13 +230,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void callingEnqueueAndSweepOnUninitializedSweeperThrows() {
+        SafeArg<String> objectNameSafeArg = SafeArg.of("objectName", "Targeted Sweeper");
         TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
+        assertThatLoggableExceptionThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
                 .isInstanceOf(NotInitializedException.class)
-                .hasMessageContaining("Targeted Sweeper");
-        assertThatThrownBy(() -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
+                .hasExactlyArgs(objectNameSafeArg);
+        assertThatLoggableExceptionThrownBy(
+                        () -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
                 .isInstanceOf(NotInitializedException.class)
-                .hasMessageContaining("Targeted Sweeper");
+                .hasExactlyArgs(objectNameSafeArg);
     }
 
     @Test

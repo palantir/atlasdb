@@ -16,18 +16,40 @@
 package com.palantir.exception;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
+import java.util.List;
 
-public class NotInitializedException extends AtlasDbDependencyException {
-    public NotInitializedException(String objectNotInitialized) {
-        super(exceptionMessage(objectNotInitialized));
+public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
+
+    private static final String EXCEPTION_MESSAGE =
+            "The object is not yet initialized, and as a result, all calls to it will fail. Interactions with this"
+                    + " object should not take place until after initialization has completed. For example, if your"
+                    + " service that handles REST requests relies on this object, it should not service REST requests"
+                    + " until initialization has completed, as otherwise all calls are guaranteed to fail. It is"
+                    + " expected that initialization of some object types do take some time.";
+    private final String objectNotInitialized;
+
+    public NotInitializedException(@Safe String objectNotInitialized) {
+        super(EXCEPTION_MESSAGE);
+        this.objectNotInitialized = objectNotInitialized;
     }
 
-    public NotInitializedException(String objectNotInitialized, Throwable throwable) {
-        super(exceptionMessage(objectNotInitialized), throwable);
+    public NotInitializedException(@Safe String objectNotInitialized, Throwable throwable) {
+        super(EXCEPTION_MESSAGE, throwable);
+        this.objectNotInitialized = objectNotInitialized;
     }
 
-    private static String exceptionMessage(String objectNotInitialized) {
-        return String.format("The %s is not initialized yet", SafeArg.of("objectName", objectNotInitialized));
+    @Override
+    @Safe
+    public String getLogMessage() {
+        return EXCEPTION_MESSAGE;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return List.of(SafeArg.of("objectName", objectNotInitialized));
     }
 }
