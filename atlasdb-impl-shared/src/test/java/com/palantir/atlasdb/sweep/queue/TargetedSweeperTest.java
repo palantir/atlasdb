@@ -231,8 +231,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void callingEnqueueAndSweepOnUninitializedSweeperThrows() {
         TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
-                .isInstanceOf(NotInitializedException.class);
+        assertThatLoggableExceptionThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
+                .isInstanceOf(NotInitializedException.class)
+                .hasExactlyArgs(SafeArg.of("objectName", "Targeted Sweeper"));
         assertThatLoggableExceptionThrownBy(
                         () -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
                 .isInstanceOf(NotInitializedException.class)
