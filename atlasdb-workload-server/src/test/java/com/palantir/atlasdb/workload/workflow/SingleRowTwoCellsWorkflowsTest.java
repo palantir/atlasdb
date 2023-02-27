@@ -37,10 +37,8 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
 
@@ -64,20 +62,14 @@ public class SingleRowTwoCellsWorkflowsTest {
                                         MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
                                 .build())
                         .build());
-        workflow.onComplete(this::assertWorkflowHistoryConsistent);
-        workflow.run();
+        assertWorkflowHistoryConsistent(workflow.run());
     }
 
     // This is basically a very simple invariant checker
     private void assertWorkflowHistoryConsistent(WorkflowHistory workflowHistory) {
-        List<WitnessedTransaction> transactionsByCommitTime = workflowHistory.history().stream()
-                .sorted(Comparator.comparingLong(witnessedTransaction ->
-                        witnessedTransaction.commitTimestamp().orElseThrow()))
-                .collect(Collectors.toList());
+        workflowHistory.history().forEach(SingleRowTwoCellsWorkflowsTest::validateLocalReadsMatchLocalWrites);
 
-        for (WitnessedTransaction transaction : transactionsByCommitTime) {
-            validateLocalReadsMatchLocalWrites(transaction);
-        }
+        List<WitnessedTransaction> transactionsByCommitTime = workflowHistory.history();
 
         // Start from 1 intentional as we want to look at pairs of transactions
         for (int index = 1; index < transactionsByCommitTime.size(); index++) {
