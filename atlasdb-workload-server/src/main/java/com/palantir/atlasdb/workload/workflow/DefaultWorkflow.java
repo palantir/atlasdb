@@ -16,49 +16,65 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public final class DefaultWorkflow implements Workflow {
     private final ConcurrentTransactionRunner concurrentTransactionRunner;
-    private final HistoryConsumptionRegistrar historyConsumptionRegistrar;
-    private final IndexedTransactionTask transactionTask;
+    private final KeyedTransactionTask transactionTask;
     private final WorkflowConfiguration workflowConfiguration;
 
     private DefaultWorkflow(
             ConcurrentTransactionRunner concurrentTransactionRunner,
-            HistoryConsumptionRegistrar historyConsumptionRegistrar,
-            IndexedTransactionTask transactionTask,
+            KeyedTransactionTask transactionTask,
             WorkflowConfiguration workflowConfiguration) {
         this.concurrentTransactionRunner = concurrentTransactionRunner;
-        this.historyConsumptionRegistrar = historyConsumptionRegistrar;
         this.transactionTask = transactionTask;
         this.workflowConfiguration = workflowConfiguration;
     }
 
     public static Workflow create(
-            TransactionStore store, IndexedTransactionTask transactionTask, WorkflowConfiguration configuration) {
+            TransactionStore store, KeyedTransactionTask transactionTask, WorkflowConfiguration configuration) {
         return new DefaultWorkflow(
                 new ConcurrentTransactionRunner(store, configuration.executionExecutor()),
-                new HistoryConsumptionRegistrar(store),
                 transactionTask,
                 configuration);
     }
 
     @Override
-    public void run() {
-        Future<List<WitnessedTransaction>> witnessedTransactions =
-                concurrentTransactionRunner.runConcurrentTransactionTask(
-                        transactionTask, workflowConfiguration.iterationCount());
-        historyConsumptionRegistrar.runOnConsumersBlocking(witnessedTransactions);
+    public List<WitnessedTransaction> run() {
+        return sortByEffectiveTimestamp(runTransactionTask());
     }
 
-    @Override
-    public Workflow onComplete(Consumer<WorkflowHistory> consumer) {
-        historyConsumptionRegistrar.addConsumer(consumer);
-        return this;
+    private List<WitnessedTransaction> runTransactionTask() {
+        Future<List<WitnessedTransaction>> transactionsFuture =
+                concurrentTransactionRunner.runConcurrentTransactionTask(
+                        transactionTask, workflowConfiguration.iterationCount());
+        try {
+            return transactionsFuture.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SafeRuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new SafeRuntimeException("Error when running workflow task", e.getCause());
+        }
+    }
+
+    @VisibleForTesting
+    static List<WitnessedTransaction> sortByEffectiveTimestamp(List<WitnessedTransaction> unorderedTransactions) {
+        return unorderedTransactions.stream()
+                .sorted(Comparator.comparingLong(DefaultWorkflow::effectiveTimestamp))
+                .collect(Collectors.toList());
+    }
+
+    private static long effectiveTimestamp(WitnessedTransaction witnessedTransaction) {
+        return witnessedTransaction.commitTimestamp().orElse(witnessedTransaction.startTimestamp());
     }
 }

@@ -49,7 +49,7 @@ import org.junit.Test;
 public class ConcurrentTransactionRunnerTest {
     private static final int DEFAULT_TASK_MULTIPLICITY = 100;
 
-    private final IndexedTransactionTask task = mock(IndexedTransactionTask.class);
+    private final KeyedTransactionTask task = mock(KeyedTransactionTask.class);
     private final TransactionStore store = mock(TransactionStore.class);
     private final DeterministicScheduler scheduler = new DeterministicScheduler();
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(scheduler);
@@ -95,7 +95,7 @@ public class ConcurrentTransactionRunnerTest {
         scheduler.runUntilIdle();
         List<WitnessedTransaction> witnessedTransactions = Futures.getUnchecked(witnessedTransactionsFuture);
         assertThat(witnessedTransactions)
-                .containsExactlyElementsOf(IntStream.range(0, DEFAULT_TASK_MULTIPLICITY)
+                .containsExactlyInAnyOrderElementsOf(IntStream.range(0, DEFAULT_TASK_MULTIPLICITY)
                         .filter(index -> !failingTasks.contains(index))
                         .mapToObj(ConcurrentTransactionRunnerTest::createWitnessedTransactionWithStartTimestamp)
                         .collect(Collectors.toList()));

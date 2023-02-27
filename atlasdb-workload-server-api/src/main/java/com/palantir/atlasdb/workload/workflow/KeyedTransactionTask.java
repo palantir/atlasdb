@@ -26,6 +26,8 @@ import java.util.function.BiFunction;
  * as an input, and returns an {@link Optional} of {@link WitnessedTransaction}. Here, "index" refers to an integer
  * between 0 and the {@link WorkflowConfiguration#iterationCount()} - each copy of the task will receive a different
  * integer.
+ * If the transaction does not succeed, then the task should return an {@link Optional#empty()}. It should not throw
+ * an exception.
  */
 @FunctionalInterface
-public interface IndexedTransactionTask extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}
+public interface KeyedTransactionTask extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}

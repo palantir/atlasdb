@@ -41,7 +41,7 @@ public final class ConcurrentTransactionRunner {
     }
 
     public Future<List<WitnessedTransaction>> runConcurrentTransactionTask(
-            IndexedTransactionTask transactionTask, int taskMultiplicity) {
+            KeyedTransactionTask transactionTask, int taskMultiplicity) {
         Preconditions.checkArgument(
                 taskMultiplicity >= 0,
                 "Tasks must be run a non-negative number of times",
