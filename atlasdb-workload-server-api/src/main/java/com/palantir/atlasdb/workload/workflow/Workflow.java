@@ -16,15 +16,12 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import java.util.List;
-
 public interface Workflow {
     /**
-     * Runs desired workflow until completion. Returns a list of {@link WitnessedTransaction}, that corresponds to
-     * transactions that were known to be completed.
+     * Runs desired workflow until completion. Returns {@link WorkflowHistory}, that corresponds to transactions that
+     * were known to be completed.
      * This list is sorted by ascending "timeline timestamp", which is taken to be the commit timestamp in the case
      * of read-write transactions, and the start timestamp in the case of read-only transactions.
      */
-    List<WitnessedTransaction> run();
+    WorkflowHistory run();
 }

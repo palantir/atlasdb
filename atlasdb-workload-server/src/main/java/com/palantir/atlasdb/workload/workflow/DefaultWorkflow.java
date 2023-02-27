@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -30,14 +31,17 @@ public final class DefaultWorkflow implements Workflow {
     private final ConcurrentTransactionRunner concurrentTransactionRunner;
     private final KeyedTransactionTask transactionTask;
     private final WorkflowConfiguration workflowConfiguration;
+    private final ReadOnlyTransactionStore readOnlyTransactionStore;
 
     private DefaultWorkflow(
             ConcurrentTransactionRunner concurrentTransactionRunner,
             KeyedTransactionTask transactionTask,
-            WorkflowConfiguration workflowConfiguration) {
+            WorkflowConfiguration workflowConfiguration,
+            ReadOnlyTransactionStore readOnlyTransactionStore) {
         this.concurrentTransactionRunner = concurrentTransactionRunner;
         this.transactionTask = transactionTask;
         this.workflowConfiguration = workflowConfiguration;
+        this.readOnlyTransactionStore = readOnlyTransactionStore;
     }
 
     public static Workflow create(
@@ -45,12 +49,16 @@ public final class DefaultWorkflow implements Workflow {
         return new DefaultWorkflow(
                 new ConcurrentTransactionRunner(store, configuration.executionExecutor()),
                 transactionTask,
-                configuration);
+                configuration,
+                new ReadOnlyTransactionStore(store));
     }
 
     @Override
-    public List<WitnessedTransaction> run() {
-        return sortByEffectiveTimestamp(runTransactionTask());
+    public WorkflowHistory run() {
+        return ImmutableWorkflowHistory.builder()
+                .history(sortByEffectiveTimestamp(runTransactionTask()))
+                .transactionStore(readOnlyTransactionStore)
+                .build();
     }
 
     private List<WitnessedTransaction> runTransactionTask() {
