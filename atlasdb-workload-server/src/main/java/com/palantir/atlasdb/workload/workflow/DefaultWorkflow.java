@@ -83,6 +83,6 @@ public final class DefaultWorkflow implements Workflow {
     }
 
     private static long effectiveTimestamp(WitnessedTransaction witnessedTransaction) {
-        return witnessedTransaction.commitTimestamp().orElse(witnessedTransaction.startTimestamp());
+        return witnessedTransaction.commitTimestamp().orElseGet(witnessedTransaction::startTimestamp);
     }
 }
