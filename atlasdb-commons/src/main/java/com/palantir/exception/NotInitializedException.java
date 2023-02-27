@@ -15,6 +15,7 @@
  */
 package com.palantir.exception;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
@@ -32,7 +33,7 @@ public class NotInitializedException extends AtlasDbDependencyException implemen
                     + " expected that initialization of some object types do take some time.";
     private final String objectNotInitialized;
 
-    public NotInitializedException(String objectNotInitialized) {
+    public NotInitializedException(@CompileTimeConstant String objectNotInitialized) {
         super(EXCEPTION_MESSAGE);
         this.objectNotInitialized = objectNotInitialized;
     }
@@ -43,7 +44,8 @@ public class NotInitializedException extends AtlasDbDependencyException implemen
     }
 
     @Override
-    public @Safe String getLogMessage() {
+    @Safe
+    public String getLogMessage() {
         return EXCEPTION_MESSAGE;
     }
 
