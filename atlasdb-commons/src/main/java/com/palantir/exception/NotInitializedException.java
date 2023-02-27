@@ -38,7 +38,7 @@ public class NotInitializedException extends AtlasDbDependencyException implemen
         this.objectNotInitialized = objectNotInitialized;
     }
 
-    public NotInitializedException(String objectNotInitialized, Throwable throwable) {
+    public NotInitializedException(@CompileTimeConstant String objectNotInitialized, Throwable throwable) {
         super(EXCEPTION_MESSAGE, throwable);
         this.objectNotInitialized = objectNotInitialized;
     }
