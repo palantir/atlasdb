@@ -16,12 +16,12 @@
 
 package com.palantir.exception;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.palantir.logsafe.SafeArg;
 import org.junit.Test;
 
-public class NotInitializedExceptionTest {
+import static org.assertj.core.api.Assertions.assertThat;
+
+public final class NotInitializedExceptionTest {
     @Test
     public void getArgsHasObjectNameAsSafe() {
         String objectName = "foo";
