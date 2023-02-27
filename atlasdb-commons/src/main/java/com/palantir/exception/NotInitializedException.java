@@ -22,7 +22,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import java.util.List;
 
-public final class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
+public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
 
     private static final String EXCEPTION_MESSAGE =
             "The object is not yet initialized, and as a result, all calls to it will fail. Interactions with this"
