@@ -314,7 +314,7 @@ public final class CassandraTopologyValidatorTest {
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(newCassandraServers), allHosts))
                 .as("rejects all servers when no quorum from all hosts and no quorum on new hosts")
-                .isEqualTo(newCassandraServers);
+                .containsExactlyInAnyOrderElementsOf(newCassandraServers);
     }
 
     @Test
@@ -338,7 +338,7 @@ public final class CassandraTopologyValidatorTest {
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(newCassandraServers), allHosts))
                 .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
-                .isEqualTo(newCassandraServers);
+                .containsExactlyInAnyOrderElementsOf(newCassandraServers);
     }
 
     @Test
@@ -385,7 +385,7 @@ public final class CassandraTopologyValidatorTest {
                         allHosts))
                 .as("accepts quorum from config hosts if they have the same host IDs as old topology when no current"
                         + " servers")
-                .isEqualTo(oldCassandraServers);
+                .containsExactlyInAnyOrderElementsOf(oldCassandraServers);
     }
 
     @Test
@@ -412,7 +412,7 @@ public final class CassandraTopologyValidatorTest {
                                 oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
                         allHosts))
                 .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
-                .isEqualTo(allCassandraServers);
+                .containsExactlyInAnyOrderElementsOf(allCassandraServers);
     }
 
     @Test
@@ -439,7 +439,7 @@ public final class CassandraTopologyValidatorTest {
                                 oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
                         allHosts))
                 .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
-                .isEqualTo(allCassandraServers);
+                .containsExactlyInAnyOrderElementsOf(allCassandraServers);
     }
 
     @Test
