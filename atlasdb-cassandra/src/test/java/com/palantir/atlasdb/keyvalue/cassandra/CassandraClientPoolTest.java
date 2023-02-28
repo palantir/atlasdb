@@ -668,9 +668,10 @@ public final class CassandraClientPoolTest {
                 ImmutableDefaultConfig.builder().addAllThriftHosts(servers).build();
         when(runtimeConfig.servers()).thenReturn(config);
         when(cassandra.getCurrentServerListFromConfig())
-                .thenReturn(config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
-                        .map(CassandraServer::of)
-                        .collect(ImmutableMap.toImmutableMap(Function.identity(), _v -> CassandraServerOrigin.CONFIG)));
+                .thenReturn(CassandraServerOrigin.mapAllServersToOrigin(
+                        config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
+                                .map(CassandraServer::of),
+                        CassandraServerOrigin.CONFIG));
     }
 
     private void setupHostsWithConsistentTopology() {

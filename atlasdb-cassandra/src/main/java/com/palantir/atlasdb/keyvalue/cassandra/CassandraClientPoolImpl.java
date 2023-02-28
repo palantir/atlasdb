@@ -387,9 +387,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (serversToAdd.isEmpty()) {
             return Set.of();
         }
-
+        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
-                getContainerForNewServers(serversToAdd.keySet());
+                getContainerForNewServers(serversToAddWithoutOrigin);
 
         Preconditions.checkArgument(
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
@@ -412,7 +412,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                         serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
 
         Set<CassandraServer> validatedServersToAdd =
-                Sets.difference(serversToAdd.keySet(), newHostsWithDifferingTopology);
+                Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
         newHostsWithDifferingTopology.forEach(
                 server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
