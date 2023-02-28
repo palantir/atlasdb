@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload;
+package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import java.util.function.Consumer;
+import java.util.Map;
+import java.util.Set;
 
-public interface Invariant extends Consumer<WorkflowHistory> {}
+public interface ValidationStore {
+    Map<TableWorkloadCell, Integer> values();
+
+    Set<TableWorkloadCell> deletedCells();
+}

@@ -16,120 +16,82 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Table;
-import com.palantir.atlasdb.workload.Invariant;
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
-import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.store.TableWorkloadCell;
+import com.palantir.atlasdb.workload.transaction.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.concurrent.NotThreadSafe;
+import java.util.function.Consumer;
+import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
 
 public class DurableWritesInvariant implements Invariant {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbTransactionStore.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DurableWritesInvariant.class);
 
-    @Override
-    public void accept(WorkflowHistory workflowHistory) {
-        InMemoryKvsTransactionReplayer replayer = new InMemoryKvsTransactionReplayer();
-        workflowHistory.history().stream()
-                .map(WitnessedTransaction::actions)
-                .forEach(witnessedTransactionActions ->
-                        witnessedTransactionActions.forEach(action -> action.accept(replayer)));
-        replayer.getTables().forEach(tableName -> {
-            checkCellsExist(tableName, replayer.getValues(tableName), workflowHistory.transactionStore());
-            checkCellsAreDeleted(tableName, replayer.getDeletedCells(tableName), workflowHistory.transactionStore());
-        });
-    }
+    private final Consumer<Map<TableWorkloadCell, MismatchedValue>> mismatchingCellsConsumer;
+    private final Consumer<Map<TableWorkloadCell, Integer>> undeletedCellsConsumer;
 
-    private static void checkCellsExist(
-            String tableName, Map<WorkloadCell, Integer> expectedCells, ReadableTransactionStore store) {
-        expectedCells.forEach((cell, value) -> {
-            Optional<Integer> actualValue = store.get(tableName, cell);
-            boolean equalValues = actualValue.map(value::equals).orElse(false);
-            if (!equalValues) {
-                log.error(
-                        "InMemoryKvs does not match external KVS.",
-                        SafeArg.of("table", tableName),
-                        SafeArg.of("cell", cell),
-                        SafeArg.of("expectedValue", value),
-                        SafeArg.of("actualValue", actualValue));
-            }
-        });
-    }
-
-    private static void checkCellsAreDeleted(
-            String tableName, Set<WorkloadCell> cells, ReadableTransactionStore store) {
-        cells.forEach(deletedCell -> store.get(tableName, deletedCell)
-                .ifPresent(value -> log.error(
+    public DurableWritesInvariant() {
+        this(
+                mismatchingValues -> mismatchingValues.forEach((cell, mismatchedValue) -> log.error(
+                        "In-memory state does not match external transactional store.",
+                        SafeArg.of("table", cell.tableName()),
+                        SafeArg.of("cell", cell.cell()),
+                        SafeArg.of("mismatchedValue", mismatchedValue))),
+                undeletedCells -> undeletedCells.forEach((cell, value) -> log.error(
                         "Cell existed when it is expected to be deleted.",
-                        SafeArg.of("tableName", tableName),
-                        SafeArg.of("cell", deletedCell),
+                        SafeArg.of("tableName", cell.tableName()),
+                        SafeArg.of("cell", cell.cell()),
                         SafeArg.of("value", value))));
     }
 
-    @NotThreadSafe
-    private static class InMemoryKvsTransactionReplayer implements WitnessedTransactionActionVisitor<Void> {
+    @VisibleForTesting
+    DurableWritesInvariant(
+            Consumer<Map<TableWorkloadCell, MismatchedValue>> mismatchingCellsConsumer,
+            Consumer<Map<TableWorkloadCell, Integer>> undeletedCellsConsumer) {
+        this.mismatchingCellsConsumer = mismatchingCellsConsumer;
+        this.undeletedCellsConsumer = undeletedCellsConsumer;
+    }
 
-        private final Table<String, WorkloadCell, Integer> kvs = HashBasedTable.create();
-        private final SetMultimap<String, WorkloadCell> deletedCells = HashMultimap.create();
-        private boolean hasFinished = false;
+    @Override
+    public void accept(WorkflowHistory workflowHistory) {
+        InMemoryValidationStore expectedState = InMemoryValidationStore.create(workflowHistory.history());
+        mismatchingCellsConsumer.accept(
+                findCellsThatDoNotMatch(expectedState.values(), workflowHistory.transactionStore()));
+        undeletedCellsConsumer.accept(
+                findCellsThatAreNotDeleted(expectedState.deletedCells(), workflowHistory.transactionStore()));
+    }
 
-        @Override
-        public Void visit(WitnessedReadTransactionAction readTransactionAction) {
-            checkMutable();
-            return null;
-        }
+    @VisibleForTesting
+    Map<TableWorkloadCell, MismatchedValue> findCellsThatDoNotMatch(
+            Map<TableWorkloadCell, Integer> expectedCells, ReadableTransactionStore storeToValidate) {
+        return EntryStream.of(expectedCells)
+                .mapToValue((writtenCell, expectedValue) -> {
+                    Optional<Integer> actualValue = storeToValidate.get(writtenCell.tableName(), writtenCell.cell());
+                    if (!actualValue.map(expectedValue::equals).orElse(false)) {
+                        return Optional.of(MismatchedValue.of(actualValue, Optional.of(expectedValue)));
+                    }
+                    return Optional.<MismatchedValue>empty();
+                })
+                .removeValues(Optional::isEmpty)
+                .mapValues(Optional::get)
+                .toMap();
+    }
 
-        @Override
-        public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            checkMutable();
-            kvs.put(writeTransactionAction.table(), writeTransactionAction.cell(), writeTransactionAction.value());
-            deletedCells.remove(writeTransactionAction.table(), writeTransactionAction.cell());
-            return null;
-        }
-
-        @Override
-        public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            checkMutable();
-            kvs.remove(deleteTransactionAction.table(), deleteTransactionAction.cell());
-            deletedCells.put(deleteTransactionAction.table(), deleteTransactionAction.cell());
-            return null;
-        }
-
-        private void checkMutable() {
-            Preconditions.checkState(
-                    !hasFinished, "Cannot replay transaction, as we've already calculated our view of the KVS.");
-        }
-
-        private Set<String> getTables() {
-            hasFinished = true;
-            return Collections.unmodifiableSet(kvs.rowKeySet());
-        }
-
-        private Map<WorkloadCell, Integer> getValues(String tableName) {
-            hasFinished = true;
-            return Collections.unmodifiableMap(kvs.row(tableName));
-        }
-
-        private Set<WorkloadCell> getDeletedCells(String tableName) {
-            hasFinished = true;
-            return Collections.unmodifiableSet(deletedCells.get(tableName));
-        }
+    @VisibleForTesting
+    Map<TableWorkloadCell, Integer> findCellsThatAreNotDeleted(
+            Set<TableWorkloadCell> cells, ReadableTransactionStore storeToValidate) {
+        return StreamEx.of(cells)
+                .mapToEntry(cell -> storeToValidate.get(cell.tableName(), cell.cell()))
+                .removeValues(Optional::isEmpty)
+                .mapValues(Optional::get)
+                .toMap();
     }
 }
