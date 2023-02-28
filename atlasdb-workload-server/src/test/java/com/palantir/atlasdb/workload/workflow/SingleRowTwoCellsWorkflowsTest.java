@@ -111,7 +111,7 @@ public class SingleRowTwoCellsWorkflowsTest {
                 .isBetween(0, ITERATION_COUNT);
     }
 
-    private static class LocalWriteWitnessVisitor implements WitnessedTransactionActionVisitor<Void> {
+    private static final class LocalWriteWitnessVisitor implements WitnessedTransactionActionVisitor<Void> {
         private final Map<WorkloadCell, Optional<Integer>> localWriteMap = new HashMap<>();
 
         @Override
@@ -135,7 +135,7 @@ public class SingleRowTwoCellsWorkflowsTest {
         }
     }
 
-    private static class CellStateCheckingVisitor implements WitnessedTransactionActionVisitor<Void> {
+    private static final class CellStateCheckingVisitor implements WitnessedTransactionActionVisitor<Void> {
         private final Map<WorkloadCell, Integer> tableState = new HashMap<>();
 
         @Override
