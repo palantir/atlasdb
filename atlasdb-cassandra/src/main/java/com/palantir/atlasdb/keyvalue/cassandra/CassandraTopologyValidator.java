@@ -98,7 +98,7 @@ public final class CassandraTopologyValidator {
      * the get_host_ids endpoint will never be returned here.
      */
     public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
-            Set<CassandraServer> newlyAddedHosts,
+            Map<CassandraServer, CassandraServerOrigin> newlyAddedHosts,
             Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
             Duration waitTimeBetweenCalls,
             Duration maxWaitTime) {
@@ -128,16 +128,18 @@ public final class CassandraTopologyValidator {
 
     @VisibleForTesting
     Set<CassandraServer> getNewHostsWithInconsistentTopologies(
-            Set<CassandraServer> newlyAddedHosts, Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
+            Map<CassandraServer, CassandraServerOrigin> newlyAddedHosts,
+            Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
 
+        Set<CassandraServer> newlyAddedHostsWithoutOrigin = newlyAddedHosts.keySet();
         if (newlyAddedHosts.isEmpty()) {
-            return newlyAddedHosts;
+            return newlyAddedHostsWithoutOrigin;
         }
 
         Preconditions.checkArgument(
-                allHosts.keySet().containsAll(newlyAddedHosts),
+                allHosts.keySet().containsAll(newlyAddedHostsWithoutOrigin),
                 "Newly added hosts must be a subset of all hosts, as otherwise we have no way to query them.",
-                SafeArg.of("newlyAddedHosts", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
+                SafeArg.of("newlyAddedHosts", CassandraLogHelper.collectionOfHosts(newlyAddedHostsWithoutOrigin)),
                 SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
 
         Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures =
@@ -145,11 +147,11 @@ public final class CassandraTopologyValidator {
 
         Map<CassandraServer, HostIdResult> currentServersWithoutSoftFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
-                .removeKeys(newlyAddedHosts::contains)
+                .removeKeys(newlyAddedHosts::containsKey)
                 .toMap();
         Map<CassandraServer, HostIdResult> newServersWithoutSoftFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
-                .filterKeys(newlyAddedHosts::contains)
+                .filterKeys(newlyAddedHosts::containsKey)
                 .toMap();
 
         // This means currently we've no servers or no server without the get_host_ids endpoint.
@@ -157,15 +159,14 @@ public final class CassandraTopologyValidator {
         if (currentServersWithoutSoftFailures.isEmpty()) {
             ClusterTopologyResult topologyResultFromNewServers =
                     maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
-            Map<CassandraServer, HostIdResult> newServersWithoutAnyFailures = EntryStream.of(
-                            newServersWithoutSoftFailures)
-                    .filterValues(result -> result.type() == HostIdResult.Type.SUCCESS)
+            Map<CassandraServer, HostIdResult> newServersFromConfig = EntryStream.of(newServersWithoutSoftFailures)
+                    .filterKeys(server -> newlyAddedHosts.get(server) == CassandraServerOrigin.CONFIG)
                     .toMap();
             return getNewHostsWithInconsistentTopologiesFromTopologyResult(
                     topologyResultFromNewServers,
                     newServersWithoutSoftFailures,
-                    newServersWithoutAnyFailures,
-                    newlyAddedHosts,
+                    newServersFromConfig,
+                    newlyAddedHosts.keySet(),
                     allHosts.keySet());
         }
 
@@ -179,7 +180,7 @@ public final class CassandraTopologyValidator {
                 topologyFromCurrentServers,
                 newServersWithoutSoftFailures,
                 newServersWithoutSoftFailures,
-                newlyAddedHosts,
+                newlyAddedHosts.keySet(),
                 allHosts.keySet());
     }
 

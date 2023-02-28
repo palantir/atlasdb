@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -120,7 +121,7 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {}
 
-    public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
+    public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
         // explicitly not using immutable builders to deduplicate nodes
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
@@ -171,7 +172,8 @@ public class CassandraService implements AutoCloseable {
             tokenMap = tokensInterner.intern(newTokenRing.build());
             hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
-            return ImmutableSet.copyOf(servers);
+            return servers.stream()
+                    .collect(ImmutableMap.toImmutableMap(server -> server, _v -> CassandraServerOrigin.LAST_KNOWN));
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -180,13 +182,19 @@ public class CassandraService implements AutoCloseable {
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
-            ImmutableSet<CassandraServer> resolvedConfigAddresses = getCurrentServerListFromConfig();
+            ImmutableMap<CassandraServer, CassandraServerOrigin> resolvedConfigAddresses =
+                    getCurrentServerListFromConfig();
 
-            ImmutableSet<CassandraServer> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
-                    .flatMap(Collection::stream)
-                    .collect(ImmutableSet.toImmutableSet());
+            ImmutableMap<CassandraServer, CassandraServerOrigin> lastKnownAddresses =
+                    tokenMap.asMapOfRanges().values().stream()
+                            .flatMap(Collection::stream)
+                            .collect(ImmutableMap.toImmutableMap(
+                                    server -> server, _v -> CassandraServerOrigin.LAST_KNOWN));
 
-            return Sets.union(resolvedConfigAddresses, lastKnownAddresses).immutableCopy();
+            return ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
+                    .putAll(lastKnownAddresses)
+                    .putAll(resolvedConfigAddresses)
+                    .build();
         }
     }
 
@@ -194,10 +202,10 @@ public class CassandraService implements AutoCloseable {
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
      * */
-    public ImmutableSet<CassandraServer> getCurrentServerListFromConfig() {
+    public ImmutableMap<CassandraServer, CassandraServerOrigin> getCurrentServerListFromConfig() {
         return getServersSocketAddressesFromConfig().stream()
                 .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
-                .collect(ImmutableSet.toImmutableSet());
+                .collect(ImmutableMap.toImmutableMap(server -> server, _v -> CassandraServerOrigin.CONFIG));
     }
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
@@ -491,7 +499,8 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        ImmutableSet<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
+        ImmutableSet<CassandraServer> thriftSocket =
+                getCurrentServerListFromConfig().keySet();
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
