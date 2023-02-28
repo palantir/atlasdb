@@ -69,3 +69,29 @@ acceptedBreaks:
         \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
         \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
       justification: "Removing unused ABR code"
+  "0.801.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::getNewHostsWithInconsistentTopologiesAndRetry(===java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>===,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer>,\
+        \ java.time.Duration, java.time.Duration)"
+      new: "parameter java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::getNewHostsWithInconsistentTopologiesAndRetry(===java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin>===, java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer>,\
+        \ java.time.Duration, java.time.Duration)"
+      justification: "Internal Cassandra KVS APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.google.common.collect.ImmutableSet<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::getCurrentServerListFromConfig()"
+      new: "method com.google.common.collect.ImmutableMap<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin> com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::getCurrentServerListFromConfig()"
+      justification: "Internal Cassandra KVS APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.google.common.collect.ImmutableSet<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::refreshTokenRangesAndGetServers()"
+      new: "method com.google.common.collect.ImmutableMap<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin> com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::refreshTokenRangesAndGetServers()"
+      justification: "Internal Cassandra KVS APIs"
