@@ -308,6 +308,8 @@ public final class CassandraTopologyValidatorTest {
                 .forEach(container ->
                         setHostIds(ImmutableSet.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
 
+        // This is _not_ supposed to be the standard quorum calculation ((n / 2) + 1), but instead the amount of
+        // hosts that need to be offline to _prevent_ quorum
         assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(newCassandraServers), allHosts))
