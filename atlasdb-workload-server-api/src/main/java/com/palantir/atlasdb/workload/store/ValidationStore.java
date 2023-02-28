@@ -19,8 +19,15 @@ package com.palantir.atlasdb.workload.store;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Store used for replaying witnessed transactions, and ultimately being used as the 'source-of-truth' when validating
+ * our {@link TransactionStore}.
+ */
 public interface ValidationStore {
+
+    /** Return all cells and values for all tables. */
     Map<TableWorkloadCell, Integer> values();
 
+    /** Returns all cells that have been deleted, and have stayed deleted. */
     Set<TableWorkloadCell> deletedCells();
 }
