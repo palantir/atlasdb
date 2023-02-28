@@ -25,6 +25,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.logsafe.Preconditions;
 
 public final class TransactionConstants {
     private TransactionConstants() {
@@ -62,6 +63,7 @@ public final class TransactionConstants {
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
     public static final int TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 3;
+
     public static final int TTS_TRANSACTIONS_SCHEMA_VERSION = 4;
     public static final ImmutableSet<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
             DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
@@ -101,4 +103,13 @@ public final class TransactionConstants {
             .explicitCompressionBlockSizeKB(64)
             .denselyAccessedWideRows(true)
             .build();
+
+    static {
+        Preconditions.checkState(
+                !SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS.contains(TTS_TRANSACTIONS_SCHEMA_VERSION),
+                "Supporting Transactions Table Sweep WILL require changes to internal backup and restore workflows;"
+                    + " failure to do so may only be discoverable at restore time in some implementations. This check"
+                    + " MUST NOT be removed without knowledge that suitable changes have been made to these"
+                    + " workflows.");
+    }
 }
