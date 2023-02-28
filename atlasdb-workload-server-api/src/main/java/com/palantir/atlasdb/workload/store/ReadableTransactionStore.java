@@ -16,21 +16,16 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import java.util.List;
 import java.util.Optional;
 
-/**
- * A transactional store for the workload server to read/write from.
- */
-public interface TransactionStore extends ReadableTransactionStore {
+public interface ReadableTransactionStore {
     /**
-     * Performs a list of transaction actions in order, and returns the transaction executed if it committed
-     * successfully.
+     * Perform a read for a given row and return a cell if it exists.
+     * Ideally this endpoint is only used for verification purposes, as it does not return a witnessed transaction.
      *
-     * @param actions List of transaction actions (read/write/delete) to be executed in order.
-     * @return The witnessed transaction, if successfully committed.
+     * @param table Table to read from
+     * @param cell Cell to read from
+     * @return The value of the cell for a given table.
      */
-    Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions);
+    Optional<Integer> get(String table, WorkloadCell cell);
 }
