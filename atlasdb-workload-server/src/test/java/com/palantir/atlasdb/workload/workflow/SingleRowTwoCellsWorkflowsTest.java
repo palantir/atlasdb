@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
@@ -34,10 +35,9 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -67,9 +67,16 @@ public class SingleRowTwoCellsWorkflowsTest {
 
     // This is basically a very simple invariant checker
     private void assertWorkflowHistoryConsistent(WorkflowHistory workflowHistory) {
-        workflowHistory.history().forEach(SingleRowTwoCellsWorkflowsTest::validateLocalReadsMatchLocalWrites);
-
         List<WitnessedTransaction> transactionsByCommitTime = workflowHistory.history();
+        CellStateCheckingVisitor cellStateCheckingVisitor = new CellStateCheckingVisitor();
+
+        transactionsByCommitTime.forEach(witnessedTransaction -> {
+            LocalWriteWitnessVisitor localWriteWitnessVisitor = new LocalWriteWitnessVisitor();
+            witnessedTransaction.actions().forEach(action -> {
+                action.accept(localWriteWitnessVisitor);
+                action.accept(cellStateCheckingVisitor);
+            });
+        });
 
         // Start from 1 intentional as we want to look at pairs of transactions
         for (int index = 1; index < transactionsByCommitTime.size(); index++) {
@@ -80,34 +87,9 @@ public class SingleRowTwoCellsWorkflowsTest {
                     .as("given all transactions touch the same cells, overlapping transactions should conflict and so "
                             + "they should not be allowed")
                     .isLessThan(successor.startTimestamp());
-
-            validatePredecessorWritesSeenBySuccessor(predecessor, successor);
         }
 
         validateFinalTableState(workflowHistory);
-    }
-
-    private static void validateLocalReadsMatchLocalWrites(WitnessedTransaction transaction) {
-        // The indexing is nasty, but I imagine verifiers are always going to be coupled to the implementation of the
-        // task.
-        WitnessedReadTransactionAction firstCellRead =
-                transaction.actions().get(4).accept(ReadWitnessCaster.INSTANCE);
-        WitnessedReadTransactionAction secondCellRead =
-                transaction.actions().get(5).accept(ReadWitnessCaster.INSTANCE);
-        transaction.actions().get(2).accept(new ReadValidationVisitor(firstCellRead));
-        transaction.actions().get(3).accept(new ReadValidationVisitor(secondCellRead));
-    }
-
-    private static void validatePredecessorWritesSeenBySuccessor(
-            WitnessedTransaction predecessor, WitnessedTransaction successor) {
-        // The indexing is nasty, but I imagine verifiers are always going to be coupled to the implementation of the
-        // task.
-        WitnessedReadTransactionAction firstCellRead =
-                successor.actions().get(0).accept(ReadWitnessCaster.INSTANCE);
-        WitnessedReadTransactionAction secondCellRead =
-                successor.actions().get(1).accept(ReadWitnessCaster.INSTANCE);
-        predecessor.actions().get(2).accept(new ReadValidationVisitor(firstCellRead));
-        predecessor.actions().get(3).accept(new ReadValidationVisitor(secondCellRead));
     }
 
     private static void validateFinalTableState(WorkflowHistory workflowHistory) {
@@ -129,61 +111,52 @@ public class SingleRowTwoCellsWorkflowsTest {
                 .isBetween(0, ITERATION_COUNT);
     }
 
-    private static final class ReadValidationVisitor implements WitnessedTransactionActionVisitor<Void> {
-        private final WitnessedReadTransactionAction readWitness;
-
-        private ReadValidationVisitor(WitnessedReadTransactionAction readWitness) {
-            this.readWitness = readWitness;
-        }
+    private static class LocalWriteWitnessVisitor implements WitnessedTransactionActionVisitor<Void> {
+        private final Map<WorkloadCell, Optional<Integer>> localWriteMap = new HashMap<>();
 
         @Override
         public Void visit(WitnessedReadTransactionAction readTransactionAction) {
-            throw new SafeIllegalStateException("Meaningless to validate read against another read");
+            if (localWriteMap.containsKey(readTransactionAction.cell())) {
+                assertThat(readTransactionAction.value()).isEqualTo(localWriteMap.get(readTransactionAction.cell()));
+            }
+            return null;
         }
 
         @Override
         public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            Preconditions.checkState(
-                    writeTransactionAction.cell().equals(readWitness.cell()),
-                    "Read validations should only happen in relation to mutations of the same cell",
-                    SafeArg.of("readWitness", readWitness),
-                    SafeArg.of("writeTransactionAction", writeTransactionAction));
-            assertThat(readWitness.value())
-                    .as("reads should match the preceding write")
-                    .contains(writeTransactionAction.value());
+            localWriteMap.put(writeTransactionAction.cell(), Optional.of(writeTransactionAction.value()));
             return null;
         }
 
         @Override
         public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            Preconditions.checkState(
-                    deleteTransactionAction.cell().equals(readWitness.cell()),
-                    "Read validations should only happen in relation to mutations of the same cell",
-                    SafeArg.of("readWitness", readWitness),
-                    SafeArg.of("deleteTransactionAction", deleteTransactionAction));
-            assertThat(readWitness.value())
-                    .as("deletions should mean we do not read a value")
-                    .isEmpty();
+            localWriteMap.put(deleteTransactionAction.cell(), Optional.empty());
             return null;
         }
     }
 
-    private enum ReadWitnessCaster implements WitnessedTransactionActionVisitor<WitnessedReadTransactionAction> {
-        INSTANCE;
+    private static class CellStateCheckingVisitor implements WitnessedTransactionActionVisitor<Void> {
+        private final Map<WorkloadCell, Integer> tableState = new HashMap<>();
 
         @Override
-        public WitnessedReadTransactionAction visit(WitnessedReadTransactionAction readTransactionAction) {
-            return readTransactionAction;
+        public Void visit(WitnessedReadTransactionAction readTransactionAction) {
+            Optional<Integer> expected = Optional.ofNullable(tableState.get(readTransactionAction.cell()));
+            assertThat(readTransactionAction.value())
+                    .as("read a cell that does not match the expected table state")
+                    .isEqualTo(expected);
+            return null;
         }
 
         @Override
-        public WitnessedReadTransactionAction visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            throw new SafeIllegalStateException("Expecting a read transaction action, but found a write");
+        public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
+            tableState.put(writeTransactionAction.cell(), writeTransactionAction.value());
+            return null;
         }
 
         @Override
-        public WitnessedReadTransactionAction visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            throw new SafeIllegalStateException("Expecting a read transaction action, but found a delete");
+        public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
+            tableState.remove(deleteTransactionAction.cell());
+            return null;
         }
     }
 }
