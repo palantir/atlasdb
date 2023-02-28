@@ -17,9 +17,12 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Table;
 import com.palantir.atlasdb.workload.Invariant;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
@@ -31,12 +34,11 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import javax.annotation.concurrent.NotThreadSafe;
 
 public class DurableWritesInvariant implements Invariant {
 
@@ -50,28 +52,42 @@ public class DurableWritesInvariant implements Invariant {
                 .forEach(witnessedTransactionActions ->
                         witnessedTransactionActions.forEach(action -> action.accept(replayer)));
         replayer.getTables().forEach(tableName -> {
-            replayer.getValues(tableName).forEach((cell, value) -> {
-                boolean equalValues = workflowHistory
-                        .transactionStore()
-                        .get(tableName, cell)
-                        .map(value::equals)
-                        .orElse(false);
-                if (!equalValues) {
-                    log.error(
-                            "InMemoryKvs does not match external KVS.",
-                            SafeArg.of("table", tableName),
-                            SafeArg.of("cell", cell),
-                            SafeArg.of("expectedValue", value));
-                }
-            });
+            checkCellsExist(tableName, replayer.getValues(tableName), workflowHistory.transactionStore());
+            checkCellsAreDeleted(tableName, replayer.getDeletedCells(tableName), workflowHistory.transactionStore());
         });
+    }
+
+    private static void checkCellsExist(
+            String tableName, Map<WorkloadCell, Integer> expectedCells, ReadableTransactionStore store) {
+        expectedCells.forEach((cell, value) -> {
+            Optional<Integer> actualValue = store.get(tableName, cell);
+            boolean equalValues = actualValue.map(value::equals).orElse(false);
+            if (!equalValues) {
+                log.error(
+                        "InMemoryKvs does not match external KVS.",
+                        SafeArg.of("table", tableName),
+                        SafeArg.of("cell", cell),
+                        SafeArg.of("expectedValue", value),
+                        SafeArg.of("actualValue", actualValue));
+            }
+        });
+    }
+
+    private static void checkCellsAreDeleted(
+            String tableName, Set<WorkloadCell> cells, ReadableTransactionStore store) {
+        cells.forEach(deletedCell -> store.get(tableName, deletedCell)
+                .ifPresent(value -> log.error(
+                        "Cell existed when it is expected to be deleted.",
+                        SafeArg.of("tableName", tableName),
+                        SafeArg.of("cell", deletedCell),
+                        SafeArg.of("value", value))));
     }
 
     @NotThreadSafe
     private static class InMemoryKvsTransactionReplayer implements WitnessedTransactionActionVisitor<Void> {
 
         private final Table<String, WorkloadCell, Integer> kvs = HashBasedTable.create();
-        private final Map<String, WorkloadCell> deletedCells = new HashMap<>();
+        private final SetMultimap<String, WorkloadCell> deletedCells = HashMultimap.create();
         private boolean hasFinished = false;
 
         @Override
@@ -84,7 +100,7 @@ public class DurableWritesInvariant implements Invariant {
         public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
             checkMutable();
             kvs.put(writeTransactionAction.table(), writeTransactionAction.cell(), writeTransactionAction.value());
-            deletedCells.remove(writeTransactionAction.cell());
+            deletedCells.remove(writeTransactionAction.table(), writeTransactionAction.cell());
             return null;
         }
 
@@ -111,9 +127,9 @@ public class DurableWritesInvariant implements Invariant {
             return Collections.unmodifiableMap(kvs.row(tableName));
         }
 
-        private Map<String, WorkloadCell> getDeletedCells() {
+        private Set<WorkloadCell> getDeletedCells(String tableName) {
             hasFinished = true;
-            return Collections.unmodifiableMap(deletedCells);
+            return Collections.unmodifiableSet(deletedCells.get(tableName));
         }
     }
 }

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.workload;
 
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-
 import java.util.function.Consumer;
 
 public interface Invariant extends Consumer<WorkflowHistory> {}
