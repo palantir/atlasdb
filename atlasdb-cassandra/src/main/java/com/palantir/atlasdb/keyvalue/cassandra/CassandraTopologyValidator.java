@@ -166,7 +166,7 @@ public final class CassandraTopologyValidator {
                     topologyResultFromNewServers,
                     newServersWithoutSoftFailures,
                     newServersFromConfig,
-                    newlyAddedHosts.keySet(),
+                    newlyAddedHostsWithoutOrigin,
                     allHosts.keySet());
         }
 

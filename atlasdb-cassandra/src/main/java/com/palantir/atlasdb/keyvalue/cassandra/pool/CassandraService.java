@@ -172,8 +172,7 @@ public class CassandraService implements AutoCloseable {
             tokenMap = tokensInterner.intern(newTokenRing.build());
             hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
-            return servers.stream()
-                    .collect(ImmutableMap.toImmutableMap(server -> server, _v -> CassandraServerOrigin.LAST_KNOWN));
+            return CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE);
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -186,15 +185,14 @@ public class CassandraService implements AutoCloseable {
                     getCurrentServerListFromConfig();
 
             ImmutableMap<CassandraServer, CassandraServerOrigin> lastKnownAddresses =
-                    tokenMap.asMapOfRanges().values().stream()
-                            .flatMap(Collection::stream)
-                            .collect(ImmutableMap.toImmutableMap(
-                                    server -> server, _v -> CassandraServerOrigin.LAST_KNOWN));
+                    CassandraServerOrigin.mapAllServersToOrigin(
+                            tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream),
+                            CassandraServerOrigin.LAST_KNOWN);
 
             return ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
                     .putAll(lastKnownAddresses)
                     .putAll(resolvedConfigAddresses)
-                    .build();
+                    .buildKeepingLast();
         }
     }
 
@@ -203,9 +201,10 @@ public class CassandraService implements AutoCloseable {
      * resolution.
      * */
     public ImmutableMap<CassandraServer, CassandraServerOrigin> getCurrentServerListFromConfig() {
-        return getServersSocketAddressesFromConfig().stream()
-                .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
-                .collect(ImmutableMap.toImmutableMap(server -> server, _v -> CassandraServerOrigin.CONFIG));
+        return CassandraServerOrigin.mapAllServersToOrigin(
+                getServersSocketAddressesFromConfig().stream()
+                        .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost)),
+                CassandraServerOrigin.CONFIG);
     }
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
