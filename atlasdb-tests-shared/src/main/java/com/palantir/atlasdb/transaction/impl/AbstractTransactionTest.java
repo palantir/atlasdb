@@ -693,8 +693,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void getRangeRetainsOnlyRelevantColumnsFromLocalWrites() {
         byte[] row = "row".getBytes(StandardCharsets.UTF_8);
-        byte[] firstColumn = "james".getBytes(StandardCharsets.UTF_8);
-        byte[] secondColumn = "jakub".getBytes(StandardCharsets.UTF_8);
+        byte[] firstColumn = "jakub".getBytes(StandardCharsets.UTF_8);
+        byte[] secondColumn = "james".getBytes(StandardCharsets.UTF_8);
         byte[] thirdColumn = "jeremy".getBytes(StandardCharsets.UTF_8);
         byte[] fourthColumn = "jolyon".getBytes(StandardCharsets.UTF_8);
         Cell firstCell = Cell.create(row, firstColumn);
