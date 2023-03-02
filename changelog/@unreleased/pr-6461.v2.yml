@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: All versions of `getRange()` and `getRanges()` now correctly longer
+    include locally written columns that do not match the provided `ColumnSelection`
+    in their `RowResult`s.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6461
