@@ -18,6 +18,9 @@ package com.palantir.atlasdb.workload.store;
 
 import org.immutables.value.Value;
 
+/**
+ * Convenient class which combines table name and cell, for convenient usage in {@link java.util.Map} or other similar interfaces.
+ */
 @Value.Immutable
 public interface TableWorkloadCell {
 

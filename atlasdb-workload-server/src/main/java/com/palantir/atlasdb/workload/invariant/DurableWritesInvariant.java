@@ -39,17 +39,7 @@ public class DurableWritesInvariant implements Invariant {
     private final Consumer<Map<TableWorkloadCell, Integer>> undeletedCellsConsumer;
 
     public DurableWritesInvariant() {
-        this(
-                mismatchingValues -> mismatchingValues.forEach((cell, mismatchedValue) -> log.error(
-                        "In-memory state does not match external transactional store.",
-                        SafeArg.of("table", cell.tableName()),
-                        SafeArg.of("cell", cell.cell()),
-                        SafeArg.of("mismatchedValue", mismatchedValue))),
-                undeletedCells -> undeletedCells.forEach((cell, value) -> log.error(
-                        "Cell existed when it is expected to be deleted.",
-                        SafeArg.of("tableName", cell.tableName()),
-                        SafeArg.of("cell", cell.cell()),
-                        SafeArg.of("value", value))));
+        this(DurableWritesInvariant::logMismatchingCells, DurableWritesInvariant::logUndeletedCells);
     }
 
     @VisibleForTesting
@@ -69,8 +59,7 @@ public class DurableWritesInvariant implements Invariant {
                 findCellsThatAreNotDeleted(expectedState.deletedCells(), workflowHistory.transactionStore()));
     }
 
-    @VisibleForTesting
-    Map<TableWorkloadCell, MismatchedValue> findCellsThatDoNotMatch(
+    private Map<TableWorkloadCell, MismatchedValue> findCellsThatDoNotMatch(
             Map<TableWorkloadCell, Integer> expectedCells, ReadableTransactionStore storeToValidate) {
         return EntryStream.of(expectedCells)
                 .mapToValue((writtenCell, expectedValue) -> {
@@ -85,13 +74,28 @@ public class DurableWritesInvariant implements Invariant {
                 .toMap();
     }
 
-    @VisibleForTesting
-    Map<TableWorkloadCell, Integer> findCellsThatAreNotDeleted(
+    private Map<TableWorkloadCell, Integer> findCellsThatAreNotDeleted(
             Set<TableWorkloadCell> cells, ReadableTransactionStore storeToValidate) {
         return StreamEx.of(cells)
                 .mapToEntry(cell -> storeToValidate.get(cell.tableName(), cell.cell()))
                 .removeValues(Optional::isEmpty)
                 .mapValues(Optional::get)
                 .toMap();
+    }
+
+    private static void logMismatchingCells(Map<TableWorkloadCell, MismatchedValue> mismatchingCells) {
+        mismatchingCells.forEach((cell, mismatchedValue) -> log.error(
+                "In-memory state does not match external transactional store.",
+                SafeArg.of("table", cell.tableName()),
+                SafeArg.of("cell", cell.cell()),
+                SafeArg.of("mismatchedValue", mismatchedValue)));
+    }
+
+    private static void logUndeletedCells(Map<TableWorkloadCell, Integer> undeletedCells) {
+        undeletedCells.forEach((cell, value) -> log.error(
+                "Cell existed when it is expected to be deleted.",
+                SafeArg.of("tableName", cell.tableName()),
+                SafeArg.of("cell", cell.cell()),
+                SafeArg.of("value", value)));
     }
 }
