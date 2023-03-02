@@ -704,23 +704,23 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] value = new byte[1];
 
         Transaction firstTransaction = startTransaction();
-        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, fourthCell, value));
+        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
         firstTransaction.commit();
 
         Transaction secondTransaction = startTransaction();
-        secondTransaction.put(TEST_TABLE, ImmutableMap.of(secondCell, value, thirdCell, value));
+        secondTransaction.put(TEST_TABLE, ImmutableMap.of(thirdCell, value, fourthCell, value));
 
         BatchingVisitable<RowResult<byte[]>> rowResults = secondTransaction.getRange(
                 TEST_TABLE,
                 RangeRequest.builder()
-                        .retainColumns(ImmutableSet.of(firstColumn, secondColumn))
+                        .retainColumns(ImmutableSet.of(firstColumn, thirdColumn))
                         .build());
         List<Cell> cellsRead = BatchingVisitables.copyToList(rowResults).stream()
                 .map(RowResult::getCells)
                 .flatMap(Streams::stream)
                 .map(Entry::getKey)
                 .collect(Collectors.toList());
-        assertThat(cellsRead).containsExactly(firstCell, secondCell);
+        assertThat(cellsRead).containsExactly(firstCell, thirdCell);
     }
 
     @Test
@@ -737,11 +737,11 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] value = new byte[1];
 
         Transaction firstTransaction = startTransaction();
-        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, fourthCell, value));
+        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, secondCell, value));
         firstTransaction.commit();
 
         Transaction secondTransaction = startTransaction();
-        secondTransaction.put(TEST_TABLE, ImmutableMap.of(secondCell, value, thirdCell, value));
+        secondTransaction.put(TEST_TABLE, ImmutableMap.of(thirdCell, value, fourthCell, value));
 
         Iterable<BatchingVisitable<RowResult<byte[]>>> visitables = secondTransaction.getRanges(
                 TEST_TABLE,
@@ -750,7 +750,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                                 .retainColumns(ImmutableSet.of(firstColumn))
                                 .build(),
                         RangeRequest.builder()
-                                .retainColumns(ImmutableSet.of(secondColumn))
+                                .retainColumns(ImmutableSet.of(thirdColumn))
                                 .build()));
         List<Cell> cellsRead = Streams.stream(visitables)
                 .map(BatchingVisitables::copyToList)
@@ -759,7 +759,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .flatMap(Streams::stream)
                 .map(Entry::getKey)
                 .collect(Collectors.toList());
-        assertThat(cellsRead).containsExactly(firstCell, secondCell);
+        assertThat(cellsRead).containsExactly(firstCell, thirdCell);
     }
 
     @Test
