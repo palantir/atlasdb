@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Streams;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -74,6 +75,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -686,6 +688,78 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 .retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col2"))))
                 .build();
         verifyAllGetRangesImplsRangeSizes(tx, range3, 0);
+    }
+
+    @Test
+    public void getRangeRetainsOnlyRelevantColumnsFromLocalWrites() {
+        byte[] row = "row".getBytes(StandardCharsets.UTF_8);
+        byte[] firstColumn = "james".getBytes(StandardCharsets.UTF_8);
+        byte[] secondColumn = "jakub".getBytes(StandardCharsets.UTF_8);
+        byte[] thirdColumn = "jeremy".getBytes(StandardCharsets.UTF_8);
+        byte[] fourthColumn = "jolyon".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, firstColumn);
+        Cell secondCell = Cell.create(row, secondColumn);
+        Cell thirdCell = Cell.create(row, thirdColumn);
+        Cell fourthCell = Cell.create(row, fourthColumn);
+        byte[] value = new byte[1];
+
+        Transaction firstTransaction = startTransaction();
+        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, fourthCell, value));
+        firstTransaction.commit();
+
+        Transaction secondTransaction = startTransaction();
+        secondTransaction.put(TEST_TABLE, ImmutableMap.of(secondCell, value, thirdCell, value));
+
+        BatchingVisitable<RowResult<byte[]>> rowResults = secondTransaction.getRange(
+                TEST_TABLE,
+                RangeRequest.builder()
+                        .retainColumns(ImmutableSet.of(firstColumn, secondColumn))
+                        .build());
+        List<Cell> cellsRead = BatchingVisitables.copyToList(rowResults).stream()
+                .map(RowResult::getCells)
+                .flatMap(Streams::stream)
+                .map(Entry::getKey)
+                .collect(Collectors.toList());
+        assertThat(cellsRead).containsExactly(firstCell, secondCell);
+    }
+
+    @Test
+    public void deprecatedGetRangesRetainsOnlyRelevantColumnsFromLocalWrites() {
+        byte[] row = "row".getBytes(StandardCharsets.UTF_8);
+        byte[] firstColumn = "jack".getBytes(StandardCharsets.UTF_8);
+        byte[] secondColumn = "jill".getBytes(StandardCharsets.UTF_8);
+        byte[] thirdColumn = "joel".getBytes(StandardCharsets.UTF_8);
+        byte[] fourthColumn = "juliet".getBytes(StandardCharsets.UTF_8);
+        Cell firstCell = Cell.create(row, firstColumn);
+        Cell secondCell = Cell.create(row, secondColumn);
+        Cell thirdCell = Cell.create(row, thirdColumn);
+        Cell fourthCell = Cell.create(row, fourthColumn);
+        byte[] value = new byte[1];
+
+        Transaction firstTransaction = startTransaction();
+        firstTransaction.put(TEST_TABLE, ImmutableMap.of(firstCell, value, fourthCell, value));
+        firstTransaction.commit();
+
+        Transaction secondTransaction = startTransaction();
+        secondTransaction.put(TEST_TABLE, ImmutableMap.of(secondCell, value, thirdCell, value));
+
+        Iterable<BatchingVisitable<RowResult<byte[]>>> visitables = secondTransaction.getRanges(
+                TEST_TABLE,
+                ImmutableList.of(
+                        RangeRequest.builder()
+                                .retainColumns(ImmutableSet.of(firstColumn))
+                                .build(),
+                        RangeRequest.builder()
+                                .retainColumns(ImmutableSet.of(secondColumn))
+                                .build()));
+        List<Cell> cellsRead = Streams.stream(visitables)
+                .map(BatchingVisitables::copyToList)
+                .flatMap(List::stream)
+                .map(RowResult::getCells)
+                .flatMap(Streams::stream)
+                .map(Entry::getKey)
+                .collect(Collectors.toList());
+        assertThat(cellsRead).containsExactly(firstCell, secondCell);
     }
 
     @Test
