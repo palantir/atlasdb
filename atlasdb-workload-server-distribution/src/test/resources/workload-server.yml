@@ -1,0 +1,12 @@
+runtime: {}
+install:
+  atlas:
+    namespace: test
+    keyValueService:
+      type: memory
+  single-row-two-cells-config:
+    table-configuration:
+      table-name: two-cells-test
+      isolation-level: SERIALIZABLE
+    iteration-count: 100
+    type: singleRowTwoCells

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
@@ -25,7 +26,9 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableTableConfiguration.class)
 @JsonDeserialize(as = ImmutableTableConfiguration.class)
 public interface TableConfiguration {
+    @JsonProperty("table-name")
     String tableName();
 
+    @JsonProperty("isolation-level")
     IsolationLevel isolationLevel();
 }

@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.config;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import java.util.Optional;
+import org.immutables.value.Value;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface WorkflowConfiguration {
-
-    @JsonProperty("iteration-count")
-    int iterationCount();
+@JsonDeserialize(as = ImmutableWorkloadServerRuntimeConfiguration.class)
+@JsonSerialize(as = ImmutableWorkloadServerRuntimeConfiguration.class)
+@Value.Immutable
+public interface WorkloadServerRuntimeConfiguration {
+    Optional<AtlasDbRuntimeConfig> atlas();
 }

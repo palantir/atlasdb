@@ -1,0 +1,29 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-core'
+    implementation 'io.dropwizard:dropwizard-http2'
+    implementation 'io.dropwizard:dropwizard-jackson'
+    implementation 'io.dropwizard:dropwizard-jersey'
+    implementation 'io.dropwizard:dropwizard-lifecycle'
+    implementation 'io.dropwizard:dropwizard-logging'
+    implementation 'io.dropwizard:dropwizard-request-logging'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
+    implementation 'com.google.guava:guava'
+
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-workload-server')
+    implementation project(':atlasdb-client')
+
+    api project(':atlasdb-workload-server-api')
+
+    testImplementation 'io.dropwizard:dropwizard-testing'
+
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'org.immutables:value'
+}
