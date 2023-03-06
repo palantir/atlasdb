@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -66,6 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
@@ -402,17 +404,47 @@ public final class CassandraClientPoolTest {
     }
 
     @Test
+    public void doesNotThrowWhenPoolDoesNotChange() {
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        CassandraClientPoolImpl pool = createClientPool();
+        assertThatNoException()
+                .isThrownBy(() -> pool.setServersInPoolTo(ImmutableMap.of(
+                        CASS_SERVER_1,
+                        CassandraServerOrigin.CONFIG,
+                        CASS_SERVER_2,
+                        CassandraServerOrigin.CONFIG,
+                        CASS_SERVER_3,
+                        CassandraServerOrigin.CONFIG)));
+    }
+
+    @Test
     public void throwsWhenNoServersInPoolAndServersAddedPresentButAreInvalid() {
         setupHostsWithInconsistentTopology(CASS_SERVER_1);
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1);
-        assertThatLoggableExceptionThrownBy(this::createClientPool)
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("No servers were successfully added to the pool.")
-                .hasExactlyArgs(
-                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(Set.of(CASS_SERVER_1))),
-                        SafeArg.of("previousCassandraHosts", CassandraLogHelper.collectionOfHosts(Set.of())));
+        assertNoServersInPoolExceptionThrown(this::createClientPool, Set.of(CASS_SERVER_1), Set.of());
+    }
+
+    @Test
+    public void throwsWhenNoServersInPoolAndNoServersAdded() {
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo();
+        assertNoServersInPoolExceptionThrown(this::createClientPool, Set.of(), Set.of());
+    }
+
+    @Test
+    public void throwsWhenPoolWouldHaveNoServersAndPreviousHostsExists() {
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        CassandraClientPoolImpl pool = createClientPool();
+        setupHostsWithInconsistentTopology(CASS_SERVER_3);
+        assertNoServersInPoolExceptionThrown(
+                () -> pool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.CONFIG)),
+                Set.of(CASS_SERVER_3),
+                Set.of(CASS_SERVER_1, CASS_SERVER_2));
+        assertThat(pool.getCurrentPools().keySet()).containsExactlyInAnyOrder(CASS_SERVER_1, CASS_SERVER_2);
     }
 
     @Test
@@ -713,5 +745,19 @@ public final class CassandraClientPoolTest {
 
     private void refreshPool() {
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private static void assertNoServersInPoolExceptionThrown(
+            ThrowingCallable throwingCallable,
+            Set<CassandraServer> serversToAdd,
+            Set<CassandraServer> previousCassandraServers) {
+        assertThatLoggableExceptionThrownBy(throwingCallable)
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("No servers were successfully added to the pool.")
+                .hasExactlyArgs(
+                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                        SafeArg.of(
+                                "previousCassandraServers",
+                                CassandraLogHelper.collectionOfHosts(previousCassandraServers)));
     }
 }
