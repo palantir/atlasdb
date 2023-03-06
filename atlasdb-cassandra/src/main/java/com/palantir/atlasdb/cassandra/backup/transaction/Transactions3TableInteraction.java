@@ -93,7 +93,7 @@ public class Transactions3TableInteraction implements TransactionsTableInteracti
         AtomicValue<TransactionStatus> commitValue = encodingStrategy.decodeValueAsCommitStatus(
                 startTimestamp, Bytes.getArray(row.getBytes(CassandraConstants.VALUE)));
 
-        if (commitValue.value() == TransactionConstants.ABORTED) {
+        if (commitValue.value() == TransactionStatus.aborted()) {
             return TransactionTableEntries.explicitlyAborted(startTimestamp);
         }
 

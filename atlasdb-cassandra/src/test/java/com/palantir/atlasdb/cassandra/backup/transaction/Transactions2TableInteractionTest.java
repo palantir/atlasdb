@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -128,7 +128,7 @@ public class Transactions2TableInteractionTest {
         when(row.getBytes(CassandraConstants.COLUMN)).thenReturn(ByteBuffer.wrap(cell.getColumnName()));
         when(row.getBytes(CassandraConstants.VALUE))
                 .thenReturn(ByteBuffer.wrap(TicketsEncodingStrategy.INSTANCE.encodeCommitStatusAsValue(
-                        start, TransactionStatuses.committed(commit))));
+                        start, TransactionStatus.committed(commit))));
         return row;
     }
 

@@ -32,7 +32,6 @@ import com.palantir.atlasdb.pue.PutUnlessExistsTableMetrics;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
@@ -177,13 +176,10 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
         } catch (CheckAndSetException e) {
             long startTs = cellAndValue.startTs();
             AtomicValue<TransactionStatus> currentValue = encodingStrategy.decodeValueAsCommitStatus(startTs, actual);
-            TransactionStatus commitStatus = currentValue.value();
             AtomicValue<TransactionStatus> kvsValue =
                     encodingStrategy.decodeValueAsCommitStatus(startTs, Iterables.getOnlyElement(e.getActualValues()));
             Preconditions.checkState(
-                    kvsValue.isCommitted()
-                            && TransactionStatuses.getCommitTimestamp(kvsValue.value())
-                                    .equals(TransactionStatuses.getCommitTimestamp(commitStatus)),
+                    kvsValue.isCommitted() && kvsValue.value().equals(currentValue.value()),
                     "Failed to persist a staging value for commit timestamp because an unexpected value "
                             + "was found in the KVS",
                     SafeArg.of("kvsValue", kvsValue),

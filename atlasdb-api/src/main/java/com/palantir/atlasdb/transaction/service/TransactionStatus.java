@@ -16,42 +16,54 @@
 
 package com.palantir.atlasdb.transaction.service;
 
-import org.derive4j.Data;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
+import java.util.Optional;
+import org.immutables.value.Value;
 
-/**
- * Status of a transaction can be one of the following -
- * 1. IN_PROGRESS, if that the transaction with this start timestamp has started but has not committed yet,
- * 2. COMMITTED (with a commit timestamp), if the transaction with this start timestamp has been committed,
- * 3. ABORTED, if the transaction with this start timestamp has been aborted,
- * 4. UNKNOWN, if the transactions table does not have information about the start timestamp. (This may,
- *    for example, be because the transaction is known to have concluded and the transactions table has been swept).
- * */
-@Data
 public interface TransactionStatus {
-    interface Cases<R> {
-        /**
-         * For transactions on schema version >= 4, an inProgress state has been introduced. The state will be set in
-         * the transactions table against the start timestamp. The state will be written before writing to the kvs.
-         *
-         * Previously, absence of any state for a transaction would indicate that it is in progress.
-         * */
-        R inProgress();
 
-        R committed(long commitTimestamp);
-
-        R aborted();
-
-        /**
-         * From transaction schema version 4, we have added the ability to truncate the transactions table i.e. it
-         * would be possible that the transactions table is not the source of truth for state of a transaction.
-         *
-         * Note that this state is not expected for transaction schema versions < 4.
-         * */
-        R unknown();
+    static TransactionStatus inProgress() {
+        return ImmutableInProgress.of();
     }
 
-    <R> R match(Cases<R> cases);
+    static TransactionStatus aborted() {
+        return ImmutableAborted.of();
+    }
 
-    @Override
-    boolean equals(Object other);
+    static TransactionStatus committed(long commitTimestamp) {
+        return ImmutableCommitted.of(commitTimestamp);
+    }
+
+    static TransactionStatus unknown() {
+        return ImmutableUnknown.of();
+    }
+
+    static Optional<Long> getCommitTimestamp(TransactionStatus status) {
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return Optional.of(committed.commitTimestamp());
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    @Value.Immutable(singleton = true)
+    @PackageVisibleImmutablesStyle
+    interface InProgress extends TransactionStatus {}
+
+    @Value.Immutable(singleton = true)
+    @PackageVisibleImmutablesStyle
+    interface Aborted extends TransactionStatus {}
+
+    @Value.Immutable(builder = false)
+    @PackageVisibleImmutablesStyle
+    interface Committed extends TransactionStatus {
+
+        @Value.Parameter
+        long commitTimestamp();
+    }
+
+    @Value.Immutable(singleton = true)
+    @PackageVisibleImmutablesStyle
+    interface Unknown extends TransactionStatus {}
 }

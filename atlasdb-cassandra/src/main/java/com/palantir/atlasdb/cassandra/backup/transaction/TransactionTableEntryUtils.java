@@ -17,20 +17,22 @@
 package com.palantir.atlasdb.cassandra.backup.transaction;
 
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Aborted;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Committed;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class TransactionTableEntryUtils {
     private TransactionTableEntryUtils() {}
 
-    public static TransactionTableEntry fromStatus(long startTimestamp, TransactionStatus commitStatus) {
-        return TransactionStatuses.caseOf(commitStatus)
-                .committed(commitTs -> TransactionTableEntries.committedLegacy(startTimestamp, commitTs))
-                .aborted(() -> TransactionTableEntries.explicitlyAborted(startTimestamp))
-                .otherwise(() -> {
-                    throw new SafeIllegalStateException(
-                            "Illegal transaction status", SafeArg.of("status", commitStatus));
-                });
+    public static TransactionTableEntry fromStatus(long startTimestamp, TransactionStatus status) {
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return TransactionTableEntries.committedLegacy(startTimestamp, committed.commitTimestamp());
+        } else if (status instanceof Aborted) {
+            return TransactionTableEntries.explicitlyAborted(startTimestamp);
+        } else {
+            throw new SafeIllegalStateException("Illegal transaction status", SafeArg.of("status", status));
+        }
     }
 }
