@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.atlasdb.util.ThreadTestUtils;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -55,6 +56,18 @@ public class CassandraClientPoolMetricsTest {
                 .doesNotContainKey(createMeanActiveTimeMillisMetric("pool2"))
                 .containsKey(createMeanActiveTimeMillisMetric("pool3"))
                 .containsKey(createMeanActiveTimeMillisMetric("mean"));
+    }
+
+    @Test
+    public void emptyPoolMetricIsThreadsafe() throws InterruptedException {
+        CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
+        ThreadTestUtils.runTaskOnMultipleThreads(
+                () -> {
+                    metrics.recordEmptyPool();
+                    metrics.recordHealthyPool();
+                },
+                100);
+        assertThat(metrics.getEmptyPoolCounter().getCount()).isEqualTo(0);
     }
 
     private static MetricName createMeanActiveTimeMillisMetric(String pool) {

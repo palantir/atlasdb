@@ -17,8 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -36,6 +36,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -378,6 +379,26 @@ public final class CassandraClientPoolTest {
     }
 
     @Test
+    public void oldServersCanBeRemovedAfterFallingBackWhenNewServerIsAdded() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1);
+        createClientPool();
+        assertEmptyPoolMetricIsEqualTo(0);
+
+        setupHostsWithInconsistentTopology(CASS_SERVER_2);
+        setCassandraServersTo(CASS_SERVER_2);
+        refreshPool();
+        assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1);
+        assertEmptyPoolMetricIsEqualTo(1);
+
+        setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
+        refreshPool();
+        assertThat(poolServers).containsOnlyKeys(CASS_SERVER_3);
+        assertEmptyPoolMetricIsEqualTo(0);
+    }
+
+    @Test
     public void onlyValidatedHostsAreAddedOnRefresh() {
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
@@ -408,14 +429,14 @@ public final class CassandraClientPoolTest {
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
         CassandraClientPoolImpl pool = createClientPool();
-        assertThatNoException()
-                .isThrownBy(() -> pool.setServersInPoolTo(ImmutableMap.of(
+        assertThatCode(() -> pool.setServersInPoolTo(ImmutableMap.of(
                         CASS_SERVER_1,
                         CassandraServerOrigin.CONFIG,
                         CASS_SERVER_2,
                         CassandraServerOrigin.CONFIG,
                         CASS_SERVER_3,
-                        CassandraServerOrigin.CONFIG)));
+                        CassandraServerOrigin.CONFIG)))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -435,7 +456,7 @@ public final class CassandraClientPoolTest {
     }
 
     @Test
-    public void throwsWhenPoolWouldHaveNoServersAndPreviousHostsExists() {
+    public void throwsWhenPoolWouldHaveNoServersAndPreviousServersExists() {
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         CassandraClientPoolImpl pool = createClientPool();
@@ -550,7 +571,7 @@ public final class CassandraClientPoolTest {
 
     private CassandraClientPoolImpl createClientPool() {
         return CassandraClientPoolImpl.createImplForTest(
-                MetricsManagers.createForTests(),
+                MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
@@ -747,7 +768,7 @@ public final class CassandraClientPoolTest {
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
-    private static void assertEmptyConnectionPoolExceptionThrown(
+    private void assertEmptyConnectionPoolExceptionThrown(
             ThrowingCallable throwingCallable,
             Set<CassandraServer> serversToAdd,
             Set<CassandraServer> previousCassandraServers) {
@@ -759,5 +780,17 @@ public final class CassandraClientPoolTest {
                         SafeArg.of(
                                 "previousCassandraServers",
                                 CassandraLogHelper.collectionOfHosts(previousCassandraServers)));
+        assertEmptyPoolMetricIsEqualTo(1);
+    }
+
+    private void assertEmptyPoolMetricIsEqualTo(int expected) {
+        assertThat(taggedMetricRegistry
+                        .counter(MetricName.builder()
+                                .safeName(MetricRegistry.name(
+                                        CassandraClientPoolMetrics.class,
+                                        CassandraClientPoolMetrics.EMPTY_POOL_METRIC_NAME))
+                                .build())
+                        .getCount())
+                .isEqualTo(expected);
     }
 }
