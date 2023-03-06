@@ -33,6 +33,6 @@ public enum CassandraServerOrigin {
 
     public static ImmutableMap<CassandraServer, CassandraServerOrigin> mapAllServersToOrigin(
             Stream<CassandraServer> servers, CassandraServerOrigin origin) {
-        return servers.collect(ImmutableMap.toImmutableMap(Function.identity(), _v -> origin));
+        return servers.distinct().collect(ImmutableMap.toImmutableMap(Function.identity(), _v -> origin));
     }
 }
