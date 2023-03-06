@@ -138,10 +138,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
         assertThat(result).hasSize(4);
-        assertThat(result.get(1L)).isEqualTo(TransactionStatus.committed(2L));
-        assertThat(result.get(3L)).isEqualTo(TransactionStatus.committed(4L));
-        assertThat(result.get(5L)).isEqualTo(TransactionStatus.inProgress());
-        assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
+        assertThat(result).containsEntry(1L, TransactionStatus.committed(2L));
+        assertThat(result).containsEntry(3L, TransactionStatus.committed(4L));
+        assertThat(result).containsEntry(5L, TransactionStatus.inProgress());
+        assertThat(result).containsEntry(7L, TransactionStatus.committed(8L));
     }
 
     @Test
