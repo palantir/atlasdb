@@ -224,7 +224,7 @@ public final class CassandraClientPoolTest {
     }
 
     private CassandraServer getServerForIndex(int index) {
-        return CassandraServer.of(InetSocketAddress.createUnresolved(Integer.toString(index), index));
+        return CassandraServer.of(InetSocketAddress.createUnresolved(Integer.toString(index), 8000));
     }
 
     @Test
@@ -280,15 +280,8 @@ public final class CassandraClientPoolTest {
 
     @Test
     public void attemptsShouldBeCountedPerHost() {
-        setupThriftServers(ImmutableSet.of());
-        CassandraClientPoolImpl cassandraClientPool = CassandraClientPoolImpl.createImplForTest(
-                MetricsManagers.of(metricRegistry, taggedMetricRegistry),
-                config,
-                refreshableRuntimeConfig,
-                CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                blacklist,
-                cassandraTopologyValidator,
-                absentHostTracker);
+        CassandraClientPoolImpl cassandraClientPool =
+                clientPoolWithServersInCurrentPool(ImmutableSet.of(CASS_SERVER_1, CASS_SERVER_2));
 
         host(CASS_SERVER_1)
                 .throwsException(new SocketTimeoutException())
@@ -354,6 +347,35 @@ public final class CassandraClientPoolTest {
     }
 
     @Test
+    public void hostRemovedIfCurrentTopologyInvalidButHasPreviousHosts() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+
+        createClientPool();
+        assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        setupHostsWithInconsistentTopology(CASS_SERVER_2, CASS_SERVER_3);
+
+        setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
+        refreshPool();
+        assertThat(poolServers).containsOnlyKeys(CASS_SERVER_2, CASS_SERVER_3);
+    }
+
+    @Test
+    public void noHostsRemovedIfNewTopologyInvalidAndWouldEmptyPool() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        when(config.autoRefreshNodes()).thenReturn(true);
+        setCassandraServersTo(CASS_SERVER_1);
+
+        createClientPool();
+        setupHostsWithInconsistentTopology(CASS_SERVER_2, CASS_SERVER_3);
+        setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
+
+        refreshPool();
+        assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1);
+    }
+
+    @Test
     public void onlyValidatedHostsAreAddedOnRefresh() {
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
@@ -389,7 +411,8 @@ public final class CassandraClientPoolTest {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("No servers were successfully added to the pool.")
                 .hasExactlyArgs(
-                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(Set.of(CASS_SERVER_1))));
+                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(Set.of(CASS_SERVER_1))),
+                        SafeArg.of("previousCassandraHosts", CassandraLogHelper.collectionOfHosts(Set.of())));
     }
 
     @Test
@@ -555,12 +578,16 @@ public final class CassandraClientPoolTest {
     }
 
     private CassandraClientPoolImpl clientPoolWithServersInCurrentPool(Set<CassandraServer> servers) {
-        return clientPoolWith(ImmutableSet.of(), servers, Optional.empty());
+        return clientPoolWith(
+                servers.stream().map(CassandraServer::proxy).collect(Collectors.toSet()), servers, Optional.empty());
     }
 
     private CassandraClientPoolImpl throwingClientPoolWithServersInCurrentPool(
             Set<CassandraServer> servers, Exception exception) {
-        return clientPoolWith(ImmutableSet.of(), servers, Optional.of(exception));
+        return clientPoolWith(
+                servers.stream().map(CassandraServer::proxy).collect(Collectors.toSet()),
+                servers,
+                Optional.of(exception));
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Unpacking it seems less readable
