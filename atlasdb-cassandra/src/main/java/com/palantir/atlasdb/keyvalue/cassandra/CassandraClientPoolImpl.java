@@ -37,6 +37,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -354,15 +355,21 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(currentPoolWithoutAbsentServers, serversToAdd);
 
-        Preconditions.checkState(
-                !(currentPoolWithoutAbsentServers.isEmpty() && validatedServersToAdd.isEmpty()),
-                "No servers were successfully added to the pool. This means we could not come to a consensus on"
+        boolean poolEmpty = currentPoolWithoutAbsentServers.isEmpty() && validatedServersToAdd.isEmpty();
+
+        if (poolEmpty) {
+            metrics.recordEmptyPool();
+            throw new SafeIllegalStateException(
+                    "No servers were successfully added to the pool. This means we could not come to a consensus on"
                         + " cluster topology, or no servers were provided. We will fallback to using our previous"
                         + " Cassandra servers, if any exist. This state should be transient (<5 minutes), and if it is"
                         + " not, indicates that the user may have accidentally configured AltasDB to use two separate"
                         + " Cassandra clusters (i.e., user-led split brain).",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
-                SafeArg.of("previousCassandraServers", CassandraLogHelper.collectionOfHosts(currentServers)));
+                    SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                    SafeArg.of("previousCassandraServers", CassandraLogHelper.collectionOfHosts(currentServers)));
+        }
+
+        metrics.recordHealthyPool();
 
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);

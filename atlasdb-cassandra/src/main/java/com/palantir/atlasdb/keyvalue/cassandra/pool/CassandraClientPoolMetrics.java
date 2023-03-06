@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -30,6 +31,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class CassandraClientPoolMetrics {
+
+    public static final String EMPTY_POOL_METRIC_NAME = "empty-pool";
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<CassandraServer, RequestMetrics> metricsByHost = new HashMap<>();
@@ -39,12 +42,16 @@ public class CassandraClientPoolMetrics {
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
     private final Counter poolExhaustionCounter;
 
+    private final Counter emptyPoolCounter;
+
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager);
         this.poolExhaustionCounter =
                 metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
+        this.emptyPoolCounter =
+                metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, EMPTY_POOL_METRIC_NAME);
     }
 
     private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
@@ -91,6 +98,23 @@ public class CassandraClientPoolMetrics {
 
     public void recordPoolExhaustion() {
         poolExhaustionCounter.inc();
+    }
+
+    public synchronized void recordEmptyPool() {
+        if (emptyPoolCounter.getCount() == 0) {
+            emptyPoolCounter.inc();
+        }
+    }
+
+    public synchronized void recordHealthyPool() {
+        if (emptyPoolCounter.getCount() == 1) {
+            emptyPoolCounter.dec();
+        }
+    }
+
+    @VisibleForTesting
+    Counter getEmptyPoolCounter() {
+        return emptyPoolCounter;
     }
 
     @SuppressWarnings("unchecked") // Guaranteed to have the correct type
