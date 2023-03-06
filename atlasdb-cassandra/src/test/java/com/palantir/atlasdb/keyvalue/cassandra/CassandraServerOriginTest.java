@@ -50,7 +50,7 @@ public final class CassandraServerOriginTest {
     @Test
     public void mapAllServersToOriginFromServerStreamWithUniqueElementsReturnsMapWithAllElementsAndAUniqueValue() {
         CassandraServerOrigin origin = CassandraServerOrigin.LAST_KNOWN;
-        assertThat(CassandraServerOrigin.mapAllServersToOrigin(Set.of(SERVER_1, SERVER_2, SERVER_3), origin))
+        assertThat(CassandraServerOrigin.mapAllServersToOrigin(Stream.of(SERVER_1, SERVER_2, SERVER_3), origin))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(SERVER_1, origin, SERVER_2, origin, SERVER_3, origin));
     }
 
