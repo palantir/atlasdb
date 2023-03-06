@@ -424,14 +424,14 @@ public final class CassandraClientPoolTest {
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1);
-        assertNoServersInPoolExceptionThrown(this::createClientPool, Set.of(CASS_SERVER_1), Set.of());
+        assertEmptyConnectionPoolExceptionThrown(this::createClientPool, Set.of(CASS_SERVER_1), Set.of());
     }
 
     @Test
     public void throwsWhenNoServersInPoolAndNoServersAdded() {
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo();
-        assertNoServersInPoolExceptionThrown(this::createClientPool, Set.of(), Set.of());
+        assertEmptyConnectionPoolExceptionThrown(this::createClientPool, Set.of(), Set.of());
     }
 
     @Test
@@ -440,7 +440,7 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         CassandraClientPoolImpl pool = createClientPool();
         setupHostsWithInconsistentTopology(CASS_SERVER_3);
-        assertNoServersInPoolExceptionThrown(
+        assertEmptyConnectionPoolExceptionThrown(
                 () -> pool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.CONFIG)),
                 Set.of(CASS_SERVER_3),
                 Set.of(CASS_SERVER_1, CASS_SERVER_2));
@@ -747,7 +747,7 @@ public final class CassandraClientPoolTest {
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
-    private static void assertNoServersInPoolExceptionThrown(
+    private static void assertEmptyConnectionPoolExceptionThrown(
             ThrowingCallable throwingCallable,
             Set<CassandraServer> serversToAdd,
             Set<CassandraServer> previousCassandraServers) {
