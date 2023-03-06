@@ -12,7 +12,7 @@ import org.junit.Test;
 public final class CassandraServerOriginTest {
 
     private static final CassandraServer SERVER_1 = createCassandraServer("serverOne");
-    private static final CassandraServer SERVER_2 = createCassandraServer("serverTwo");
+    private static final CassandraServer SERVER_2 = createCassandraServer("serverTwoo");
     private static final CassandraServer SERVER_3 = createCassandraServer("serverThree");
 
     @Test
