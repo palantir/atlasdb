@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -26,6 +28,15 @@ public interface MismatchedValue {
 
     @Value.Parameter
     Optional<Integer> expected();
+
+    @Value.Check
+    default void actualAndExpectedAreNotEqualToEachOther() {
+        Preconditions.checkArgument(
+                !actual().equals(expected()),
+                "Cannot construct MismatchedValues for two values which are equal.",
+                SafeArg.of("actual", actual()),
+                SafeArg.of("expected", expected()));
+    }
 
     static MismatchedValue of(Optional<Integer> actual, Optional<Integer> expected) {
         return ImmutableMismatchedValue.of(actual, expected);

@@ -16,86 +16,39 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
-import com.palantir.atlasdb.workload.store.TableWorkloadCell;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
+import com.palantir.atlasdb.workload.store.ValidationStore;
 import com.palantir.atlasdb.workload.transaction.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+import io.vavr.Tuple;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
 
-public class DurableWritesInvariant implements Invariant {
-
-    private static final SafeLogger log = SafeLoggerFactory.get(DurableWritesInvariant.class);
-
-    private final Consumer<Map<TableWorkloadCell, MismatchedValue>> mismatchingCellsConsumer;
-    private final Consumer<Map<TableWorkloadCell, Integer>> undeletedCellsConsumer;
-
-    public DurableWritesInvariant() {
-        this(DurableWritesInvariant::logMismatchingCells, DurableWritesInvariant::logUndeletedCells);
-    }
-
-    @VisibleForTesting
-    DurableWritesInvariant(
-            Consumer<Map<TableWorkloadCell, MismatchedValue>> mismatchingCellsConsumer,
-            Consumer<Map<TableWorkloadCell, Integer>> undeletedCellsConsumer) {
-        this.mismatchingCellsConsumer = mismatchingCellsConsumer;
-        this.undeletedCellsConsumer = undeletedCellsConsumer;
-    }
+public enum DurableWritesInvariant implements Invariant<Map<TableAndWorkloadCell, MismatchedValue>> {
+    INSTANCE;
 
     @Override
-    public void accept(WorkflowHistory workflowHistory) {
-        InMemoryValidationStore expectedState = InMemoryValidationStore.create(workflowHistory.history());
-        mismatchingCellsConsumer.accept(
-                findCellsThatDoNotMatch(expectedState.values(), workflowHistory.transactionStore()));
-        undeletedCellsConsumer.accept(
-                findCellsThatAreNotDeleted(expectedState.deletedCells(), workflowHistory.transactionStore()));
-    }
-
-    private Map<TableWorkloadCell, MismatchedValue> findCellsThatDoNotMatch(
-            Map<TableWorkloadCell, Integer> expectedCells, ReadableTransactionStore storeToValidate) {
-        return EntryStream.of(expectedCells)
-                .mapToValue((writtenCell, expectedValue) -> {
+    public void accept(
+            WorkflowHistory workflowHistory, Consumer<Map<TableAndWorkloadCell, MismatchedValue>> invariantListener) {
+        ValidationStore expectedState = InMemoryValidationStore.create(workflowHistory.history());
+        ReadableTransactionStore storeToValidate = workflowHistory.transactionStore();
+        Map<TableAndWorkloadCell, MismatchedValue> cellsThatDoNotMatch = expectedState
+                .values()
+                .map((writtenCell, expectedValue) -> {
+                    Optional<MismatchedValue> maybeMismatchedValue = Optional.empty();
                     Optional<Integer> actualValue = storeToValidate.get(writtenCell.tableName(), writtenCell.cell());
-                    if (!actualValue.map(expectedValue::equals).orElse(false)) {
-                        return Optional.of(MismatchedValue.of(actualValue, Optional.of(expectedValue)));
+
+                    if (!actualValue.equals(expectedValue)) {
+                        maybeMismatchedValue = Optional.of(MismatchedValue.of(actualValue, expectedValue));
                     }
-                    return Optional.<MismatchedValue>empty();
+
+                    return Tuple.of(writtenCell, maybeMismatchedValue);
                 })
-                .removeValues(Optional::isEmpty)
+                .filterValues(Optional::isPresent)
                 .mapValues(Optional::get)
-                .toMap();
-    }
-
-    private Map<TableWorkloadCell, Integer> findCellsThatAreNotDeleted(
-            Set<TableWorkloadCell> cells, ReadableTransactionStore storeToValidate) {
-        return StreamEx.of(cells)
-                .mapToEntry(cell -> storeToValidate.get(cell.tableName(), cell.cell()))
-                .removeValues(Optional::isEmpty)
-                .mapValues(Optional::get)
-                .toMap();
-    }
-
-    private static void logMismatchingCells(Map<TableWorkloadCell, MismatchedValue> mismatchingCells) {
-        mismatchingCells.forEach((cell, mismatchedValue) -> log.error(
-                "In-memory state does not match external transactional store.",
-                SafeArg.of("table", cell.tableName()),
-                SafeArg.of("cell", cell.cell()),
-                SafeArg.of("mismatchedValue", mismatchedValue)));
-    }
-
-    private static void logUndeletedCells(Map<TableWorkloadCell, Integer> undeletedCells) {
-        undeletedCells.forEach((cell, value) -> log.error(
-                "Cell existed when it is expected to be deleted.",
-                SafeArg.of("tableName", cell.tableName()),
-                SafeArg.of("cell", cell.cell()),
-                SafeArg.of("value", value)));
+                .toJavaMap();
+        invariantListener.accept(cellsThatDoNotMatch);
     }
 }

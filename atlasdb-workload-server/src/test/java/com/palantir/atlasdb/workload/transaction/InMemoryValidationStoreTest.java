@@ -17,97 +17,91 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_1;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_2;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_TWO;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_TWO;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_1;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_2;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.atlasdb.workload.store.ValidationStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Test;
 
 public final class InMemoryValidationStoreTest {
 
     @Test
-    public void writeActionsAreHandled() {
+    public void writeActionsPersistValues() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_2, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .build()));
-        assertThat(store.values())
-                .containsExactlyInAnyOrderEntriesOf(
-                        Map.of(TABLE_WORKLOAD_CELL_1, VALUE_ONE, TABLE_WORKLOAD_CELL_2, VALUE_TWO));
-        assertThat(store.deletedCells()).isEmpty();
+        assertThat(store.values().toJavaMap())
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        TABLE_WORKLOAD_CELL_ONE,
+                        Optional.of(VALUE_ONE),
+                        TABLE_WORKLOAD_CELL_TWO,
+                        Optional.of(VALUE_TWO)));
     }
 
     @Test
-    public void deletesAreHandled() {
+    public void deleteActionsPutsEmptyOptionalForCell() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_ONE))
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_2, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_1))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
                         .build()));
-        assertThat(store.values()).containsExactlyEntriesOf(Map.of(TABLE_WORKLOAD_CELL_2, VALUE_ONE));
-        assertThat(store.deletedCells()).containsExactlyInAnyOrder(TABLE_WORKLOAD_CELL_1);
+        assertThat(store.values().toJavaMap())
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        TABLE_WORKLOAD_CELL_ONE, Optional.empty(), TABLE_WORKLOAD_CELL_TWO, Optional.of(VALUE_ONE)));
     }
 
     @Test
-    public void writesDeletesAreHandledInOrder() {
+    public void writesDeletesAreProcessedInOrder() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_1))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(5)
                         .commitTimestamp(6)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_TWO))
                         .build()));
-        assertThat(store.values()).containsExactlyEntriesOf(Map.of(TABLE_WORKLOAD_CELL_1, VALUE_TWO));
-        assertThat(store.deletedCells()).isEmpty();
+        assertThat(store.values().toJavaMap())
+                .containsExactlyInAnyOrderEntriesOf(Map.of(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_TWO)));
     }
 
     @Test
     public void valuesCannotBeModified() {
-        InMemoryValidationStore store = InMemoryValidationStore.create(List.of());
-        assertThatThrownBy(() -> store.values().remove(new Object())).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> store.values().put(TABLE_WORKLOAD_CELL_1, 10))
-                .isInstanceOf(UnsupportedOperationException.class);
-    }
-
-    @Test
-    public void deletedCellsCannotBeModified() {
-        InMemoryValidationStore store = InMemoryValidationStore.create(List.of());
-        assertThatThrownBy(() -> store.deletedCells().remove(new Object()))
-                .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> store.deletedCells().add(TABLE_WORKLOAD_CELL_1))
-                .isInstanceOf(UnsupportedOperationException.class);
+        ValidationStore validationStore = InMemoryValidationStore.create(List.of());
+        validationStore.values().put(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_TWO));
+        assertThat(validationStore.values()).isEmpty();
     }
 }

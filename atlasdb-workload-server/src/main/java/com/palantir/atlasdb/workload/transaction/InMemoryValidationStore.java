@@ -16,30 +16,26 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.TableWorkloadCell;
+import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.ValidationStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import io.vavr.collection.HashMap;
+import io.vavr.collection.Map;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
 
 public final class InMemoryValidationStore implements ValidationStore {
 
-    private final Map<TableWorkloadCell, Integer> values;
+    private final Map<TableAndWorkloadCell, Optional<Integer>> values;
 
-    private final Set<TableWorkloadCell> deletedCells;
-
-    private InMemoryValidationStore(Map<TableWorkloadCell, Integer> values, Set<TableWorkloadCell> deletedCells) {
-        this.deletedCells = Collections.unmodifiableSet(deletedCells);
-        this.values = Collections.unmodifiableMap(values);
+    private InMemoryValidationStore(Map<TableAndWorkloadCell, Optional<Integer>> values) {
+        this.values = values;
     }
 
     public static InMemoryValidationStore create(List<WitnessedTransaction> history) {
@@ -48,24 +44,19 @@ public final class InMemoryValidationStore implements ValidationStore {
                 .map(WitnessedTransaction::actions)
                 .forEach(witnessedTransactionActions ->
                         witnessedTransactionActions.forEach(action -> action.accept(replayer)));
-        return new InMemoryValidationStore(replayer.getValues(), replayer.getDeletedCells());
+        return new InMemoryValidationStore(replayer.getValues());
     }
 
     @Override
-    public Map<TableWorkloadCell, Integer> values() {
+    public Map<TableAndWorkloadCell, Optional<Integer>> values() {
         return values;
-    }
-
-    @Override
-    public Set<TableWorkloadCell> deletedCells() {
-        return deletedCells;
     }
 
     @NotThreadSafe
     private static final class InMemoryTransactionReplayer implements WitnessedTransactionActionVisitor<Void> {
 
-        private final Map<TableWorkloadCell, Integer> values = new HashMap<>();
-        private final Set<TableWorkloadCell> deletedCells = new HashSet<>();
+        private final StructureHolder<Map<TableAndWorkloadCell, Optional<Integer>>> values =
+                StructureHolder.create(HashMap::empty);
 
         @Override
         public Void visit(WitnessedReadTransactionAction readTransactionAction) {
@@ -74,28 +65,22 @@ public final class InMemoryValidationStore implements ValidationStore {
 
         @Override
         public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            TableWorkloadCell tableWorkloadCell =
-                    TableWorkloadCell.of(writeTransactionAction.table(), writeTransactionAction.cell());
-            values.put(tableWorkloadCell, writeTransactionAction.value());
-            deletedCells.remove(tableWorkloadCell);
+            TableAndWorkloadCell tableAndWorkloadCell =
+                    TableAndWorkloadCell.of(writeTransactionAction.table(), writeTransactionAction.cell());
+            values.with(map -> map.put(tableAndWorkloadCell, Optional.of(writeTransactionAction.value())));
             return null;
         }
 
         @Override
         public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            TableWorkloadCell tableWorkloadCell =
-                    TableWorkloadCell.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
-            values.remove(tableWorkloadCell);
-            deletedCells.add(tableWorkloadCell);
+            TableAndWorkloadCell tableAndWorkloadCell =
+                    TableAndWorkloadCell.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
+            values.with(map -> map.put(tableAndWorkloadCell, Optional.empty()));
             return null;
         }
 
-        public Map<TableWorkloadCell, Integer> getValues() {
-            return values;
-        }
-
-        public Set<TableWorkloadCell> getDeletedCells() {
-            return deletedCells;
+        public Map<TableAndWorkloadCell, Optional<Integer>> getValues() {
+            return values.getSnapshot();
         }
     }
 }

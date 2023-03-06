@@ -22,7 +22,7 @@ import org.immutables.value.Value;
  * Convenient class which combines table name and cell, for convenient usage in {@link java.util.Map} or other similar interfaces.
  */
 @Value.Immutable
-public interface TableWorkloadCell {
+public interface TableAndWorkloadCell {
 
     @Value.Parameter
     String tableName();
@@ -30,7 +30,7 @@ public interface TableWorkloadCell {
     @Value.Parameter
     WorkloadCell cell();
 
-    static TableWorkloadCell of(String tableName, WorkloadCell workloadCell) {
-        return ImmutableTableWorkloadCell.of(tableName, workloadCell);
+    static TableAndWorkloadCell of(String tableName, WorkloadCell workloadCell) {
+        return ImmutableTableAndWorkloadCell.of(tableName, workloadCell);
     }
 }

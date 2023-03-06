@@ -16,8 +16,7 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 
 /**
  * Store used for replaying witnessed transactions, and ultimately being used as the 'source-of-truth' when validating
@@ -25,9 +24,6 @@ import java.util.Set;
  */
 public interface ValidationStore {
 
-    /** Return all cells and values for all tables. */
-    Map<TableWorkloadCell, Integer> values();
-
-    /** Returns all cells that have been deleted, and have stayed deleted. */
-    Set<TableWorkloadCell> deletedCells();
+    /** Return all cells and values for all tables. Value is expected to be empty for deleted cells. */
+    io.vavr.collection.Map<TableAndWorkloadCell, Optional<Integer>> values();
 }

@@ -16,17 +16,18 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_REFERENCE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_TWO;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
-import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
-import com.palantir.atlasdb.workload.store.TableWorkloadCell;
-import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -45,37 +46,26 @@ import org.junit.Test;
 
 public final class DurableWritesInvariantTest {
 
-    private static final String TABLE = "foo";
-    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
-
-    private static final WorkloadCell WORKLOAD_CELL_1 = ImmutableWorkloadCell.of(1, 2);
-    private static final WorkloadCell WORKLOAD_CELL_2 = ImmutableWorkloadCell.of(3, 4);
-    private static final Integer VALUE_ONE = 5;
-    private static final Integer VALUE_TWO = 3;
-
-    private TransactionManager manager;
     private AtlasDbTransactionStore store;
 
     @Before
     public void before() {
-        manager = TransactionManagers.createInMemory(Set.of());
         store = AtlasDbTransactionStore.create(
-                manager, Map.of(TABLE_REFERENCE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
+                TransactionManagers.createInMemory(Set.of()),
+                Map.of(TABLE_REFERENCE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
     }
 
     @Test
-    public void undeletedCellsAreFoundAndDeletedAreIgnored() {
-        AtomicReference<Map<TableWorkloadCell, Integer>> undeletedCells = new AtomicReference<>();
-
-        DurableWritesInvariant durableWritesInvariant = new DurableWritesInvariant(_ignore -> {}, undeletedCells::set);
+    public void cellsExpectedToBeDeletedAreFound() {
+        AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_1))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_2))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .build());
@@ -84,25 +74,25 @@ public final class DurableWritesInvariantTest {
                 .transactionStore(store)
                 .build();
 
-        store.readWrite(List.of(WriteTransactionAction.of(TABLE, WORKLOAD_CELL_2, VALUE_ONE)));
-        durableWritesInvariant.accept(history);
-        assertThat(undeletedCells.get())
-                .containsExactlyEntriesOf(Map.of(TableWorkloadCell.of(TABLE, WORKLOAD_CELL_2), VALUE_ONE));
+        store.readWrite(List.of(WriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
+        DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
+        assertThat(mismatchingCells.get())
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO),
+                        MismatchedValue.of(Optional.of(VALUE_ONE), Optional.empty())));
     }
 
     @Test
     public void cellsThatDoNotMatchAreFoundAndMatchingAreIgnored() {
-        AtomicReference<Map<TableWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
-        DurableWritesInvariant durableWritesInvariant =
-                new DurableWritesInvariant(mismatchingCells::set, _ignore -> {});
+        AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_2, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .build());
@@ -112,12 +102,12 @@ public final class DurableWritesInvariantTest {
                 .build();
 
         store.readWrite(List.of(
-                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_1, VALUE_ONE),
-                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_2, VALUE_ONE)));
-        durableWritesInvariant.accept(history);
+                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE),
+                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
+        DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
         assertThat(mismatchingCells.get())
                 .containsExactlyEntriesOf(Map.of(
-                        TableWorkloadCell.of(TABLE, WORKLOAD_CELL_2),
+                        TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.of(VALUE_TWO))));
     }
 }

@@ -19,17 +19,23 @@ package com.palantir.atlasdb.workload.transaction;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
-import com.palantir.atlasdb.workload.store.TableWorkloadCell;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 
 public final class WorkloadTestHelpers {
     public static final String TABLE = "foo";
+    public static final String INDEX_TABLE = TABLE + "_index";
     public static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
-
-    public static final WorkloadCell WORKLOAD_CELL_1 = ImmutableWorkloadCell.of(1, 2);
-    public static final WorkloadCell WORKLOAD_CELL_2 = ImmutableWorkloadCell.of(3, 4);
-    public static final Integer VALUE_ONE = 5;
-    public static final Integer VALUE_TWO = 3;
-    public static final TableWorkloadCell TABLE_WORKLOAD_CELL_1 = TableWorkloadCell.of(TABLE, WORKLOAD_CELL_1);
-    public static final TableWorkloadCell TABLE_WORKLOAD_CELL_2 = TableWorkloadCell.of(TABLE, WORKLOAD_CELL_2);
+    public static final TableReference INDEX_REFERENCE =
+            TableReference.create(TABLE_REFERENCE.getNamespace(), INDEX_TABLE);
+    public static final WorkloadCell WORKLOAD_CELL_ONE = ImmutableWorkloadCell.of(50, 10);
+    public static final WorkloadCell WORKLOAD_CELL_TWO = ImmutableWorkloadCell.of(1257, 521);
+    public static final WorkloadCell WORKLOAD_CELL_THREE =
+            ImmutableWorkloadCell.builder().key(567).column(405234).build();
+    public static final Integer VALUE_ONE = 541;
+    public static final Integer VALUE_TWO = 334;
+    public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_ONE =
+            TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_ONE);
+    public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_TWO =
+            TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO);
 }

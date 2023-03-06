@@ -16,6 +16,14 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.INDEX_REFERENCE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.INDEX_TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_REFERENCE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_THREE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,8 +33,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
@@ -48,21 +54,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class AtlasDbTransactionStoreTest {
-
-    private static final String TABLE = "foo";
-    private static final String INDEX_TABLE = TABLE + "_index";
-    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
-    private static final TableReference INDEX_REFERENCE =
-            TableReference.create(TABLE_REFERENCE.getNamespace(), INDEX_TABLE);
-
-    private static final WorkloadCell WORKLOAD_CELL_ONE =
-            ImmutableWorkloadCell.builder().key(50).column(10).build();
-    private static final WorkloadCell WORKLOAD_CELL_TWO =
-            ImmutableWorkloadCell.builder().key(1257).column(521).build();
-    private static final WorkloadCell WORKLOAD_CELL_THREE =
-            ImmutableWorkloadCell.builder().key(567).column(405234).build();
-
-    private static final Integer VALUE_ONE = 100;
 
     private TransactionManager manager;
 
