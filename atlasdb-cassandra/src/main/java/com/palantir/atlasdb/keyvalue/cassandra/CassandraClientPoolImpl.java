@@ -355,9 +355,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(currentPoolWithoutAbsentServers, serversToAdd);
 
-        boolean poolEmpty = currentPoolWithoutAbsentServers.isEmpty() && validatedServersToAdd.isEmpty();
-
-        if (poolEmpty) {
+        if (currentPoolWithoutAbsentServers.isEmpty() && validatedServersToAdd.isEmpty()) {
             metrics.recordEmptyPool();
             throw new SafeIllegalStateException(
                     "No servers were successfully added to the pool. This means we could not come to a consensus on"
