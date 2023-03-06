@@ -357,12 +357,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !(currentPoolWithoutAbsentServers.isEmpty() && validatedServersToAdd.isEmpty()),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, or no hosts were provided. We will fallback to using our previous Cassandra"
-                    + " hosts, if any exist. This state should be transient (<5 minutes), and if it is not, indicates"
-                    + " that the user may have accidentally configured AltasDB to use two separate Cassandra clusters"
-                    + " (i.e., user-led split brain).",
+                        + " cluster topology, or no servers were provided. We will fallback to using our previous"
+                        + " Cassandra servers, if any exist. This state should be transient (<5 minutes), and if it is"
+                        + " not, indicates that the user may have accidentally configured AltasDB to use two separate"
+                        + " Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
-                SafeArg.of("previousCassandraHosts", CassandraLogHelper.collectionOfHosts(currentServers)));
+                SafeArg.of("previousCassandraServers", CassandraLogHelper.collectionOfHosts(currentServers)));
 
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
