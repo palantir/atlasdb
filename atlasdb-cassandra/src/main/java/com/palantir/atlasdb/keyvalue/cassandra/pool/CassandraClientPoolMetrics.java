@@ -43,7 +43,7 @@ public class CassandraClientPoolMetrics {
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
     private final Counter poolExhaustionCounter;
 
-    private final AtomicLong poolSize;
+    private final AtomicLong poolSize = new AtomicLong(0L);
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
@@ -51,7 +51,6 @@ public class CassandraClientPoolMetrics {
         this.poolExhaustionCounter =
                 metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
-        this.poolSize = new AtomicLong(0L);
         metricsManager.registerMetric(CassandraClientPoolMetrics.class, POOL_SIZE_METRIC_NAME, poolSize::get);
     }
 
