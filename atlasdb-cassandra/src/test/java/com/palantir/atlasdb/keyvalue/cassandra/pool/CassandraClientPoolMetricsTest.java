@@ -59,7 +59,7 @@ public class CassandraClientPoolMetricsTest {
     }
 
     @Test
-    public void recordPoolSizeCorrectlySetsSize() {
+    public void recordPoolSizeSetsSizeToLastReportedValue() {
         metrics.recordPoolSize(100);
         assertThat(metrics.getPoolSize()).isEqualTo(100);
         metrics.recordPoolSize(-13);
