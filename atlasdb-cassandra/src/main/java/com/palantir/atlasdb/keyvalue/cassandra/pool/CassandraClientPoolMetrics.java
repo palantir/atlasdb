@@ -27,12 +27,13 @@ import com.palantir.atlasdb.util.MetricsManager;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class CassandraClientPoolMetrics {
 
-    public static final String EMPTY_POOL_METRIC_NAME = "empty-pool";
+    public static final String POOL_SIZE_METRIC_NAME = "pool-size";
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<CassandraServer, RequestMetrics> metricsByHost = new HashMap<>();
@@ -42,7 +43,7 @@ public class CassandraClientPoolMetrics {
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
     private final Counter poolExhaustionCounter;
 
-    private final Counter emptyPoolCounter;
+    private final AtomicLong poolSize;
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
@@ -50,8 +51,8 @@ public class CassandraClientPoolMetrics {
         this.poolExhaustionCounter =
                 metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
-        this.emptyPoolCounter =
-                metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, EMPTY_POOL_METRIC_NAME);
+        this.poolSize = new AtomicLong(0L);
+        metricsManager.registerMetric(CassandraClientPoolMetrics.class, POOL_SIZE_METRIC_NAME, poolSize::get);
     }
 
     private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
@@ -100,21 +101,13 @@ public class CassandraClientPoolMetrics {
         poolExhaustionCounter.inc();
     }
 
-    public synchronized void recordEmptyPool() {
-        if (emptyPoolCounter.getCount() == 0) {
-            emptyPoolCounter.inc();
-        }
-    }
-
-    public synchronized void recordHealthyPool() {
-        if (emptyPoolCounter.getCount() == 1) {
-            emptyPoolCounter.dec();
-        }
+    public void recordPoolSize(long desiredPoolSize) {
+        poolSize.set(desiredPoolSize);
     }
 
     @VisibleForTesting
-    Counter getEmptyPoolCounter() {
-        return emptyPoolCounter;
+    Long getPoolSize() {
+        return poolSize.get();
     }
 
     @SuppressWarnings("unchecked") // Guaranteed to have the correct type
