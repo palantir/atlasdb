@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import io.vavr.collection.Map;
 import java.util.Optional;
 
 /**
@@ -25,5 +26,5 @@ import java.util.Optional;
 public interface ValidationStore {
 
     /** Return all cells and values for all tables. Value is expected to be empty for deleted cells. */
-    io.vavr.collection.Map<TableAndWorkloadCell, Optional<Integer>> values();
+    Map<TableAndWorkloadCell, Optional<Integer>> values();
 }
