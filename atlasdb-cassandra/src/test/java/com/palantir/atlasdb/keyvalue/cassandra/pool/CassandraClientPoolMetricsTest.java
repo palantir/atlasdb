@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.atlasdb.util.ThreadTestUtils;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -34,9 +33,10 @@ public class CassandraClientPoolMetricsTest {
     private final MetricsManager metricsManager =
             MetricsManagers.of(new MetricRegistry(), new DefaultTaggedMetricRegistry(), Refreshable.only(true));
 
+    private final CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
+
     @Test
     public void metricsAreProducedAndFiltered() {
-        CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
         AtomicLong poolOne = new AtomicLong(3);
         AtomicLong poolTwo = new AtomicLong(4);
         AtomicLong poolThree = new AtomicLong(20);
@@ -59,15 +59,15 @@ public class CassandraClientPoolMetricsTest {
     }
 
     @Test
-    public void emptyPoolMetricIsThreadsafe() throws InterruptedException {
-        CassandraClientPoolMetrics metrics = new CassandraClientPoolMetrics(metricsManager);
-        ThreadTestUtils.runTaskOnMultipleThreads(
-                () -> {
-                    metrics.recordEmptyPool();
-                    metrics.recordHealthyPool();
-                },
-                100);
-        assertThat(metrics.getEmptyPoolCounter().getCount()).isEqualTo(0);
+    public void recordPoolSizeCorrectlySetsSize() {
+        metrics.recordPoolSize(100);
+        assertThat(metrics.getPoolSize()).isEqualTo(100);
+        metrics.recordPoolSize(-13);
+        assertThat(metrics.getPoolSize()).isEqualTo(-13);
+        metrics.recordPoolSize(25);
+        assertThat(metrics.getPoolSize()).isEqualTo(25);
+        metrics.recordPoolSize(0);
+        assertThat(metrics.getPoolSize()).isEqualTo(0);
     }
 
     private static MetricName createMeanActiveTimeMillisMetric(String pool) {

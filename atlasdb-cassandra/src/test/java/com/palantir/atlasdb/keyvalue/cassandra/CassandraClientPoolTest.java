@@ -354,14 +354,15 @@ public final class CassandraClientPoolTest {
         setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
-
         createClientPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
-        setupHostsWithInconsistentTopology(CASS_SERVER_2, CASS_SERVER_3);
+        assertPoolSizeMetricIsEqualTo(3);
 
+        setupHostsWithInconsistentTopology(CASS_SERVER_2, CASS_SERVER_3);
         setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
         refreshPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_2, CASS_SERVER_3);
+        assertPoolSizeMetricIsEqualTo(2);
     }
 
     @Test
@@ -384,18 +385,18 @@ public final class CassandraClientPoolTest {
         when(config.autoRefreshNodes()).thenReturn(true);
         setCassandraServersTo(CASS_SERVER_1);
         createClientPool();
-        assertEmptyPoolMetricIsEqualTo(0);
+        assertPoolSizeMetricIsEqualTo(1);
 
         setupHostsWithInconsistentTopology(CASS_SERVER_2);
         setCassandraServersTo(CASS_SERVER_2);
         refreshPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1);
-        assertEmptyPoolMetricIsEqualTo(1);
+        assertPoolSizeMetricIsEqualTo(0);
 
         setCassandraServersTo(CASS_SERVER_2, CASS_SERVER_3);
         refreshPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_3);
-        assertEmptyPoolMetricIsEqualTo(0);
+        assertPoolSizeMetricIsEqualTo(1);
     }
 
     @Test
@@ -406,11 +407,13 @@ public final class CassandraClientPoolTest {
 
         createClientPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1);
-        setupHostsWithInconsistentTopology(CASS_SERVER_2);
+        assertPoolSizeMetricIsEqualTo(1);
 
+        setupHostsWithInconsistentTopology(CASS_SERVER_2);
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
         refreshPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_3);
+        assertPoolSizeMetricIsEqualTo(2);
     }
 
     @Test
@@ -780,17 +783,18 @@ public final class CassandraClientPoolTest {
                         SafeArg.of(
                                 "previousCassandraServers",
                                 CassandraLogHelper.collectionOfHosts(previousCassandraServers)));
-        assertEmptyPoolMetricIsEqualTo(1);
+        assertPoolSizeMetricIsEqualTo(0);
     }
 
-    private void assertEmptyPoolMetricIsEqualTo(int expected) {
+    private void assertPoolSizeMetricIsEqualTo(long expected) {
         assertThat(taggedMetricRegistry
-                        .counter(MetricName.builder()
+                        .<Long>gauge(MetricName.builder()
                                 .safeName(MetricRegistry.name(
                                         CassandraClientPoolMetrics.class,
-                                        CassandraClientPoolMetrics.EMPTY_POOL_METRIC_NAME))
+                                        CassandraClientPoolMetrics.POOL_SIZE_METRIC_NAME))
                                 .build())
-                        .getCount())
+                        .get()
+                        .getValue())
                 .isEqualTo(expected);
     }
 }
