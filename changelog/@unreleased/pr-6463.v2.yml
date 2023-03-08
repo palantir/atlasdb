@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Never completely empty the Cassandra client pool, even if a new list
+    of hosts are provided.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6463
