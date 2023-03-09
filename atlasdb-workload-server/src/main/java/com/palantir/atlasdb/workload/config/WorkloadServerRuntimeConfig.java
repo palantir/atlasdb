@@ -18,10 +18,11 @@ package com.palantir.atlasdb.workload.config;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableWorkloadServerRuntimeConfig.class)
 public interface WorkloadServerRuntimeConfig {
-    AtlasDbRuntimeConfig atlas();
+    Optional<AtlasDbRuntimeConfig> atlas();
 }

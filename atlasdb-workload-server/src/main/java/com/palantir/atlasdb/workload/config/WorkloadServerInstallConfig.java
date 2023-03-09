@@ -17,8 +17,15 @@
 package com.palantir.atlasdb.workload.config;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.workload.workflow.SingleCellWorkflowConfiguration;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableWorkloadServerInstallConfig.class)
-public class WorkloadServerInstallConfig {}
+public interface WorkloadServerInstallConfig {
+
+    AtlasDbConfig atlas();
+
+    SingleCellWorkflowConfiguration singleCellWorkflowConfiguration();
+}
