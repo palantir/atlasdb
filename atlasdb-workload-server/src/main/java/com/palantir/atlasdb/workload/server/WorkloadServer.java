@@ -83,11 +83,15 @@ public class WorkloadServer {
         Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                 store, installConfig.singleCellWorkflowConfiguration());
         DurableWritesMetrics durableWritesMetrics = DurableWritesMetrics.of(metricsManager.getTaggedRegistry());
+
         DurableWritesInvariant.INSTANCE.accept(workflow.run(), violations -> EntryStream.of(violations)
                 .mapKeys(TableAndWorkloadCell::tableName)
                 .grouping(Collectors.counting())
                 .forEach((table, count) -> durableWritesMetrics
-                        .numberOfViolations(SingleRowTwoCellsWorkflows.class.getSimpleName(), table)
+                        .numberOfViolations()
+                        .workflow(SingleRowTwoCellsWorkflows.class.getSimpleName())
+                        .table(table)
+                        .build()
                         .inc(count)));
     }
 }
