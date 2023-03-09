@@ -52,18 +52,18 @@ public final class SingleRowTwoCellsWorkflows {
     }
 
     public static Workflow createSingleRowTwoCell(
-            TransactionStore store, SingleCellWorkflowConfiguration singleCellWorkflowConfiguration) {
+            TransactionStore store, SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsWorkflowConfiguration) {
         return DefaultWorkflow.create(
                 store,
-                (txnStore, index) -> run(txnStore, index, singleCellWorkflowConfiguration),
-                singleCellWorkflowConfiguration.genericWorkflowConfiguration());
+                (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
+                singleRowTwoCellsWorkflowConfiguration.genericWorkflowConfiguration());
     }
 
     private static Optional<WitnessedTransaction> run(
-            TransactionStore store, int taskIndex, SingleCellWorkflowConfiguration workflowConfiguration) {
+            TransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
 
-        String tableName = workflowConfiguration.tableName();
+        String tableName = workflowConfiguration.tableConfiguration().tableName();
         List<TransactionAction> cellReads = ImmutableList.of(
                 ReadTransactionAction.of(tableName, FIRST_CELL), ReadTransactionAction.of(tableName, SECOND_CELL));
         List<TransactionAction> cellUpdates = shouldWriteToFirstCell(taskIndex)

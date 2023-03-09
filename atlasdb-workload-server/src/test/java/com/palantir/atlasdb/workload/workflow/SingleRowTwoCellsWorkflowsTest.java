@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -45,23 +46,38 @@ import org.junit.Test;
 public class SingleRowTwoCellsWorkflowsTest {
     private static final TableReference TEST_TABLE =
             TableReference.create(Namespace.create("test"), "singleRowTwoCells");
-    private static final TransactionStore TRANSACTION_STORE = AtlasDbTransactionStore.create(
-            TransactionManagers.createInMemory(ImmutableSet.of()),
-            ImmutableMap.of(TEST_TABLE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
     private static final int ITERATION_COUNT = 1_000;
 
     @Test
-    public void smokeTest() {
-        Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                TRANSACTION_STORE,
-                ImmutableSingleCellWorkflowConfiguration.builder()
+    public void workflowPassesWithSerializableConflictChecking() {
+        runWorkflowWithConflictHandler(ConflictHandler.SERIALIZABLE, ITERATION_COUNT);
+    }
+
+    @Test
+    public void workflowDoesNotPassWhenConflictsAreNotHandled() {
+        assertThatThrownBy(() -> runWorkflowWithConflictHandler(ConflictHandler.IGNORE_ALL, 100))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    private void runWorkflowWithConflictHandler(ConflictHandler conflictHandler, int iterations) {
+        SingleRowTwoCellsWorkflowConfiguration configuration = ImmutableSingleRowTwoCellsWorkflowConfiguration.builder()
+                .tableConfiguration(ImmutableTableConfiguration.builder()
                         .tableName(TEST_TABLE.getTableName())
-                        .genericWorkflowConfiguration(ImmutableWorkflowConfiguration.builder()
-                                .iterationCount(ITERATION_COUNT)
-                                .executionExecutor(
-                                        MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
-                                .build())
-                        .build());
+                        .conflictHandler(conflictHandler)
+                        .build())
+                .genericWorkflowConfiguration(ImmutableWorkflowConfiguration.builder()
+                        .iterationCount(iterations)
+                        .executionExecutor(MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
+                        .build())
+                .build();
+
+        TransactionStore transactionStore = AtlasDbTransactionStore.create(
+                TransactionManagers.createInMemory(ImmutableSet.of()),
+                ImmutableMap.of(
+                        TEST_TABLE,
+                        AtlasDbUtils.tableMetadata(
+                                configuration.tableConfiguration().conflictHandler())));
+        Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(transactionStore, configuration);
         assertWorkflowHistoryConsistent(workflow.run());
     }
 

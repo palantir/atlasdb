@@ -16,16 +16,12 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SingleCellWorkflowConfiguration {
-    WorkflowConfiguration genericWorkflowConfiguration();
-
+public interface TableConfiguration {
     String tableName();
 
-    default RateLimiter transactionRateLimiter() {
-        return RateLimiter.create(100);
-    }
+    ConflictHandler conflictHandler();
 }
