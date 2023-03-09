@@ -22,9 +22,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.workload.DurableWritesMetrics;
 import com.palantir.atlasdb.workload.config.WorkloadServerInstallConfig;
 import com.palantir.atlasdb.workload.config.WorkloadServerRuntimeConfig;
+import com.palantir.atlasdb.workload.invariant.DurableWritesInvariant;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
@@ -32,6 +35,8 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.refreshable.Refreshable;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import one.util.streamex.EntryStream;
 
 public class WorkloadServer {
 
@@ -77,6 +82,12 @@ public class WorkloadServer {
                 transactionManager, Map.of(tableReference, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
         Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                 store, installConfig.singleCellWorkflowConfiguration());
-        workflow.run();
+        DurableWritesMetrics durableWritesMetrics = DurableWritesMetrics.of(metricsManager.getTaggedRegistry());
+        DurableWritesInvariant.INSTANCE.accept(workflow.run(), violations -> EntryStream.of(violations)
+                .mapKeys(TableAndWorkloadCell::tableName)
+                .grouping(Collectors.counting())
+                .forEach((table, count) -> durableWritesMetrics
+                        .numberOfViolations(SingleRowTwoCellsWorkflows.class.getSimpleName(), table)
+                        .inc(count)));
     }
 }
