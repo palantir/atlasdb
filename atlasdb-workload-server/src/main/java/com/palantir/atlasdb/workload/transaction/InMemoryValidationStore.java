@@ -28,7 +28,6 @@ import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.concurrent.NotThreadSafe;
 
 public final class InMemoryValidationStore implements ValidationStore {
 
@@ -52,7 +51,6 @@ public final class InMemoryValidationStore implements ValidationStore {
         return values;
     }
 
-    @NotThreadSafe
     private static final class InMemoryTransactionReplayer implements WitnessedTransactionActionVisitor<Void> {
 
         private final StructureHolder<Map<TableAndWorkloadCell, Optional<Integer>>> values =

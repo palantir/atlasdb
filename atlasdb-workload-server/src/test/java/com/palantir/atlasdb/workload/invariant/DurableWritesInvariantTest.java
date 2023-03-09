@@ -106,7 +106,7 @@ public final class DurableWritesInvariantTest {
                 WriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
         DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
         assertThat(mismatchingCells.get())
-                .containsExactlyEntriesOf(Map.of(
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
                         TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.of(VALUE_TWO))));
     }
