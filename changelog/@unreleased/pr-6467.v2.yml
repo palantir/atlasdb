@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Update slf4j javadocs link to https://www.slf4j.org/apidocs/
+  links:
+  - https://github.com/palantir/atlasdb/pull/6467
