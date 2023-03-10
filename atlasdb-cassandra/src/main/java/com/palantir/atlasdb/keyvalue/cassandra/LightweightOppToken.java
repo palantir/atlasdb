@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.Token;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.io.BaseEncoding;
@@ -25,13 +26,33 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Locale;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
+    private static final BaseEncoding lowerHex = BaseEncoding.base16().lowerCase();
 
     final byte[] bytes;
 
     public LightweightOppToken(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    public static LightweightOppToken fromHex(String token) {
+        String normalized = hasUppercase(token)
+                ? token.toLowerCase(Locale.ROOT) // OPP tokens should be lowercase already, normalize if needed
+                : token;
+        return new LightweightOppToken(lowerHex.decode(normalized));
+    }
+
+    @VisibleForTesting
+    static boolean hasUppercase(String token) {
+        for (int i = 0; i < token.length(); i++) {
+            char ch = token.charAt(i);
+            if (Character.isUpperCase(ch)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static LightweightOppToken of(Cell cell) {
