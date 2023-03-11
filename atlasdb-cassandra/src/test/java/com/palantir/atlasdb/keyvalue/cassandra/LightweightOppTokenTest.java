@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -46,7 +45,7 @@ public class LightweightOppTokenTest {
     public static Collection<Object[]> data() {
         return Stream.concat(
                         Stream.of(
-                                "0a",
+                                "0F",
                                 "decafbad",
                                 "0123456789ABCDEF",
                                 "0123456789abcdef",
@@ -55,7 +54,9 @@ public class LightweightOppTokenTest {
                                 "0123456789abCdef",
                                 "0123456789abcDef",
                                 "0123456789abcdEf",
-                                "0123456789abcdeF"),
+                                "0123456789abcdeF",
+                                Long.toHexString(Long.MIN_VALUE),
+                                Long.toHexString(Long.MAX_VALUE)),
                         Stream.concat(
                                 IntStream.range(0, 32).mapToObj(i -> {
                                     byte[] bytes = new byte[i * 2];
@@ -105,26 +106,11 @@ public class LightweightOppTokenTest {
         String hex = Hex.bytesToHex(expectedBytes.asNewByteArray());
         byte[] bytes = Hex.hexToBytes(hex);
         LightweightOppToken token4 = LightweightOppToken.fromHex(hex);
-        assertThat(LightweightOppToken.hasUppercase(hex)).isFalse();
+        assertThat(LightweightOppToken.isAllLowercaseOrDigits(hex))
+                .as("Expect lowercase hex %s", hex)
+                .isTrue();
         assertThat(token4).isEqualTo(new LightweightOppToken(expectedBytes.asNewByteArray()));
         assertThat(token4.bytes).contains(bytes);
-    }
-
-    @Test
-    public void hasUppercase() {
-        assertThat(LightweightOppToken.hasUppercase(input))
-                .isEqualTo(Pattern.compile("[A-Z]").matcher(input).find());
-
-        assertThat(LightweightOppToken.hasUppercase("0123456789abcdef")).isFalse();
-        assertThat(LightweightOppToken.hasUppercase("0123456789")).isFalse();
-        assertThat(LightweightOppToken.hasUppercase("")).isFalse();
-        assertThat(LightweightOppToken.hasUppercase("a")).isFalse();
-        assertThat(LightweightOppToken.hasUppercase("0123456789Abcdef")).isTrue();
-        assertThat(LightweightOppToken.hasUppercase("0123456789aBcdef")).isTrue();
-        assertThat(LightweightOppToken.hasUppercase("0123456789abCdef")).isTrue();
-        assertThat(LightweightOppToken.hasUppercase("0123456789abcDef")).isTrue();
-        assertThat(LightweightOppToken.hasUppercase("0123456789abcdEf")).isTrue();
-        assertThat(LightweightOppToken.hasUppercase("0123456789abcdeF")).isTrue();
     }
 
     /*
