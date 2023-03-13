@@ -1,6 +1,6 @@
 type: improvement
 improvement:
   description: When no Cassandra hosts are available, AtlasDB throws `AtlasDbDependencyException`
-    instead of `SafeIllegalArgumentException`.
+    instead of `SafeIllegalStateException`.
   links:
   - https://github.com/palantir/atlasdb/pull/6473
