@@ -19,6 +19,9 @@ package com.palantir.atlasdb.workload.store;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Creates transaction stores of a certain type which are bounded to the provided tables/indexes.
+ */
 public interface TransactionStoreFactory {
     TransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes);
 }
