@@ -42,9 +42,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -386,8 +390,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
-        return getRandomGoodHostForPredicate(address -> true)
-                .orElseThrow(() -> new SafeIllegalStateException("No hosts available."));
+        return getRandomGoodHostForPredicate(address -> true).orElseThrow(NoHostsAvailableException::new);
     }
 
     private String getRingViewDescription() {
@@ -525,5 +528,24 @@ public class CassandraService implements AutoCloseable {
     @VisibleForTesting
     void overrideHostToDatacenterMapping(ImmutableMap<CassandraServer, String> hostToDatacenterOverride) {
         this.hostToDatacenter = hostToDatacenterOverride;
+    }
+
+    private static final class NoHostsAvailableException extends AtlasDbDependencyException implements SafeLoggable {
+
+        private static final String MESSAGE = "No hosts available.";
+
+        NoHostsAvailableException() {
+            super(MESSAGE);
+        }
+
+        @Override
+        public @Safe String getLogMessage() {
+            return MESSAGE;
+        }
+
+        @Override
+        public List<Arg<?>> getArgs() {
+            return List.of();
+        }
     }
 }
