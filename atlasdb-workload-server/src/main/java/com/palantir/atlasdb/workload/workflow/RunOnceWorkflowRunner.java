@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.config;
+package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import java.util.Optional;
-import org.immutables.value.Value;
+import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import java.util.List;
 
-@Value.Immutable
-@JsonDeserialize(as = ImmutableWorkloadServerRuntimeConfig.class)
-public interface WorkloadServerRuntimeConfig {
-    Optional<AtlasDbRuntimeConfig> atlas();
+public enum RunOnceWorkflowRunner implements WorkflowRunner<Workflow> {
+    INSTANCE;
+
+    @Override
+    public void run(Workflow workflow, List<InvariantReporter<?>> invariants) {
+        WorkflowHistory workflowHistory = workflow.run();
+        invariants.forEach(reporter -> reporter.report(workflowHistory));
+    }
 }

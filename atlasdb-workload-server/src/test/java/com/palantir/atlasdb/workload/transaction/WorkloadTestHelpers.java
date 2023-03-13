@@ -24,10 +24,17 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 
 public final class WorkloadTestHelpers {
     public static final String TABLE = "foo";
+
+    public static final String TABLE_2 = "bar";
     public static final String INDEX_TABLE = TABLE + "_index";
+
+    public static final String INDEX_2_TABLE = TABLE + "_index_2";
+    public static final String INDEX_TABLE_2 = TABLE_2 + "_index";
     public static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     public static final TableReference INDEX_REFERENCE =
             TableReference.create(TABLE_REFERENCE.getNamespace(), INDEX_TABLE);
+
+    public static final Namespace NAMESPACE = Namespace.create("workload");
     public static final WorkloadCell WORKLOAD_CELL_ONE = ImmutableWorkloadCell.of(50, 10);
     public static final WorkloadCell WORKLOAD_CELL_TWO = ImmutableWorkloadCell.of(1257, 521);
     public static final WorkloadCell WORKLOAD_CELL_THREE =
@@ -38,4 +45,5 @@ public final class WorkloadTestHelpers {
             TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_ONE);
     public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_TWO =
             TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO);
+    public static final String WORKFLOW = "example-workflow";
 }
