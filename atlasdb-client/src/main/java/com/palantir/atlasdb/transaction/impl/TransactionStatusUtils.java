@@ -18,20 +18,22 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Aborted;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Committed;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.function.Function;
 
 public final class TransactionStatusUtils {
+
     private TransactionStatusUtils() {}
 
     public static TransactionStatus fromTimestamp(long timestamp) {
         if (timestamp == TransactionConstants.FAILED_COMMIT_TS) {
-            return TransactionConstants.ABORTED;
+            return TransactionStatus.aborted();
         }
-        return TransactionStatuses.committed(timestamp);
+        return TransactionStatus.committed(timestamp);
     }
 
     /**
@@ -39,12 +41,14 @@ public final class TransactionStatusUtils {
      * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
      * */
     public static long getCommitTimestampIfKnown(TransactionStatus status) {
-        return TransactionStatuses.caseOf(status)
-                .committed(Function.identity())
-                .aborted_(TransactionConstants.FAILED_COMMIT_TS)
-                .otherwise(() -> {
-                    throw new SafeIllegalStateException("Illegal transaction status", SafeArg.of("status", status));
-                });
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return committed.commitTimestamp();
+        } else if (status instanceof Aborted) {
+            return TransactionConstants.FAILED_COMMIT_TS;
+        } else {
+            throw new SafeIllegalStateException("Illegal transaction status", SafeArg.of("status", status));
+        }
     }
 
     /**
@@ -52,17 +56,23 @@ public final class TransactionStatusUtils {
      * use {@link #getCommitTsFromStatus(long, TransactionStatus, Function)}
      * */
     public static Optional<Long> maybeGetCommitTs(TransactionStatus status) {
-        return TransactionStatuses.caseOf(status)
-                .committed(Function.identity())
-                .aborted_(TransactionConstants.FAILED_COMMIT_TS)
-                .otherwiseEmpty();
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return Optional.of(committed.commitTimestamp());
+        } else if (status instanceof Aborted) {
+            return Optional.of(TransactionConstants.FAILED_COMMIT_TS);
+        } else {
+            return Optional.empty();
+        }
     }
 
     public static Long getCommitTsFromStatus(
             long startTs, TransactionStatus status, Function<Long, Boolean> abortedCheck) {
-        return TransactionStatuses.caseOf(status)
-                .unknown(() -> getCommitTsForConcludedTransaction(startTs, abortedCheck))
-                .otherwise(() -> TransactionStatusUtils.maybeGetCommitTs(status).orElse(null));
+        if (status instanceof TransactionStatus.Unknown) {
+            return getCommitTsForConcludedTransaction(startTs, abortedCheck);
+        } else {
+            return TransactionStatusUtils.maybeGetCommitTs(status).orElse(null);
+        }
     }
 
     public static long getCommitTsForConcludedTransaction(long startTs, Function<Long, Boolean> isAborted) {

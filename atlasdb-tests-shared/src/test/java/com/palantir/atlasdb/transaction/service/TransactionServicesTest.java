@@ -191,7 +191,7 @@ public class TransactionServicesTest {
         initializeTimestamps();
         transactionService.markInProgress(startTs);
         assertThat(transactionService.get(startTs)).isNull();
-        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.inProgress());
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatus.inProgress());
     }
 
     @Test
@@ -216,8 +216,8 @@ public class TransactionServicesTest {
 
         TwoPhaseEncodingStrategy strategy = new TwoPhaseEncodingStrategy(V4ProgressEncodingStrategy.INSTANCE);
         Cell cell = strategy.encodeStartTimestampAsCell(startTs);
-        byte[] update = strategy.encodeCommitStatusAsValue(
-                startTs, AtomicValue.staging(TransactionStatuses.committed(commitTs)));
+        byte[] update =
+                strategy.encodeCommitStatusAsValue(startTs, AtomicValue.staging(TransactionStatus.committed(commitTs)));
 
         MultiCheckAndSetRequest actualMcasRequest = verifyMcasInTableAndReturnArgument();
         assertThat(actualMcasRequest.tableRef()).isEqualTo(TransactionConstants.TRANSACTIONS2_TABLE);
@@ -244,14 +244,14 @@ public class TransactionServicesTest {
     public void emptyValueReadsAsInProgressInV3() {
         forceInstallV3();
         initializeTimestamps();
-        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.inProgress());
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatus.inProgress());
     }
 
     @Test
     public void emptyValueReadsAsUnknownInV4() {
         forceInstallV4();
         initializeTimestamps();
-        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatuses.unknown());
+        assertThat(transactionService.getV2(startTs)).isEqualTo(TransactionStatus.unknown());
     }
 
     private void initializeTimestamps() {

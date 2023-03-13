@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
@@ -85,7 +84,7 @@ public final class AtlasDbTransactionStore implements TransactionStore {
             TransactionStatus status =
                     transactionManager.getTransactionService().getV2(startTimestampReference.get());
 
-            Optional<Long> commitTimestamp = TransactionStatuses.getCommitTimestamp(status);
+            Optional<Long> commitTimestamp = TransactionStatus.getCommitTimestamp(status);
 
             return Optional.of(ImmutableWitnessedTransaction.builder()
                     .startTimestamp(startTimestampReference.get())

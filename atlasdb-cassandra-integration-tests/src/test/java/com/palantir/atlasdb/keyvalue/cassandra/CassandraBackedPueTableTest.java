@@ -35,13 +35,12 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Committed;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -93,16 +92,12 @@ public class CassandraBackedPueTableTest {
             }
             Futures.allAsList(reads).get().forEach(singleResult -> {
                 for (long ts : singlePartition) {
-                    assertCommitTimestampAbsentOrEqualToStartTimestamp(singleResult, ts);
+                    TransactionStatus status = singleResult.get(ts);
+                    if (status instanceof Committed) {
+                        assertThat(status).isEqualTo(TransactionStatus.committed(ts));
+                    }
                 }
             });
         }
-    }
-
-    private static void assertCommitTimestampAbsentOrEqualToStartTimestamp(
-            Map<Long, TransactionStatus> result, long ts) {
-        Optional.ofNullable(result.get(ts))
-                .flatMap(TransactionStatuses::getCommitTimestamp)
-                .ifPresent(commitTs -> assertThat(ts).isEqualTo(commitTs));
     }
 }

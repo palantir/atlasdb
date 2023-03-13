@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import one.util.streamex.EntryStream;
 
 /**
  * Feature breakdown:
@@ -339,10 +340,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
+    void setServersInPoolTo(ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers) {
         Set<CassandraServer> currentServers = getCachedServers();
-        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, currentServers);
-        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers);
+        Map<CassandraServer, CassandraServerOrigin> serversToAdd = EntryStream.of(desiredServers)
+                .removeKeys(currentServers::contains)
+                .toImmutableMap();
+        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
 
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
@@ -364,7 +367,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
                     + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
                     + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)));
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
     }
@@ -380,13 +383,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     Set<CassandraServer> validateNewHostsTopologiesAndMaybeAddToPool(
             Map<CassandraServer, CassandraClientPoolingContainer> currentContainers,
-            Set<CassandraServer> serversToAdd) {
+            Map<CassandraServer, CassandraServerOrigin> serversToAdd) {
         if (serversToAdd.isEmpty()) {
             return Set.of();
         }
-
+        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
-                getContainerForNewServers(serversToAdd);
+                getContainerForNewServers(serversToAddWithoutOrigin);
 
         Preconditions.checkArgument(
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
@@ -408,7 +411,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
                         serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
 
-        Set<CassandraServer> validatedServersToAdd = Sets.difference(serversToAdd, newHostsWithDifferingTopology);
+        Set<CassandraServer> validatedServersToAdd =
+                Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
         newHostsWithDifferingTopology.forEach(
                 server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));

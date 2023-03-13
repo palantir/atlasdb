@@ -27,9 +27,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -58,20 +56,19 @@ public class SimpleCommitTimestampAtomicTableTest {
 
     @Test
     public void canPutAndGet() throws ExecutionException, InterruptedException {
-        atomicTable.update(1L, TransactionStatuses.committed(2L));
-        assertThat(TransactionStatuses.getCommitTimestamp(atomicTable.get(1L).get()))
-                .hasValue(2L);
+        atomicTable.update(1L, TransactionStatus.committed(2L));
+        assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
     }
 
     @Test
     public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
-        assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionConstants.IN_PROGRESS);
+        assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
     @Test
     public void cannotPueTwice() {
-        atomicTable.update(1L, TransactionStatuses.committed(2L));
-        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatuses.committed(2L)))
+        atomicTable.update(1L, TransactionStatus.committed(2L));
+        assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
@@ -79,44 +76,45 @@ public class SimpleCommitTimestampAtomicTableTest {
     public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(
                 1L,
-                TransactionStatuses.committed(2L),
+                TransactionStatus.committed(2L),
                 3L,
-                TransactionStatuses.committed(4L),
+                TransactionStatus.committed(4L),
                 7L,
-                TransactionStatuses.committed(8L));
+                TransactionStatus.committed(8L));
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L, 5L, 7L)).get();
         assertThat(result).hasSize(4);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(3L))).hasValue(4L);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(7L))).hasValue(8L);
+        assertThat(result.get(1L)).isEqualTo(TransactionStatus.committed(2L));
+        assertThat(result.get(3L)).isEqualTo(TransactionStatus.committed(4L));
+        assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
     }
 
     @Test
     public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
-        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.aborted());
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.aborted());
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L)).get();
         assertThat(result).hasSize(1);
-        assertThat(result).containsEntry(1L, TransactionConstants.ABORTED);
+        assertThat(result).containsEntry(1L, TransactionStatus.aborted());
     }
 
     @Test
     public void getsAllTimestamps() throws ExecutionException, InterruptedException {
-        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.committed(2L));
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
                 atomicTable.get(ImmutableList.of(1L, 3L)).get();
         assertThat(result).hasSize(2);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(result).containsEntry(3L, TransactionConstants.IN_PROGRESS);
+        assertThat(result)
+                .containsEntry(1L, TransactionStatus.committed(2L))
+                .containsEntry(3L, TransactionStatus.inProgress());
     }
 
     @Test
     public void doesNotThrowForDuplicateValues() throws ExecutionException, InterruptedException {
-        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatuses.committed(2L));
+        ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
 
         // does not throw any exception
@@ -124,8 +122,9 @@ public class SimpleCommitTimestampAtomicTableTest {
                 atomicTable.get(ImmutableList.of(1L, 1L, 3L)).get();
 
         assertThat(result).hasSize(2);
-        assertThat(TransactionStatuses.getCommitTimestamp(result.get(1L))).hasValue(2L);
-        assertThat(result).containsEntry(3L, TransactionConstants.IN_PROGRESS);
+        assertThat(result)
+                .containsEntry(1L, TransactionStatus.committed(2L))
+                .containsEntry(3L, TransactionStatus.inProgress());
     }
 
     private AtomicTable<Long, TransactionStatus> createPueTable() {

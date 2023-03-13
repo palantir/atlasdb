@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: mapAllServersToOrigin accounts for duplicates in map construction
+  links:
+  - https://github.com/palantir/atlasdb/pull/6462
