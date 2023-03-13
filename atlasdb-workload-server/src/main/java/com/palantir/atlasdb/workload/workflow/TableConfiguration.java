@@ -16,10 +16,14 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@JsonSerialize(as = ImmutableTableConfiguration.class)
+@JsonDeserialize(as = ImmutableTableConfiguration.class)
 public interface TableConfiguration {
     String tableName();
 

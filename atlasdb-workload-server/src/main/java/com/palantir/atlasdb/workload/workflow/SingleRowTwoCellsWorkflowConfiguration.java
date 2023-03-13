@@ -16,12 +16,20 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.util.concurrent.RateLimiter;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface SingleRowTwoCellsWorkflowConfiguration {
-    WorkflowConfiguration genericWorkflowConfiguration();
+@JsonSerialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
+public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
+    String TYPE = "SINGLE_ROW_TWO_CELLS";
+
+    default String type() {
+        return TYPE;
+    }
 
     TableConfiguration tableConfiguration();
 

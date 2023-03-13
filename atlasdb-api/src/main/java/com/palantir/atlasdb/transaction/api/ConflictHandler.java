@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public enum ConflictHandler {
     /**
      * If two transactions concurrently write to the same cell the one that has started later will win.  We

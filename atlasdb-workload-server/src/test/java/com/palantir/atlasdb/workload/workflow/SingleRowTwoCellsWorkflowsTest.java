@@ -17,162 +17,67 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
-import com.palantir.atlasdb.workload.store.TransactionStore;
-import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
-import com.palantir.atlasdb.workload.util.AtlasDbUtils;
-import com.palantir.common.concurrent.PTExecutors;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
+import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import org.junit.Test;
 
 public class SingleRowTwoCellsWorkflowsTest {
-    private static final TableReference TEST_TABLE =
-            TableReference.create(Namespace.create("test"), "singleRowTwoCells");
-    private static final int ITERATION_COUNT = 1_000;
+    private static final String TABLE_NAME = "coffee";
 
     @Test
-    public void workflowPassesWithSerializableConflictChecking() {
-        runWorkflowWithConflictHandler(ConflictHandler.SERIALIZABLE, ITERATION_COUNT);
+    public void shouldWriteToFirstCellOnEvenIndices() {
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(0)).isTrue();
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(2)).isTrue();
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(24682468)).isTrue();
     }
 
     @Test
-    public void workflowDoesNotPassWhenConflictsAreNotHandled() {
-        assertThatThrownBy(() -> runWorkflowWithConflictHandler(ConflictHandler.IGNORE_ALL, 100))
-                .isInstanceOf(AssertionError.class);
+    public void shouldNotWriteToFirstCellOnOddIndices() {
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(1)).isFalse();
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(3)).isFalse();
+        assertThat(SingleRowTwoCellsWorkflows.shouldWriteToFirstCell(35793579)).isFalse();
     }
 
-    private void runWorkflowWithConflictHandler(ConflictHandler conflictHandler, int iterations) {
-        SingleRowTwoCellsWorkflowConfiguration configuration = ImmutableSingleRowTwoCellsWorkflowConfiguration.builder()
-                .tableConfiguration(ImmutableTableConfiguration.builder()
-                        .tableName(TEST_TABLE.getTableName())
-                        .conflictHandler(conflictHandler)
-                        .build())
-                .genericWorkflowConfiguration(ImmutableWorkflowConfiguration.builder()
-                        .iterationCount(iterations)
-                        .executionExecutor(MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(100)))
-                        .build())
-                .build();
-
-        TransactionStore transactionStore = AtlasDbTransactionStore.create(
-                TransactionManagers.createInMemory(ImmutableSet.of()),
-                ImmutableMap.of(
-                        TEST_TABLE,
-                        AtlasDbUtils.tableMetadata(
-                                configuration.tableConfiguration().conflictHandler())));
-        Workflow workflow = SingleRowTwoCellsWorkflows.createSingleRowTwoCell(transactionStore, configuration);
-        assertWorkflowHistoryConsistent(workflow.run());
+    @Test
+    public void createsCorrectTransactionActions() {
+        assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(0, TABLE_NAME))
+                .containsExactly(
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 0),
+                        DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+        assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(1, TABLE_NAME))
+                .containsExactly(
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, 1),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
     }
 
-    // This is basically a very simple invariant checker
-    private void assertWorkflowHistoryConsistent(WorkflowHistory workflowHistory) {
-        List<WitnessedTransaction> transactionsByCommitTime = workflowHistory.history();
-        CellStateCheckingVisitor cellStateCheckingVisitor = new CellStateCheckingVisitor();
-
-        transactionsByCommitTime.forEach(witnessedTransaction -> {
-            LocalWriteWitnessVisitor localWriteWitnessVisitor = new LocalWriteWitnessVisitor();
-            witnessedTransaction.actions().forEach(action -> {
-                action.accept(localWriteWitnessVisitor);
-                action.accept(cellStateCheckingVisitor);
-            });
-        });
-
-        // Start from 1 intentional as we want to look at pairs of transactions
-        for (int index = 1; index < transactionsByCommitTime.size(); index++) {
-            WitnessedTransaction predecessor = transactionsByCommitTime.get(index - 1);
-            WitnessedTransaction successor = transactionsByCommitTime.get(index);
-
-            assertThat(predecessor.commitTimestamp().orElseThrow())
-                    .as("given all transactions touch the same cells, overlapping transactions should conflict and so "
-                            + "they should not be allowed")
-                    .isLessThan(successor.startTimestamp());
-        }
-
-        validateFinalTableState(workflowHistory);
-    }
-
-    private static void validateFinalTableState(WorkflowHistory workflowHistory) {
-        Optional<Integer> firstCellState = workflowHistory
-                .transactionStore()
-                .get(TEST_TABLE.getTableName(), SingleRowTwoCellsWorkflows.FIRST_CELL);
-        Optional<Integer> secondCellState = workflowHistory
-                .transactionStore()
-                .get(TEST_TABLE.getTableName(), SingleRowTwoCellsWorkflows.SECOND_CELL);
-        assertThat(firstCellState.isPresent() ^ secondCellState.isPresent())
-                .as("exactly one of the cells should be present")
-                .isTrue();
-        int cellValue = Stream.of(firstCellState, secondCellState)
-                .flatMap(Optional::stream)
-                .findAny()
-                .orElseThrow();
-        assertThat(cellValue)
-                .as("cell value must correspond with the ID of a writer")
-                .isBetween(0, ITERATION_COUNT);
-    }
-
-    private static final class LocalWriteWitnessVisitor implements WitnessedTransactionActionVisitor<Void> {
-        private final Map<WorkloadCell, Optional<Integer>> localWriteMap = new HashMap<>();
-
-        @Override
-        public Void visit(WitnessedReadTransactionAction readTransactionAction) {
-            if (localWriteMap.containsKey(readTransactionAction.cell())) {
-                assertThat(readTransactionAction.value()).isEqualTo(localWriteMap.get(readTransactionAction.cell()));
-            }
-            return null;
-        }
-
-        @Override
-        public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            localWriteMap.put(writeTransactionAction.cell(), Optional.of(writeTransactionAction.value()));
-            return null;
-        }
-
-        @Override
-        public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            localWriteMap.put(deleteTransactionAction.cell(), Optional.empty());
-            return null;
-        }
-    }
-
-    private static final class CellStateCheckingVisitor implements WitnessedTransactionActionVisitor<Void> {
-        private final Map<WorkloadCell, Integer> tableState = new HashMap<>();
-
-        @Override
-        public Void visit(WitnessedReadTransactionAction readTransactionAction) {
-            Optional<Integer> expected = Optional.ofNullable(tableState.get(readTransactionAction.cell()));
-            assertThat(readTransactionAction.value())
-                    .as("read a cell that does not match the expected table state")
-                    .isEqualTo(expected);
-            return null;
-        }
-
-        @Override
-        public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-            tableState.put(writeTransactionAction.cell(), writeTransactionAction.value());
-            return null;
-        }
-
-        @Override
-        public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-            tableState.remove(deleteTransactionAction.cell());
-            return null;
-        }
+    @Test
+    public void writesValueCorrespondingToTaskIndexInRelevantCell() {
+        // This test makes sense in relation to createCorrectTransactionActionsForIndex().
+        assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(31415926, TABLE_NAME))
+                .containsExactly(
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 31415926),
+                        DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+        assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(6021023, TABLE_NAME))
+                .containsExactly(
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, 6021023),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
     }
 }

@@ -16,10 +16,17 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.immutables.value.Value;
 
-@Value.Immutable
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = SRTCW)
+})
 public interface WorkflowConfiguration {
     int iterationCount();
 

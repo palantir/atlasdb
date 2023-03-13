@@ -30,6 +30,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Consider a single row in a database that has two cells, which should between them maintain the invariant that
@@ -45,6 +46,7 @@ public final class SingleRowTwoCellsWorkflows {
     @VisibleForTesting
     static final WorkloadCell FIRST_CELL = ImmutableWorkloadCell.of(SINGLE_ROW, FIRST_COLUMN);
 
+    @VisibleForTesting
     static final WorkloadCell SECOND_CELL = ImmutableWorkloadCell.of(SINGLE_ROW, SECOND_COLUMN);
 
     private SingleRowTwoCellsWorkflows() {
@@ -56,28 +58,42 @@ public final class SingleRowTwoCellsWorkflows {
         return DefaultWorkflow.create(
                 store,
                 (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
-                singleRowTwoCellsWorkflowConfiguration.genericWorkflowConfiguration());
+                singleRowTwoCellsWorkflowConfiguration);
     }
 
     private static Optional<WitnessedTransaction> run(
             TransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
 
-        String tableName = workflowConfiguration.tableConfiguration().tableName();
-        List<TransactionAction> cellReads = ImmutableList.of(
-                ReadTransactionAction.of(tableName, FIRST_CELL), ReadTransactionAction.of(tableName, SECOND_CELL));
-        List<TransactionAction> cellUpdates = shouldWriteToFirstCell(taskIndex)
-                ? ImmutableList.of(
-                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                        DeleteTransactionAction.of(tableName, SECOND_CELL))
-                : ImmutableList.of(
-                        DeleteTransactionAction.of(tableName, FIRST_CELL),
-                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
-        return store.readWrite(Streams.concat(cellReads.stream(), cellUpdates.stream(), cellReads.stream())
-                .collect(Collectors.toList()));
+        List<TransactionAction> transactionActions = createTransactionActions(taskIndex, workflowConfiguration.tableConfiguration().tableName());
+        return store.readWrite(transactionActions);
     }
 
-    private static boolean shouldWriteToFirstCell(int taskIndex) {
+    @VisibleForTesting
+    static List<TransactionAction> createTransactionActions(int taskIndex, String tableName) {
+        List<TransactionAction> cellReads = createCellReadActions(tableName);
+        List<TransactionAction> cellUpdates = createCellUpdateActions(taskIndex, tableName);
+        return Streams.concat(cellReads.stream(), cellUpdates.stream(), cellReads.stream())
+                .collect(Collectors.toList());
+    }
+
+    @VisibleForTesting
+    static boolean shouldWriteToFirstCell(int taskIndex) {
         return taskIndex % 2 == 0;
+    }
+
+    private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
+        return shouldWriteToFirstCell(taskIndex)
+                ? ImmutableList.of(
+                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                DeleteTransactionAction.of(tableName, SECOND_CELL))
+                : ImmutableList.of(
+                DeleteTransactionAction.of(tableName, FIRST_CELL),
+                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+    }
+
+    private static List<TransactionAction> createCellReadActions(String tableName) {
+        return ImmutableList.of(
+                ReadTransactionAction.of(tableName, FIRST_CELL), ReadTransactionAction.of(tableName, SECOND_CELL));
     }
 }

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
@@ -99,10 +100,19 @@ public class DefaultWorkflowTest {
     }
 
     private WorkflowConfiguration createWorkflowConfiguration(int iterationCount) {
-        return ImmutableWorkflowConfiguration.builder()
-                .iterationCount(iterationCount)
-                .executionExecutor(MoreExecutors.listeningDecorator(scheduler))
-                .build();
+        return new WorkflowConfiguration() {
+            private final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(scheduler);
+
+            @Override
+            public int iterationCount() {
+                return iterationCount;
+            }
+
+            @Override
+            public ListeningExecutorService executionExecutor() {
+                return executionExecutor;
+            }
+        };
     }
 
     private static WitnessedTransaction createReadOnlyWitnessedTransactionWithoutActions(long start) {
