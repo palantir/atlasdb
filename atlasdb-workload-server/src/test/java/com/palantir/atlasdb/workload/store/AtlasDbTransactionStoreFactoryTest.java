@@ -37,6 +37,18 @@ public final class AtlasDbTransactionStoreFactoryTest {
             new AtlasDbTransactionStoreFactory(transactionManager, Optional.empty());
 
     @Test
+    public void createWillCreateProvidedTablesAndIndexes() {
+        AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
+                transactionManager,
+                Optional.of(WorkloadTestHelpers.TABLE_REFERENCE.getNamespace().getName()));
+        factory.create(
+                Map.of(WorkloadTestHelpers.TABLE, IsolationLevel.SERIALIZABLE),
+                Set.of(IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE)));
+        assertThat(transactionManager.getKeyValueService().getAllTableNames())
+                .contains(WorkloadTestHelpers.TABLE_REFERENCE, WorkloadTestHelpers.INDEX_REFERENCE);
+    }
+
+    @Test
     public void createTableReferenceWithEmptyNamespaceIfNoNamespaceProvided() {
         assertThat(defaultFactory
                         .createTableReference(WorkloadTestHelpers.TABLE)
