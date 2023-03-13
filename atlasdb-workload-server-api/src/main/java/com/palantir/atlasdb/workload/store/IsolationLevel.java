@@ -14,18 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.store;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import org.immutables.value.Value;
-
-@Value.Immutable
-@JsonSerialize(as = ImmutableTableConfiguration.class)
-@JsonDeserialize(as = ImmutableTableConfiguration.class)
-public interface TableConfiguration {
-    String tableName();
-
-    ConflictHandler conflictHandler();
+public enum IsolationLevel {
+    SERIALIZABLE,
+    SNAPSHOT,
+    NONE;
 }

@@ -16,19 +16,16 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.util.concurrent.ListeningExecutorService;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.workload.store.IsolationLevel;
 import org.immutables.value.Value;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface WorkflowConfiguration {
-    int iterationCount();
+@Value.Immutable
+@JsonSerialize(as = ImmutableTableConfiguration.class)
+@JsonDeserialize(as = ImmutableTableConfiguration.class)
+public interface TableConfiguration {
+    String tableName();
 
-    /**
-     * Executor used to execute workload threads (i.e., transactions).
-     */
-    ListeningExecutorService executionExecutor();
+    IsolationLevel isolationLevel();
 }

@@ -24,7 +24,10 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class AtlasDbUtils {
 
@@ -48,6 +51,19 @@ public final class AtlasDbUtils {
                 .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
                 .build()
                 .persistToBytes();
+    }
+
+    public static byte[] tableMetadata(IsolationLevel isolationLevel) {
+        switch (isolationLevel) {
+            case SERIALIZABLE:
+                return tableMetadata(ConflictHandler.SERIALIZABLE);
+            case SNAPSHOT:
+                return tableMetadata(ConflictHandler.RETRY_ON_WRITE_WRITE);
+            case NONE:
+                return tableMetadata(ConflictHandler.IGNORE_ALL);
+            default:
+                throw new SafeIllegalStateException("Unknown isolation level", SafeArg.of("isolationLevel", isolationLevel));
+        }
     }
 
     public static byte[] indexMetadata(ConflictHandler baseTableConflictHandler) {

@@ -62,7 +62,6 @@ public class SingleRowTwoCellsWorkflowsTest {
 
     @Test
     public void writesValueCorrespondingToTaskIndexInRelevantCell() {
-        // This test makes sense in relation to createCorrectTransactionActionsForIndex().
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(31415926, TABLE_NAME))
                 .containsExactly(
                         ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
