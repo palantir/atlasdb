@@ -3,7 +3,6 @@ apply plugin: 'com.palantir.metric-schema'
 
 license {
     exclude '**/DurableWritesMetrics.java'
-    exclude '**/SingleRowTwoCellsWorkflowMetrics.java'
 }
 
 dependencies {

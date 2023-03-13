@@ -2,17 +2,6 @@ options:
   javaPackage: 'com.palantir.atlasdb.workload'
 
 namespaces:
-  com.palantir.atlasdb.workload.store:
-    shortName: AtlasDbTransactionStore
-    docs: Metrics for the atlas db transaction store
-    metrics:
-      numberOfCellsWritten:
-        type: counter
-        tags:
-          - table
-        docs: >-
-          Number of cells written.
-
   com.palantir.atlasdb.workload.invariant:
     shortName: DurableWrites
     docs: Metrics for the durable writes invariant.
