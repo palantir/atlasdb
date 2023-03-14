@@ -41,7 +41,7 @@ public class SingleRowTwoCellsWorkflowsTest {
     }
 
     @Test
-    public void createsCorrectTransactionActions() {
+    public void createsReadsThenMutationsThenReads() {
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(0, TABLE_NAME))
                 .containsExactly(
                         ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),

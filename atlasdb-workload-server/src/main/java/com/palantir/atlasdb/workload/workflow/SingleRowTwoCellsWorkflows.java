@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.workflow;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
@@ -30,7 +31,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Consider a single row in a database that has two cells, which should between them maintain the invariant that
@@ -54,18 +54,22 @@ public final class SingleRowTwoCellsWorkflows {
     }
 
     public static Workflow createSingleRowTwoCell(
-            TransactionStore store, SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsWorkflowConfiguration) {
+            TransactionStore store,
+            SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsWorkflowConfiguration,
+            ListeningExecutorService executionExecutor) {
         return DefaultWorkflow.create(
                 store,
                 (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
-                singleRowTwoCellsWorkflowConfiguration);
+                singleRowTwoCellsWorkflowConfiguration,
+                executionExecutor);
     }
 
     private static Optional<WitnessedTransaction> run(
             TransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
 
-        List<TransactionAction> transactionActions = createTransactionActions(taskIndex, workflowConfiguration.tableConfiguration().tableName());
+        List<TransactionAction> transactionActions = createTransactionActions(
+                taskIndex, workflowConfiguration.tableConfiguration().tableName());
         return store.readWrite(transactionActions);
     }
 
@@ -85,11 +89,11 @@ public final class SingleRowTwoCellsWorkflows {
     private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                DeleteTransactionAction.of(tableName, SECOND_CELL))
+                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                        DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                DeleteTransactionAction.of(tableName, FIRST_CELL),
-                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                        DeleteTransactionAction.of(tableName, FIRST_CELL),
+                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
     private static List<TransactionAction> createCellReadActions(String tableName) {

@@ -62,7 +62,8 @@ public final class AtlasDbUtils {
             case NONE:
                 return tableMetadata(ConflictHandler.IGNORE_ALL);
             default:
-                throw new SafeIllegalStateException("Unknown isolation level", SafeArg.of("isolationLevel", isolationLevel));
+                throw new SafeIllegalStateException(
+                        "Unknown isolation level", SafeArg.of("isolationLevel", isolationLevel));
         }
     }
 

@@ -36,7 +36,7 @@ public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfigur
         return 100;
     }
 
-    @Value.Derived
+    @Value.Lazy
     default RateLimiter transactionRateLimiter() {
         return RateLimiter.create(rateLimit());
     }

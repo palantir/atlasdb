@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
@@ -45,9 +46,12 @@ public final class DefaultWorkflow implements Workflow {
     }
 
     public static Workflow create(
-            TransactionStore store, KeyedTransactionTask transactionTask, WorkflowConfiguration configuration) {
+            TransactionStore store,
+            KeyedTransactionTask transactionTask,
+            WorkflowConfiguration configuration,
+            ListeningExecutorService executionExecutor) {
         return new DefaultWorkflow(
-                new ConcurrentTransactionRunner(store, configuration.executionExecutor()),
+                new ConcurrentTransactionRunner(store, executionExecutor),
                 transactionTask,
                 configuration,
                 new ReadOnlyTransactionStore(store));
