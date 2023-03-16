@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.SafeArg;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -130,7 +131,9 @@ public final class AtlasDbTransactionStoreFactoryTest {
                                 IsolationLevel.SERIALIZABLE,
                                 WorkloadTestHelpers.TABLE_1_INDEX_1,
                                 IsolationLevel.SERIALIZABLE),
-                        Set.of(createIndexTable(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.TABLE_1_INDEX_1))))
+                        Set.of(createIndexTable(
+                                WorkloadTestHelpers.TABLE_1.toUpperCase(Locale.ROOT),
+                                WorkloadTestHelpers.TABLE_1_INDEX_1))))
                 .hasMessageContaining("Found indexes which have the same name as primary tables")
                 .hasExactlyArgs(SafeArg.of("conflictingTableNames", Set.of(WorkloadTestHelpers.TABLE_1)));
     }
@@ -144,7 +147,9 @@ public final class AtlasDbTransactionStoreFactoryTest {
                                 WorkloadTestHelpers.TABLE_2,
                                 IsolationLevel.SERIALIZABLE),
                         Set.of(
-                                createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1),
+                                createIndexTable(
+                                        WorkloadTestHelpers.TABLE_1_INDEX_1.toUpperCase(Locale.ROOT),
+                                        WorkloadTestHelpers.TABLE_1),
                                 createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_2))))
                 .hasMessageContaining("Found index tables with the same name")
                 .hasExactlyArgs(SafeArg.of("duplicateTableIndexNames", Set.of(WorkloadTestHelpers.TABLE_1_INDEX_1)));

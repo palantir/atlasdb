@@ -102,10 +102,13 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
 
     private static void checkIndexAndPrimaryTableNamesDoNotConflict(
             Map<String, IsolationLevel> tables, Set<IndexTable> indexTables) {
-        Set<String> tableNames = tables.keySet();
-        Set<String> indexTableNames =
-                StreamEx.of(indexTables).map(IndexTable::indexTableName).toSet();
-        Set<String> conflictingTableNames = Sets.intersection(tableNames, indexTableNames);
+        Set<String> primaryTableNames =
+                tables.keySet().stream().map(String::toLowerCase).collect(Collectors.toSet());
+        Set<String> indexTableNames = indexTables.stream()
+                .map(IndexTable::indexTableName)
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+        Set<String> conflictingTableNames = Sets.intersection(primaryTableNames, indexTableNames);
         Preconditions.checkArgument(
                 conflictingTableNames.isEmpty(),
                 "Found indexes which have the same name as primary tables",
