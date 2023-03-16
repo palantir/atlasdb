@@ -443,6 +443,17 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
+    public void anotherBugInCassandraClientPool() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        setHostIds(
+                filterContainers(allHosts, Predicate.not(OLD_HOST_ONE::equalsIgnoreCase)), HostIdResult.success(UUIDS));
+        setHostIds(filterContainers(allHosts, OLD_HOST_ONE::equalsIgnoreCase), HostIdResult.hardFailure());
+        Set<CassandraServer> servers = validator.getNewHostsWithInconsistentTopologies(
+                CassandraServerOrigin.mapAllServersToOrigin(allHosts.keySet(), CassandraServerOrigin.CONFIG), allHosts);
+        assertThat(servers.size()).isEqualTo(1);
+    }
+
+    @Test
     public void validateNewlyAddedHostsNoNewHostsAddedIfNewHostsDoNotHaveQuorumAndNoCurrentServers() {
         Set<String> hosts = ImmutableSet.<String>builder()
                 .addAll(NEW_HOSTS)
