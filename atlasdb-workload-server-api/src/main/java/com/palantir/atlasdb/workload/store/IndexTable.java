@@ -38,7 +38,7 @@ public interface IndexTable {
                 SafeArg.of("primaryTable", primaryTableName()));
     }
 
-    static IndexTable of(String name, String primaryTable) {
-        return ImmutableIndexTable.of(name, primaryTable);
+    static ImmutableIndexTable.Builder builder() {
+        return ImmutableIndexTable.builder();
     }
 }

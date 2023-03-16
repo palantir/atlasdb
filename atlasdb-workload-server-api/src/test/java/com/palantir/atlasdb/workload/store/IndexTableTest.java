@@ -31,28 +31,35 @@ public final class IndexTableTest {
 
     @Test
     public void doesNotThrowWhenNamesAreDifferent() {
-        assertThatCode(() -> IndexTable.of("foo", "bar")).doesNotThrowAnyException();
+        assertThatCode(() -> createIndexTable("foo", "bar")).doesNotThrowAnyException();
     }
 
     @Test
     public void indexTableNameIsFirstArgumentAndPrimaryTableIsSecondArgument() {
-        IndexTable indexTable = IndexTable.of(TABLE_1, TABLE_2);
+        IndexTable indexTable = createIndexTable(TABLE_1, TABLE_2);
         assertThat(indexTable.indexTableName()).isEqualTo(TABLE_1);
         assertThat(indexTable.primaryTableName()).isEqualTo(TABLE_2);
     }
 
     @Test
     public void throwsWhenIndexNameIsTheSameAsPrimary() {
-        assertThatLoggableExceptionThrownBy(() -> IndexTable.of(TABLE_1, TABLE_1))
+        assertThatLoggableExceptionThrownBy(() -> createIndexTable(TABLE_1, TABLE_1))
                 .hasMessageContaining("Index table name and primary table name are identical.")
                 .hasExactlyArgs(SafeArg.of("name", TABLE_1), SafeArg.of("primaryTable", TABLE_1));
     }
 
     @Test
     public void throwsWhenIndexNameIsTheSameAsPrimaryIgnoresCase() {
-        assertThatLoggableExceptionThrownBy(() -> IndexTable.of(TABLE_1, TABLE_1.toUpperCase(Locale.ROOT)))
+        assertThatLoggableExceptionThrownBy(() -> createIndexTable(TABLE_1, TABLE_1.toUpperCase(Locale.ROOT)))
                 .hasMessageContaining("Index table name and primary table name are identical.")
                 .hasExactlyArgs(
                         SafeArg.of("name", TABLE_1), SafeArg.of("primaryTable", TABLE_1.toUpperCase(Locale.ROOT)));
+    }
+
+    private IndexTable createIndexTable(String indexTableName, String primaryTableName) {
+        return IndexTable.builder()
+                .primaryTableName(primaryTableName)
+                .indexTableName(indexTableName)
+                .build();
     }
 }
