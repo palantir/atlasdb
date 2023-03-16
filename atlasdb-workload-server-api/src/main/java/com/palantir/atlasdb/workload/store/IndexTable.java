@@ -24,18 +24,18 @@ import org.immutables.value.Value;
 public interface IndexTable {
 
     @Value.Parameter
-    String name();
+    String indexTableName();
 
     @Value.Parameter
-    String primaryTable();
+    String primaryTableName();
 
     @Value.Check
     default void checkNameAndPrimaryTableAreNotEqual() {
         Preconditions.checkArgument(
-                !name().equalsIgnoreCase(primaryTable()),
+                !indexTableName().equalsIgnoreCase(primaryTableName()),
                 "Index table name and primary table name are identical.",
-                SafeArg.of("name", name()),
-                SafeArg.of("primaryTable", primaryTable()));
+                SafeArg.of("name", indexTableName()),
+                SafeArg.of("primaryTable", primaryTableName()));
     }
 
     static IndexTable of(String name, String primaryTable) {

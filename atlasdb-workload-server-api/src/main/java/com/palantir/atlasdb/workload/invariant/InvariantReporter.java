@@ -21,13 +21,13 @@ import java.util.function.Consumer;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface InvariantReporter<Violations> {
+public interface InvariantReporter<ViolationsT> {
 
     @Value.Parameter
-    Invariant<Violations> invariant();
+    Invariant<ViolationsT> invariant();
 
     @Value.Parameter
-    Consumer<Violations> consumer();
+    Consumer<ViolationsT> consumer();
 
     default void report(WorkflowHistory history) {
         invariant().accept(history, consumer());

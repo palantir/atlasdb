@@ -37,8 +37,8 @@ public final class IndexTableTest {
     @Test
     public void indexTableNameIsFirstArgumentAndPrimaryTableIsSecondArgument() {
         IndexTable indexTable = IndexTable.of(TABLE_1, TABLE_2);
-        assertThat(indexTable.name()).isEqualTo(TABLE_1);
-        assertThat(indexTable.primaryTable()).isEqualTo(TABLE_2);
+        assertThat(indexTable.indexTableName()).isEqualTo(TABLE_1);
+        assertThat(indexTable.primaryTableName()).isEqualTo(TABLE_2);
     }
 
     @Test
