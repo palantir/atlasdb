@@ -17,14 +17,24 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 
 public enum RunOnceWorkflowRunner implements WorkflowRunner<Workflow> {
     INSTANCE;
 
+    private static final SafeLogger log = SafeLoggerFactory.get(RunOnceWorkflowRunner.class);
+
     @Override
     public void run(Workflow workflow, List<InvariantReporter<?>> invariants) {
         WorkflowHistory workflowHistory = workflow.run();
-        invariants.forEach(reporter -> reporter.report(workflowHistory));
+        invariants.forEach(reporter -> {
+            try {
+                reporter.report(workflowHistory);
+            } catch (RuntimeException e) {
+                log.error("Caught an exception when running and reporting an invariant.", e);
+            }
+        });
     }
 }

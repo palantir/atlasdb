@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.workload.store.IsolationLevel;
 import org.junit.Test;
 
 public class AtlasDbUtilsTest {
@@ -42,5 +43,13 @@ public class AtlasDbUtilsTest {
                                 AtlasDbUtils.indexMetadata(ConflictHandler.RETRY_ON_VALUE_CHANGED))
                         .getConflictHandler())
                 .isEqualTo(TableMetadataPersistence.TableConflictHandler.IGNORE_ALL);
+    }
+
+    @Test
+    public void toConflictHandlerHandlesAllIsolationLevelCases() {
+        assertThat(AtlasDbUtils.toConflictHandler(IsolationLevel.NONE)).isEqualTo(ConflictHandler.IGNORE_ALL);
+        assertThat(AtlasDbUtils.toConflictHandler(IsolationLevel.SNAPSHOT))
+                .isEqualTo(ConflictHandler.RETRY_ON_WRITE_WRITE);
+        assertThat(AtlasDbUtils.toConflictHandler(IsolationLevel.SERIALIZABLE)).isEqualTo(ConflictHandler.SERIALIZABLE);
     }
 }

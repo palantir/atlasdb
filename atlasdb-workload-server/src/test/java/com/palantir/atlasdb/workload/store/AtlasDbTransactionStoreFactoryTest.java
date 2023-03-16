@@ -42,8 +42,8 @@ public final class AtlasDbTransactionStoreFactoryTest {
                 transactionManager,
                 Optional.of(WorkloadTestHelpers.TABLE_REFERENCE.getNamespace().getName()));
         factory.create(
-                Map.of(WorkloadTestHelpers.TABLE, IsolationLevel.SERIALIZABLE),
-                Set.of(IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE)));
+                Map.of(WorkloadTestHelpers.TABLE_1, IsolationLevel.SERIALIZABLE),
+                Set.of(createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1)));
         assertThat(transactionManager.getKeyValueService().getAllTableNames())
                 .contains(WorkloadTestHelpers.TABLE_REFERENCE, WorkloadTestHelpers.INDEX_REFERENCE);
     }
@@ -51,7 +51,7 @@ public final class AtlasDbTransactionStoreFactoryTest {
     @Test
     public void createTableReferenceWithEmptyNamespaceIfNoNamespaceProvided() {
         assertThat(defaultFactory
-                        .createTableReference(WorkloadTestHelpers.TABLE)
+                        .createTableReference(WorkloadTestHelpers.TABLE_1)
                         .getNamespace()
                         .isEmptyNamespace())
                 .isTrue();
@@ -61,28 +61,28 @@ public final class AtlasDbTransactionStoreFactoryTest {
     public void createTableReferenceHasNamespaceWhenProvided() {
         AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
                 transactionManager, Optional.of(WorkloadTestHelpers.NAMESPACE.getName()));
-        assertThat(factory.createTableReference(WorkloadTestHelpers.TABLE).getNamespace())
+        assertThat(factory.createTableReference(WorkloadTestHelpers.TABLE_1).getNamespace())
                 .isEqualTo(WorkloadTestHelpers.NAMESPACE);
     }
 
     @Test
     public void toAtlasTablesConvertsSerializableTablesCorrectly() {
         assertThat(defaultFactory.toAtlasTables(
-                        Map.of(WorkloadTestHelpers.TABLE, IsolationLevel.SERIALIZABLE), Set.of()))
+                        Map.of(WorkloadTestHelpers.TABLE_1, IsolationLevel.SERIALIZABLE), Set.of()))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1),
                         AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
     }
 
     @Test
     public void toAtlasTablesConvertsSerializableIndexTablesCorrectly() {
         assertThat(defaultFactory.toAtlasTables(
-                        Map.of(WorkloadTestHelpers.TABLE, IsolationLevel.SERIALIZABLE),
-                        Set.of(IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE))))
+                        Map.of(WorkloadTestHelpers.TABLE_1, IsolationLevel.SERIALIZABLE),
+                        Set.of(createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1))))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1),
                         AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
-                        defaultFactory.createTableReference(WorkloadTestHelpers.INDEX_TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1_INDEX_1),
                         AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE)));
     }
 
@@ -90,33 +90,33 @@ public final class AtlasDbTransactionStoreFactoryTest {
     public void toAtlasTablesHandlesMultipleTablesAndIndexesCorrectly() {
         assertThat(defaultFactory.toAtlasTables(
                         Map.of(
-                                WorkloadTestHelpers.TABLE,
+                                WorkloadTestHelpers.TABLE_1,
                                 IsolationLevel.SERIALIZABLE,
                                 WorkloadTestHelpers.TABLE_2,
                                 IsolationLevel.SNAPSHOT),
                         Set.of(
-                                IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE),
-                                IndexTable.of(WorkloadTestHelpers.INDEX_2_TABLE, WorkloadTestHelpers.TABLE),
-                                IndexTable.of(WorkloadTestHelpers.INDEX_TABLE_2, WorkloadTestHelpers.TABLE_2))))
+                                createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1),
+                                createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_2, WorkloadTestHelpers.TABLE_1),
+                                createIndexTable(WorkloadTestHelpers.TABLE_2_INDEX_1, WorkloadTestHelpers.TABLE_2))))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1),
                         AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
-                        defaultFactory.createTableReference(WorkloadTestHelpers.INDEX_TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1_INDEX_1),
                         AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE),
-                        defaultFactory.createTableReference(WorkloadTestHelpers.INDEX_2_TABLE),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_1_INDEX_2),
                         AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE),
                         defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_2),
                         AtlasDbUtils.tableMetadata(ConflictHandler.RETRY_ON_WRITE_WRITE),
-                        defaultFactory.createTableReference(WorkloadTestHelpers.INDEX_TABLE_2),
+                        defaultFactory.createTableReference(WorkloadTestHelpers.TABLE_2_INDEX_1),
                         AtlasDbUtils.tableMetadata(ConflictHandler.IGNORE_ALL)));
     }
 
     @Test
     public void throwsWhenIndexReferencesUnknownPrimaryTable() {
-        IndexTable goodIndexTable = IndexTable.of(WorkloadTestHelpers.INDEX_2_TABLE, WorkloadTestHelpers.TABLE);
-        IndexTable badIndexTable = IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, "blah");
+        IndexTable goodIndexTable = createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_2, WorkloadTestHelpers.TABLE_1);
+        IndexTable badIndexTable = createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, "blah");
         assertThatLoggableExceptionThrownBy(() -> defaultFactory.create(
-                        Map.of(WorkloadTestHelpers.TABLE, IsolationLevel.SERIALIZABLE),
+                        Map.of(WorkloadTestHelpers.TABLE_1, IsolationLevel.SERIALIZABLE),
                         Set.of(goodIndexTable, badIndexTable)))
                 .hasMessageContaining("Found indexes which reference an unknown primary table")
                 .hasExactlyArgs(SafeArg.of("indexesWithUnknownPrimaryTables", Set.of(badIndexTable)));
@@ -126,27 +126,34 @@ public final class AtlasDbTransactionStoreFactoryTest {
     public void throwsWhenPrimaryAndIndexTableHaveConflictingNames() {
         assertThatLoggableExceptionThrownBy(() -> defaultFactory.create(
                         Map.of(
-                                WorkloadTestHelpers.TABLE,
+                                WorkloadTestHelpers.TABLE_1,
                                 IsolationLevel.SERIALIZABLE,
-                                WorkloadTestHelpers.INDEX_TABLE,
+                                WorkloadTestHelpers.TABLE_1_INDEX_1,
                                 IsolationLevel.SERIALIZABLE),
-                        Set.of(IndexTable.of(WorkloadTestHelpers.TABLE, WorkloadTestHelpers.INDEX_TABLE))))
+                        Set.of(createIndexTable(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.TABLE_1_INDEX_1))))
                 .hasMessageContaining("Found indexes which have the same name as primary tables")
-                .hasExactlyArgs(SafeArg.of("conflictingTableNames", Set.of(WorkloadTestHelpers.TABLE)));
+                .hasExactlyArgs(SafeArg.of("conflictingTableNames", Set.of(WorkloadTestHelpers.TABLE_1)));
     }
 
     @Test
     public void throwsWhenIndexTablesHaveDuplicateNames() {
         assertThatLoggableExceptionThrownBy(() -> defaultFactory.create(
                         Map.of(
-                                WorkloadTestHelpers.TABLE,
+                                WorkloadTestHelpers.TABLE_1,
                                 IsolationLevel.SERIALIZABLE,
                                 WorkloadTestHelpers.TABLE_2,
                                 IsolationLevel.SERIALIZABLE),
                         Set.of(
-                                IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE),
-                                IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE_2))))
+                                createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1),
+                                createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_2))))
                 .hasMessageContaining("Found index tables with the same name")
-                .hasExactlyArgs(SafeArg.of("duplicateTableIndexNames", Set.of(WorkloadTestHelpers.INDEX_TABLE)));
+                .hasExactlyArgs(SafeArg.of("duplicateTableIndexNames", Set.of(WorkloadTestHelpers.TABLE_1_INDEX_1)));
+    }
+
+    private IndexTable createIndexTable(String indexTableName, String primaryTableName) {
+        return IndexTable.builder()
+                .indexTableName(indexTableName)
+                .primaryTableName(primaryTableName)
+                .build();
     }
 }

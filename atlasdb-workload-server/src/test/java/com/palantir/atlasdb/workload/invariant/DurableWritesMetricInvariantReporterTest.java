@@ -50,18 +50,21 @@ public final class DurableWritesMetricInvariantReporterTest {
                 TransactionManagers.createInMemory(Set.of()), Optional.of("keyspace"));
         TransactionStore store = factory.create(
                 Map.of(
-                        WorkloadTestHelpers.TABLE,
+                        WorkloadTestHelpers.TABLE_1,
                         IsolationLevel.SERIALIZABLE,
                         WorkloadTestHelpers.TABLE_2,
                         IsolationLevel.SERIALIZABLE),
-                Set.of(IndexTable.of(WorkloadTestHelpers.INDEX_TABLE, WorkloadTestHelpers.TABLE)));
+                Set.of(IndexTable.builder()
+                        .indexTableName(WorkloadTestHelpers.TABLE_1_INDEX_1)
+                        .primaryTableName(WorkloadTestHelpers.TABLE_1)
+                        .build()));
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
                 .transactionStore(store)
                 .history(List.of(ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .addActions(WitnessedWriteTransactionAction.of(
-                                WorkloadTestHelpers.TABLE,
+                                WorkloadTestHelpers.TABLE_1,
                                 WorkloadTestHelpers.WORKLOAD_CELL_ONE,
                                 WorkloadTestHelpers.VALUE_ONE))
                         .addActions(WitnessedWriteTransactionAction.of(
@@ -71,11 +74,11 @@ public final class DurableWritesMetricInvariantReporterTest {
                         .build()))
                 .build();
         reporter.report(workflowHistory);
-        assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE))
+        assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE_1))
                 .isEqualTo(1);
         assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE_2))
                 .isEqualTo(1);
-        assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.INDEX_TABLE))
+        assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE_1_INDEX_1))
                 .isEqualTo(0);
     }
 

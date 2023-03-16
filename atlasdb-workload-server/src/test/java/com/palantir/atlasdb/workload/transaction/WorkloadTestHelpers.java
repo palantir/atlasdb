@@ -23,16 +23,16 @@ import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 
 public final class WorkloadTestHelpers {
-    public static final String TABLE = "foo";
+    public static final String TABLE_1 = "foo";
 
     public static final String TABLE_2 = "bar";
-    public static final String INDEX_TABLE = TABLE + "_index";
+    public static final String TABLE_1_INDEX_1 = TABLE_1 + "_index";
 
-    public static final String INDEX_2_TABLE = TABLE + "_index_2";
-    public static final String INDEX_TABLE_2 = TABLE_2 + "_index";
-    public static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
+    public static final String TABLE_1_INDEX_2 = TABLE_1 + "_index_2";
+    public static final String TABLE_2_INDEX_1 = TABLE_2 + "_index";
+    public static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE_1);
     public static final TableReference INDEX_REFERENCE =
-            TableReference.create(TABLE_REFERENCE.getNamespace(), INDEX_TABLE);
+            TableReference.create(TABLE_REFERENCE.getNamespace(), TABLE_1_INDEX_1);
 
     public static final Namespace NAMESPACE = Namespace.create("workload");
     public static final WorkloadCell WORKLOAD_CELL_ONE = ImmutableWorkloadCell.of(50, 10);
@@ -42,8 +42,8 @@ public final class WorkloadTestHelpers {
     public static final Integer VALUE_ONE = 541;
     public static final Integer VALUE_TWO = 334;
     public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_ONE =
-            TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_ONE);
+            TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_ONE);
     public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_TWO =
-            TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO);
+            TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO);
     public static final String WORKFLOW = "example-workflow";
 }

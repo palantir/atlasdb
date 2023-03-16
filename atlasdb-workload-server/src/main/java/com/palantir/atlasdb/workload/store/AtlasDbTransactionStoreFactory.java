@@ -60,17 +60,19 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
         checkIndexAndPrimaryTableNamesDoNotConflict(tables, indexTables);
         checkIndexesDoNotHaveDuplicateNames(indexTables);
 
-        Map<TableReference, ConflictHandler> atlasTables = EntryStream.of(tables)
+        Map<TableReference, ConflictHandler> atlasPrimaryTables = EntryStream.of(tables)
                 .mapKeys(this::createTableReference)
                 .mapValues(AtlasDbUtils::toConflictHandler)
                 .toMap();
-        return StreamEx.of(indexTables)
-                .mapToEntry(IndexTable::name, IndexTable::primaryTable)
+        Map<TableReference, ConflictHandler> atlasIndexTables = StreamEx.of(indexTables)
+                .mapToEntry(IndexTable::indexTableName, IndexTable::primaryTableName)
                 .mapKeys(this::createTableReference)
                 .mapValues(tables::get)
                 .mapValues(AtlasDbUtils::toConflictHandler)
                 .mapValues(AtlasDbUtils::toIndexConflictHandler)
-                .append(atlasTables)
+                .toMap();
+        return EntryStream.of(atlasPrimaryTables)
+                .append(atlasIndexTables)
                 .mapValues(AtlasDbUtils::tableMetadata)
                 .toMap();
     }
@@ -83,8 +85,10 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
     }
 
     private static void checkIndexesDoNotHaveDuplicateNames(Set<IndexTable> indexTables) {
-        Map<String, Long> countOfIndexNames =
-                StreamEx.of(indexTables).map(IndexTable::name).groupingBy(Function.identity(), Collectors.counting());
+        Map<String, Long> countOfIndexNames = indexTables.stream()
+                .map(IndexTable::indexTableName)
+                .map(String::toLowerCase)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         Set<String> duplicateTableIndexNames = EntryStream.of(countOfIndexNames)
                 .removeValues(value -> value <= 1)
                 .keys()
@@ -100,7 +104,7 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
             Map<String, IsolationLevel> tables, Set<IndexTable> indexTables) {
         Set<String> tableNames = tables.keySet();
         Set<String> indexTableNames =
-                StreamEx.of(indexTables).map(IndexTable::name).toSet();
+                StreamEx.of(indexTables).map(IndexTable::indexTableName).toSet();
         Set<String> conflictingTableNames = Sets.intersection(tableNames, indexTableNames);
         Preconditions.checkArgument(
                 conflictingTableNames.isEmpty(),
@@ -111,7 +115,7 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
     private static void checkIndexesReferenceExistingPrimaryTable(
             Map<String, IsolationLevel> tables, Set<IndexTable> indexTables) {
         Set<IndexTable> indexesWithUnknownPrimaryTables = StreamEx.of(indexTables)
-                .remove(indexTable -> tables.containsKey(indexTable.primaryTable()))
+                .remove(indexTable -> tables.containsKey(indexTable.primaryTableName()))
                 .toSet();
 
         Preconditions.checkArgument(

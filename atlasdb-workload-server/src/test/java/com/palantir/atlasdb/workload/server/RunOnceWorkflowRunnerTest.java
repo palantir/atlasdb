@@ -31,9 +31,12 @@ public class RunOnceWorkflowRunnerTest {
     @Test
     public void runExecutesWorkflowsAndInvokesInvariantReporter() {
         Workflow exampleWorkflow = mock(Workflow.class);
-        InvariantReporter<Void> exampleInvariantReporter = mock(InvariantReporter.class);
-        RunOnceWorkflowRunner.INSTANCE.run(exampleWorkflow, List.of(exampleInvariantReporter));
+        InvariantReporter<Void> exampleInvariantReporterOne = mock(InvariantReporter.class);
+        InvariantReporter<Void> exampleInvariantReporterTwo = mock(InvariantReporter.class);
+        RunOnceWorkflowRunner.INSTANCE.run(
+                exampleWorkflow, List.of(exampleInvariantReporterOne, exampleInvariantReporterTwo));
         verify(exampleWorkflow, times(1)).run();
-        verify(exampleInvariantReporter, times(1)).report(any());
+        verify(exampleInvariantReporterOne, times(1)).report(any());
+        verify(exampleInvariantReporterTwo, times(1)).report(any());
     }
 }
