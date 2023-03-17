@@ -24,7 +24,7 @@ import java.util.List;
 
 public class NotInitializedException extends AtlasDbDependencyException implements SafeLoggable {
 
-    private static final String EXCEPTION_MESSAGE =
+    private static final String MESSAGE =
             "The object is not yet initialized, and as a result, all calls to it will fail. Interactions with this"
                     + " object should not take place until after initialization has completed. For example, if your"
                     + " service that handles REST requests relies on this object, it should not service REST requests"
@@ -33,19 +33,19 @@ public class NotInitializedException extends AtlasDbDependencyException implemen
     private final String objectNotInitialized;
 
     public NotInitializedException(@Safe String objectNotInitialized) {
-        super(EXCEPTION_MESSAGE);
+        super(MESSAGE);
         this.objectNotInitialized = objectNotInitialized;
     }
 
     public NotInitializedException(@Safe String objectNotInitialized, Throwable throwable) {
-        super(EXCEPTION_MESSAGE, throwable);
+        super(MESSAGE, throwable);
         this.objectNotInitialized = objectNotInitialized;
     }
 
     @Override
     @Safe
     public String getLogMessage() {
-        return EXCEPTION_MESSAGE;
+        return MESSAGE;
     }
 
     @Override
