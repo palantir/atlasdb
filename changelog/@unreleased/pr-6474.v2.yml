@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Add getActiveNamespaces endpoint
+  links:
+  - https://github.com/palantir/atlasdb/pull/6474
