@@ -12,6 +12,13 @@ services:
           The endpoint loads all persisted namespaces. ``leaderPaxos`` is filtered out from the set
           as it is not a namespace.
 
+      getActiveNamespaces:
+        http: POST /getActiveNamespaces
+        returns: set<string>
+        docs: |
+          The endpoint loads all namespaces with new timestamps since the last restart. 
+          ``leaderPaxos`` is filtered out from the set as it is not a namespace.
+
       achieveConsensus:
         http: POST /achieveConsensus
         args:
