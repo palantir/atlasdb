@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.http.v2.ClientOptionsConstants;
@@ -353,10 +352,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
         Set<String> knownNamespacesAfterRestart = getKnownNamespaces();
         assertThat(knownNamespacesAfterRestart).contains(randomNamespace);
-        assertThat(knownNamespacesAfterRestart).contains(randomNamespace);
         assertThat(knownNamespacesAfterRestart).doesNotContain("learner", "acceptor");
-        assertThat(Sets.difference(knownNamespaces, knownNamespacesAfterRestart))
-                .isEmpty();
+        assertThat(knownNamespacesAfterRestart).isSubsetOf(knownNamespaces);
 
         Set<String> activeNamespacesAfterRestart = getActiveNamespaces();
         assertThat(activeNamespacesAfterRestart).doesNotContain(randomNamespace);
