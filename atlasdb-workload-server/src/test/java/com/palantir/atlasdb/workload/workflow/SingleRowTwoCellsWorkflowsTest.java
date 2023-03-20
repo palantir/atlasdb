@@ -26,6 +26,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
+import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
@@ -39,7 +40,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class SingleRowTwoCellsWorkflowsTest {
-    private static final String TABLE_NAME = "coffee";
+    private static final String TABLE_NAME = "my.coffee";
     private static final SingleRowTwoCellsWorkflowConfiguration CONFIGURATION =
             ImmutableSingleRowTwoCellsWorkflowConfiguration.builder()
                     .tableConfiguration(ImmutableTableConfiguration.builder()
@@ -116,8 +117,8 @@ public class SingleRowTwoCellsWorkflowsTest {
                 .run();
 
         assertThat(history.transactionStore())
-                .as("should return the provided store")
-                .isEqualTo(memoryStore);
+                .as("should return a read only tranasction store")
+                .isInstanceOf(ReadOnlyTransactionStore.class);
         assertThat(Iterables.getOnlyElement(history.history()).actions())
                 .containsExactly(
                         WitnessedReadTransactionAction.of(
@@ -127,8 +128,8 @@ public class SingleRowTwoCellsWorkflowsTest {
                         WitnessedWriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 0),
                         WitnessedDeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
                         WitnessedReadTransactionAction.of(
-                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.empty()),
+                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.of(0)),
                         WitnessedReadTransactionAction.of(
-                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.of(0)));
+                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()));
     }
 }
