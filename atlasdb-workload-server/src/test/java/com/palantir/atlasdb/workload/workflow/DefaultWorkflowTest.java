@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
@@ -38,13 +39,15 @@ public class DefaultWorkflowTest {
     private final KeyedTransactionTask transactionTask = mock(KeyedTransactionTask.class);
 
     private final ScheduledExecutorService scheduler = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(scheduler);
 
     @Test
     public void handlesExceptionsInUnderlyingTasks() {
         RuntimeException transactionException = new RuntimeException("boo");
         when(transactionTask.apply(eq(store), anyInt())).thenThrow(transactionException);
 
-        Workflow workflow = DefaultWorkflow.create(store, transactionTask, createWorkflowConfiguration(2));
+        Workflow workflow =
+                DefaultWorkflow.create(store, transactionTask, createWorkflowConfiguration(2), executionExecutor);
         assertThatThrownBy(workflow::run)
                 .hasMessage("Error when running workflow task")
                 .hasCause(transactionException);
@@ -99,10 +102,12 @@ public class DefaultWorkflowTest {
     }
 
     private WorkflowConfiguration createWorkflowConfiguration(int iterationCount) {
-        return ImmutableWorkflowConfiguration.builder()
-                .iterationCount(iterationCount)
-                .executionExecutor(MoreExecutors.listeningDecorator(scheduler))
-                .build();
+        return new WorkflowConfiguration() {
+            @Override
+            public int iterationCount() {
+                return iterationCount;
+            }
+        };
     }
 
     private static WitnessedTransaction createReadOnlyWitnessedTransactionWithoutActions(long start) {
