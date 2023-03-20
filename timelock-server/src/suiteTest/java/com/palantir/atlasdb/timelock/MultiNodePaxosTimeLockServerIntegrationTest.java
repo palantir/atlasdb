@@ -353,7 +353,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         Set<String> knownNamespacesAfterRestart = getKnownNamespaces();
         assertThat(knownNamespacesAfterRestart).contains(randomNamespace);
         assertThat(knownNamespacesAfterRestart).doesNotContain("learner", "acceptor");
-        assertThat(knownNamespacesAfterRestart).isSubsetOf(knownNamespaces);
+        assertThat(knownNamespaces).isSubsetOf(knownNamespacesAfterRestart);
 
         Set<String> activeNamespacesAfterRestart = getActiveNamespaces();
         assertThat(activeNamespacesAfterRestart).doesNotContain(randomNamespace);
