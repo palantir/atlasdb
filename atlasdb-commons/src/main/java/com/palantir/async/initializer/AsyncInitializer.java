@@ -60,11 +60,19 @@ public abstract class AsyncInitializer {
 
     private void tryInitializationLoop() {
         if (state.isCancelled()) {
+            log.info("Shutting down executor associated with asynchronous initialisation, as it was cancelled",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                    SafeArg.of("durationbeforeCancellation", System.currentTimeMillis() - initializationStartTime));
             singleThreadedExecutor.shutdown();
             return;
         }
 
         try {
+            log.info("Attempting to initialize {} on the attempt {}. The amount of time elapsed since we began was {} ms.",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                    SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
             tryInitializeInternal();
             log.info(
                     "Initialized {} on the attempt {} in {} milliseconds",

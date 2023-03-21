@@ -243,7 +243,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
+        log.info("<1>");
         cassandra.cacheInitialCassandraHosts();
+        log.info("<2>");
 
         refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(
                 () -> {
@@ -260,12 +262,18 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config.poolRefreshIntervalSeconds(),
                 TimeUnit.SECONDS);
 
+        log.info("<3>");
         // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
+        log.info("<4>");
+
         refreshPool(); // ensure we've initialized before returning
+        log.info("<5>");
+
         metrics.registerAggregateMetrics(blacklist::size);
+        log.info("<6>");
     }
 
     private void cleanUpOnInitFailure() {
@@ -328,14 +336,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private synchronized void refreshPool() {
+        log.info("<4.1>");
         blacklist.checkAndUpdate(cassandra.getPools());
 
         if (config.autoRefreshNodes()) {
+            log.info("<4.2>");
             setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
         } else {
             setServersInPoolTo(cassandra.getCurrentServerListFromConfig());
         }
 
+        log.info("<4.3>");
         cassandra.debugLogStateOfPool();
     }
 
@@ -517,6 +528,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         if (atLeastOneHostResponded && aliveButInvalidPartitionerNodes.size() == 0) {
+            log.info("Performed routine startup checks. All seemed good.");
             return;
         } else {
             throw new RuntimeException(errorBuilderForEntireCluster.toString());
