@@ -352,24 +352,32 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @VisibleForTesting
     void setServersInPoolTo(ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers) {
+        log.info("<4.2b.1>");
         Set<CassandraServer> currentServers = getCachedServers();
+        log.info("<4.2b.2>");
         Map<CassandraServer, CassandraServerOrigin> serversToAdd = EntryStream.of(desiredServers)
                 .removeKeys(currentServers::contains)
                 .toImmutableMap();
         SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
+        log.info("<4.2b.3>");
 
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
             absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
         });
+        log.info("<4.2b.4>");
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
+        log.info("<4.2b.5>");
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
+        log.info("<4.2b.6>");
 
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
+            log.info("<4.2b.7>");
             cassandra.refreshTokenRangesAndGetServers();
+            log.info("<4.2b.8>");
         }
 
         Preconditions.checkState(
@@ -449,6 +457,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             Set<CassandraServer> serversToAdd,
             Set<CassandraServer> serversToShutdown,
             Set<CassandraServer> absentServers) {
+        log.info("<4.2b.9>");
         if (serversToShutdown.isEmpty() && serversToAdd.isEmpty() && absentServers.isEmpty()) {
             log.debug("No hosts added or removed during Cassandra pool refresh");
         } else {
@@ -458,6 +467,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     SafeArg.of("serversToShutdown", CassandraLogHelper.collectionOfHosts(serversToShutdown)),
                     SafeArg.of("absentServers", CassandraLogHelper.collectionOfHosts(absentServers)));
         }
+        log.info("<4.2b.10>");
     }
 
     private ImmutableSet<CassandraServer> getCachedServers() {

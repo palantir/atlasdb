@@ -129,6 +129,7 @@ public class CassandraService implements AutoCloseable {
 
     public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
         // explicitly not using immutable builders to deduplicate nodes
+        log.info("<4.2.1>");
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
 
@@ -137,8 +138,11 @@ public class CassandraService implements AutoCloseable {
                     ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster and update local hosts
+            log.info("<4.2.2>");
             List<TokenRange> tokenRanges = getTokenRanges();
+            log.info("<4.2.3>");
             localHosts = refreshLocalHosts(tokenRanges);
+            log.info("<4.2.4>");
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -149,6 +153,7 @@ public class CassandraService implements AutoCloseable {
                 servers.add(onlyHost);
                 hostToDatacentersThisRefresh.put(onlyHost, onlyEndpoint.getDatacenter());
             } else { // normal case, large cluster with many vnodes
+                log.info("<4.2.5>");
                 for (TokenRange tokenRange : tokenRanges) {
                     Map<CassandraServer, String> hostToDatacentersOnThisTokenRange = KeyedStream.of(
                                     tokenRange.getEndpoint_details())
@@ -157,11 +162,13 @@ public class CassandraService implements AutoCloseable {
                             .map(EndpointDetails::getDatacenter)
                             .collectToMap();
 
+                    log.info("<4.2.6>");
                     ImmutableSet<CassandraServer> hosts =
                             ImmutableSet.copyOf(hostToDatacentersOnThisTokenRange.keySet());
                     servers.addAll(hosts);
                     hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
 
+                    log.info("<4.2.7>");
                     LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
                             .decode(tokenRange.getStart_token().toUpperCase(Locale.ROOT)));
                     LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
@@ -175,11 +182,13 @@ public class CassandraService implements AutoCloseable {
                     }
                 }
             }
+            log.info("<4.2.8>");
             tokenMap = tokensInterner.intern(newTokenRing.build());
             hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
             return CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE);
         } catch (Exception e) {
+            // This one does not arise so no need to worry about exception cases. Maybe we get stuck though
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
                     SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
@@ -218,6 +227,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
+        log.info("<4.2.9>");
         if (log.isDebugEnabled()) {
             Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
                     .mapKeys(CassandraServer::cassandraHostName)
