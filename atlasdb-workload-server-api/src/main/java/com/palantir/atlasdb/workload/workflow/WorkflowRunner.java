@@ -25,6 +25,6 @@ import java.util.List;
  * The idea of this class is that long-term we will want to have multiple ways to run/execute workflows,
  * rather than biasing towards the present case (just once).
  */
-public interface WorkflowRunner<WorkflowType extends Workflow> {
-    void run(WorkflowType workflow, List<InvariantReporter<?>> invariantReporters);
+public interface WorkflowRunner<WorkflowTypeT extends Workflow> {
+    void run(WorkflowTypeT workflow, List<InvariantReporter<?>> invariantReporters);
 }
