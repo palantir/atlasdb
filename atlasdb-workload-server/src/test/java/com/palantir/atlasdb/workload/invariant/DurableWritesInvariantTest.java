@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_REFERENCE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_TWO;
@@ -60,12 +60,12 @@ public final class DurableWritesInvariantTest {
         AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .build());
@@ -74,11 +74,11 @@ public final class DurableWritesInvariantTest {
                 .transactionStore(store)
                 .build();
 
-        store.readWrite(List.of(WriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
+        store.readWrite(List.of(WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE)));
         DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
         assertThat(mismatchingCells.get())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO),
+                        TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.empty())));
     }
 
@@ -87,12 +87,12 @@ public final class DurableWritesInvariantTest {
         AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
                 ImmutableWitnessedTransaction.builder()
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .build());
@@ -102,12 +102,12 @@ public final class DurableWritesInvariantTest {
                 .build();
 
         store.readWrite(List.of(
-                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE),
-                WriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
+                WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE),
+                WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE)));
         DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
         assertThat(mismatchingCells.get())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        TableAndWorkloadCell.of(TABLE, WORKLOAD_CELL_TWO),
+                        TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.of(VALUE_TWO))));
     }
 }

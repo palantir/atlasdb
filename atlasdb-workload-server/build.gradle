@@ -1,4 +1,9 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.metric-schema'
+
+license {
+    exclude '**/DurableWritesMetrics.java'
+}
 
 dependencies {
     implementation project(':atlasdb-workload-server-api')

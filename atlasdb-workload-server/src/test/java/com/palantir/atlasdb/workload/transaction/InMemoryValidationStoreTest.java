@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_TWO;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
@@ -42,12 +42,12 @@ public final class InMemoryValidationStoreTest {
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .build()));
         assertThat(store.values().toJavaMap())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
@@ -63,13 +63,13 @@ public final class InMemoryValidationStoreTest {
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .build()));
         assertThat(store.values().toJavaMap())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
@@ -82,17 +82,17 @@ public final class InMemoryValidationStoreTest {
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
-                        .addActions(WitnessedDeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))
+                        .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .build(),
                 ImmutableWitnessedTransaction.builder()
                         .startTimestamp(5)
                         .commitTimestamp(6)
-                        .addActions(WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_TWO))
+                        .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_TWO))
                         .build()));
         assertThat(store.values().toJavaMap())
                 .containsExactlyInAnyOrderEntriesOf(Map.of(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_TWO)));
