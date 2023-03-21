@@ -28,7 +28,7 @@ import org.junit.Test;
 
 public class SingleRowTwoCellsWorkflowConfigurationTest {
     private static final TableConfiguration TABLE_CONFIGURATION = ImmutableTableConfiguration.builder()
-            .tableName(WorkloadTestHelpers.TABLE)
+            .tableName(WorkloadTestHelpers.TABLE_1)
             .isolationLevel(IsolationLevel.SERIALIZABLE)
             .build();
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
