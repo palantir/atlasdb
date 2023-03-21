@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    PDS-344883 abusive-telemetry
+
+    RC only
+  links:
+  - https://github.com/palantir/atlasdb/pull/6476
