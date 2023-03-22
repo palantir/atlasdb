@@ -25,6 +25,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -34,17 +35,18 @@ public class WorkloadServerLauncherTest {
             WorkloadServerLauncher.class, ResourceHelpers.resourceFilePath("workload-server.yml"));
 
     @Test
-    public void runsWorkflow() {
-        TaggedMetricRegistry metricRegistry =
-                ((WorkloadServerLauncher) RULE.getApplication()).getTaggedMetricRegistry();
+    public void runsWorkflow() throws InterruptedException {
+        WorkloadServerLauncher workloadServerLauncher = RULE.getApplication();
+        workloadServerLauncher.workflowsRanLatch().await(20, TimeUnit.SECONDS);
+        TaggedMetricRegistry metricRegistry = workloadServerLauncher.getTaggedMetricRegistry();
         MetricName metricName = MetricName.builder()
                 .safeName("com.palantir.atlasdb.keyvalue.api.KeyValueService.get")
                 .safeTags(Map.of("libraryOrigin", "atlasdb"))
                 .build();
         Timer kvsGetMetric = (Timer) metricRegistry.getMetrics().get(metricName);
         assertThat(kvsGetMetric.getCount())
-                .as("Count of KeyValueService get calls should be greater than zero,"
+                .as("Count of KeyValueService get calls should be greater than one,"
                         + "as a workflow should have been executed")
-                .isGreaterThan(0);
+                .isGreaterThan(1);
     }
 }

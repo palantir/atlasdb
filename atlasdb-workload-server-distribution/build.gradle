@@ -1,4 +1,8 @@
+apply plugin: 'com.palantir.sls-java-service-distribution'
+apply plugin: 'com.palantir.external-publish-dist'
+apply from: "../gradle/docker.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -26,4 +30,12 @@ dependencies {
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
+}
+
+
+distribution {
+    serviceName "atlasdb-workload-server"
+    mainClass 'com.palantir.atlasdb.workload.WorkloadServerLauncher'
+    args 'server', 'var/conf/workload-server.yml'
+    defaultJvmOpts "-Xms512m", "-Xmx512m"
 }

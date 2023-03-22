@@ -45,6 +45,7 @@ import io.dropwizard.setup.Environment;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
@@ -53,6 +54,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     private static final UserAgent USER_AGENT = UserAgent.of(Agent.of("AtlasDbWorkloadServer", "0.0.0"));
 
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+    private final CountDownLatch workflowsRanLatch = new CountDownLatch(1);
 
     public static void main(String[] args) throws Exception {
         new WorkloadServerLauncher().run(args);
@@ -72,6 +74,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     public void run(WorkloadServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
 
+        ExecutorService workflowRunnerExecutor = environment
+                .lifecycle()
+                .executorService("workflow-runner")
+                .build();
+
+        workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
+    }
+
+    private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
         ExecutorService singleRowTwoCellsExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
@@ -99,6 +110,17 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         SingleRowTwoCellsWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry))));
         log.info("antithesis: terminate");
+
+        workflowsRanLatch.countDown();
+
+        if (configuration.install().exitAfterRunning()) {
+            System.exit(0);
+        }
+    }
+
+    @VisibleForTesting
+    CountDownLatch workflowsRanLatch() {
+        return workflowsRanLatch;
     }
 
     @VisibleForTesting

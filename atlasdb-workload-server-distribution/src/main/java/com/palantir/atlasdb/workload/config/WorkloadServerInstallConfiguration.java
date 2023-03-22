@@ -28,6 +28,11 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface WorkloadServerInstallConfiguration {
 
+    @JsonProperty("exit-after-running")
+    default boolean exitAfterRunning() {
+        return false;
+    }
+
     @JsonProperty("atlas")
     AtlasDbConfig atlas();
 
