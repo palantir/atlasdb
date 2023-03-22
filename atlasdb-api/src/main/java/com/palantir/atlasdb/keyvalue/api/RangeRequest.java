@@ -352,7 +352,7 @@ public final class RangeRequest implements Serializable {
          * this means the batch size will be whatever is passed as the batch size to
          * BatchingVisitable#batchAccept(int, com.palantir.common.base.AbortingVisitor)
          */
-        public Builder batchHint(Integer hint) {
+        public Builder batchHint(@Nullable Integer hint) {
             Preconditions.checkArgument(hint == null || hint > 0);
             batchHint = hint;
             return this;
