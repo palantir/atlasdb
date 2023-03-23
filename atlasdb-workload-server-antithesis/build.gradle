@@ -1,0 +1,11 @@
+apply plugin: 'com.palantir.docker'
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/non-client-dist.gradle"
+
+def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
+
+docker {
+    name "palantirtechnologies/${project.name}:${imageVersion}"
+    tags 'latest', 'snapshot'
+    files 'var/docker-compose.yml'
+}
