@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: '[TEX] Wrap KVS service reads and track bytes read (no metrics)'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6475
