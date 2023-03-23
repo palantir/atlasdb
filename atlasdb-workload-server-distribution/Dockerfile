@@ -1,7 +1,7 @@
 FROM adoptopenjdk/openjdk11:jre-11.0.9_11.1-alpine
 MAINTAINER AtlasDB Team
 
-# Bash is useful for monitoring; curl is used by our healthchecks.
+# Bash and curl are convenient for monitoring and debugging
 RUN apk update && apk add bash curl
 
 # Prefer ADD to COPY because it does the tar handling

@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -30,10 +29,8 @@ import org.immutables.value.Value;
 public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "singleRowTwoCells";
 
-    @JsonProperty("table-configuration")
     TableConfiguration tableConfiguration();
 
-    @JsonProperty("rate-limit")
     @Value.Default
     default double rateLimit() {
         return 100;

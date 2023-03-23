@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.config;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -27,12 +26,9 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableWorkloadServerInstallConfiguration.class)
 @Value.Immutable
 public interface WorkloadServerInstallConfiguration {
-    @JsonProperty("atlas")
     AtlasDbConfig atlas();
 
-    @JsonProperty("single-row-two-cells-config")
     SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
 
-    @JsonProperty("exit-after-running")
     boolean exitAfterRunning();
 }

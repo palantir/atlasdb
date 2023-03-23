@@ -20,11 +20,12 @@ dependencies {
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.google.guava:guava'
 
-    implementation project(':atlasdb-config')
-    implementation project(':atlasdb-workload-server')
-    implementation project(':atlasdb-client')
 
-    api project(':atlasdb-workload-server-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-workload-server')
+    implementation project(':atlasdb-workload-server-api')
+    implementation project(':atlasdb-config')
 
     testImplementation 'io.dropwizard:dropwizard-testing'
 

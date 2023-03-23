@@ -16,12 +16,9 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 public interface WorkflowConfiguration {
-
-    @JsonProperty("iteration-count")
     int iterationCount();
 }
