@@ -10,3 +10,4 @@ install:
       isolation-level: SERIALIZABLE
     iteration-count: 100
     type: singleRowTwoCells
+  exit-after-running: false

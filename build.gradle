@@ -161,9 +161,3 @@ allprojects {
         systemProperty 'RUNNING_IN_GRADLE', 'true'
     }
 }
-
-jdks {
-    jdkDistribution('amazon-corretto') {
-        baseUrl = 'https://artifactory.palantir.build/artifactory/internal-dist-thirdparty/corretto'
-    }
-}

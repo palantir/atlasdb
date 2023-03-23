@@ -74,10 +74,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     public void run(WorkloadServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
 
-        ExecutorService workflowRunnerExecutor = environment
-                .lifecycle()
-                .executorService("workflow-runner")
-                .build();
+        ExecutorService workflowRunnerExecutor =
+                environment.lifecycle().executorService("workflow-runner").build();
 
         workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
     }

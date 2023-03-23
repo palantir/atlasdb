@@ -11,13 +11,4 @@ RUN mv /atlasdb-workload-server-* /atlasdb-workload-server
 
 WORKDIR /atlasdb-workload-server
 
-EXPOSE 8421 \
-       8422
-
-# Putting exit code as '1' on failure to adhere to docker specification
-HEALTHCHECK --interval=5s \
-            --timeout=5s \
-            --retries=5 \
-            CMD curl -f http://localhost:8422/healthcheck || exit 1
-
 CMD ["service/bin/init.sh", "console"]

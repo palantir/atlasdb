@@ -27,15 +27,12 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableWorkloadServerInstallConfiguration.class)
 @Value.Immutable
 public interface WorkloadServerInstallConfiguration {
-
-    @JsonProperty("exit-after-running")
-    default boolean exitAfterRunning() {
-        return false;
-    }
-
     @JsonProperty("atlas")
     AtlasDbConfig atlas();
 
     @JsonProperty("single-row-two-cells-config")
     SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
+
+    @JsonProperty("exit-after-running")
+    boolean exitAfterRunning();
 }
