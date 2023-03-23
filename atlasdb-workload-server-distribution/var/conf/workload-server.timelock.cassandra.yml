@@ -37,10 +37,10 @@ install:
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
-  single-row-two-cells-config:
-    table-configuration:
-      table-name: two_cells_test
-      isolation-level: SERIALIZABLE
-    iteration-count: 100
+  singleRowTwoCellsConfig:
+    tableConfiguration:
+      tableName: two_cells_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
     type: singleRowTwoCells
-  exit-after-running: true
+  exitAfterRunning: true

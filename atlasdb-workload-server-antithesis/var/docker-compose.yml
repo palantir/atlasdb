@@ -60,7 +60,9 @@ services:
 
   workload-server:
     image: palantirtechnologies/atlasdb-workload-server-distribution:unspecified
-    command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml && dockerize -timeout 120s -wait tcp://cassandra1:9160 && service/bin/init.sh console']
+    command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml 
+                         && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 
+                         && service/bin/init.sh console']
     depends_on:
       - cassandra1
       - cassandra2
