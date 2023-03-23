@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value.Check;
 import org.immutables.value.Value.Immutable;
 
@@ -185,7 +186,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
      * within the specified bounds.
      */
     public static Optional<MillisAndMaybeTimestamp> getMillisForTimestampWithinBounds(
-            KeyValueService kvs, long timestamp, MillisAndMaybeTimestamp lowerBound, long upperBound) {
+            KeyValueService kvs, long timestamp, @Nullable MillisAndMaybeTimestamp lowerBound, long upperBound) {
         MillisAndMaybeTimestamp lowerBoundToUse =
                 Optional.ofNullable(lowerBound).orElseGet(() -> findOlder(kvs, timestamp, upperBound));
 
