@@ -1,4 +1,4 @@
-vaapply from: "../gradle/shared.gradle"
+apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
