@@ -14,30 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import java.util.Optional;
 import org.immutables.value.Value;
 
+@JsonDeserialize(as = ImmutableWorkloadServerRuntimeConfiguration.class)
+@JsonSerialize(as = ImmutableWorkloadServerRuntimeConfiguration.class)
 @Value.Immutable
-@JsonSerialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
-@JsonTypeName(SingleRowTwoCellsWorkflowConfiguration.TYPE)
-public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
-    String TYPE = "singleRowTwoCells";
-
-    TableConfiguration tableConfiguration();
-
-    @Value.Default
-    default double rateLimit() {
-        return 100;
-    }
-
-    @Value.Lazy
-    default RateLimiter transactionRateLimiter() {
-        return RateLimiter.create(rateLimit());
-    }
+public interface WorkloadServerRuntimeConfiguration {
+    Optional<AtlasDbRuntimeConfig> atlas();
 }
