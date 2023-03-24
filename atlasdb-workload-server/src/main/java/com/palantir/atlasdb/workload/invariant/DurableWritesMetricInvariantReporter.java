@@ -18,11 +18,16 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.workload.DurableWritesMetrics;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public final class DurableWritesMetricInvariantReporter
         implements InvariantReporter<Map<TableAndWorkloadCell, MismatchedValue>> {
+
+    private static final SafeLogger log = SafeLoggerFactory.get(DurableWritesMetricInvariantReporter.class);
 
     private final String workflow;
     private final DurableWritesMetrics durableWritesMetrics;
@@ -39,12 +44,14 @@ public final class DurableWritesMetricInvariantReporter
 
     @Override
     public Consumer<Map<TableAndWorkloadCell, MismatchedValue>> consumer() {
-        return mismatchingValues ->
-                mismatchingValues.forEach((tableAndWorkloadCell, _mismatchedValue) -> durableWritesMetrics
-                        .numberOfViolations()
-                        .workflow(workflow)
-                        .table(tableAndWorkloadCell.tableName())
-                        .build()
-                        .inc());
+        return mismatchingValues -> {
+            mismatchingValues.forEach((tableAndWorkloadCell, _mismatchedValue) -> durableWritesMetrics
+                    .numberOfViolations()
+                    .workflow(workflow)
+                    .table(tableAndWorkloadCell.tableName())
+                    .build()
+                    .inc());
+            log.warn("Durable writes invariant violations found!", SafeArg.of("mismatchingValues", mismatchingValues));
+        };
     }
 }
