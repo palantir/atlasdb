@@ -72,7 +72,7 @@ public abstract class AsyncInitializer {
         try {
             log.info(
                     "Attempting to initialize {} on the attempt {}. The amount of time elapsed since we began was {}"
-                            + " ms.",
+                            + " milliseconds.",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                     SafeArg.of("initializationDuration", getTimeSinceInitialization()));
