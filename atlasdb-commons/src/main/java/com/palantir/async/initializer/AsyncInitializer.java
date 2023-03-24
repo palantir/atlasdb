@@ -64,7 +64,7 @@ public abstract class AsyncInitializer {
                     "Shutting down executor associated with asynchronous initialisation, as it was cancelled",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                    SafeArg.of("durationBeforeCancellation", getTimeSinceInitialization()));
+                    SafeArg.of("durationBeforeCancellation", getMillisecondsSinceInitialization()));
             singleThreadedExecutor.shutdown();
             return;
         }
@@ -75,13 +75,13 @@ public abstract class AsyncInitializer {
                             + " milliseconds.",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                    SafeArg.of("initializationDuration", getTimeSinceInitialization()));
+                    SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()));
             tryInitializeInternal();
             log.info(
                     "Initialized {} on the attempt {} in {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                    SafeArg.of("initializationDuration", getTimeSinceInitialization()));
+                    SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()));
         } catch (Throwable throwable) {
             log.info(
                     "Failed to initialize {} on the attempt {}",
@@ -95,14 +95,14 @@ public abstract class AsyncInitializer {
                         "Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
                         SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                        SafeArg.of("initializationDuration", getTimeSinceInitialization()),
+                        SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()),
                         cleanupThrowable);
             }
             scheduleInitialization(sleepInterval());
         }
     }
 
-    private long getTimeSinceInitialization() {
+    private long getMillisecondsSinceInitialization() {
         return System.currentTimeMillis() - initializationStartTime;
     }
 
