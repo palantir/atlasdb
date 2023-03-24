@@ -60,17 +60,28 @@ public abstract class AsyncInitializer {
 
     private void tryInitializationLoop() {
         if (state.isCancelled()) {
+            log.info(
+                    "Shutting down executor associated with asynchronous initialisation, as it was cancelled",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                    SafeArg.of("durationBeforeCancellation", getTimeSinceInitialization()));
             singleThreadedExecutor.shutdown();
             return;
         }
 
         try {
+            log.info(
+                    "Attempting to initialize {} on the attempt {}. The amount of time elapsed since we began was {}"
+                            + " ms.",
+                    SafeArg.of("className", getInitializingClassName()),
+                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                    SafeArg.of("initializationDuration", getTimeSinceInitialization()));
             tryInitializeInternal();
             log.info(
                     "Initialized {} on the attempt {} in {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                    SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime));
+                    SafeArg.of("initializationDuration", getTimeSinceInitialization()));
         } catch (Throwable throwable) {
             log.info(
                     "Failed to initialize {} on the attempt {}",
@@ -84,11 +95,15 @@ public abstract class AsyncInitializer {
                         "Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
                         SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
-                        SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
+                        SafeArg.of("initializationDuration", getTimeSinceInitialization()),
                         cleanupThrowable);
             }
             scheduleInitialization(sleepInterval());
         }
+    }
+
+    private long getTimeSinceInitialization() {
+        return System.currentTimeMillis() - initializationStartTime;
     }
 
     // Not final for tests.
@@ -96,7 +111,7 @@ public abstract class AsyncInitializer {
         singleThreadedExecutor.schedule(this::tryInitializationLoop, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 
-    // Not final for tests
+    // Not final for tests.
     ScheduledExecutorService createExecutorService() {
         return PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
