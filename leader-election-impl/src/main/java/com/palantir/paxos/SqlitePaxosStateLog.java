@@ -142,6 +142,6 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
         Optional<String> getSmallestNamespace();
 
         @SqlQuery("SELECT MIN(namespace) FROM paxosLog WHERE namespace > :namespace")
-        Optional<String> getNextSmallestNamespace(@Bind("namespace") String namespace);
+        Optional<String> getNextSmallestNamespace(@Bind("namespace") String lastReadNamespace);
     }
 }
