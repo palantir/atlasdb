@@ -18,8 +18,9 @@ package com.palantir.atlasdb.timelock.management;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -39,10 +40,24 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
 
     @Override
     public Set<Client> getAllPersistedNamespaces() {
-        return jdbi
-                .withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getAllNamespaces)
-                .stream()
-                .map(Client::of)
-                .collect(Collectors.toSet());
+        Set<Client> clients = new HashSet<>();
+
+        Optional<String> currentNamespace = getSmallestNamespace();
+        while (currentNamespace.isPresent()) {
+            String namespaceString = currentNamespace.get();
+            clients.add(Client.of(namespaceString));
+            currentNamespace = getNextSmallestNamespace(namespaceString);
+        }
+
+        return clients;
+    }
+
+    private Optional<String> getSmallestNamespace() {
+        return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getSmallestNamespace);
+    }
+
+    private Optional<String> getNextSmallestNamespace(String lastReadNamespace) {
+        return jdbi.withExtension(
+                SqlitePaxosStateLog.Queries.class, dao -> dao.getNextSmallestNamespace(lastReadNamespace));
     }
 }
