@@ -198,7 +198,8 @@ public final class OracleDdlTable implements DbDdlTable {
                         + " PRIMARY KEY (row_name, col_name, ts) "
                         + ") "
                         + "organization index compress "
-                        // Since append only
+                        // Since append only completely fill blocks - no benefit in leaving space for updates of rows
+                        // PCTUSED N/A to Index Organized Tables
                         + "PCTFREE 0 "
                         + "overflow",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
@@ -214,7 +215,8 @@ public final class OracleDdlTable implements DbDdlTable {
                         + "  val BLOB NOT NULL,"
                         + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortOverflowTableName) + " PRIMARY KEY (id)"
                         + ") "
-                        // Since append only
+                        // Since append only completely fill blocks - no benefit in leaving space for updates of rows
+                        // Assume auto segment space management, so PCTUSED ignored
                         + "PCTFREE 0",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
