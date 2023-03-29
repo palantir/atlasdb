@@ -10,7 +10,8 @@ services:
         returns: set<string>
         docs: |
           The endpoint loads all persisted namespaces. ``leaderPaxos`` is filtered out from the set
-          as it is not a namespace.
+          as it is not a namespace. No transactionality guarantees are given: namespace additions and
+          deletions while the request is running may or may not be reflected in the output.
 
       getActiveNamespaces:
         http: POST /getActiveNamespaces
