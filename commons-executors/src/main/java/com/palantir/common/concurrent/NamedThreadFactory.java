@@ -15,8 +15,6 @@
  */
 package com.palantir.common.concurrent;
 
-import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
@@ -52,12 +50,10 @@ public class NamedThreadFactory implements ThreadFactory {
      * @param prefix The prefix for each constructed thread.
      * @param isDaemon {@code true} iff the constructed threads should be daemon threads.
      */
-    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
     public NamedThreadFactory(String prefix, boolean isDaemon) {
         this.prefix = prefix;
         this.isDaemon = isDaemon;
-        this.threadFactory = MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(), Executors.defaultThreadFactory(), prefix);
+        this.threadFactory = Executors.defaultThreadFactory();
     }
 
     /** {@inheritDoc} */

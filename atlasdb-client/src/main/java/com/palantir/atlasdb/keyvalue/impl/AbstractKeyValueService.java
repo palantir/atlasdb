@@ -39,6 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.tritium.metrics.MetricRegistries;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,38 +72,48 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     /**
      * Creates a fixed thread pool.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param corePoolSize size of the core pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int corePoolSize) {
-        return createThreadPool(threadNamePrefix, corePoolSize, corePoolSize);
+    protected static ExecutorService createFixedThreadPool(
+            TaggedMetricRegistry registry, String name, int corePoolSize) {
+        return createThreadPool(registry, name, corePoolSize, corePoolSize);
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPool(String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPool(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPool(
+            TaggedMetricRegistry registry, String name, int _corePoolSize, int maxPoolSize) {
+        return MetricRegistries.executor()
+                .registry(registry)
+                .name(name)
+                .executor(PTExecutors.newFixedThreadPool(maxPoolSize, name))
+                .build();
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      * It does not create a span.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPoolWihtoutSpans(
-            String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPoolWithoutSpans(
+            TaggedMetricRegistry registry, String name, int _corePoolSize, int maxPoolSize) {
+        return MetricRegistries.executor()
+                .registry(registry)
+                .name(name)
+                .executor(PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, name))
+                .build();
     }
 
     @Override
