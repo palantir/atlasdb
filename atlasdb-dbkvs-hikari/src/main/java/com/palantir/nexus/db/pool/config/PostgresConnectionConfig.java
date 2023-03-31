@@ -66,12 +66,6 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         return "org.postgresql.Driver";
     }
 
-    @Override
-    @Value.Default
-    public String getTestQuery() {
-        return "SELECT 1";
-    }
-
     public abstract String getDbName();
 
     @Override

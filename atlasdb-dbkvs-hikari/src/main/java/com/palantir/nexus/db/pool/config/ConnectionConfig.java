@@ -58,7 +58,10 @@ public abstract class ConnectionConfig {
 
     public abstract String getDriverClass();
 
-    public abstract String getTestQuery();
+    @Value.Default
+    public String getTestQuery() {
+        return "";
+    }
 
     @JsonIgnore
     @Value.Derived
