@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
@@ -90,7 +91,9 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void create(byte[] tableMetadata) {
-        boolean needsOverflow = needsOverflow(tableMetadata);
+        TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
+        boolean needsOverflow = needsOverflow(metadata);
+        int compressionSetting = getOptimalIndexCompression(metadata);
 
         if (tableExists()) {
             if (needsOverflow) {
@@ -103,7 +106,7 @@ public final class OracleDdlTable implements DbDdlTable {
             return;
         }
 
-        String shortTableName = createTable(needsOverflow);
+        String shortTableName = createTable(needsOverflow, compressionSetting);
 
         if (needsOverflow && !overflowColumnExists(shortTableName)) {
             throwForMissingOverflowTable();
@@ -146,10 +149,40 @@ public final class OracleDdlTable implements DbDdlTable {
         return config.overflowMigrationState() == OverflowMigrationState.FINISHED;
     }
 
-    private boolean needsOverflow(byte[] tableMetadata) {
-        TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
-        return (metadata != null)
-                && (metadata.getColumns().getMaxValueSize() > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD);
+    private boolean needsOverflow(TableMetadata metadata) {
+        return metadata.getColumns().getMaxValueSize() > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD;
+    }
+
+    /*
+     * Determine the optimal Index Organized Table compression setting.
+     * When enabling compression on an IOT, we can instruct Oracle to compress at most one
+     * fewer columns than the number of columns that make up the PK for the IOT (i.e. the IOT we create have a PK of
+     * {row, col, ts} so we can compress 0, 1 or 2 columns - nothing, row, or row & col. It wouldn't make sense to
+     * compress all three columns, because necessarily there can be multiple rows that share all three values.
+     *
+     * When compression is enabled in an IOT, the block header adds a table the captures the values of the
+     * compressed columns. The actual rows in the blocks then refer back to entries in the header table to capture
+     * their values for the compressed columns. This extra header table and the slot references for data rows consume
+     * space in the block, so misuse of compression results in extra storage being consumed.
+     *
+     * Compression only makes sense when we expect that the { row } or { row, col } values will be reused:
+     * - If the table's sweep strategy is CONSERVATIVE, then every { row, col } will have at least two rows,
+     *   the current value (which may have null val if the value is deleted) and a sentinel row with ts = -1. Clearly
+     *   compression of both { row, col } is valuable.
+     * - If the sweep strategy is not CONSERVATIVE,  there will be reuse of the { row } if there is more than one named
+     *   column, or the table uses dynamic columns, which would be generally be expected to have multiple row values. In
+     *   this case, compression 1 is appropriate so { row } only needs to be store once.
+     * - Finally, if the sweep strategy is not CONSERVATIVE, there are no sentinels, and if there is only one named
+     *   column then there will be no rows that share { row } so compression should be disabled.
+     */
+    private int getOptimalIndexCompression(TableMetadata metadata) {
+        if (metadata.getSweepStrategy() == SweepStrategy.CONSERVATIVE) {
+            return 2;
+        } else if (!metadata.getColumns().hasDynamicColumns() || metadata.getColumns().getNamedColumns().size() > 1) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
     private boolean overflowColumnExists(String shortTableName) {
@@ -185,7 +218,7 @@ public final class OracleDdlTable implements DbDdlTable {
     /**
      * Creates the table for the given reference. If the schema is modified here, please also update it in {@link #alterTableToHaveOverflowColumn}.
      */
-    private String createTable(boolean needsOverflow) {
+    private String createTable(boolean needsOverflow, int compression) {
         String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
         executeIgnoringError(
                 "CREATE TABLE " + shortTableName + " ("
@@ -197,7 +230,8 @@ public final class OracleDdlTable implements DbDdlTable {
                         + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortTableName)
                         + " PRIMARY KEY (row_name, col_name, ts) "
                         + ") "
-                        + "organization index compress "
+                        + "organization index "
+                        + (compression == 0 ? "" : "compress " + compression + " ")
                         // Since append only completely fill blocks - no benefit in leaving space for updates of rows
                         // PCTUSED N/A to Index Organized Tables
                         + "PCTFREE 0 "
