@@ -41,12 +41,13 @@ import javax.annotation.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("Guava") // BatchingVisitables uses Guava.
 public class BatchingVisitablesTest {
-    @Mock
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private AbstractBatchingVisitable<Void> bv;
 
     @Test
