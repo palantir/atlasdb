@@ -138,10 +138,9 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
                 @Bind("useCase") String useCase,
                 @BindPojo("round") Iterable<PaxosRound<V>> rounds);
 
-        @SqlQuery("SELECT MIN(namespace) FROM paxosLog")
-        Optional<String> getSmallestNamespace();
-
-        @SqlQuery("SELECT MIN(namespace) FROM paxosLog WHERE namespace > :namespace")
-        Optional<String> getNextSmallestNamespace(@Bind("namespace") String lastReadNamespace);
+        // This is performant as long as the query plan is SEARCH.
+        @SqlQuery("SELECT MIN(namespace) FROM paxosLog WHERE namespace > :maybeLastReadNamespace")
+        Optional<String> getNextLexicographicallySmallestNamespace(
+                @Bind("maybeLastReadNamespace") String maybeLastReadNamespace);
     }
 }

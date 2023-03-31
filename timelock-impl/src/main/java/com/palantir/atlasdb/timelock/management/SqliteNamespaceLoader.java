@@ -26,6 +26,8 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
 final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
+    private static final String EMPTY_STRING = "";
+
     private final Jdbi jdbi;
 
     private SqliteNamespaceLoader(Jdbi jdbi) {
@@ -42,22 +44,21 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
     public Set<Client> getAllPersistedNamespaces() {
         Set<Client> clients = new HashSet<>();
 
-        Optional<String> currentNamespace = getSmallestNamespace();
+        // Namespaces contain at least one character implying the empty string is lexicographically strictly smaller
+        // than any namespace.
+        Optional<String> currentNamespace = getNextLexicographicallySmallestNamespace(EMPTY_STRING);
         while (currentNamespace.isPresent()) {
             String namespaceString = currentNamespace.get();
             clients.add(Client.of(namespaceString));
-            currentNamespace = getNextSmallestNamespace(namespaceString);
+            currentNamespace = getNextLexicographicallySmallestNamespace(namespaceString);
         }
 
         return clients;
     }
 
-    private Optional<String> getSmallestNamespace() {
-        return jdbi.withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getSmallestNamespace);
-    }
-
-    private Optional<String> getNextSmallestNamespace(String lastReadNamespace) {
+    private Optional<String> getNextLexicographicallySmallestNamespace(String maybeLastReadNamespace) {
         return jdbi.withExtension(
-                SqlitePaxosStateLog.Queries.class, dao -> dao.getNextSmallestNamespace(lastReadNamespace));
+                SqlitePaxosStateLog.Queries.class,
+                dao -> dao.getNextLexicographicallySmallestNamespace(maybeLastReadNamespace));
     }
 }
