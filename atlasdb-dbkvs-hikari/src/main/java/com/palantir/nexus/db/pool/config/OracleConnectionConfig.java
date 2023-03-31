@@ -91,7 +91,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Override
     @Value.Default
     public String getTestQuery() {
-        return "";
+        return "SELECT 1 FROM DUAL";
     }
 
     public abstract Optional<String> getSid();

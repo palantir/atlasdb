@@ -132,7 +132,7 @@ public abstract class ConnectionConfig {
 
     @Value.Default
     public boolean testConnectionBeforeHandout() {
-        return true;
+        return false;
     }
 
     /**
@@ -182,7 +182,7 @@ public abstract class ConnectionConfig {
 
         initializeFailTimeoutMillis().ifPresent(config::setInitializationFailTimeout);
 
-        if (getTestQuery() != null && !getTestQuery().isEmpty()) {
+        if (!getTestQuery().isEmpty()) {
             config.setConnectionTestQuery(getTestQuery());
         }
 
