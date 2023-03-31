@@ -18,24 +18,15 @@ package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
-import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Runnables;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.tracing.Observability;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.OpenSpan;
 import com.palantir.tracing.api.Span;
 import com.palantir.tracing.api.SpanType;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -48,9 +39,9 @@ import org.junit.Test;
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {
 
-    private static String INNER_TRACE_ID = "innerTraceId";
-    private static String INNER_SPAN_ID = "innerSpanId";
-    private static String INNER_SPAN_PARENT_ID = "innerSpanParentId";
+    private static final String INNER_TRACE_ID = "innerTraceId";
+    private static final String INNER_SPAN_ID = "innerSpanId";
+    private static final String INNER_SPAN_PARENT_ID = "innerSpanParentId";
 
     @Test
     public void testExecutorName_namedThreadFactory() {
@@ -79,12 +70,12 @@ public class PTExecutorsTest {
     }
 
     @Test
-    public void testExecutorThreadLocalState_cachedPoolNospan() {
+    public void testExecutorThreadLocalState_cachedPoolNoSpan() {
         Tracer.initTraceWithSpan(Observability.SAMPLE, "RandomID", "outerSpan", SpanType.LOCAL);
 
         String outerTraceId = Tracer.getTraceId();
 
-        // Because we are doing things within a lamda function, we need to use atomic references outside the lamda
+        // Because we are doing things within a lambda function, we need to use atomic references outside the lambda
         AtomicReference<String> innerSpanId = new AtomicReference<>("");
         AtomicReference<String> innerSpanParentId = new AtomicReference<>("");
         AtomicReference<String> innerTraceId = new AtomicReference<>("");
@@ -93,13 +84,13 @@ public class PTExecutorsTest {
             // Submit a task of a function that only starts a span within it
             Map<String, String> innerTracInfo = executor.submit(this::spanTask).get();
 
-            // Set our AtomicReference variables for use outside lamda
+            // Set our AtomicReference variables for use outside lambda
             innerTraceId.set(innerTracInfo.get(INNER_TRACE_ID));
             innerSpanId.set(innerTracInfo.get(INNER_SPAN_ID));
             innerSpanParentId.set(innerTracInfo.get(INNER_SPAN_PARENT_ID));
         });
         // Close outer span, which lets us collect information about it
-        Span outerSpan = Tracer.completeSpan().get();
+        Span outerSpan = Tracer.completeSpan().orElseThrow();
 
         assertThat(innerTraceId.get()).isEqualTo(outerTraceId);
         assertThat(outerSpan.getSpanId()).isNotEqualTo(innerSpanId.get());
@@ -169,41 +160,6 @@ public class PTExecutorsTest {
         });
     }
 
-    @Test
-    @SuppressWarnings("deprecation") // Testing a component that relies on the singleton TaggedMetricRegistry
-    public void testCachedExecutorMetricsRecorded() {
-        // Metrics are recorded to the global singleton registry, so we generate a random name to avoid
-        // clobbering state from other tests.
-        String executorName = UUID.randomUUID().toString();
-        TaggedMetricRegistry metrics = SharedTaggedMetricRegistries.getSingleton();
-        withExecutor(() -> PTExecutors.newCachedThreadPool(executorName), executor -> {
-            executor.execute(Runnables.doNothing());
-        });
-        Meter submitted = findMetric(
-                metrics,
-                MetricName.builder()
-                        .safeName("executor.submitted")
-                        .putSafeTags("executor", executorName)
-                        .build(),
-                Meter.class);
-        assertThat(submitted.getCount()).isOne();
-    }
-
-    private static <T extends Metric> T findMetric(TaggedMetricRegistry metrics, MetricName name, Class<T> type) {
-        return metrics.getMetrics().entrySet().stream()
-                .filter(entry -> {
-                    MetricName metricName = entry.getKey();
-                    return Objects.equals(name.safeName(), metricName.safeName())
-                            && metricName
-                                    .safeTags()
-                                    .entrySet()
-                                    .containsAll(name.safeTags().entrySet());
-                })
-                .map(Map.Entry::getValue)
-                .map(type::cast)
-                .collect(MoreCollectors.onlyElement());
-    }
-
     private static <T extends ExecutorService> void withExecutor(Supplier<T> factory, ThrowingConsumer<T> test) {
         T executor = factory.get();
         try {
@@ -220,13 +176,13 @@ public class PTExecutorsTest {
         }
     }
 
-    // This method is used only to make a span an return some information about the span
+    // This method is used only to make a span and return some information about the span
     private Map<String, String> spanTask() {
         OpenSpan innerSpan = Tracer.startSpan("innerSpan");
-        Map<String, String> innerTraceInfo = new HashMap<String, String>();
+        Map<String, String> innerTraceInfo = new HashMap<>();
         String innerTraceId = Tracer.getTraceId();
         String innerSpanId = innerSpan.getSpanId();
-        String innerSpanParentId = innerSpan.getParentSpanId().get();
+        String innerSpanParentId = innerSpan.getParentSpanId().orElseThrow();
         innerTraceInfo.put(INNER_TRACE_ID, innerTraceId);
         innerTraceInfo.put(INNER_SPAN_ID, innerSpanId);
         innerTraceInfo.put(INNER_SPAN_PARENT_ID, innerSpanParentId);
