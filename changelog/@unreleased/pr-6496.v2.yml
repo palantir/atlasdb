@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: bump postgres
+  links:
+  - https://github.com/palantir/atlasdb/pull/6496
