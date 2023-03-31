@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Executors created using `PTExecutors` don't produce metrics by default.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6490

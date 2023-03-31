@@ -115,3 +115,21 @@ acceptedBreaks:
     - code: "java.class.removed"
       old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction"
       justification: "moving out of API"
+  "0.824.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createFixedThreadPool(java.lang.String,\
+        \ int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      new: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createFixedThreadPool(com.palantir.tritium.metrics.registry.TaggedMetricRegistry,\
+        \ java.lang.String, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      justification: "Protected method"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createThreadPool(java.lang.String,\
+        \ int, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      new: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createThreadPool(com.palantir.tritium.metrics.registry.TaggedMetricRegistry,\
+        \ java.lang.String, int, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      justification: "Protected method"
+    - code: "java.method.removed"
+      old: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createThreadPoolWihtoutSpans(java.lang.String,\
+        \ int, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      justification: "Protected method"

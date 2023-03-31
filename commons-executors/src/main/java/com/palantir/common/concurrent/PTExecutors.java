@@ -28,8 +28,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.NylonExecutor;
 import com.palantir.tracing.Tracers;
-import com.palantir.tritium.metrics.MetricRegistries;
-import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -148,14 +146,12 @@ public final class PTExecutors {
      */
     @Deprecated
     public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory, int threadTimeoutMillis) {
-        return tryInstrumentCachedExecutor(
-                newThreadPoolExecutor(
-                        0,
-                        Integer.MAX_VALUE,
-                        threadTimeoutMillis,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<Runnable>(),
-                        threadFactory),
+        return newThreadPoolExecutor(
+                0,
+                Integer.MAX_VALUE,
+                threadTimeoutMillis,
+                TimeUnit.MILLISECONDS,
+                new SynchronousQueue<>(),
                 threadFactory);
     }
 
@@ -190,13 +186,7 @@ public final class PTExecutors {
     public static ExecutorService newCachedThreadPoolWithMaxThreads(int maxThreads, String name) {
         verifyName(name);
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
-        return MetricRegistries.executor()
-                .registry(SharedTaggedMetricRegistries.getSingleton())
-                .name(name)
-                .executor(PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
-                // Unhelpful for cached executors
-                .reportQueuedDuration(false)
-                .build();
+        return PTExecutors.wrap(name, getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get()));
     }
 
     /** Specialized cached executor which throws
@@ -209,31 +199,7 @@ public final class PTExecutors {
     public static ExecutorService newCachedThreadPoolWithMaxThreadsWithoutSpan(int maxThreads, String name) {
         verifyName(name);
         Preconditions.checkArgument(maxThreads > 0, "Max threads must be positive");
-        return MetricRegistries.executor()
-                .registry(SharedTaggedMetricRegistries.getSingleton())
-                .name(name)
-                .executor(PTExecutors.wrapWithoutSpan(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get())))
-                // Unhelpful for cached executors
-                .reportQueuedDuration(false)
-                .build();
-    }
-
-    /**
-     * Instruments the provided {@link ExecutorService} if the {@link ThreadFactory} is a {@link NamedThreadFactory}.
-     */
-    @SuppressWarnings("deprecation") // No reasonable way to pass a TaggedMetricRegistry
-    private static ExecutorService tryInstrumentCachedExecutor(ExecutorService executorService, ThreadFactory factory) {
-        if (factory instanceof NamedThreadFactory) {
-            String name = ((NamedThreadFactory) factory).getPrefix();
-            return MetricRegistries.executor()
-                    .registry(SharedTaggedMetricRegistries.getSingleton())
-                    .name(name)
-                    .executor(executorService)
-                    // Unhelpful for cached executors
-                    .reportQueuedDuration(false)
-                    .build();
-        }
-        return executorService;
+        return PTExecutors.wrapWithoutSpan(getViewExecutor(name, maxThreads, 0, SHARED_EXECUTOR.get()));
     }
 
     /**
@@ -295,10 +261,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
-        return MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
-                name);
+        return PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get()));
     }
 
     /**
@@ -316,11 +279,7 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ExecutorService newFixedThreadPoolWithoutSpan(int numThreads, String name) {
-        return MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrapWithoutSpan(
-                        getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
-                name);
+        return PTExecutors.wrapWithoutSpan(getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get()));
     }
 
     public static ExecutorService getViewExecutor(
