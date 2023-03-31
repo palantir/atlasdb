@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Upgraded Postgres from 42.4.1 -> 42.4.3 to resolve a CVE.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6496
