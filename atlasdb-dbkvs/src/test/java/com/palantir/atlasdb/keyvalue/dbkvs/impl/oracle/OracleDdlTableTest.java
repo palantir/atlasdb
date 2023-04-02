@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,6 +42,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.concurrent.PTExecutors;
@@ -50,9 +56,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -346,6 +355,80 @@ public final class OracleDdlTableTest {
                 .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD (overflow NUMBER(38))");
         tableMappingDdlTable.create(createMetadata(true));
         verifyTableAltered();
+    }
+
+    @Test
+    public void testIndexStrategy_conservative_sweep() {
+        for (int col = 0; col < 10; col++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.CONSERVATIVE);
+            for (int colName = 0; colName < col; colName++) {
+                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
+                metadataBuilder.singleNamedColumn(
+                        "foo" + colName, "foobar" + colName, hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG);
+            }
+            TableMetadata metadata = metadataBuilder.build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(2);
+        }
+    }
+
+    @Test
+    public void testIndexStrategy_dynamic_columns() {
+        for (int col = 1; col <= 10; col++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+            List<NameComponentDescription> dynamicColumns = new ArrayList<>();
+            for (int colDesc = 1; colDesc <= col; colDesc++) {
+                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
+                ValueType valueType =
+                        colDesc == col ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG) : ValueType.SHA256HASH;
+                dynamicColumns.add(NameComponentDescription.of("foo" + colDesc, valueType));
+            }
+            TableMetadata metadata = metadataBuilder
+                    .dynamicColumns(dynamicColumns, ValueType.STRING)
+                    .build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testIndexStrategy_named_columns() {
+        for (int col = 2; col <= 10; col++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+            List<NamedColumnDescription> columns = new ArrayList<>();
+            for (int colDesc = 1; colDesc <= col; colDesc++) {
+                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
+                ColumnValueDescription type = ColumnValueDescription.forType(
+                        colDesc == col
+                                ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG)
+                                : ValueType.SHA256HASH);
+                columns.add(new NamedColumnDescription("foo" + colDesc, "foo_bar_baz" + colDesc, type));
+            }
+            TableMetadata metadata = metadataBuilder
+                    .columns(new ColumnMetadataDescription(columns))
+                    .build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata))
+                    .as("%d named columns", col)
+                    .isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testIndexStrategy_no_columns() {
+        for (int col = 0; col <= 1; col++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+            List<NamedColumnDescription> columns = new ArrayList<>();
+            for (int colDesc = 1; colDesc <= col; colDesc++) {
+                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
+                ColumnValueDescription type = ColumnValueDescription.forType(
+                        colDesc == col
+                                ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG)
+                                : ValueType.SHA256HASH);
+                columns.add(new NamedColumnDescription("foo" + colDesc, "foo_bar_baz" + colDesc, type));
+            }
+            TableMetadata metadata = metadataBuilder
+                    .columns(new ColumnMetadataDescription(columns))
+                    .build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(0);
+        }
     }
 
     private void createTable() throws TableMappingNotFoundException {
