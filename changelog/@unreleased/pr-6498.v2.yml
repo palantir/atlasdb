@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Choose optimal IOT compression based on table params
+  links:
+  - https://github.com/palantir/atlasdb/pull/6498
