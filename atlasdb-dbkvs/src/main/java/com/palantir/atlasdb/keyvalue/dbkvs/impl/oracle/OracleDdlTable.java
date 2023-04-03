@@ -175,7 +175,7 @@ public final class OracleDdlTable implements DbDdlTable {
      *   compression of both { row, col } is valuable.
      * - If the sweep strategy is not CONSERVATIVE,  there will be reuse of the { row } if there is more than one named
      *   column, or the table uses dynamic columns, which would be generally be expected to have multiple row values. In
-     *   this case, compression 1 is appropriate so { row } only needs to be store once.
+     *   this case, compression 1 is appropriate so { row } only needs to be stored once.
      * - Finally, if the sweep strategy is not CONSERVATIVE, there are no sentinels, and if there is only one named
      *   column then there will be no rows that share { row } so compression should be disabled.
      */
@@ -185,17 +185,16 @@ public final class OracleDdlTable implements DbDdlTable {
             // the table's sweep strategy is CONSERVATIVE, then every { row, col } will have at least two rows
             return 2;
         }
+
         ColumnMetadataDescription columns = metadata.getColumns();
-        if (columns != null) {
-            // there will be reuse of the { row } if there is more than one named column
-            // or the table uses dynamic columns, which would be generally be expected to have multiple row values
-            if (columns.hasDynamicColumns()) {
-                return 1;
-            }
-            Set<NamedColumnDescription> namedColumns = columns.getNamedColumns();
-            if (namedColumns != null && namedColumns.size() > 1) {
-                return 1;
-            }
+        // there will be reuse of the { row } if there is more than one named column
+        // or the table uses dynamic columns, which would be generally be expected to have multiple row values
+        if (columns.hasDynamicColumns()) {
+            return 1;
+        }
+        Set<NamedColumnDescription> namedColumns = columns.getNamedColumns();
+        if (namedColumns != null && namedColumns.size() > 1) {
+            return 1;
         }
 
         return 0;
