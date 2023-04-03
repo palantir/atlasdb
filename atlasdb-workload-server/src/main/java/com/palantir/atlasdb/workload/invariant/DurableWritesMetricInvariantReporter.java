@@ -51,11 +51,7 @@ public final class DurableWritesMetricInvariantReporter
                     .table(tableAndWorkloadCell.tableName())
                     .build()
                     .inc());
-            if (!mismatchingValues.isEmpty()) {
-                log.warn(
-                        "Durable writes invariant violations found: {}",
-                        SafeArg.of("mismatchingValues", mismatchingValues));
-            }
+            log.warn("Durable writes invariant violations found!", SafeArg.of("mismatchingValues", mismatchingValues));
         };
     }
 }
