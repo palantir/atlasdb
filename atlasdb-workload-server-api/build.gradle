@@ -8,6 +8,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:logger'
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'

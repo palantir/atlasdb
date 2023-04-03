@@ -16,6 +16,7 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-lifecycle'
     implementation 'io.dropwizard:dropwizard-logging'
     implementation 'io.dropwizard:dropwizard-request-logging'
+    implementation 'com.palantir.safe-logging:logger'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.google.guava:guava'
