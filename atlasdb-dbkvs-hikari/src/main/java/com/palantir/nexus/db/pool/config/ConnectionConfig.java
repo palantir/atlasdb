@@ -58,7 +58,10 @@ public abstract class ConnectionConfig {
 
     public abstract String getDriverClass();
 
-    public abstract String getTestQuery();
+    @Value.Default
+    public String getTestQuery() {
+        return "";
+    }
 
     @JsonIgnore
     @Value.Derived
@@ -132,7 +135,7 @@ public abstract class ConnectionConfig {
 
     @Value.Default
     public boolean testConnectionBeforeHandout() {
-        return true;
+        return false;
     }
 
     /**
@@ -182,7 +185,7 @@ public abstract class ConnectionConfig {
 
         initializeFailTimeoutMillis().ifPresent(config::setInitializationFailTimeout);
 
-        if (getTestQuery() != null && !getTestQuery().isEmpty()) {
+        if (!getTestQuery().isEmpty()) {
             config.setConnectionTestQuery(getTestQuery());
         }
 
