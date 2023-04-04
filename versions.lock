@@ -186,7 +186,7 @@ io.netty:netty-transport-native-unix-common:4.1.90.Final (7 constraints: 0378ecf
 io.netty:netty-transport-rxtx:4.1.90.Final (1 constraints: fc0a07cf)
 io.netty:netty-transport-sctp:4.1.90.Final (1 constraints: fc0a07cf)
 io.netty:netty-transport-udt:4.1.90.Final (1 constraints: fc0a07cf)
-io.undertow:undertow-core:2.2.22.Final (2 constraints: 341d4606)
+io.undertow:undertow-core:2.2.24.Final (2 constraints: 361dd006)
 io.vavr:vavr:0.10.4 (1 constraints: 3705273b)
 io.vavr:vavr-match:0.10.4 (1 constraints: 8b061d57)
 it.unimi.dsi:fastutil:6.5.7 (1 constraints: 6d0e414b)
