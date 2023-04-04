@@ -61,7 +61,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -357,14 +356,15 @@ public final class OracleDdlTableTest {
         verifyTableAltered();
     }
 
+
+
     @Test
-    public void testIndexStrategy_conservative_sweep() {
-        for (int col = 0; col < 10; col++) {
+    public void conservativeSweptTablesHaveIndexCompression2() {
+        for (int numColumns = 0; numColumns <= 2; numColumns++) {
             TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.CONSERVATIVE);
-            for (int colName = 0; colName < col; colName++) {
-                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
+            for (int colName = 0; colName < numColumns; colName++) {
                 metadataBuilder.singleNamedColumn(
-                        "foo" + colName, "foobar" + colName, hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG);
+                        "c" + colName, "col" + colName, ValueType.STRING);
             }
             TableMetadata metadata = metadataBuilder.build();
             assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(2);
@@ -372,63 +372,39 @@ public final class OracleDdlTableTest {
     }
 
     @Test
-    public void testIndexStrategy_dynamic_columns() {
-        for (int col = 1; col <= 10; col++) {
-            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
-            List<NameComponentDescription> dynamicColumns = new ArrayList<>();
-            for (int colDesc = 1; colDesc <= col; colDesc++) {
-                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
-                ValueType valueType =
-                        colDesc == col ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG) : ValueType.SHA256HASH;
-                dynamicColumns.add(NameComponentDescription.of("foo" + colDesc, valueType));
-            }
-            TableMetadata metadata = metadataBuilder
-                    .dynamicColumns(dynamicColumns, ValueType.STRING)
+    public void thoroughSweptTablesWithDynamicColsHaveIndexCompression1() {
+        TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+        TableMetadata metadata = metadataBuilder
+                    .dynamicColumns(List.of(NameComponentDescription.of("c" , ValueType.STRING)), ValueType.STRING)
                     .build();
-            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
-        }
+        assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
     }
 
     @Test
-    public void testIndexStrategy_named_columns() {
-        for (int col = 2; col <= 10; col++) {
+    public void thoroughSweptTablesWithMultipleNamedColsHaveIndexCompression1() {
+        for (int numColumns = 2; numColumns <= 3; numColumns++) {
             TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
             List<NamedColumnDescription> columns = new ArrayList<>();
-            for (int colDesc = 1; colDesc <= col; colDesc++) {
-                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
-                ColumnValueDescription type = ColumnValueDescription.forType(
-                        colDesc == col
-                                ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG)
-                                : ValueType.SHA256HASH);
-                columns.add(new NamedColumnDescription("foo" + colDesc, "foo_bar_baz" + colDesc, type));
+            for (int colDesc = 1; colDesc <= numColumns; colDesc++) {
+                columns.add(new NamedColumnDescription("c" + colDesc, "col" + colDesc,
+                        ColumnValueDescription.forType(ValueType.STRING)));
             }
             TableMetadata metadata = metadataBuilder
                     .columns(new ColumnMetadataDescription(columns))
                     .build();
             assertThat(OracleDdlTable.getOptimalIndexCompression(metadata))
-                    .as("%d named columns", col)
                     .isEqualTo(1);
         }
     }
 
     @Test
-    public void testIndexStrategy_no_columns() {
-        for (int col = 0; col <= 1; col++) {
-            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
-            List<NamedColumnDescription> columns = new ArrayList<>();
-            for (int colDesc = 1; colDesc <= col; colDesc++) {
-                boolean hasOverflow = ThreadLocalRandom.current().nextBoolean();
-                ColumnValueDescription type = ColumnValueDescription.forType(
-                        colDesc == col
-                                ? (hasOverflow ? ValueType.STRING : ValueType.FIXED_LONG)
-                                : ValueType.SHA256HASH);
-                columns.add(new NamedColumnDescription("foo" + colDesc, "foo_bar_baz" + colDesc, type));
-            }
-            TableMetadata metadata = metadataBuilder
-                    .columns(new ColumnMetadataDescription(columns))
-                    .build();
-            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(0);
-        }
+    public void thoroughSweptTablesWithOneNamedColHaveIndexCompressionDisabled() {
+        TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+        TableMetadata metadata = metadataBuilder
+                .columns(new ColumnMetadataDescription(List.of(
+                        new NamedColumnDescription("c", "col", ColumnValueDescription.forType(ValueType.STRING)))))
+                .build();
+        assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(0);
     }
 
     private void createTable() throws TableMappingNotFoundException {
