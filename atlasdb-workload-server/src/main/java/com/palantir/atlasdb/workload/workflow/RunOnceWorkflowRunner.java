@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -36,5 +37,6 @@ public enum RunOnceWorkflowRunner implements WorkflowRunner<Workflow> {
                 log.error("Caught an exception when running and reporting an invariant.", e);
             }
         });
+        log.info("Dumping transaction log {}", SafeArg.of("transactionLog", workflowHistory.history()));
     }
 }

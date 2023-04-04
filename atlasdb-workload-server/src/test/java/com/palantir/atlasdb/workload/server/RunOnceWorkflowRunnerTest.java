@@ -20,10 +20,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.RunOnceWorkflowRunner;
 import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import org.junit.Test;
 
@@ -31,6 +33,8 @@ public class RunOnceWorkflowRunnerTest {
     @Test
     public void runExecutesWorkflowsAndInvokesInvariantReporter() {
         Workflow exampleWorkflow = mock(Workflow.class);
+        WorkflowHistory workflowHistory = mock(WorkflowHistory.class);
+        when(exampleWorkflow.run()).thenReturn(workflowHistory);
         InvariantReporter<Void> exampleInvariantReporterOne = mock(InvariantReporter.class);
         InvariantReporter<Void> exampleInvariantReporterTwo = mock(InvariantReporter.class);
         RunOnceWorkflowRunner.INSTANCE.run(
