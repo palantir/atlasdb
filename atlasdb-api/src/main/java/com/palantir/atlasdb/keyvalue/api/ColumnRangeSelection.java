@@ -26,6 +26,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class ColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -36,7 +37,8 @@ public class ColumnRangeSelection implements Serializable {
     private final byte[] endCol;
 
     @JsonCreator
-    public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol, @JsonProperty("endCol") byte[] endCol) {
+    public ColumnRangeSelection(
+            @JsonProperty("startCol") byte @Nullable [] startCol, @JsonProperty("endCol") byte @Nullable [] endCol) {
         this.startCol = Objects.requireNonNullElse(startCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.endCol = Objects.requireNonNullElse(endCol, PtBytes.EMPTY_BYTE_ARRAY);
         if (!isValidRange(this.startCol, this.endCol)) {

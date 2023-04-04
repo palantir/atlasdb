@@ -1,0 +1,85 @@
+version: '2'
+
+services:
+  cassandra1:
+    image: palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+    container_name: cassandra1
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.2
+
+  cassandra2:
+    image: palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+    container_name: cassandra2
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.3
+
+  cassandra3:
+    image: palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+    container_name: cassandra3
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.4
+
+  timelock:
+    image: palantirtechnologies/timelock-server-distribution:unspecified
+    ports:
+      - "8421"
+      - "8422"
+    container_name: timelock
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.5
+
+  workload-server:
+    image: palantirtechnologies/atlasdb-workload-server-distribution:unspecified
+    command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml 
+                         && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 
+                         && service/bin/init.sh console']
+    container_name: workload-server
+    depends_on:
+      - cassandra1
+      - cassandra2
+      - cassandra3
+      - timelock
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.6
+
+networks:
+  antithesis-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.20.0/24

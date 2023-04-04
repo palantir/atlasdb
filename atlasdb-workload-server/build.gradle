@@ -1,4 +1,9 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.metric-schema'
+
+license {
+    exclude '**/DurableWritesMetrics.java'
+}
 
 dependencies {
     implementation project(':atlasdb-workload-server-api')
@@ -17,6 +22,7 @@ dependencies {
 
     testImplementation project(':commons-executors')
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation('org.jmock:jmock') {
         exclude group: 'org.hamcrest'

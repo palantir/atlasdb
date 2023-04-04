@@ -246,7 +246,7 @@ import javax.validation.constraints.NotNull;
         }
 
         @Override
-        public Transaction delegate() {
+        public CallbackAwareTransaction delegate() {
             return delegate;
         }
 

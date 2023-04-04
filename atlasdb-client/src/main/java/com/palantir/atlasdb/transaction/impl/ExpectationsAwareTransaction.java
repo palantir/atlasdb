@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
 /**
  * Implementors of this interface provide methods useful for tracking transactional expectations and whether
  * they were breached as well as relevant metrics and alerts. Transactional expectations represent transaction-level
  * limits and rules for proper usage of AtlasDB transactions (e.g. reading too much data overall).
- * Todo(aalouane): move this out of API once part 4 is merged
  */
 public interface ExpectationsAwareTransaction extends Transaction {
     long getAgeMillis();

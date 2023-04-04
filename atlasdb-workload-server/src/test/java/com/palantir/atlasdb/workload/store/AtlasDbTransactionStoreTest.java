@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.workload.store;
 
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.INDEX_REFERENCE;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.INDEX_TABLE;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1_INDEX_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_REFERENCE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
@@ -79,23 +79,23 @@ public final class AtlasDbTransactionStoreTest {
     @Test
     public void canWriteDataToStore() {
         Optional<WitnessedTransaction> witnessedTransactionPrimaryTable =
-                store.readWrite(List.of(WriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE)));
+                store.readWrite(List.of(WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE)));
         Optional<WitnessedTransaction> witnessedTransactionIndexTable =
-                store.readWrite(List.of(WriteTransactionAction.of(INDEX_TABLE, WORKLOAD_CELL_TWO, VALUE_ONE)));
+                store.readWrite(List.of(WriteTransactionAction.of(TABLE_1_INDEX_1, WORKLOAD_CELL_TWO, VALUE_ONE)));
         assertThat(witnessedTransactionPrimaryTable).isPresent();
         assertThat(witnessedTransactionIndexTable).isPresent();
-        assertThat(store.get(TABLE, WORKLOAD_CELL_ONE)).contains(VALUE_ONE);
-        assertThat(store.get(INDEX_TABLE, WORKLOAD_CELL_TWO)).contains(VALUE_ONE);
+        assertThat(store.get(TABLE_1, WORKLOAD_CELL_ONE)).contains(VALUE_ONE);
+        assertThat(store.get(TABLE_1_INDEX_1, WORKLOAD_CELL_TWO)).contains(VALUE_ONE);
     }
 
     @Test
     public void witnessedTransactionMaintainsOrder() {
         List<WitnessedTransactionAction> actions = List.of(
-                WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, 100),
-                WitnessedReadTransactionAction.of(TABLE, WORKLOAD_CELL_TWO, Optional.of(100)),
-                WitnessedReadTransactionAction.of(TABLE, WORKLOAD_CELL_THREE, Optional.empty()),
-                WitnessedWriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, 24),
-                WitnessedReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, Optional.of(24)));
+                WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, 100),
+                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, Optional.of(100)),
+                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_THREE, Optional.empty()),
+                WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, 24),
+                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(24)));
         Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions.stream()
                 .map(action -> action.accept(WitnessToActionVisitor.INSTANCE))
                 .collect(Collectors.toList()));
@@ -107,16 +107,16 @@ public final class AtlasDbTransactionStoreTest {
 
     @Test
     public void readWriteHandlesAllTransactionTypes() {
-        store.readWrite(List.of(WriteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE, VALUE_ONE)));
-        assertThat(store.readWrite(List.of(ReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))))
+        store.readWrite(List.of(WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE)));
+        assertThat(store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isPresent()
                 .map(WitnessedTransaction::actions)
                 .map(Iterables::getOnlyElement)
                 .map(WitnessedReadTransactionAction.class::cast)
                 .map(WitnessedReadTransactionAction::value)
                 .contains(Optional.of(VALUE_ONE));
-        store.readWrite(List.of(DeleteTransactionAction.of(TABLE, WORKLOAD_CELL_ONE)));
-        assertThat(store.get(TABLE, WORKLOAD_CELL_ONE)).isEmpty();
+        store.readWrite(List.of(DeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
+        assertThat(store.get(TABLE_1, WORKLOAD_CELL_ONE)).isEmpty();
     }
 
     @Test
@@ -134,14 +134,14 @@ public final class AtlasDbTransactionStoreTest {
         when(transactionManager.runTaskWithRetry(any())).thenThrow(new RuntimeException());
         AtlasDbTransactionStore transactionStore = AtlasDbTransactionStore.create(
                 transactionManager, Map.of(TABLE_REFERENCE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
-        assertThat(transactionStore.readWrite(List.of(ReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE))))
+        assertThat(transactionStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isEmpty();
     }
 
     @Test
     public void readWriteHandlesReadOnlyTransaction() {
         Optional<WitnessedTransaction> witnessedTransaction =
-                store.readWrite(List.of(ReadTransactionAction.of(TABLE, WORKLOAD_CELL_ONE)));
+                store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
         assertThat(witnessedTransaction).isPresent();
         assertThat(witnessedTransaction.get().commitTimestamp()).isEmpty();
     }

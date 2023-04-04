@@ -18,13 +18,16 @@ package com.palantir.atlasdb.timelock.management;
 
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
 final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
+    private static final String EMPTY_STRING = "";
+
     private final Jdbi jdbi;
 
     private SqliteNamespaceLoader(Jdbi jdbi) {
@@ -39,10 +42,23 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
 
     @Override
     public Set<Client> getAllPersistedNamespaces() {
-        return jdbi
-                .withExtension(SqlitePaxosStateLog.Queries.class, SqlitePaxosStateLog.Queries::getAllNamespaces)
-                .stream()
-                .map(Client::of)
-                .collect(Collectors.toSet());
+        Set<Client> clients = new HashSet<>();
+
+        // Namespaces contain at least one character implying the empty string is lexicographically strictly smaller
+        // than any namespace.
+        Optional<String> currentNamespace = getNextLexicographicallySmallestNamespace(EMPTY_STRING);
+        while (currentNamespace.isPresent()) {
+            String namespaceString = currentNamespace.get();
+            clients.add(Client.of(namespaceString));
+            currentNamespace = getNextLexicographicallySmallestNamespace(namespaceString);
+        }
+
+        return clients;
+    }
+
+    private Optional<String> getNextLexicographicallySmallestNamespace(String maybeLastReadNamespace) {
+        return jdbi.withExtension(
+                SqlitePaxosStateLog.Queries.class,
+                dao -> dao.getNextLexicographicallySmallestNamespace(maybeLastReadNamespace));
     }
 }

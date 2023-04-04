@@ -81,6 +81,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
             }
         } finally {
             callback.run();
+            txn.reportExpectationsCollectedData();
             txn.runSuccessCallbacksIfDefinitivelyCommitted();
         }
     }

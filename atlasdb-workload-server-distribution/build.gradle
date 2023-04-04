@@ -1,0 +1,41 @@
+apply plugin: 'com.palantir.sls-java-service-distribution'
+apply plugin: 'com.palantir.external-publish-dist'
+apply from: "../gradle/docker.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/non-client-dist.gradle"
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-core'
+    implementation 'io.dropwizard:dropwizard-http2'
+    implementation 'io.dropwizard:dropwizard-jackson'
+    implementation 'io.dropwizard:dropwizard-jersey'
+    implementation 'io.dropwizard:dropwizard-lifecycle'
+    implementation 'io.dropwizard:dropwizard-logging'
+    implementation 'io.dropwizard:dropwizard-request-logging'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
+    implementation 'com.google.guava:guava'
+
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-workload-server')
+    implementation project(':atlasdb-workload-server-api')
+    implementation project(':atlasdb-config')
+
+    testImplementation 'io.dropwizard:dropwizard-testing'
+
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'org.immutables:value'
+}
+
+
+distribution {
+    serviceName "atlasdb-workload-server"
+    mainClass 'com.palantir.atlasdb.workload.WorkloadServerLauncher'
+    args 'server', 'var/conf/workload-server.yml'
+    defaultJvmOpts "-Xms512m", "-Xmx512m"
+}

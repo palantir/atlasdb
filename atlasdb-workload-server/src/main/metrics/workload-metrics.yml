@@ -1,0 +1,16 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.workload'
+
+namespaces:
+  com.palantir.atlasdb.workload.invariant:
+    shortName: DurableWrites
+    docs: Metrics for the durable writes invariant.
+    metrics:
+      numberOfViolations:
+        type: counter
+        tags:
+          - workflow
+          - table
+        docs: >-
+          Number of cells that have a mismatching value from what we expect and what is actually there.
+          This includes cells which have been deleted and have re-appeared.

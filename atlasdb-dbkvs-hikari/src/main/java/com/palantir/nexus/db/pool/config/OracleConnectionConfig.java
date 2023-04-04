@@ -88,12 +88,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         return "oracle.jdbc.driver.OracleDriver";
     }
 
-    @Override
-    @Value.Default
-    public String getTestQuery() {
-        return "";
-    }
-
     public abstract Optional<String> getSid();
 
     public abstract Optional<ServiceNameConfiguration> serviceNameConfiguration();

@@ -24,18 +24,18 @@ import java.util.List;
 
 public class InvalidAcceptorCacheKeyException extends Exception implements SafeLoggable {
 
-    private static final String ERROR_MESSAGE = "Provided acceptor cache key is either invalid/expired.";
+    private static final String MESSAGE = "Provided acceptor cache key is either invalid/expired.";
 
     private final AcceptorCacheKey cacheKey;
 
     public InvalidAcceptorCacheKeyException(AcceptorCacheKey cacheKey) {
-        super(ERROR_MESSAGE);
+        super(MESSAGE);
         this.cacheKey = cacheKey;
     }
 
     @Override
     public String getLogMessage() {
-        return ERROR_MESSAGE;
+        return MESSAGE;
     }
 
     @Override

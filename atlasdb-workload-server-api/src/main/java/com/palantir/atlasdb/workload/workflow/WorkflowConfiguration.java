@@ -16,15 +16,9 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
-import org.immutables.value.Value;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@Value.Immutable
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 public interface WorkflowConfiguration {
     int iterationCount();
-
-    /**
-     * Executor used to execute workload threads (i.e., transactions).
-     */
-    ListeningExecutorService executionExecutor();
 }
