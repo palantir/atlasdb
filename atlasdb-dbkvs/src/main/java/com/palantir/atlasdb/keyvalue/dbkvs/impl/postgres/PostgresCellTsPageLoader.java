@@ -154,8 +154,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                                 token.startRowInclusive(), token.startColInclusive(), token.startTsInclusive());
                 return queryBuilder
                         .append("      ORDER BY row_name, col_name, ts")
-                        .append("      LIMIT ")
-                        .append(sqlRowLimit)
+                        .append("      LIMIT ?", sqlRowLimit)
                         .append("    ) sub")
                         .append("    GROUP BY row_name, col_name")
                         .append("    ORDER BY row_name, col_name")
@@ -183,8 +182,7 @@ public class PostgresCellTsPageLoader implements CellTsPairLoader {
                                 token.startRowInclusive(), token.startColInclusive(), token.startTsInclusive());
                 return queryBuilder
                         .append("  ORDER BY row_name, col_name, ts")
-                        .append("  LIMIT ")
-                        .append(sqlRowLimit)
+                        .append("  LIMIT ?", sqlRowLimit)
                         .build();
             }
         }
