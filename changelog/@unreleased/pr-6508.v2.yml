@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: DB queries to Oracle/Postgres now use bind variables for rownum/limit
+    terms.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6508
