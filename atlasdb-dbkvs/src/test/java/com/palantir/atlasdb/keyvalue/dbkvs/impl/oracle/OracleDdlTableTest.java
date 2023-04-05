@@ -356,15 +356,12 @@ public final class OracleDdlTableTest {
         verifyTableAltered();
     }
 
-
-
     @Test
     public void conservativeSweptTablesHaveIndexCompression2() {
         for (int numColumns = 0; numColumns <= 2; numColumns++) {
             TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.CONSERVATIVE);
             for (int colName = 0; colName < numColumns; colName++) {
-                metadataBuilder.singleNamedColumn(
-                        "c" + colName, "col" + colName, ValueType.STRING);
+                metadataBuilder.singleNamedColumn("c" + colName, "col" + colName, ValueType.STRING);
             }
             TableMetadata metadata = metadataBuilder.build();
             assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(2);
@@ -375,8 +372,8 @@ public final class OracleDdlTableTest {
     public void thoroughSweptTablesWithDynamicColsHaveIndexCompression1() {
         TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
         TableMetadata metadata = metadataBuilder
-                    .dynamicColumns(List.of(NameComponentDescription.of("c" , ValueType.STRING)), ValueType.STRING)
-                    .build();
+                .dynamicColumns(List.of(NameComponentDescription.of("c", ValueType.STRING)), ValueType.STRING)
+                .build();
         assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
     }
 
@@ -386,14 +383,13 @@ public final class OracleDdlTableTest {
             TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
             List<NamedColumnDescription> columns = new ArrayList<>();
             for (int colDesc = 1; colDesc <= numColumns; colDesc++) {
-                columns.add(new NamedColumnDescription("c" + colDesc, "col" + colDesc,
-                        ColumnValueDescription.forType(ValueType.STRING)));
+                columns.add(new NamedColumnDescription(
+                        "c" + colDesc, "col" + colDesc, ColumnValueDescription.forType(ValueType.STRING)));
             }
             TableMetadata metadata = metadataBuilder
                     .columns(new ColumnMetadataDescription(columns))
                     .build();
-            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata))
-                    .isEqualTo(1);
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
         }
     }
 
