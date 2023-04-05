@@ -35,6 +35,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore.CommitTimestampProvider;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessToActionVisitor;
@@ -45,6 +46,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +56,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 public final class AtlasDbTransactionStoreTest {
+
+    private static final long START_TS = 1;
+    private static final long COMMIT_TS = 2;
 
     private TransactionManager manager;
 
@@ -144,5 +149,29 @@ public final class AtlasDbTransactionStoreTest {
                 store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
         assertThat(witnessedTransaction).isPresent();
         assertThat(witnessedTransaction.get().commitTimestamp()).isEmpty();
+    }
+
+    @Test
+    public void getCommitTimestampIsEmptyWhenMatchesStartTimestamp() {
+        CommitTimestampProvider commitTimestampProvider = new CommitTimestampProvider();
+        commitTimestampProvider.throwIfConditionInvalid(START_TS);
+        assertThat(commitTimestampProvider.getCommitTimestampOrThrowIfMaybeNotCommitted(START_TS))
+                .isEmpty();
+    }
+
+    @Test
+    public void getCommitTimestampThrowsWhenNoTimestampSet() {
+        assertThatThrownBy(() -> new CommitTimestampProvider().getCommitTimestampOrThrowIfMaybeNotCommitted(START_TS))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining(
+                        "Timestamp has not been set, which means the pre commit condition has never been executed");
+    }
+
+    @Test
+    public void getCommitTimestampReturnsPresentWhenCommitAndStartTimestampMismatch() {
+        CommitTimestampProvider commitTimestampProvider = new CommitTimestampProvider();
+        commitTimestampProvider.throwIfConditionInvalid(COMMIT_TS);
+        assertThat(commitTimestampProvider.getCommitTimestampOrThrowIfMaybeNotCommitted(START_TS))
+                .hasValue(COMMIT_TS);
     }
 }
