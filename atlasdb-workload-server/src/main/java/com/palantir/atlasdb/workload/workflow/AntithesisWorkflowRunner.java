@@ -22,14 +22,15 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 
-public enum RunOnceWorkflowRunner implements WorkflowRunner<Workflow> {
+public enum AntithesisWorkflowRunner implements WorkflowRunner<Workflow> {
     INSTANCE;
 
-    private static final SafeLogger log = SafeLoggerFactory.get(RunOnceWorkflowRunner.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AntithesisWorkflowRunner.class);
 
     @Override
     public void run(Workflow workflow, List<InvariantReporter<?>> invariants) {
         WorkflowHistory workflowHistory = workflow.run();
+        log.info("antithesis: stop_faults");
         invariants.forEach(reporter -> {
             try {
                 reporter.report(workflowHistory);

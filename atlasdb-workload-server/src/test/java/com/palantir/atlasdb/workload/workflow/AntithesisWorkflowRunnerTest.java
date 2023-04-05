@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.server;
+package com.palantir.atlasdb.workload.workflow;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -23,13 +23,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
-import com.palantir.atlasdb.workload.workflow.RunOnceWorkflowRunner;
-import com.palantir.atlasdb.workload.workflow.Workflow;
-import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import org.junit.Test;
 
-public class RunOnceWorkflowRunnerTest {
+public class AntithesisWorkflowRunnerTest {
     @Test
     public void runExecutesWorkflowsAndInvokesInvariantReporter() {
         Workflow exampleWorkflow = mock(Workflow.class);
@@ -37,7 +34,7 @@ public class RunOnceWorkflowRunnerTest {
         when(exampleWorkflow.run()).thenReturn(workflowHistory);
         InvariantReporter<Void> exampleInvariantReporterOne = mock(InvariantReporter.class);
         InvariantReporter<Void> exampleInvariantReporterTwo = mock(InvariantReporter.class);
-        RunOnceWorkflowRunner.INSTANCE.run(
+        AntithesisWorkflowRunner.INSTANCE.run(
                 exampleWorkflow, List.of(exampleInvariantReporterOne, exampleInvariantReporterTwo));
         verify(exampleWorkflow, times(1)).run();
         verify(exampleInvariantReporterOne, times(1)).report(any());
