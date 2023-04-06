@@ -73,7 +73,6 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
     @Override
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
-        AtomicReference<Long> startTimestampReference = new AtomicReference<>();
         AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
         Supplier<CommitTimestampProvider> commitTimestampProvider =
                 Suppliers.memoize(() -> new CommitTimestampProvider());
@@ -81,7 +80,6 @@ public final class AtlasDbTransactionStore implements TransactionStore {
             Transaction transaction =
                     transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
                         AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
-                        startTimestampReference.set(txn.getTimestamp());
                         witnessedActionsReference.set(actions.stream()
                                 .sequential()
                                 .map(action -> action.accept(visitor))
@@ -94,10 +92,10 @@ public final class AtlasDbTransactionStore implements TransactionStore {
             }
 
             return Optional.of(ImmutableWitnessedTransaction.builder()
-                    .startTimestamp(startTimestampReference.get())
+                    .startTimestamp(transaction.getTimestamp())
                     .commitTimestamp(commitTimestampProvider
                             .get()
-                            .getCommitTimestampOrThrowIfMaybeNotCommitted(startTimestampReference.get()))
+                            .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
                     .actions(witnessedActionsReference.get())
                     .build());
         } catch (SafeIllegalArgumentException e) {
