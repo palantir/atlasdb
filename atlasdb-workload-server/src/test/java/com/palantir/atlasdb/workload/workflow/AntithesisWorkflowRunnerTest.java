@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
 import java.util.List;
 import org.junit.Test;
 
