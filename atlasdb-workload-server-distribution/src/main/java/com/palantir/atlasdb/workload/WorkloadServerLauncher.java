@@ -27,7 +27,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesMetricInvariantReporter;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
-import com.palantir.atlasdb.workload.workflow.RunOnceWorkflowRunner;
+import com.palantir.atlasdb.workload.workflow.AntithesisWorkflowRunner;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -95,7 +95,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().singleRowTwoCellsConfig();
 
         log.info("antithesis: start_faults");
-        RunOnceWorkflowRunner.INSTANCE.run(
+        AntithesisWorkflowRunner.INSTANCE.run(
                 SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                         transactionStoreFactory.create(
                                 Map.of(
