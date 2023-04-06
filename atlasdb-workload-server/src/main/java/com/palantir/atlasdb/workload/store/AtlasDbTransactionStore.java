@@ -78,15 +78,21 @@ public final class AtlasDbTransactionStore implements TransactionStore {
         Supplier<CommitTimestampProvider> commitTimestampProvider =
                 Suppliers.memoize(() -> new CommitTimestampProvider());
         try {
-            transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
-                AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
-                startTimestampReference.set(txn.getTimestamp());
-                witnessedActionsReference.set(actions.stream()
-                        .sequential()
-                        .map(action -> action.accept(visitor))
-                        .collect(Collectors.toList()));
-                return null;
-            });
+            Transaction transaction =
+                    transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
+                        AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
+                        startTimestampReference.set(txn.getTimestamp());
+                        witnessedActionsReference.set(actions.stream()
+                                .sequential()
+                                .map(action -> action.accept(visitor))
+                                .collect(Collectors.toList()));
+                        return txn;
+                    });
+
+            if (transaction.isAborted()) {
+                return Optional.empty();
+            }
+
             return Optional.of(ImmutableWitnessedTransaction.builder()
                     .startTimestamp(startTimestampReference.get())
                     .commitTimestamp(commitTimestampProvider

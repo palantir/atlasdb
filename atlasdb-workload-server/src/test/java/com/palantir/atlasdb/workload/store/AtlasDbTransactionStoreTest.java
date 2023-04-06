@@ -27,13 +27,17 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore.CommitTimestampProvider;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
@@ -51,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +65,12 @@ public final class AtlasDbTransactionStoreTest {
     private static final long START_TS = 1;
     private static final long COMMIT_TS = 2;
 
+    private static final Map<TableReference, byte[]> TABLES = Map.of(
+            TABLE_REFERENCE,
+            AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
+            INDEX_REFERENCE,
+            AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE));
+
     private TransactionManager manager;
 
     private AtlasDbTransactionStore store;
@@ -67,13 +78,7 @@ public final class AtlasDbTransactionStoreTest {
     @Before
     public void before() {
         manager = TransactionManagers.createInMemory(Set.of());
-        store = AtlasDbTransactionStore.create(
-                manager,
-                Map.of(
-                        TABLE_REFERENCE,
-                        AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
-                        INDEX_REFERENCE,
-                        AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE)));
+        store = AtlasDbTransactionStore.create(manager, TABLES);
     }
 
     @Test
@@ -149,6 +154,17 @@ public final class AtlasDbTransactionStoreTest {
                 store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
         assertThat(witnessedTransaction).isPresent();
         assertThat(witnessedTransaction.get().commitTimestamp()).isEmpty();
+    }
+
+    @Test
+    public void abortedTransactionsReturnEmpty() {
+        TransactionManager onlyAbortsManager = spy(manager);
+        Transaction abortedTransaction = mock(Transaction.class);
+        when(abortedTransaction.isAborted()).thenReturn(true);
+        doReturn(abortedTransaction).when(onlyAbortsManager).runTaskWithConditionWithRetry(any(Supplier.class), any());
+        AtlasDbTransactionStore onlyAbortsStore = AtlasDbTransactionStore.create(onlyAbortsManager, TABLES);
+        assertThat(onlyAbortsStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
+                .isEmpty();
     }
 
     @Test
