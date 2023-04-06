@@ -13,6 +13,14 @@ WORKDIR /timelock-server
 
 RUN mkdir -p var/data/paxos
 
+# Needed for Antithesis
+RUN curl -o /usr/bin/yq -kLf https://github.com/mikefarah/yq/releases/download/v4.33.2/yq_linux_amd64 && \
+    chmod +x /usr/bin/yq
+RUN yq '.classpath += "service/lib/instrumentation.jar"' -i service/bin/launcher-check.yml \
+    && yq '.classpath += "service/lib/jna.jar"' -i service/bin/launcher-check.yml \
+    && yq '.classpath += "service/lib/instrumentation.jar"' -i service/bin/launcher-static.yml \
+    && yq '.classpath += "service/lib/jna.jar"' -i service/bin/launcher-static.yml
+
 EXPOSE 8421 \
        8422
 
