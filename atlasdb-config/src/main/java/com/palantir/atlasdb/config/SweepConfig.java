@@ -34,7 +34,10 @@ public abstract class SweepConfig {
      * If unspecified, AtlasDB will decide whether to run the background sweeper or not. This may depend on factors
      * elsewhere in configuration.
      */
-    public abstract Optional<Boolean> enabled();
+    @Value.Default
+    public boolean enabled() {
+        return false;
+    }
 
     // TODO handle live reload
     /**
