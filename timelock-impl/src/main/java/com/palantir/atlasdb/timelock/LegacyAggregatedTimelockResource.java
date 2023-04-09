@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.timelock;
 
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.conjure.java.undertow.annotations.Handle;
 import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.conjure.java.undertow.annotations.SerializerFactory;
-import com.palantir.conjure.java.undertow.lib.BinaryResponseBody;
-import com.palantir.conjure.java.undertow.lib.BodySerDe;
 import com.palantir.conjure.java.undertow.lib.Endpoint;
 import com.palantir.conjure.java.undertow.lib.Serializer;
 import com.palantir.conjure.java.undertow.lib.TypeMarker;
 import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.logsafe.Safe;
+import com.palantir.timestamp.TimestampRange;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
@@ -37,6 +35,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -66,16 +65,37 @@ public class LegacyAggregatedTimelockResource {
         return new LegacyAggregatedTimelockResource(namespaces);
     }
 
+    // Legacy timestamp
+    @POST // This has to be POST because we can't allow caching.
+    @Path("/{namespace}/timestamp/fresh-timestamp")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
+    public long getFreshTimestamp(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
+        return namespaces.get(namespace).getTimestampService().getFreshTimestamp();
+    }
+
+    @POST // This has to be POST because we can't allow caching.
+    @Path("fresh-timestamps")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamps")
+    public TimestampRange getFreshTimestamps(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @QueryParam("number") int numTimestampsRequested) {
+        return namespaces.get(namespace).getTimestampService().getFreshTimestamps(numTimestampsRequested);
+    }
+
+    // Timestamp management
     @POST
     @Path("/{namespace}/timestamp-management/fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
-    @Handle(
-            method = HttpMethod.POST,
-            path = "/{namespace}/timestamp-management/fast-forward")
-    void fastForwardTimestamp(
-            @Safe @Handle.PathParam String namespace,
-            @Safe @QueryParam("currentTimestamp") @DefaultValue(SENTINEL_TIMESTAMP_STRING)
-            @Handle.QueryParam(value = "currentTimestamp") Long currentTimestamp) {
+    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp-management/fast-forward")
+    public void fastForwardTimestamp(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe
+                    @QueryParam("currentTimestamp")
+                    @DefaultValue(SENTINEL_TIMESTAMP_STRING)
+                    @Handle.QueryParam(value = "currentTimestamp")
+                    Long currentTimestamp) {
         long timestampToUse = currentTimestamp == null ? SENTINEL_TIMESTAMP : currentTimestamp;
         namespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(timestampToUse);
     }
@@ -88,7 +108,7 @@ public class LegacyAggregatedTimelockResource {
             method = HttpMethod.POST,
             path = "/{namespace}/timestamp-management/fast-forward",
             produces = TextPlainSerializer.class)
-    String ping(@Safe @Handle.PathParam String namespace) {
+    public String ping(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return namespaces.get(namespace).getTimestampManagementService().ping();
     }
 
@@ -96,7 +116,8 @@ public class LegacyAggregatedTimelockResource {
         INSTANCE;
 
         @Override
-        public <T extends String> Serializer<T> serializer(TypeMarker<T> type, UndertowRuntime runtime, Endpoint endpoint) {
+        public <T extends String> Serializer<T> serializer(
+                TypeMarker<T> type, UndertowRuntime runtime, Endpoint endpoint) {
             return this::serialize;
         }
 
