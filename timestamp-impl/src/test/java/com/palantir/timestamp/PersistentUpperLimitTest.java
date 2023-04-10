@@ -24,6 +24,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -110,5 +121,36 @@ public class PersistentUpperLimitTest {
         }
 
         assertThat(upperLimit.get()).isEqualTo(INITIAL_UPPER_LIMIT);
+    }
+
+    @Test
+    public void shouldSurviveStressTest() throws Exception {
+        ListeningExecutorService executor = MoreExecutors.listeningDecorator(Executors.newWorkStealingPool());
+        try {
+            Stopwatch timer = Stopwatch.createStarted();
+            AtomicLong expected = new AtomicLong(TIMESTAMP);
+            upperLimit.increaseToAtLeast(expected.get());
+            assertThat(upperLimit.get()).isGreaterThanOrEqualTo(TIMESTAMP);
+
+            final int iterations = 1_000_000;
+            List<ListenableFuture<?>> futures = new ArrayList<>(iterations);
+            for (int i = 0; i < iterations; i++) {
+                futures.add(executor.submit(() -> {
+                    long newLimit = expected.addAndGet(123);
+                    upperLimit.increaseToAtLeast(newLimit);
+                    assertThat(upperLimit.get()).isGreaterThanOrEqualTo(newLimit);
+                }));
+            }
+            executor.shutdown();
+            assertThat(Futures.allAsList(futures).get()).hasSize(iterations);
+            assertThat(upperLimit.get()).isGreaterThanOrEqualTo(expected.get());
+            assertThat(timer.stop().elapsed()).isLessThan(Duration.ofSeconds(10));
+        } finally {
+            executor.shutdown();
+            assertThat(executor.shutdownNow()).isEmpty();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS))
+                    .as("PersistentTimestamp increase tasks did not finish")
+                    .isTrue();
+        }
     }
 }
