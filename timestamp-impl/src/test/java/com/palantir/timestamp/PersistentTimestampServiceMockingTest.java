@@ -37,8 +37,10 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
-    private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
-    private PersistentTimestampServiceImpl timestampService = new PersistentTimestampServiceImpl(timestamp);
+    private final PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
+    private final ErrorCheckingTimestampBoundStore store = mock(ErrorCheckingTimestampBoundStore.class);
+    private final PersistentTimestampServiceImpl timestampService =
+            new PersistentTimestampServiceImpl(store, timestamp);
 
     @Test
     public void shouldDelegateFastForwardingToAvailableTimestamps() {

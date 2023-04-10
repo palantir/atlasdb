@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
+import javax.annotation.concurrent.GuardedBy;
 
 public class PersistentUpperLimit {
 
@@ -27,6 +28,8 @@ public class PersistentUpperLimit {
     static final long BUFFER = 1_000_000;
 
     private volatile long currentLimit;
+
+    @GuardedBy("this")
     private final TimestampBoundStore store;
 
     public PersistentUpperLimit(TimestampBoundStore boundStore) {
@@ -39,9 +42,12 @@ public class PersistentUpperLimit {
     }
 
     public void increaseToAtLeast(long newLimit) {
-        if (newLimit > currentLimit) {
-            updateLimit(newLimit);
+        if (currentLimit >= newLimit) {
+            return;
         }
+
+        // double check to avoid contention in cases where limit has been concurrently increased
+        updateLimit(newLimit);
     }
 
     private synchronized void updateLimit(long newLimit) {
@@ -50,13 +56,9 @@ public class PersistentUpperLimit {
         }
 
         long newLimitWithBuffer = Math.addExact(newLimit, BUFFER);
-        storeUpperLimit(newLimitWithBuffer);
+        DebugLogger.willStoreNewUpperLimit(newLimitWithBuffer);
+        store.storeUpperLimit(newLimitWithBuffer);
+        DebugLogger.didStoreNewUpperLimit(newLimitWithBuffer);
         currentLimit = newLimitWithBuffer;
-    }
-
-    private void storeUpperLimit(long upperLimit) {
-        DebugLogger.willStoreNewUpperLimit(upperLimit);
-        store.storeUpperLimit(upperLimit);
-        DebugLogger.didStoreNewUpperLimit(upperLimit);
     }
 }

@@ -16,10 +16,11 @@
 package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import javax.annotation.concurrent.ThreadSafe;
@@ -48,8 +49,8 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     private static final SafeLogger log = SafeLoggerFactory.get(PersistentTimestampServiceImpl.class);
     private static final int MAX_TIMESTAMPS_PER_REQUEST = 10_000;
 
-    private ErrorCheckingTimestampBoundStore store;
-    private PersistentTimestamp timestamp;
+    private final ErrorCheckingTimestampBoundStore store;
+    private volatile PersistentTimestamp timestamp;
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     public static PersistentTimestampService create(TimestampBoundStore store) {
@@ -71,7 +72,8 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     }
 
     @VisibleForTesting
-    PersistentTimestampServiceImpl(PersistentTimestamp timestamp) {
+    PersistentTimestampServiceImpl(ErrorCheckingTimestampBoundStore store, PersistentTimestamp timestamp) {
+        this(store);
         this.timestamp = timestamp;
     }
 
@@ -79,7 +81,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         this.store = store;
     }
 
-    private void tryInitialize() {
+    private synchronized void tryInitialize() {
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
         long latestTimestamp = upperLimit.get();
         timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
@@ -107,7 +109,7 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     @Override
     public void fastForwardTimestamp(long newTimestamp) {
         checkFastForwardRequest(newTimestamp);
-        log.info("Fast-forwarding the timestamp service to timestamp {}.", SafeArg.of("timestamp", newTimestamp));
+        log.info("Fast-forwarding the timestamp service to timestamp.", SafeArg.of("timestamp", newTimestamp));
         timestamp.increaseTo(newTimestamp);
     }
 
@@ -119,16 +121,17 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
     private void checkFastForwardRequest(long newTimestamp) {
         Preconditions.checkArgument(
                 newTimestamp != TimestampManagementService.SENTINEL_TIMESTAMP,
-                "Cannot fast forward to the sentinel timestamp %s. If you accessed this timestamp service remotely"
+                "Cannot fast forward to the sentinel timestamp. If you accessed this timestamp service remotely"
                         + " this is likely due to specifying an incorrect query parameter.",
-                newTimestamp);
+                SafeArg.of("newTimestamp", newTimestamp));
     }
 
     private static int cleanUpTimestampRequest(int numTimestampsRequested) {
         if (numTimestampsRequested <= 0) {
             // explicitly not using Preconditions to optimize hot success path and avoid allocations
-            throw new IllegalArgumentException(String.format(
-                    "Number of timestamps requested must be greater than zero, was %s", numTimestampsRequested));
+            throw new SafeIllegalArgumentException(
+                    "Number of timestamps requested must be greater than zero",
+                    SafeArg.of("numTimestampsRequested", numTimestampsRequested));
         }
         return Math.min(numTimestampsRequested, MAX_TIMESTAMPS_PER_REQUEST);
     }
