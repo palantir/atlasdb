@@ -329,7 +329,9 @@ public class TimeLockAgent {
 
         registerManagementResource();
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
-        LegacyAggregatedTimelockResource aggregatedTimelockResource = LegacyAggregatedTimelockResource.create(namespaces);
+
+        TimeLockResource resource = TimeLockResource.create(namespaces);
+        registrar.accept(resource);
 
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
@@ -352,14 +354,15 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+
+            LegacyAggregatedTimelockResource aggregatedTimelockResource = LegacyAggregatedTimelockResource.create(namespaces);
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     new TimelockUndertowExceptionWrapper(
                             LegacyAggregatedTimelockResourceEndpoints.of(aggregatedTimelockResource),
                             redirectRetryTargeter));
         } else {
-            TimeLockResource resource = TimeLockResource.create(namespaces);
-            registrar.accept(resource);
+            registrar.accept(LegacyAggregatedTimelockResource.create(namespaces));
 
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -367,7 +370,6 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(aggregatedTimelockResource);
         }
     }
 
