@@ -37,6 +37,8 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.LegacyAggregatedTimelockResource;
+import com.palantir.atlasdb.timelock.LegacyAggregatedTimelockResourceEndpoints;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
@@ -52,6 +54,7 @@ import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
+import com.palantir.atlasdb.timelock.paxos.LeaderAcceptorResourceEndpoints;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.timelock.paxos.TimeLockCorruptionComponents;
@@ -325,11 +328,8 @@ public class TimeLockAgent {
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
 
         registerManagementResource();
-        // Finally, register the health check, and endpoints associated with the clients.
-        TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
-
-        registrar.accept(resource);
+        LegacyAggregatedTimelockResource aggregatedTimelockResource = LegacyAggregatedTimelockResource.create(namespaces);
 
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
@@ -352,13 +352,22 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    new TimelockUndertowExceptionWrapper(
+                            LegacyAggregatedTimelockResourceEndpoints.of(aggregatedTimelockResource),
+                            redirectRetryTargeter));
         } else {
+            TimeLockResource resource = TimeLockResource.create(namespaces);
+            registrar.accept(resource);
+
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter, lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(aggregatedTimelockResource);
         }
     }
 

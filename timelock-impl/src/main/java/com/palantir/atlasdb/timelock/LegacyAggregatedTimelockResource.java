@@ -55,18 +55,18 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 /**
- * This class exists as a simple migration of Jersey resources to use conjure-undertow annotations.
+ * This class exists as a simple migration of the synchronous Jersey resources in {@link TimeLockResource}.
+ * Notice that {@link AsyncTimelockResource} is excluded; the handling of that class is somewhat more complex.
  *
  * New endpoints should not be added here; instead, they should be defined in Conjure.
- *
  * Namespaces should respect the regular expression (?!(tl|lw)/)[a-zA-Z0-9_-]+. Requests will still be mapped here, but
  * we do not guarantee we will service them.
  */
-public class LegacyAggregatedTimelockResource {
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
+public final class LegacyAggregatedTimelockResource {
     private static final long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
     private static final String SENTINEL_TIMESTAMP_STRING =
             SENTINEL_TIMESTAMP + ""; // can't use valueOf/toString because we need a compile time constant!
-    private static final String PING_RESPONSE = "pong";
 
     private final TimelockNamespaces namespaces;
 
@@ -81,7 +81,7 @@ public class LegacyAggregatedTimelockResource {
 
     // Legacy timestamp
     @POST // This has to be POST because we can't allow caching.
-    @Path("/{namespace}/timestamp/fresh-timestamp")
+    @Path("/timestamp/fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
     public long getFreshTimestamp(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
@@ -89,18 +89,18 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST // This has to be POST because we can't allow caching.
-    @Path("/{namespace}/timestamp/fresh-timestamps")
+    @Path("/timestamp/fresh-timestamps")
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamps")
     public TimestampRange getFreshTimestamps(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @QueryParam("number") int numTimestampsRequested) {
+            @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested) {
         return namespaces.get(namespace).getTimestampService().getFreshTimestamps(numTimestampsRequested);
     }
 
     // Lock v1
     @POST
-    @Path("/{namespace}/lock/lock-with-full-response/{client}")
+    @Path("/lock/lock-with-full-response/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @CancelableServerCall
@@ -115,7 +115,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/unlock-deprecated")
+    @Path("lock/unlock-deprecated")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
@@ -127,7 +127,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/unlock-simple")
+    @Path("lock/unlock-simple")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
@@ -138,7 +138,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/unlock-and-freeze")
+    @Path("lock/unlock-and-freeze")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
@@ -149,7 +149,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/get-tokens/{client}")
+    @Path("lock/get-tokens/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @CancelableServerCall
@@ -162,7 +162,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/refresh-tokens")
+    @Path("lock/refresh-tokens")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
@@ -175,7 +175,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/refresh-grant")
+    @Path("lock/refresh-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
@@ -187,7 +187,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/refresh-grant-id")
+    @Path("lock/refresh-grant-id")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
@@ -199,7 +199,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/convert-to-grant")
+    @Path("lock/convert-to-grant")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
@@ -210,7 +210,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/use-grant/{client}")
+    @Path("lock/use-grant/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
@@ -223,7 +223,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/use-grant-id/{client}")
+    @Path("lock/use-grant-id/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
@@ -236,7 +236,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/min-locked-in-version-id")
+    @Path("lock/min-locked-in-version-id")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Deprecated
@@ -248,7 +248,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/min-locked-in-version-id-for-client/{client}")
+    @Path("lock/min-locked-in-version-id-for-client/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client/{client}")
@@ -259,7 +259,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/lock-server-options")
+    @Path("lock/lock-server-options")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
@@ -269,7 +269,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/current-time-millis")
+    @Path("lock/current-time-millis")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
@@ -279,7 +279,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @POST
-    @Path("/{namespace}/lock/log-current-state")
+    @Path("lock/log-current-state")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
@@ -290,7 +290,7 @@ public class LegacyAggregatedTimelockResource {
 
     // Timestamp management
     @POST
-    @Path("/{namespace}/timestamp-management/fast-forward")
+    @Path("timestamp-management/fast-forward")
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp-management/fast-forward")
     public void fastForwardTimestamp(
@@ -305,7 +305,7 @@ public class LegacyAggregatedTimelockResource {
     }
 
     @GET
-    @Path("/{namespace}/timestamp-management/ping")
+    @Path("timestamp-management/ping")
     @Produces(MediaType.TEXT_PLAIN)
     @CheckReturnValue(when = When.NEVER)
     @Handle(
@@ -316,7 +316,7 @@ public class LegacyAggregatedTimelockResource {
         return namespaces.get(namespace).getTimestampManagementService().ping();
     }
 
-    private enum TextPlainSerializer implements SerializerFactory<String> {
+    enum TextPlainSerializer implements SerializerFactory<String> {
         INSTANCE;
 
         @Override
