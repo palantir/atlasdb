@@ -29,6 +29,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
@@ -40,7 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}") // Only read by Jersey, not by Undertow
 public class TimestampManagementResource {
     private static final long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
     private static final String SENTINEL_TIMESTAMP_STRING =
@@ -63,8 +64,8 @@ public class TimestampManagementResource {
                     @QueryParam("currentTimestamp")
                     @DefaultValue(SENTINEL_TIMESTAMP_STRING)
                     @Handle.QueryParam(value = "currentTimestamp")
-                    Long currentTimestamp) {
-        long timestampToUse = currentTimestamp == null ? SENTINEL_TIMESTAMP : currentTimestamp;
+                    Optional<Long> currentTimestamp) {
+        long timestampToUse = currentTimestamp.orElse(SENTINEL_TIMESTAMP);
         getTimestampManagementService(namespace).fastForwardTimestamp(timestampToUse);
     }
 
@@ -73,8 +74,8 @@ public class TimestampManagementResource {
     @Produces(MediaType.TEXT_PLAIN)
     @CheckReturnValue(when = When.NEVER)
     @Handle(
-            method = HttpMethod.POST,
-            path = "/{namespace}/timestamp-management/fast-forward",
+            method = HttpMethod.GET,
+            path = "/{namespace}/timestamp-management/ping",
             produces = TextPlainSerializer.class)
     public String ping(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getTimestampManagementService(namespace).ping();

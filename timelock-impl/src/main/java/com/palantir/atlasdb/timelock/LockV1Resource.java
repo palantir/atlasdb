@@ -43,7 +43,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}") // Only read by Jersey, not by Undertow
 public class LockV1Resource {
     private final TimelockNamespaces namespaces;
 
@@ -118,8 +118,7 @@ public class LockV1Resource {
     @Path("lock/get-tokens/{client}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CancelableServerCall
-    @NonIdempotent
+    @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens/{client}")
     public Set<HeldLocksToken> getTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
@@ -131,8 +130,7 @@ public class LockV1Resource {
     @Path("lock/get-tokens")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    @CancelableServerCall
-    @NonIdempotent
+    @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens")
     public Set<HeldLocksToken> getTokens(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getTokens(namespace, LockClient.ANONYMOUS);
@@ -382,6 +380,18 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client) {
         return getLockService(namespace).getMinLockedInVersionId(client);
+    }
+
+    @POST
+    @Path("lock/min-locked-in-version")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    @Nullable
+    @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version")
+    public Long getMinLockedInVersionIdForAnonymousClientString(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
+        return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId());
     }
 
     @POST
