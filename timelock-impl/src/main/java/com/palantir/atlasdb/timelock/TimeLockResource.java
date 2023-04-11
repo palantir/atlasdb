@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 

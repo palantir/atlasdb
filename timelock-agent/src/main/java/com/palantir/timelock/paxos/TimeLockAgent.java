@@ -54,7 +54,6 @@ import com.palantir.atlasdb.timelock.management.PersistentNamespaceContexts;
 import com.palantir.atlasdb.timelock.management.ServiceLifecycleController;
 import com.palantir.atlasdb.timelock.management.TimeLockManagementResource;
 import com.palantir.atlasdb.timelock.paxos.ImmutableTimelockPaxosInstallationContext;
-import com.palantir.atlasdb.timelock.paxos.LeaderAcceptorResourceEndpoints;
 import com.palantir.atlasdb.timelock.paxos.PaxosResources;
 import com.palantir.atlasdb.timelock.paxos.PaxosResourcesFactory;
 import com.palantir.atlasdb.timelock.paxos.TimeLockCorruptionComponents;
@@ -355,7 +354,8 @@ public class TimeLockAgent {
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
 
-            LegacyAggregatedTimelockResource aggregatedTimelockResource = LegacyAggregatedTimelockResource.create(namespaces);
+            LegacyAggregatedTimelockResource aggregatedTimelockResource =
+                    LegacyAggregatedTimelockResource.create(namespaces);
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     new TimelockUndertowExceptionWrapper(

@@ -125,8 +125,7 @@ public final class LegacyAggregatedTimelockResource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-with-full-response")
     public LockResponse lockWithFullLockResponse(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body LockRequest request)
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
         return lockWithFullLockResponse(namespace, LockClient.ANONYMOUS, request);
     }
@@ -185,8 +184,7 @@ public final class LegacyAggregatedTimelockResource {
     @CancelableServerCall
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens")
-    public Set<HeldLocksToken> getTokens(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
+    public Set<HeldLocksToken> getTokens(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getTokens(namespace, LockClient.ANONYMOUS);
     }
 
@@ -258,8 +256,7 @@ public final class LegacyAggregatedTimelockResource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/use-grant")
     public HeldLocksToken useGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body HeldLocksGrant grant) {
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
         return useGrant(namespace, LockClient.ANONYMOUS, grant);
     }
 
@@ -283,8 +280,7 @@ public final class LegacyAggregatedTimelockResource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/use-grant-id")
     public HeldLocksToken useGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body BigInteger grantId) {
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
         return useGrant(namespace, LockClient.ANONYMOUS, grantId);
     }
 
@@ -358,9 +354,11 @@ public final class LegacyAggregatedTimelockResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock/{client}")
-    public LockRefreshToken lock(@Safe @PathParam("namespace") @Handle.PathParam String namespace,
+    public LockRefreshToken lock(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
-                                 @Handle.Body LockRequest request) throws InterruptedException {
+            @Handle.Body LockRequest request)
+            throws InterruptedException {
         return namespaces.get(namespace).getLockService().lock(client, request);
     }
 
@@ -370,8 +368,9 @@ public final class LegacyAggregatedTimelockResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock")
-    public LockRefreshToken lock(@Safe @PathParam("namespace") @Handle.PathParam String namespace,
-                                 @Handle.Body LockRequest request) throws InterruptedException {
+    public LockRefreshToken lock(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
+            throws InterruptedException {
         return lock(namespace, LockClient.ANONYMOUS.getClientId(), request);
     }
 
@@ -380,8 +379,10 @@ public final class LegacyAggregatedTimelockResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/try-lock/{client}")
-    public HeldLocksToken lockAndGetHeldLocks(@Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @PathParam("client") @Handle.PathParam String client, @Handle.Body LockRequest request)
+    public HeldLocksToken lockAndGetHeldLocks(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @PathParam("client") @Handle.PathParam String client,
+            @Handle.Body LockRequest request)
             throws InterruptedException {
         return namespaces.get(namespace).getLockService().lockAndGetHeldLocks(client, request);
     }
@@ -391,8 +392,8 @@ public final class LegacyAggregatedTimelockResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/try-lock")
-    public HeldLocksToken lockAndGetHeldLocks(@Safe @PathParam("namespace") @Handle.PathParam String namespace,
-                                               @Handle.Body LockRequest request)
+    public HeldLocksToken lockAndGetHeldLocks(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
         return lockAndGetHeldLocks(namespace, LockClient.ANONYMOUS.getClientId(), request);
     }
@@ -403,7 +404,8 @@ public final class LegacyAggregatedTimelockResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock")
-    public boolean unlock(@Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRefreshToken token) {
+    public boolean unlock(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRefreshToken token) {
         return namespaces.get(namespace).getLockService().unlock(token);
     }
 
@@ -413,7 +415,8 @@ public final class LegacyAggregatedTimelockResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-lock-tokens")
-    public Set<LockRefreshToken> refreshLockRefreshTokens(@Safe @PathParam("namespace") @Handle.PathParam String namespace,
+    public Set<LockRefreshToken> refreshLockRefreshTokens(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body Iterable<LockRefreshToken> tokens) {
         return namespaces.get(namespace).getLockService().refreshLockRefreshTokens(tokens);
     }
@@ -425,7 +428,9 @@ public final class LegacyAggregatedTimelockResource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version/{client}")
-    public Long getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace, @Safe @PathParam("client") @Handle.PathParam String client) {
+    public Long getMinLockedInVersionId(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @PathParam("client") @Handle.PathParam String client) {
         return namespaces.get(namespace).getLockService().getMinLockedInVersionId(client);
     }
 
@@ -436,8 +441,7 @@ public final class LegacyAggregatedTimelockResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-debugging-lock-state")
     public LockState getLockState(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body LockDescriptor lock) {
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockDescriptor lock) {
         return namespaces.get(namespace).getLockService().getLockState(lock);
     }
 
