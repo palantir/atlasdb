@@ -73,16 +73,13 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
-        JerseyAsyncTimelockResource asyncTimelockResource =
-                new JerseyAsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
-
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,
                 LockService.class,
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
 
         return TimeLockServices.create(
-                asyncTimelockService, lockService, asyncTimelockService, asyncTimelockResource, asyncTimelockService);
+                asyncTimelockService, lockService, asyncTimelockService, asyncTimelockService, maybeEnhancedLockLog);
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(

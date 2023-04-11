@@ -19,7 +19,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
-import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -41,62 +40,65 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
-@Path("/timelock")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class JerseyAsyncTimelockResource {
     private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
-    private final LockLog lockLog;
-    private final AsyncTimelockService timelock;
+    private final TimelockNamespaces timelockNamespaces;
 
-    public JerseyAsyncTimelockResource(LockLog lockLog, AsyncTimelockService timelock) {
-        this.lockLog = lockLog;
-        this.timelock = timelock;
+    public JerseyAsyncTimelockResource(TimelockNamespaces timelockNamespaces) {
+        this.timelockNamespaces = timelockNamespaces;
     }
 
     @POST
     @Path("fresh-timestamp")
-    public void getFreshTimestamp(@Suspended final AsyncResponse response) {
-        addJerseyCallback(timelock.getFreshTimestampAsync(), response);
+    public void getFreshTimestamp(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace) {
+        addJerseyCallback(getAsyncTimelockService(namespace).getFreshTimestampAsync(), response);
     }
 
     @POST
     @Path("fresh-timestamps")
     public void getFreshTimestamps(
-            @Suspended final AsyncResponse response, @Safe @QueryParam("number") int numTimestampsRequested) {
-        addJerseyCallback(timelock.getFreshTimestampsAsync(numTimestampsRequested), response);
+            @Suspended final AsyncResponse response, @PathParam("namespace") String namespace,
+            @Safe @QueryParam("number") int numTimestampsRequested) {
+        addJerseyCallback(getAsyncTimelockService(namespace).getFreshTimestampsAsync(numTimestampsRequested), response);
     }
 
     @POST
     @Path("lock-immutable-timestamp")
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return timelock.lockImmutableTimestamp(request);
+    public LockImmutableTimestampResponse lockImmutableTimestamp(@PathParam("namespace") String namespace,
+                                                                 IdentifiedTimeLockRequest request) {
+        return getAsyncTimelockService(namespace).lockImmutableTimestamp(request);
     }
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(IdentifiedTimeLockRequest request) {
-        return timelock.deprecatedStartTransaction(request);
+    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(@PathParam("namespace") String namespace, IdentifiedTimeLockRequest request) {
+        return getAsyncTimelockService(namespace).deprecatedStartTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
+            @PathParam("namespace") String namespace,
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startTransaction(request).toStartTransactionResponse();
+        return getAsyncTimelockService(namespace).startTransaction(request).toStartTransactionResponse();
     }
 
     @POST
     @Path("start-atlasdb-transaction-v3")
     public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
+            @PathParam("namespace") String namespace,
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startTransaction(request);
+        return getAsyncTimelockService(namespace).startTransaction(request);
     }
 
     /**
@@ -108,62 +110,63 @@ public class JerseyAsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public void startTransactions(@Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
-        addJerseyCallback(timelock.startTransactionsAsync(request), response);
+    public void startTransactions(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace,
+                                  StartTransactionRequestV4 request) {
+        addJerseyCallback(getAsyncTimelockService(namespace).startTransactionsAsync(request), response);
     }
 
     @POST
     @Path("immutable-timestamp")
-    public long getImmutableTimestamp() {
-        return timelock.getImmutableTimestamp();
+    public long getImmutableTimestamp(@PathParam("namespace") String namespace) {
+        return getAsyncTimelockService(namespace).getImmutableTimestamp();
     }
 
     @POST
     @Path("lock")
-    public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        addJerseyCallback(timelock.deprecatedLock(request), response);
+    public void deprecatedLock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, IdentifiedLockRequest request) {
+        addJerseyCallback(getAsyncTimelockService(namespace).deprecatedLock(request), response);
     }
 
     @POST
     @Path("lock-v2")
-    public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        addJerseyCallback(timelock.lock(request), response);
+    public void lock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, IdentifiedLockRequest request) {
+        addJerseyCallback(getAsyncTimelockService(namespace).lock(request), response);
     }
 
     @POST
     @Path("await-locks")
-    public void waitForLocks(@Suspended final AsyncResponse response, WaitForLocksRequest request) {
-        addJerseyCallback(timelock.waitForLocks(request), response);
+    public void waitForLocks(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, WaitForLocksRequest request) {
+        addJerseyCallback(getAsyncTimelockService(namespace).waitForLocks(request), response);
     }
 
     @POST
     @Path("refresh-locks")
-    public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(timelock.deprecatedRefreshLockLeases(tokens), response);
+    public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+        addJerseyCallback(getAsyncTimelockService(namespace).deprecatedRefreshLockLeases(tokens), response);
     }
 
     @POST
     @Path("refresh-locks-v2")
-    public void refreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(timelock.refreshLockLeases(tokens), response);
+    public void refreshLockLeases(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+        addJerseyCallback(getAsyncTimelockService(namespace).refreshLockLeases(tokens), response);
     }
 
     @GET
     @Path("leader-time")
-    public void getLeaderTime(@Suspended final AsyncResponse response) {
-        addJerseyCallback(timelock.leaderTime(), response);
+    public void getLeaderTime(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace) {
+        addJerseyCallback(getAsyncTimelockService(namespace).leaderTime(), response);
     }
 
     @POST
     @Path("unlock")
-    public void unlock(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(timelock.unlock(tokens), response);
+    public void unlock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+        addJerseyCallback(getAsyncTimelockService(namespace).unlock(tokens), response);
     }
 
     @POST
     @Path("current-time-millis")
-    public long currentTimeMillis() {
-        return timelock.currentTimeMillis();
+    public long currentTimeMillis(@PathParam("namespace") String namespace) {
+        return getAsyncTimelockService(namespace).currentTimeMillis();
     }
 
     /**
@@ -173,8 +176,8 @@ public class JerseyAsyncTimelockResource {
     @Deprecated
     @POST
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
-    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(Set<UUID> requestIds) {
-        return lockLog.getAndLogLockDiagnosticInfo(requestIds);
+    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(@PathParam("namespace") String namespace, Set<UUID> requestIds) {
+        return timelockNamespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 
     private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
@@ -192,5 +195,9 @@ public class JerseyAsyncTimelockResource {
                     }
                 },
                 asyncResponseExecutor);
+    }
+
+    private AsyncTimelockService getAsyncTimelockService(String namespace) {
+        return timelockNamespaces.get(namespace).getTimelockService();
     }
 }

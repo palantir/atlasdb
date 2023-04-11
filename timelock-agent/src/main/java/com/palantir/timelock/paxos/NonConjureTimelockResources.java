@@ -18,6 +18,7 @@ package com.palantir.timelock.paxos;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.JerseyAsyncTimelockResource;
 import com.palantir.atlasdb.timelock.LockV1Resource;
 import com.palantir.atlasdb.timelock.LockV1ResourceEndpoints;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
@@ -25,6 +26,8 @@ import com.palantir.atlasdb.timelock.TimestampManagementResource;
 import com.palantir.atlasdb.timelock.TimestampManagementResourceEndpoints;
 import com.palantir.atlasdb.timelock.TimestampResource;
 import com.palantir.atlasdb.timelock.TimestampResourceEndpoints;
+import com.palantir.atlasdb.timelock.UndertowAsyncTimelockResource;
+import com.palantir.atlasdb.timelock.UndertowAsyncTimelockResourceEndpoints;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,7 +42,8 @@ public final class NonConjureTimelockResources {
         Set<UndertowService> rawServices = ImmutableSet.of(
                 LockV1ResourceEndpoints.of(new LockV1Resource(namespaces)),
                 TimestampResourceEndpoints.of(new TimestampResource(namespaces)),
-                TimestampManagementResourceEndpoints.of(new TimestampManagementResource(namespaces)));
+                TimestampManagementResourceEndpoints.of(new TimestampManagementResource(namespaces)),
+                UndertowAsyncTimelockResourceEndpoints.of(new UndertowAsyncTimelockResource(namespaces)));
 
         return rawServices.stream()
                 .map(service -> new TimelockUndertowExceptionWrapper(service, redirectRetryTargeter))
@@ -50,6 +54,7 @@ public final class NonConjureTimelockResources {
         return ImmutableSet.of(
                 new LockV1Resource(namespaces),
                 new TimestampResource(namespaces),
-                new TimestampManagementResource(namespaces));
+                new TimestampManagementResource(namespaces),
+                new JerseyAsyncTimelockResource(namespaces));
     }
 }

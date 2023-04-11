@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
 
@@ -31,33 +33,33 @@ public interface TimeLockServices extends AutoCloseable {
             TimestampService timestampService,
             LockService lockService,
             AsyncTimelockService timelockService,
-            JerseyAsyncTimelockResource timelockResource,
-            TimestampManagementService timestampManagementService) {
+            TimestampManagementService timestampManagementService,
+            LockLog lockLog) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampManagementService(timestampManagementService)
                 .timelockService(timelockService)
-                .timelockResource(timelockResource)
+                .lockLog(lockLog)
                 .build();
     }
 
     TimestampService getTimestampService();
 
     LockService getLockService();
-    // The Jersey endpoints
-    JerseyAsyncTimelockResource getTimelockResource();
     // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
 
     TimestampManagementService getTimestampManagementService();
+
+    // Do not use without atlasdb team guidance
+    LockLog getLockLog();
 
     @Override
     default void close() {
         Stream.of(
                         getTimestampService(),
                         getLockService(),
-                        getTimelockResource(),
                         getTimelockService(),
                         getTimestampManagementService())
                 .filter(service -> service instanceof AutoCloseable)
