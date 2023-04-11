@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.NotThreadSafe;
 import one.util.streamex.EntryStream;
 
-public final class AtlasDbTransactionStore implements TransactionStore {
+public final class AtlasDbTransactionStore implements InteractiveTransactionStore {
 
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbTransactionStore.class);
     private final TransactionManager transactionManager;

@@ -13,24 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
+import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
-/**
- * A transactional store for the workload server to read/write from.
- */
-public interface TransactionStore extends ReadableTransactionStore {
+public interface InteractiveTransactionStore extends TransactionStore {
     /**
-     * Performs a list of transaction actions in order, and returns the transaction executed if it committed
-     * successfully.
-     *
-     * @param actions List of transaction actions (read/write/delete) to be executed in order.
+     * Provides a convenient interface for interacting with a transaction, and having each action automatically recorded.
+     * @param interactiveTransactionConsumer Consumer which performs gets/puts/deletes
      * @return The witnessed transaction, if successfully committed.
      */
-    Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions);
+    Optional<WitnessedTransaction> readWrite(Consumer<InteractiveTransaction> interactiveTransactionConsumer);
 }
