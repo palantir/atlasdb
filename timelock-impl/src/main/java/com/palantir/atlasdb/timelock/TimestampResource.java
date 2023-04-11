@@ -20,6 +20,7 @@ import com.palantir.conjure.java.undertow.annotations.Handle;
 import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -40,7 +41,7 @@ public final class TimestampResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
     public long getFreshTimestamp(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getTimestampService().getFreshTimestamp();
+        return getTimestampService(namespace).getFreshTimestamp();
     }
 
     @POST // This has to be POST because we can't allow caching.
@@ -50,6 +51,10 @@ public final class TimestampResource {
     public TimestampRange getFreshTimestamps(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested) {
-        return namespaces.get(namespace).getTimestampService().getFreshTimestamps(numTimestampsRequested);
+        return getTimestampService(namespace).getFreshTimestamps(numTimestampsRequested);
+    }
+
+    private TimestampService getTimestampService(String namespace) {
+        return namespaces.get(namespace).getTimestampService();
     }
 }
