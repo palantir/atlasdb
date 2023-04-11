@@ -12,7 +12,7 @@ fi
 
 printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://${ANTITHESIS_REPO_URL} --password-stdin
 
-./gradlew docker
+./gradlew --scan docker
 
 docker pull palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
 docker tag palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra ${ANTITHESIS_REPO_URL}/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
