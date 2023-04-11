@@ -67,37 +67,37 @@ public class JerseyAsyncTimelockResource {
     @POST
     @Path("fresh-timestamps")
     public void getFreshTimestamps(
-            @Suspended final AsyncResponse response, @PathParam("namespace") String namespace,
+            @Suspended final AsyncResponse response,
+            @PathParam("namespace") String namespace,
             @Safe @QueryParam("number") int numTimestampsRequested) {
         addJerseyCallback(getAsyncTimelockService(namespace).getFreshTimestampsAsync(numTimestampsRequested), response);
     }
 
     @POST
     @Path("lock-immutable-timestamp")
-    public LockImmutableTimestampResponse lockImmutableTimestamp(@PathParam("namespace") String namespace,
-                                                                 IdentifiedTimeLockRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(
+            @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request) {
         return getAsyncTimelockService(namespace).lockImmutableTimestamp(request);
     }
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(@PathParam("namespace") String namespace, IdentifiedTimeLockRequest request) {
+    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(
+            @PathParam("namespace") String namespace, IdentifiedTimeLockRequest request) {
         return getAsyncTimelockService(namespace).deprecatedStartTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
-            @PathParam("namespace") String namespace,
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            @PathParam("namespace") String namespace, StartIdentifiedAtlasDbTransactionRequest request) {
         return getAsyncTimelockService(namespace).startTransaction(request).toStartTransactionResponse();
     }
 
     @POST
     @Path("start-atlasdb-transaction-v3")
     public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
-            @PathParam("namespace") String namespace,
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            @PathParam("namespace") String namespace, StartIdentifiedAtlasDbTransactionRequest request) {
         return getAsyncTimelockService(namespace).startTransaction(request);
     }
 
@@ -110,8 +110,10 @@ public class JerseyAsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public void startTransactions(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace,
-                                  StartTransactionRequestV4 request) {
+    public void startTransactions(
+            @Suspended final AsyncResponse response,
+            @PathParam("namespace") String namespace,
+            StartTransactionRequestV4 request) {
         addJerseyCallback(getAsyncTimelockService(namespace).startTransactionsAsync(request), response);
     }
 
@@ -123,31 +125,42 @@ public class JerseyAsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void deprecatedLock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, IdentifiedLockRequest request) {
+    public void deprecatedLock(
+            @Suspended final AsyncResponse response,
+            @PathParam("namespace") String namespace,
+            IdentifiedLockRequest request) {
         addJerseyCallback(getAsyncTimelockService(namespace).deprecatedLock(request), response);
     }
 
     @POST
     @Path("lock-v2")
-    public void lock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, IdentifiedLockRequest request) {
+    public void lock(
+            @Suspended final AsyncResponse response,
+            @PathParam("namespace") String namespace,
+            IdentifiedLockRequest request) {
         addJerseyCallback(getAsyncTimelockService(namespace).lock(request), response);
     }
 
     @POST
     @Path("await-locks")
-    public void waitForLocks(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, WaitForLocksRequest request) {
+    public void waitForLocks(
+            @Suspended final AsyncResponse response,
+            @PathParam("namespace") String namespace,
+            WaitForLocksRequest request) {
         addJerseyCallback(getAsyncTimelockService(namespace).waitForLocks(request), response);
     }
 
     @POST
     @Path("refresh-locks")
-    public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+    public void deprecatedRefreshLockLeases(
+            @Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
         addJerseyCallback(getAsyncTimelockService(namespace).deprecatedRefreshLockLeases(tokens), response);
     }
 
     @POST
     @Path("refresh-locks-v2")
-    public void refreshLockLeases(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+    public void refreshLockLeases(
+            @Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
         addJerseyCallback(getAsyncTimelockService(namespace).refreshLockLeases(tokens), response);
     }
 
@@ -159,7 +172,8 @@ public class JerseyAsyncTimelockResource {
 
     @POST
     @Path("unlock")
-    public void unlock(@Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
+    public void unlock(
+            @Suspended final AsyncResponse response, @PathParam("namespace") String namespace, Set<LockToken> tokens) {
         addJerseyCallback(getAsyncTimelockService(namespace).unlock(tokens), response);
     }
 
@@ -176,7 +190,8 @@ public class JerseyAsyncTimelockResource {
     @Deprecated
     @POST
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
-    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(@PathParam("namespace") String namespace, Set<UUID> requestIds) {
+    public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
+            @PathParam("namespace") String namespace, Set<UUID> requestIds) {
         return timelockNamespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 

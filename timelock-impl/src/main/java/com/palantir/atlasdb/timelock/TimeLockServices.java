@@ -21,7 +21,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
 
@@ -57,11 +56,7 @@ public interface TimeLockServices extends AutoCloseable {
 
     @Override
     default void close() {
-        Stream.of(
-                        getTimestampService(),
-                        getLockService(),
-                        getTimelockService(),
-                        getTimestampManagementService())
+        Stream.of(getTimestampService(), getLockService(), getTimelockService(), getTimestampManagementService())
                 .filter(service -> service instanceof AutoCloseable)
                 .distinct()
                 .forEach(service -> {

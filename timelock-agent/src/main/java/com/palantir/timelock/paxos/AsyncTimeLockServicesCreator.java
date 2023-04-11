@@ -20,7 +20,6 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
-import com.palantir.atlasdb.timelock.JerseyAsyncTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;

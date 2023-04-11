@@ -18,7 +18,6 @@ package com.palantir.timelock.paxos;
 
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.JerseyAsyncTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.LockService;

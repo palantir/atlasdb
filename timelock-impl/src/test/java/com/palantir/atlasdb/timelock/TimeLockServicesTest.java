@@ -33,8 +33,7 @@ public class TimeLockServicesTest {
         LockService lockService = mock(LockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
 
-        getTimeLockServices(lockService, asyncTimelockService)
-                .close();
+        getTimeLockServices(lockService, asyncTimelockService).close();
 
         verify(asyncTimelockService, times(1)).close();
     }
@@ -44,8 +43,7 @@ public class TimeLockServicesTest {
         CloseableLockService closeableLockService = mock(CloseableLockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
 
-        getTimeLockServices(closeableLockService, asyncTimelockService)
-                .close();
+        getTimeLockServices(closeableLockService, asyncTimelockService).close();
 
         verify(closeableLockService).close();
     }
@@ -58,16 +56,13 @@ public class TimeLockServicesTest {
         doThrow(new RuntimeException()).when(asyncTimelockService).close();
         doThrow(new RuntimeException()).when(closeableLockService).close();
 
-        getTimeLockServices(closeableLockService, asyncTimelockService)
-                .close();
+        getTimeLockServices(closeableLockService, asyncTimelockService).close();
 
         verify(closeableLockService).close();
         verify(asyncTimelockService).close();
     }
 
-    private TimeLockServices getTimeLockServices(
-            LockService lockService,
-            AsyncTimelockService asyncTimelockService) {
+    private TimeLockServices getTimeLockServices(LockService lockService, AsyncTimelockService asyncTimelockService) {
         return TimeLockServices.create(
                 asyncTimelockService, lockService, asyncTimelockService, asyncTimelockService, mock(LockLog.class));
     }
