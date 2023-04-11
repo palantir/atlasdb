@@ -36,6 +36,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 import io.undertow.server.HttpServerExchange;
@@ -73,13 +74,8 @@ public final class LegacyAggregatedTimelockResource {
 
     private final TimelockNamespaces namespaces;
 
-    // why did we go for a static factory again?
-    private LegacyAggregatedTimelockResource(TimelockNamespaces namespaces) {
+    public LegacyAggregatedTimelockResource(TimelockNamespaces namespaces) {
         this.namespaces = namespaces;
-    }
-
-    public static LegacyAggregatedTimelockResource create(TimelockNamespaces namespaces) {
-        return new LegacyAggregatedTimelockResource(namespaces);
     }
 
     // Legacy timestamp

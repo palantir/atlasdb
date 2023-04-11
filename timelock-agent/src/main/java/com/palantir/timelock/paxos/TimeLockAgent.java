@@ -337,6 +337,8 @@ public class TimeLockAgent {
         Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
                 namespace -> namespaces.get(namespace).getTimelockService();
 
+        LegacyAggregatedTimelockResource aggregatedTimelockResource = new LegacyAggregatedTimelockResource(namespaces);
+
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(
@@ -353,23 +355,19 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
-
-            LegacyAggregatedTimelockResource aggregatedTimelockResource =
-                    LegacyAggregatedTimelockResource.create(namespaces);
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     new TimelockUndertowExceptionWrapper(
                             LegacyAggregatedTimelockResourceEndpoints.of(aggregatedTimelockResource),
                             redirectRetryTargeter));
         } else {
-            registrar.accept(LegacyAggregatedTimelockResource.create(namespaces));
-
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter, lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(aggregatedTimelockResource);
         }
     }
 
