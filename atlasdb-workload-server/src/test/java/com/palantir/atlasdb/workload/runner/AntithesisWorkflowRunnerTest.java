@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.runner;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -23,7 +23,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
-import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
+import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import org.junit.Test;
 

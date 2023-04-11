@@ -28,7 +28,6 @@ import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import one.util.streamex.StreamEx;
 
 public enum SerializableInvariant implements Invariant<List<InvalidWitnessedTransaction>> {
@@ -53,7 +52,7 @@ public enum SerializableInvariant implements Invariant<List<InvalidWitnessedTran
 
                     return Optional.of(InvalidWitnessedTransaction.of(witnessedTransaction, invalidTransactions));
                 })
-                .collect(Collectors.toList());
+                .toList();
         invalidWitnessedTransactions.accept(transactions);
     }
 

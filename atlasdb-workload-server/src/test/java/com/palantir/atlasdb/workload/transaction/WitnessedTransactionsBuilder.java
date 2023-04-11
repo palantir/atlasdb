@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class WitnessedTransactionsBuilder {
+public final class WitnessedTransactionsBuilder {
 
     private final List<WitnessedTransaction> witnessedTransactions = new ArrayList<>();
 

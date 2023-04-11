@@ -32,7 +32,7 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
             StructureHolder.create(HashMap::empty);
 
     @Override
-    public Void visit(WitnessedReadTransactionAction readTransactionAction) {
+    public Void visit(WitnessedReadTransactionAction _readTransactionAction) {
         return null;
     }
 
@@ -44,6 +44,9 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
         return null;
     }
 
+    /**
+     * Deletes are explicitly tracked to enable invariants that rely on verifying that deleted values stay deleted.
+     */
     @Override
     public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         TableAndWorkloadCell tableAndWorkloadCell =

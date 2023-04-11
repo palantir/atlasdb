@@ -119,4 +119,31 @@ public class SerializableInvariantTest {
                     .isEqualTo(MismatchedValue.of(Optional.of(15), Optional.of(0)));
         });
     }
+
+    @Test
+    public void handlesDeletes() {
+        AtomicReference<List<InvalidWitnessedTransaction>> invalidTransactions = new AtomicReference<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(6, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .read(5, 10, 15)
+                .delete(5, 10)
+                .read(5, 10)
+                .endTransaction()
+                .startTransaction()
+                .read(5, 10)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::set);
+        assertThat(invalidTransactions)
+                .hasValueSatisfying(invalidWitnessedTransactions ->
+                        assertThat(invalidWitnessedTransactions).isEmpty());
+    }
 }
