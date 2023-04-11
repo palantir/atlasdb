@@ -31,7 +31,7 @@ public interface TimeLockServices extends AutoCloseable {
             TimestampService timestampService,
             LockService lockService,
             AsyncTimelockService timelockService,
-            AsyncTimelockResource timelockResource,
+            JerseyAsyncTimelockResource timelockResource,
             TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
                 .timestampService(timestampService)
@@ -46,7 +46,7 @@ public interface TimeLockServices extends AutoCloseable {
 
     LockService getLockService();
     // The Jersey endpoints
-    AsyncTimelockResource getTimelockResource();
+    JerseyAsyncTimelockResource getTimelockResource();
     // The RPC-independent leadership-enabled implementation of the timelock service
     AsyncTimelockService getTimelockService();
 

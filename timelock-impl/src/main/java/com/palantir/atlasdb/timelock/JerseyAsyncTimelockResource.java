@@ -18,19 +18,13 @@ package com.palantir.atlasdb.timelock;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.debug.LockDiagnosticInfo;
-import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.ImmutableStartTransactionResponseV4;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -39,7 +33,6 @@ import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.logsafe.Safe;
-import com.palantir.timestamp.TimestampRange;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -57,12 +50,12 @@ import javax.ws.rs.core.MediaType;
 @Path("/timelock")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class AsyncTimelockResource {
+public class JerseyAsyncTimelockResource {
     private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
     private final LockLog lockLog;
     private final AsyncTimelockService timelock;
 
-    public AsyncTimelockResource(LockLog lockLog, AsyncTimelockService timelock) {
+    public JerseyAsyncTimelockResource(LockLog lockLog, AsyncTimelockService timelock) {
         this.lockLog = lockLog;
         this.timelock = timelock;
     }
@@ -70,12 +63,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("fresh-timestamp")
     public void getFreshTimestamp(@Suspended final AsyncResponse response) {
-        addJerseyCallback(
-                Futures.transform(
-                        timelock.getFreshTimestampsAsync(1),
-                        TimestampRange::getLowerBound,
-                        MoreExecutors.directExecutor()),
-                response);
+        addJerseyCallback(timelock.getFreshTimestampAsync(), response);
     }
 
     @POST
@@ -121,21 +109,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("start-atlasdb-transaction-v4")
     public void startTransactions(@Suspended final AsyncResponse response, StartTransactionRequestV4 request) {
-        ConjureStartTransactionsRequest conjureRequest = ConjureStartTransactionsRequest.builder()
-                .requestId(request.requestId())
-                .requestorId(request.requestorId())
-                .numTransactions(request.numTransactions())
-                .build();
-        addJerseyCallback(
-                Futures.transform(
-                        timelock.startTransactionsWithWatches(conjureRequest),
-                        newResponse -> ImmutableStartTransactionResponseV4.builder()
-                                .timestamps(newResponse.getTimestamps())
-                                .immutableTimestamp(newResponse.getImmutableTimestamp())
-                                .lease(newResponse.getLease())
-                                .build(),
-                        MoreExecutors.directExecutor()),
-                response);
+        addJerseyCallback(timelock.startTransactionsAsync(request), response);
     }
 
     @POST
@@ -147,14 +121,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
-        addJerseyCallback(
-                Futures.transform(
-                        timelock.lock(request),
-                        result -> result.accept(LockResponseV2.Visitor.of(
-                                success -> LockResponse.successful(success.getToken()),
-                                unsuccessful -> LockResponse.timedOut())),
-                        MoreExecutors.directExecutor()),
-                response);
+        addJerseyCallback(timelock.deprecatedLock(request), response);
     }
 
     @POST
@@ -172,12 +139,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("refresh-locks")
     public void deprecatedRefreshLockLeases(@Suspended final AsyncResponse response, Set<LockToken> tokens) {
-        addJerseyCallback(
-                Futures.transform(
-                        timelock.refreshLockLeases(tokens),
-                        RefreshLockResponseV2::refreshedTokens,
-                        MoreExecutors.directExecutor()),
-                response);
+        addJerseyCallback(timelock.deprecatedRefreshLockLeases(tokens), response);
     }
 
     @POST

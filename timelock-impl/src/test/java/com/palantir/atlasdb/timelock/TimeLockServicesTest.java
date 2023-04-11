@@ -31,7 +31,7 @@ public class TimeLockServicesTest {
     public void doNotCloseRepeatedInterfaceMultipleTimes() throws IOException {
         LockService lockService = mock(LockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
+        JerseyAsyncTimelockResource asyncTimelockResource = mock(JerseyAsyncTimelockResource.class);
 
         getTimeLockServices(lockService, asyncTimelockService, asyncTimelockResource)
                 .close();
@@ -43,7 +43,7 @@ public class TimeLockServicesTest {
     public void closesCloseableImplementationsOfNotNecessarilyCloseableInterfaces() throws IOException {
         CloseableLockService closeableLockService = mock(CloseableLockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
+        JerseyAsyncTimelockResource asyncTimelockResource = mock(JerseyAsyncTimelockResource.class);
 
         getTimeLockServices(closeableLockService, asyncTimelockService, asyncTimelockResource)
                 .close();
@@ -55,7 +55,7 @@ public class TimeLockServicesTest {
     public void exceptionsWhenClosingDoNotAffectOverallClosure() throws IOException {
         CloseableLockService closeableLockService = mock(CloseableLockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
+        JerseyAsyncTimelockResource asyncTimelockResource = mock(JerseyAsyncTimelockResource.class);
 
         doThrow(new RuntimeException()).when(asyncTimelockService).close();
         doThrow(new RuntimeException()).when(closeableLockService).close();
@@ -70,7 +70,7 @@ public class TimeLockServicesTest {
     private TimeLockServices getTimeLockServices(
             LockService lockService,
             AsyncTimelockService asyncTimelockService,
-            AsyncTimelockResource asyncTimelockResource) {
+            JerseyAsyncTimelockResource asyncTimelockResource) {
         return TimeLockServices.create(
                 asyncTimelockService, lockService, asyncTimelockService, asyncTimelockResource, asyncTimelockService);
     }

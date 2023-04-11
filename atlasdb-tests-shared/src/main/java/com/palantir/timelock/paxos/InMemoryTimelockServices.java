@@ -21,9 +21,9 @@ import com.palantir.atlasdb.factory.TimeLockHelperServices;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
+import com.palantir.atlasdb.timelock.JerseyAsyncTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -206,7 +206,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     @Override
-    public AsyncTimelockResource getTimelockResource() {
+    public JerseyAsyncTimelockResource getTimelockResource() {
         return delegate.getTimelockResource();
     }
 

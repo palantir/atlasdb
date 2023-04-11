@@ -18,9 +18,9 @@ package com.palantir.timelock.paxos;
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
-import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.JerseyAsyncTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -73,8 +73,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
 
-        AsyncTimelockResource asyncTimelockResource =
-                new AsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
+        JerseyAsyncTimelockResource asyncTimelockResource =
+                new JerseyAsyncTimelockResource(maybeEnhancedLockLog, asyncTimelockService);
 
         LockService lockService = leadershipComponents.wrapInLeadershipProxy(
                 client,

@@ -36,7 +36,7 @@ public final class TimeLockResource {
     }
 
     @Path("/timelock")
-    public AsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
+    public JerseyAsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
         return namespaces.get(namespace).getTimelockResource();
     }
 }
