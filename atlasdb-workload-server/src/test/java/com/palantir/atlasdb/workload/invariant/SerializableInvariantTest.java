@@ -35,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SerializableInvariantTest {
+public final class SerializableInvariantTest {
 
     @Mock
     private ReadableTransactionStore readableTransactionStore;
