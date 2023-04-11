@@ -32,7 +32,6 @@ public class TimeLockServicesTest {
     public void doNotCloseRepeatedInterfaceMultipleTimes() throws IOException {
         LockService lockService = mock(LockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        JerseyAsyncTimelockResource asyncTimelockResource = mock(JerseyAsyncTimelockResource.class);
 
         getTimeLockServices(lockService, asyncTimelockService)
                 .close();
