@@ -21,11 +21,6 @@ import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.conjure.java.undertow.annotations.Handle;
 import com.palantir.conjure.java.undertow.annotations.HttpMethod;
-import com.palantir.conjure.java.undertow.annotations.SerializerFactory;
-import com.palantir.conjure.java.undertow.lib.Endpoint;
-import com.palantir.conjure.java.undertow.lib.Serializer;
-import com.palantir.conjure.java.undertow.lib.TypeMarker;
-import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -36,65 +31,23 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Safe;
-import com.palantir.timestamp.TimestampRange;
-import io.undertow.server.HttpServerExchange;
-import io.undertow.util.Headers;
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
-import javax.annotation.meta.When;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-/**
- * This class exists as a simple migration of the synchronous Jersey resources in {@link TimeLockResource}.
- * Notice that {@link AsyncTimelockResource} is excluded; the handling of that class is somewhat more complex.
- *
- * New endpoints should not be added here; instead, they should be defined in Conjure.
- * Namespaces should respect the regular expression (?!(tl|lw)/)[a-zA-Z0-9_-]+. Requests will still be mapped here, but
- * we do not guarantee we will service them.
- */
 @Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
-public final class LegacyAggregatedTimelockResource {
-    private static final long SENTINEL_TIMESTAMP = Long.MIN_VALUE;
-    private static final String SENTINEL_TIMESTAMP_STRING =
-            SENTINEL_TIMESTAMP + ""; // can't use valueOf/toString because we need a compile time constant!
-
+public class LockV1Resource {
     private final TimelockNamespaces namespaces;
 
-    public LegacyAggregatedTimelockResource(TimelockNamespaces namespaces) {
+    public LockV1Resource(TimelockNamespaces namespaces) {
         this.namespaces = namespaces;
-    }
-
-    // Legacy timestamp
-    @POST // This has to be POST because we can't allow caching.
-    @Path("/timestamp/fresh-timestamp")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
-    public long getFreshTimestamp(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getTimestampService().getFreshTimestamp();
-    }
-
-    @POST // This has to be POST because we can't allow caching.
-    @Path("/timestamp/fresh-timestamps")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamps")
-    public TimestampRange getFreshTimestamps(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested) {
-        return namespaces.get(namespace).getTimestampService().getFreshTimestamps(numTimestampsRequested);
     }
 
     // Lock v1
@@ -439,48 +392,5 @@ public final class LegacyAggregatedTimelockResource {
     public LockState getLockState(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockDescriptor lock) {
         return namespaces.get(namespace).getLockService().getLockState(lock);
-    }
-
-    // Timestamp management
-    @POST
-    @Path("timestamp-management/fast-forward")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp-management/fast-forward")
-    public void fastForwardTimestamp(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe
-                    @QueryParam("currentTimestamp")
-                    @DefaultValue(SENTINEL_TIMESTAMP_STRING)
-                    @Handle.QueryParam(value = "currentTimestamp")
-                    Long currentTimestamp) {
-        long timestampToUse = currentTimestamp == null ? SENTINEL_TIMESTAMP : currentTimestamp;
-        namespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(timestampToUse);
-    }
-
-    @GET
-    @Path("timestamp-management/ping")
-    @Produces(MediaType.TEXT_PLAIN)
-    @CheckReturnValue(when = When.NEVER)
-    @Handle(
-            method = HttpMethod.POST,
-            path = "/{namespace}/timestamp-management/fast-forward",
-            produces = TextPlainSerializer.class)
-    public String ping(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService().ping();
-    }
-
-    enum TextPlainSerializer implements SerializerFactory<String> {
-        INSTANCE;
-
-        @Override
-        public <T extends String> Serializer<T> serializer(
-                TypeMarker<T> type, UndertowRuntime runtime, Endpoint endpoint) {
-            return this::serialize;
-        }
-
-        private void serialize(String value, HttpServerExchange exchange) throws IOException {
-            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, MediaType.TEXT_PLAIN);
-            exchange.getOutputStream().write(value.getBytes(StandardCharsets.UTF_8));
-        }
     }
 }
