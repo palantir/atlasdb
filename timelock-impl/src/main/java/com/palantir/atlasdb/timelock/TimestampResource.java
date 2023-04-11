@@ -35,7 +35,6 @@ public final class TimestampResource {
         this.namespaces = timelockNamespaces;
     }
 
-    // Legacy timestamp
     @POST // This has to be POST because we can't allow caching.
     @Path("/timestamp/fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
