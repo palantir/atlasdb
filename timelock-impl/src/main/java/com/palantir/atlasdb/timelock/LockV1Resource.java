@@ -29,6 +29,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.LockService;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.logsafe.Safe;
@@ -63,7 +64,7 @@ public class LockV1Resource {
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return namespaces.get(namespace).getLockService().lockWithFullLockResponse(client, request);
+        return getLockService(namespace).lockWithFullLockResponse(client, request);
     }
 
     @POST
@@ -88,7 +89,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-deprecated")
     public boolean unlock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return namespaces.get(namespace).getLockService().unlock(token);
+        return getLockService(namespace).unlock(token);
     }
 
     @POST
@@ -99,7 +100,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-simple")
     public boolean unlockSimple(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body SimpleHeldLocksToken token) {
-        return namespaces.get(namespace).getLockService().unlockSimple(token);
+        return getLockService(namespace).unlockSimple(token);
     }
 
     @POST
@@ -110,7 +111,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-and-freeze")
     public boolean unlockAndFreeze(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return namespaces.get(namespace).getLockService().unlockAndFreeze(token);
+        return getLockService(namespace).unlockAndFreeze(token);
     }
 
     @POST
@@ -123,7 +124,7 @@ public class LockV1Resource {
     public Set<HeldLocksToken> getTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client) {
-        return namespaces.get(namespace).getLockService().getTokens(client);
+        return getLockService(namespace).getTokens(client);
     }
 
     @POST
@@ -147,7 +148,7 @@ public class LockV1Resource {
     public Set<HeldLocksToken> refreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body Iterable<HeldLocksToken> tokens) {
-        return namespaces.get(namespace).getLockService().refreshTokens(tokens);
+        return getLockService(namespace).refreshTokens(tokens);
     }
 
     @POST
@@ -159,7 +160,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant")
     public HeldLocksGrant refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
-        return namespaces.get(namespace).getLockService().refreshGrant(grant);
+        return getLockService(namespace).refreshGrant(grant);
     }
 
     @POST
@@ -171,7 +172,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant-id")
     public HeldLocksGrant refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
-        return namespaces.get(namespace).getLockService().refreshGrant(grantId);
+        return getLockService(namespace).refreshGrant(grantId);
     }
 
     @POST
@@ -182,7 +183,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/convert-to-grant")
     public HeldLocksGrant convertToGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return namespaces.get(namespace).getLockService().convertToGrant(token);
+        return getLockService(namespace).convertToGrant(token);
     }
 
     @POST
@@ -195,7 +196,7 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body HeldLocksGrant grant) {
-        return namespaces.get(namespace).getLockService().useGrant(client, grant);
+        return getLockService(namespace).useGrant(client, grant);
     }
 
     @POST
@@ -219,7 +220,7 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body BigInteger grantId) {
-        return namespaces.get(namespace).getLockService().useGrant(client, grantId);
+        return getLockService(namespace).useGrant(client, grantId);
     }
 
     @POST
@@ -242,7 +243,7 @@ public class LockV1Resource {
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id")
     public Long getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getLockService().getMinLockedInVersionId();
+        return getLockService(namespace).getMinLockedInVersionId();
     }
 
     @POST
@@ -253,7 +254,7 @@ public class LockV1Resource {
     public Long getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client) {
-        return namespaces.get(namespace).getLockService().getMinLockedInVersionId(client);
+        return getLockService(namespace).getMinLockedInVersionId(client);
     }
 
     @POST
@@ -273,7 +274,7 @@ public class LockV1Resource {
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-server-options")
     public LockServerOptions getLockServerOptions(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getLockService().getLockServerOptions();
+        return getLockService(namespace).getLockServerOptions();
     }
 
     @POST
@@ -283,7 +284,7 @@ public class LockV1Resource {
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/current-time-millis")
     public long currentTimeMillis(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getLockService().currentTimeMillis();
+        return getLockService(namespace).currentTimeMillis();
     }
 
     @POST
@@ -293,7 +294,7 @@ public class LockV1Resource {
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/log-current-state")
     public void logCurrentState(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        namespaces.get(namespace).getLockService().logCurrentState();
+        getLockService(namespace).logCurrentState();
     }
 
     // Remote lock service
@@ -308,7 +309,7 @@ public class LockV1Resource {
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return namespaces.get(namespace).getLockService().lock(client, request);
+        return getLockService(namespace).lock(client, request);
     }
 
     @POST
@@ -333,7 +334,7 @@ public class LockV1Resource {
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return namespaces.get(namespace).getLockService().lockAndGetHeldLocks(client, request);
+        return getLockService(namespace).lockAndGetHeldLocks(client, request);
     }
 
     @POST
@@ -355,7 +356,7 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock")
     public boolean unlock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRefreshToken token) {
-        return namespaces.get(namespace).getLockService().unlock(token);
+        return getLockService(namespace).unlock(token);
     }
 
     @POST
@@ -367,7 +368,7 @@ public class LockV1Resource {
     public Set<LockRefreshToken> refreshLockRefreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body Iterable<LockRefreshToken> tokens) {
-        return namespaces.get(namespace).getLockService().refreshLockRefreshTokens(tokens);
+        return getLockService(namespace).refreshLockRefreshTokens(tokens);
     }
 
     @POST
@@ -380,7 +381,7 @@ public class LockV1Resource {
     public Long getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client) {
-        return namespaces.get(namespace).getLockService().getMinLockedInVersionId(client);
+        return getLockService(namespace).getMinLockedInVersionId(client);
     }
 
     @POST
@@ -391,6 +392,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-debugging-lock-state")
     public LockState getLockState(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockDescriptor lock) {
-        return namespaces.get(namespace).getLockService().getLockState(lock);
+        return getLockService(namespace).getLockState(lock);
+    }
+
+    private LockService getLockService(String namespace) {
+        return namespaces.get(namespace).getLockService();
     }
 }

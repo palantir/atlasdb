@@ -24,6 +24,7 @@ import com.palantir.conjure.java.undertow.lib.Serializer;
 import com.palantir.conjure.java.undertow.lib.TypeMarker;
 import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
 import com.palantir.logsafe.Safe;
+import com.palantir.timestamp.TimestampManagementService;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
@@ -64,7 +65,7 @@ public class TimestampManagementResource {
                     @Handle.QueryParam(value = "currentTimestamp")
                     Long currentTimestamp) {
         long timestampToUse = currentTimestamp == null ? SENTINEL_TIMESTAMP : currentTimestamp;
-        namespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(timestampToUse);
+        getTimestampManagementService(namespace).fastForwardTimestamp(timestampToUse);
     }
 
     @GET
@@ -76,7 +77,11 @@ public class TimestampManagementResource {
             path = "/{namespace}/timestamp-management/fast-forward",
             produces = TextPlainSerializer.class)
     public String ping(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService().ping();
+        return getTimestampManagementService(namespace).ping();
+    }
+
+    private TimestampManagementService getTimestampManagementService(String namespace) {
+        return namespaces.get(namespace).getTimestampManagementService();
     }
 
     enum TextPlainSerializer implements SerializerFactory<String> {
