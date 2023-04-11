@@ -29,7 +29,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
+import java.util.OptionalLong;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
@@ -64,7 +64,7 @@ public class TimestampManagementResource {
                     @QueryParam("currentTimestamp")
                     @DefaultValue(SENTINEL_TIMESTAMP_STRING)
                     @Handle.QueryParam(value = "currentTimestamp")
-                    Optional<Long> currentTimestamp) {
+                    OptionalLong currentTimestamp) {
         long timestampToUse = currentTimestamp.orElse(SENTINEL_TIMESTAMP);
         getTimestampManagementService(namespace).fastForwardTimestamp(timestampToUse);
     }
