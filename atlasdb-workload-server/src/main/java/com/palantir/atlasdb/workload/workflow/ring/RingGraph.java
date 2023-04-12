@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.workload.workflow.ring;
 
 import com.google.common.collect.Iterators;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -51,41 +53,33 @@ public final class RingGraph {
         return new RingGraph(ring);
     }
 
+    /**
+     * Checks that the ring is correct by verifying:
+     * (1) There are no missing entries
+     * (2) There are no sub-cycles
+     * (3) The ring is connected
+     *
+     * This is simply done by iterating over the length of the ring, and validating that we visited each node.
+     * To ensure that the ring is connected, we do not track our entry into the ring (i.e. the first node we visit),
+     * as we expect to have it be visited again as the last node.
+     */
     public Optional<RingError> validate() {
         if (isEmpty()) {
             return Optional.empty();
         }
 
-        return checkForCycleAndMissingEntries();
-    }
-
-    public Map<Integer, Integer> createOrShuffle() {
-        List<Integer> keys = ring.keySet().stream().collect(Collectors.toList());
-        Collections.shuffle(keys);
-        Iterator<Integer> valuesIterator = Iterators.cycle(keys);
-        valuesIterator.next();
-        return keys.stream()
-                .sequential()
-                .collect(Collectors.toMap(Function.identity(), _node -> valuesIterator.next()));
-    }
-
-    /**
-     * Checks that the ring is correct by ensuring we visit every node, including the root, twice.
-     */
-    private Optional<RingError> checkForCycleAndMissingEntries() {
         Integer initialNode = ring.keySet().iterator().next();
-        Integer maxIterations = ring.size() - 1;
         Set<Integer> remainingNodes = new HashSet<>(ring.keySet());
         Optional<Integer> maybeNextNode = ring.get(initialNode);
-        while (maxIterations >= 0) {
-            // If we reference a node that does not exist, it means we are missing data
+        for (int maxIterations = 0; maxIterations <= remainingNodes.size(); maxIterations++) {
+            // If we do not have a next node, we are missing data, as a ring should cycle
             if (maybeNextNode.isEmpty()) {
                 return Optional.of(RingError.missingEntries(ring));
             }
 
             Integer nextNode = maybeNextNode.get();
 
-            // If we reference a node that does not exist, it means we are missing data
+            // If we reference a node that does not exist in our ring, it means we are missing data
             if (!ring.containsKey(nextNode)) {
                 return Optional.of(RingError.missingEntries(ring));
             }
@@ -96,10 +90,36 @@ public final class RingGraph {
             }
 
             maybeNextNode = ring.get(nextNode);
-            maxIterations--;
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Returns a valid new ring with the same nodes but randomly generated edges.
+     */
+    public RingGraph generateNewRing() {
+        List<Integer> keys = ring.keySet().stream().collect(Collectors.toList());
+        Collections.shuffle(keys);
+        Iterator<Integer> valuesIterator = Iterators.cycle(keys);
+        valuesIterator.next();
+        return RingGraph.from(keys.stream()
+                .sequential()
+                .collect(Collectors.toMap(Function.identity(), _node -> valuesIterator.next())));
+    }
+
+    /**
+     * Returns the current map of the ring.
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalStateException When one or more edges are missing from the ring.
+     */
+    public Map<Integer, Integer> asMap() {
+        Preconditions.checkState(
+                !anyEmpty(), "Cannot convert ring to map as some edges are missing", SafeArg.of("ring", ring));
+        return EntryStream.of(ring).mapValues(Optional::get).toMap();
+    }
+
+    private boolean anyEmpty() {
+        return ring.values().stream().anyMatch(Optional::isEmpty);
     }
 
     private boolean isEmpty() {

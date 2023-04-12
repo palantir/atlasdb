@@ -17,12 +17,16 @@
 package com.palantir.atlasdb.workload.workflow.ring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
 public class RingGraphTest {
+
+    private static final Map<Integer, Integer> VALID_RING = Map.of(0, 2, 1, 0, 2, 1);
 
     @Test
     public void validateReturnsOptionalWhenEntireRingEmpty() {
@@ -51,30 +55,42 @@ public class RingGraphTest {
     }
 
     @Test
-    public void validateReturnsBrokenRingErrorWhenRootNodeNotRevisited() {
+    public void validateReturnsCycleErrorWhenRootNodeNotRevisited() {
         Map<Integer, Optional<Integer>> incompleteRing = Map.of(0, Optional.of(1), 1, Optional.of(1));
         assertThat(RingGraph.fromPartial(incompleteRing).validate()).hasValue(RingError.cycle(incompleteRing));
     }
 
     @Test
     public void validateReturnsEmptyForValidRing() {
-        Map<Integer, Integer> validRing = Map.of(0, 2, 1, 0, 2, 1);
-        assertThat(RingGraph.from(validRing).validate()).isEmpty();
+        assertThat(RingGraph.from(VALID_RING).validate()).isEmpty();
     }
 
     @Test
-    public void createOrShuffleReturnsValidRing() {
+    public void generateNewRingReturnsValidRing() {
         RingGraph ring = RingGraph.init(8);
         for (int count = 0; count < 1000; count++) {
-            ring = RingGraph.from(ring.createOrShuffle());
+            ring = ring.generateNewRing();
             assertThat(ring.validate()).isEmpty();
         }
     }
 
     @Test
-    public void createOrShuffleActuallyChangesRing() {
+    public void generateNewRingChangesRing() {
         RingGraph ring = RingGraph.from(Map.of(0, 1, 1, 1));
         assertThat(ring.validate()).isNotEmpty();
-        assertThat(RingGraph.from(ring.createOrShuffle()).validate()).isEmpty();
+        assertThat(ring.generateNewRing().validate()).isEmpty();
+    }
+
+    @Test
+    public void asMapThrowsWhenMissingEdge() {
+        Map<Integer, Optional<Integer>> missingEdge = Map.of(0, Optional.of(1), 1, Optional.empty());
+        assertThatThrownBy(() -> RingGraph.fromPartial(missingEdge).asMap())
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Cannot generate ring to map as some edges are missing");
+    }
+
+    @Test
+    public void asMapConvertsCorrectly() {
+        assertThat(RingGraph.from(VALID_RING).asMap()).isEqualTo(VALID_RING);
     }
 }

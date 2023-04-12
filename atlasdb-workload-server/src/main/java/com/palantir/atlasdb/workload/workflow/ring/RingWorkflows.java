@@ -33,6 +33,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * Runs a workflow which creates a representation of a ring using key-value pairs.
+ * The ring is validated and shuffled after every iteration. If the ring ever becomes invalid (cycles, missing data),
+ * this indicates that there is a bug in our underlying storage infrastructure, as snapshot isolation has been violated.
+ * Snapshot isolation would be violated here, as it indicates that we did not detect a write-write conflict,
+ * as every write will be of a correct ring.
+ */
 public final class RingWorkflows {
 
     private static final SafeLogger log = SafeLoggerFactory.get(RingWorkflows.class);
@@ -66,7 +73,10 @@ public final class RingWorkflows {
                     .validate()
                     .ifPresent(ringError ->
                             log.error("Detected violation with our ring {}", SafeArg.of("ringError", ringError)));
-            ringGraph.createOrShuffle().forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
+            ringGraph
+                    .generateNewRing()
+                    .asMap()
+                    .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
         });
     }
 
