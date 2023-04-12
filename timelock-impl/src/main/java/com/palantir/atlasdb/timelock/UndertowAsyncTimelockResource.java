@@ -51,107 +51,108 @@ public final class UndertowAsyncTimelockResource {
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/fresh-timestamp")
     public ListenableFuture<Long> getFreshTimestamp(@Safe @Handle.PathParam String namespace) {
-        return getTimelockService(namespace).getFreshTimestampAsync();
+        return getAsyncTimelockService(namespace).getFreshTimestampAsync();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/fresh-timestamps")
     public ListenableFuture<TimestampRange> getFreshTimestamps(
             @Safe @Handle.PathParam String namespace,
             @Safe @Handle.QueryParam(value = "number") int numTimestampsRequested) {
-        return getTimelockService(namespace).getFreshTimestampsAsync(numTimestampsRequested);
+        return getAsyncTimelockService(namespace).getFreshTimestampsAsync(numTimestampsRequested);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock-immutable-timestamp")
     public LockImmutableTimestampResponse lockImmutableTimestamp(
             @Safe @Handle.PathParam String namespace, @Handle.Body IdentifiedTimeLockRequest request) {
-        return getTimelockService(namespace).lockImmutableTimestamp(request);
+        return getAsyncTimelockService(namespace).lockImmutableTimestamp(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-atlasdb-transaction")
     public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(
             @Safe @Handle.PathParam String namespace, @Handle.Body IdentifiedTimeLockRequest request) {
-        return getTimelockService(namespace).deprecatedStartTransaction(request);
+        return getAsyncTimelockService(namespace).deprecatedStartTransaction(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
             @Safe @Handle.PathParam String namespace, @Handle.Body StartIdentifiedAtlasDbTransactionRequest request) {
-        return getTimelockService(namespace).startTransaction(request).toStartTransactionResponse();
+        return getAsyncTimelockService(namespace).startTransaction(request).toStartTransactionResponse();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-atlasdb-transaction-v3")
     public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
             @Safe @Handle.PathParam String namespace, @Handle.Body StartIdentifiedAtlasDbTransactionRequest request) {
-        return getTimelockService(namespace).startTransaction(request);
+        return getAsyncTimelockService(namespace).startTransaction(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-atlasdb-transaction-v4")
     public ListenableFuture<StartTransactionResponseV4> startTransactions(
             @Safe @Handle.PathParam String namespace, @Handle.Body StartTransactionRequestV4 request) {
-        return getTimelockService(namespace).startTransactionsAsync(request);
+        return getAsyncTimelockService(namespace).startTransactionsAsync(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/immutable-timestamp")
     public long getImmutableTimestamp(@Safe @Handle.PathParam String namespace) {
-        return getTimelockService(namespace).getImmutableTimestamp();
+        return getAsyncTimelockService(namespace).getImmutableTimestamp();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock")
     public ListenableFuture<LockResponse> deprecatedLock(
             @Safe @Handle.PathParam String namespace, @Handle.Body IdentifiedLockRequest request) {
-        return getTimelockService(namespace).deprecatedLock(request);
+        return getAsyncTimelockService(namespace).deprecatedLock(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock-v2")
     public ListenableFuture<LockResponseV2> lock(
             @Safe @Handle.PathParam String namespace, @Handle.Body IdentifiedLockRequest request) {
-        return getTimelockService(namespace).lock(request);
+        return getAsyncTimelockService(namespace).lock(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/await-locks")
     public ListenableFuture<WaitForLocksResponse> waitForLocks(
             @Safe @Handle.PathParam String namespace, @Handle.Body WaitForLocksRequest request) {
-        return getTimelockService(namespace).waitForLocks(request);
+        return getAsyncTimelockService(namespace).waitForLocks(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/refresh-locks")
     public ListenableFuture<Set<LockToken>> deprecatedRefreshLockLeases(
             @Safe @Handle.PathParam String namespace, @Handle.Body Set<LockToken> tokens) {
-        return getTimelockService(namespace).deprecatedRefreshLockLeases(tokens);
+        return getAsyncTimelockService(namespace).deprecatedRefreshLockLeases(tokens);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/refresh-locks-v2")
     public ListenableFuture<RefreshLockResponseV2> refreshLockLeases(
             @Safe @Handle.PathParam String namespace, @Handle.Body Set<LockToken> tokens) {
-        return getTimelockService(namespace).refreshLockLeases(tokens);
+        return getAsyncTimelockService(namespace).refreshLockLeases(tokens);
     }
 
     @Handle(method = HttpMethod.GET, path = "/{namespace}/timelock/leader-time")
     public ListenableFuture<LeaderTime> getLeaderTime(@Safe @Handle.PathParam String namespace) {
-        return getTimelockService(namespace).leaderTime();
+        return getAsyncTimelockService(namespace).leaderTime();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/unlock")
     public ListenableFuture<Set<LockToken>> unlock(
             @Safe @Handle.PathParam String namespace, @Handle.Body Set<LockToken> tokens) {
-        return getTimelockService(namespace).unlock(tokens);
+        return getAsyncTimelockService(namespace).unlock(tokens);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/current-time-millis")
     public long currentTimeMillis(@Safe @Handle.PathParam String namespace) {
-        return getTimelockService(namespace).currentTimeMillis();
+        return getAsyncTimelockService(namespace).currentTimeMillis();
     }
 
     // TODO(jkong): Remove this once PDS-95791 is resolved.
     @Handle(
             method = HttpMethod.POST,
             path = "/{namespace}/timelock/do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
+    @Deprecated
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
             @Safe @Handle.PathParam String namespace, @Handle.Body Set<UUID> requestIds) {
         return namespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 
-    private AsyncTimelockService getTimelockService(String namespace) {
+    private AsyncTimelockService getAsyncTimelockService(String namespace) {
         return namespaces.get(namespace).getTimelockService();
     }
 }

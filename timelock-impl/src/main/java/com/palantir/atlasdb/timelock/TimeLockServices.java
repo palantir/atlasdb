@@ -51,7 +51,10 @@ public interface TimeLockServices extends AutoCloseable {
 
     TimestampManagementService getTimestampManagementService();
 
-    // Do not use without atlasdb team guidance
+    /**
+     * Do not use without AtlasDB team guidance.
+     */
+    @Deprecated
     LockLog getLockLog();
 
     @Override

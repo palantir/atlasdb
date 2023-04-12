@@ -52,10 +52,10 @@ import javax.ws.rs.core.MediaType;
 @Produces(MediaType.APPLICATION_JSON)
 public class JerseyAsyncTimelockResource {
     private static final ExecutorService asyncResponseExecutor = PTExecutors.newFixedThreadPool(64);
-    private final TimelockNamespaces timelockNamespaces;
+    private final TimelockNamespaces namespaces;
 
-    public JerseyAsyncTimelockResource(TimelockNamespaces timelockNamespaces) {
-        this.timelockNamespaces = timelockNamespaces;
+    public JerseyAsyncTimelockResource(TimelockNamespaces namespaces) {
+        this.namespaces = namespaces;
     }
 
     @POST
@@ -192,7 +192,7 @@ public class JerseyAsyncTimelockResource {
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
             @PathParam("namespace") String namespace, Set<UUID> requestIds) {
-        return timelockNamespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
+        return namespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 
     private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
@@ -213,6 +213,6 @@ public class JerseyAsyncTimelockResource {
     }
 
     private AsyncTimelockService getAsyncTimelockService(String namespace) {
-        return timelockNamespaces.get(namespace).getTimelockService();
+        return namespaces.get(namespace).getTimelockService();
     }
 }
