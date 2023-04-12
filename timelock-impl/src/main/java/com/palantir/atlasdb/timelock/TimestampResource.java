@@ -28,7 +28,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}")
+@Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}") // Only read by Jersey, not by Undertow
 public final class TimestampResource {
     private final TimelockNamespaces namespaces;
 
