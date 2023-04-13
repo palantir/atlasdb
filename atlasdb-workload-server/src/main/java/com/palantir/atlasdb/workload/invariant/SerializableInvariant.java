@@ -38,11 +38,9 @@ public enum SerializableInvariant implements Invariant<List<InvalidWitnessedTran
             WorkflowHistory workflowHistory, Consumer<List<InvalidWitnessedTransaction>> invalidWitnessedTransactions) {
         SerializableInvariantVisitor visitor = new SerializableInvariantVisitor();
         List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
-                .sequential()
                 .mapPartial(witnessedTransaction -> {
                     List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
                                     witnessedTransaction.actions())
-                            .sequential()
                             .mapPartial(action -> action.accept(visitor))
                             .toList();
 

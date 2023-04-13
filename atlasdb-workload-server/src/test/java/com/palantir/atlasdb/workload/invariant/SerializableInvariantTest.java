@@ -19,16 +19,18 @@ package com.palantir.atlasdb.workload.invariant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -42,7 +44,7 @@ public final class SerializableInvariantTest {
 
     @Test
     public void handlesLocalWrites() {
-        AtomicReference<List<InvalidWitnessedTransaction>> invalidTransactions = new AtomicReference<>();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .read(5, 10)
@@ -54,13 +56,13 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::set);
-        assertThat(invalidTransactions.get()).isEmpty();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
     }
 
     @Test
     public void noInvalidTransactionsWhenSerializable() {
-        AtomicReference<List<InvalidWitnessedTransaction>> invalidTransactions = new AtomicReference<>();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -80,13 +82,13 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::set);
-        assertThat(invalidTransactions.get()).isEmpty();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
     }
 
     @Test
     public void catchesWriteSkew() {
-        AtomicReference<List<InvalidWitnessedTransaction>> invalidTransactions = new AtomicReference<>();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -107,22 +109,25 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::set);
-        assertThat(invalidTransactions).hasValueSatisfying(invalidWitnessedTransactions -> {
-            InvalidWitnessedTransaction invalidWitnessedTransaction =
-                    Iterables.getOnlyElement(invalidWitnessedTransactions);
-            assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        InvalidWitnessedTransaction invalidWitnessedTransaction = Iterables.getOnlyElement(invalidTransactions);
 
-            InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                    Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
-            assertThat(invalidWitnessedTransactionAction.mismatchedValue())
-                    .isEqualTo(MismatchedValue.of(Optional.of(15), Optional.of(0)));
-        });
+        assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
+
+        assertThat(invalidWitnessedTransactionAction.action())
+                .isInstanceOfSatisfying(WitnessedReadTransactionAction.class, action -> {
+                    assertThat(action.cell()).isEqualTo(ImmutableWorkloadCell.of(5, 10));
+                    assertThat(action.value()).contains(15);
+                });
+        assertThat(invalidWitnessedTransactionAction.mismatchedValue())
+                .isEqualTo(MismatchedValue.of(Optional.of(15), Optional.of(0)));
     }
 
     @Test
     public void handlesDeletes() {
-        AtomicReference<List<InvalidWitnessedTransaction>> invalidTransactions = new AtomicReference<>();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -141,9 +146,7 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::set);
-        assertThat(invalidTransactions)
-                .hasValueSatisfying(invalidWitnessedTransactions ->
-                        assertThat(invalidWitnessedTransactions).isEmpty());
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
     }
 }

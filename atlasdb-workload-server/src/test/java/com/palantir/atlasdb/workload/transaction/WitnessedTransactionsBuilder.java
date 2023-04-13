@@ -23,6 +23,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransact
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +41,7 @@ public final class WitnessedTransactionsBuilder {
     }
 
     public WitnessedTransactionBuilder startTransaction() {
-        return new WitnessedTransactionBuilder();
+        return new WitnessedTransactionBuilder(timestampCounter.incrementAndGet());
     }
 
     public List<WitnessedTransaction> build() {
@@ -51,6 +52,12 @@ public final class WitnessedTransactionsBuilder {
         private final List<WitnessedTransactionAction> actions = new ArrayList<>();
 
         private boolean needsCommitTimestamp = false;
+
+        private final long startTimestamp;
+
+        public WitnessedTransactionBuilder(long startTimestamp) {
+            this.startTimestamp = startTimestamp;
+        }
 
         public WitnessedTransactionBuilder read(Integer row, Integer column, Optional<Integer> valueRead) {
             actions.add(WitnessedReadTransactionAction.of(table, ImmutableWorkloadCell.of(row, column), valueRead));
@@ -78,9 +85,24 @@ public final class WitnessedTransactionsBuilder {
         }
 
         public WitnessedTransactionsBuilder endTransaction() {
-            long startTimestamp = timestampCounter.incrementAndGet();
             Optional<Long> commitTimestamp =
                     needsCommitTimestamp ? Optional.of(timestampCounter.incrementAndGet()) : Optional.empty();
+            return endTransaction(commitTimestamp);
+        }
+
+        public WitnessedTransactionsBuilder endTransaction(Long commitTimestamp) {
+            return endTransaction(Optional.of(commitTimestamp));
+        }
+
+        public WitnessedTransactionsBuilder endTransaction(Optional<Long> commitTimestamp) {
+            if (needsCommitTimestamp) {
+                Preconditions.checkArgument(
+                        commitTimestamp.isPresent(),
+                        "Commit timestamp must be provided when the transaction has any writes or deletes.");
+                Preconditions.checkArgument(
+                        startTimestamp < commitTimestamp.get(),
+                        "Commit timestamp must be greater than the start timestamp.");
+            }
             witnessedTransactions.add(ImmutableWitnessedTransaction.builder()
                     .startTimestamp(startTimestamp)
                     .actions(actions)
