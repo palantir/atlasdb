@@ -229,8 +229,8 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
                 + " FROM " + prefixedTableName() + " m "
                 + (bounds.isEmpty() ? "" : " WHERE  " + Joiner.on(" AND ").join(bounds))
                 + " ORDER BY m.row_name " + (range.isReverse() ? "DESC" : "ASC")
-                + " LIMIT " + maxRows;
-        return new FullQuery(query).withArgs(args);
+                + " LIMIT ?";
+        return new FullQuery(query).withArgs(args).withArg(maxRows);
     }
 
     @Override
@@ -319,16 +319,17 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
                 + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
                 + (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "")
                 + " GROUP BY m.row_name, m.col_name"
-                + " ORDER BY m.col_name ASC LIMIT " + columnRangeSelection.getBatchHint();
+                + " ORDER BY m.col_name ASC LIMIT ?";
         FullQuery fullQuery = new FullQuery(wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE", query, true))
                 .withArg(row)
                 .withArg(ts);
         if (columnRangeSelection.getStartCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
+            fullQuery.withArg(columnRangeSelection.getStartCol());
         }
         if (columnRangeSelection.getEndCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
+            fullQuery.withArg(columnRangeSelection.getEndCol());
         }
+        fullQuery.withArg(columnRangeSelection.getBatchHint());
         return fullQuery;
     }
 

@@ -195,8 +195,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
             appendRangePredicates(singleRow, queryBuilder);
             return queryBuilder
                     .append("  ORDER BY row_name, col_name, ts")
-                    .append(") WHERE rownum <= ")
-                    .append(sqlRowLimit)
+                    .append(") WHERE rownum <= ?", sqlRowLimit)
                     .append(" ORDER BY row_name, col_name, ts")
                     .build();
         }
