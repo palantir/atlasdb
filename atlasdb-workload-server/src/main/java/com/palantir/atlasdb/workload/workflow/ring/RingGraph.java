@@ -84,7 +84,7 @@ public final class RingGraph {
                 return Optional.of(RingError.missingEntries(ring));
             }
 
-            // If the node already has been visited, it means we're in a cycle
+            // If the node already has been visited, it means we're in a cycle within our ring
             if (!remainingNodes.remove(nextNode)) {
                 return Optional.of(RingError.cycle(ring));
             }
