@@ -25,6 +25,7 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.workload.store.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.store.ValidationStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
