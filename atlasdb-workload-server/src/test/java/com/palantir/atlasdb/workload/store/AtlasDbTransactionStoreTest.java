@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.store;
 
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.INDEX_REFERENCE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLES_TO_ATLAS_METADATA;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1_INDEX_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_REFERENCE;
@@ -35,7 +36,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -65,12 +65,6 @@ public final class AtlasDbTransactionStoreTest {
     private static final long START_TS = 1;
     private static final long COMMIT_TS = 2;
 
-    private static final Map<TableReference, byte[]> TABLES = Map.of(
-            TABLE_REFERENCE,
-            AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
-            INDEX_REFERENCE,
-            AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE));
-
     private TransactionManager manager;
 
     private AtlasDbTransactionStore store;
@@ -78,7 +72,7 @@ public final class AtlasDbTransactionStoreTest {
     @Before
     public void before() {
         manager = TransactionManagers.createInMemory(Set.of());
-        store = AtlasDbTransactionStore.create(manager, TABLES);
+        store = AtlasDbTransactionStore.create(manager, TABLES_TO_ATLAS_METADATA);
     }
 
     @Test
@@ -162,7 +156,8 @@ public final class AtlasDbTransactionStoreTest {
         Transaction abortedTransaction = mock(Transaction.class);
         when(abortedTransaction.isAborted()).thenReturn(true);
         doReturn(abortedTransaction).when(onlyAbortsManager).runTaskWithConditionWithRetry(any(Supplier.class), any());
-        AtlasDbTransactionStore onlyAbortsStore = AtlasDbTransactionStore.create(onlyAbortsManager, TABLES);
+        AtlasDbTransactionStore onlyAbortsStore =
+                AtlasDbTransactionStore.create(onlyAbortsManager, TABLES_TO_ATLAS_METADATA);
         assertThat(onlyAbortsStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isEmpty();
     }
