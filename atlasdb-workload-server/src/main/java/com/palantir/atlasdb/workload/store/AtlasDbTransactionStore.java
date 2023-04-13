@@ -67,7 +67,7 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
         return readWrite(txn -> {
             AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
-            actions.stream().sequential().forEach(action -> action.accept(visitor));
+            actions.forEach(action -> action.accept(visitor));
         });
     }
 

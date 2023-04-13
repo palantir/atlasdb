@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 public interface InteractiveTransactionStore extends TransactionStore {
     /**
-     * Provides a convenient interface for interacting with a transaction, and having each action automatically recorded.
+     * Provides a convenient interface for interacting with a transaction, and having each action recorded.
      * @param interactiveTransactionConsumer Consumer which performs gets/puts/deletes
      * @return The witnessed transaction, if successfully committed.
      */

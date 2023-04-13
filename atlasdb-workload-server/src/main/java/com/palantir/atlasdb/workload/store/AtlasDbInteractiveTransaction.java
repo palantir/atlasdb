@@ -101,7 +101,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
         return Optional.ofNullable(tables.get(table))
                 .orElseThrow(() -> new SafeIllegalArgumentException(
                         "Transaction action has unknown table.",
-                        SafeArg.of("readTransactionTableName", table),
+                        SafeArg.of("tableName", table),
                         SafeArg.of("availableTables", tables)));
     }
 

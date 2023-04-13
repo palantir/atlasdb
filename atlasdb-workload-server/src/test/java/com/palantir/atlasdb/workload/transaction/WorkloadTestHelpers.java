@@ -45,7 +45,7 @@ public final class WorkloadTestHelpers {
             TABLE_REFERENCE,
             AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
             INDEX_REFERENCE,
-            AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE));
+            AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE_INDEX));
 
     public static final Namespace NAMESPACE = Namespace.create("workload");
     public static final WorkloadCell WORKLOAD_CELL_ONE = ImmutableWorkloadCell.of(50, 10);
