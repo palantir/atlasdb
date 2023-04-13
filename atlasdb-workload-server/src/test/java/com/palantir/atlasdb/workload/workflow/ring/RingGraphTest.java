@@ -86,7 +86,7 @@ public class RingGraphTest {
         Map<Integer, Optional<Integer>> missingEdge = Map.of(0, Optional.of(1), 1, Optional.empty());
         assertThatThrownBy(() -> RingGraph.fromPartial(missingEdge).asMap())
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Cannot generate ring to map as some edges are missing");
+                .hasMessageContaining("Cannot convert ring to map as some edges are missing");
     }
 
     @Test

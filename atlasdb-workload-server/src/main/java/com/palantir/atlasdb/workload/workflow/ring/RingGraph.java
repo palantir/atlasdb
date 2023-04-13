@@ -70,8 +70,9 @@ public final class RingGraph {
 
         Integer initialNode = ring.keySet().iterator().next();
         Set<Integer> remainingNodes = new HashSet<>(ring.keySet());
+        int maxIterations = ring.keySet().size();
         Optional<Integer> maybeNextNode = ring.get(initialNode);
-        for (int maxIterations = 0; maxIterations <= remainingNodes.size(); maxIterations++) {
+        for (int iterations = 0; iterations < maxIterations; iterations++) {
             // If we do not have a next node, we are missing data, as a ring should cycle
             if (maybeNextNode.isEmpty()) {
                 return Optional.of(RingError.missingEntries(ring));
