@@ -110,7 +110,8 @@ public final class RingGraph {
 
     /**
      * Returns the current map of the ring.
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalStateException When one or more edges are missing from the ring.
+     * @throws com.palantir.logsafe.exceptions.SafeIllegalStateException When one or more edges are
+     * missing from the ring.
      */
     public Map<Integer, Integer> asMap() {
         Preconditions.checkState(
