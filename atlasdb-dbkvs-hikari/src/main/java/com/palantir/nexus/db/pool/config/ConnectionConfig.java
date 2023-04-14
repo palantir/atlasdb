@@ -58,10 +58,7 @@ public abstract class ConnectionConfig {
 
     public abstract String getDriverClass();
 
-    @Value.Default
-    public String getTestQuery() {
-        return "";
-    }
+    public abstract Optional<String> getTestQuery();
 
     @JsonIgnore
     @Value.Derived
@@ -185,8 +182,8 @@ public abstract class ConnectionConfig {
 
         initializeFailTimeoutMillis().ifPresent(config::setInitializationFailTimeout);
 
-        if (!getTestQuery().isEmpty()) {
-            config.setConnectionTestQuery(getTestQuery());
+        if (getTestQuery().isPresent()) {
+            config.setConnectionTestQuery(getTestQuery().get());
         }
 
         if (getSqlExceptionOverrideClass().isPresent()) {
