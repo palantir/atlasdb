@@ -16,31 +16,44 @@
 
 package com.palantir.atlasdb.workload.runner;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowGroup;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowRunner;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
+import java.util.Map;
+import one.util.streamex.StreamEx;
 
-public enum AntithesisWorkflowRunner implements WorkflowRunner<Workflow> {
-    INSTANCE;
-
+public final class AntithesisWorkflowRunner implements WorkflowRunner<Workflow> {
     private static final SafeLogger log = SafeLoggerFactory.get(AntithesisWorkflowRunner.class);
+    private final ListeningExecutorService listeningExecutorService;
+
+    public AntithesisWorkflowRunner(ListeningExecutorService listeningExecutorService) {
+        this.listeningExecutorService = listeningExecutorService;
+    }
 
     @Override
-    public void run(Workflow workflow, List<InvariantReporter<?>> invariants) {
-        WorkflowHistory workflowHistory = workflow.run();
+    public void run(List<WorkflowGroup<Workflow>> workflowGroups) {
+        Map<ListenableFuture<WorkflowHistory>, List<InvariantReporter<?>>> workflowGroupFutures = StreamEx.of(
+                        workflowGroups)
+                .mapToEntry(WorkflowGroup::workflow, WorkflowGroup::invariants)
+                .mapKeys(workflow -> listeningExecutorService.submit(workflow::run))
+                .toMap();
+
         log.info("antithesis: stop_faults");
-        invariants.forEach(reporter -> {
+        workflowGroupFutures.forEach((workflowHistory, invariants) -> invariants.forEach(reporter -> {
             try {
                 reporter.report(workflowHistory);
             } catch (RuntimeException e) {
                 log.error("Caught an exception when running and reporting an invariant.", e);
             }
-        });
-        log.info("Dumping transaction log {}", SafeArg.of("transactionLog", workflowHistory.history()));
+            log.info("Dumping transaction log {}", SafeArg.of("transactionLog", workflowHistory.history()));
+        }));
     }
 }

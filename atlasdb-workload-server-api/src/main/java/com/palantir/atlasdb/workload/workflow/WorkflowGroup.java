@@ -16,14 +16,20 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import java.util.List;
+import org.immutables.value.Value;
 
-/**
- * Run the provided workflow and execute the provided invariant reporters.
- *
- * The idea of this class is that long-term we will want to have multiple ways to run/execute workflows,
- * rather than biasing towards the present case (just once).
- */
-public interface WorkflowRunner<WorkflowTypeT extends Workflow> {
-    void run(List<WorkflowGroup<Workflow>> workflowGroups);
+@Value.Immutable
+public interface WorkflowGroup<WorkflowTypeT extends Workflow> {
+    @Value.Parameter
+    WorkflowTypeT workflow();
+
+    @Value.Parameter
+    List<InvariantReporter<?>> invariants();
+
+    static <WorkflowTypeT extends Workflow> WorkflowGroup<WorkflowTypeT> of(
+            WorkflowTypeT workflow, List<InvariantReporter<?>> invariants) {
+        return ImmutableWorkflowGroup.of(workflow, invariants);
+    }
 }
