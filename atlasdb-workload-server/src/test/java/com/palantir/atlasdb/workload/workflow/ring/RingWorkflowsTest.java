@@ -73,7 +73,7 @@ public class RingWorkflowsTest {
     public void workflowHistoryTransactionStoreShouldBeReadOnly() {
         WorkflowHistory history = workflow.run();
         assertThat(history.transactionStore())
-                .as("should return a read only tranasction store")
+                .as("should return a read only transaction store")
                 .isInstanceOf(ReadOnlyTransactionStore.class);
     }
 
@@ -115,6 +115,7 @@ public class RingWorkflowsTest {
 
     @Test
     public void ringWorkflowSetsSkipRunningToTrueWhenInvalidRingPresent() {
+        assertThat(skipRunning).isFalse();
         memoryStore.readWrite(txn -> txn.write(TABLE_NAME, RingWorkflows.cell(0), 99));
         workflow.run();
         assertThat(skipRunning).isTrue();
