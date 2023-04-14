@@ -1,11 +1,10 @@
-FROM amazoncorretto:11-alpine3.17-jdk
-
+FROM adoptopenjdk/openjdk11:jdk-11.0.11_9-debian
 MAINTAINER AtlasDB Team
 
 ENV DOCKERIZE_VERSION v0.2.0
 
 # Bash is useful for monitoring; curl is used by our healthchecks.
-RUN apk update && apk add bash curl procps wget \
+RUN apt-get update && apt-get -y install bash curl procps wget \
     && wget --no-check-certificate http://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
