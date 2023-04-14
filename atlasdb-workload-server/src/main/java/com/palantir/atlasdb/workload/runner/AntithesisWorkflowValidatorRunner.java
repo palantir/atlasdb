@@ -54,15 +54,17 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
         }
     }
 
-    private void checkAndReportInvariantViolations(WorkflowHistoryValidator group) {
-        group.invariants().forEach(invariantReporter -> {
+    private void checkAndReportInvariantViolations(WorkflowHistoryValidator validator) {
+        validator.invariants().forEach(invariantReporter -> {
             try {
-                invariantReporter.report(group.history());
+                invariantReporter.report(validator.history());
             } catch (RuntimeException e) {
                 log.error("Caught an exception when running and reporting an invariant.", e);
             }
         });
-        log.info("Dumping transaction log {}", SafeArg.of("transactionLog", group.history()));
+        log.info(
+                "Dumping transaction log {}",
+                SafeArg.of("transactionLog", validator.history().history()));
     }
 
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(

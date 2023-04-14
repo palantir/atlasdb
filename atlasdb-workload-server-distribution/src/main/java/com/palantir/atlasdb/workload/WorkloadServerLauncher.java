@@ -32,6 +32,7 @@ import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
+import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
@@ -110,7 +111,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         }
     }
 
-    private WorkflowValidator createSingleRowTwoCellsWorkflowValidator(
+    private WorkflowValidator<Workflow> createSingleRowTwoCellsWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleRowTwoCellsWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
