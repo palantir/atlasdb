@@ -110,6 +110,7 @@ public class AntithesisWorkflowValidatorRunnerTest {
 
         new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
 
+        assertThat(semaphore.availablePermits()).isEqualTo(2);
         verify(workflow, times(1)).run();
         verify(slowWorkflow, times(1)).run();
         verify(invariantReporterOne, times(2)).report(any());
