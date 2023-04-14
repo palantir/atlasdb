@@ -34,10 +34,12 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.atlasdb.workload.workflow.ImmutableTableConfiguration;
+import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -59,11 +61,17 @@ public class RingWorkflowsTest {
                     TableReference.createWithEmptyNamespace(TABLE_NAME),
                     AtlasDbUtils.tableMetadata(IsolationLevel.SERIALIZABLE)));
 
+    private final AtomicBoolean skipRunning = new AtomicBoolean(false);
+
+    private final Workflow workflow = RingWorkflows.create(
+            memoryStore,
+            CONFIGURATION,
+            MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)),
+            skipRunning);
+
     @Test
     public void workflowHistoryTransactionStoreShouldBeReadOnly() {
-        WorkflowHistory history = RingWorkflows.create(
-                        memoryStore, CONFIGURATION, MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)))
-                .run();
+        WorkflowHistory history = workflow.run();
         assertThat(history.transactionStore())
                 .as("should return a read only tranasction store")
                 .isInstanceOf(ReadOnlyTransactionStore.class);
@@ -71,9 +79,7 @@ public class RingWorkflowsTest {
 
     @Test
     public void ringWorkflowContainsInitialReadsForRing() {
-        WorkflowHistory history = RingWorkflows.create(
-                        memoryStore, CONFIGURATION, MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)))
-                .run();
+        WorkflowHistory history = workflow.run();
 
         List<WitnessedTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
@@ -88,9 +94,7 @@ public class RingWorkflowsTest {
 
     @Test
     public void ringWorkflowContainsInitialWritesForRing() {
-        WorkflowHistory history = RingWorkflows.create(
-                        memoryStore, CONFIGURATION, MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)))
-                .run();
+        WorkflowHistory history = workflow.run();
 
         List<WitnessedTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
@@ -107,5 +111,18 @@ public class RingWorkflowsTest {
                 .collect(Collectors.toList());
 
         assertThat(actualWrittenCells).containsAll(expectedWrittenCells);
+    }
+
+    @Test
+    public void ringWorkflowSetsSkipRunningToTrueWhenInvalidRingPresent() {
+        memoryStore.readWrite(txn -> txn.write(TABLE_NAME, RingWorkflows.cell(0), 99));
+        workflow.run();
+        assertThat(skipRunning).isTrue();
+    }
+
+    @Test
+    public void ringWorkflowDoesNotWitnessTransactionWhenSkipRunningSetToTrue() {
+        skipRunning.set(true);
+        assertThat(workflow.run().history()).isEmpty();
     }
 }

@@ -102,9 +102,8 @@ public final class RingGraph {
         Collections.shuffle(keys);
         Iterator<Integer> valuesIterator = Iterators.cycle(keys);
         valuesIterator.next();
-        return new RingGraph(keys.stream()
-                .sequential()
-                .collect(Collectors.toMap(Function.identity(), _node -> valuesIterator.next())));
+        return new RingGraph(
+                keys.stream().collect(Collectors.toMap(Function.identity(), _node -> valuesIterator.next())));
     }
 
     public Map<Integer, Integer> asMap() {

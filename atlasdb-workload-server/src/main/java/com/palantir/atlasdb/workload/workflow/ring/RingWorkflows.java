@@ -53,10 +53,11 @@ public final class RingWorkflows {
     public static Workflow create(
             InteractiveTransactionStore store,
             RingWorkflowConfiguration ringWorkflowConfiguration,
-            ListeningExecutorService executionExecutor) {
+            ListeningExecutorService executionExecutor,
+            AtomicBoolean skipRunning) {
         return DefaultWorkflow.create(
                 store,
-                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, new AtomicBoolean(false)),
+                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, skipRunning),
                 ringWorkflowConfiguration,
                 executionExecutor);
     }
@@ -81,8 +82,9 @@ public final class RingWorkflows {
                         .asMap()
                         .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
             } catch (IllegalArgumentException e) {
-                skipRunning.set(true);
-                log.error("Detected violation with our ring.", e);
+                if (skipRunning.compareAndSet(false, true)) {
+                    log.error("Detected violation with our ring.", e);
+                }
             }
         });
     }
