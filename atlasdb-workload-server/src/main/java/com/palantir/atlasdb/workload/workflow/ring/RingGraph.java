@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.workflow.ring;
 import com.google.common.collect.Iterators;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -83,7 +84,7 @@ public final class RingGraph {
 
             // If the node already has been visited, it means we're in a cycle within our ring
             if (!remainingNodes.remove(nextNode)) {
-                RingValidationException.throwCycle(ring);
+                RingValidationException.throwEarlyCycle(ring);
             }
 
             nextNode = ring.get(nextNode);
@@ -98,7 +99,7 @@ public final class RingGraph {
      * Returns a valid new ring with the same nodes but randomly generated edges.
      */
     private static RingGraph generateNewRing(Set<Integer> nodes) {
-        List<Integer> keys = nodes.stream().collect(Collectors.toList());
+        List<Integer> keys = new ArrayList<>(nodes);
         Collections.shuffle(keys);
         Iterator<Integer> valuesIterator = Iterators.cycle(keys);
         valuesIterator.next();

@@ -43,8 +43,8 @@ public final class RingValidationException extends IllegalArgumentException impl
         return List.of(SafeArg.of("ring", ring), SafeArg.of("type", type));
     }
 
-    public static void throwCycle(Map<Integer, Integer> ring) throws RingValidationException {
-        throw new RingValidationException(ring, Type.CYCLE);
+    public static void throwEarlyCycle(Map<Integer, Integer> ring) throws RingValidationException {
+        throw new RingValidationException(ring, Type.EARLY_CYCLE);
     }
 
     public static void throwMissingEntries(Map<Integer, Integer> ring) throws RingValidationException {
@@ -52,7 +52,12 @@ public final class RingValidationException extends IllegalArgumentException impl
     }
 
     enum Type {
-        CYCLE,
+        // Detected a cycle in our ring before visiting all nodes,
+        // indicating the integrity of our ring has been compromised.
+        EARLY_CYCLE,
+
+        // Detected a reference to a node that does not exist,
+        // indicating the integrity of our ring has been compromised.
         MISSING_ENTRIES;
     }
 }

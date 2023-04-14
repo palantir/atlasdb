@@ -50,7 +50,7 @@ public class RingWorkflowsTest {
     private static final RingWorkflowConfiguration CONFIGURATION = ImmutableRingWorkflowConfiguration.builder()
             .tableConfiguration(ImmutableTableConfiguration.builder()
                     .tableName(TABLE_NAME)
-                    .isolationLevel(IsolationLevel.SERIALIZABLE)
+                    .isolationLevel(IsolationLevel.SNAPSHOT)
                     .build())
             .iterationCount(1)
             .build();
@@ -59,7 +59,7 @@ public class RingWorkflowsTest {
             TransactionManagers.createInMemory(ImmutableSet.of()),
             ImmutableMap.of(
                     TableReference.createWithEmptyNamespace(TABLE_NAME),
-                    AtlasDbUtils.tableMetadata(IsolationLevel.SERIALIZABLE)));
+                    AtlasDbUtils.tableMetadata(IsolationLevel.SNAPSHOT)));
 
     private final AtomicBoolean skipRunning = new AtomicBoolean(false);
 

@@ -20,6 +20,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Map;
@@ -28,17 +29,17 @@ import org.junit.Test;
 
 public final class RingGraphTest {
 
-    private static final Map<Integer, Integer> VALID_RING = Map.of(0, 2, 1, 0, 2, 1);
+    private static final Map<Integer, Integer> VALID_RING = ImmutableMap.of(0, 2, 1, 0, 2, 1);
 
     @Test
     public void fromPartialGeneratesRandomRingWhenAllKeysEmpty() {
-        Map<Integer, Optional<Integer>> emptyEdges = Map.of(1, Optional.empty(), 2, Optional.empty());
+        Map<Integer, Optional<Integer>> emptyEdges = ImmutableMap.of(1, Optional.empty(), 2, Optional.empty());
         assertThatCode(() -> RingGraph.fromPartial(emptyEdges)).doesNotThrowAnyException();
     }
 
     @Test
     public void fromPartialThrowsWhenSomeEntriesAreEmpty() {
-        Map<Integer, Optional<Integer>> partiallyEmptyRing = Map.of(0, Optional.of(1), 1, Optional.empty());
+        Map<Integer, Optional<Integer>> partiallyEmptyRing = ImmutableMap.of(0, Optional.of(1), 1, Optional.empty());
         assertThatLoggableExceptionThrownBy(() -> RingGraph.fromPartial(partiallyEmptyRing))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Graph contains missing entries, thus cannot be made into a ring.")
@@ -47,7 +48,7 @@ public final class RingGraphTest {
 
     @Test
     public void fromThrowsMissingEntriesWhenNodeReferencedDoesNotExist() {
-        Map<Integer, Integer> missingNodesRing = Map.of(0, 2, 1, 0);
+        Map<Integer, Integer> missingNodesRing = ImmutableMap.of(0, 2, 1, 0);
         assertThatLoggableExceptionThrownBy(() -> RingGraph.from(missingNodesRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
@@ -57,25 +58,27 @@ public final class RingGraphTest {
 
     @Test
     public void fromThrowsCycleExceptionWhenUnableToReachEveryNode() {
-        Map<Integer, Integer> incompleteRing = Map.of(0, 1, 1, 1, 2, 0);
+        Map<Integer, Integer> incompleteRing = ImmutableMap.of(0, 1, 1, 1, 2, 0);
         assertThatLoggableExceptionThrownBy(() -> RingGraph.from(incompleteRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
-                        SafeArg.of("type", RingValidationException.Type.CYCLE), SafeArg.of("ring", incompleteRing));
+                        SafeArg.of("type", RingValidationException.Type.EARLY_CYCLE),
+                        SafeArg.of("ring", incompleteRing));
     }
 
     @Test
-    public void fromThrowsCycleExceptionWhenRootNodeNotRevisited() {
-        Map<Integer, Integer> incompleteRing = Map.of(0, 1, 1, 1);
+    public void fromThrowsCycleExceptionWhenEntryNodeNotRevisited() {
+        Map<Integer, Integer> incompleteRing = ImmutableMap.of(0, 1, 1, 1);
         assertThatLoggableExceptionThrownBy(() -> RingGraph.from(incompleteRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
-                        SafeArg.of("type", RingValidationException.Type.CYCLE), SafeArg.of("ring", incompleteRing));
+                        SafeArg.of("type", RingValidationException.Type.EARLY_CYCLE),
+                        SafeArg.of("ring", incompleteRing));
     }
 
     @Test
-    public void fromReturnsRandomlyGeneratedRingForEmptyRing() {
-        RingGraph ringGraph = RingGraph.from(VALID_RING);
+    public void generateNewRingCreatesDifferentRing() {
+        RingGraph ringGraph = RingGraph.create(8);
         boolean uniqueAtLeastOnce = false;
         for (int iteration = 0; iteration < 10; iteration++) {
             if (!ringGraph.generateNewRing().asMap().equals(ringGraph.asMap())) {
@@ -94,11 +97,6 @@ public final class RingGraphTest {
         for (int count = 0; count < 1000; count++) {
             assertThatCode(() -> RingGraph.from(ring.generateNewRing().asMap())).doesNotThrowAnyException();
         }
-    }
-
-    @Test
-    public void generateNewRingChangesRing() {
-        RingGraph.from(VALID_RING);
     }
 
     @Test
