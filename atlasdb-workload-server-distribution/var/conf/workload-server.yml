@@ -10,4 +10,10 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: singleRowTwoCells
+  ringConfig:
+    tableConfiguration:
+      tableName: ring-test
+      isolationLevel: SNAPSHOT
+    iterationCount: 1000
+    type: ring
   exitAfterRunning: true

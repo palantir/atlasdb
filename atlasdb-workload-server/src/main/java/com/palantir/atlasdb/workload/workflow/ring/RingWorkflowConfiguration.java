@@ -20,14 +20,13 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.atlasdb.workload.workflow.ImmutableSingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.TableConfiguration;
 import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
+@JsonSerialize(as = ImmutableRingWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableRingWorkflowConfiguration.class)
 @JsonTypeName(RingWorkflowConfiguration.TYPE)
 public interface RingWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "ring";
