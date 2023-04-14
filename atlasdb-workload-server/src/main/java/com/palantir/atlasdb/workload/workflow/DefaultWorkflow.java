@@ -50,7 +50,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
             KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration configuration,
             ListeningExecutorService executionExecutor) {
-        return new DefaultWorkflow<T>(
+        return new DefaultWorkflow<>(
                 new ConcurrentTransactionRunner<>(store, executionExecutor),
                 transactionTask,
                 configuration,

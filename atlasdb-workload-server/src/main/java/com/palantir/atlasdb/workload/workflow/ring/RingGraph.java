@@ -28,29 +28,36 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import one.util.streamex.EntryStream;
-import one.util.streamex.IntStreamEx;
 
 public final class RingGraph {
-    private final Map<Integer, Optional<Integer>> ring;
+    private final Map<Integer, Integer> ring;
 
-    private RingGraph(Map<Integer, Optional<Integer>> ring) {
+    private RingGraph(Map<Integer, Integer> ring) {
         this.ring = ring;
     }
 
-    public static RingGraph init(int size) {
-        return new RingGraph(IntStreamEx.range(size)
-                .boxed()
-                .mapToEntry(_value -> Optional.<Integer>empty())
-                .toMap());
-    }
-
-    public static RingGraph from(Map<Integer, Integer> ring) {
-        return new RingGraph(EntryStream.of(ring).mapValues(Optional::of).toMap());
-    }
-
-    public static RingGraph fromPartial(Map<Integer, Optional<Integer>> ring) {
+    public static RingGraph from(Map<Integer, Integer> ring) throws RingValidationException {
+        validateGraphIsRing(ring);
         return new RingGraph(ring);
+    }
+
+    public static RingGraph fromPartial(Map<Integer, Optional<Integer>> ring) throws RingValidationException {
+        if (isEmpty(ring)) {
+            return RingGraph.generateNewRing(ring.keySet());
+        }
+
+        Preconditions.checkArgument(
+                !anyEmpty(ring),
+                "Graph contains missing entries, thus cannot be made into a ring.",
+                SafeArg.of("ring", ring));
+
+        return from(EntryStream.of(ring).mapValues(Optional::get).toMap());
+    }
+
+    public static RingGraph create(int size) {
+        return generateNewRing(IntStream.range(0, size).boxed().collect(Collectors.toSet()));
     }
 
     /**
@@ -63,68 +70,52 @@ public final class RingGraph {
      * To ensure that the ring is connected, we do not track our entry into the ring (i.e. the first node we visit),
      * as we expect to have it be visited again as the last node.
      */
-    public Optional<RingError> validate() {
-        if (isEmpty()) {
-            return Optional.empty();
-        }
-
+    public static void validateGraphIsRing(Map<Integer, Integer> ring) throws RingValidationException {
         Integer initialNode = ring.keySet().iterator().next();
         Set<Integer> remainingNodes = new HashSet<>(ring.keySet());
         int maxIterations = ring.keySet().size();
-        Optional<Integer> maybeNextNode = ring.get(initialNode);
+        Integer nextNode = ring.get(initialNode);
         for (int iterations = 0; iterations < maxIterations; iterations++) {
-            // If we do not have a next node, we are missing data, as a ring should cycle
-            if (maybeNextNode.isEmpty()) {
-                return Optional.of(RingError.missingEntries(ring));
-            }
-
-            Integer nextNode = maybeNextNode.get();
-
             // If we reference a node that does not exist in our ring, it means we are missing data
             if (!ring.containsKey(nextNode)) {
-                return Optional.of(RingError.missingEntries(ring));
+                RingValidationException.throwMissingEntries(ring);
             }
 
             // If the node already has been visited, it means we're in a cycle within our ring
             if (!remainingNodes.remove(nextNode)) {
-                return Optional.of(RingError.cycle(ring));
+                RingValidationException.throwCycle(ring);
             }
 
-            maybeNextNode = ring.get(nextNode);
+            nextNode = ring.get(nextNode);
         }
+    }
 
-        return Optional.empty();
+    public RingGraph generateNewRing() {
+        return generateNewRing(ring.keySet());
     }
 
     /**
      * Returns a valid new ring with the same nodes but randomly generated edges.
      */
-    public RingGraph generateNewRing() {
-        List<Integer> keys = ring.keySet().stream().collect(Collectors.toList());
+    private static RingGraph generateNewRing(Set<Integer> nodes) {
+        List<Integer> keys = nodes.stream().collect(Collectors.toList());
         Collections.shuffle(keys);
         Iterator<Integer> valuesIterator = Iterators.cycle(keys);
         valuesIterator.next();
-        return RingGraph.from(keys.stream()
+        return new RingGraph(keys.stream()
                 .sequential()
                 .collect(Collectors.toMap(Function.identity(), _node -> valuesIterator.next())));
     }
 
-    /**
-     * Returns the current map of the ring.
-     * @throws com.palantir.logsafe.exceptions.SafeIllegalStateException When one or more edges are
-     * missing from the ring.
-     */
     public Map<Integer, Integer> asMap() {
-        Preconditions.checkState(
-                !anyEmpty(), "Cannot convert ring to map as some edges are missing", SafeArg.of("ring", ring));
-        return EntryStream.of(ring).mapValues(Optional::get).toMap();
+        return ring;
     }
 
-    private boolean anyEmpty() {
-        return ring.values().stream().anyMatch(Optional::isEmpty);
-    }
-
-    private boolean isEmpty() {
+    private static boolean isEmpty(Map<Integer, Optional<Integer>> ring) {
         return ring.values().stream().allMatch(Optional::isEmpty);
+    }
+
+    private static boolean anyEmpty(Map<Integer, Optional<Integer>> ring) {
+        return ring.values().stream().anyMatch(Optional::isEmpty);
     }
 }

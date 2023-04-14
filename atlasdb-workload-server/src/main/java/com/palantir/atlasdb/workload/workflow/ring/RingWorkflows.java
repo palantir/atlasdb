@@ -24,11 +24,11 @@ import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
 import com.palantir.atlasdb.workload.workflow.Workflow;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -56,27 +56,34 @@ public final class RingWorkflows {
             ListeningExecutorService executionExecutor) {
         return DefaultWorkflow.create(
                 store,
-                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration),
+                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, new AtomicBoolean(false)),
                 ringWorkflowConfiguration,
                 executionExecutor);
     }
 
     private static Optional<WitnessedTransaction> run(
-            InteractiveTransactionStore store, RingWorkflowConfiguration workflowConfiguration) {
+            InteractiveTransactionStore store,
+            RingWorkflowConfiguration workflowConfiguration,
+            AtomicBoolean skipRunning) {
+        if (skipRunning.get()) {
+            return Optional.empty();
+        }
+
         workflowConfiguration.transactionRateLimiter().acquire();
         String table = workflowConfiguration.tableConfiguration().tableName();
         Integer ringSize = workflowConfiguration.ringSize();
         return store.readWrite(txn -> {
             Map<Integer, Optional<Integer>> data = fetchData(table, ringSize, txn);
-            RingGraph ringGraph = RingGraph.fromPartial(data);
-            ringGraph
-                    .validate()
-                    .ifPresent(ringError ->
-                            log.error("Detected violation with our ring {}", SafeArg.of("ringError", ringError)));
-            ringGraph
-                    .generateNewRing()
-                    .asMap()
-                    .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
+            try {
+                RingGraph ringGraph = RingGraph.fromPartial(data);
+                ringGraph
+                        .generateNewRing()
+                        .asMap()
+                        .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
+            } catch (IllegalArgumentException e) {
+                skipRunning.set(true);
+                log.error("Detected violation with our ring.", e);
+            }
         });
     }
 
