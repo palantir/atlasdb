@@ -97,10 +97,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         SingleRowTwoCellsWorkflowConfiguration workflowConfig =
                 configuration.install().singleRowTwoCellsConfig();
 
-        log.info("antithesis: start_faults");
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
-                .run(createSingleRowTwoCellsWorkflowGroup(
+                .run(createSingleRowTwoCellsWorkflowValidator(
                         transactionStoreFactory, workflowConfig, environment.lifecycle()));
+
         log.info("antithesis: terminate");
 
         workflowsRanLatch.countDown();
@@ -110,7 +110,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         }
     }
 
-    private WorkflowValidator createSingleRowTwoCellsWorkflowGroup(
+    private WorkflowValidator createSingleRowTwoCellsWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleRowTwoCellsWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {

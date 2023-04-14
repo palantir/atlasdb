@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import java.util.Arrays;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -28,13 +29,14 @@ public interface WorkflowValidator<WorkflowTypeT extends Workflow> {
     @Value.Parameter
     List<InvariantReporter<?>> invariants();
 
-    default WorkflowHistoryValidator run() {
-        return WorkflowHistoryValidator.of(workflow().run(), invariants());
-    }
-
     static <WorkflowTypeT extends Workflow> WorkflowValidator<WorkflowTypeT> of(
             WorkflowTypeT workflow, List<InvariantReporter<?>> invariants) {
         return ImmutableWorkflowValidator.of(workflow, invariants);
+    }
+
+    static <WorkflowTypeT extends Workflow> WorkflowValidator<WorkflowTypeT> of(
+            WorkflowTypeT workflow, InvariantReporter<?>... invariants) {
+        return ImmutableWorkflowValidator.of(workflow, Arrays.asList(invariants));
     }
 
     static <WorkflowTypeT extends Workflow> ImmutableWorkflowValidator.Builder<WorkflowTypeT> builder() {

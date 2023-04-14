@@ -41,6 +41,7 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     @Override
     public void run(List<WorkflowValidator<Workflow>> workflowValidators) {
         try {
+            log.info("antithesis: start_faults");
             List<WorkflowHistoryValidator> workflowHistoryValidators = Futures.allAsList(
                             submitWorkflowValidators(workflowValidators))
                     .get();
@@ -67,7 +68,8 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(
             List<WorkflowValidator<Workflow>> workflowValidators) {
         return workflowValidators.stream()
-                .map(workflowGroup -> listeningExecutorService.submit(workflowGroup::run))
+                .map(workflowValidator -> listeningExecutorService.submit(() -> WorkflowHistoryValidator.of(
+                        workflowValidator.workflow().run(), workflowValidator.invariants())))
                 .collect(Collectors.toList());
     }
 }

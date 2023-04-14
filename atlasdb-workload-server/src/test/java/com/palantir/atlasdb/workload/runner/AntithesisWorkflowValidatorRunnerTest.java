@@ -19,7 +19,8 @@ package com.palantir.atlasdb.workload.runner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,7 +31,6 @@ import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -43,8 +43,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AntithesisWorkflowValidatorRunnerTest {
 
-    private final ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    private static final ListeningExecutorService EXECUTOR_SERVICE =
+            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
 
     @Mock
     private Workflow workflow;
@@ -53,61 +53,66 @@ public class AntithesisWorkflowValidatorRunnerTest {
     private WorkflowHistory workflowHistory;
 
     @Mock
-    private InvariantReporter<Void> exampleInvariantReporterOne;
+    private InvariantReporter<Void> invariantReporterOne;
 
     @Mock
-    private InvariantReporter<Void> exampleInvariantReporterTwo;
+    private InvariantReporter<Void> invariantReporterTwo;
 
     private WorkflowValidator<Workflow> workflowValidator;
 
     @Before
     public void before() {
         when(workflow.run()).thenReturn(workflowHistory);
-        workflowValidator = WorkflowValidator.builder()
-                .workflow(workflow)
-                .addInvariants(exampleInvariantReporterOne)
-                .addInvariants(exampleInvariantReporterTwo)
-                .build();
+        workflowValidator = WorkflowValidator.of(workflow, invariantReporterOne, invariantReporterTwo);
     }
 
     @Test
-    public void runExecutesWorkflowAndInvokesInvariantReporter() {
-        new AntithesisWorkflowValidatorRunner(executorService).run(workflowValidator);
+    public void runExecutesWorkflowAndInvokesInvariantReporters() {
+        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowValidator);
         verify(workflow, times(1)).run();
-        verify(exampleInvariantReporterOne, times(1)).report(any());
-        verify(exampleInvariantReporterTwo, times(1)).report(any());
+        verify(invariantReporterOne, times(1)).report(any());
+        verify(invariantReporterTwo, times(1)).report(any());
+    }
+
+    @Test
+    public void runValidatesAllInvariantsIgnoringExceptions() {
+        doThrow(new RuntimeException()).when(invariantReporterOne).report(any());
+        doThrow(new RuntimeException()).when(invariantReporterTwo).report(any());
+        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowValidator);
+        verify(workflow, times(1)).run();
+        verify(invariantReporterOne, times(1)).report(any());
+        verify(invariantReporterTwo, times(1)).report(any());
     }
 
     @Test
     public void runExecutesMultipleWorkflowsAndWaitsForAllToFinishBeforeInvokingInvariantReporter() {
         Semaphore semaphore = new Semaphore(0);
-        Workflow slowWorkflow = spy(new Workflow() {
-            @Override
-            public WorkflowHistory run() {
-                try {
-                    assertThat(semaphore.tryAcquire(5, TimeUnit.SECONDS)).isFalse();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                return workflowHistory;
+        Workflow slowWorkflow = mock(Workflow.class);
+        when(slowWorkflow.run()).thenAnswer(_input -> {
+            try {
+                assertThat(semaphore.tryAcquire(5, TimeUnit.SECONDS))
+                        .as("No permits should have been released yet as the invariant reporter should have not ran")
+                        .isFalse();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
+            return workflowHistory;
         });
 
-        WorkflowValidator<Workflow> slowWorkflowValidator =
-                WorkflowValidator.of(slowWorkflow, List.of(exampleInvariantReporterOne));
+        WorkflowValidator<Workflow> slowWorkflowValidator = WorkflowValidator.of(slowWorkflow, invariantReporterOne);
 
         doAnswer(_input -> {
                     semaphore.release();
                     return null;
                 })
-                .when(exampleInvariantReporterOne)
+                .when(invariantReporterOne)
                 .report(any());
 
-        new AntithesisWorkflowValidatorRunner(executorService).run(workflowValidator, slowWorkflowValidator);
+        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
 
         verify(workflow, times(1)).run();
         verify(slowWorkflow, times(1)).run();
-        verify(exampleInvariantReporterOne, times(2)).report(any());
-        verify(exampleInvariantReporterTwo, times(1)).report(any());
+        verify(invariantReporterOne, times(2)).report(any());
+        verify(invariantReporterTwo, times(1)).report(any());
     }
 }
