@@ -37,15 +37,15 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
 
-public final class DurableWritesMetricInvariantReporterTest {
+public final class DurableWritesInvariantMetricReporterTest {
 
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final DurableWritesMetrics metrics = DurableWritesMetrics.of(taggedMetricRegistry);
 
     @Test
     public void runIncreasesMetricsIfViolationsFound() {
-        DurableWritesMetricInvariantReporter reporter =
-                new DurableWritesMetricInvariantReporter(WorkloadTestHelpers.WORKFLOW, metrics);
+        DurableWritesInvariantMetricReporter reporter =
+                new DurableWritesInvariantMetricReporter(WorkloadTestHelpers.WORKFLOW, metrics);
         AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
                 TransactionManagers.createInMemory(Set.of()), Optional.of("keyspace"));
         TransactionStore store = factory.create(
