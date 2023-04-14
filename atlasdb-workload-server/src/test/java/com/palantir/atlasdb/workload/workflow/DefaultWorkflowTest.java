@@ -36,7 +36,7 @@ import org.junit.Test;
 public class DefaultWorkflowTest {
     private final TransactionStore store = mock(TransactionStore.class);
 
-    private final KeyedTransactionTask transactionTask = mock(KeyedTransactionTask.class);
+    private final KeyedTransactionTask<TransactionStore> transactionTask = mock(KeyedTransactionTask.class);
 
     private final ScheduledExecutorService scheduler = PTExecutors.newSingleThreadScheduledExecutor();
     private final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(scheduler);
