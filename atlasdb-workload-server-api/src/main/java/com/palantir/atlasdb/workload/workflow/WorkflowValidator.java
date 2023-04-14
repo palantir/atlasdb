@@ -21,15 +21,23 @@ import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WorkflowGroup<WorkflowTypeT extends Workflow> {
+public interface WorkflowValidator<WorkflowTypeT extends Workflow> {
     @Value.Parameter
     WorkflowTypeT workflow();
 
     @Value.Parameter
     List<InvariantReporter<?>> invariants();
 
-    static <WorkflowTypeT extends Workflow> WorkflowGroup<WorkflowTypeT> of(
+    default WorkflowHistoryValidator run() {
+        return WorkflowHistoryValidator.of(workflow().run(), invariants());
+    }
+
+    static <WorkflowTypeT extends Workflow> WorkflowValidator<WorkflowTypeT> of(
             WorkflowTypeT workflow, List<InvariantReporter<?>> invariants) {
-        return ImmutableWorkflowGroup.of(workflow, invariants);
+        return ImmutableWorkflowValidator.of(workflow, invariants);
+    }
+
+    static <WorkflowTypeT extends Workflow> ImmutableWorkflowValidator.Builder<WorkflowTypeT> builder() {
+        return ImmutableWorkflowValidator.builder();
     }
 }
