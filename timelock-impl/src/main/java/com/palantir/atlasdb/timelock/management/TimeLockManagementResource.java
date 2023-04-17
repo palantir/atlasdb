@@ -28,7 +28,6 @@ import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.conjure.java.lib.SafeLong;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -139,13 +138,9 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<Void> fastForwardTimestamp(
-            AuthHeader authHeader, String namespace, SafeLong currentTimestamp) {
+    public ListenableFuture<Void> fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
         return handleExceptions(() -> {
-            timelockNamespaces
-                    .get(namespace)
-                    .getTimestampManagementService()
-                    .fastForwardTimestamp(currentTimestamp.longValue());
+            timelockNamespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(currentTimestamp);
             return Futures.immediateFuture(null);
         });
     }
@@ -206,7 +201,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
-        public void fastForwardTimestamp(AuthHeader authHeader, String namespace, SafeLong currentTimestamp) {
+        public void fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
             unwrap(resource.fastForwardTimestamp(authHeader, namespace, currentTimestamp));
         }
 

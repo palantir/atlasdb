@@ -1,3 +1,9 @@
+types:
+  imports:
+    Long:
+      base-type: string
+      external:
+        java: java.lang.Long
 services:
   TimeLockManagementService:
     name: TimeLock Management Service
@@ -68,8 +74,7 @@ services:
             safety: safe
             param-type: query
           currentTimestamp:
-            type: safelong
-            safety: safe
+            type: Long
             param-type: query
             docs: the largest timestamp issued until the fast-forward call
         docs: |
