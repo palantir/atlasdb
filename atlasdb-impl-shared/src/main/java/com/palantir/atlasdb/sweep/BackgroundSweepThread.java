@@ -39,6 +39,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public class BackgroundSweepThread implements Runnable {
@@ -49,8 +51,8 @@ public class BackgroundSweepThread implements Runnable {
     private final SweepOutcomeMetrics sweepOutcomeMetrics;
     private final SpecificTableSweeper specificTableSweeper;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
-    private final Supplier<Long> sweepPauseMillis;
-    private final Supplier<Boolean> isSweepEnabled;
+    private final LongSupplier sweepPauseMillis;
+    private final BooleanSupplier isSweepEnabled;
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final CountDownLatch shuttingDown;
@@ -64,8 +66,8 @@ public class BackgroundSweepThread implements Runnable {
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
-            Supplier<Boolean> isSweepEnabled,
-            Supplier<Long> sweepPauseMillis,
+            BooleanSupplier isSweepEnabled,
+            LongSupplier sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
             MetricsManager metricsManager) {
@@ -86,8 +88,8 @@ public class BackgroundSweepThread implements Runnable {
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
-            Supplier<Boolean> isSweepEnabled,
-            Supplier<Long> sweepPauseMillis,
+            BooleanSupplier isSweepEnabled,
+            LongSupplier sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper,
             SweepOutcomeMetrics sweepOutcomeMetrics,
@@ -190,7 +192,7 @@ public class BackgroundSweepThread implements Runnable {
         return maybeOutcome
                 .flatMap(outcome -> {
                     if (outcome == SweepOutcome.SUCCESS) {
-                        return Optional.of(Duration.ofMillis(sweepPauseMillis.get()));
+                        return Optional.of(Duration.ofMillis(sweepPauseMillis.getAsLong()));
                     } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
                         return Optional.of(getBackoffTimeWhenNothingToSweep());
                     } else {
@@ -202,7 +204,7 @@ public class BackgroundSweepThread implements Runnable {
 
     @VisibleForTesting
     Optional<SweepOutcome> checkConfigAndRunSweep(SingleLockService locks) throws InterruptedException {
-        if (isSweepEnabled.get()) {
+        if (isSweepEnabled.getAsBoolean()) {
             return Optional.of(grabLocksAndRun(locks));
         }
 
@@ -233,7 +235,7 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private Duration getBackoffTimeWhenSweepHasNotRun() {
-        return Duration.ofMillis(sweepPauseMillis.get()).plusSeconds(1).multipliedBy(20); // 2 minutes by default
+        return Duration.ofMillis(sweepPauseMillis.getAsLong()).plusSeconds(1).multipliedBy(20); // 2 minutes by default
     }
 
     private Duration getBackoffTimeWhenNothingToSweep() {

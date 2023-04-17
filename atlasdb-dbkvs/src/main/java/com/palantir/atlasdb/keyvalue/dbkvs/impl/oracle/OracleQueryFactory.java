@@ -312,8 +312,8 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + "     FROM " + tableName + " m "
                 + (bounds.isEmpty() ? "" : " WHERE  " + Joiner.on(" AND ").join(bounds))
                 + "     ORDER BY m.row_name " + (range.isReverse() ? "DESC" : "ASC")
-                + "   ) inner WHERE rownum <= " + maxRows;
-        return new FullQuery(query).withArgs(args);
+                + "   ) inner WHERE rownum <= ?";
+        return new FullQuery(query).withArgs(args).withArg(maxRows);
     }
 
     @Override
@@ -334,10 +334,10 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + " GROUP BY m.row_name";
         FullQuery fullQuery = new FullQuery(query).withArgs(rowsToOracleArray(rows), ts);
         if (columnRangeSelection.getStartCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
+            fullQuery.withArg(columnRangeSelection.getStartCol());
         }
         if (columnRangeSelection.getEndCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
+            fullQuery.withArg(columnRangeSelection.getEndCol());
         }
         return fullQuery;
     }
@@ -355,14 +355,15 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                 + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
                 + (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "")
                 + " GROUP BY m.row_name, m.col_name"
-                + " ORDER BY m.row_name ASC, m.col_name ASC ) s WHERE rownum <= " + columnRangeSelection.getBatchHint();
+                + " ORDER BY m.row_name ASC, m.col_name ASC ) s WHERE rownum <= ?";
         FullQuery fullQuery = new FullQuery(query).withArg(row).withArg(ts);
         if (columnRangeSelection.getStartCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
+            fullQuery.withArg(columnRangeSelection.getStartCol());
         }
         if (columnRangeSelection.getEndCol().length > 0) {
-            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
+            fullQuery.withArg(columnRangeSelection.getEndCol());
         }
+        fullQuery.withArg(columnRangeSelection.getBatchHint());
         return fullQuery;
     }
 

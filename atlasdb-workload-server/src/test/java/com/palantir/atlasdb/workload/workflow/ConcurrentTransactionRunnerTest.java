@@ -49,11 +49,12 @@ import org.junit.Test;
 public class ConcurrentTransactionRunnerTest {
     private static final int DEFAULT_TASK_MULTIPLICITY = 100;
 
-    private final KeyedTransactionTask task = mock(KeyedTransactionTask.class);
+    private final KeyedTransactionTask<TransactionStore> task = mock(KeyedTransactionTask.class);
     private final TransactionStore store = mock(TransactionStore.class);
     private final DeterministicScheduler scheduler = new DeterministicScheduler();
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(scheduler);
-    private final ConcurrentTransactionRunner runner = new ConcurrentTransactionRunner(store, executorService);
+    private final ConcurrentTransactionRunner<TransactionStore> runner =
+            new ConcurrentTransactionRunner<>(store, executorService);
 
     @Before
     public void setupTask() {

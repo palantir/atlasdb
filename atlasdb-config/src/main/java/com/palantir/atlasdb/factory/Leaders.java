@@ -79,13 +79,13 @@ public final class Leaders {
      * service.
      */
     public static LocalPaxosServices createAndRegisterLocalServices(
-            MetricsManager metricsManager, Consumer<Object> env, LeaderConfig config, UserAgent userAgent) {
+            MetricsManager metricsManager, Consumer<Object> registrar, LeaderConfig config, UserAgent userAgent) {
         LocalPaxosServices localPaxosServices = createInstrumentedLocalServices(metricsManager, config, userAgent);
 
-        env.accept(localPaxosServices.ourAcceptor());
-        env.accept(localPaxosServices.ourLearner());
-        env.accept(localPaxosServices.localPingableLeader());
-        env.accept(new NotCurrentLeaderExceptionMapper());
+        registrar.accept(localPaxosServices.ourAcceptor());
+        registrar.accept(localPaxosServices.ourLearner());
+        registrar.accept(localPaxosServices.localPingableLeader());
+        registrar.accept(new NotCurrentLeaderExceptionMapper());
         return localPaxosServices;
     }
 

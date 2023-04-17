@@ -40,7 +40,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.ShouldRunBackgroundSweepSupplier;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimeLockRequestBatcherProviders;
@@ -79,7 +78,6 @@ import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
@@ -534,7 +532,7 @@ public abstract class TransactionManagers {
         transactionManager.registerClosingCallback(targetedSweep::close);
 
         initializeCloseable(
-                () -> initializeSweepEndpointAndBackgroundProcess(
+                () -> initializeSweepBackgroundProcess(
                         metricsManager,
                         config(),
                         runtime,
@@ -809,11 +807,11 @@ public abstract class TransactionManagers {
                 .orElse(true);
     }
 
-    private static BackgroundSweeperImpl initializeSweepEndpointAndBackgroundProcess(
+    private static BackgroundSweeperImpl initializeSweepBackgroundProcess(
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             KeyValueService kvs,
             TransactionService transactionService,
             CleanupFollower follower,
@@ -835,21 +833,19 @@ public abstract class TransactionManagers {
                 metricsManager,
                 () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep()));
 
-        SpecificTableSweeper specificTableSweeper = initializeSweepEndpoint(
-                env,
-                kvs,
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
                 transactionManager,
+                kvs,
                 sweepRunner,
+                SweepTableFactory.of(),
                 sweepPerfLogger,
                 sweepMetrics,
-                config.initializeAsync(),
-                sweepBatchConfigSource);
+                config.initializeAsync());
 
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
-                new ShouldRunBackgroundSweepSupplier(
-                        () -> runtimeConfigSupplier.get().sweep())::getAsBoolean,
+                () -> runtimeConfigSupplier.get().sweep().enabled(),
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
@@ -862,27 +858,6 @@ public abstract class TransactionManagers {
         }
 
         return backgroundSweeper;
-    }
-
-    private static SpecificTableSweeper initializeSweepEndpoint(
-            Consumer<Object> env,
-            KeyValueService kvs,
-            TransactionManager transactionManager,
-            SweepTaskRunner sweepRunner,
-            BackgroundSweeperPerformanceLogger sweepPerfLogger,
-            LegacySweepMetrics sweepMetrics,
-            boolean initializeAsync,
-            AdjustableSweepBatchConfigSource sweepBatchConfigSource) {
-        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
-                transactionManager,
-                kvs,
-                sweepRunner,
-                SweepTableFactory.of(),
-                sweepPerfLogger,
-                sweepMetrics,
-                initializeAsync);
-        env.accept(new SweeperServiceImpl(specificTableSweeper, sweepBatchConfigSource));
-        return specificTableSweeper;
     }
 
     private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
@@ -940,7 +915,7 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -950,7 +925,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config,
                         runtimeConfigSupplier,
-                        env,
+                        registrar,
                         lock,
                         time,
                         invalidator,

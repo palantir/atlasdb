@@ -28,15 +28,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-public final class DefaultWorkflow implements Workflow {
-    private final ConcurrentTransactionRunner concurrentTransactionRunner;
-    private final KeyedTransactionTask transactionTask;
+public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
+    private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
+    private final KeyedTransactionTask<T> transactionTask;
     private final WorkflowConfiguration workflowConfiguration;
     private final ReadOnlyTransactionStore readOnlyTransactionStore;
 
     private DefaultWorkflow(
-            ConcurrentTransactionRunner concurrentTransactionRunner,
-            KeyedTransactionTask transactionTask,
+            ConcurrentTransactionRunner<T> concurrentTransactionRunner,
+            KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration workflowConfiguration,
             ReadOnlyTransactionStore readOnlyTransactionStore) {
         this.concurrentTransactionRunner = concurrentTransactionRunner;
@@ -45,13 +45,13 @@ public final class DefaultWorkflow implements Workflow {
         this.readOnlyTransactionStore = readOnlyTransactionStore;
     }
 
-    public static Workflow create(
-            TransactionStore store,
-            KeyedTransactionTask transactionTask,
+    public static <T extends TransactionStore> Workflow create(
+            T store,
+            KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration configuration,
             ListeningExecutorService executionExecutor) {
-        return new DefaultWorkflow(
-                new ConcurrentTransactionRunner(store, executionExecutor),
+        return new DefaultWorkflow<>(
+                new ConcurrentTransactionRunner<>(store, executionExecutor),
                 transactionTask,
                 configuration,
                 new ReadOnlyTransactionStore(store));

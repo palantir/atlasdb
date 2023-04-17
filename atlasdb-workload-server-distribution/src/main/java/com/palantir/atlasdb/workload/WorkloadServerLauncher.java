@@ -25,9 +25,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
-import com.palantir.atlasdb.workload.invariant.DurableWritesMetricInvariantReporter;
+import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
+import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
+import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
-import com.palantir.atlasdb.workload.workflow.AntithesisWorkflowRunner;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -104,9 +105,11 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 Set.of()),
                         workflowConfig,
                         MoreExecutors.listeningDecorator(singleRowTwoCellsExecutorService)),
-                List.of(new DurableWritesMetricInvariantReporter(
-                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
-                        DurableWritesMetrics.of(taggedMetricRegistry))));
+                List.of(
+                        new DurableWritesInvariantMetricReporter(
+                                SingleRowTwoCellsWorkflows.class.getSimpleName(),
+                                DurableWritesMetrics.of(taggedMetricRegistry)),
+                        SerializableInvariantLogReporter.INSTANCE));
         log.info("antithesis: terminate");
 
         workflowsRanLatch.countDown();
