@@ -34,6 +34,7 @@ import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.logsafe.Safe;
 import java.math.BigInteger;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
@@ -59,12 +60,12 @@ public class LockV1Resource {
     @CancelableServerCall
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-with-full-response/{client}")
-    public LockResponse lockWithFullLockResponse(
+    public Optional<LockResponse> lockWithFullLockResponse(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return getLockService(namespace).lockWithFullLockResponse(client, request);
+        return Optional.ofNullable(getLockService(namespace).lockWithFullLockResponse(client, request));
     }
 
     @POST
@@ -74,7 +75,7 @@ public class LockV1Resource {
     @CancelableServerCall
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-with-full-response")
-    public LockResponse lockWithFullLockResponse(
+    public Optional<LockResponse> lockWithFullLockResponse(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
         return lockWithFullLockResponse(namespace, LockClient.ANONYMOUS, request);
@@ -156,9 +157,9 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant")
-    public HeldLocksGrant refreshGrant(
+    public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
-        return getLockService(namespace).refreshGrant(grant);
+        return Optional.ofNullable(getLockService(namespace).refreshGrant(grant));
     }
 
     @POST
@@ -168,9 +169,9 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant-id")
-    public HeldLocksGrant refreshGrant(
+    public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
-        return getLockService(namespace).refreshGrant(grantId);
+        return Optional.ofNullable(getLockService(namespace).refreshGrant(grantId));
     }
 
     @POST
@@ -240,8 +241,8 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id")
-    public Long getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getLockService(namespace).getMinLockedInVersionId();
+    public Optional<Long> getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
+        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId());
     }
 
     @POST
@@ -249,10 +250,10 @@ public class LockV1Resource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client/{client}")
-    public Long getMinLockedInVersionId(
+    public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client) {
-        return getLockService(namespace).getMinLockedInVersionId(client);
+        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId(client));
     }
 
     @POST
@@ -260,7 +261,7 @@ public class LockV1Resource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client")
-    public Long getMinLockedInVersionIdForAnonymousClient(
+    public Optional<Long> getMinLockedInVersionIdForAnonymousClient(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS);
     }
@@ -302,12 +303,12 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock/{client}")
-    public LockRefreshToken lock(
+    public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return getLockService(namespace).lock(client, request);
+        return Optional.ofNullable(getLockService(namespace).lock(client, request));
     }
 
     @POST
@@ -316,7 +317,7 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock")
-    public LockRefreshToken lock(
+    public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
         return lock(namespace, LockClient.ANONYMOUS.getClientId(), request);
@@ -327,12 +328,12 @@ public class LockV1Resource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/try-lock/{client}")
-    public HeldLocksToken lockAndGetHeldLocks(
+    public Optional<HeldLocksToken> lockAndGetHeldLocks(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request)
             throws InterruptedException {
-        return getLockService(namespace).lockAndGetHeldLocks(client, request);
+        return Optional.ofNullable(getLockService(namespace).lockAndGetHeldLocks(client, request));
     }
 
     @POST
@@ -340,7 +341,7 @@ public class LockV1Resource {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/try-lock")
-    public HeldLocksToken lockAndGetHeldLocks(
+    public Optional<HeldLocksToken> lockAndGetHeldLocks(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
         return lockAndGetHeldLocks(namespace, LockClient.ANONYMOUS.getClientId(), request);
@@ -376,10 +377,10 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version/{client}")
-    public Long getMinLockedInVersionId(
+    public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client) {
-        return getLockService(namespace).getMinLockedInVersionId(client);
+        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId(client));
     }
 
     @POST
@@ -389,7 +390,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version")
-    public Long getMinLockedInVersionIdForAnonymousClientString(
+    public Optional<Long> getMinLockedInVersionIdForAnonymousClientString(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId());
     }
