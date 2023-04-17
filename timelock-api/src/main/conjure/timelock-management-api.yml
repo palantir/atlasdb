@@ -61,10 +61,14 @@ services:
           server id would imply that the server was bounced.
 
       fastForwardTimestamp:
-        http: POST /fastForward
+        http: POST /fastForward/{namespace}
         args:
+          namespace:
+            type: string
+            safety: safe
           currentTimestamp:
             type: safelong
+            safety: safe
             param-type: query
             docs: the largest timestamp issued until the fast-forward call
         docs: |
