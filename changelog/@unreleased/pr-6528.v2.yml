@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: The Conjure Undertow handled lock resource now uses Optionals to correctly
+    return 204s with no content.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6528
