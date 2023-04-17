@@ -165,7 +165,7 @@ public class TransactionManagersTest {
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig mockAtlasDbRuntimeConfig;
 
-    private Consumer<Object> environment;
+    private Consumer<Object> registrar;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
@@ -208,7 +208,7 @@ public class TransactionManagersTest {
         when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.empty());
         when(mockAtlasDbRuntimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
 
-        environment = mock(Consumer.class);
+        registrar = mock(Consumer.class);
 
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
@@ -236,7 +236,7 @@ public class TransactionManagersTest {
                         .userAgent(USER_AGENT)
                         .globalMetricsRegistry(new MetricRegistry())
                         .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                        .registrar(environment)
+                        .registrar(registrar)
                         .runtimeConfig(Refreshable.only(Optional.empty()))
                         .runtimeConfigSupplier(Optional::empty)
                         .build())
@@ -351,7 +351,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build()
                 .serializable();
 
@@ -412,7 +412,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build()
                 .serializable();
         manager.registerClosingCallback(callback);
@@ -432,7 +432,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build()
                 .serializable();
         assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
@@ -453,7 +453,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .serviceIdentifierOverride("overriden")
                 .build();
 
@@ -473,7 +473,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build();
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
@@ -493,7 +493,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build();
 
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
@@ -510,7 +510,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .build();
 
         assertThat(transactionManagers.serviceName()).isEqualTo("UNKNOWN");
@@ -520,7 +520,7 @@ public class TransactionManagersTest {
     public void interruptingLocalLeaderElectionTerminates() throws IOException {
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
                 metricsManager,
-                environment,
+                registrar,
                 ImmutableLeaderConfig.builder()
                         .localServer("https://example")
                         .quorumSize(1)
@@ -593,7 +593,7 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .lockImmutableTsOnReadOnlyTransactions(option)
                 .build();
     }
@@ -699,7 +699,7 @@ public class TransactionManagersTest {
                 .userAgent(UserAgent.of(UserAgent.Agent.of("test", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .addSchemas(GenericTestSchema.getSchema())
                 .runtimeConfigSupplier(() -> Optional.of(atlasDbRuntimeConfig))
                 .build()
@@ -762,7 +762,7 @@ public class TransactionManagersTest {
                             .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes(StandardCharsets.UTF_8))));
                     return null;
                 })
-                .when(environment)
+                .when(registrar)
                 .accept(isA(PingableLeader.class));
         setUpLeaderBlockInConfig();
     }
@@ -807,7 +807,7 @@ public class TransactionManagersTest {
                         metricsManager,
                         config,
                         Refreshable.only(mockAtlasDbRuntimeConfig),
-                        environment,
+                        registrar,
                         LockServiceImpl::create,
                         () -> ts,
                         invalidator,

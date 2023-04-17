@@ -24,15 +24,15 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public final class DurableWritesMetricInvariantReporter
+public final class DurableWritesInvariantMetricReporter
         implements InvariantReporter<Map<TableAndWorkloadCell, MismatchedValue>> {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(DurableWritesMetricInvariantReporter.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DurableWritesInvariantMetricReporter.class);
 
     private final String workflow;
     private final DurableWritesMetrics durableWritesMetrics;
 
-    public DurableWritesMetricInvariantReporter(String workflow, DurableWritesMetrics durableWritesMetrics) {
+    public DurableWritesInvariantMetricReporter(String workflow, DurableWritesMetrics durableWritesMetrics) {
         this.workflow = workflow;
         this.durableWritesMetrics = durableWritesMetrics;
     }
