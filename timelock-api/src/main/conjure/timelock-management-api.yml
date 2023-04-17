@@ -59,3 +59,16 @@ services:
           external intervention to start up the service again. The endpoint returns the (randomly generated) server id
           associated with server upon start up. A client can then make `getServerId` requests wherein change in
           server id would imply that the server was bounced.
+
+      fastForwardTimestamp:
+        http: POST /fastForward
+        args:
+          currentTimestamp:
+            type: safelong
+            param-type: query
+            docs: the largest timestamp issued until the fast-forward call
+        docs: |
+          Updates the timestamp service to the currentTimestamp to ensure that all fresh timestamps issued after
+          this request are greater than the current timestamp.
+          The caller of this is responsible for not using any of the fresh timestamps previously served to it,
+          and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
