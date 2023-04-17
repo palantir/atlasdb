@@ -16,12 +16,14 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
@@ -33,6 +35,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
@@ -41,7 +44,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.NotThreadSafe;
 import one.util.streamex.EntryStream;
 
 public final class AtlasDbTransactionStore implements TransactionStore {
@@ -68,27 +73,29 @@ public final class AtlasDbTransactionStore implements TransactionStore {
 
     @Override
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
-        AtomicReference<Long> startTimestampReference = new AtomicReference<>();
         AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
+        Supplier<CommitTimestampProvider> commitTimestampProvider =
+                Suppliers.memoize(() -> new CommitTimestampProvider());
         try {
-            transactionManager.runTaskWithRetry(txn -> {
-                AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
-                startTimestampReference.set(txn.getTimestamp());
-                witnessedActionsReference.set(actions.stream()
-                        .sequential()
-                        .map(action -> action.accept(visitor))
-                        .collect(Collectors.toList()));
-                return null;
-            });
+            Transaction transaction =
+                    transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
+                        AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
+                        witnessedActionsReference.set(actions.stream()
+                                .sequential()
+                                .map(action -> action.accept(visitor))
+                                .collect(Collectors.toList()));
+                        return txn;
+                    });
 
-            TransactionStatus status =
-                    transactionManager.getTransactionService().getV2(startTimestampReference.get());
-
-            Optional<Long> commitTimestamp = TransactionStatus.getCommitTimestamp(status);
+            if (transaction.isAborted()) {
+                return Optional.empty();
+            }
 
             return Optional.of(ImmutableWitnessedTransaction.builder()
-                    .startTimestamp(startTimestampReference.get())
-                    .commitTimestamp(commitTimestamp)
+                    .startTimestamp(transaction.getTimestamp())
+                    .commitTimestamp(commitTimestampProvider
+                            .get()
+                            .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
                     .actions(witnessedActionsReference.get())
                     .build());
         } catch (SafeIllegalArgumentException e) {
@@ -157,5 +164,28 @@ public final class AtlasDbTransactionStore implements TransactionStore {
                 .mapToEntry(TableReference::getTableName, Function.identity())
                 .toMap();
         return new AtlasDbTransactionStore(transactionManager, tableMapping);
+    }
+
+    @VisibleForTesting
+    @NotThreadSafe
+    static final class CommitTimestampProvider implements PreCommitCondition {
+
+        private Optional<Long> maybeCommitOrStartTimestamp = Optional.empty();
+
+        @Override
+        public void throwIfConditionInvalid(long timestamp) {
+            maybeCommitOrStartTimestamp = Optional.of(timestamp);
+        }
+
+        public Optional<Long> getCommitTimestampOrThrowIfMaybeNotCommitted(long startTimestamp) {
+            long commitOrStartTimestamp = maybeCommitOrStartTimestamp.orElseThrow(() -> new SafeIllegalStateException(
+                    "Timestamp has not been set, which means the pre commit condition has never been executed,"
+                            + " thus the transaction never committed."));
+            if (startTimestamp == commitOrStartTimestamp) {
+                return Optional.empty();
+            }
+
+            return Optional.of(commitOrStartTimestamp);
+        }
     }
 }
