@@ -18,9 +18,12 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import java.util.Map;
 
 public final class WorkloadTestHelpers {
     public static final String TABLE_1 = "foo";
@@ -33,6 +36,16 @@ public final class WorkloadTestHelpers {
     public static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE_1);
     public static final TableReference INDEX_REFERENCE =
             TableReference.create(TABLE_REFERENCE.getNamespace(), TABLE_1_INDEX_1);
+
+    public static final Map<String, TableReference> NAMES_TO_REFERENCES_TABLE_1 = Map.of(
+            TABLE_1, TABLE_REFERENCE,
+            TABLE_1_INDEX_1, INDEX_REFERENCE);
+
+    public static final Map<TableReference, byte[]> TABLES_TO_ATLAS_METADATA = Map.of(
+            TABLE_REFERENCE,
+            AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE),
+            INDEX_REFERENCE,
+            AtlasDbUtils.indexMetadata(ConflictHandler.SERIALIZABLE_INDEX));
 
     public static final Namespace NAMESPACE = Namespace.create("workload");
     public static final WorkloadCell WORKLOAD_CELL_ONE = ImmutableWorkloadCell.of(50, 10);

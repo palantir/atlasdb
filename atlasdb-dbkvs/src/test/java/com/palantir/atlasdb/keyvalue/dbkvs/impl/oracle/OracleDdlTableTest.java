@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,6 +42,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NameComponentDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.concurrent.PTExecutors;
@@ -50,6 +56,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.nexus.db.sql.SqlConnection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -346,6 +354,53 @@ public final class OracleDdlTableTest {
                 .executeUnregisteredQuery("ALTER TABLE " + INTERNAL_TABLE_NAME + " ADD (overflow NUMBER(38))");
         tableMappingDdlTable.create(createMetadata(true));
         verifyTableAltered();
+    }
+
+    @Test
+    public void conservativeSweptTablesHaveIndexCompression2() {
+        for (int numColumns = 0; numColumns <= 2; numColumns++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.CONSERVATIVE);
+            for (int colName = 0; colName < numColumns; colName++) {
+                metadataBuilder.singleNamedColumn("c" + colName, "col" + colName, ValueType.STRING);
+            }
+            TableMetadata metadata = metadataBuilder.build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(2);
+        }
+    }
+
+    @Test
+    public void thoroughSweptTablesWithDynamicColsHaveIndexCompression1() {
+        TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+        TableMetadata metadata = metadataBuilder
+                .dynamicColumns(List.of(NameComponentDescription.of("c", ValueType.STRING)), ValueType.STRING)
+                .build();
+        assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
+    }
+
+    @Test
+    public void thoroughSweptTablesWithMultipleNamedColsHaveIndexCompression1() {
+        for (int numColumns = 2; numColumns <= 3; numColumns++) {
+            TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+            List<NamedColumnDescription> columns = new ArrayList<>();
+            for (int colDesc = 1; colDesc <= numColumns; colDesc++) {
+                columns.add(new NamedColumnDescription(
+                        "c" + colDesc, "col" + colDesc, ColumnValueDescription.forType(ValueType.STRING)));
+            }
+            TableMetadata metadata = metadataBuilder
+                    .columns(new ColumnMetadataDescription(columns))
+                    .build();
+            assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void thoroughSweptTablesWithOneNamedColHaveIndexCompressionDisabled() {
+        TableMetadata.Builder metadataBuilder = TableMetadata.builder().sweepStrategy(SweepStrategy.THOROUGH);
+        TableMetadata metadata = metadataBuilder
+                .columns(new ColumnMetadataDescription(List.of(
+                        new NamedColumnDescription("c", "col", ColumnValueDescription.forType(ValueType.STRING)))))
+                .build();
+        assertThat(OracleDdlTable.getOptimalIndexCompression(metadata)).isEqualTo(0);
     }
 
     private void createTable() throws TableMappingNotFoundException {

@@ -35,11 +35,6 @@ public class FullQuery {
             return this;
         }
 
-        public Builder append(long number) {
-            queryBuilder.append(number);
-            return this;
-        }
-
         public Builder append(String query, Object arg) {
             queryBuilder.append(query);
             argsBuilder.add(arg);
