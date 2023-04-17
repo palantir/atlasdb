@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockService;
 import java.io.IOException;
@@ -31,10 +32,8 @@ public class TimeLockServicesTest {
     public void doNotCloseRepeatedInterfaceMultipleTimes() throws IOException {
         LockService lockService = mock(LockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
 
-        getTimeLockServices(lockService, asyncTimelockService, asyncTimelockResource)
-                .close();
+        getTimeLockServices(lockService, asyncTimelockService).close();
 
         verify(asyncTimelockService, times(1)).close();
     }
@@ -43,10 +42,8 @@ public class TimeLockServicesTest {
     public void closesCloseableImplementationsOfNotNecessarilyCloseableInterfaces() throws IOException {
         CloseableLockService closeableLockService = mock(CloseableLockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
 
-        getTimeLockServices(closeableLockService, asyncTimelockService, asyncTimelockResource)
-                .close();
+        getTimeLockServices(closeableLockService, asyncTimelockService).close();
 
         verify(closeableLockService).close();
     }
@@ -55,23 +52,18 @@ public class TimeLockServicesTest {
     public void exceptionsWhenClosingDoNotAffectOverallClosure() throws IOException {
         CloseableLockService closeableLockService = mock(CloseableLockService.class);
         AsyncTimelockService asyncTimelockService = mock(AsyncTimelockService.class);
-        AsyncTimelockResource asyncTimelockResource = mock(AsyncTimelockResource.class);
 
         doThrow(new RuntimeException()).when(asyncTimelockService).close();
         doThrow(new RuntimeException()).when(closeableLockService).close();
 
-        getTimeLockServices(closeableLockService, asyncTimelockService, asyncTimelockResource)
-                .close();
+        getTimeLockServices(closeableLockService, asyncTimelockService).close();
 
         verify(closeableLockService).close();
         verify(asyncTimelockService).close();
     }
 
-    private TimeLockServices getTimeLockServices(
-            LockService lockService,
-            AsyncTimelockService asyncTimelockService,
-            AsyncTimelockResource asyncTimelockResource) {
+    private TimeLockServices getTimeLockServices(LockService lockService, AsyncTimelockService asyncTimelockService) {
         return TimeLockServices.create(
-                asyncTimelockService, lockService, asyncTimelockService, asyncTimelockResource, asyncTimelockService);
+                asyncTimelockService, lockService, asyncTimelockService, asyncTimelockService, mock(LockLog.class));
     }
 }

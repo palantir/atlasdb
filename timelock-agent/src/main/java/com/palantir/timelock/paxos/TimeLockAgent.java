@@ -37,7 +37,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
-import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
@@ -326,9 +325,6 @@ public class TimeLockAgent {
 
         registerManagementResource();
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
-
-        TimeLockResource resource = TimeLockResource.create(namespaces);
-        registrar.accept(resource);
 
         Function<String, LockService> lockServiceGetter =
                 namespace -> namespaces.get(namespace).getLockService();
