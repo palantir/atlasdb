@@ -325,10 +325,9 @@ public class TimeLockAgent {
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
 
         registerManagementResource();
-        // Finally, register the health check, and endpoints associated with the clients.
-        TimeLockResource resource = TimeLockResource.create(namespaces);
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
 
+        TimeLockResource resource = TimeLockResource.create(namespaces);
         registrar.accept(resource);
 
         Function<String, LockService> lockServiceGetter =
@@ -352,6 +351,8 @@ public class TimeLockAgent {
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+            NonConjureTimelockResources.createUndertowServices(namespaces, redirectRetryTargeter)
+                    .forEach(service -> registerCorruptionHandlerWrappedService(presentUndertowRegistrar, service));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -359,6 +360,7 @@ public class TimeLockAgent {
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            NonConjureTimelockResources.createJerseyResources(namespaces).forEach(registrar);
         }
     }
 

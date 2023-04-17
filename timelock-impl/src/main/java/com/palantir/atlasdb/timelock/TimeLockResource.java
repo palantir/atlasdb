@@ -15,10 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
@@ -38,23 +35,8 @@ public final class TimeLockResource {
         return new TimeLockResource(namespaces);
     }
 
-    @Path("/lock")
-    public LockService getLockService(@Safe @PathParam("namespace") String namespace) {
-        return namespaces.get(namespace).getLockService();
-    }
-
-    @Path("/timestamp")
-    public TimestampService getTimeService(@Safe @PathParam("namespace") String namespace) {
-        return namespaces.get(namespace).getTimestampService();
-    }
-
     @Path("/timelock")
     public AsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
         return namespaces.get(namespace).getTimelockResource();
-    }
-
-    @Path("/timestamp-management")
-    public TimestampManagementService getTimestampManagementService(@Safe @PathParam("namespace") String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService();
     }
 }

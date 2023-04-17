@@ -38,6 +38,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * For endpoints that pre-date the introduction of conjure, we need to be able to handle legacy requests in a
+ * consistent way without breaking API, hence the existence of this class. Resources and services with endpoints
+ * predating the introduction of conjure should be wrapped in this wrapper.
+ */
 final class TimelockUndertowExceptionWrapper implements UndertowService {
 
     private final UndertowService delegate;
