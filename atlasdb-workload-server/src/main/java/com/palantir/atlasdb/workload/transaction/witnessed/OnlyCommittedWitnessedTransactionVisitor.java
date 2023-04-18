@@ -20,7 +20,7 @@ import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import java.util.Optional;
 
 public final class OnlyCommittedWitnessedTransactionVisitor
-        implements WitnessedTransactionVisitor<Optional<WitnessedTransaction>> {
+        implements WitnessedTransactionVisitor<Optional<FullyWitnessedTransaction>> {
 
     private final ReadOnlyTransactionStore readOnlyTransactionStore;
 
@@ -29,12 +29,12 @@ public final class OnlyCommittedWitnessedTransactionVisitor
     }
 
     @Override
-    public Optional<WitnessedTransaction> visit(FullyWitnessedTransaction witnessedTransaction) {
+    public Optional<FullyWitnessedTransaction> visit(FullyWitnessedTransaction witnessedTransaction) {
         return Optional.of(witnessedTransaction);
     }
 
     @Override
-    public Optional<WitnessedTransaction> visit(MaybeWitnessedTransaction maybeWitnessedTransaction) {
+    public Optional<FullyWitnessedTransaction> visit(MaybeWitnessedTransaction maybeWitnessedTransaction) {
         return readOnlyTransactionStore.isCommitted(maybeWitnessedTransaction.startTimestamp())
                 ? Optional.of(maybeWitnessedTransaction.toFullyWitnessed())
                 : Optional.empty();
