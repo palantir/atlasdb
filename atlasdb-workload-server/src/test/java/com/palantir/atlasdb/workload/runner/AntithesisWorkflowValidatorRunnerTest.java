@@ -115,17 +115,21 @@ public class AntithesisWorkflowValidatorRunnerTest {
                 .report(any());
 
         ExecutorService backgroundExecutor = PTExecutors.newSingleThreadExecutor();
-        Future<Void> validation = backgroundExecutor.submit(() -> {
-            WorkflowValidator<Workflow> slowWorkflowValidator =
-                    WorkflowValidator.of(slowWorkflow, invariantReporterOne);
-            new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
-            return null;
-        });
+        try {
+            Future<Void> validation = backgroundExecutor.submit(() -> {
+                WorkflowValidator<Workflow> slowWorkflowValidator =
+                        WorkflowValidator.of(slowWorkflow, invariantReporterOne);
+                new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
+                return null;
+            });
 
-        assertThat(validation).as("the slow workflow was not actually slow").isNotDone();
+            assertThat(validation).as("the slow workflow was not actually slow").isNotDone();
 
-        slowWorkflowCanMakeProgress.countDown();
-        Futures.getUnchecked(validation);
+            slowWorkflowCanMakeProgress.countDown();
+            Futures.getUnchecked(validation);
+        } finally {
+            backgroundExecutor.shutdown();
+        }
 
         verify(workflow, times(1)).run();
         verify(slowWorkflow, times(1)).run();
