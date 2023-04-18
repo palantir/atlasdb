@@ -56,7 +56,7 @@ public class OnlyCommittedWitnessedTransactionVisitorTest {
     }
 
     @Test
-    public void maybeCommittedTransactionReturnsWhenCommitted() {
+    public void maybeCommittedTransactionReturnsFullyWitnessedWhenCommitted() {
         when(transactionStore.isCommitted(anyLong())).thenReturn(true);
         assertThat(MAYBE_WITNESSED_TRANSACTION.accept(new OnlyCommittedWitnessedTransactionVisitor(transactionStore)))
                 .contains(MAYBE_WITNESSED_TRANSACTION.toFullyWitnessed());
