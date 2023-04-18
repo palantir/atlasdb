@@ -29,7 +29,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,8 +56,8 @@ public class DefaultWorkflowTest {
 
     @Test
     public void returnsUnderlyingWitnessedTransactions() {
-        WitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
-        WitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
+        FullyWitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
+        FullyWitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
 
         assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(twoToEight)))
                 .containsExactly(twoToEight);
@@ -68,9 +67,9 @@ public class DefaultWorkflowTest {
 
     @Test
     public void sortsResultsOfWriteTransactionsByCommitTimestamp() {
-        WitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
-        WitnessedTransaction threeToSeven = createWitnessedTransactionWithoutActions(3, 7);
-        WitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
+        FullyWitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
+        FullyWitnessedTransaction threeToSeven = createWitnessedTransactionWithoutActions(3, 7);
+        FullyWitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
 
         assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(twoToEight, threeToSeven, fourToSix)))
                 .containsExactly(fourToSix, threeToSeven, twoToEight);
@@ -78,9 +77,9 @@ public class DefaultWorkflowTest {
 
     @Test
     public void sortsReadOnlyTransactionsByStartTimestamp() {
-        WitnessedTransaction readOnlyAtThree = createReadOnlyWitnessedTransactionWithoutActions(3);
-        WitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
-        WitnessedTransaction readOnlyAtFortyTwo = createReadOnlyWitnessedTransactionWithoutActions(42);
+        FullyWitnessedTransaction readOnlyAtThree = createReadOnlyWitnessedTransactionWithoutActions(3);
+        FullyWitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
+        FullyWitnessedTransaction readOnlyAtFortyTwo = createReadOnlyWitnessedTransactionWithoutActions(42);
 
         assertThat(workflow.sortAndFilterTransactions(
                         ImmutableList.of(readOnlyAtSeven, readOnlyAtFortyTwo, readOnlyAtThree)))
@@ -89,13 +88,13 @@ public class DefaultWorkflowTest {
 
     @Test
     public void sortsReadAndWriteTransactionsByEffectiveTimestamp() {
-        WitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
-        WitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
+        FullyWitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
+        FullyWitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
 
-        WitnessedTransaction readOnlyAtThree = createReadOnlyWitnessedTransactionWithoutActions(3);
-        WitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
-        WitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
-        WitnessedTransaction readOnlyAtNine = createReadOnlyWitnessedTransactionWithoutActions(9);
+        FullyWitnessedTransaction readOnlyAtThree = createReadOnlyWitnessedTransactionWithoutActions(3);
+        FullyWitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
+        FullyWitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
+        FullyWitnessedTransaction readOnlyAtNine = createReadOnlyWitnessedTransactionWithoutActions(9);
 
         assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(
                         twoToEight, readOnlyAtNine, fourToSix, readOnlyAtFive, readOnlyAtThree, readOnlyAtSeven)))
@@ -105,14 +104,14 @@ public class DefaultWorkflowTest {
 
     @Test
     public void filterRemovesUncommittedTransactions() {
-        WitnessedTransaction committedMaybeWitnessedTransaction =
+        MaybeWitnessedTransaction committedMaybeWitnessedTransaction =
                 createMaybeWitnessedTransactionWithoutActions(1, 3, true);
-        WitnessedTransaction notCommittedTransaction = createMaybeWitnessedTransactionWithoutActions(2, 8, false);
-        WitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
-        WitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
+        MaybeWitnessedTransaction notCommittedTransaction = createMaybeWitnessedTransactionWithoutActions(2, 8, false);
+        FullyWitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
+        FullyWitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
         assertThat(workflow.sortAndFilterTransactions(List.of(
                         committedMaybeWitnessedTransaction, notCommittedTransaction, readOnlyAtFive, fourToSix)))
-                .containsExactly(committedMaybeWitnessedTransaction, readOnlyAtFive, fourToSix);
+                .containsExactly(committedMaybeWitnessedTransaction.toFullyWitnessed(), readOnlyAtFive, fourToSix);
     }
 
     private WorkflowConfiguration createWorkflowConfiguration(int iterationCount) {
@@ -133,11 +132,11 @@ public class DefaultWorkflowTest {
                 .build();
     }
 
-    private static WitnessedTransaction createReadOnlyWitnessedTransactionWithoutActions(long start) {
+    private static FullyWitnessedTransaction createReadOnlyWitnessedTransactionWithoutActions(long start) {
         return FullyWitnessedTransaction.builder().startTimestamp(start).build();
     }
 
-    private static WitnessedTransaction createWitnessedTransactionWithoutActions(long start, long commit) {
+    private static FullyWitnessedTransaction createWitnessedTransactionWithoutActions(long start, long commit) {
         return FullyWitnessedTransaction.builder()
                 .startTimestamp(start)
                 .commitTimestamp(commit)

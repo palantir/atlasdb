@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.OnlyCommittedWitnessedTransactionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -84,7 +85,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
      * Sorts transactions by their effective timestamp and filters out transactions that are not fully committed.
      */
     @VisibleForTesting
-    List<WitnessedTransaction> sortAndFilterTransactions(List<WitnessedTransaction> unorderedTransactions) {
+    List<FullyWitnessedTransaction> sortAndFilterTransactions(List<WitnessedTransaction> unorderedTransactions) {
         OnlyCommittedWitnessedTransactionVisitor visitor =
                 new OnlyCommittedWitnessedTransactionVisitor(readOnlyTransactionStore);
         return StreamEx.of(unorderedTransactions)
