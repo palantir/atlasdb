@@ -41,4 +41,12 @@ public interface MaybeWitnessedTransaction extends WitnessedTransaction {
     static ImmutableMaybeWitnessedTransaction.Builder builder() {
         return ImmutableMaybeWitnessedTransaction.builder();
     }
+
+    default FullyWitnessedTransaction toFullyWitnessed() {
+        return FullyWitnessedTransaction.builder()
+                .startTimestamp(startTimestamp())
+                .commitTimestamp(commitTimestamp())
+                .actions(actions())
+                .build();
+    }
 }

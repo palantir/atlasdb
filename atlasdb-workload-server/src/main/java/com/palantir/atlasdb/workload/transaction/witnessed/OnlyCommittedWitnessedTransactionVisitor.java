@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionVisitor;
 import java.util.Optional;
 
-public final class DefaultWitnessedTransactionVisitor
+public final class OnlyCommittedWitnessedTransactionVisitor
         implements WitnessedTransactionVisitor<Optional<WitnessedTransaction>> {
 
     private final ReadOnlyTransactionStore readOnlyTransactionStore;
 
-    public DefaultWitnessedTransactionVisitor(ReadOnlyTransactionStore readOnlyTransactionStore) {
+    public OnlyCommittedWitnessedTransactionVisitor(ReadOnlyTransactionStore readOnlyTransactionStore) {
         this.readOnlyTransactionStore = readOnlyTransactionStore;
     }
 
@@ -40,7 +36,7 @@ public final class DefaultWitnessedTransactionVisitor
     @Override
     public Optional<WitnessedTransaction> visit(MaybeWitnessedTransaction maybeWitnessedTransaction) {
         return readOnlyTransactionStore.isCommitted(maybeWitnessedTransaction.startTimestamp())
-                ? Optional.of(maybeWitnessedTransaction)
+                ? Optional.of(maybeWitnessedTransaction.toFullyWitnessed())
                 : Optional.empty();
     }
 }

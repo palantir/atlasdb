@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.transaction.witnessed.OnlyCommittedWitnessedTransactionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Comparator;
@@ -84,7 +85,8 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
      */
     @VisibleForTesting
     List<WitnessedTransaction> sortAndFilterTransactions(List<WitnessedTransaction> unorderedTransactions) {
-        DefaultWitnessedTransactionVisitor visitor = new DefaultWitnessedTransactionVisitor(readOnlyTransactionStore);
+        OnlyCommittedWitnessedTransactionVisitor visitor =
+                new OnlyCommittedWitnessedTransactionVisitor(readOnlyTransactionStore);
         return StreamEx.of(unorderedTransactions)
                 .mapPartial(transaction -> transaction.accept(visitor))
                 .sorted(Comparator.comparingLong(DefaultWorkflow::effectiveTimestamp))
