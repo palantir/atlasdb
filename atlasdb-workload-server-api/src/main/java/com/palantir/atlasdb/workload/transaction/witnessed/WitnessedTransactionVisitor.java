@@ -16,18 +16,8 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import java.util.List;
-import java.util.Optional;
+public interface WitnessedTransactionVisitor<T> {
+    T visit(FullyWitnessedTransaction witnessedTransaction);
 
-public interface WitnessedTransaction {
-    /** Start timestamp of the transaction. */
-    long startTimestamp();
-
-    /** Commit timestamp of the transaction. */
-    Optional<Long> commitTimestamp();
-
-    /** Provides an in-order list of actions that were performed during the transaction's execution. */
-    List<WitnessedTransactionAction> actions();
-
-    <T> T accept(WitnessedTransactionVisitor<T> visitor);
+    T visit(MaybeWitnessedTransaction maybeWitnessedTransaction);
 }

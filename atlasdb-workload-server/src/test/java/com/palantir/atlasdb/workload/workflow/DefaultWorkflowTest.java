@@ -27,9 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.common.concurrent.PTExecutors;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import org.junit.Test;
 
@@ -41,13 +43,13 @@ public class DefaultWorkflowTest {
     private final ScheduledExecutorService scheduler = PTExecutors.newSingleThreadScheduledExecutor();
     private final ListeningExecutorService executionExecutor = MoreExecutors.listeningDecorator(scheduler);
 
+    private final DefaultWorkflow<TransactionStore> workflow =
+            DefaultWorkflow.create(store, transactionTask, createWorkflowConfiguration(2), executionExecutor);
+
     @Test
     public void handlesExceptionsInUnderlyingTasks() {
         RuntimeException transactionException = new RuntimeException("boo");
         when(transactionTask.apply(eq(store), anyInt())).thenThrow(transactionException);
-
-        Workflow workflow =
-                DefaultWorkflow.create(store, transactionTask, createWorkflowConfiguration(2), executionExecutor);
         assertThatThrownBy(workflow::run)
                 .hasMessage("Error when running workflow task")
                 .hasCause(transactionException);
@@ -58,9 +60,9 @@ public class DefaultWorkflowTest {
         WitnessedTransaction twoToEight = createWitnessedTransactionWithoutActions(2, 8);
         WitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
 
-        assertThat(DefaultWorkflow.sortByEffectiveTimestamp(ImmutableList.of(twoToEight)))
+        assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(twoToEight)))
                 .containsExactly(twoToEight);
-        assertThat(DefaultWorkflow.sortByEffectiveTimestamp(ImmutableList.of(readOnlyAtFive)))
+        assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(readOnlyAtFive)))
                 .containsExactly(readOnlyAtFive);
     }
 
@@ -70,7 +72,7 @@ public class DefaultWorkflowTest {
         WitnessedTransaction threeToSeven = createWitnessedTransactionWithoutActions(3, 7);
         WitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
 
-        assertThat(DefaultWorkflow.sortByEffectiveTimestamp(ImmutableList.of(twoToEight, threeToSeven, fourToSix)))
+        assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(twoToEight, threeToSeven, fourToSix)))
                 .containsExactly(fourToSix, threeToSeven, twoToEight);
     }
 
@@ -80,7 +82,7 @@ public class DefaultWorkflowTest {
         WitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
         WitnessedTransaction readOnlyAtFortyTwo = createReadOnlyWitnessedTransactionWithoutActions(42);
 
-        assertThat(DefaultWorkflow.sortByEffectiveTimestamp(
+        assertThat(workflow.sortAndFilterTransactions(
                         ImmutableList.of(readOnlyAtSeven, readOnlyAtFortyTwo, readOnlyAtThree)))
                 .containsExactly(readOnlyAtThree, readOnlyAtSeven, readOnlyAtFortyTwo);
     }
@@ -95,10 +97,22 @@ public class DefaultWorkflowTest {
         WitnessedTransaction readOnlyAtSeven = createReadOnlyWitnessedTransactionWithoutActions(7);
         WitnessedTransaction readOnlyAtNine = createReadOnlyWitnessedTransactionWithoutActions(9);
 
-        assertThat(DefaultWorkflow.sortByEffectiveTimestamp(ImmutableList.of(
+        assertThat(workflow.sortAndFilterTransactions(ImmutableList.of(
                         twoToEight, readOnlyAtNine, fourToSix, readOnlyAtFive, readOnlyAtThree, readOnlyAtSeven)))
                 .containsExactly(
                         readOnlyAtThree, readOnlyAtFive, fourToSix, readOnlyAtSeven, twoToEight, readOnlyAtNine);
+    }
+
+    @Test
+    public void filterRemovesUncommittedTransactions() {
+        WitnessedTransaction committedMaybeWitnessedTransaction =
+                createMaybeWitnessedTransactionWithoutActions(1, 3, true);
+        WitnessedTransaction notCommittedTransaction = createMaybeWitnessedTransactionWithoutActions(2, 8, false);
+        WitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
+        WitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
+        assertThat(workflow.sortAndFilterTransactions(List.of(
+                        committedMaybeWitnessedTransaction, notCommittedTransaction, readOnlyAtFive, fourToSix)))
+                .containsExactly(committedMaybeWitnessedTransaction, readOnlyAtFive, fourToSix);
     }
 
     private WorkflowConfiguration createWorkflowConfiguration(int iterationCount) {
@@ -110,12 +124,21 @@ public class DefaultWorkflowTest {
         };
     }
 
+    private MaybeWitnessedTransaction createMaybeWitnessedTransactionWithoutActions(
+            long start, long commit, boolean committed) {
+        when(store.isCommitted(eq(start))).thenReturn(committed);
+        return MaybeWitnessedTransaction.builder()
+                .startTimestamp(start)
+                .commitTimestamp(commit)
+                .build();
+    }
+
     private static WitnessedTransaction createReadOnlyWitnessedTransactionWithoutActions(long start) {
-        return ImmutableWitnessedTransaction.builder().startTimestamp(start).build();
+        return FullyWitnessedTransaction.builder().startTimestamp(start).build();
     }
 
     private static WitnessedTransaction createWitnessedTransactionWithoutActions(long start, long commit) {
-        return ImmutableWitnessedTransaction.builder()
+        return FullyWitnessedTransaction.builder()
                 .startTimestamp(start)
                 .commitTimestamp(commit)
                 .build();

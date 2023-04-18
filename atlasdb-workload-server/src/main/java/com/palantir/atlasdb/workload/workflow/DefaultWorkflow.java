@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
+import one.util.streamex.StreamEx;
 
 public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
     private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
@@ -45,7 +45,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
         this.readOnlyTransactionStore = readOnlyTransactionStore;
     }
 
-    public static <T extends TransactionStore> Workflow create(
+    public static <T extends TransactionStore> DefaultWorkflow<T> create(
             T store,
             KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration configuration,
@@ -60,7 +60,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
     @Override
     public WorkflowHistory run() {
         return ImmutableWorkflowHistory.builder()
-                .history(sortByEffectiveTimestamp(runTransactionTask()))
+                .history(sortAndFilterTransactions(runTransactionTask()))
                 .transactionStore(readOnlyTransactionStore)
                 .build();
     }
@@ -79,11 +79,16 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
         }
     }
 
+    /**
+     * Sorts transactions by their effective timestamp and filters out transactions that are not fully committed.
+     */
     @VisibleForTesting
-    static List<WitnessedTransaction> sortByEffectiveTimestamp(List<WitnessedTransaction> unorderedTransactions) {
-        return unorderedTransactions.stream()
+    List<WitnessedTransaction> sortAndFilterTransactions(List<WitnessedTransaction> unorderedTransactions) {
+        DefaultWitnessedTransactionVisitor visitor = new DefaultWitnessedTransactionVisitor(readOnlyTransactionStore);
+        return StreamEx.of(unorderedTransactions)
+                .mapPartial(transaction -> transaction.accept(visitor))
                 .sorted(Comparator.comparingLong(DefaultWorkflow::effectiveTimestamp))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static long effectiveTimestamp(WitnessedTransaction witnessedTransaction) {

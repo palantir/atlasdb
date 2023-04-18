@@ -18,19 +18,23 @@ package com.palantir.atlasdb.workload.store;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -64,6 +68,13 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     }
 
     @Override
+    public boolean isCommitted(long startTimestamp) {
+        return TransactionStatus.getCommitTimestamp(
+                        transactionManager.getTransactionService().getV2(startTimestamp))
+                .isPresent();
+    }
+
+    @Override
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
         return readWrite(txn -> {
             AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
@@ -74,23 +85,26 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     @Override
     public Optional<WitnessedTransaction> readWrite(Consumer<InteractiveTransaction> interactiveTransactionConsumer) {
         AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
+        AtomicReference<Transaction> transactionReference = new AtomicReference<>();
         Supplier<CommitTimestampProvider> commitTimestampProvider =
                 Suppliers.memoize(() -> new CommitTimestampProvider());
         try {
-            Transaction transaction =
-                    transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
-                        AtlasDbInteractiveTransaction atlasDbInteractiveTransaction =
-                                new AtlasDbInteractiveTransaction(txn, tables);
-                        interactiveTransactionConsumer.accept(atlasDbInteractiveTransaction);
-                        witnessedActionsReference.set(atlasDbInteractiveTransaction.witness());
-                        return txn;
-                    });
+            transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
+                AtlasDbInteractiveTransaction atlasDbInteractiveTransaction =
+                        new AtlasDbInteractiveTransaction(txn, tables);
+                interactiveTransactionConsumer.accept(atlasDbInteractiveTransaction);
+                witnessedActionsReference.set(atlasDbInteractiveTransaction.witness());
+                transactionReference.set(txn);
+                return null;
+            });
+
+            Transaction transaction = transactionReference.get();
 
             if (transaction.isAborted()) {
                 return Optional.empty();
             }
 
-            return Optional.of(ImmutableWitnessedTransaction.builder()
+            return Optional.of(FullyWitnessedTransaction.builder()
                     .startTimestamp(transaction.getTimestamp())
                     .commitTimestamp(commitTimestampProvider
                             .get()
@@ -99,9 +113,22 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                     .build());
         } catch (SafeIllegalArgumentException e) {
             throw e;
+        } catch (KeyAlreadyExistsException e) {
+            Transaction transaction = transactionReference.get();
+            return Optional.of(MaybeWitnessedTransaction.builder()
+                    .startTimestamp(transaction.getTimestamp())
+                    .commitTimestamp(commitTimestampProvider
+                            .get()
+                            .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
+                    .actions(witnessedActionsReference.get())
+                    .build());
         } catch (Exception e) {
-            // TODO: Need to eventually handle PuE exceptions, as they could've succeeded in committing.
-            log.info("Failed to record transaction due to an exception", e);
+            Optional<Long> startTimestamp =
+                    Optional.ofNullable(transactionReference.get()).map(Transaction::getTimestamp);
+            log.info(
+                    "Failed to record transaction due to an exception for startTimestamp {}",
+                    SafeArg.of("startTimestamp", startTimestamp),
+                    e);
             return Optional.empty();
         }
     }

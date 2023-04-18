@@ -28,4 +28,9 @@ public interface ReadableTransactionStore {
      * @return The value of the cell for a given table.
      */
     Optional<Integer> get(String table, WorkloadCell cell);
+
+    /**
+     * Checks the startTimestamp for a given transaction whether it has committed.
+     */
+    boolean isCommitted(long startTimestamp);
 }

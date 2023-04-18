@@ -28,6 +28,7 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -35,7 +36,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -44,6 +47,7 @@ import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessToActionVisitor;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -160,6 +164,29 @@ public final class AtlasDbTransactionStoreTest {
                 AtlasDbTransactionStore.create(onlyAbortsManager, TABLES_TO_ATLAS_METADATA);
         assertThat(onlyAbortsStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isEmpty();
+    }
+
+    @Test
+    public void keyAlreadyExistExceptionResultsInMaybeWitnessedTransaction() {
+        WriteTransactionAction writeTransactionAction =
+                WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
+        TransactionManager onlyThrowsKeyAlreadyExistsExceptionManager = spy(manager);
+        doAnswer(answer -> {
+                    Supplier<CommitTimestampProvider> commitTimestampFetcher = answer.getArgument(0);
+                    ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
+                            answer.getArgument(1);
+                    manager.runTaskWithConditionWithRetry(commitTimestampFetcher, task);
+                    throw new KeyAlreadyExistsException("foobar");
+                })
+                .when(onlyThrowsKeyAlreadyExistsExceptionManager)
+                .runTaskWithConditionWithRetry(any(Supplier.class), any());
+        AtlasDbTransactionStore onlyKeyAlreadyExistsThrowingStore =
+                AtlasDbTransactionStore.create(onlyThrowsKeyAlreadyExistsExceptionManager, TABLES_TO_ATLAS_METADATA);
+        assertThat(onlyKeyAlreadyExistsThrowingStore.readWrite(List.of(writeTransactionAction)))
+                .hasValueSatisfying(witnessedTransaction -> {
+                    assertThat(witnessedTransaction).isInstanceOf(MaybeWitnessedTransaction.class);
+                    assertThat(witnessedTransaction.actions()).containsExactly(writeTransactionAction.witness());
+                });
     }
 
     @Test
