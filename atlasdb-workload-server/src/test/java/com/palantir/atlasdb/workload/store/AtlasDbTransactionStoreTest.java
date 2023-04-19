@@ -35,13 +35,15 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore.CommitTimestampProvider;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
@@ -175,8 +177,17 @@ public final class AtlasDbTransactionStoreTest {
                     Supplier<CommitTimestampProvider> commitTimestampFetcher = answer.getArgument(0);
                     ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
                             answer.getArgument(1);
-                    manager.runTaskWithConditionWithRetry(commitTimestampFetcher, task);
-                    throw new KeyAlreadyExistsException("foobar");
+                    return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
+                        manager.getKeyValueService()
+                                .putUnlessExists(
+                                        TransactionConstants.TRANSACTION_TABLE,
+                                        Map.of(
+                                                V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(
+                                                        txn.getTimestamp()),
+                                                Ints.toByteArray(-1)));
+                        task.execute(txn, condition);
+                        return null;
+                    });
                 })
                 .when(onlyThrowsKeyAlreadyExistsExceptionManager)
                 .runTaskWithConditionWithRetry(any(Supplier.class), any());

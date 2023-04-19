@@ -18,10 +18,10 @@ package com.palantir.atlasdb.workload.store;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
@@ -34,7 +34,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransac
 import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
-import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -114,18 +113,16 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                     .build());
         } catch (SafeIllegalArgumentException e) {
             throw e;
+        } catch (TransactionCommitFailedException e) {
+            Transaction transaction = transactionReference.get();
+            return Optional.of(MaybeWitnessedTransaction.builder()
+                    .startTimestamp(transaction.getTimestamp())
+                    .commitTimestamp(commitTimestampProvider
+                            .get()
+                            .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
+                    .actions(witnessedActionsReference.get())
+                    .build());
         } catch (Exception e) {
-            if (Throwables.hasCauseInCausalChain(e, KeyAlreadyExistsException.class)) {
-                Transaction transaction = transactionReference.get();
-                return Optional.of(MaybeWitnessedTransaction.builder()
-                        .startTimestamp(transaction.getTimestamp())
-                        .commitTimestamp(commitTimestampProvider
-                                .get()
-                                .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
-                        .actions(witnessedActionsReference.get())
-                        .build());
-            }
-
             Optional<Long> startTimestamp =
                     Optional.ofNullable(transactionReference.get()).map(Transaction::getTimestamp);
             log.info(
