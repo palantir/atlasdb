@@ -34,6 +34,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransac
 import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -113,16 +114,18 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                     .build());
         } catch (SafeIllegalArgumentException e) {
             throw e;
-        } catch (KeyAlreadyExistsException e) {
-            Transaction transaction = transactionReference.get();
-            return Optional.of(MaybeWitnessedTransaction.builder()
-                    .startTimestamp(transaction.getTimestamp())
-                    .commitTimestamp(commitTimestampProvider
-                            .get()
-                            .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
-                    .actions(witnessedActionsReference.get())
-                    .build());
         } catch (Exception e) {
+            if (Throwables.hasCauseInCausalChain(e, KeyAlreadyExistsException.class)) {
+                Transaction transaction = transactionReference.get();
+                return Optional.of(MaybeWitnessedTransaction.builder()
+                        .startTimestamp(transaction.getTimestamp())
+                        .commitTimestamp(commitTimestampProvider
+                                .get()
+                                .getCommitTimestampOrThrowIfMaybeNotCommitted(transaction.getTimestamp()))
+                        .actions(witnessedActionsReference.get())
+                        .build());
+            }
+
             Optional<Long> startTimestamp =
                     Optional.ofNullable(transactionReference.get()).map(Transaction::getTimestamp);
             log.info(
