@@ -21,7 +21,6 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
@@ -29,6 +28,7 @@ import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricRepor
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
+import com.palantir.atlasdb.workload.workflow.BouncingValueWorkflow;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -82,10 +82,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
-        ExecutorService singleRowTwoCellsExecutorService = environment
-                .lifecycle()
-                .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
-                .build();
+        //        ExecutorService singleRowTwoCellsExecutorService = environment
+        //                .lifecycle()
+        //                .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
+        //                .build();
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
                 configuration.install().atlas(),
@@ -97,14 +97,19 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         log.info("antithesis: start_faults");
         AntithesisWorkflowRunner.INSTANCE.run(
-                SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                        transactionStoreFactory.create(
-                                Map.of(
-                                        workflowConfig.tableConfiguration().tableName(),
-                                        workflowConfig.tableConfiguration().isolationLevel()),
-                                Set.of()),
-                        workflowConfig,
-                        MoreExecutors.listeningDecorator(singleRowTwoCellsExecutorService)),
+                BouncingValueWorkflow.createBouncingValue(transactionStoreFactory.create(
+                        Map.of(
+                                workflowConfig.tableConfiguration().tableName(),
+                                workflowConfig.tableConfiguration().isolationLevel()),
+                        Set.of())),
+                //                SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
+                //                        transactionStoreFactory.create(
+                //                                Map.of(
+                //                                        workflowConfig.tableConfiguration().tableName(),
+                //                                        workflowConfig.tableConfiguration().isolationLevel()),
+                //                                Set.of()),
+                //                        workflowConfig,
+                //                        MoreExecutors.listeningDecorator(singleRowTwoCellsExecutorService)),
                 List.of(
                         new DurableWritesInvariantMetricReporter(
                                 SingleRowTwoCellsWorkflows.class.getSimpleName(),

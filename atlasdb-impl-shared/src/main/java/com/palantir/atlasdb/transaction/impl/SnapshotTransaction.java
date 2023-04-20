@@ -48,6 +48,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -169,6 +170,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2003,13 +2005,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed as this is generally an asynchronous operation.
                 traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
-                // Serializable transactions need to check their reads haven't changed, by reading again at
-                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
-                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
-                // from underneath us.
-                timedAndTraced(
-                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
-
                 // Verify that our locks and pre-commit conditions are still valid before we actually commit;
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
@@ -2019,6 +2014,21 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+                // Buggify stuff
+                Set<LockToken> tokensToUnlock = new HashSet<>();
+                tokensToUnlock.add(commitLocksToken);
+                immutableTimestampLock.ifPresent(tokensToUnlock::add);
+                Uninterruptibles.sleepUninterruptibly(
+                        Duration.ofMillis(ThreadLocalRandom.current().nextInt(60_000)));
+
+                // This can fail :(
+                // Serializable transactions need to check their reads haven't changed, by reading again at
+                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
+                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+                // from underneath us.
+                timedAndTraced(
+                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
