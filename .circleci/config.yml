@@ -33,8 +33,8 @@ jobs:
 
   test:
     parallelism: 12
-    machine: true
-      # image: ubuntu-2004:202111-02
+    machine:
+      image: ubuntu-2004:202111-02
     resource_class: 2xlarge+
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -42,6 +42,7 @@ jobs:
       _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
+      UNIT_TEST_PARALLELISM: 3
 
     steps:
       - attach_workspace: { at: . }
