@@ -41,7 +41,7 @@ import java.util.stream.Stream;
 import one.util.streamex.StreamEx;
 
 public class BouncingValueWorkflow {
-    private static final String TEST_TABLE = "bouncingValue";
+    public static final String TEST_TABLE = "bouncingValue";
     private static final WorkloadCell BUSY_CELL = ImmutableWorkloadCell.of(1, 1);
 
     public static Workflow createBouncingValue(InteractiveTransactionStore store) {
