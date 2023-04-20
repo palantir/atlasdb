@@ -28,6 +28,7 @@ import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricRepor
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
+import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.workflow.BouncingValueWorkflow;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
@@ -99,8 +100,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         AntithesisWorkflowRunner.INSTANCE.run(
                 BouncingValueWorkflow.createBouncingValue(transactionStoreFactory.create(
                         Map.of(
-                                workflowConfig.tableConfiguration().tableName(),
-                                workflowConfig.tableConfiguration().isolationLevel()),
+                                BouncingValueWorkflow.TEST_TABLE,
+                                IsolationLevel.SERIALIZABLE),
                         Set.of())),
                 //                SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                 //                        transactionStoreFactory.create(
