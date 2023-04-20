@@ -1982,10 +1982,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 // this transaction before making progress.
                 traced("postSweepEnqueueLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
-                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
-
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
@@ -2019,6 +2015,10 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
+                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
