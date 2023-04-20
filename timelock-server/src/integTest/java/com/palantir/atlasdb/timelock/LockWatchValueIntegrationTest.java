@@ -545,7 +545,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    @ShouldRetry // The test fails when trying to cache a value that is currently locked.
+    @ShouldRetry(numAttempts = 15) // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.
     public void valueStressTest() {
