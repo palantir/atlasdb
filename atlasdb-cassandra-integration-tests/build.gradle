@@ -53,6 +53,7 @@ task memorySensitiveTest(type: Test) {
 }
 
 test {
+    failFast = true
     exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
