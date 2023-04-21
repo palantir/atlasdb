@@ -128,6 +128,7 @@ public final class LockWatchValueIntegrationTest {
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
     }
 
+    @ShouldRetry
     @Test
     public void readOnlyTransactionsDoNotUseCaching() {
         putValue();
@@ -142,6 +143,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void effectivelyReadOnlyTransactionsPublishValuesToCentralCache() {
         putValue();
@@ -170,6 +172,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
+    @ShouldRetry
     @Test
     public void readWriteTransactionsPublishValuesToCentralCache() {
         putValue();
@@ -196,6 +199,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
+    @ShouldRetry
     @Test
     public void serializableTransactionsThrowOnCachedReadWriteConflicts() {
         putValue();
@@ -217,6 +221,7 @@ public final class LockWatchValueIntegrationTest {
                 .hasMessageContaining("There was a read-write conflict on table");
     }
 
+    @ShouldRetry
     @Test
     public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
         putValue();
@@ -230,6 +235,7 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    @ShouldRetry
     @Test
     public void serializableTransactionsReadViaTheCacheForConflictChecking() {
         putValue();
@@ -245,6 +251,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void putsCauseInvalidationsInSubsequentTransactions() {
         putValue();
@@ -274,6 +281,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void leaderElectionFlushesCache() {
         putValue();
@@ -285,6 +293,7 @@ public final class LockWatchValueIntegrationTest {
         readValueAndAssertLoadedFromRemote();
     }
 
+    @ShouldRetry
     @Test
     public void leaderElectionDuringReadOnlyTransactionDoesNotCauseItToFail() {
         putValue();
@@ -321,6 +330,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void leaderElectionDuringWriteTransactionCausesTransactionToRetry() {
         putValue();
@@ -349,6 +359,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void failedValidationCausesNoOpCacheToBeUsed() {
         createTransactionManager(1.0);
@@ -372,6 +383,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void getRowsCachedValidatesCorrectly() {
         createTransactionManager(1.0);
@@ -420,6 +432,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(ByteArrayUtilities.areRowResultsEqual(remoteRead, cacheRead)).isTrue();
     }
 
+    @ShouldRetry
     @Test
     public void getRowsUsesCacheAsExpected() {
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -468,6 +481,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @ShouldRetry
     @Test
     public void nearbyCommitsDoNotAffectResultsPresentInCache() {
         createTransactionManager(1.0);
@@ -498,6 +512,7 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    @ShouldRetry
     @Test
     public void lateAbortingTransactionDoesNotFlushValuesToCentralCache() {
         txnManager.runTaskThrowOnConflict(txn -> {
