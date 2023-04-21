@@ -113,6 +113,7 @@ task timeLockTest(type: Test) {
 }
 
 task timeLockMigrationTest(type: Test) {
+    failFast = true
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLockMigration*.class'
 }
@@ -128,6 +129,7 @@ task oracleTest(type: Test) {
 }
 
 test {
+    failFast = true
     dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
 
