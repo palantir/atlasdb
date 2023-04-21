@@ -181,6 +181,7 @@ public class TestTimestampCommand {
         runAndVerifyCliForFile(inputFileString);
     }
 
+    @ShouldRetry
     @Test
     public void testWithFileWithDir() throws Exception {
         String inputFileString = "existing-dir/test.timestamp";

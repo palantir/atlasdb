@@ -8,6 +8,7 @@ dependencies {
     api project(':atlasdb-client')
     api project(':atlasdb-config')
     api project(':timestamp-api')
+    testImplementation project(path: ':flake-rule')
 
     compileOnly 'com.google.dagger:dagger'
     implementation 'io.airlift:airline'
