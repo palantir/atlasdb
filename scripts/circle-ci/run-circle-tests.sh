@@ -2,7 +2,7 @@
 
 set -x
 
-BASE_GRADLE_ARGS="--profile --fail-fast"
+BASE_GRADLE_ARGS="--profile"
 
 function checkDocsBuild {
      pyenv install 3.5.4
