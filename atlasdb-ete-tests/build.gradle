@@ -107,6 +107,7 @@ task longTest(type: Test) {
 }
 
 task timeLockTest(type: Test) {
+    failFast = true
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLock*.class'
     exclude '**/*TimeLockMigration*.class'
