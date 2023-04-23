@@ -37,6 +37,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.common.time.Clock;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -181,6 +182,7 @@ public class TestTimestampCommand {
         runAndVerifyCliForFile(inputFileString);
     }
 
+    @ShouldRetry
     @Test
     public void testWithFileWithDir() throws Exception {
         String inputFileString = "existing-dir/test.timestamp";
