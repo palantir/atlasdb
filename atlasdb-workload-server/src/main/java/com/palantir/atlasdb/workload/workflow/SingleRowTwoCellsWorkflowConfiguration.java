@@ -33,7 +33,7 @@ public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfigur
 
     @Value.Default
     default double rateLimit() {
-        return 100;
+        return 5;
     }
 
     @Value.Lazy
