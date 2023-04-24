@@ -85,6 +85,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         ExecutorService singleRowTwoCellsExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
+                .maxThreads(1024)
                 .build();
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
