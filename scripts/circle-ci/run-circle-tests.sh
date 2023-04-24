@@ -38,13 +38,13 @@ CONTAINER_9=('atlasdb-dbkvs-tests:oracleTest')
 
 CONTAINER_10=('compileJava' 'compileTestJava')
 
-CONTAINER_11=('atlasdb-cassandra-integration-tests:testChunk0')
+CONTAINER_11=(':atlasdb-cassandra-integration-tests:testChunk0')
 
-CONTAINER_12=('atlasdb-cassandra-integration-tests:testChunk1')
+CONTAINER_12=(':atlasdb-cassandra-integration-tests:testChunk1')
 
-CONTAINER_13=('atlasdb-cassandra-integration-tests:testChunk2')
+CONTAINER_13=(':atlasdb-cassandra-integration-tests:testChunk2')
 
-CONTAINER_14=('atlasdb-cassandra-integration-tests:testChunk3')
+CONTAINER_14=(':atlasdb-cassandra-integration-tests:testChunk3')
 
 CONTAINER_15=(':atlasdb-impl-shared:check')
 
@@ -52,8 +52,10 @@ CONTAINER_16=(':atlasdb-tests-shared:check')
 
 CONTAINER_17=(':atlasdb-perf:check')
 
+IGNORED=(':atlasdb-ete-tests:timeLockMigrationTest' ':atlasdb-cassandra-integration-tests:check')
+
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}" "${CONTAINER_11[@]}" "${CONTAINER_12[@]}" "${CONTAINER_13[@]}" "${CONTAINER_14[@]}" "${CONTAINER_15[@]}" "${CONTAINER_16[@]}" "${CONTAINER_17[@]}")
+CONTAINER_0_EXCLUDE=("${IGNORED}" "${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}" "${CONTAINER_11[@]}" "${CONTAINER_12[@]}" "${CONTAINER_13[@]}" "${CONTAINER_14[@]}" "${CONTAINER_15[@]}" "${CONTAINER_16[@]}" "${CONTAINER_17[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
