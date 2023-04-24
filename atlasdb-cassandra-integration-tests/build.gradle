@@ -56,6 +56,38 @@ test {
     exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
+task testChunk0(type: Test) {
+    include '**/CassandraBackedPueTableTest.class'
+    include '**/CassandraBackgroundSweeperIntegrationTest.class'
+    include '**/CassandraClientPoolIntegrationTest.class'
+    include '**/CassandraConnectionIntegrationTest.class'
+    include '**/CassandraGetCandidateCellsForSweepingTest.class'
+}
+
+task testChunk1(type: Test) {
+    include '**/CassandraKeyValueServiceAsyncInitializationTest.class'
+    include '**/CassandraKeyValueServiceGetRowKeysInRangeTest.class'
+    include '**/CassandraKeyValueServiceIntegrationTest.class'
+    include '**/CassandraKeyValueServiceMultiCasIntegrationTest.class'
+    include '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
+}
+
+task testChunk2(type: Test) {
+    include '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
+    include '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
+    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/CassandraKvsAsyncFallbackMechanismsTests.class'
+    include '**/CassandraKvsSerializableTransactionTest.class'
+}
+
+task testChunk3(type: Test) {
+    include '**/CassandraNamespaceDeleterIntegrationTest.class'
+    include '**/CassandraSweepProgressStoreIntegrationTest.class'
+    include '**/CassandraTargetedSweepIntegrationTest.class'
+    include '**/CassandraTimestampBackupIntegrationTest.class'
+}
+
+
 tasks.withType(Test) {
     testLogging {
         // set options for log level LIFECYCLE

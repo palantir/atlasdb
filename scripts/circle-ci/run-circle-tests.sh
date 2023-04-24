@@ -32,7 +32,15 @@ CONTAINER_8=(':atlasdb-ete-tests:oracleTest')
 CONTAINER_9=('atlasdb-dbkvs-tests:oracleTest')
 
 CONTAINER_10=('compileJava' 'compileTestJava')
-# 7 _8_ 9 10 11
+
+CONTAINER_11=('atlasdb-cassandra-integration-tests:testChunk0')
+
+CONTAINER_12=('atlasdb-cassandra-integration-tests:testChunk1')
+
+CONTAINER_13=('atlasdb-cassandra-integration-tests:testChunk2')
+
+CONTAINER_14=('atlasdb-cassandra-integration-tests:testChunk3')
+
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}")
 
@@ -83,4 +91,8 @@ case $CIRCLE_NODE_INDEX in
     8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
     9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
+    12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
+    13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
+    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} ;;
 esac
