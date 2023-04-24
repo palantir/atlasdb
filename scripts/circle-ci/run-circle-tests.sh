@@ -13,13 +13,13 @@ function checkDocsBuild {
      make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-ete-tests:dbkvsTest')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check')
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
@@ -41,8 +41,14 @@ CONTAINER_13=('atlasdb-cassandra-integration-tests:testChunk2')
 
 CONTAINER_14=('atlasdb-cassandra-integration-tests:testChunk3')
 
+CONTAINER_15=(':atlasdb-impl-shared:check')
+
+CONTAINER_16=(':atlasdb-tests-shared:check')
+
+CONTAINER_17=(':atlasdb-perf:check')
+
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}" "${CONTAINER_11[@]}" "${CONTAINER_12[@]}" "${CONTAINER_13[@]}" "${CONTAINER_14[@]}" "${CONTAINER_15[@]}" "${CONTAINER_16[@]}" "${CONTAINER_17[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -95,4 +101,7 @@ case $CIRCLE_NODE_INDEX in
     12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
     13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
     14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} ;;
+    15) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_15[@]} ;;
+    16) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_16[@]} ;;
+    17) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_17[@]} ;;
 esac
