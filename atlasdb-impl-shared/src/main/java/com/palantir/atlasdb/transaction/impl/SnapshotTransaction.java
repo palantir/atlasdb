@@ -1991,6 +1991,10 @@ public class SnapshotTransaction extends AbstractTransaction
                         () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
                 commitTsForScrubbing = commitTimestamp;
 
+                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
+                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
+
                 // Punch on commit so that if hard delete is the only thing happening on a system,
                 // we won't block forever waiting for the unreadable timestamp to advance past the
                 // scrub timestamp (same as the hard delete transaction's start timestamp).
@@ -2015,10 +2019,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
-
-                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
-                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
