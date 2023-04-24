@@ -16,5 +16,5 @@
 
 for i in $(seq 1 $(expr $CIRCLE_NODE_TOTAL - 1));
 do
-  if [ $i -ne $CIRCLE_NODE_INDEX ]; then ssh node$i 'echo "HELLO"'; fi
+  if [ $i -ne $CIRCLE_NODE_INDEX ]; then ssh node$i 'circleci-agent step halt'; fi
 done

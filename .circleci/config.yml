@@ -83,6 +83,10 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
+      - run:
+          name: Fail fast
+          when: on_fail
+          command: ./scripts/circle-ci/abort.sh
 
 
   trial-publish:
