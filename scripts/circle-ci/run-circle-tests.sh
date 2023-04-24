@@ -2,6 +2,11 @@
 
 set -x
 
+echo $CIRCLE_BRANCH
+echo $CIRCLE_JOB
+echo $CIRCLE_PR_REPONAME
+echo
+
 BASE_GRADLE_ARGS="--profile --continue"
 
 function checkDocsBuild {

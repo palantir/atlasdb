@@ -32,7 +32,7 @@ jobs:
           paths: [ . ]
 
   test:
-    parallelism: 15
+    parallelism: 18
     machine:
       image: ubuntu-2004:202111-02
     resource_class: xlarge
@@ -83,7 +83,6 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
-      - run: circleci tests glob "**/**Test.java"
 
   trial-publish:
     docker:
