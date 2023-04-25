@@ -34,13 +34,9 @@ import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
-<<<<<<< HEAD
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
-=======
-import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
->>>>>>> cf0e50e922 (stash)
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -58,7 +54,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
 
@@ -124,31 +119,33 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         }
     }
 
-
     private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             RingWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
-        ExecutorService executorService =
-                lifecycle.executorService(RingWorkflows.class.getSimpleName()).minThreads(100).maxThreads(1024).build();
+        ExecutorService executorService = lifecycle
+                .executorService(RingWorkflows.class.getSimpleName())
+                .minThreads(100)
+                .maxThreads(1024)
+                .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
                         workflowConfig.tableConfiguration().tableName(),
                         workflowConfig.tableConfiguration().isolationLevel()),
                 Set.of());
         return WorkflowAndInvariants.of(RingWorkflows.create(
-                transactionStore,
-                workflowConfig,
-                MoreExecutors.listeningDecorator(executorService),
-                new AtomicBoolean(false)));
+                transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)));
     }
 
     private WorkflowAndInvariants<Workflow> createSingleRowTwoCellsWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleRowTwoCellsWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
-        ExecutorService executorService =
-                lifecycle.executorService(RingWorkflows.class.getSimpleName()).minThreads(100).maxThreads(1024).build();
+        ExecutorService executorService = lifecycle
+                .executorService(RingWorkflows.class.getSimpleName())
+                .minThreads(100)
+                .maxThreads(1024)
+                .build();
         TransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
                         workflowConfig.tableConfiguration().tableName(),
@@ -156,9 +153,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Set.of());
         return WorkflowAndInvariants.builder()
                 .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                        transactionStore,
-                        workflowConfig,
-                        MoreExecutors.listeningDecorator(executorService)))
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         SingleRowTwoCellsWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry)))
