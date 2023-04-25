@@ -45,7 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AntithesisWorkflowAndInvariantsRunnerTest {
+public class AntithesisWorkflowValidatorRunnerTest {
 
     private static final ListeningExecutorService EXECUTOR_SERVICE =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
