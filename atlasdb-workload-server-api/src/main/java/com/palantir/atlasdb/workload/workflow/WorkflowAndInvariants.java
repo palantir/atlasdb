@@ -22,24 +22,24 @@ import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WorkflowValidator<WorkflowTypeT extends Workflow> {
+public interface WorkflowAndInvariants<WorkflowTypeT extends Workflow> {
     @Value.Parameter
     WorkflowTypeT workflow();
 
     @Value.Parameter
-    List<InvariantReporter<?>> invariants();
+    List<InvariantReporter<?>> invariantReporters();
 
-    static <WorkflowTypeT extends Workflow> WorkflowValidator<WorkflowTypeT> of(
+    static <WorkflowTypeT extends Workflow> WorkflowAndInvariants<WorkflowTypeT> of(
             WorkflowTypeT workflow, List<InvariantReporter<?>> invariants) {
-        return ImmutableWorkflowValidator.of(workflow, invariants);
+        return ImmutableWorkflowAndInvariants.of(workflow, invariants);
     }
 
-    static <WorkflowTypeT extends Workflow> WorkflowValidator<WorkflowTypeT> of(
+    static <WorkflowTypeT extends Workflow> WorkflowAndInvariants<WorkflowTypeT> of(
             WorkflowTypeT workflow, InvariantReporter<?>... invariants) {
-        return ImmutableWorkflowValidator.of(workflow, Arrays.asList(invariants));
+        return ImmutableWorkflowAndInvariants.of(workflow, Arrays.asList(invariants));
     }
 
-    static <WorkflowTypeT extends Workflow> ImmutableWorkflowValidator.Builder<WorkflowTypeT> builder() {
-        return ImmutableWorkflowValidator.builder();
+    static <WorkflowTypeT extends Workflow> ImmutableWorkflowAndInvariants.Builder<WorkflowTypeT> builder() {
+        return ImmutableWorkflowAndInvariants.builder();
     }
 }

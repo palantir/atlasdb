@@ -33,7 +33,7 @@ import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
-import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
+import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -111,7 +111,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         }
     }
 
-    private WorkflowValidator<Workflow> createSingleRowTwoCellsWorkflowValidator(
+    private WorkflowAndInvariants<Workflow> createSingleRowTwoCellsWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleRowTwoCellsWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
@@ -123,15 +123,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         workflowConfig.tableConfiguration().tableName(),
                         workflowConfig.tableConfiguration().isolationLevel()),
                 Set.of());
-        return WorkflowValidator.builder()
+        return WorkflowAndInvariants.builder()
                 .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                         transactionStore,
                         workflowConfig,
                         MoreExecutors.listeningDecorator(singleRowTwoCellsExecutorService)))
-                .addInvariants(new DurableWritesInvariantMetricReporter(
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         SingleRowTwoCellsWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry)))
-                .addInvariants(SerializableInvariantLogReporter.INSTANCE)
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .build();
     }
 

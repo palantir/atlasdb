@@ -30,8 +30,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AntithesisWorkflowValidatorRunnerTest {
+public class AntithesisWorkflowAndInvariantsRunnerTest {
 
     private static final ListeningExecutorService EXECUTOR_SERVICE =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
@@ -62,17 +62,17 @@ public class AntithesisWorkflowValidatorRunnerTest {
     @Mock
     private InvariantReporter<Void> invariantReporterTwo;
 
-    private WorkflowValidator<Workflow> workflowValidator;
+    private WorkflowAndInvariants<Workflow> workflowAndInvariants;
 
     @Before
     public void before() {
         when(workflow.run()).thenReturn(workflowHistory);
-        workflowValidator = WorkflowValidator.of(workflow, invariantReporterOne, invariantReporterTwo);
+        workflowAndInvariants = WorkflowAndInvariants.of(workflow, invariantReporterOne, invariantReporterTwo);
     }
 
     @Test
     public void runExecutesWorkflowAndInvokesInvariantReporters() {
-        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowValidator);
+        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowAndInvariants);
         verify(workflow, times(1)).run();
         verify(invariantReporterOne, times(1)).report(any());
         verify(invariantReporterTwo, times(1)).report(any());
@@ -82,7 +82,7 @@ public class AntithesisWorkflowValidatorRunnerTest {
     public void runValidatesAllInvariantsIgnoringExceptions() {
         doThrow(new RuntimeException()).when(invariantReporterOne).report(any());
         doThrow(new RuntimeException()).when(invariantReporterTwo).report(any());
-        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowValidator);
+        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(workflowAndInvariants);
         verify(workflow, times(1)).run();
         verify(invariantReporterOne, times(1)).report(any());
         verify(invariantReporterTwo, times(1)).report(any());
@@ -117,9 +117,10 @@ public class AntithesisWorkflowValidatorRunnerTest {
         ExecutorService backgroundExecutor = PTExecutors.newSingleThreadExecutor();
         try {
             Future<Void> validation = backgroundExecutor.submit(() -> {
-                WorkflowValidator<Workflow> slowWorkflowValidator =
-                        WorkflowValidator.of(slowWorkflow, invariantReporterOne);
-                new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
+                WorkflowAndInvariants<Workflow> slowWorkflowAndInvariants =
+                        WorkflowAndInvariants.of(slowWorkflow, invariantReporterOne);
+                new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE)
+                        .run(slowWorkflowAndInvariants, workflowAndInvariants);
                 return null;
             });
 

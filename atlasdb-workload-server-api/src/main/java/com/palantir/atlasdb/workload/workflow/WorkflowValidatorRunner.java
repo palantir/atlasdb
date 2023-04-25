@@ -23,13 +23,13 @@ import java.util.List;
  * Run the provided workflow and validate that it is correct with the provided invariants.
  */
 public interface WorkflowValidatorRunner<WorkflowTypeT extends Workflow> {
-    void run(List<WorkflowValidator<WorkflowTypeT>> workflowValidators);
+    void run(List<WorkflowAndInvariants<WorkflowTypeT>> workflowAndInvariants);
 
-    default void run(WorkflowValidator<WorkflowTypeT>... workflowValidators) {
-        run(Arrays.asList(workflowValidators));
+    default void run(WorkflowAndInvariants<WorkflowTypeT>... workflowAndInvariants) {
+        run(Arrays.asList(workflowAndInvariants));
     }
 
-    default void run(WorkflowValidator<WorkflowTypeT> workflowValidator) {
-        run(List.of(workflowValidator));
+    default void run(WorkflowAndInvariants<WorkflowTypeT> workflowAndInvariants) {
+        run(List.of(workflowAndInvariants));
     }
 }

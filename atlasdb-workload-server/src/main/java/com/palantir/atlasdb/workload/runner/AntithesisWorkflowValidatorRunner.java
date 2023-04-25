@@ -20,8 +20,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistoryValidator;
-import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidatorRunner;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -39,18 +39,18 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     }
 
     @Override
-    public void run(List<WorkflowValidator<Workflow>> workflowValidators) {
+    public void run(List<WorkflowAndInvariants<Workflow>> workflowAndInvariants) {
         try {
             log.info("antithesis: start_faults");
             List<WorkflowHistoryValidator> workflowHistoryValidators = Futures.allAsList(
-                            submitWorkflowValidators(workflowValidators))
+                            submitWorkflowValidators(workflowAndInvariants))
                     .get();
             log.info("antithesis: stop_faults");
             workflowHistoryValidators.forEach(this::checkAndReportInvariantViolations);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -68,10 +68,10 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     }
 
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(
-            List<WorkflowValidator<Workflow>> workflowValidators) {
-        return workflowValidators.stream()
+            List<WorkflowAndInvariants<Workflow>> workflowAndInvariants) {
+        return workflowAndInvariants.stream()
                 .map(workflowValidator -> listeningExecutorService.submit(() -> WorkflowHistoryValidator.of(
-                        workflowValidator.workflow().run(), workflowValidator.invariants())))
+                        workflowValidator.workflow().run(), workflowValidator.invariantReporters())))
                 .collect(Collectors.toList());
     }
 }
