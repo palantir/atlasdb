@@ -21,6 +21,7 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -68,9 +69,22 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (numNotDeleted == 0) {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
             batchSize = maxNewBatchSize;
+            if (log.isDebugEnabled()) {
+                log.debug("Everything in a batch was deleted!",
+                        SafeArg.of("previousBatchSize", originalBatchSize),
+                        SafeArg.of("newBatchSize", batchSize),
+                        SafeArg.of("numReturned", numReturned));
+            }
         } else {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
+            if (log.isDebugEnabled()) {
+                log.debug("Recalculating the batch size!",
+                        SafeArg.of("previousBatchSize", originalBatchSize),
+                        SafeArg.of("newBatchSize", batchSize),
+                        SafeArg.of("numReturned", numReturned),
+                        SafeArg.of("numNotDeleted", numNotDeleted));
+            }
         }
         return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
