@@ -48,7 +48,6 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -170,7 +169,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2019,13 +2017,14 @@ public class SnapshotTransaction extends AbstractTransaction
                 Set<LockToken> tokensToUnlock = new HashSet<>();
                 tokensToUnlock.add(commitLocksToken);
                 immutableTimestampLock.ifPresent(tokensToUnlock::add);
-                Uninterruptibles.sleepUninterruptibly(
-                        Duration.ofMillis(ThreadLocalRandom.current().nextInt(60_000)));
+                timelockService.tryUnlock(tokensToUnlock);
 
                 // This can fail :(
                 // Serializable transactions need to check their reads haven't changed, by reading again at
-                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
-                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock
+                // check
+                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict
+                // out
                 // from underneath us.
                 timedAndTraced(
                         "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
