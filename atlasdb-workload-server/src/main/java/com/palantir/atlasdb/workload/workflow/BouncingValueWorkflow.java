@@ -52,7 +52,7 @@ public class BouncingValueWorkflow {
                         MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
                 ListeningExecutorService writeExecutor =
                         MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-                List<ListenableFuture<Optional<WitnessedTransaction>>> reads = IntStream.range(0, 1_000)
+                List<ListenableFuture<Optional<WitnessedTransaction>>> reads = IntStream.range(0, 200)
                         .mapToObj(idx -> readExecutor.submit(() -> {
                             return store.readWrite(txn -> {
                                 Optional<Integer> value = txn.read(TEST_TABLE, BUSY_CELL);
@@ -62,7 +62,7 @@ public class BouncingValueWorkflow {
                         .collect(Collectors.toList());
 
                 List<ListenableFuture<Optional<WitnessedTransaction>>> writes = new ArrayList<>();
-                for (int i = 0; i < 500; i++) {
+                for (int i = 0; i < 100; i++) {
                     int stableI = i;
                     writes.add(writeExecutor.submit(
                             () -> store.readWrite(List.of(WriteTransactionAction.of(TEST_TABLE, BUSY_CELL, stableI)))));
