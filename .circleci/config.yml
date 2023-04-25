@@ -42,7 +42,8 @@ jobs:
       _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
-      UNIT_TEST_PARALLELISM: 5
+      UNIT_TEST_PARALLELISM: 7
+      DOCKER_TEST_PARALLELISM: 7
 
     steps:
       - attach_workspace: { at: . }
