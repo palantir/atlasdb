@@ -25,15 +25,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidator;
+import com.palantir.common.concurrent.PTExecutors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,31 +90,47 @@ public class AntithesisWorkflowValidatorRunnerTest {
 
     @Test
     public void runExecutesMultipleWorkflowsAndWaitsForAllToFinishBeforeInvokingInvariantReporter() {
-        Semaphore semaphore = new Semaphore(0);
+        CountDownLatch slowWorkflowCanMakeProgress = new CountDownLatch(1);
+        AtomicBoolean slowWorkflowIsDone = new AtomicBoolean(false);
+
         Workflow slowWorkflow = mock(Workflow.class);
         when(slowWorkflow.run()).thenAnswer(_input -> {
             try {
-                assertThat(semaphore.tryAcquire(5, TimeUnit.SECONDS))
-                        .as("No permits should have been released yet as the invariant reporter should have not ran")
-                        .isFalse();
+                slowWorkflowCanMakeProgress.await();
+                slowWorkflowIsDone.set(true);
+                return workflowHistory;
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
-            return workflowHistory;
         });
 
-        WorkflowValidator<Workflow> slowWorkflowValidator = WorkflowValidator.of(slowWorkflow, invariantReporterOne);
-
-        doAnswer(_input -> {
-                    semaphore.release();
+        doAnswer(_invocation -> {
+                    assertThat(slowWorkflowIsDone.get())
+                            .as("the invariant reporter ran, even though the slow workflow was not done yet")
+                            .isTrue();
                     return null;
                 })
                 .when(invariantReporterOne)
                 .report(any());
 
-        new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
+        ExecutorService backgroundExecutor = PTExecutors.newSingleThreadExecutor();
+        try {
+            Future<Void> validation = backgroundExecutor.submit(() -> {
+                WorkflowValidator<Workflow> slowWorkflowValidator =
+                        WorkflowValidator.of(slowWorkflow, invariantReporterOne);
+                new AntithesisWorkflowValidatorRunner(EXECUTOR_SERVICE).run(slowWorkflowValidator, workflowValidator);
+                return null;
+            });
 
-        assertThat(semaphore.availablePermits()).isEqualTo(2);
+            assertThat(validation).as("the slow workflow was not actually slow").isNotDone();
+
+            slowWorkflowCanMakeProgress.countDown();
+            Futures.getUnchecked(validation);
+        } finally {
+            backgroundExecutor.shutdown();
+        }
+
         verify(workflow, times(1)).run();
         verify(slowWorkflow, times(1)).run();
         verify(invariantReporterOne, times(2)).report(any());
