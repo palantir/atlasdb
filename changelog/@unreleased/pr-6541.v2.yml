@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[CBT] Retry flaky tests'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6541
