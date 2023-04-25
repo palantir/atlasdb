@@ -70,7 +70,8 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
             batchSize = maxNewBatchSize;
             if (log.isDebugEnabled()) {
-                log.debug("Everything in a batch was deleted!",
+                log.debug(
+                        "Everything in a batch was deleted!",
                         SafeArg.of("previousBatchSize", originalBatchSize),
                         SafeArg.of("newBatchSize", batchSize),
                         SafeArg.of("numReturned", numReturned));
@@ -79,7 +80,8 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
             if (log.isDebugEnabled()) {
-                log.debug("Recalculating the batch size!",
+                log.debug(
+                        "Recalculating the batch size!",
                         SafeArg.of("previousBatchSize", originalBatchSize),
                         SafeArg.of("newBatchSize", batchSize),
                         SafeArg.of("numReturned", numReturned),
