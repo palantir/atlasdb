@@ -75,7 +75,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-@ShouldRetry // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
+@ShouldRetry(numAttempts = 15) // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
@@ -128,7 +128,6 @@ public final class LockWatchValueIntegrationTest {
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
     }
 
-    @ShouldRetry
     @Test
     public void readOnlyTransactionsDoNotUseCaching() {
         putValue();
@@ -143,7 +142,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void effectivelyReadOnlyTransactionsPublishValuesToCentralCache() {
         putValue();
@@ -172,7 +170,6 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
-    @ShouldRetry
     @Test
     public void readWriteTransactionsPublishValuesToCentralCache() {
         putValue();
@@ -199,7 +196,6 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
-    @ShouldRetry
     @Test
     public void serializableTransactionsThrowOnCachedReadWriteConflicts() {
         putValue();
@@ -221,7 +217,6 @@ public final class LockWatchValueIntegrationTest {
                 .hasMessageContaining("There was a read-write conflict on table");
     }
 
-    @ShouldRetry
     @Test
     public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
         putValue();
@@ -235,7 +230,6 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    @ShouldRetry
     @Test
     public void serializableTransactionsReadViaTheCacheForConflictChecking() {
         putValue();
@@ -251,7 +245,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void putsCauseInvalidationsInSubsequentTransactions() {
         putValue();
@@ -281,7 +274,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void leaderElectionFlushesCache() {
         putValue();
@@ -293,7 +285,6 @@ public final class LockWatchValueIntegrationTest {
         readValueAndAssertLoadedFromRemote();
     }
 
-    @ShouldRetry
     @Test
     public void leaderElectionDuringReadOnlyTransactionDoesNotCauseItToFail() {
         putValue();
@@ -330,7 +321,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void leaderElectionDuringWriteTransactionCausesTransactionToRetry() {
         putValue();
@@ -359,7 +349,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void failedValidationCausesNoOpCacheToBeUsed() {
         createTransactionManager(1.0);
@@ -383,7 +372,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void getRowsCachedValidatesCorrectly() {
         createTransactionManager(1.0);
@@ -432,7 +420,6 @@ public final class LockWatchValueIntegrationTest {
         assertThat(ByteArrayUtilities.areRowResultsEqual(remoteRead, cacheRead)).isTrue();
     }
 
-    @ShouldRetry
     @Test
     public void getRowsUsesCacheAsExpected() {
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -481,7 +468,6 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @ShouldRetry
     @Test
     public void nearbyCommitsDoNotAffectResultsPresentInCache() {
         createTransactionManager(1.0);
@@ -512,7 +498,6 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    @ShouldRetry
     @Test
     public void lateAbortingTransactionDoesNotFlushValuesToCentralCache() {
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -560,7 +545,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    @ShouldRetry(numAttempts = 15) // The test fails when trying to cache a value that is currently locked.
+    // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.
     public void valueStressTest() {
