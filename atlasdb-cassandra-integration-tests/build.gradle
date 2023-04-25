@@ -56,6 +56,24 @@ test {
     exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
 }
 
+task testSubset1(type: Test) {
+    include '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
+    include '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
+    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/CassandraKvsAsyncFallbackMechanismsTests.class'
+    include '**/CassandraKvsSerializableTransactionTest.class'
+}
+
+task testSubset2(type: Test) {
+    include '**/*Test.class'
+    include '**/*Tests.class'
+    exclude '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
+    exclude '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
+    exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/CassandraKvsAsyncFallbackMechanismsTests.class'
+    exclude '**/CassandraKvsSerializableTransactionTest.class'
+}
+
 tasks.withType(Test) {
     testLogging {
         // set options for log level LIFECYCLE
