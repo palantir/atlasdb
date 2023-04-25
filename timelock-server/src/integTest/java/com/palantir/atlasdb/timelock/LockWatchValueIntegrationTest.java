@@ -75,7 +75,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-@ShouldRetry(numAttempts = 15) // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
+// Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
+@ShouldRetry(numAttempts = 15)
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
