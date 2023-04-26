@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[CBT] Run build with 2xlarge'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6540
