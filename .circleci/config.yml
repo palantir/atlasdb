@@ -4,7 +4,7 @@ jobs:
   build:
     docker:
       - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
+    resource_class: 2xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
