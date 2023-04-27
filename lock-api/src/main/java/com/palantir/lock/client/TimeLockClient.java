@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class TimeLockClient implements AutoCloseable, TimelockService {
     private static final ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
 
-    private static final long REFRESH_INTERVAL_MILLIS = 5_000;
+    private static final long REFRESH_INTERVAL_MILLIS = 250;
 
     private final TimelockService delegate;
     private final CloseableTimestampService timestampService;

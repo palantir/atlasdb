@@ -21,7 +21,7 @@ import java.time.Duration;
 public final class LockLeaseContract {
     private LockLeaseContract() {}
 
-    public static final Duration SERVER_LEASE_TIMEOUT = Duration.ofSeconds(20);
+    public static final Duration SERVER_LEASE_TIMEOUT = Duration.ofSeconds(1);
 
     /**
      * This value can be changed without requiring any change on client side.
@@ -32,5 +32,5 @@ public final class LockLeaseContract {
      * period. Current value is picked such that client will be able to refresh held locks even after two consecutive
      * failed refresh calls. (Where client side refresh period is 5 seconds)
      */
-    public static final Duration CLIENT_LEASE_TIMEOUT = Duration.ofSeconds(8);
+    public static final Duration CLIENT_LEASE_TIMEOUT = Duration.ofMillis(500);
 }
