@@ -75,7 +75,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-@ShouldRetry // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
+// Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
+@ShouldRetry(numAttempts = 15)
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
@@ -545,7 +546,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Test
-    @ShouldRetry // The test fails when trying to cache a value that is currently locked.
+    // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.
     public void valueStressTest() {

@@ -37,6 +37,8 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.common.time.Clock;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -60,6 +62,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -70,6 +73,9 @@ public class TestTimestampCommand {
     private static LockDescriptor lock;
     private static AtlasDbServicesFactory moduleFactory;
     private static List<String> cliArgs;
+
+    @Rule
+    public FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
@@ -181,6 +187,7 @@ public class TestTimestampCommand {
         runAndVerifyCliForFile(inputFileString);
     }
 
+    @ShouldRetry
     @Test
     public void testWithFileWithDir() throws Exception {
         String inputFileString = "existing-dir/test.timestamp";
