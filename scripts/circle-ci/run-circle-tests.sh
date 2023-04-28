@@ -50,6 +50,13 @@ do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
+echo "start"
+printenv CIRCLE_TAG
+printenv CIRCLE_BRANCH
+echo $CIRCLE_TAG
+echo $cIRCLE_BRANCH
+echo "end"
+
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
     if [ $CIRCLE_NODE_INDEX -eq 0 ]; then
