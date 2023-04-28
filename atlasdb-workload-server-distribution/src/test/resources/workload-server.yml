@@ -13,7 +13,7 @@ install:
   ringConfig:
     tableConfiguration:
       tableName: ring-test
-      isolationLevel: SNAPSHOT
+      isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: ring
   exitAfterRunning: false
