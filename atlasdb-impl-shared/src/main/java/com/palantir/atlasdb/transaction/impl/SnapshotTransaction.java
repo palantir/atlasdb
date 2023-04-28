@@ -1892,12 +1892,13 @@ public class SnapshotTransaction extends AbstractTransaction
 
             checkConstraints();
             commitWrites(transactionService);
-            if (perfLogger.isDebugEnabled()) {
-                long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-                perfLogger.debug(
+            long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
+            if (transactionMillis >= Duration.ofMinutes(1).toMillis()) {
+                log.info(
                         "Committed transaction {} in {}ms",
                         SafeArg.of("startTimestamp", getStartTimestamp()),
-                        SafeArg.of("transactionTimeMillis", transactionMillis));
+                        SafeArg.of("transactionTimeMillis", transactionMillis),
+                        new SafeRuntimeException("I exist to show you the stack trace"));
             }
             success = true;
         } finally {
