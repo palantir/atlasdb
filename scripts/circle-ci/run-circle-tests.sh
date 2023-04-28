@@ -89,7 +89,7 @@ case $CIRCLE_NODE_INDEX in
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
-    8) if [[ "$CIRCLE_BRANCH" = "develop" || ! -z "$CIRCLE_TAG" ]]; then ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]}; else echo "Skipping"; fi ;;
+    8) if [[ "$CIRCLE_BRANCH" = "aatest23" || ! -z "$CIRCLE_TAG" ]]; then ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]}; else echo "Skipping"; fi ;;
     9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
