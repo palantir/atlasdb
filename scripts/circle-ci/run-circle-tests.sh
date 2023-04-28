@@ -54,7 +54,7 @@ echo "start"
 printenv CIRCLE_TAG
 printenv CIRCLE_BRANCH
 echo $CIRCLE_TAG
-echo $cIRCLE_BRANCH
+echo $CIRCLE_BRANCH
 echo "end"
 
 # Short circuit the build if it's docs only
