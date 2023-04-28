@@ -1,0 +1,39 @@
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation project(":atlasdb-commons")
+    implementation 'com.lmax:disruptor'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-registry'
+
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.tracing:tracing'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'org.slf4j:slf4j-api'
+    implementation project(':commons-executors')
+
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.tracing:tracing'
+    testImplementation 'io.dropwizard.metrics:metrics-core'
+
+    annotationProcessor project(":atlasdb-processors")
+    compileOnly project(":atlasdb-processors")
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+
+    testAnnotationProcessor 'org.immutables:value'
+    testCompileOnly 'org.immutables:value::annotations'
+
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation('org.jmock:jmock') {
+      exclude group: 'org.hamcrest'
+    }
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.palantir.tracing:tracing-test-utils'
+}
