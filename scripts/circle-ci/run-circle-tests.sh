@@ -50,13 +50,6 @@ do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
-echo "start"
-printenv CIRCLE_TAG
-printenv CIRCLE_BRANCH
-echo $CIRCLE_TAG
-echo $CIRCLE_BRANCH
-echo "end"
-
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
     if [ $CIRCLE_NODE_INDEX -eq 0 ]; then
@@ -96,7 +89,7 @@ case $CIRCLE_NODE_INDEX in
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
     7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} ;;
-    8) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]} ;;
+    8) if [ "$CIRCLE_BRANCH" -eq "develop" ] || [ ! -z "$CIRCLE_TAG" ]; then ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_8[@]}; fi ;;
     9) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_9[@]} ;;
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
