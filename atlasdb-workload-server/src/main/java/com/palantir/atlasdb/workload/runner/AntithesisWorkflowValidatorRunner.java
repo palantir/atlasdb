@@ -48,9 +48,10 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
             log.info("antithesis: stop_faults");
             workflowHistoryValidators.forEach(this::checkAndReportInvariantViolations);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
-            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
