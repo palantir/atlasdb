@@ -12,7 +12,7 @@ fi
 
 printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://${ANTITHESIS_REPO_URL} --password-stdin
 
-./gradlew dockerTag
+./gradlew --scan dockerTag
 
 VERSION=$(./gradlew -q printVersion)
 
