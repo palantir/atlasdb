@@ -37,11 +37,6 @@ public interface RingWorkflowConfiguration extends WorkflowConfiguration {
         return 3;
     }
 
-    @Value.Default
-    default double rateLimit() {
-        return 100;
-    }
-
     @Value.Lazy
     default RateLimiter transactionRateLimiter() {
         return RateLimiter.create(rateLimit());

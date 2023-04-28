@@ -125,8 +125,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = lifecycle
                 .executorService(RingWorkflows.class.getSimpleName())
-                .minThreads(100)
-                .maxThreads(1024)
+                .maxThreads(workflowConfig.maxThreadCount())
                 .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
@@ -143,8 +142,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = lifecycle
                 .executorService(RingWorkflows.class.getSimpleName())
-                .minThreads(100)
-                .maxThreads(1024)
+                .maxThreads(workflowConfig.maxThreadCount())
                 .build();
         TransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
