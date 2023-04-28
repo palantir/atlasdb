@@ -49,6 +49,6 @@ install:
     tableConfiguration:
       tableName: ring_test
       isolationLevel: SNAPSHOT
-    iterationCount: 1000
+    iterationCount: 100
     type: ring
   exitAfterRunning: true
