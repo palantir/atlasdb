@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.pool;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -26,10 +27,13 @@ import com.palantir.atlasdb.util.MetricsManager;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class CassandraClientPoolMetrics {
+
+    public static final String POOL_SIZE_METRIC_NAME = "pool-size";
     private final MetricsManager metricsManager;
     private final RequestMetrics aggregateRequestMetrics;
     private final Map<CassandraServer, RequestMetrics> metricsByHost = new HashMap<>();
@@ -39,12 +43,15 @@ public class CassandraClientPoolMetrics {
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
     private final Counter poolExhaustionCounter;
 
+    private final AtomicLong poolSize = new AtomicLong(0L);
+
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
         this.aggregateRequestMetrics = new RequestMetrics(metricsManager);
         this.poolExhaustionCounter =
                 metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
+        metricsManager.registerMetric(CassandraClientPoolMetrics.class, POOL_SIZE_METRIC_NAME, poolSize::get);
     }
 
     private static Map<CassandraClientPoolHostLevelMetric, DistributionOutlierController> createOutlierControllers(
@@ -91,6 +98,15 @@ public class CassandraClientPoolMetrics {
 
     public void recordPoolExhaustion() {
         poolExhaustionCounter.inc();
+    }
+
+    public void recordPoolSize(long desiredPoolSize) {
+        poolSize.set(desiredPoolSize);
+    }
+
+    @VisibleForTesting
+    Long getPoolSize() {
+        return poolSize.get();
     }
 
     @SuppressWarnings("unchecked") // Guaranteed to have the correct type
