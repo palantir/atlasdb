@@ -138,6 +138,7 @@ workflows:
             tags:
               only: /.*/
       - test:
+          requires: [build]
           filters:
             tags:
               only: /.*/
