@@ -134,9 +134,9 @@ public class LockRefresher<T> implements AutoCloseable {
     }
 
     public void registerLocks(Collection<T> tokens, ClientLockingOptions lockingOptions) {
-        tokens = buggify.maybe(0.10)
-                .map(() -> tokens.stream().filter(Random::nextBoolean).collect(Collectors.toCollection()));
-        tokens.forEach(token -> tokensToClientContext.put(
+        Collection<T> filteredTokens = buggify.maybe(0.10)
+                .map(() -> tokens.stream().filter(Random::nextBoolean).collect(Collectors.toList()));
+        filteredTokens.forEach(token -> tokensToClientContext.put(
                 token,
                 ImmutableClientLockingContext.builder()
                         .lockRefreshDeadline(lockingOptions
