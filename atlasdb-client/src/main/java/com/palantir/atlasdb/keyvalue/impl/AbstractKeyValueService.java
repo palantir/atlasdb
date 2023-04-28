@@ -70,38 +70,37 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     /**
      * Creates a fixed thread pool.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param corePoolSize size of the core pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int corePoolSize) {
-        return createThreadPool(threadNamePrefix, corePoolSize, corePoolSize);
+    protected static ExecutorService createFixedThreadPool(String name, int corePoolSize) {
+        return createThreadPool(name, corePoolSize, corePoolSize);
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPool(String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPool(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPool(String name, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPool(maxPoolSize, name);
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      * It does not create a span.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPoolWihtoutSpans(
-            String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPoolWithoutSpans(String name, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, name);
     }
 
     @Override
