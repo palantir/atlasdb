@@ -29,11 +29,13 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 public class LockRefresher<T> implements AutoCloseable {
@@ -47,9 +49,14 @@ public class LockRefresher<T> implements AutoCloseable {
 
     private ScheduledFuture<?> task;
 
+    private BuggifyFactory buggify;
+
     public LockRefresher(
-            ScheduledExecutorService executor, LockLeaseRefresher<T> lockLeaseRefresher, long refreshIntervalMillis) {
-        this(executor, lockLeaseRefresher, refreshIntervalMillis, Clock.systemUTC());
+            ScheduledExecutorService executor,
+            LockLeaseRefresher<T> lockLeaseRefresher,
+            long refreshIntervalMillis,
+            BuggifyFactory buggifyFactory) {
+        this(executor, lockLeaseRefresher, refreshIntervalMillis, Clock.systemUTC(), buggifyFactory);
     }
 
     @VisibleForTesting
@@ -57,10 +64,12 @@ public class LockRefresher<T> implements AutoCloseable {
             ScheduledExecutorService executor,
             LockLeaseRefresher<T> lockLeaseRefresher,
             long refreshIntervalMillis,
-            Clock clock) {
+            Clock clock,
+            BuggifyFactory buggifyFactory) {
         this.executor = executor;
         this.lockLeaseRefresher = lockLeaseRefresher;
         this.clock = clock;
+        this.buggify = buggifyFactory;
 
         scheduleRefresh(refreshIntervalMillis);
     }
@@ -87,6 +96,7 @@ public class LockRefresher<T> implements AutoCloseable {
                         SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
                         SafeArg.of("numLockTokens", refreshFailures.size()));
             }
+            buggify.maybe(0.50).run(() -> unregisterLocks(toRefresh));
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
         }
@@ -124,6 +134,8 @@ public class LockRefresher<T> implements AutoCloseable {
     }
 
     public void registerLocks(Collection<T> tokens, ClientLockingOptions lockingOptions) {
+        tokens = buggify.maybe(0.10)
+                .map(() -> tokens.stream().filter(Random::nextBoolean).collect(Collectors.toCollection()));
         tokens.forEach(token -> tokensToClientContext.put(
                 token,
                 ImmutableClientLockingContext.builder()
