@@ -155,7 +155,7 @@ workflows:
               test_suite: [8]
           filters:
             branches:
-              only: aatest23
+              only: /(aatest.*|develop)/
             tags:
               only: /.*/
       - trial-publish:
