@@ -6,13 +6,6 @@ import org.gradle.plugins.ide.idea.model.IdeaModel
 
 
 
-
-
-
-
-
-
-
 buildscript {
     repositories {
         mavenCentral() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
