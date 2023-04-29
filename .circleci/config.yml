@@ -154,6 +154,8 @@ workflows:
             parameters:
               test_suite: [8]
           filters:
+            branches:
+              only: develop
             tags:
               only: /.*/
       - trial-publish:
