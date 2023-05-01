@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 jobs:
   build:
@@ -32,7 +32,9 @@ jobs:
           paths: [ . ]
 
   test:
-    parallelism: 14
+    parameters:
+      suite:
+        type: integer
     machine:
       image: ubuntu-2004:202111-02
     resource_class: xlarge
@@ -66,7 +68,7 @@ jobs:
               curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
-          command: ./scripts/circle-ci/run-circle-tests.sh
+          command: ./scripts/circle-ci/run-circle-tests.sh << parameters.suite >>
           no_output_timeout: 900
       - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
@@ -130,7 +132,6 @@ jobs:
             fi
 
 workflows:
-  version: 2
   check:
     jobs:
       - build:
@@ -139,6 +140,8 @@ workflows:
               only: /.*/
       - test:
           requires: [build]
+          matrix:
+            parameters: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
           filters:
             tags:
               only: /.*/
