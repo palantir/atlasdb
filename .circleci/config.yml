@@ -31,10 +31,7 @@ jobs:
           root: .
           paths: [ . ]
 
-  test:
-    parameters:
-      suite:
-        type: integer
+  test0:
     machine:
       image: ubuntu-2004:202111-02
     resource_class: xlarge
@@ -68,7 +65,7 @@ jobs:
               curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
-          command: ./scripts/circle-ci/run-circle-tests.sh << parameters.suite >>
+          command: ./scripts/circle-ci/run-circle-tests.sh 0
           no_output_timeout: 900
       - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
@@ -85,12 +82,670 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
+  test1:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
-          name: Fail Fast
-          when: on_fail
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
           command: |
-            echo "Canceling workflow as a step resulted in failure"
-            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${CIRCLE_TOKEN}"
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 1
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test2:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 2
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test3:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 3
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+
+  test4:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 4
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test5:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 5
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test6:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 6
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test7:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 7
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test8:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 8
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test9:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 9
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test10:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 10
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test11:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 11
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test12:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 12
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+  test13:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      JAVA_HOME: /opt/java8
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: mkdir -p $CIRCLE_ARTIFACTS
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
+      - run:
+          name: Install Java
+          command: |
+            sudo mkdir -p /opt/java && cd /opt/java && sudo chown -R circleci:circleci .
+            curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
+            sudo ln -s /opt/java/zulu*/ /opt/java8
+      - run:
+          command: ./scripts/circle-ci/run-circle-tests.sh 13
+          no_output_timeout: 900
+      - run: ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
 
   trial-publish:
     docker:
@@ -145,11 +800,73 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - test:
+      - test0:
           requires: [build]
-          matrix:
-            parameters:
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+          filters:
+            tags:
+              only: /.*/
+      - test1:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test2:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test3:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test4:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test5:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test6:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test7:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test8:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test9:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test10:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test11:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test12:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - test13:
+          requires: [build]
           filters:
             tags:
               only: /.*/
@@ -159,7 +876,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: [build, test]
+          requires: [build, test0, test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13]
           filters:
             branches:
               only: develop
