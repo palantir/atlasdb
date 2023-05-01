@@ -63,6 +63,11 @@ public class TargetedSweepMetricPublicationFilterTest {
     }
 
     @Test
+    public void fakeTest() {
+        assertThat(1 + 5).isEqualTo(7);
+    }
+
+    @Test
     public void shouldBePublishedIfFarBehind() {
         millisSinceLastSweptTs.set(TargetedSweepMetricPublicationFilter.MINIMUM_STALE_DURATION.toMillis());
 
