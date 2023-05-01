@@ -164,7 +164,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: [build, test]
+          requires: [build, test-no-tl, test-tl]
           filters:
             branches:
               only: develop
