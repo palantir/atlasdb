@@ -141,9 +141,21 @@ workflows:
       - test:
           requires: [build]
           matrix:
+            alias: test-no-tl
             parameters:
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+              test_suite: [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13]
           filters:
+            tags:
+              only: /.*/
+      - test:
+          requires: [build]
+          matrix:
+            alias: test-tl
+            parameters:
+              test_suite: [8]
+          filters:
+            branches:
+              only: /(tlmete.*|develop)/
             tags:
               only: /.*/
       - trial-publish:
