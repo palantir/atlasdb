@@ -19,7 +19,7 @@ package com.palantir.atlasdb.buggify.impl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.junit.Test;
 
 public class DefaultBuggifyTest {
@@ -32,8 +32,9 @@ public class DefaultBuggifyTest {
 
     @Test
     public void mapAlwaysCallsSupplier() {
-        Supplier<Object> value = mock(Supplier.class);
-        DefaultBuggify.INSTANCE.map(value);
-        verify(value).get();
+        Function<Object, Object> value = mock(Function.class);
+        Object object = new Object();
+        DefaultBuggify.INSTANCE.map(object, value);
+        verify(value).apply(object);
     }
 }

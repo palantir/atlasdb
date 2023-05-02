@@ -18,12 +18,12 @@ package com.palantir.atlasdb.buggify.api;
 
 public interface BuggifyFactory {
     /**
-     * @return a Buggify instance that will be used to determine whether to inject bugs.
+     * A Buggify instance that will may or may not run the provided runnable.
      */
     Buggify maybe(double probability);
 
     /**
-     * @return a Buggify instance that will always run the provided runnable.
+     * A Buggify instance that will always run the provided runnable.
      */
     Buggify always();
 }

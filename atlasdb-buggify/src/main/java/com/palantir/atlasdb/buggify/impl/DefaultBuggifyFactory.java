@@ -16,18 +16,31 @@
 
 package com.palantir.atlasdb.buggify.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.api.Buggify;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import java.security.SecureRandom;
+import java.util.function.Supplier;
 
-public enum DefaultBuggifyFactory implements BuggifyFactory {
-    INSTANCE;
-
+public final class DefaultBuggifyFactory implements BuggifyFactory {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private final Supplier<Double> probabilitySupplier;
+
+    public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
+
+    @VisibleForTesting
+    DefaultBuggifyFactory(Supplier<Double> probabilitySupplier) {
+        this.probabilitySupplier = probabilitySupplier;
+    }
+
+    private DefaultBuggifyFactory() {
+        this(SECURE_RANDOM::nextDouble);
+    }
 
     @Override
     public Buggify maybe(double probability) {
-        if (probability <= SECURE_RANDOM.nextDouble()) {
+        if (probability <= probabilitySupplier.get()) {
             return NoOpBuggify.INSTANCE;
         }
         return DefaultBuggify.INSTANCE;

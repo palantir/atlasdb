@@ -28,7 +28,7 @@ public enum NoOpBuggify implements Buggify {
     }
 
     @Override
-    public <T> map(T initialValue, Function<T, T> mapFunction) {
-        return mapFunction.apply(initialValue);
+    public <T> T map(T initialValue, Function<T, T> mapFunction) {
+        return initialValue;
     }
 }
