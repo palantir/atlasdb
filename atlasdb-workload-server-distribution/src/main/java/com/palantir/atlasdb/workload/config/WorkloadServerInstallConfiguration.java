@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableWorkloadServerInstallConfiguration.class)
@@ -29,6 +30,8 @@ public interface WorkloadServerInstallConfiguration {
     AtlasDbConfig atlas();
 
     SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
+
+    RingWorkflowConfiguration ringConfig();
 
     boolean exitAfterRunning();
 }
