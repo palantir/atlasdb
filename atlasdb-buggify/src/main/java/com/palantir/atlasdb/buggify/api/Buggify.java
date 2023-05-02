@@ -28,5 +28,5 @@ public interface Buggify {
     /**
      * Potentially map the provided value to a different value.
      */
-    <T> map(T initialValue, Function<T, T> mapFunction);
+    <T> T map(T initialValue, Function<T, T> mapFunction);
 }
