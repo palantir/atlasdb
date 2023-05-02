@@ -17,22 +17,18 @@
 package com.palantir.atlasdb.buggify.impl;
 
 import com.palantir.atlasdb.buggify.api.Buggify;
+import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 
-public enum DefaultBuggify implements Buggify {
+public enum NoOpBuggifyFactory implements BuggifyFactory {
     INSTANCE;
 
     @Override
-    public void run(Runnable runnable) {
-        runnable.run();
+    public Buggify maybe(double _probability) {
+        return NoOpBuggify.INSTANCE;
     }
 
     @Override
-    public boolean asBoolean() {
-        return true;
-    }
-
-    @Override
-    public boolean asBoolean() {
-        return true;
+    public Buggify always() {
+        return NoOpBuggify.INSTANCE;
     }
 }
