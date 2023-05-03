@@ -129,6 +129,7 @@ import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -196,6 +197,11 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean allSafeForLogging() {
         return false;
+    }
+
+    @Value.Default
+    Function<TimelockService, TimeLockClient> defaultTimelockClientFactory() {
+        return TimeLockClient::createDefault;
     }
 
     abstract Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory();
@@ -385,7 +391,8 @@ public abstract class TransactionManagers {
                         reloadingFactory(),
                         timeLockFeedbackBackgroundTask,
                         timelockRequestBatcherProviders(),
-                        schemas()));
+                        schemas(),
+                        defaultTimelockClientFactory()));
         LockAndTimestampServices lockAndTimestampServices = factory.createLockAndTimestampServices();
         adapter.setTimestampService(lockAndTimestampServices.managedTimestampService());
 

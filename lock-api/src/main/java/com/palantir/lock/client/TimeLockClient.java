@@ -62,6 +62,17 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
                 timelockService, timestampService, createLockRefresher(timelockService), asyncUnlocker);
     }
 
+    public static TimeLockClient createDefault(TimelockService timelockService, long lockRefreshIntervalMillis) {
+        AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
+        RequestBatchingTimestampService timestampService =
+                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService));
+        return new TimeLockClient(
+                timelockService,
+                timestampService,
+                createLockRefresher(timelockService, lockRefreshIntervalMillis),
+                asyncUnlocker);
+    }
+
     public static TimeLockClient withSynchronousUnlocker(TimelockService timelockService) {
         CloseableTimestampService timestampService = new TimelockServiceErrorDecorator(timelockService);
         return new TimeLockClient(
@@ -204,6 +215,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     private static LockRefresher<LockToken> createLockRefresher(TimelockService timelockService) {
         LockLeaseRefresher<LockToken> lockTokenRefresher = timelockService::refreshLockLeases;
         return new LockRefresher<>(refreshExecutor, lockTokenRefresher, REFRESH_INTERVAL_MILLIS);
+    }
+
+    private static LockRefresher<LockToken> createLockRefresher(
+            TimelockService timelockService, long lockRefreshIntervalMillis) {
+        LockLeaseRefresher<LockToken> lockTokenRefresher = timelockService::refreshLockLeases;
+        return new LockRefresher<>(refreshExecutor, lockTokenRefresher, lockRefreshIntervalMillis);
     }
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {

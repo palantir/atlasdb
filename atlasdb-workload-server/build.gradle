@@ -11,6 +11,8 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':lock-api')
+    implementation project(':lock-impl')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'

@@ -19,6 +19,7 @@ dependencies {
 
     implementation project(":atlasdb-autobatch")
     implementation project(":atlasdb-commons")
+    implementation project(":atlasdb-buggify")
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'

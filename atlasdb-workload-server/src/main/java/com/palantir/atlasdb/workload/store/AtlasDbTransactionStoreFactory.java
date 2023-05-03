@@ -28,6 +28,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.client.UnreliableTimeLockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
@@ -138,6 +140,8 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .globalMetricsRegistry(metricsManager.getRegistry())
                 .globalTaggedMetricRegistry(metricsManager.getTaggedRegistry())
                 .runtimeConfigSupplier(atlasDbRuntimeConfig)
+                .defaultTimelockClientFactory(
+                        lockService -> TimeLockClient.createDefault(UnreliableTimeLockService.create(lockService), 100))
                 .build()
                 .serializable();
 
