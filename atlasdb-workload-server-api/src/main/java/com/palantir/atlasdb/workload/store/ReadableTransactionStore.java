@@ -30,7 +30,7 @@ public interface ReadableTransactionStore {
     Optional<Integer> get(String table, WorkloadCell cell);
 
     /**
-     * Checks the startTimestamp for a given transaction whether it has committed.
+     * Checks whether the transaction with the provided startTimestamp has committed
      */
     boolean isCommitted(long startTimestamp);
 }

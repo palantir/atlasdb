@@ -31,7 +31,7 @@ public class MaybeWitnessedTransactionTest {
     private static final Long COMMIT_TIMESTAMP = 200L;
 
     @Test
-    public void throwsWhenCommitTimestampIsNotPresent() {
+    public void throwsWhenCommitTimestampIsNotPresentOnCreation() {
         assertThatLoggableExceptionThrownBy(() ->
                         MaybeWitnessedTransaction.builder().startTimestamp(100L).build())
                 .isInstanceOf(SafeIllegalArgumentException.class)
@@ -39,7 +39,7 @@ public class MaybeWitnessedTransactionTest {
     }
 
     @Test
-    public void doesNotThrowWhenCommitTimestampPresent() {
+    public void doesNotThrowWhenCommitTimestampPresentOnCreation() {
         assertThatCode(() -> MaybeWitnessedTransaction.builder()
                         .startTimestamp(START_TIMESTAMP)
                         .commitTimestamp(COMMIT_TIMESTAMP)

@@ -26,5 +26,10 @@ public interface WorkflowHistory {
     // We may want to query the KVS during verification.
     ReadableTransactionStore transactionStore();
 
+    /**
+     * TODO: This should only be a list of
+     * {@link com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction} rather than the general
+     * purpose type.
+     */
     List<WitnessedTransaction> history();
 }

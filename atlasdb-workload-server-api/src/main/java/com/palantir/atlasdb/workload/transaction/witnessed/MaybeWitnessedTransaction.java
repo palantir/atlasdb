@@ -29,8 +29,8 @@ public interface MaybeWitnessedTransaction extends WitnessedTransaction {
     default void check() {
         Preconditions.checkArgument(
                 commitTimestamp().isPresent(),
-                "Commit timestamp must be present in a potentially witnessed transaction, as otherwise it is not"
-                        + " possible to validate whether or not a transaction has been committed.");
+                "Given how the transaction protocol works, a transaction for which we haven't retrieved the commit "
+                        + "timestamp has not written anything of significance to the database");
     }
 
     @Override

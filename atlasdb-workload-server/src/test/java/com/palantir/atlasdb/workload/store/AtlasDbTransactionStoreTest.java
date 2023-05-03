@@ -172,11 +172,11 @@ public final class AtlasDbTransactionStoreTest {
     public void keyAlreadyExistExceptionResultsInMaybeWitnessedTransaction() {
         WriteTransactionAction writeTransactionAction =
                 WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
-        TransactionManager onlyThrowsKeyAlreadyExistsExceptionManager = spy(manager);
-        doAnswer(answer -> {
-                    Supplier<CommitTimestampProvider> commitTimestampFetcher = answer.getArgument(0);
+        TransactionManager keyAlreadyExistsExceptionThrowingStore = spy(manager);
+        doAnswer(invocation -> {
+                    Supplier<CommitTimestampProvider> commitTimestampFetcher = invocation.getArgument(0);
                     ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
-                            answer.getArgument(1);
+                            invocation.getArgument(1);
                     return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
                         manager.getKeyValueService()
                                 .putUnlessExists(
@@ -189,10 +189,10 @@ public final class AtlasDbTransactionStoreTest {
                         return null;
                     });
                 })
-                .when(onlyThrowsKeyAlreadyExistsExceptionManager)
+                .when(keyAlreadyExistsExceptionThrowingStore)
                 .runTaskWithConditionWithRetry(any(Supplier.class), any());
         AtlasDbTransactionStore onlyKeyAlreadyExistsThrowingStore =
-                AtlasDbTransactionStore.create(onlyThrowsKeyAlreadyExistsExceptionManager, TABLES_TO_ATLAS_METADATA);
+                AtlasDbTransactionStore.create(keyAlreadyExistsExceptionThrowingStore, TABLES_TO_ATLAS_METADATA);
         assertThat(onlyKeyAlreadyExistsThrowingStore.readWrite(List.of(writeTransactionAction)))
                 .hasValueSatisfying(witnessedTransaction -> {
                     assertThat(witnessedTransaction).isInstanceOf(MaybeWitnessedTransaction.class);

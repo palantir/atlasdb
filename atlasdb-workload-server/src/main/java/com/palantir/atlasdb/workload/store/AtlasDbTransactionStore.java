@@ -90,11 +90,11 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                 Suppliers.memoize(() -> new CommitTimestampProvider());
         try {
             transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
+                transactionReference.set(txn);
                 AtlasDbInteractiveTransaction atlasDbInteractiveTransaction =
                         new AtlasDbInteractiveTransaction(txn, tables);
                 interactiveTransactionConsumer.accept(atlasDbInteractiveTransaction);
                 witnessedActionsReference.set(atlasDbInteractiveTransaction.witness());
-                transactionReference.set(txn);
                 return null;
             });
 
