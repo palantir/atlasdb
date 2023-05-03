@@ -19,7 +19,7 @@ package com.palantir.atlasdb.workload.invariant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import java.util.List;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class SerializableInvariantLogReporterTest {
         assertThatCode(() -> SerializableInvariantLogReporter.INSTANCE
                         .consumer()
                         .accept(List.of(InvalidWitnessedTransaction.of(
-                                ImmutableWitnessedTransaction.builder()
+                                FullyWitnessedTransaction.builder()
                                         .startTimestamp(1)
                                         .build(),
                                 List.of()))))
