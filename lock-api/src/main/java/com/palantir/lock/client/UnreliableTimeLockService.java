@@ -32,7 +32,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class UnreliableTimeLockService implements TimelockService {
+/**
+ * A version of timelock service that has a chance to randomly lose locks during refresh or immediately after
+ * acquiring. This is useful for testing the behavior of clients when locks are lost.
+ */
+public final class UnreliableTimeLockService implements TimelockService {
 
     private final TimelockService delegate;
     private final BuggifyFactory buggify;
