@@ -17,12 +17,10 @@
 package com.palantir.atlasdb.buggify.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.util.function.Function;
 import org.junit.Test;
 
 public class NoOpBuggifyTest {
@@ -34,11 +32,7 @@ public class NoOpBuggifyTest {
     }
 
     @Test
-    public void mapNeverCallsFunction() {
-        Function<Object, Object> value = mock(Function.class);
-        Object object = new Object();
-        Object mappedObject = NoOpBuggify.INSTANCE.map(object, value);
-        assertThat(object).isEqualTo(mappedObject);
-        verify(value, never()).apply(any());
+    public void asBooleanReturnsFalse() {
+        assertThat(DefaultBuggify.INSTANCE.asBoolean()).isFalse();
     }
 }

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.buggify.impl;
 
 import com.palantir.atlasdb.buggify.api.Buggify;
-import java.util.function.Function;
 
 public enum NoOpBuggify implements Buggify {
     INSTANCE;
@@ -28,7 +27,7 @@ public enum NoOpBuggify implements Buggify {
     }
 
     @Override
-    public <T> T map(T initialValue, Function<T, T> mapFunction) {
-        return initialValue;
+    public boolean asBoolean() {
+        return false;
     }
 }
