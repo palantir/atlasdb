@@ -31,10 +31,7 @@ public interface Buggify {
 
     /**
      * Returns true if this instance of buggify would perform an action if {@link #run Run} would execute the
-     * provided runnable. This is useful if you
-     * wish to
-     * produce
-     * a boolean that will be skewed towards true or false (i.e. not 50%).
+     * provided runnable. This is useful if you wish to produce a boolean that will be skewed towards true or false.
      */
     boolean asBoolean();
 }
