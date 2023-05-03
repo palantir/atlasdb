@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-public class NoOpBuggifyTest {
+public final class NoOpBuggifyTest {
     @Test
     public void runNeverExecutes() {
         Runnable runnable = mock(Runnable.class);
@@ -33,6 +33,6 @@ public class NoOpBuggifyTest {
 
     @Test
     public void asBooleanReturnsFalse() {
-        assertThat(DefaultBuggify.INSTANCE.asBoolean()).isFalse();
+        assertThat(NoOpBuggify.INSTANCE.asBoolean()).isFalse();
     }
 }

@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class DefaultBuggifyTest {
+public final class DefaultBuggifyTest {
     @Test
     public void runAlwaysExecutes() {
         Runnable runnable = mock(Runnable.class);

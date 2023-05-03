@@ -26,9 +26,4 @@ public enum NoOpBuggifyFactory implements BuggifyFactory {
     public Buggify maybe(double _probability) {
         return NoOpBuggify.INSTANCE;
     }
-
-    @Override
-    public Buggify always() {
-        return NoOpBuggify.INSTANCE;
-    }
 }

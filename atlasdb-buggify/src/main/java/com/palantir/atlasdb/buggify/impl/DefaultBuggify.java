@@ -30,9 +30,4 @@ public enum DefaultBuggify implements Buggify {
     public boolean asBoolean() {
         return true;
     }
-
-    @Override
-    public boolean asBoolean() {
-        return true;
-    }
 }

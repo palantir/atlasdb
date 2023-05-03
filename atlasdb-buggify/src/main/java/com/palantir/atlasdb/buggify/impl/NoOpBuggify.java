@@ -30,9 +30,4 @@ public enum NoOpBuggify implements Buggify {
     public boolean asBoolean() {
         return false;
     }
-
-    @Override
-    public boolean asBoolean() {
-        return false;
-    }
 }

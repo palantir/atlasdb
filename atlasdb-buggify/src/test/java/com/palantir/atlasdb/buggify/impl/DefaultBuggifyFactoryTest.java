@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public class DefaultBuggifyFactoryTest {
+public final class DefaultBuggifyFactoryTest {
 
     @Test
     public void maybeReturnsDefaultWhenMaxProbability() {
