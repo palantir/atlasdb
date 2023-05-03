@@ -24,10 +24,9 @@ import java.util.function.Supplier;
 
 public final class DefaultBuggifyFactory implements BuggifyFactory {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
 
     private final Supplier<Double> probabilitySupplier;
-
-    public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
 
     @VisibleForTesting
     DefaultBuggifyFactory(Supplier<Double> probabilitySupplier) {
@@ -43,11 +42,6 @@ public final class DefaultBuggifyFactory implements BuggifyFactory {
         if (probability <= probabilitySupplier.get()) {
             return NoOpBuggify.INSTANCE;
         }
-        return DefaultBuggify.INSTANCE;
-    }
-
-    @Override
-    public Buggify always() {
         return DefaultBuggify.INSTANCE;
     }
 }

@@ -18,8 +18,8 @@ package com.palantir.atlasdb.buggify.impl;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.function.Function;
 import org.junit.Test;
 
 public class DefaultBuggifyTest {
@@ -31,10 +31,7 @@ public class DefaultBuggifyTest {
     }
 
     @Test
-    public void mapAlwaysCallsSupplier() {
-        Function<Object, Object> value = mock(Function.class);
-        Object object = new Object();
-        DefaultBuggify.INSTANCE.map(object, value);
-        verify(value).apply(object);
+    public void asBooleanReturnsTrue() {
+        assertThat(DefaultBuggify.INSTANCE.asBoolean()).isTrue();
     }
 }

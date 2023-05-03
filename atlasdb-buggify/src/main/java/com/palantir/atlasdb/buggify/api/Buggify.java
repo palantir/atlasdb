@@ -16,17 +16,25 @@
 
 package com.palantir.atlasdb.buggify.api;
 
-import java.util.function.Function;
-
+/**
+ * Instances of this class could vary in implementation, such that they may perform no action {@link com.palantir.atlasdb.buggify.impl.NoOpBuggify} or
+ * always perform the action {@link com.palantir.atlasdb.buggify.impl.DefaultBuggify}. The idea here is that a
+ * downstream users of this class can easily swap out their {@link BuggifyFactory} to change the behavior of their
+ * class, without having to change the implementation of their class. This is useful for tests, as we can force the
+ * behavior of never running the provided runnable, or always running the provided runnable.
+ */
 public interface Buggify {
     /**
-     * Run the provided runnable if probabilistically allowed.
-     * @param runnable the runnable to run
+     * Maybe runs the provided runnable, depending on the instance of the class.
      */
     void run(Runnable runnable);
 
     /**
-     * Potentially map the provided value to a different value.
+     * Returns true if this instance of buggify would perform an action if {@link #run Run} would execute the
+     * provided runnable. This is useful if you
+     * wish to
+     * produce
+     * a boolean that will be skewed towards true or false (i.e. not 50%).
      */
-    <T> T map(T initialValue, Function<T, T> mapFunction);
+    boolean asBoolean();
 }
