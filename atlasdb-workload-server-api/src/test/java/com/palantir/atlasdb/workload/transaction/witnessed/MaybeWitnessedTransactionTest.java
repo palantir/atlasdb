@@ -32,10 +32,13 @@ public class MaybeWitnessedTransactionTest {
 
     @Test
     public void throwsWhenCommitTimestampIsNotPresentOnCreation() {
-        assertThatLoggableExceptionThrownBy(() ->
-                        MaybeWitnessedTransaction.builder().startTimestamp(100L).build())
+        assertThatLoggableExceptionThrownBy(() -> MaybeWitnessedTransaction.builder()
+                        .startTimestamp(START_TIMESTAMP)
+                        .build())
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("Commit timestamp must be present in a potentially witnessed transaction");
+                .hasMessageContaining(
+                        "Given how the transaction protocol works, a transaction for which we haven't retrieved the"
+                                + " commit timestamp");
     }
 
     @Test
