@@ -2015,13 +2015,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
-                // Buggify stuff
-                Set<LockToken> tokensToUnlock = new HashSet<>();
-                tokensToUnlock.add(commitLocksToken);
-                immutableTimestampLock.ifPresent(tokensToUnlock::add);
-                Uninterruptibles.sleepUninterruptibly(
-                        Duration.ofMillis(ThreadLocalRandom.current().nextInt(60_000)));
-
                 // This can fail :(
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
