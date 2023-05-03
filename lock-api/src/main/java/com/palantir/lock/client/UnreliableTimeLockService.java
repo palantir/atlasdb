@@ -16,6 +16,7 @@
 package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.lock.v2.ClientLockingOptions;
@@ -27,6 +28,9 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +41,8 @@ import java.util.stream.Collectors;
  * acquiring. This is useful for testing the behavior of clients when locks are lost.
  */
 public final class UnreliableTimeLockService implements TimelockService {
+
+    private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
 
     private final TimelockService delegate;
     private final BuggifyFactory buggify;
@@ -89,14 +95,20 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         LockResponse response = delegate.lock(request);
-        buggify.maybe(0.25).run(() -> delegate.unlock(Set.of(response.getToken())));
+        buggify.maybe(0.25).run(() -> {
+            log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
+            delegate.unlock(Set.of(response.getToken()));
+        });
         return response;
     }
 
     @Override
     public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
         LockResponse response = delegate.lock(lockRequest, options);
-        buggify.maybe(0.25).run(() -> delegate.unlock(Set.of(response.getToken())));
+        buggify.maybe(0.25).run(() -> {
+            log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
+            delegate.unlock(Set.of(response.getToken()));
+        });
         return response;
     }
 
@@ -108,8 +120,13 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockToken> tokensToRefresh = tokens.stream()
-                .filter(_token -> !buggify.maybe(0.25).asBoolean())
+                .filter(_token -> !buggify.maybe(0.10).asBoolean())
                 .collect(Collectors.toSet());
+        Set<LockToken> tokensToUnlock = Sets.difference(tokens, tokensToRefresh);
+        if (!tokensToUnlock.isEmpty()) {
+            log.info("BUGGIFY: Unlocking tokens on refresh: {}", SafeArg.of("tokens", tokensToUnlock));
+            unlock(tokensToUnlock);
+        }
         return delegate.refreshLockLeases(tokensToRefresh);
     }
 
