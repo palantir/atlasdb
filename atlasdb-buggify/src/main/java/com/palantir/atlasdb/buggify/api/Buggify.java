@@ -22,6 +22,8 @@ package com.palantir.atlasdb.buggify.api;
  * downstream users of this class can easily swap out their {@link BuggifyFactory} to change the behavior of their
  * class, without having to change the implementation of their class. This is useful for tests, as we can force the
  * behavior of never running the provided runnable, or always running the provided runnable.
+ *
+ * See https://apple.github.io/foundationdb/client-testing.html for more information.
  */
 public interface Buggify {
     /**

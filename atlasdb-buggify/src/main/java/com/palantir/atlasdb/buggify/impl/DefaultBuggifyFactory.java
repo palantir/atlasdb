@@ -20,17 +20,17 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.api.Buggify;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import java.security.SecureRandom;
-import java.util.function.Supplier;
+import java.util.function.DoubleSupplier;
 
 public final class DefaultBuggifyFactory implements BuggifyFactory {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
 
-    private final Supplier<Double> probabilitySupplier;
+    private final DoubleSupplier doubleSupplier;
 
     @VisibleForTesting
-    DefaultBuggifyFactory(Supplier<Double> probabilitySupplier) {
-        this.probabilitySupplier = probabilitySupplier;
+    DefaultBuggifyFactory(DoubleSupplier doubleSupplier) {
+        this.doubleSupplier = doubleSupplier;
     }
 
     private DefaultBuggifyFactory() {
@@ -39,9 +39,9 @@ public final class DefaultBuggifyFactory implements BuggifyFactory {
 
     @Override
     public Buggify maybe(double probability) {
-        if (probability <= probabilitySupplier.get()) {
-            return NoOpBuggify.INSTANCE;
+        if (doubleSupplier.getAsDouble() < probability) {
+            return DefaultBuggify.INSTANCE;
         }
-        return DefaultBuggify.INSTANCE;
+        return NoOpBuggify.INSTANCE;
     }
 }
