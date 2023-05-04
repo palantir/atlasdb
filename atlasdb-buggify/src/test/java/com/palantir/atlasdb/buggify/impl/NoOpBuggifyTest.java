@@ -33,6 +33,6 @@ public class NoOpBuggifyTest {
 
     @Test
     public void asBooleanReturnsFalse() {
-        assertThat(DefaultBuggify.INSTANCE.asBoolean()).isFalse();
+        assertThat(NoOpBuggify.INSTANCE.asBoolean()).isFalse();
     }
 }
