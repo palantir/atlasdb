@@ -24,9 +24,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.atlasdb.workload.buggify.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
+import com.palantir.atlasdb.workload.resource.AntithesisCassandraResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
@@ -50,10 +52,12 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
 
@@ -84,6 +88,17 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         ExecutorService workflowRunnerExecutor =
                 environment.lifecycle().executorService("workflow-runner").build();
 
+        ScheduledExecutorService backgroundJobExecutor = environment
+                .lifecycle()
+                .scheduledExecutorService("background-job")
+                .build();
+        backgroundJobExecutor.schedule(
+                new BackgroundCassandraJob(
+                        List.of("cassandra1", "cassandra2", "cassandra3"),
+                        AntithesisCassandraResource.INSTANCE,
+                        DefaultBuggifyFactory.INSTANCE),
+                10,
+                java.util.concurrent.TimeUnit.SECONDS);
         workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
     }
 
