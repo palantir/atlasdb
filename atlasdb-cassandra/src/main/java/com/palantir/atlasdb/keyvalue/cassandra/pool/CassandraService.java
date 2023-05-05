@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -66,7 +67,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -420,9 +420,8 @@ public class CassandraService implements AutoCloseable {
     @VisibleForTesting
     Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
         Set<CassandraServer> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
-        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> matchingPools = currentPools.entrySet().stream()
-                .filter(e -> localFilteredHosts.contains(e.getKey()))
-                .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+        Map<CassandraServer, CassandraClientPoolingContainer> matchingPools =
+                ImmutableMap.copyOf(Maps.filterKeys(currentPools, localFilteredHosts::contains));
         if (matchingPools.isEmpty()) {
             return Optional.empty();
         }
