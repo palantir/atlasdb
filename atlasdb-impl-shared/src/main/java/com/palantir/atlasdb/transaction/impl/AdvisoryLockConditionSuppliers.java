@@ -80,10 +80,7 @@ public final class AdvisoryLockConditionSuppliers {
                     case BLOCK_INDEFINITELY:
                     case BLOCK_INDEFINITELY_THEN_RELEASE:
                         ++failureCount;
-                        log.warn(
-                                "Could not lock successfully. Attempt number {}",
-                                SafeArg.of("failureCount", failureCount),
-                                ex);
+                        log.warn("Could not lock successfully", SafeArg.of("failureCount", failureCount), ex);
                         if (failureCount >= NUM_RETRIES) {
                             log.warn("Failing after {} tries", SafeArg.of("failureCount", failureCount), ex);
                             throw ex;
