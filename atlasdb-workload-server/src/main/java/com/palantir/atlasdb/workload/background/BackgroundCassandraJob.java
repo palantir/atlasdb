@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.buggify;
+package com.palantir.atlasdb.workload.background;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
+import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.workload.resource.CassandraResource;
 import java.util.Iterator;
 import java.util.List;
@@ -27,12 +27,13 @@ public class BackgroundCassandraJob implements Runnable {
     private final CassandraResource cassandraResource;
     private final Iterator<String> cassandraHosts;
 
-    private final BuggifyFactory buggifyFactory;
+    private final BuggifyFactory buggify;
 
     public BackgroundCassandraJob(
-            List<String> cassandraHosts, CassandraResource cassandraResource, BuggifyFactory buggifyFactory) {
+            List<String> cassandraHosts, CassandraResource cassandraResource, BuggifyFactory buggify) {
         this.cassandraResource = cassandraResource;
         this.cassandraHosts = Iterators.cycle(cassandraHosts);
+        this.buggify = buggify;
     }
 
     @Override

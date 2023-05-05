@@ -22,9 +22,10 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.atlasdb.workload.buggify.BackgroundCassandraJob;
+import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
@@ -58,6 +59,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
 
@@ -85,21 +87,26 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     public void run(WorkloadServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
 
+        scheduleBackgroundJobs(environment);
+
         ExecutorService workflowRunnerExecutor =
                 environment.lifecycle().executorService("workflow-runner").build();
+        workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
+    }
 
+    private void scheduleBackgroundJobs(Environment environment) {
         ScheduledExecutorService backgroundJobExecutor = environment
                 .lifecycle()
                 .scheduledExecutorService("background-job")
                 .build();
-        backgroundJobExecutor.schedule(
+        backgroundJobExecutor.scheduleAtFixedRate(
                 new BackgroundCassandraJob(
                         List.of("cassandra1", "cassandra2", "cassandra3"),
                         AntithesisCassandraResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
+                0,
                 10,
-                java.util.concurrent.TimeUnit.SECONDS);
-        workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
+                TimeUnit.SECONDS);
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
