@@ -48,6 +48,7 @@ public class LockServerOptions implements Serializable {
      * client accessing it.
      */
     @Value.Default
+    @JsonProperty("isStandaloneServer")
     public boolean isStandaloneServer() {
         return true;
     }
@@ -183,7 +184,8 @@ public class LockServerOptions implements Serializable {
         return new Builder();
     }
 
-    public static final class Builder extends ImmutableLockServerOptions.Builder {}
+    public static final class Builder extends ImmutableLockServerOptions.Builder {
+    }
 
     static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 4043798817916565364L;
