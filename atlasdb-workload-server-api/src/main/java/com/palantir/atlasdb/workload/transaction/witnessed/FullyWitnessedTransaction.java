@@ -14,22 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.immutables.value.Value;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface WorkflowConfiguration {
-    int iterationCount();
-
-    @Value.Default
-    default double rateLimit() {
-        return 100;
+/**
+ * For transactions that we know for certain we've witnessed.
+ */
+@Value.Immutable
+public interface FullyWitnessedTransaction extends WitnessedTransaction {
+    @Override
+    default <T> T accept(WitnessedTransactionVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 
-    @Value.Default
-    default Integer maxThreadCount() {
-        return 100;
+    static ImmutableFullyWitnessedTransaction.Builder builder() {
+        return ImmutableFullyWitnessedTransaction.builder();
     }
 }

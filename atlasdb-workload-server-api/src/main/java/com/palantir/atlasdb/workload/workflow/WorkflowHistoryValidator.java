@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.palantir.atlasdb.workload.invariant.InvariantReporter;
+import java.util.List;
 import org.immutables.value.Value;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface WorkflowConfiguration {
-    int iterationCount();
+@Value.Immutable
+public interface WorkflowHistoryValidator {
+    @Value.Parameter
+    WorkflowHistory history();
 
-    @Value.Default
-    default double rateLimit() {
-        return 100;
-    }
+    @Value.Parameter
+    List<InvariantReporter<?>> invariants();
 
-    @Value.Default
-    default Integer maxThreadCount() {
-        return 100;
+    static WorkflowHistoryValidator of(WorkflowHistory history, List<InvariantReporter<?>> invariants) {
+        return ImmutableWorkflowHistoryValidator.of(history, invariants);
     }
 }

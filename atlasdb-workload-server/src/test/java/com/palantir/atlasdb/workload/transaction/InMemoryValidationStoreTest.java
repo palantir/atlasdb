@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.workload.store.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.store.ValidationStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import java.util.List;
@@ -40,12 +40,12 @@ public final class InMemoryValidationStoreTest {
     @Test
     public void writeActionsPersistValues() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_TWO))
@@ -61,13 +61,13 @@ public final class InMemoryValidationStoreTest {
     @Test
     public void deleteActionsPutsEmptyOptionalForCell() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE))
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
@@ -80,17 +80,17 @@ public final class InMemoryValidationStoreTest {
     @Test
     public void writesDeletesAreProcessedInOrder() {
         InMemoryValidationStore store = InMemoryValidationStore.create(List.of(
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(3)
                         .commitTimestamp(4)
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .startTimestamp(5)
                         .commitTimestamp(6)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_TWO))

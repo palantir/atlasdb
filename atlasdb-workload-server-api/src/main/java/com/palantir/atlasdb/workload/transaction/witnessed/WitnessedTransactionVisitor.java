@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.invariant.InvariantReporter;
-import java.util.List;
+public interface WitnessedTransactionVisitor<T> {
+    T visit(FullyWitnessedTransaction witnessedTransaction);
 
-/**
- * Run the provided workflow and execute the provided invariant reporters.
- *
- * The idea of this class is that long-term we will want to have multiple ways to run/execute workflows,
- * rather than biasing towards the present case (just once).
- */
-public interface WorkflowRunner<WorkflowTypeT extends Workflow> {
-    void run(WorkflowTypeT workflow, List<InvariantReporter<?>> invariantReporters);
+    T visit(MaybeWitnessedTransaction maybeWitnessedTransaction);
 }

@@ -27,10 +27,16 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
-import com.palantir.atlasdb.workload.runner.AntithesisWorkflowRunner;
+import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
+import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
+import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
+import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
+import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -41,9 +47,9 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
+import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -82,7 +88,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
-        ExecutorService singleRowTwoCellsExecutorService = environment
+        ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
                 .build();
@@ -92,24 +98,18 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
-        SingleRowTwoCellsWorkflowConfiguration workflowConfig =
+        SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig =
                 configuration.install().singleRowTwoCellsConfig();
+        RingWorkflowConfiguration ringWorkflowConfiguration =
+                configuration.install().ringConfig();
 
-        log.info("antithesis: start_faults");
-        AntithesisWorkflowRunner.INSTANCE.run(
-                SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                        transactionStoreFactory.create(
-                                Map.of(
-                                        workflowConfig.tableConfiguration().tableName(),
-                                        workflowConfig.tableConfiguration().isolationLevel()),
-                                Set.of()),
-                        workflowConfig,
-                        MoreExecutors.listeningDecorator(singleRowTwoCellsExecutorService)),
-                List.of(
-                        new DurableWritesInvariantMetricReporter(
-                                SingleRowTwoCellsWorkflows.class.getSimpleName(),
-                                DurableWritesMetrics.of(taggedMetricRegistry)),
-                        SerializableInvariantLogReporter.INSTANCE));
+        new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
+                .run(
+                        createSingleRowTwoCellsWorkflowValidator(
+                                transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
+                        createRingWorkflowValidator(
+                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()));
+
         log.info("antithesis: terminate");
 
         workflowsRanLatch.countDown();
@@ -117,6 +117,46 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         if (configuration.install().exitAfterRunning()) {
             System.exit(0);
         }
+    }
+
+    private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            RingWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService = lifecycle
+                .executorService(RingWorkflows.class.getSimpleName())
+                .maxThreads(workflowConfig.maxThreadCount())
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(RingWorkflows.create(
+                transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)));
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleRowTwoCellsWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleRowTwoCellsWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService = lifecycle
+                .executorService(RingWorkflows.class.getSimpleName())
+                .maxThreads(workflowConfig.maxThreadCount())
+                .build();
+        TransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)))
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .build();
     }
 
     @VisibleForTesting

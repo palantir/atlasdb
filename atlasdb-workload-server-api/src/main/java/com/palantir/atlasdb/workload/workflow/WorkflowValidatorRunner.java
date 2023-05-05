@@ -16,20 +16,20 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import org.immutables.value.Value;
+import java.util.Arrays;
+import java.util.List;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-public interface WorkflowConfiguration {
-    int iterationCount();
+/**
+ * Run the provided workflow and validate that it is correct with the provided invariants.
+ */
+public interface WorkflowValidatorRunner<WorkflowTypeT extends Workflow> {
+    void run(List<WorkflowAndInvariants<WorkflowTypeT>> workflowAndInvariants);
 
-    @Value.Default
-    default double rateLimit() {
-        return 100;
+    default void run(WorkflowAndInvariants<WorkflowTypeT>... workflowAndInvariants) {
+        run(Arrays.asList(workflowAndInvariants));
     }
 
-    @Value.Default
-    default Integer maxThreadCount() {
-        return 100;
+    default void run(WorkflowAndInvariants<WorkflowTypeT> workflowAndInvariants) {
+        run(List.of(workflowAndInvariants));
     }
 }
