@@ -188,7 +188,9 @@ public class LockServerOptions implements Serializable {
     static class SerializationProxy implements Serializable {
         private static final long serialVersionUID = 4043798817916565364L;
 
+        @JsonProperty("isStandaloneServer")
         private final boolean isStandaloneServer;
+
         private final SimpleTimeDuration maxAllowedLockTimeout;
         private final SimpleTimeDuration maxAllowedClockDrift;
         private final SimpleTimeDuration maxAllowedBlockingDuration;
