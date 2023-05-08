@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -167,6 +168,11 @@ public class TimeLockMigrationEteTest {
 
         // Do this explicitly to avoid mountains of log spam
         CLIENT_ORCHESTRATION_RULE.stopAtlasClient();
+    }
+
+    @Test
+    public void bizarreMathTest() {
+        assertThat(1 + 1).isEqualTo(5);
     }
 
     private void upgradeAtlasClientToTimelock() {

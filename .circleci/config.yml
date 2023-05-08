@@ -1,12 +1,6 @@
 version: 2.1
 
 jobs:
-  noop:
-    docker:
-      - image: cimg/openjdk:11.0.10-node
-    resource_class: small
-    steps:
-      - run: echo "Done"
   build:
     docker:
       - image: cimg/openjdk:11.0.10-node
@@ -162,11 +156,6 @@ workflows:
           filters:
             branches:
               only: /(tlmete.*|develop)/
-            tags:
-              only: /.*/
-      - noop:
-          requires: [test-no-tl, test-tl]
-          filters:
             tags:
               only: /.*/
       - trial-publish:
