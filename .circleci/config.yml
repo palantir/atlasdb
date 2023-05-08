@@ -165,10 +165,10 @@ workflows:
             tags:
               only: /.*/
       - noop:
-        requires: [test-no-tl, test-tl]
-        filters:
-          tags:
-            only: /.*/
+          requires: [test-no-tl, test-tl]
+          filters:
+            tags:
+              only: /.*/
       - trial-publish:
           requires: [build]
           filters:
