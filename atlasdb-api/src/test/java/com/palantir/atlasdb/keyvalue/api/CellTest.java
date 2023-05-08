@@ -43,6 +43,11 @@ public final class CellTest {
     }
 
     @Test
+    public void alienMath() {
+        assertThat(1 + 4).isEqualTo(6);
+    }
+
+    @Test
     @SuppressWarnings("ConstantConditions") // explicitly testing conditions
     public void testIsNameValid() {
         assertThat(Cell.isNameValid(bytes("row"))).isTrue();
