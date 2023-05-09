@@ -42,7 +42,7 @@ public class LockServerOptionsTest {
         assertThat(serverMapper.writeValueAsString(NON_STANDALONE_OPTIONS))
                 .isNotEmpty()
                 .contains("\"isStandaloneServer\":false");
-        assertThat(serverMapper.writeValueAsString(LockServerOptions.DEFAULT))
+        assertThat(serverMapper.writeValueAsString(LockServerOptions.builder().build()))
                 .isNotEmpty()
                 .contains("\"isStandaloneServer\":true");
     }
@@ -50,10 +50,11 @@ public class LockServerOptionsTest {
     @Test
     public void serializationIsInverseOfDeserialization() throws JsonProcessingException {
         assertSerializationIsInverseOfDeserialization(NON_STANDALONE_OPTIONS);
-        assertSerializationIsInverseOfDeserialization(LockServerOptions.DEFAULT);
+        assertSerializationIsInverseOfDeserialization(LockServerOptions.builder().build());
     }
 
     @Test
+    @SuppressWarnings("deprecation") // These are actual fields users might set that we still support...
     public void existingOptionsCanBeDeserialized() throws IOException {
         LockServerOptions lockServerOptions = LockServerOptions.builder()
                 .maxAllowedLockTimeout(SimpleTimeDuration.of(1, TimeUnit.MILLISECONDS))
