@@ -50,7 +50,8 @@ public class LockServerOptionsTest {
     @Test
     public void serializationIsInverseOfDeserialization() throws JsonProcessingException {
         assertSerializationIsInverseOfDeserialization(NON_STANDALONE_OPTIONS);
-        assertSerializationIsInverseOfDeserialization(LockServerOptions.builder().build());
+        assertSerializationIsInverseOfDeserialization(
+                LockServerOptions.builder().build());
     }
 
     @Test
