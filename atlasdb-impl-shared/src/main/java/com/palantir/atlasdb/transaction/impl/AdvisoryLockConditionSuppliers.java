@@ -82,7 +82,10 @@ public final class AdvisoryLockConditionSuppliers {
                         ++failureCount;
                         log.warn("Could not lock successfully", SafeArg.of("failureCount", failureCount), ex);
                         if (failureCount >= NUM_RETRIES) {
-                            log.warn("Failing after {} tries", SafeArg.of("failureCount", failureCount), ex);
+                            log.warn(
+                                    "Failing after exceeding maximum tries",
+                                    SafeArg.of("failureCount", failureCount),
+                                    ex);
                             throw ex;
                         }
                         break;
