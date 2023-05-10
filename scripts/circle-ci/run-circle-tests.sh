@@ -27,7 +27,7 @@ CONTAINER_6=(':timelock-server:suiteTest')
 
 CONTAINER_7=(':timelock-server:stressTest')
 
-CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
+CONTAINER_8=(':atlasdb-cassandra-integration-tests:testSubset2')
 
 CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
 
@@ -35,7 +35,7 @@ CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
 
 CONTAINER_11=(':atlasdb-impl-shared:check' )
 
-CONTAINER_12=(':atlasdb-cassandra-integration-tests:testSubset2')
+CONTAINER_12=(':atlasdb-ete-tests:timeLockMigrationTest')
 
 CONTAINER_13=('compileJava' 'compileTestJava')
 
