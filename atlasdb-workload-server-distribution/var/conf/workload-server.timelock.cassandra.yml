@@ -19,6 +19,7 @@ runtime:
           trustStorePath: "var/security/trustStore.jks"
 install:
   atlas:
+    initializeAsync: true
     keyValueService:
       type: cassandra
       servers:
