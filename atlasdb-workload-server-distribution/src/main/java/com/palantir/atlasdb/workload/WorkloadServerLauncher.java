@@ -154,12 +154,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 log.info("AtlasDB transaction store factory initialized.");
                 return;
             } else {
-                log.info("AtlasDB transaction store factory not yet initialized. Waiting for five seconds; we won't retry after {}.",
+                log.info(
+                        "AtlasDB transaction store factory not yet initialized. Waiting for five seconds; we won't"
+                                + " retry after {}.",
                         SafeArg.of("deadline", deadline));
                 Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
             }
         }
-        log.error("AtlasDB transaction store factory not initialized after five minutes, which suggests that there's likely to be some issue with starting up one of our service's dependencies.");
+        log.error("AtlasDB transaction store factory not initialized after five minutes, which suggests that there's"
+                + " likely to be some issue with starting up one of our service's dependencies.");
         log.info("antithesis: terminate");
         log.error("Workflow will now exit.");
         System.exit(1);
