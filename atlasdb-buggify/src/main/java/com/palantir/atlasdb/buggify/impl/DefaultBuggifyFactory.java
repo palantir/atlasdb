@@ -32,10 +32,15 @@ public final class DefaultBuggifyFactory implements BuggifyFactory {
     static {
         SecureRandom randomInstance;
         try {
-            // See https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html#securerandom-number-generation-algorithms
+            // Antithesis's implementation of /dev/urandom is deterministic and something controlled by their fuzzer,
+            // which allows them to explore the state space. We thus choose the NativePRNG algorithm which is backed by
+            // /dev/urandom. This string is a reserved identifier for the algorithm, following
+            // https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html#securerandom-number-generation-algorithms
             randomInstance = SecureRandom.getInstance("NativePRNG");
         } catch (Exception e) {
-            log.warn("Failed to initialize fully native secure random instance, letting the Java runtime select for us", e);
+            log.warn(
+                    "Failed to initialize fully native secure random instance, letting the Java runtime select for us",
+                    e);
             randomInstance = new SecureRandom();
         }
         SECURE_RANDOM = randomInstance;
