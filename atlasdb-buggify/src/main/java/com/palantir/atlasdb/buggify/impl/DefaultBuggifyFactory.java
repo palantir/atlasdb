@@ -19,12 +19,27 @@ package com.palantir.atlasdb.buggify.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.api.Buggify;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.security.SecureRandom;
 import java.util.function.DoubleSupplier;
 
 public final class DefaultBuggifyFactory implements BuggifyFactory {
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultBuggifyFactory.class);
+    private static final SecureRandom SECURE_RANDOM;
     public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
+
+    static {
+        SecureRandom randomInstance;
+        try {
+            // See https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html#securerandom-number-generation-algorithms
+            randomInstance = SecureRandom.getInstance("NativePRNG");
+        } catch (Exception e) {
+            log.warn("Failed to initialize fully native secure random instance, letting the Java runtime select for us", e);
+            randomInstance = new SecureRandom();
+        }
+        SECURE_RANDOM = randomInstance;
+    }
 
     private final DoubleSupplier doubleSupplier;
 
