@@ -18,7 +18,7 @@ package com.palantir.atlasdb.buggify.api;
 
 public interface BuggifyFactory {
     /**
-     * A Buggify instance that may or may not perform any actions.
+     * The probability of returning a buggify instance which performs actions.
      */
     Buggify maybe(double probability);
 }

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-public final class DefaultBuggifyTest {
+public class DefaultBuggifyTest {
     @Test
     public void runAlwaysExecutes() {
         Runnable runnable = mock(Runnable.class);

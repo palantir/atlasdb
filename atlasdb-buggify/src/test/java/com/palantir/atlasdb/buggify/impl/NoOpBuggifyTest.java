@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 
-public final class NoOpBuggifyTest {
+public class NoOpBuggifyTest {
     @Test
     public void runNeverExecutes() {
         Runnable runnable = mock(Runnable.class);
