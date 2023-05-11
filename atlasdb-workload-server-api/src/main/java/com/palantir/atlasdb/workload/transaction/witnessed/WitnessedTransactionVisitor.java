@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.buggify.api;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface BuggifyFactory {
-    /**
-     * The probability of returning a buggify instance which performs actions.
-     */
-    Buggify maybe(double probability);
+public interface WitnessedTransactionVisitor<T> {
+    T visit(FullyWitnessedTransaction witnessedTransaction);
+
+    T visit(MaybeWitnessedTransaction maybeWitnessedTransaction);
 }

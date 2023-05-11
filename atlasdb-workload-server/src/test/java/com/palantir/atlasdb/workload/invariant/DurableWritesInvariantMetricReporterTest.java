@@ -25,7 +25,7 @@ import com.palantir.atlasdb.workload.store.IndexTable;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -60,7 +60,7 @@ public final class DurableWritesInvariantMetricReporterTest {
                         .build()));
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
                 .transactionStore(store)
-                .history(List.of(ImmutableWitnessedTransaction.builder()
+                .history(List.of(FullyWitnessedTransaction.builder()
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .addActions(WitnessedWriteTransactionAction.of(

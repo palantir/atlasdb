@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.buggify.api;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface BuggifyFactory {
-    /**
-     * The probability of returning a buggify instance which performs actions.
-     */
-    Buggify maybe(double probability);
+import org.immutables.value.Value;
+
+/**
+ * For transactions that we know for certain we've witnessed.
+ */
+@Value.Immutable
+public interface FullyWitnessedTransaction extends WitnessedTransaction {
+    @Override
+    default <T> T accept(WitnessedTransactionVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    static ImmutableFullyWitnessedTransaction.Builder builder() {
+        return ImmutableFullyWitnessedTransaction.builder();
+    }
 }

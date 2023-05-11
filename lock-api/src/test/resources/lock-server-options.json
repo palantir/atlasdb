@@ -1,0 +1,1 @@
+{"maxAllowedLockTimeout":{"time":1,"unit":"MILLISECONDS"},"maxAllowedClockDrift":{"time":2,"unit":"SECONDS"},"maxAllowedBlockingDuration":{"time":3,"unit":"MINUTES"},"maxNormalLockAge":{"time":4,"unit":"HOURS"},"randomBitCount":32,"stuckTransactionTimeout":{"time":5,"unit":"DAYS"},"slowLogTriggerMillis":12345,"isStandaloneServer":false}

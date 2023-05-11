@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fixed a serialization issue for users of `LockServerOptions` and `LockState`
+    endpoints in the legacy lock service.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6563

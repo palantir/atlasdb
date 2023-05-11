@@ -33,7 +33,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -272,12 +271,10 @@ public class CassandraServiceTest {
 
     @Test
     public void ports() throws Exception {
-        assertThat(CassandraService.onlyPort(List.of(1, 1, 1))).isEqualTo(1);
-        assertThat(IntStream.generate(() -> 4224).boxed().limit(15).collect(Collectors.toList()))
-                .hasSize(15)
-                .satisfies(cluster ->
-                        assertThat(CassandraService.onlyPort(cluster)).isEqualTo(4224));
-        assertThatThrownBy(() -> CassandraService.onlyPort(List.of(1, 2, 1)))
+        assertThat(CassandraService.only(IntStream.of(1, 1, 1))).isEqualTo(1);
+        assertThat(CassandraService.only(IntStream.generate(() -> 4224).limit(15)))
+                .isEqualTo(4224);
+        assertThatThrownBy(() -> CassandraService.only(IntStream.of(1, 2, 1)))
                 .isInstanceOf(UnknownHostException.class)
                 .hasMessageContaining("No single known port");
     }

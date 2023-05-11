@@ -29,7 +29,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -59,12 +59,12 @@ public final class DurableWritesInvariantTest {
     public void cellsExpectedToBeDeletedAreFound() {
         AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
@@ -86,12 +86,12 @@ public final class DurableWritesInvariantTest {
     public void cellsThatDoNotMatchAreFoundAndMatchingAreIgnored() {
         AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
                         .startTimestamp(1)
                         .commitTimestamp(2)
                         .build(),
-                ImmutableWitnessedTransaction.builder()
+                FullyWitnessedTransaction.builder()
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .startTimestamp(3)
                         .commitTimestamp(4)
