@@ -75,6 +75,9 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 # External builds have a 16gb limit.
 if [ "$test_suite_index" -eq "13" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
+elif ["$test_suite_index" -eq "3"]
+    export _JAVA_OPTIONS="-Xmx8g ${JAVA_GC_LOGGING_OPTIONS}"
+    BASE_GRADLE_ARGS+=" --scan --parallel"
 else
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
     BASE_GRADLE_ARGS+=" --scan --parallel"
