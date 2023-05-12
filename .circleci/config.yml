@@ -88,7 +88,7 @@ jobs:
       - run:
           name: "Cancel workflows on failure"
           command: |
-            curl --request POST --url https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel -u "$CIRCLE_WORKFLOW_ID:"
+            curl --request POST --url https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel -u "$CIRCLE_AUTH_TOKEN:"
           when: on_fail
 
   trial-publish:
