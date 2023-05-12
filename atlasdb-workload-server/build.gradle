@@ -8,6 +8,7 @@ license {
 dependencies {
     implementation project(':atlasdb-workload-server-api')
     implementation project(':atlasdb-api')
+    implementation project(':atlasdb-buggify')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')

@@ -19,8 +19,6 @@ package com.palantir.atlasdb.buggify.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.api.Buggify;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.security.SecureRandom;
 import java.util.function.DoubleSupplier;
 
