@@ -25,26 +25,8 @@ import java.security.SecureRandom;
 import java.util.function.DoubleSupplier;
 
 public final class DefaultBuggifyFactory implements BuggifyFactory {
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultBuggifyFactory.class);
-    private static final SecureRandom SECURE_RANDOM;
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
-
-    static {
-        SecureRandom randomInstance;
-        try {
-            // Antithesis's implementation of /dev/urandom is deterministic and something controlled by their fuzzer,
-            // which allows them to explore the state space. We thus choose the NativePRNG algorithm which is backed by
-            // /dev/urandom. This string is a reserved identifier for the algorithm, following
-            // https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html#securerandom-number-generation-algorithms
-            randomInstance = SecureRandom.getInstance("NativePRNG");
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to initialize fully native secure random instance, letting the Java runtime select for us",
-                    e);
-            randomInstance = new SecureRandom();
-        }
-        SECURE_RANDOM = randomInstance;
-    }
 
     private final DoubleSupplier doubleSupplier;
 
