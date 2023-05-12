@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -184,6 +185,11 @@ public class LastSweptTimestampUpdaterTest {
         executorService.tick(3 * REFRESH_MILLIS, TimeUnit.MILLISECONDS);
 
         verify(metrics, times(3)).updateProgressForShard(CONS_SHARD, CONS_TS);
+    }
+
+    @Test
+    public void faultyMath() {
+        throw new RuntimeException();
     }
 
     private void stubWithRealisticReturnValues() {

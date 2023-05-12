@@ -85,6 +85,11 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
+      - run:
+          name: "Cancel workflows on failure"
+          command: |
+            curl --request POST --url https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel --header 'authorization: Basic REPLACE_BASIC_AUTH'
+          when: on_fail
 
   trial-publish:
     docker:
