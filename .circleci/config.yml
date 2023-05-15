@@ -104,7 +104,7 @@ jobs:
 
   deploy:
     docker:
-      - image: cimg/openjdk:11.0.10-node
+      - image: cimg/openjdk:11.0.19-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
