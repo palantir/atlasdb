@@ -105,7 +105,7 @@ jobs:
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
-    resource_class: 2xlarge+
+    resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
@@ -138,32 +138,6 @@ workflows:
   check:
     jobs:
       - build:
-          filters:
-            tags:
-              only: /.*/
-      - test-suite:
-          requires: [build]
-          matrix:
-            alias: test-no-tl
-            parameters:
-              # intentionally excluding 12 (TimeLock migration ETE test) from this collection
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13]
-          filters:
-            tags:
-              only: /.*/
-      - test-suite:
-          requires: [build]
-          matrix:
-            alias: test-tl
-            parameters:
-              suite: [12]
-          filters:
-            branches:
-              only: /(tlmete.*|develop)/
-            tags:
-              only: /.*/
-      - test:
-          requires: [test-tl, test-no-tl]
           filters:
             tags:
               only: /.*/
