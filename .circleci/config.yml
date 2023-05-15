@@ -168,15 +168,6 @@ workflows:
       - test:
           requires: [test-tl, test-no-tl]
           filters:
-            branches:
-              only: /(tlmete.*|develop)/
-            tags:
-              only: /.*/
-      - test:
-          requires: [test-no-tl]
-          filters:
-            branches:
-              ignore: /(tlmete.*|develop)/
             tags:
               only: /.*/
       - trial-publish:
@@ -185,7 +176,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: [build, test-tl, test-no-tl]
+          requires: [build, test]
           filters:
             branches:
               only: develop
