@@ -95,7 +95,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         LockResponse response = delegate.lock(request);
-        buggify.maybe(0.25).run(() -> {
+        buggify.maybe(0.05).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -105,7 +105,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
         LockResponse response = delegate.lock(lockRequest, options);
-        buggify.maybe(0.25).run(() -> {
+        buggify.maybe(0.05).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -120,7 +120,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockToken> tokensToRefresh = tokens.stream()
-                .filter(_token -> !buggify.maybe(0.10).asBoolean())
+                .filter(_token -> !buggify.maybe(0.025).asBoolean())
                 .collect(Collectors.toSet());
         Set<LockToken> tokensToUnlock = Sets.difference(tokens, tokensToRefresh);
         if (!tokensToUnlock.isEmpty()) {
