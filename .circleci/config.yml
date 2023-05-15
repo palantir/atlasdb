@@ -176,7 +176,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: [build, test]
+          requires: []
           filters:
             branches:
               only: develop
