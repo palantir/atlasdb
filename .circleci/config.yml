@@ -115,7 +115,6 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
-      - attach_workspace: { at: . }
       - add_ssh_keys:
           fingerprints:
             - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
