@@ -43,6 +43,9 @@ import one.util.streamex.StreamEx;
 
 public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory<InteractiveTransactionStore> {
 
+    // Purposefully override the lock refresh interval to increase our chances of losing locks.
+    private static final int LOCK_REFRESH_INTERVAL_MS = 100;
+
     private final TransactionManager transactionManager;
     private final Optional<Namespace> maybeNamespace;
 
@@ -140,8 +143,8 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .globalMetricsRegistry(metricsManager.getRegistry())
                 .globalTaggedMetricRegistry(metricsManager.getTaggedRegistry())
                 .runtimeConfigSupplier(atlasDbRuntimeConfig)
-                .defaultTimelockClientFactory(
-                        lockService -> TimeLockClient.createDefault(UnreliableTimeLockService.create(lockService), 100))
+                .defaultTimelockClientFactory(lockService -> TimeLockClient.createDefault(
+                        UnreliableTimeLockService.create(lockService), LOCK_REFRESH_INTERVAL_MS))
                 .build()
                 .serializable();
 
