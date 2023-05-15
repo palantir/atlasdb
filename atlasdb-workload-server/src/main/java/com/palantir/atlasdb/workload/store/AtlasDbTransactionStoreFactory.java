@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
-public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory {
+public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory<InteractiveTransactionStore> {
 
     private final TransactionManager transactionManager;
     private final Optional<Namespace> maybeNamespace;
@@ -50,7 +50,7 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
     }
 
     @Override
-    public TransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
+    public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
         return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
     }
 

@@ -48,6 +48,7 @@ public class LockServerOptions implements Serializable {
      * client accessing it.
      */
     @Value.Default
+    @JsonProperty("isStandaloneServer")
     public boolean isStandaloneServer() {
         return true;
     }

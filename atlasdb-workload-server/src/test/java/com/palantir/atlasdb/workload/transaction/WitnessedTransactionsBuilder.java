@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
@@ -103,7 +103,7 @@ public final class WitnessedTransactionsBuilder {
                         startTimestamp < commitTimestamp.get(),
                         "Commit timestamp must be greater than the start timestamp.");
             }
-            witnessedTransactions.add(ImmutableWitnessedTransaction.builder()
+            witnessedTransactions.add(FullyWitnessedTransaction.builder()
                     .startTimestamp(startTimestamp)
                     .actions(actions)
                     .commitTimestamp(commitTimestamp)

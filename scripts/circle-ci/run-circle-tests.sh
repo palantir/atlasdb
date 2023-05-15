@@ -27,7 +27,7 @@ CONTAINER_6=(':timelock-server:suiteTest')
 
 CONTAINER_7=(':timelock-server:stressTest')
 
-CONTAINER_8=(':atlasdb-ete-tests:timeLockMigrationTest')
+CONTAINER_8=(':atlasdb-cassandra-integration-tests:testSubset2')
 
 CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
 
@@ -35,7 +35,7 @@ CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
 
 CONTAINER_11=(':atlasdb-impl-shared:check' )
 
-CONTAINER_12=(':atlasdb-cassandra-integration-tests:testSubset2')
+CONTAINER_12=(':atlasdb-ete-tests:timeLockMigrationTest')
 
 CONTAINER_13=('compileJava' 'compileTestJava')
 
@@ -50,16 +50,18 @@ do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
+test_suite_index=$1
+
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
-    if [ $1 -eq 0 ]; then
+    if [ "$test_suite_index" -eq 0 ]; then
         checkDocsBuild
         exit $?
     fi
     exit 0
 fi
 
-if [ $1 -eq 9 ] || [ $1 -eq 10 ]; then
+if [ "$test_suite_index" -eq 9 ] || [ "$test_suite_index" -eq 10 ]; then
     printenv DOCKERHUB_PASSWORD | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
     # The oracle container is very large and takes a long time to pull.
     # If this image is not pulled here, the circle build usually times out.
@@ -71,7 +73,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:class+unload=off"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$1" -eq "13" ]; then
+if [ "$test_suite_index" -eq "13" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 else
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
@@ -80,7 +82,7 @@ fi
 export CASSANDRA_MAX_HEAP_SIZE=512m
 export CASSANDRA_HEAP_NEWSIZE=64m
 
-case $1 in
+case "$test_suite_index" in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
     2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;

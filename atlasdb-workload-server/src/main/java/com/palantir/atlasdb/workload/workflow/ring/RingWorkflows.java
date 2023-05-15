@@ -53,6 +53,19 @@ public final class RingWorkflows {
     public static Workflow create(
             InteractiveTransactionStore store,
             RingWorkflowConfiguration ringWorkflowConfiguration,
+            ListeningExecutorService executionExecutor) {
+        AtomicBoolean skipRunning = new AtomicBoolean(false);
+        return DefaultWorkflow.create(
+                store,
+                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, skipRunning),
+                ringWorkflowConfiguration,
+                executionExecutor);
+    }
+
+    @VisibleForTesting
+    static Workflow create(
+            InteractiveTransactionStore store,
+            RingWorkflowConfiguration ringWorkflowConfiguration,
             ListeningExecutorService executionExecutor,
             AtomicBoolean skipRunning) {
         return DefaultWorkflow.create(
