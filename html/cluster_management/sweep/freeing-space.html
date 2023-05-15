@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Freeing space after sweep &mdash; OSS AtlasDB develop documentation</title>
@@ -142,7 +142,7 @@ This runs online, and no user action is required.</p>
 <p>The delete operation on Cassandra KVS creates a Cassandra tombstone that prevents the data from being read.
 Cassandra uses compactions to free up disk space, which will eventually happen without manual intervention.</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="tablechoice" role="note">
+<aside class="footnote brackets" id="tablechoice" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
 <p>The compactor tracks when each table was last compacted (Tc), and compares those times with the last swept times (Ts), choosing the table with greatest (Ts-Tc), i.e. largest gap between compaction and sweep.</p>
 </aside>
