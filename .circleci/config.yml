@@ -82,9 +82,6 @@ jobs:
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
       - store_artifacts:
           path: /home/circleci/artifacts
-      - persist_to_workspace:
-          root: .
-          paths: [ . ]
 
   trial-publish:
     docker:
@@ -108,15 +105,14 @@ jobs:
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
+    resource_class: 2xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
-      - checkout
-      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
+      - attach_workspace: { at: . }
       - add_ssh_keys:
           fingerprints:
             - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
@@ -177,7 +173,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: []
+          requires: [build]
           filters:
             branches:
               only: develop
