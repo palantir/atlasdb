@@ -18,9 +18,7 @@ package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import java.util.List;
 import java.util.Optional;
-import org.immutables.value.Value;
 
-@Value.Immutable
 public interface WitnessedTransaction {
     /** Start timestamp of the transaction. */
     long startTimestamp();
@@ -30,4 +28,6 @@ public interface WitnessedTransaction {
 
     /** Provides an in-order list of actions that were performed during the transaction's execution. */
     List<WitnessedTransactionAction> actions();
+
+    <T> T accept(WitnessedTransactionVisitor<T> visitor);
 }

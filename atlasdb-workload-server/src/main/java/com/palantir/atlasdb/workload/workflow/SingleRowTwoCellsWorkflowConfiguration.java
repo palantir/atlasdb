@@ -31,11 +31,6 @@ public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfigur
 
     TableConfiguration tableConfiguration();
 
-    @Value.Default
-    default double rateLimit() {
-        return 100;
-    }
-
     @Value.Lazy
     default RateLimiter transactionRateLimiter() {
         return RateLimiter.create(rateLimit());

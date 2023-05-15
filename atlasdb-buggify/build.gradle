@@ -1,0 +1,12 @@
+
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation 'com.google.guava:guava'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation('org.jmock:jmock') {
+      exclude group: 'org.hamcrest'
+    }
+    testImplementation 'org.mockito:mockito-core'
+}

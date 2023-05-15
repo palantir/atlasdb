@@ -13,4 +13,5 @@ dependencies {
     annotationProcessor 'org.immutables:value'
 
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+    testImplementation 'org.mockito:mockito-core'
 }

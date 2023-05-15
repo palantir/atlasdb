@@ -17,8 +17,19 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 public interface WorkflowConfiguration {
     int iterationCount();
+
+    @Value.Default
+    default double rateLimit() {
+        return 100;
+    }
+
+    @Value.Default
+    default Integer maxThreadCount() {
+        return 100;
+    }
 }
