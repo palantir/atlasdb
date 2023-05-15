@@ -23,7 +23,7 @@ import java.security.SecureRandom;
 import java.util.function.DoubleSupplier;
 
 public final class DefaultBuggifyFactory implements BuggifyFactory {
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     public static final BuggifyFactory INSTANCE = new DefaultBuggifyFactory();
 
     private final DoubleSupplier doubleSupplier;
