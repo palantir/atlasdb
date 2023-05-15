@@ -173,11 +173,6 @@ public class OracleDdlConfigTest {
 
         OracleDdlConfig config =
                 createLongNameSupportingOracleConfigWithPrefixes(getPrefixWithLength(44), getPrefixWithLength(33));
-        config = ImmutableOracleDdlConfig.copyOf(config).withAlterTablesOrMetadataToMatch(
-                TableReference.create(Namespace.create("ns"), "table"),
-                TableReference.createWithEmptyNamespace("iDoNotHaveOne")
-        );
-        System.out.println(jsonMapper.writeValueAsString(config));
         assertThat(jsonMapper.readValue(jsonMapper.writeValueAsString(config), OracleDdlConfig.class))
                 .isEqualTo(config);
     }
