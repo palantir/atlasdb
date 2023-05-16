@@ -17,31 +17,39 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
+import com.palantir.atlasdb.workload.invariant.CrossCellInconsistency;
 import com.palantir.atlasdb.workload.invariant.ImmutableInvariantReporter;
 import com.palantir.atlasdb.workload.invariant.Invariant;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
-import com.palantir.atlasdb.workload.invariant.MultiCellViolation;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public final class TransientRowsWorkflows {
     private static final SafeLogger log = SafeLoggerFactory.get(TransientRowsWorkflows.class);
 
     private static final int SUMMARY_ROW = -1;
     private static final int COLUMN = 1;
+    private static final int VALUE = 0;
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
     private TransientRowsWorkflows() {}
 
@@ -60,18 +68,22 @@ public final class TransientRowsWorkflows {
             InteractiveTransactionStore store, TransientRowsWorkflowConfiguration configuration, int taskIndex) {
         return store.readWrite(txn -> {
             String tableName = configuration.tableConfiguration().tableName();
-            txn.write(tableName, ImmutableWorkloadCell.of(taskIndex, COLUMN), 1);
-            txn.write(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex), 0);
+            txn.write(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex), VALUE);
+            txn.write(tableName, ImmutableWorkloadCell.of(taskIndex, COLUMN), VALUE);
             if (taskIndex > 0) {
-                txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
+                int indexToRead = SECURE_RANDOM.nextInt(taskIndex);
+                txn.read(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, indexToRead));
+                txn.read(tableName, ImmutableWorkloadCell.of(indexToRead, COLUMN));
+
                 txn.delete(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex - 1));
+                txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
             }
         });
     }
 
-    public static InvariantReporter<List<MultiCellViolation>> getSummaryLogInvariantReporter(
+    public static InvariantReporter<List<CrossCellInconsistency>> getSummaryLogInvariantReporter(
             TransientRowsWorkflowConfiguration configuration) {
-        return ImmutableInvariantReporter.<List<MultiCellViolation>>builder()
+        return ImmutableInvariantReporter.<List<CrossCellInconsistency>>builder()
                 .invariant(createSummaryRowInvariant(configuration))
                 .consumer(violations -> {
                     if (!violations.isEmpty()) {
@@ -83,31 +95,79 @@ public final class TransientRowsWorkflows {
                 .build();
     }
 
-    private static Invariant<List<MultiCellViolation>> createSummaryRowInvariant(
+    private static Invariant<List<CrossCellInconsistency>> createSummaryRowInvariant(
             TransientRowsWorkflowConfiguration configuration) {
         return (workflowHistory, notifier) -> {
-            List<MultiCellViolation> violations = new ArrayList<>();
+            List<CrossCellInconsistency> violations = new ArrayList<>();
             ReadableTransactionStore store = workflowHistory.transactionStore();
 
-            String tableName = configuration.tableConfiguration().tableName();
-            Set<Integer> taskIndices =
-                    IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
-            taskIndices.forEach(index -> checkSummaryConsistencyForIndex(violations, store, tableName, index));
+            violations.addAll(findInconsistencyInTransactionHistory(workflowHistory.history()));
+            violations.addAll(findInconsistencyInFinalIndexState(configuration, store));
 
             notifier.accept(violations);
         };
     }
 
+    private static List<CrossCellInconsistency> findInconsistencyInTransactionHistory(
+            List<WitnessedTransaction> history) {
+        return history.stream()
+                .map(WitnessedTransaction::actions)
+                .flatMap(TransientRowsWorkflows::findInconsistencyInTransactionActions)
+                .collect(Collectors.toList());
+    }
+
+    private static Stream<CrossCellInconsistency> findInconsistencyInTransactionActions(
+            List<WitnessedTransactionAction> actions) {
+        Set<WitnessedReadTransactionAction> readTransactionActions = actions.stream()
+                .filter(action -> action instanceof WitnessedReadTransactionAction)
+                .map(action -> (WitnessedReadTransactionAction) action)
+                .collect(Collectors.toSet());
+        if (readTransactionActions.size() == 0) {
+            return Stream.empty();
+        }
+        WitnessedReadTransactionAction summaryRowRead = readTransactionActions.stream()
+                .filter(action -> action.cell().key() == SUMMARY_ROW)
+                .findAny()
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Expected to find a read of the summary row", SafeArg.of("actions", actions)));
+        WitnessedReadTransactionAction normalRowRead = readTransactionActions.stream()
+                .filter(action -> action.cell().key() != SUMMARY_ROW)
+                .findAny()
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Expected to find a read of a normal row", SafeArg.of("actions", actions)));
+        if (!summaryRowRead.value().equals(normalRowRead.value())) {
+            return Stream.of(CrossCellInconsistency.builder()
+                    .putInconsistentValues(
+                            TableAndWorkloadCell.of(summaryRowRead.table(), summaryRowRead.cell()),
+                            summaryRowRead.value())
+                    .putInconsistentValues(
+                            TableAndWorkloadCell.of(normalRowRead.table(), normalRowRead.cell()), normalRowRead.value())
+                    .build());
+        } else {
+            return Stream.empty();
+        }
+    }
+
+    private static List<CrossCellInconsistency> findInconsistencyInFinalIndexState(
+            TransientRowsWorkflowConfiguration configuration, ReadableTransactionStore store) {
+        List<CrossCellInconsistency> violations = new ArrayList<>();
+        String tableName = configuration.tableConfiguration().tableName();
+        Set<Integer> taskIndices =
+                IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
+        taskIndices.forEach(index -> checkSummaryConsistencyForIndex(violations, store, tableName, index));
+        return violations;
+    }
+
     private static void checkSummaryConsistencyForIndex(
-            List<MultiCellViolation> violations, ReadableTransactionStore store, String tableName, Integer index) {
+            List<CrossCellInconsistency> violations, ReadableTransactionStore store, String tableName, Integer index) {
         WorkloadCell primaryCell = ImmutableWorkloadCell.of(index, COLUMN);
         Optional<Integer> valueFromPrimaryRow = store.get(tableName, primaryCell);
         WorkloadCell summaryCell = ImmutableWorkloadCell.of(SUMMARY_ROW, index);
         Optional<Integer> valueFromSummaryRow = store.get(tableName, summaryCell);
         if (valueFromSummaryRow.isPresent() ^ valueFromPrimaryRow.isPresent()) {
-            violations.add(MultiCellViolation.builder()
-                    .putViolatingCellValues(TableAndWorkloadCell.of(tableName, primaryCell), valueFromPrimaryRow)
-                    .putViolatingCellValues(TableAndWorkloadCell.of(tableName, summaryCell), valueFromSummaryRow)
+            violations.add(CrossCellInconsistency.builder()
+                    .putInconsistentValues(TableAndWorkloadCell.of(tableName, primaryCell), valueFromPrimaryRow)
+                    .putInconsistentValues(TableAndWorkloadCell.of(tableName, summaryCell), valueFromSummaryRow)
                     .build());
         }
     }

@@ -27,7 +27,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
 @JsonTypeName(SingleRowTwoCellsWorkflowConfiguration.TYPE)
 public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
-    String TYPE = "singleRowTwoCells";
+    String TYPE = "single-row-two-cells";
 
     TableConfiguration tableConfiguration();
 

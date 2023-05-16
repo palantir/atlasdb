@@ -28,18 +28,18 @@ import org.immutables.value.Value;
  * to hold across the group of cells.
  */
 @Value.Immutable
-public interface MultiCellViolation {
-    Map<TableAndWorkloadCell, Optional<Integer>> violatingCellValues();
+public interface CrossCellInconsistency {
+    Map<TableAndWorkloadCell, Optional<Integer>> inconsistentValues();
 
     @Value.Check
     default void consistsOfAtLeastTwoCells() {
-        Preconditions.checkState(
-                violatingCellValues().size() >= 2,
-                "A multi-cell violation must consist of at least two cells",
-                SafeArg.of("cells", violatingCellValues()));
+        Preconditions.checkArgument(
+                inconsistentValues().size() >= 2,
+                "A cross-cell inconsistency must consist of at least two cells",
+                SafeArg.of("values", inconsistentValues()));
     }
 
-    static ImmutableMultiCellViolation.Builder builder() {
-        return ImmutableMultiCellViolation.builder();
+    static ImmutableCrossCellInconsistency.Builder builder() {
+        return ImmutableCrossCellInconsistency.builder();
     }
 }
