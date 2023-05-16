@@ -80,6 +80,13 @@ jobs:
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - when:
+          condition:
+            equal: [ 13, << parameters.suite >> ]
+          steps:
+            - persist_to_workspace:
+                root: .
+                paths: [ . ]
       - store_artifacts:
           path: /home/circleci/artifacts
 
@@ -104,7 +111,7 @@ jobs:
 
   deploy:
     docker:
-      - image: cimg/openjdk:11.0.19-node
+      - image: cimg/openjdk:11.0.10-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -117,7 +124,7 @@ jobs:
           fingerprints:
             - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
       - run: sudo apt-get update
-      - run: sudo apt-get install python2 python3-pip
+      - run: sudo apt-get install python python3-pip
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
@@ -138,6 +145,32 @@ workflows:
   check:
     jobs:
       - build:
+          filters:
+            tags:
+              only: /.*/
+      - test-suite:
+          requires: [build]
+          matrix:
+            alias: test-no-tl
+            parameters:
+              # intentionally excluding 12 (TimeLock migration ETE test) from this collection
+              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13]
+          filters:
+            tags:
+              only: /.*/
+      - test-suite:
+          requires: [build]
+          matrix:
+            alias: test-tl
+            parameters:
+              suite: [12]
+          filters:
+            branches:
+              only: /(tlmete.*|develop)/
+            tags:
+              only: /.*/
+      - test:
+          requires: [test-tl, test-no-tl]
           filters:
             tags:
               only: /.*/
