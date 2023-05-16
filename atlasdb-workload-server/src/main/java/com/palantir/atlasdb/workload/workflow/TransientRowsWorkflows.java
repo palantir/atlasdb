@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.workload.invariant.CrossCellInconsistency;
@@ -46,9 +47,15 @@ import java.util.stream.Stream;
 public final class TransientRowsWorkflows {
     private static final SafeLogger log = SafeLoggerFactory.get(TransientRowsWorkflows.class);
 
-    private static final int SUMMARY_ROW = -1;
-    private static final int COLUMN = 1;
-    private static final int VALUE = 0;
+    @VisibleForTesting
+    static final int SUMMARY_ROW = -1;
+
+    @VisibleForTesting
+    static final int COLUMN = 1;
+
+    @VisibleForTesting
+    static final int VALUE = 0;
+
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
     private TransientRowsWorkflows() {}

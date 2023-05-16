@@ -92,8 +92,14 @@ public class TransientRowsWorkflowsTest {
         assertThat(witnessedTransactions.get(0).actions())
                 .hasSize(2)
                 .containsExactlyInAnyOrder(
-                        WitnessedWriteTransactionAction.of(TABLE_NAME, ImmutableWorkloadCell.of(0, 1), 0),
-                        WitnessedWriteTransactionAction.of(TABLE_NAME, ImmutableWorkloadCell.of(-1, 0), 0));
+                        WitnessedWriteTransactionAction.of(
+                                TABLE_NAME,
+                                ImmutableWorkloadCell.of(0, TransientRowsWorkflows.COLUMN),
+                                TransientRowsWorkflows.VALUE),
+                        WitnessedWriteTransactionAction.of(
+                                TABLE_NAME,
+                                ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 0),
+                                TransientRowsWorkflows.VALUE));
     }
 
     @Test
@@ -127,10 +133,15 @@ public class TransientRowsWorkflowsTest {
         verify(violationConsumer)
                 .accept(ImmutableList.of(CrossCellInconsistency.builder()
                         .putInconsistentValues(
-                                TableAndWorkloadCell.of(TABLE_NAME, ImmutableWorkloadCell.of(ITERATION_COUNT - 1, 1)),
+                                TableAndWorkloadCell.of(
+                                        TABLE_NAME,
+                                        ImmutableWorkloadCell.of(ITERATION_COUNT - 1, TransientRowsWorkflows.COLUMN)),
                                 Optional.empty())
                         .putInconsistentValues(
-                                TableAndWorkloadCell.of(TABLE_NAME, ImmutableWorkloadCell.of(-1, ITERATION_COUNT - 1)),
+                                TableAndWorkloadCell.of(
+                                        TABLE_NAME,
+                                        ImmutableWorkloadCell.of(
+                                                TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 1)),
                                 Optional.of(0))
                         .build()));
         verifyNoMoreInteractions(violationConsumer);
@@ -140,15 +151,23 @@ public class TransientRowsWorkflowsTest {
     public void invariantReportsViolationsFromFinalStateWhenExtraCellsArePresent() {
         Consumer<List<CrossCellInconsistency>> violationConsumer = mock(Consumer.class);
         WorkflowHistory history = transientRowsWorkflow.run();
-        transactionStore.readWrite(txn -> txn.write(TABLE_NAME, ImmutableWorkloadCell.of(ITERATION_COUNT - 2, 1), 0));
+        transactionStore.readWrite(txn -> txn.write(
+                TABLE_NAME,
+                ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN),
+                TransientRowsWorkflows.VALUE));
         invariant.accept(history, violationConsumer);
         verify(violationConsumer)
                 .accept(ImmutableList.of(CrossCellInconsistency.builder()
                         .putInconsistentValues(
-                                TableAndWorkloadCell.of(TABLE_NAME, ImmutableWorkloadCell.of(ITERATION_COUNT - 2, 1)),
+                                TableAndWorkloadCell.of(
+                                        TABLE_NAME,
+                                        ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN)),
                                 Optional.of(0))
                         .putInconsistentValues(
-                                TableAndWorkloadCell.of(TABLE_NAME, ImmutableWorkloadCell.of(-1, ITERATION_COUNT - 2)),
+                                TableAndWorkloadCell.of(
+                                        TABLE_NAME,
+                                        ImmutableWorkloadCell.of(
+                                                TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 2)),
                                 Optional.empty())
                         .build()));
         verifyNoMoreInteractions(violationConsumer);
@@ -164,7 +183,7 @@ public class TransientRowsWorkflowsTest {
                 .history(history.history().stream()
                         .map(witnessedTransaction -> ImmutableFullyWitnessedTransaction.builder()
                                 .actions(witnessedTransaction.actions().stream()
-                                        .map(TransientRowsWorkflowsTest::rewriteReadHistoryAsNeverReadingFromSummaryRow)
+                                        .map(TransientRowsWorkflowsTest::rewriteReadHistoryAsAlwaysInconsistent)
                                         .collect(Collectors.toList()))
                                 .startTimestamp(witnessedTransaction.startTimestamp())
                                 .commitTimestamp(witnessedTransaction.commitTimestamp())
@@ -179,13 +198,14 @@ public class TransientRowsWorkflowsTest {
         verifyNoMoreInteractions(violationConsumer);
     }
 
-    private static WitnessedTransactionAction rewriteReadHistoryAsNeverReadingFromSummaryRow(
+    private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
             WitnessedTransactionAction action) {
         if (action instanceof WitnessedReadTransactionAction) {
-            if (action.cell().key() == -1) {
+            if (action.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
                 return WitnessedReadTransactionAction.of(action.table(), action.cell(), Optional.empty());
             } else {
-                return WitnessedReadTransactionAction.of(action.table(), action.cell(), Optional.of(0));
+                return WitnessedReadTransactionAction.of(
+                        action.table(), action.cell(), Optional.of(TransientRowsWorkflows.VALUE));
             }
         } else {
             return action;
