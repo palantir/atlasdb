@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -716,6 +717,7 @@ public final class NamespacedTodoTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -739,5 +741,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "u45FW2313LWExLwSpn1QNQ==";
+    static String __CLASS_HASH = "hQ6/1zRsdc2LBKW0GTYdpw==";
 }

@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -716,6 +717,7 @@ public final class StreamTestStreamIdxTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -739,5 +741,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "eaBakAMUdj76AdcnIf29/Q==";
+    static String __CLASS_HASH = "hWTBrXR/SoJCr/v5CGBp5Q==";
 }

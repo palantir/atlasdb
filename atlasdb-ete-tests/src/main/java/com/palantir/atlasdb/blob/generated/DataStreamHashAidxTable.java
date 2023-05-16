@@ -18,6 +18,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -716,6 +717,7 @@ public final class DataStreamHashAidxTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -739,5 +741,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6ODGPI1lqmv77xZs7geJPg==";
+    static String __CLASS_HASH = "4xCW34HnUp0WcB647QLiyQ==";
 }
