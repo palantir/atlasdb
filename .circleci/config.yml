@@ -180,7 +180,7 @@ workflows:
             branches:
               ignore: [develop]
       - deploy:
-          requires: [build]
+          requires: [build, test-tl, test-no-tl]
           filters:
             branches:
               only: develop
