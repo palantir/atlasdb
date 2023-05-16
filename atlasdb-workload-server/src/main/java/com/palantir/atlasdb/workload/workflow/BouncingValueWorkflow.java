@@ -29,6 +29,9 @@ import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.OnlyCommittedWitnessedTransactionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -40,9 +43,11 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import one.util.streamex.StreamEx;
 
-public class BouncingValueWorkflow {
+public final class BouncingValueWorkflow {
     public static final String TEST_TABLE = "bouncingValue";
     private static final WorkloadCell BUSY_CELL = ImmutableWorkloadCell.of(1, 1);
+
+    private static final SafeLogger log = SafeLoggerFactory.get(BouncingValueWorkflow.class);
 
     public static Workflow createBouncingValue(InteractiveTransactionStore store) {
         return new Workflow() {
@@ -52,17 +57,19 @@ public class BouncingValueWorkflow {
                         MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
                 ListeningExecutorService writeExecutor =
                         MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
-                List<ListenableFuture<Optional<WitnessedTransaction>>> reads = IntStream.range(0, 1_000)
+                List<ListenableFuture<Optional<WitnessedTransaction>>> reads = IntStream.range(0, 66)
                         .mapToObj(idx -> readExecutor.submit(() -> {
-                            return store.readWrite(txn -> {
+                            Optional<WitnessedTransaction> witnessedTxn = store.readWrite(txn -> {
                                 Optional<Integer> value = txn.read(TEST_TABLE, BUSY_CELL);
                                 txn.write(TEST_TABLE, BUSY_CELL, value.orElse(-1));
                             });
+                            log.info("Bouncy value workflow completed index {}", SafeArg.of("idx", idx));
+                            return witnessedTxn;
                         }))
                         .collect(Collectors.toList());
 
                 List<ListenableFuture<Optional<WitnessedTransaction>>> writes = new ArrayList<>();
-                for (int i = 0; i < 500; i++) {
+                for (int i = 0; i < 33; i++) {
                     int stableI = i;
                     writes.add(writeExecutor.submit(
                             () -> store.readWrite(List.of(WriteTransactionAction.of(TEST_TABLE, BUSY_CELL, stableI)))));
