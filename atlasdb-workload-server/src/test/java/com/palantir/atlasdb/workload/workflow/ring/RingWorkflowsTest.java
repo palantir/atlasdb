@@ -29,8 +29,8 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.atlasdb.workload.workflow.ImmutableTableConfiguration;
@@ -81,7 +81,7 @@ public class RingWorkflowsTest {
     public void ringWorkflowContainsInitialReadsForRing() {
         WorkflowHistory history = workflow.run();
 
-        List<WitnessedTransactionAction> actions =
+        List<WitnessedCellTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
 
         List<WitnessedReadTransactionAction> initialReadActions = IntStream.range(0, CONFIGURATION.ringSize())
@@ -96,7 +96,7 @@ public class RingWorkflowsTest {
     public void ringWorkflowContainsInitialWritesForRing() {
         WorkflowHistory history = workflow.run();
 
-        List<WitnessedTransactionAction> actions =
+        List<WitnessedCellTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
 
         List<WorkloadCell> actualWrittenCells = actions.stream()

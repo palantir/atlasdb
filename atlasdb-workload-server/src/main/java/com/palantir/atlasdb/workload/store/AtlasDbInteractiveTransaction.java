@@ -21,9 +21,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.Preconditions;
@@ -44,7 +44,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
 
     private final Map<String, TableReference> tables;
 
-    private final List<WitnessedTransactionAction> witnessedTransactionActions = new ArrayList<>();
+    private final List<WitnessedCellTransactionAction> witnessedCellTransactionActions = new ArrayList<>();
 
     private boolean hasFinished = false;
 
@@ -60,7 +60,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                     Map<Cell, byte[]> values = transaction.get(tableReference, Set.of(atlasCell));
                     Optional<Integer> valueRead =
                             Optional.ofNullable(values.get(atlasCell)).map(Ints::fromByteArray);
-                    witnessedTransactionActions.add(WitnessedReadTransactionAction.of(table, workloadCell, valueRead));
+                    witnessedCellTransactionActions.add(WitnessedReadTransactionAction.of(table, workloadCell, valueRead));
                     return valueRead;
                 },
                 table,
@@ -72,7 +72,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
         run(
                 (tableReference, atlasCell) -> {
                     transaction.put(tableReference, Map.of(atlasCell, Ints.toByteArray(value)));
-                    witnessedTransactionActions.add(WitnessedWriteTransactionAction.of(table, workloadCell, value));
+                    witnessedCellTransactionActions.add(WitnessedWriteTransactionAction.of(table, workloadCell, value));
                     return null;
                 },
                 table,
@@ -84,7 +84,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
         run(
                 (tableReference, atlasCell) -> {
                     transaction.delete(tableReference, Set.of(atlasCell));
-                    witnessedTransactionActions.add(WitnessedDeleteTransactionAction.of(table, workloadCell));
+                    witnessedCellTransactionActions.add(WitnessedDeleteTransactionAction.of(table, workloadCell));
                     return null;
                 },
                 table,
@@ -92,9 +92,9 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<WitnessedTransactionAction> witness() {
+    public List<WitnessedCellTransactionAction> witness() {
         hasFinished = true;
-        return witnessedTransactionActions;
+        return witnessedCellTransactionActions;
     }
 
     private TableReference getTableReferenceOrThrow(String table) {

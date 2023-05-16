@@ -17,30 +17,11 @@
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import java.util.Optional;
 import org.immutables.value.Value;
 
-@Value.Immutable(builder = false)
-public interface WitnessedReadTransactionAction extends WitnessedCellTransactionAction {
-
-    @Override
-    @Value.Parameter
-    String table();
-
-    @Override
+public interface WitnessedCellTransactionAction extends WitnessedTransactionAction {
+    /** Cell (Key, Column) the action applied to. */
     @Value.Parameter
     WorkloadCell cell();
 
-    /** Value of the cell from the row read. Empty if it does not exist. */
-    @Value.Parameter
-    Optional<Integer> value();
-
-    @Override
-    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    static WitnessedReadTransactionAction of(String table, WorkloadCell cell, Optional<Integer> value) {
-        return ImmutableWitnessedReadTransactionAction.of(table, cell, value);
-    }
 }

@@ -18,10 +18,10 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ public final class WitnessedTransactionsBuilder {
     }
 
     public final class WitnessedTransactionBuilder {
-        private final List<WitnessedTransactionAction> actions = new ArrayList<>();
+        private final List<WitnessedCellTransactionAction> actions = new ArrayList<>();
 
         private boolean needsCommitTimestamp = false;
 

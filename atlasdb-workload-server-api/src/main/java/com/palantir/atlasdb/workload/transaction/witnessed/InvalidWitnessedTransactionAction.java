@@ -22,12 +22,12 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface InvalidWitnessedTransactionAction {
     @Value.Parameter
-    WitnessedTransactionAction action();
+    WitnessedCellTransactionAction action();
 
     @Value.Parameter
     MismatchedValue mismatchedValue();
 
-    static InvalidWitnessedTransactionAction of(WitnessedTransactionAction action, MismatchedValue mismatchedValue) {
+    static InvalidWitnessedTransactionAction of(WitnessedCellTransactionAction action, MismatchedValue mismatchedValue) {
         return ImmutableInvalidWitnessedTransactionAction.of(action, mismatchedValue);
     }
 }

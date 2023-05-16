@@ -27,9 +27,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -54,10 +54,10 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void witnessRecordAllActions() {
         assertThat(readWrite(transaction -> {
-                    transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
-                    transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
-                    transaction.delete(TABLE_1, WORKLOAD_CELL_ONE);
-                }))
+            transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
+            transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
+            transaction.delete(TABLE_1, WORKLOAD_CELL_ONE);
+        }))
                 .containsExactly(
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
                         WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
@@ -67,10 +67,10 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void readHandlesEmptyAndPresentValue() {
         assertThat(readWrite(transaction -> {
-                    transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
-                    transaction.write(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
-                    transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
-                }))
+            transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
+            transaction.write(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
+            transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
+        }))
                 .containsExactly(
                         WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE),
@@ -111,7 +111,7 @@ public final class AtlasDbInteractiveTransactionTest {
                 transaction -> transaction.delete(TABLE_1, WORKLOAD_CELL_ONE));
     }
 
-    private List<WitnessedTransactionAction> readWrite(Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {
+    private List<WitnessedCellTransactionAction> readWrite(Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {
         return manager.runTaskWithRetry(atlasTransaction -> {
             AtlasDbInteractiveTransaction interactiveTransaction =
                     new AtlasDbInteractiveTransaction(atlasTransaction, NAMES_TO_REFERENCES_TABLE_1);
@@ -123,9 +123,9 @@ public final class AtlasDbInteractiveTransactionTest {
     private void assertThatThrownWhenUnknownTableReferenced(
             Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {
         assertThatThrownBy(() -> manager.runTaskWithRetry(txn -> {
-                    transactionConsumer.accept(new AtlasDbInteractiveTransaction(txn, Map.of()));
-                    return null;
-                }))
+            transactionConsumer.accept(new AtlasDbInteractiveTransaction(txn, Map.of()));
+            return null;
+        }))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Transaction action has unknown table.");
     }
@@ -133,12 +133,12 @@ public final class AtlasDbInteractiveTransactionTest {
     private void assertThatThrownWhenInteractiveTransactionAlreadyWitnessed(
             Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {
         assertThatThrownBy(() -> manager.runTaskWithRetry(txn -> {
-                    AtlasDbInteractiveTransaction transaction =
-                            new AtlasDbInteractiveTransaction(txn, NAMES_TO_REFERENCES_TABLE_1);
-                    transaction.witness();
-                    transactionConsumer.accept(transaction);
-                    return null;
-                }))
+            AtlasDbInteractiveTransaction transaction =
+                    new AtlasDbInteractiveTransaction(txn, NAMES_TO_REFERENCES_TABLE_1);
+            transaction.witness();
+            transactionConsumer.accept(transaction);
+            return null;
+        }))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Transaction has already been witnessed and can no longer perform any actions.");
     }

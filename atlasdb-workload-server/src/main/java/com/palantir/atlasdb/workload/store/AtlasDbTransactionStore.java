@@ -32,8 +32,8 @@ import com.palantir.atlasdb.workload.transaction.TransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -84,7 +84,7 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
     @Override
     public Optional<WitnessedTransaction> readWrite(Consumer<InteractiveTransaction> interactiveTransactionConsumer) {
-        AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
+        AtomicReference<List<WitnessedCellTransactionAction>> witnessedActionsReference = new AtomicReference<>();
         AtomicReference<Transaction> transactionReference = new AtomicReference<>();
         Supplier<CommitTimestampProvider> commitTimestampProvider =
                 Suppliers.memoize(() -> new CommitTimestampProvider());

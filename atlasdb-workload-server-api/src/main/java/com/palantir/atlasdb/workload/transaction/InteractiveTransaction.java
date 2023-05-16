@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedCellTransactionAction;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,5 +31,5 @@ public interface InteractiveTransaction {
 
     void delete(String table, WorkloadCell workloadCell);
 
-    List<WitnessedTransactionAction> witness();
+    List<WitnessedCellTransactionAction> witness();
 }

@@ -27,7 +27,7 @@ public interface WitnessedTransaction {
     Optional<Long> commitTimestamp();
 
     /** Provides an in-order list of actions that were performed during the transaction's execution. */
-    List<WitnessedTransactionAction> actions();
+    List<WitnessedCellTransactionAction> actions();
 
     <T> T accept(WitnessedTransactionVisitor<T> visitor);
 }

@@ -20,7 +20,7 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WitnessedWriteTransactionAction extends WitnessedTransactionAction {
+public interface WitnessedWriteTransactionAction extends WitnessedCellTransactionAction {
 
     @Override
     @Value.Parameter
