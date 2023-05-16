@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra1:
-    image: palantirtechnologies/cassandra:1.112.0-rc5
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
     ports:
       - "9160"
       - "9042"
@@ -20,7 +20,7 @@ services:
         ipv4_address: 10.20.20.2
 
   cassandra2:
-    image: palantirtechnologies/cassandra:1.112.0-rc5
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
     ports:
       - "9160"
       - "9042"
@@ -38,7 +38,7 @@ services:
         ipv4_address: 10.20.20.3
 
   cassandra3:
-    image: palantirtechnologies/cassandra:1.112.0-rc5
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
     ports:
       - "9160"
       - "9042"
