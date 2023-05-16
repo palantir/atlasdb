@@ -23,8 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -80,10 +78,10 @@ public class OracleDdlConfigTest {
     @Test
     public void overflowPrefixHasMaximumLengthSix() {
         assertThatCode(() ->
-                createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(7), getPrefixWithLength(6)))
+                        createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(7), getPrefixWithLength(6)))
                 .doesNotThrowAnyException();
         assertThatThrownBy(() ->
-                createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(7), getPrefixWithLength(7)))
+                        createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(7), getPrefixWithLength(7)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'overflowTablePrefix' exceeds the length limit")
                 .hasMessageContaining("6");
@@ -92,7 +90,7 @@ public class OracleDdlConfigTest {
     @Test
     public void tablePrefixHasMaximumLengthSeven() {
         assertThatThrownBy(() ->
-                createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(8), getPrefixWithLength(6)))
+                        createLegacyCompatibleOracleConfigWithPrefixes(getPrefixWithLength(8), getPrefixWithLength(6)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'tablePrefix' exceeds the length limit")
                 .hasMessageContaining("7");
@@ -101,10 +99,10 @@ public class OracleDdlConfigTest {
     @Test
     public void longPrefixesAllowedIfConfigSpecificallyAllowsThem() {
         assertThatCode(() -> createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(42), getPrefixWithLength(41)))
+                        getPrefixWithLength(42), getPrefixWithLength(41)))
                 .doesNotThrowAnyException();
         assertThatCode(() -> createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(41), getPrefixWithLength(42)))
+                        getPrefixWithLength(41), getPrefixWithLength(42)))
                 .doesNotThrowAnyException();
     }
 
@@ -112,12 +110,12 @@ public class OracleDdlConfigTest {
     @SuppressWarnings("ResultOfMethodCallIgnored") // We're interested in whether this throws an exception or not!
     public void tableMappingAndLongNameSupportNotAllowedTogether() {
         assertThatThrownBy(() -> ImmutableOracleDdlConfig.builder()
-                .tablePrefix(getPrefixWithLength(5))
-                .overflowTablePrefix(getPrefixWithLength(4))
-                .overflowMigrationState(OverflowMigrationState.FINISHED)
-                .longIdentifierNamesSupported(true)
-                .useTableMapping(true)
-                .build())
+                        .tablePrefix(getPrefixWithLength(5))
+                        .overflowTablePrefix(getPrefixWithLength(4))
+                        .overflowMigrationState(OverflowMigrationState.FINISHED)
+                        .longIdentifierNamesSupported(true)
+                        .useTableMapping(true)
+                        .build())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("The table mapper does not support long identifier names");
     }
@@ -125,12 +123,12 @@ public class OracleDdlConfigTest {
     @Test
     public void excessivelyLongPrefixesStillDisallowedEvenWithLongNameSupport() {
         assertThatThrownBy(() -> createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(57), getPrefixWithLength(14)))
+                        getPrefixWithLength(57), getPrefixWithLength(14)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'tablePrefix' exceeds the length limit")
                 .hasMessageContaining("56");
         assertThatThrownBy(() -> createLongNameSupportingOracleConfigWithPrefixes(
-                getPrefixWithLength(22), getPrefixWithLength(57)))
+                        getPrefixWithLength(22), getPrefixWithLength(57)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("'overflowTablePrefix' exceeds the length limit")
                 .hasMessageContaining("56");
@@ -139,9 +137,9 @@ public class OracleDdlConfigTest {
     @Test
     public void tableMappingIsByDefaultOn() {
         assertThat(ImmutableOracleDdlConfig.builder()
-                .overflowMigrationState(OverflowMigrationState.FINISHED)
-                .build()
-                .useTableMapping())
+                        .overflowMigrationState(OverflowMigrationState.FINISHED)
+                        .build()
+                        .useTableMapping())
                 .isTrue();
     }
 
@@ -150,10 +148,10 @@ public class OracleDdlConfigTest {
         List<Boolean> values = ImmutableList.of(false, true);
         for (boolean value : values) {
             assertThat(ImmutableOracleDdlConfig.builder()
-                    .overflowMigrationState(OverflowMigrationState.FINISHED)
-                    .forceTableMapping(value)
-                    .build()
-                    .useTableMapping())
+                            .overflowMigrationState(OverflowMigrationState.FINISHED)
+                            .forceTableMapping(value)
+                            .build()
+                            .useTableMapping())
                     .isEqualTo(value);
         }
     }
