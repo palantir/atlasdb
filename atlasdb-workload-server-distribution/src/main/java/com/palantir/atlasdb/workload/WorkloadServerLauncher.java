@@ -143,6 +143,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         TransientRowsWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
                 .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .addInvariantReporters(TransientRowsWorkflows.getSummaryLogInvariantReporter(workflowConfig))
                 .build();
     }
 
