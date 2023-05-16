@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.config;
+package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
-import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
-import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import org.immutables.value.Value;
 
-@JsonDeserialize(as = ImmutableWorkloadServerInstallConfiguration.class)
-@JsonSerialize(as = ImmutableWorkloadServerInstallConfiguration.class)
 @Value.Immutable
-public interface WorkloadServerInstallConfiguration {
-    AtlasDbConfig atlas();
+@JsonSerialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
+@JsonTypeName(TransientRowsWorkflowConfiguration.TYPE)
+public interface TransientRowsWorkflowConfiguration extends WorkflowConfiguration {
+    String TYPE = "transient-rows";
 
-    SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
-
-    RingWorkflowConfiguration ringConfig();
-
-    TransientRowsWorkflowConfiguration transientRowsConfig();
-
-    boolean exitAfterRunning();
+    TableConfiguration tableConfiguration();
 }
