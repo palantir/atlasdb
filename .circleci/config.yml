@@ -120,10 +120,6 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
-      - restore_cache:
-          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
-      - restore_cache:
-          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - add_ssh_keys:
           fingerprints:
             - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
