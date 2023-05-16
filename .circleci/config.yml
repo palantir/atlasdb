@@ -80,6 +80,14 @@ jobs:
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - when:
+          # Persist to workspace for the compile/compileTest container to keep deploy fast.
+          condition:
+            equal: [ 13, << parameters.suite >> ]
+          steps:
+            - persist_to_workspace:
+                root: .
+                paths: [ . ]
       - store_artifacts:
           path: /home/circleci/artifacts
 
