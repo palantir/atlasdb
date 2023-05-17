@@ -39,10 +39,10 @@ public class WitnessedTransactionsTest {
         FullyWitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
 
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore, ImmutableList.of(twoToEight)))
+                        readOnlyTransactionStore, ImmutableList.of(twoToEight)))
                 .containsExactly(twoToEight);
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore, ImmutableList.of(readOnlyAtFive)))
+                        readOnlyTransactionStore, ImmutableList.of(readOnlyAtFive)))
                 .containsExactly(readOnlyAtFive);
     }
 
@@ -53,7 +53,7 @@ public class WitnessedTransactionsTest {
         FullyWitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
 
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore, ImmutableList.of(twoToEight, threeToSeven, fourToSix)))
+                        readOnlyTransactionStore, ImmutableList.of(twoToEight, threeToSeven, fourToSix)))
                 .containsExactly(fourToSix, threeToSeven, twoToEight);
     }
 
@@ -64,8 +64,8 @@ public class WitnessedTransactionsTest {
         FullyWitnessedTransaction readOnlyAtFortyTwo = createReadOnlyWitnessedTransactionWithoutActions(42);
 
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore,
-                ImmutableList.of(readOnlyAtSeven, readOnlyAtFortyTwo, readOnlyAtThree)))
+                        readOnlyTransactionStore,
+                        ImmutableList.of(readOnlyAtSeven, readOnlyAtFortyTwo, readOnlyAtThree)))
                 .containsExactly(readOnlyAtThree, readOnlyAtSeven, readOnlyAtFortyTwo);
     }
 
@@ -80,14 +80,14 @@ public class WitnessedTransactionsTest {
         FullyWitnessedTransaction readOnlyAtNine = createReadOnlyWitnessedTransactionWithoutActions(9);
 
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore,
-                ImmutableList.of(
-                        twoToEight,
-                        readOnlyAtNine,
-                        fourToSix,
-                        readOnlyAtFive,
-                        readOnlyAtThree,
-                        readOnlyAtSeven)))
+                        readOnlyTransactionStore,
+                        ImmutableList.of(
+                                twoToEight,
+                                readOnlyAtNine,
+                                fourToSix,
+                                readOnlyAtFive,
+                                readOnlyAtThree,
+                                readOnlyAtSeven)))
                 .containsExactly(
                         readOnlyAtThree, readOnlyAtFive, fourToSix, readOnlyAtSeven, twoToEight, readOnlyAtNine);
     }
@@ -100,12 +100,12 @@ public class WitnessedTransactionsTest {
         FullyWitnessedTransaction readOnlyAtFive = createReadOnlyWitnessedTransactionWithoutActions(5);
         FullyWitnessedTransaction fourToSix = createWitnessedTransactionWithoutActions(4, 6);
         assertThat(WitnessedTransactions.sortAndFilterTransactions(
-                readOnlyTransactionStore,
-                List.of(
-                        committedMaybeWitnessedTransaction,
-                        notCommittedTransaction,
-                        readOnlyAtFive,
-                        fourToSix)))
+                        readOnlyTransactionStore,
+                        List.of(
+                                committedMaybeWitnessedTransaction,
+                                notCommittedTransaction,
+                                readOnlyAtFive,
+                                fourToSix)))
                 .containsExactly(committedMaybeWitnessedTransaction.toFullyWitnessed(), readOnlyAtFive, fourToSix);
     }
 
