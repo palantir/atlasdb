@@ -21,6 +21,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.immutables.value.Value;
 
 /**
