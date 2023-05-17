@@ -141,7 +141,7 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .globalTaggedMetricRegistry(metricsManager.getTaggedRegistry())
                 .runtimeConfigSupplier(atlasDbRuntimeConfig)
                 .defaultTimelockClientFactory(
-                        lockService -> TimeLockClient.createDefault(UnreliableTimeLockService.create(lockService), 100))
+                        lockService -> TimeLockClient.createDefault(UnreliableTimeLockService.create(lockService), 200))
                 .build()
                 .serializable();
 

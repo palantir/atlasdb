@@ -120,7 +120,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockToken> tokensToRefresh = tokens.stream()
-                .filter(_token -> !buggify.maybe(0.025).asBoolean())
+                .filter(_token -> !buggify.maybe(0.01).asBoolean())
                 .collect(Collectors.toSet());
         Set<LockToken> tokensToUnlock = Sets.difference(tokens, tokensToRefresh);
         if (!tokensToUnlock.isEmpty()) {
