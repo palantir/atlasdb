@@ -59,8 +59,8 @@ public class SingleBusyCellWorkflowsTest {
     private final Workflow workflow = SingleBusyCellWorkflows.create(
             transactionStore,
             CONFIGURATION,
-            MoreExecutors.listeningDecorator(PTExecutors.newSingleThreadExecutor()),
-            MoreExecutors.listeningDecorator(PTExecutors.newSingleThreadExecutor()));
+            MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(4)),
+            MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(4)));
 
     @Test
     public void workflowHistoryTransactionStoreShouldBeReadOnly() {
@@ -94,8 +94,8 @@ public class SingleBusyCellWorkflowsTest {
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        assertThat(witnessedTransactionActions).anyMatch(action -> action instanceof WitnessedReadTransactionAction);
-        assertThat(witnessedTransactionActions).anyMatch(action -> action instanceof WitnessedWriteTransactionAction);
-        assertThat(witnessedTransactionActions).anyMatch(action -> action instanceof WitnessedDeleteTransactionAction);
+        assertThat(witnessedTransactionActions).anyMatch(WitnessedReadTransactionAction.class::isInstance);
+        assertThat(witnessedTransactionActions).anyMatch(WitnessedWriteTransactionAction.class::isInstance);
+        assertThat(witnessedTransactionActions).anyMatch(WitnessedDeleteTransactionAction.class::isInstance);
     }
 }

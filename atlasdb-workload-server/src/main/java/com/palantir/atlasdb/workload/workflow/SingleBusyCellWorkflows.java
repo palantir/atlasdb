@@ -29,14 +29,12 @@ import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * This workflow attempts to manipulate a single cell in a table, scheduling transactions that perform writes and
@@ -78,7 +76,6 @@ public final class SingleBusyCellWorkflows {
         };
     }
 
-    @NotNull
     private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleReadsAndTouches(
             InteractiveTransactionStore store,
             SingleBusyCellWorkflowConfiguration configuration,
@@ -92,19 +89,17 @@ public final class SingleBusyCellWorkflows {
                 .collect(Collectors.toList());
     }
 
-    @NotNull
     private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleWrites(
             InteractiveTransactionStore store,
             SingleBusyCellWorkflowConfiguration configuration,
             ListeningExecutorService writeExecutor) {
-        List<ListenableFuture<Optional<WitnessedTransaction>>> writes = new ArrayList<>();
-        for (int index = 0; index < configuration.iterationCount() / 4; index++) {
-            int stableIndex = index;
-            writes.add(writeExecutor.submit(() -> store.readWrite(List.of(WriteTransactionAction.of(
-                    configuration.tableConfiguration().tableName(), BUSY_CELL, stableIndex)))));
-            writes.add(writeExecutor.submit(() -> store.readWrite(List.of(DeleteTransactionAction.of(
-                    configuration.tableConfiguration().tableName(), BUSY_CELL)))));
-        }
-        return writes;
+        return IntStream.range(0, configuration.iterationCount() / 4)
+                .boxed()
+                .flatMap(index -> Stream.of(
+                        writeExecutor.submit(() -> store.readWrite(List.of(WriteTransactionAction.of(
+                                configuration.tableConfiguration().tableName(), BUSY_CELL, index)))),
+                        writeExecutor.submit(() -> store.readWrite(List.of(DeleteTransactionAction.of(
+                                configuration.tableConfiguration().tableName(), BUSY_CELL))))))
+                .collect(Collectors.toList());
     }
 }
