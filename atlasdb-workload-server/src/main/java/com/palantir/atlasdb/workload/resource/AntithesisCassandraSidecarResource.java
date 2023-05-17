@@ -20,10 +20,10 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 
-public enum AntithesisCassandraResource implements CassandraResource {
+public enum AntithesisCassandraSidecarResource implements CassandraSidecarResource {
     INSTANCE;
 
-    private static final SafeLogger log = SafeLoggerFactory.get(AntithesisCassandraResource.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(AntithesisCassandraSidecarResource.class);
 
     @Override
     public void flush(String host) {

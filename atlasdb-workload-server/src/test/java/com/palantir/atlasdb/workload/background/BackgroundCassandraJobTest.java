@@ -16,14 +16,11 @@
 
 package com.palantir.atlasdb.workload.background;
 
-import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.palantir.atlasdb.buggify.api.BuggifyFactory;
-import com.palantir.atlasdb.buggify.impl.DefaultBuggify;
-import com.palantir.atlasdb.workload.resource.CassandraResource;
+import com.palantir.atlasdb.buggify.AlwaysBuggifyFactory;
+import com.palantir.atlasdb.workload.resource.CassandraSidecarResource;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,21 +34,17 @@ public final class BackgroundCassandraJobTest {
     private static final String HOST_TWO = "cassandra2";
     private static final String HOST_THREE = "cassandra3";
 
-    private static final List<String> CASSANDRA_HOSTS = List.of("cassandra1", "cassandra2", "cassandra3");
+    private static final List<String> CASSANDRA_HOSTS = List.of(HOST_ONE, HOST_TWO, HOST_THREE);
 
     @Mock
-    private CassandraResource cassandraResource;
-
-    @Mock
-    private BuggifyFactory buggifyFactory;
+    private CassandraSidecarResource cassandraSidecarResource;
 
     @Test
     public void runCanExecuteCompactFlushOnAllCassandraHosts() {
-        when(buggifyFactory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE);
         BackgroundCassandraJob backgroundCassandraJob =
-                new BackgroundCassandraJob(CASSANDRA_HOSTS, cassandraResource, buggifyFactory);
+                new BackgroundCassandraJob(CASSANDRA_HOSTS, cassandraSidecarResource, AlwaysBuggifyFactory.INSTANCE);
         CASSANDRA_HOSTS.forEach(_ignore -> backgroundCassandraJob.run());
-        CASSANDRA_HOSTS.forEach(host -> verify(cassandraResource).compact(eq(host)));
-        CASSANDRA_HOSTS.forEach(host -> verify(cassandraResource).flush(eq(host)));
+        CASSANDRA_HOSTS.forEach(host -> verify(cassandraSidecarResource).compact(eq(host)));
+        CASSANDRA_HOSTS.forEach(host -> verify(cassandraSidecarResource).flush(eq(host)));
     }
 }

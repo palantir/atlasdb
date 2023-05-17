@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ##
 # (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
 #
@@ -14,5 +16,4 @@
 # limitations under the License.
 #
 
-#!/bin/bash
-podman exec $1 bash -c 'palantir-cassandra-*/bin/nodetool compact'
+podman exec $1 bash -c 'palantir-cassandra-*/bin/nodetool compact'¡

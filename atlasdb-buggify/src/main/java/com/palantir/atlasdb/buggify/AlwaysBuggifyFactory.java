@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.resource;
+package com.palantir.atlasdb.buggify;
 
-public interface CassandraResource {
-    /**
-     * Flushes all keyspaces on a Cassandra host.
-     */
-    void flush(String host);
+import com.palantir.atlasdb.buggify.api.Buggify;
+import com.palantir.atlasdb.buggify.api.BuggifyFactory;
+import com.palantir.atlasdb.buggify.impl.DefaultBuggify;
 
-    /**
-     * Performs a major compaction for all keyspaces on Cassandra.
-     */
-    void compact(String host);
+public enum AlwaysBuggifyFactory implements BuggifyFactory {
+    INSTANCE;
+
+    @Override
+    public Buggify maybe(double _probability) {
+        return DefaultBuggify.INSTANCE;
+    }
 }

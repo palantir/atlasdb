@@ -29,7 +29,7 @@ import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
-import com.palantir.atlasdb.workload.resource.AntithesisCassandraResource;
+import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
@@ -102,7 +102,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         backgroundJobExecutor.scheduleAtFixedRate(
                 new BackgroundCassandraJob(
                         List.of("cassandra1", "cassandra2", "cassandra3"),
-                        AntithesisCassandraResource.INSTANCE,
+                        AntithesisCassandraSidecarResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
                 0,
                 10,
