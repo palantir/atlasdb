@@ -17,11 +17,11 @@ CONTAINER_1=(':atlasdb-cassandra-integration-tests:testSubset1')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
-CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' ':timelock-server:integTest')
+CONTAINER_3=(':atlasdb-dbkvs:check')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
+CONTAINER_4=(':atlasdb-cassandra:check')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
+CONTAINER_5=(':timelock-server:integTest')
 
 CONTAINER_6=(':timelock-server:suiteTest')
 
