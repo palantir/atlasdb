@@ -18,10 +18,11 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeScanTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 
-public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<TransactionAction> {
+public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<CellTransactionAction> {
     INSTANCE;
 
     @Override
@@ -38,5 +39,10 @@ public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<
     @Override
     public DeleteTransactionAction visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         return ImmutableDeleteTransactionAction.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
+    }
+
+    @Override
+    public CellTransactionAction visit(WitnessedRowRangeScanTransactionAction rowRangeScanTransactionAction) {
+        return null;
     }
 }

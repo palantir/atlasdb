@@ -23,9 +23,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.CellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.List;
@@ -68,15 +68,15 @@ public final class SingleRowTwoCellsWorkflows {
             TransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
 
-        List<TransactionAction> transactionActions = createTransactionActions(
+        List<CellTransactionAction> cellTransactionActions = createTransactionActions(
                 taskIndex, workflowConfiguration.tableConfiguration().tableName());
-        return store.readWrite(transactionActions);
+        return store.readWrite(cellTransactionActions);
     }
 
     @VisibleForTesting
-    static List<TransactionAction> createTransactionActions(int taskIndex, String tableName) {
-        List<TransactionAction> cellReads = createCellReadActions(tableName);
-        List<TransactionAction> cellUpdates = createCellUpdateActions(taskIndex, tableName);
+    static List<CellTransactionAction> createTransactionActions(int taskIndex, String tableName) {
+        List<CellTransactionAction> cellReads = createCellReadActions(tableName);
+        List<CellTransactionAction> cellUpdates = createCellUpdateActions(taskIndex, tableName);
         return Streams.concat(cellReads.stream(), cellUpdates.stream(), cellReads.stream())
                 .collect(Collectors.toList());
     }
@@ -86,17 +86,17 @@ public final class SingleRowTwoCellsWorkflows {
         return taskIndex % 2 == 0;
     }
 
-    private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
+    private static List<CellTransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                        DeleteTransactionAction.of(tableName, SECOND_CELL))
+                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                        DeleteTransactionAction.of(tableName, FIRST_CELL),
-                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                DeleteTransactionAction.of(tableName, FIRST_CELL),
+                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
-    private static List<TransactionAction> createCellReadActions(String tableName) {
+    private static List<CellTransactionAction> createCellReadActions(String tableName) {
         return ImmutableList.of(
                 ReadTransactionAction.of(tableName, FIRST_CELL), ReadTransactionAction.of(tableName, SECOND_CELL));
     }

@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
+import com.palantir.atlasdb.workload.transaction.CellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
@@ -75,7 +75,7 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     }
 
     @Override
-    public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
+    public Optional<WitnessedTransaction> readWrite(List<CellTransactionAction> actions) {
         return readWrite(txn -> {
             AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
             actions.forEach(action -> action.accept(visitor));

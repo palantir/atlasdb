@@ -20,7 +20,6 @@ import org.immutables.value.Value;
 
 public interface WitnessedTransactionAction {
     /** Table action was applied to. */
-    @Value.Parameter
     String table();
 
     <T> T accept(WitnessedTransactionActionVisitor<T> visitor);

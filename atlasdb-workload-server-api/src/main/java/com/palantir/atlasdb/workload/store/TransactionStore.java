@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.transaction.TransactionAction;
+import com.palantir.atlasdb.workload.transaction.CellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.util.List;
 import java.util.Optional;
@@ -32,5 +32,5 @@ public interface TransactionStore extends ReadableTransactionStore {
      * @param actions List of transaction actions (read/write/delete) to be executed in order.
      * @return The witnessed transaction, if successfully committed.
      */
-    Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions);
+    Optional<WitnessedTransaction> readWrite(List<CellTransactionAction> actions);
 }

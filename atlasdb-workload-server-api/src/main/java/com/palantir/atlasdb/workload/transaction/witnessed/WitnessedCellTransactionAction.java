@@ -20,6 +20,11 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
 public interface WitnessedCellTransactionAction extends WitnessedTransactionAction {
+    /** Table action was applied to. */
+    @Value.Parameter
+    @Override
+    String table();
+
     /** Cell (Key, Column) the action applied to. */
     @Value.Parameter
     WorkloadCell cell();

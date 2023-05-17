@@ -16,25 +16,34 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeScanTransactionAction;
+import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@Value.Immutable(builder = false)
-public interface ReadTransactionAction extends CellTransactionAction {
+@Value.Immutable
+public interface RowRangeScanTransactionAction extends TransactionAction {
+    @Override
+    String table();
 
-    default WitnessedReadTransactionAction witness(Optional<Integer> value) {
-        return ImmutableWitnessedReadTransactionAction.of(table(), cell(), value);
+    Integer row();
+
+    Range<Integer> range();
+
+    default WitnessedRowRangeScanTransactionAction witness(Map<Integer, Integer> read) {
+        return ImmutableWitnessedRowRangeScanTransactionAction.builder()
+                .table(table())
+                .row(row())
+                .range(range())
+                .readValues(read)
+                .build();
     }
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
-    }
-
-    static ReadTransactionAction of(String table, WorkloadCell workloadCell) {
-        return ImmutableReadTransactionAction.of(table, workloadCell);
     }
 }

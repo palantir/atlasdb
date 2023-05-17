@@ -14,12 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
+import com.google.common.collect.Range;
+import java.util.Map;
 import org.immutables.value.Value;
 
-public interface TransactionAction {
+@Value.Immutable
+public interface WitnessedRowRangeScanTransactionAction extends WitnessedTransactionAction {
+    @Override
     String table();
 
-    <T> T accept(TransactionActionVisitor<T> visitor);
+    Integer row();
+
+    Range<Integer> range();
+
+    Map<Integer, Integer> readValues();
+
+    @Override
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

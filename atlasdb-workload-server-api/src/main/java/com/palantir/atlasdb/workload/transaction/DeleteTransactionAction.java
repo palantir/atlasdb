@@ -22,7 +22,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransa
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface DeleteTransactionAction extends TransactionAction {
+public interface DeleteTransactionAction extends CellTransactionAction {
 
     default WitnessedDeleteTransactionAction witness() {
         return ImmutableWitnessedDeleteTransactionAction.of(table(), cell());

@@ -22,4 +22,6 @@ public interface WitnessedTransactionActionVisitor<T> {
     T visit(WitnessedWriteTransactionAction writeTransactionAction);
 
     T visit(WitnessedDeleteTransactionAction deleteTransactionAction);
+
+    T visit(WitnessedRowRangeScanTransactionAction rowRangeScanTransactionAction);
 }
