@@ -58,7 +58,8 @@ public final class TransientRowsWorkflows {
 
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
-    private TransientRowsWorkflows() {}
+    private TransientRowsWorkflows() {
+    }
 
     public static Workflow create(
             InteractiveTransactionStore store,
@@ -82,8 +83,10 @@ public final class TransientRowsWorkflows {
                 txn.read(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, indexToRead));
                 txn.read(tableName, ImmutableWorkloadCell.of(indexToRead, COLUMN));
 
-                txn.delete(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex - 1));
-                txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
+                if (txn.read(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN)).isPresent()) {
+                    txn.delete(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex - 1));
+                    txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
+                }
             }
         });
     }
