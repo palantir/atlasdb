@@ -218,11 +218,11 @@ public class TransientRowsWorkflowsTest {
             this.delegate = new AtomicReference<>();
         }
 
-        T get() {
+        private T get() {
             return Preconditions.checkNotNull(delegate.get(), "Underlying atomic reference has not been set!");
         }
 
-        void set(T value) {
+        private void set(T value) {
             Preconditions.checkNotNull(value, "Expecting values set to a once-settable atomic reference to be nonnull");
             if (!delegate.compareAndSet(null, value)) {
                 throw new SafeIllegalStateException("Value already set");
