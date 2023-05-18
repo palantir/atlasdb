@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 public class DefaultBuggifyFactoryTest {
-
     @Test
     public void maybeReturnsDefaultWhenMaxProbability() {
         assertThat(DefaultBuggifyFactory.INSTANCE.maybe(1.0)).isSameAs(DefaultBuggify.INSTANCE);
