@@ -129,7 +129,7 @@ public final class TransientRowsWorkflows {
     private static Stream<CrossCellInconsistency> findInconsistencyInTransactionActions(
             List<WitnessedTransactionAction> actions) {
         Set<WitnessedReadTransactionAction> readTransactionActions = actions.stream()
-                .filter(action -> action instanceof WitnessedReadTransactionAction)
+                .filter(WitnessedReadTransactionAction.class::isInstance)
                 .map(action -> (WitnessedReadTransactionAction) action)
                 .collect(Collectors.toSet());
         if (readTransactionActions.size() == 0) {

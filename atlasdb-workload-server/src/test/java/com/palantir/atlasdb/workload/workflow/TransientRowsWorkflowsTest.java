@@ -107,11 +107,10 @@ public class TransientRowsWorkflowsTest {
         WorkflowHistory history = transientRowsWorkflow.run();
         List<WitnessedTransaction> witnessedTransactions = history.history();
         for (int index = 1; index < ITERATION_COUNT; index++) {
-            assertThat(witnessedTransactions.get(index).actions()).hasSize(6).satisfies(actions -> {
-                assertThat(actions.subList(0, 2)).allMatch(action -> action instanceof WitnessedWriteTransactionAction);
-                assertThat(actions.subList(2, 4)).allMatch(action -> action instanceof WitnessedReadTransactionAction);
-                assertThat(actions.subList(4, 6))
-                        .allMatch(action -> action instanceof WitnessedDeleteTransactionAction);
+            assertThat(witnessedTransactions.get(index).actions()).hasSize(7).satisfies(actions -> {
+                assertThat(actions.subList(0, 2)).allMatch(WitnessedWriteTransactionAction.class::isInstance);
+                assertThat(actions.subList(2, 5)).allMatch(WitnessedReadTransactionAction.class::isInstance);
+                assertThat(actions.subList(5, 7)).allMatch(WitnessedDeleteTransactionAction.class::isInstance);
             });
         }
     }
