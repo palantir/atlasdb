@@ -172,10 +172,9 @@ public class TransientRowsWorkflowsTest {
                         .build()));
     }
 
-    @SuppressWarnings("unchecked") // Mocking of a known type
     @Test
     public void invariantReportsViolationsFromTransactionHistory() {
-        Consumer<List<CrossCellInconsistency>> violationConsumer = mock(Consumer.class);
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
         WorkflowHistory history = transientRowsWorkflow.run();
         WorkflowHistory falseHistory = ImmutableWorkflowHistory.builder()
                 .transactionStore(history.transactionStore())
@@ -189,12 +188,10 @@ public class TransientRowsWorkflowsTest {
                                 .build())
                         .collect(Collectors.toList()))
                 .build();
-        invariant.accept(falseHistory, violationConsumer);
+        invariant.accept(falseHistory, reference::set);
 
         ArgumentCaptor<List<CrossCellInconsistency>> captor = ArgumentCaptor.forClass(List.class);
-        verify(violationConsumer).accept(captor.capture());
-        assertThat(captor.getValue()).hasSize(ITERATION_COUNT - 1);
-        verifyNoMoreInteractions(violationConsumer);
+        assertThat(reference.get()).hasSize(ITERATION_COUNT - 1);
     }
 
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
