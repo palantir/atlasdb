@@ -44,7 +44,7 @@ import one.util.streamex.StreamEx;
 public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory<InteractiveTransactionStore> {
 
     // Purposefully override the lock refresh interval to increase our chances of losing locks.
-    private static final int LOCK_REFRESH_INTERVAL_MS = 100;
+    private static final int LOCK_REFRESH_INTERVAL_MS = 200;
 
     private final TransactionManager transactionManager;
     private final Optional<Namespace> maybeNamespace;
