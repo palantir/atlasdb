@@ -190,7 +190,6 @@ public class TransientRowsWorkflowsTest {
                 .build();
         invariant.accept(falseHistory, reference::set);
 
-        ArgumentCaptor<List<CrossCellInconsistency>> captor = ArgumentCaptor.forClass(List.class);
         assertThat(reference.get()).hasSize(ITERATION_COUNT - 1);
     }
 
