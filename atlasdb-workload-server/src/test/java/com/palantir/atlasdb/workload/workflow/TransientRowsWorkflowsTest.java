@@ -43,8 +43,11 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -117,20 +120,19 @@ public class TransientRowsWorkflowsTest {
 
     @Test
     public void invariantDoesNotReportViolationsUnderNormalOperation() {
-        Consumer<List<CrossCellInconsistency>> violationConsumer = mock(Consumer.class);
-        invariant.accept(transientRowsWorkflow.run(), violationConsumer);
-        verify(violationConsumer).accept(ImmutableList.of());
-        verifyNoMoreInteractions(violationConsumer);
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
+        invariant.accept(transientRowsWorkflow.run(), reference::set);
+        assertThat(reference.get()).isEmpty();
     }
 
     @Test
     public void invariantReportsViolationsFromFinalStateWhenCellsAreMissing() {
-        Consumer<List<CrossCellInconsistency>> violationConsumer = mock(Consumer.class);
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
         WorkflowHistory history = transientRowsWorkflow.run();
         transactionStore.readWrite(txn -> txn.delete(TABLE_NAME, ImmutableWorkloadCell.of(ITERATION_COUNT - 1, 1)));
-        invariant.accept(history, violationConsumer);
-        verify(violationConsumer)
-                .accept(ImmutableList.of(CrossCellInconsistency.builder()
+        invariant.accept(history, reference::set);
+        assertThat(reference.get())
+                .isEqualTo(ImmutableList.of(CrossCellInconsistency.builder()
                         .putInconsistentValues(
                                 TableAndWorkloadCell.of(
                                         TABLE_NAME,
@@ -143,20 +145,19 @@ public class TransientRowsWorkflowsTest {
                                                 TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 1)),
                                 Optional.of(0))
                         .build()));
-        verifyNoMoreInteractions(violationConsumer);
     }
 
     @Test
     public void invariantReportsViolationsFromFinalStateWhenExtraCellsArePresent() {
-        Consumer<List<CrossCellInconsistency>> violationConsumer = mock(Consumer.class);
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
         WorkflowHistory history = transientRowsWorkflow.run();
         transactionStore.readWrite(txn -> txn.write(
                 TABLE_NAME,
                 ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN),
                 TransientRowsWorkflows.VALUE));
-        invariant.accept(history, violationConsumer);
-        verify(violationConsumer)
-                .accept(ImmutableList.of(CrossCellInconsistency.builder()
+        invariant.accept(history, reference::set);
+        assertThat(reference.get())
+                .isEqualTo(ImmutableList.of(CrossCellInconsistency.builder()
                         .putInconsistentValues(
                                 TableAndWorkloadCell.of(
                                         TABLE_NAME,
@@ -169,7 +170,6 @@ public class TransientRowsWorkflowsTest {
                                                 TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 2)),
                                 Optional.empty())
                         .build()));
-        verifyNoMoreInteractions(violationConsumer);
     }
 
     @SuppressWarnings("unchecked") // Mocking of a known type
@@ -208,6 +208,25 @@ public class TransientRowsWorkflowsTest {
             }
         } else {
             return action;
+        }
+    }
+
+    private static final class OnceSettableAtomicReference<T> {
+        private final AtomicReference<T> delegate;
+
+        private OnceSettableAtomicReference() {
+            this.delegate = new AtomicReference<>();
+        }
+
+        T get() {
+            return Preconditions.checkNotNull(delegate.get(), "Underlying atomic reference has not been set!");
+        }
+
+        void set(T value) {
+            Preconditions.checkNotNull(value, "Expecting values set to a once-settable atomic reference to be nonnull");
+            if (!delegate.compareAndSet(null, value)) {
+                throw new SafeIllegalStateException("Value already set");
+            }
         }
     }
 }
