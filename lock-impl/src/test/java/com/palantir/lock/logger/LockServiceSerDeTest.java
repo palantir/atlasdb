@@ -18,7 +18,6 @@ package com.palantir.lock.logger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.HeldLocksGrant;
@@ -42,7 +41,10 @@ public class LockServiceSerDeTest {
     @Test
     public void testSerialisationAndDeserialisationOfLockResponse() throws Exception {
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
-                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+                "client A",
+                "Fake thread",
+                new BigInteger("1"),
+                ImmutableMap.of("held-lock-1", LockMode.WRITE, "logger-lock", LockMode.WRITE));
         LockResponse response = new LockResponse(token);
         ObjectMapper mapper = new ObjectMapper();
         LockResponse deserializedLockResponse =
@@ -53,7 +55,10 @@ public class LockServiceSerDeTest {
     @Test
     public void testSerialisationAndDeserialisationOfLockResponseWithLockHolders() throws Exception {
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
-                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+                "client A",
+                "Fake thread",
+                new BigInteger("1"),
+                ImmutableMap.of("held-lock-1", LockMode.WRITE, "logger-lock", LockMode.WRITE));
         Map<LockDescriptor, LockClient> lockHolders = ImmutableMap.of(
                 StringLockDescriptor.of("lock_id"),
                 LockClient.ANONYMOUS,
@@ -92,7 +97,8 @@ public class LockServiceSerDeTest {
     @Test
     public void testSerialisationAndDeserialisationOfHeldLocksGrant() throws Exception {
         ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode =
-                LockServiceTestUtils.getLockDescriptorLockMode(ImmutableList.of("lock1", "lock2"));
+                LockServiceTestUtils.getLockDescriptorLockMode(
+                        ImmutableMap.of("lock1", LockMode.WRITE, "lock2", LockMode.WRITE));
 
         HeldLocksGrant heldLocksGrant = new HeldLocksGrant(
                 BigInteger.ONE,

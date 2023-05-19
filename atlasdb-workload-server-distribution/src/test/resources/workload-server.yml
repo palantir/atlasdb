@@ -16,4 +16,11 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: ring
+  singleBusyCellConfig:
+    tableConfiguration:
+      tableName: single-busy-cell-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell
+    maxThreadCount: 2
   exitAfterRunning: false

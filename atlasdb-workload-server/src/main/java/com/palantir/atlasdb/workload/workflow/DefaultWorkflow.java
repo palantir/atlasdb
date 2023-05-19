@@ -16,19 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.OnlyCommittedWitnessedTransactionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import one.util.streamex.StreamEx;
 
 public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
     private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
@@ -62,7 +58,8 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
     @Override
     public WorkflowHistory run() {
         return ImmutableWorkflowHistory.builder()
-                .history(sortAndFilterTransactions(runTransactionTask()))
+                .history(
+                        WitnessedTransactions.sortAndFilterTransactions(readOnlyTransactionStore, runTransactionTask()))
                 .transactionStore(readOnlyTransactionStore)
                 .build();
     }
@@ -79,22 +76,5 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
         } catch (ExecutionException e) {
             throw new SafeRuntimeException("Error when running workflow task", e.getCause());
         }
-    }
-
-    /**
-     * Sorts transactions by their effective timestamp and filters out transactions that are not fully committed.
-     */
-    @VisibleForTesting
-    List<FullyWitnessedTransaction> sortAndFilterTransactions(List<WitnessedTransaction> unorderedTransactions) {
-        OnlyCommittedWitnessedTransactionVisitor visitor =
-                new OnlyCommittedWitnessedTransactionVisitor(readOnlyTransactionStore);
-        return StreamEx.of(unorderedTransactions)
-                .mapPartial(transaction -> transaction.accept(visitor))
-                .sorted(Comparator.comparingLong(DefaultWorkflow::effectiveTimestamp))
-                .toList();
-    }
-
-    private static long effectiveTimestamp(WitnessedTransaction witnessedTransaction) {
-        return witnessedTransaction.commitTimestamp().orElseGet(witnessedTransaction::startTimestamp);
     }
 }

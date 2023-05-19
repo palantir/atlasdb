@@ -35,6 +35,8 @@ import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
@@ -127,6 +129,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
                 configuration.install().ringConfig();
+        SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
+                configuration.install().singleBusyCellConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
@@ -135,7 +139,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         createSingleRowTwoCellsWorkflowValidator(
                                 transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
                         createRingWorkflowValidator(
-                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()));
+                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellWorkflowValidator(
+                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -166,6 +172,34 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         log.info("antithesis: terminate");
         log.error("Workflow will now exit.");
         System.exit(1);
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleBusyCellWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleBusyCellWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutor = lifecycle
+                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        ExecutorService writeExecutor = lifecycle
+                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(
+                SingleBusyCellWorkflows.create(
+                        transactionStore,
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutor),
+                        MoreExecutors.listeningDecorator(writeExecutor)),
+                new DurableWritesInvariantMetricReporter(
+                        SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+                SerializableInvariantLogReporter.INSTANCE);
     }
 
     private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(
