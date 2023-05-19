@@ -20,6 +20,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -71,6 +72,7 @@ public class LockServerLock implements ClientAwareReadWriteLock {
                 .toString();
     }
 
+    @Safe
     public String toSanitizedString() {
         return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("sync", sync)

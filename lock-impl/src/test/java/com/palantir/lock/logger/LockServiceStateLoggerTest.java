@@ -160,7 +160,7 @@ public class LockServiceStateLoggerTest {
 
     @Test
     public void testSynthesizedRequestState() {
-        assertThat(loggedState.getSynthesizedRequestState()).hasSameSizeAs(getSyncStateDescriptors());
+        assertThat(loggedState.getSynthesizedRequestState().asMap()).hasSameSizeAs(getSyncStateDescriptors());
     }
 
     private static void assertDescriptorsNotPresentInString(String serialized) {

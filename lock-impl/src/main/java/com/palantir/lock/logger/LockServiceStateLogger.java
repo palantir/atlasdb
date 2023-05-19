@@ -15,9 +15,11 @@
  */
 package com.palantir.lock.logger;
 
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.lock.HeldLocksToken;
@@ -29,9 +31,11 @@ import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import com.palantir.lock.impl.LockServiceStateDebugger.LockRequestProgress;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -65,18 +69,11 @@ public class LockServiceStateLogger {
     }
 
     public LogState logLocks() {
-        List<SimpleLockRequestsWithSameDescriptor> generatedOutstandingRequests =
-                generateOutstandingLocks(outstandingLockRequests);
-        Multimap<ObfuscatedLockDescriptor, SimpleTokenInfo> generatedHeldLocks = generateHeldLocks(heldLocks);
-        Map<ObfuscatedLockDescriptor, String> generatedSyncState = generateSyncState(descriptorToLockMap);
-        Map<ClientId, List<SanitizedLockRequestProgress>> synthesizedRequestState =
-                synthesizeRequestState(outstandingLockRequests, descriptorToLockMap);
-
         LogState state = ImmutableLogState.builder()
-                .outstandingRequests(generatedOutstandingRequests)
-                .heldLocks(generatedHeldLocks)
-                .syncState(generatedSyncState)
-                .synthesizedRequestState(synthesizedRequestState)
+                .outstandingRequests(generateOutstandingLocks(outstandingLockRequests))
+                .heldLocks(generateHeldLocks(heldLocks))
+                .syncState(generateSyncState(descriptorToLockMap))
+                .synthesizedRequestState(synthesizeRequestState(outstandingLockRequests, descriptorToLockMap))
                 .lockDescriptorMapping(lockDescriptorMapper.getReversedMapper())
                 .lockStats(lockStats)
                 .build();
@@ -84,21 +81,22 @@ public class LockServiceStateLogger {
         return state;
     }
 
-    private Map<ClientId, List<SanitizedLockRequestProgress>> synthesizeRequestState(
+    @Safe
+    private ListMultimap<@Safe ClientId, @Safe SanitizedLockRequestProgress> synthesizeRequestState(
             Map<LockClient, Set<LockRequest>> outstandingLockRequests,
             Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
         LockServiceStateDebugger debugger = new LockServiceStateDebugger(outstandingLockRequests, descriptorToLockMap);
-        Multimap<LockClient, LockServiceStateDebugger.LockRequestProgress> progressMultimap =
-                debugger.getSuspectedLockProgress();
-
-        return progressMultimap.asMap().entrySet().stream()
-                .collect(Collectors.toMap(
-                        entry -> ClientId.of(entry.getKey().getClientId()), entry -> entry.getValue().stream()
-                                .map(lockRequestProgress -> SanitizedLockRequestProgress.create(
-                                        lockRequestProgress,
-                                        this.lockDescriptorMapper,
-                                        ClientId.of(entry.getKey().getClientId())))
-                                .collect(Collectors.toList())));
+        ImmutableListMultimap.Builder<ClientId, SanitizedLockRequestProgress> result = ImmutableListMultimap.builder();
+        for (Map.Entry<LockClient, Collection<LockRequestProgress>> entry :
+                debugger.getSuspectedLockProgress().asMap().entrySet()) {
+            ClientId clientId = ClientId.of(entry.getKey().getClientId());
+            for (LockRequestProgress lockRequestProgress : entry.getValue()) {
+                result.put(
+                        clientId,
+                        SanitizedLockRequestProgress.create(lockRequestProgress, this.lockDescriptorMapper, clientId));
+            }
+        }
+        return result.build();
     }
 
     private List<SimpleLockRequestsWithSameDescriptor> generateOutstandingLocks(
@@ -131,7 +129,7 @@ public class LockServiceStateLogger {
                 .collect(Collectors.toList());
     }
 
-    private Multimap<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
+    private SetMultimap<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
             ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         return heldLocksTokenMap.values().stream()
                 .flatMap(locks -> locks.getRealToken().getLocks().stream()
@@ -141,10 +139,11 @@ public class LockServiceStateLogger {
                 .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
     }
 
-    private Map<ObfuscatedLockDescriptor, String> generateSyncState(
+    @Safe
+    private Map<@Safe ObfuscatedLockDescriptor, @Safe String> generateSyncState(
             Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
         return descriptorToLockMap.entrySet().stream()
-                .collect(Collectors.toMap(
+                .collect(ImmutableMap.toImmutableMap(
                         entry -> lockDescriptorMapper.getDescriptorMapping(entry.getKey()),
                         entry -> ((LockServerLock) entry.getValue()).toSanitizedString()));
     }

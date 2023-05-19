@@ -19,11 +19,13 @@ package com.palantir.lock.logger;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.impl.LockServiceStateDebugger;
+import com.palantir.logsafe.Safe;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.immutables.value.Value;
 
+@Safe
 @Value.Immutable
 @JsonSerialize(as = ImmutableSanitizedLockRequestProgress.class)
 @JsonDeserialize(as = ImmutableSanitizedLockRequestProgress.class)
