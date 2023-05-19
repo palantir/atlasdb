@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.config;
+package com.palantir.atlasdb.workload.workflow;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
-import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
-import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import org.immutables.value.Value;
 
-@JsonDeserialize(as = ImmutableWorkloadServerInstallConfiguration.class)
-@JsonSerialize(as = ImmutableWorkloadServerInstallConfiguration.class)
 @Value.Immutable
-public interface WorkloadServerInstallConfiguration {
-    AtlasDbConfig atlas();
+@JsonSerialize(as = ImmutableSingleBusyCellWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableSingleBusyCellWorkflowConfiguration.class)
+@JsonTypeName(SingleBusyCellWorkflowConfiguration.TYPE)
+public interface SingleBusyCellWorkflowConfiguration extends WorkflowConfiguration {
+    String TYPE = "single-busy-cell";
 
-    SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
-
-    RingWorkflowConfiguration ringConfig();
-
-    SingleBusyCellWorkflowConfiguration singleBusyCellConfig();
-
-    boolean exitAfterRunning();
+    TableConfiguration tableConfiguration();
 }
