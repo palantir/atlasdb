@@ -2003,13 +2003,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed as this is generally an asynchronous operation.
                 traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
-                // Serializable transactions need to check their reads haven't changed, by reading again at
-                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
-                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
-                // from underneath us.
-                timedAndTraced(
-                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
-
                 // Verify that our locks and pre-commit conditions are still valid before we actually commit;
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
@@ -2019,6 +2012,13 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
                 traced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+                // Serializable transactions need to check their reads haven't changed, by reading again at
+                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
+                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+                // from underneath us.
+                timedAndTraced(
+                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
