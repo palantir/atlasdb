@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Multimaps;
@@ -82,12 +83,24 @@ public class LockServiceStateLoggerTest {
         outstandingLockRequestMultimap.put(clientA, request2);
 
         HeldLocksToken token = LockServiceTestUtils.getFakeHeldLocksToken(
-                "client A", "Fake thread", new BigInteger("1"), "held-lock-1", "logger-lock");
+                "client A",
+                "Fake thread",
+                new BigInteger("1"),
+                ImmutableMap.of("held-lock-1", LockMode.WRITE, "logger-lock", LockMode.WRITE));
         HeldLocksToken token2 = LockServiceTestUtils.getFakeHeldLocksToken(
-                "client B", "Fake thread 2", new BigInteger("2"), "held-lock-2", "held-lock-3");
+                "client B",
+                "Fake thread 2",
+                new BigInteger("2"),
+                ImmutableMap.of("held-lock-2", LockMode.WRITE, "held-lock-3", LockMode.WRITE));
+        HeldLocksToken token3 = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client C", "Fake thread 3", new BigInteger("3"), ImmutableMap.of("held-lock-4", LockMode.READ));
+        HeldLocksToken token4 = LockServiceTestUtils.getFakeHeldLocksToken(
+                "client D", "Fake thread 4", new BigInteger("4"), ImmutableMap.of("held-lock-4", LockMode.READ));
 
         heldLocksTokenMap.putIfAbsent(token, LockServiceImpl.HeldLocks.of(token, LockCollections.of()));
         heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
+        heldLocksTokenMap.putIfAbsent(token3, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
+        heldLocksTokenMap.putIfAbsent(token4, LockServiceImpl.HeldLocks.of(token2, LockCollections.of()));
 
         LockServerLock lock1 = new LockServerLock(DESCRIPTOR_1, new LockClientIndices());
         syncStateMap.put(DESCRIPTOR_1, lock1);

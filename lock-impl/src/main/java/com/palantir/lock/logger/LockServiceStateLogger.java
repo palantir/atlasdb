@@ -16,6 +16,7 @@
 package com.palantir.lock.logger;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
@@ -66,7 +67,7 @@ public class LockServiceStateLogger {
     public LogState logLocks() {
         List<SimpleLockRequestsWithSameDescriptor> generatedOutstandingRequests =
                 generateOutstandingLocks(outstandingLockRequests);
-        Map<ObfuscatedLockDescriptor, SimpleTokenInfo> generatedHeldLocks = generateHeldLocks(heldLocks);
+        Multimap<ObfuscatedLockDescriptor, SimpleTokenInfo> generatedHeldLocks = generateHeldLocks(heldLocks);
         Map<ObfuscatedLockDescriptor, String> generatedSyncState = generateSyncState(descriptorToLockMap);
         Map<ClientId, List<SanitizedLockRequestProgress>> synthesizedRequestState =
                 synthesizeRequestState(outstandingLockRequests, descriptorToLockMap);
@@ -130,14 +131,14 @@ public class LockServiceStateLogger {
                 .collect(Collectors.toList());
     }
 
-    private Map<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
+    private Multimap<ObfuscatedLockDescriptor, SimpleTokenInfo> generateHeldLocks(
             ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap) {
         return heldLocksTokenMap.values().stream()
                 .flatMap(locks -> locks.getRealToken().getLocks().stream()
                         .map(lock -> Map.entry(
                                 this.lockDescriptorMapper.getDescriptorMapping(lock.getLockDescriptor()),
                                 SimpleTokenInfo.of(locks.getRealToken(), lock.getLockMode()))))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+                .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
     }
 
     private Map<ObfuscatedLockDescriptor, String> generateSyncState(

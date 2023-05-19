@@ -16,6 +16,7 @@
 
 package com.palantir.lock.logger;
 
+import com.google.common.collect.Multimap;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
@@ -33,7 +34,7 @@ public interface LogState {
     List<SimpleLockRequestsWithSameDescriptor> getOutstandingRequests();
 
     @Safe
-    Map<ObfuscatedLockDescriptor, SimpleTokenInfo> getHeldLocks();
+    Multimap<ObfuscatedLockDescriptor, SimpleTokenInfo> getHeldLocks();
 
     @Safe
     Map<ObfuscatedLockDescriptor, String> getSyncState();
