@@ -81,7 +81,10 @@ public final class CassandraTopologyValidatorTest {
                         HostIdResult.success(Set.of(uuidIterator.next())),
                         HostIdResult.success(UUIDS)));
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(), allHosts, Duration.ofMillis(1), Duration.ofSeconds(20)))
+                        mapToTokenRangeOrigin(allHosts.keySet()),
+                        allHosts,
+                        Duration.ofMillis(1),
+                        Duration.ofSeconds(20)))
                 .isEmpty();
     }
 
@@ -93,7 +96,7 @@ public final class CassandraTopologyValidatorTest {
                 .values()
                 .forEach(container -> setHostIds(Set.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(), allHosts, Duration.ofMillis(1), Duration.ofMillis(1)))
+                        mapToTokenRangeOrigin(allHosts.keySet()), allHosts, Duration.ofMillis(1), Duration.ofMillis(1)))
                 .isNotEmpty();
         assertThat(metrics.validationFailures().getCount()).isEqualTo(1);
         assertThat(metrics.validationLatency().getCount()).isEqualTo(1);
@@ -104,7 +107,10 @@ public final class CassandraTopologyValidatorTest {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
+                        mapToTokenRangeOrigin(allHosts.keySet()),
+                        setupHosts(NEW_HOSTS),
+                        Duration.ofMillis(1),
+                        Duration.ofMillis(1)))
                 .containsExactlyInAnyOrderElementsOf(allHosts.keySet());
     }
 
@@ -114,21 +120,24 @@ public final class CassandraTopologyValidatorTest {
         doReturn(allHosts.keySet()).when(validator).getNewHostsWithInconsistentTopologies(any(), any());
         when(validator.getNewHostsWithInconsistentTopologies(any(), any())).thenReturn(allHosts.keySet());
         assertThat(validator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        allHosts.keySet(), setupHosts(NEW_HOSTS), Duration.ofMillis(1), Duration.ofMillis(1)))
+                        mapToTokenRangeOrigin(allHosts.keySet()),
+                        setupHosts(NEW_HOSTS),
+                        Duration.ofMillis(1),
+                        Duration.ofMillis(1)))
                 .isNotEmpty();
         verify(validator, atLeast(2)).getNewHostsWithInconsistentTopologies(any(), any());
     }
 
     @Test
     public void returnsEmptyWhenGivenNoServers() {
-        assertThat(validator.getNewHostsWithInconsistentTopologies(ImmutableSet.of(), ImmutableMap.of()))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(ImmutableMap.of(), ImmutableMap.of()))
                 .isEmpty();
     }
 
     @Test
     public void throwsWhenAllHostsDoesNotContainNewHosts() {
         assertThatThrownBy(() -> validator.getNewHostsWithInconsistentTopologies(
-                        ImmutableSet.of(createCassandraServer("foo")), ImmutableMap.of()))
+                        mapToTokenRangeOrigin(ImmutableSet.of(createCassandraServer("foo"))), ImmutableMap.of()))
                 .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
@@ -136,7 +145,7 @@ public final class CassandraTopologyValidatorTest {
     public void returnsEmptyWhenOnlyNewServersAndAllHaveSameHostIds() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         setHostIds(allHosts.values(), DEFAULT_RESULT);
-        assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .isEmpty();
     }
 
@@ -149,7 +158,7 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(
                 filterContainers(allHosts, NEW_HOST_ONE::equals),
                 HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .containsExactlyElementsOf(allHosts.keySet());
     }
 
@@ -163,7 +172,7 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(
                 filterContainers(allHosts, OLD_HOSTS::contains),
                 HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(newServers, allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))
                 .containsExactlyElementsOf(newServers);
     }
 
@@ -175,7 +184,7 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
         Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<CassandraServer> badNewHosts = filterServers(allHosts, badHostFilter);
-        assertThat(validator.getNewHostsWithInconsistentTopologies(newServers, allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))
                 .containsExactlyElementsOf(badNewHosts);
     }
 
@@ -183,7 +192,7 @@ public final class CassandraTopologyValidatorTest {
     public void validateNewlyAddedHostsAddsAllHostsIfNoHostHasEndpoint() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(NEW_HOSTS);
         setHostIds(allHosts.values(), HostIdResult.softFailure());
-        assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .isEmpty();
     }
 
@@ -194,7 +203,7 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(
                 filterContainers(allHosts, server -> !hostWithEndpoint.contains(server)), HostIdResult.softFailure());
         setHostIds(filterContainers(allHosts, hostWithEndpoint::contains), DEFAULT_RESULT);
-        assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .isEmpty();
     }
 
@@ -206,7 +215,7 @@ public final class CassandraTopologyValidatorTest {
                 filterContainers(allHosts, server -> !hostsWithEndpoints.contains(server)), HostIdResult.softFailure());
         setHostIds(filterContainers(allHosts, hostsWithEndpoints::contains), DEFAULT_RESULT);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
-                        filterServers(allHosts, NEW_HOSTS::contains), allHosts))
+                        mapToTokenRangeOrigin(filterServers(allHosts, NEW_HOSTS::contains)), allHosts))
                 .isEmpty();
     }
 
@@ -219,18 +228,19 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(filterContainers(allHosts, NEW_HOST_ONE::equals), HostIdResult.success(Set.of("uuid")));
         setHostIds(filterContainers(allHosts, OLD_HOST_ONE::equals), DEFAULT_RESULT);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
-                        filterServers(allHosts, NEW_HOSTS::contains), allHosts))
+                        mapToTokenRangeOrigin(filterServers(allHosts, NEW_HOSTS::contains)), allHosts))
                 .containsExactlyElementsOf(filterServers(allHosts, NEW_HOST_ONE::equals));
     }
 
     @Test
-    public void validateNewlyAddedHostsNoNewHostsAddedIfOldHostsDoNotHaveQuorum() {
+    public void validateNewlyAddedHostsNoNewHostsAddedIfOldHostsDoNotHaveQuorumAndNoPreviousResultExists() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
         Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE, OLD_HOST_TWO);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
                 .as("no new hosts added if old hosts do not have quorum")
                 .containsExactlyElementsOf(newCassandraServers);
     }
@@ -238,23 +248,24 @@ public final class CassandraTopologyValidatorTest {
     @Test
     public void validateNewlyAddedHostsNewHostsAddedIfTheyAgreeWithOldHostsOnPreviousTopology() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
-        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts = EntryStream.of(allHosts)
-                .filterKeys(key -> OLD_HOSTS.contains(key.cassandraHostName()))
-                .toMap();
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
         Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
         Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
 
-        validator.getNewHostsWithInconsistentTopologies(oldCassandraServers, oldHosts);
-        assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
                 .as("accepts quorum from new hosts if they have the same host IDs")
                 .isEmpty();
     }
 
     @Test
-    public void validateNewlyAddedHostsNewHostsNotAddedIfTheyDisagreeWithOldHostsOnPreviousTopology() {
+    public void
+            validateNewlyAddedHostsNewHostsNotAddedIfTheyDisagreeWithOldHostsOnPreviousTopologyAndCurrentServersExist() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts = EntryStream.of(allHosts)
                 .filterKeys(key -> OLD_HOSTS.contains(key.cassandraHostName()))
@@ -272,10 +283,163 @@ public final class CassandraTopologyValidatorTest {
                 filterContainers(oldHosts, Predicate.not(hostsOffline::contains)),
                 HostIdResult.success(DIFFERENT_UUIDS));
 
-        validator.getNewHostsWithInconsistentTopologies(oldCassandraServers, oldHosts);
-        assertThat(validator.getNewHostsWithInconsistentTopologies(newCassandraServers, allHosts))
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
                 .as("does not accept quorum from new hosts if they have different host IDs")
                 .containsExactlyElementsOf(newCassandraServers);
+    }
+
+    @Test
+    public void returnsAllNewHostsIfNoConsensusOnNewHostsWhenNoQuorumAndCurrentServersExist() {
+        Iterator<String> uuidIterator = UUIDS.iterator();
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        filterContainers(allHosts, server -> !hostsOffline.contains(server))
+                .forEach(container ->
+                        setHostIds(ImmutableSet.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
+
+        // This is _not_ supposed to be the standard quorum calculation ((n / 2) + 1), but instead the amount of
+        // hosts that need to be offline to _prevent_ quorum
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
+                .as("rejects all servers when no quorum from all hosts and no quorum on new hosts")
+                .containsExactlyInAnyOrderElementsOf(newCassandraServers);
+    }
+
+    @Test
+    public void returnsAllNewHostsIfConsensusOnNewHostsDiffersFromPreviousWhenNoQuorumAndCurrentServersExist() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        setHostIds(
+                filterContainers(allHosts, server -> !hostsOffline.contains(server)),
+                HostIdResult.success(DIFFERENT_UUIDS));
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
+                .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
+                .containsExactlyInAnyOrderElementsOf(newCassandraServers);
+    }
+
+    @Test
+    public void validateNewlyAddedHostsAddedIfAgreedWithOldHostsOnPreviousTopologyWhenNoQuorum() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
+                .as("accepts quorum from new hosts if they have the same host IDs as old topology")
+                .isEmpty();
+    }
+
+    @Test
+    public void validateNewlyAddedHostsAddedIfAgreedWithOldTopologyWhenNoQuorumAndNoCurrentServers() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> allCassandraServers = allHosts.keySet();
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        splitHostOriginBetweenLastKnownAndConfig(
+                                oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
+                        allHosts))
+                .as("accepts quorum from config hosts if they have the same host IDs as old topology when no current"
+                        + " servers")
+                .containsExactlyInAnyOrderElementsOf(oldCassandraServers);
+    }
+
+    @Test
+    public void returnsAllNewHostsIfNoConsensusOnConfigHostsWhenNoQuorumAndNoCurrentServers() {
+        Iterator<String> uuidIterator = UUIDS.iterator();
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> allCassandraServers = allHosts.keySet();
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        filterContainers(allHosts, server -> !hostsOffline.contains(server))
+                .forEach(container ->
+                        setHostIds(ImmutableSet.of(container), HostIdResult.success(Set.of(uuidIterator.next()))));
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        splitHostOriginBetweenLastKnownAndConfig(
+                                oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
+                        allHosts))
+                .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
+                .containsExactlyInAnyOrderElementsOf(allCassandraServers);
+    }
+
+    @Test
+    public void returnsAllNewHostsIfConsensusOnConfigHostsDiffersFromPreviousWhenNoQuorumAndNoCurrentServers() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = setupHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> allCassandraServers = allHosts.keySet();
+
+        setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        setHostIds(
+                filterContainers(allHosts, server -> !hostsOffline.contains(server)),
+                HostIdResult.success(DIFFERENT_UUIDS));
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                        splitHostOriginBetweenLastKnownAndConfig(
+                                oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
+                        allHosts))
+                .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
+                .containsExactlyInAnyOrderElementsOf(allCassandraServers);
     }
 
     @Test
@@ -288,7 +452,7 @@ public final class CassandraTopologyValidatorTest {
         Set<String> hostsOffline = ImmutableSet.of(NEW_HOST_ONE, NEW_HOST_TWO);
         setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
         setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(allHosts.keySet(), allHosts))
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .containsExactlyElementsOf(allHosts.keySet());
     }
 
@@ -298,7 +462,7 @@ public final class CassandraTopologyValidatorTest {
         setHostIds(filterContainers(allHosts, NEW_HOSTS::contains), HostIdResult.success(UUIDS));
         setHostIds(filterContainers(allHosts, OLD_HOSTS::contains), HostIdResult.softFailure());
         assertThat(validator.getNewHostsWithInconsistentTopologies(
-                        filterServers(allHosts, NEW_HOSTS::contains), allHosts))
+                        mapToTokenRangeOrigin(filterServers(allHosts, NEW_HOSTS::contains)), allHosts))
                 .isEmpty();
     }
 
@@ -338,12 +502,16 @@ public final class CassandraTopologyValidatorTest {
                 .toSet();
     }
 
-    public Set<CassandraServer> filterServers(
+    public Map<CassandraServer, CassandraClientPoolingContainer> filterServerToContainerMap(
             Map<CassandraServer, CassandraClientPoolingContainer> hosts, Predicate<String> filter) {
         return EntryStream.of(hosts)
                 .filterKeys(cassandraServer -> filter.test(cassandraServer.cassandraHostName()))
-                .keys()
-                .toSet();
+                .toMap();
+    }
+
+    public Set<CassandraServer> filterServers(
+            Map<CassandraServer, CassandraClientPoolingContainer> hosts, Predicate<String> filter) {
+        return filterServerToContainerMap(hosts, filter).keySet();
     }
 
     private static CassandraServer createCassandraServer(String hostname) {
@@ -366,5 +534,17 @@ public final class CassandraTopologyValidatorTest {
                 .map(CassandraTopologyValidatorTest::createCassandraServer)
                 .mapToEntry(server -> mock(CassandraClientPoolingContainer.class))
                 .toMap();
+    }
+
+    private static Map<CassandraServer, CassandraServerOrigin> splitHostOriginBetweenLastKnownAndConfig(
+            Set<CassandraServer> lastKnownHosts, Set<CassandraServer> configHosts) {
+        return ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
+                .putAll(CassandraServerOrigin.mapAllServersToOrigin(lastKnownHosts, CassandraServerOrigin.LAST_KNOWN))
+                .putAll(CassandraServerOrigin.mapAllServersToOrigin(configHosts, CassandraServerOrigin.CONFIG))
+                .buildOrThrow();
+    }
+
+    private static Map<CassandraServer, CassandraServerOrigin> mapToTokenRangeOrigin(Set<CassandraServer> servers) {
+        return CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE);
     }
 }

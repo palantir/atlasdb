@@ -17,9 +17,9 @@
 package com.palantir.timelock.paxos;
 
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -67,11 +67,6 @@ public final class InMemoryTimeLockRule extends ExternalResource implements Time
     }
 
     @Override
-    public AsyncTimelockResource getTimelockResource() {
-        return services.getTimelockResource();
-    }
-
-    @Override
     public AsyncTimelockService getTimelockService() {
         return services.getTimelockService();
     }
@@ -79,6 +74,11 @@ public final class InMemoryTimeLockRule extends ExternalResource implements Time
     @Override
     public TimestampManagementService getTimestampManagementService() {
         return services.getTimestampManagementService();
+    }
+
+    @Override
+    public LockLog getLockLog() {
+        return services.getLockLog();
     }
 
     public TimelockService getLegacyTimelockService() {

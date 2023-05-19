@@ -46,6 +46,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +56,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mock.Strictness;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.OngoingStubbing;
 
+@RunWith(MockitoJUnitRunner.class)
 public class OracleTableNameUnmapperTest {
 
     private static final String TEST_PREFIX = "a_";
@@ -68,21 +74,24 @@ public class OracleTableNameUnmapperTest {
     private static final TableReference TABLE_REF = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
     private static final TableReference TABLE_REF_2 = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "2");
 
-    private OracleTableNameUnmapper oracleTableNameUnmapper;
-    private AgnosticResultSet shortNameResultSet;
-    private ConnectionSupplier connectionSupplier;
-    private SqlConnection sqlConnection;
+    private final OracleTableNameUnmapper oracleTableNameUnmapper = new OracleTableNameUnmapper();
+
+    @Mock
+    AgnosticResultSet shortNameResultSet;
+
+    @Mock
+    ConnectionSupplier connectionSupplier;
+
+    @Mock(strictness = Strictness.LENIENT)
+    SqlConnection sqlConnection;
+
+    @Mock
+    Connection connection;
 
     @Before
     public void setup() {
-        connectionSupplier = mock(ConnectionSupplier.class);
-        oracleTableNameUnmapper = new OracleTableNameUnmapper();
-        sqlConnection = mock(SqlConnection.class);
-        Connection connection = mock(Connection.class);
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
-
-        shortNameResultSet = mock(AgnosticResultSet.class);
         when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), any()))
                 .thenReturn(shortNameResultSet);
@@ -135,7 +144,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getShortToLongTableNamesFromMappingTableReturnsLongNames() {
-        ArgumentCaptor<Object> tableNameCaptor = ArgumentCaptor.forClass(Object.class);
+        ArgumentCaptor<Object[]> tableNameCaptor = ArgumentCaptor.forClass(Object[].class);
         Map<String, String> shortNamesToLongNames = ImmutableMap.<String, String>builder()
                 .put("shortNameOne", "superLongNameOne")
                 .put("shortNameTwo", "superLongNameTwo")
@@ -153,7 +162,8 @@ public class OracleTableNameUnmapperTest {
                                 + "(short_table_name) IN (" + generatePlaceholders(3) + ")"),
                         tableNameCaptor.capture());
 
-        assertThat(tableNameCaptor.getAllValues()).containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.keySet());
+        assertThat(tableNameCaptor.getAllValues().stream().flatMap(Arrays::stream))
+                .containsExactlyInAnyOrderElementsOf(shortNamesToLongNames.keySet());
         verifyNoMoreInteractions(sqlConnection);
     }
 
@@ -174,7 +184,7 @@ public class OracleTableNameUnmapperTest {
                         eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
                                 + "(short_table_name) IN ("
                                 + generatePlaceholders(AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT) + ")"),
-                        any());
+                        any(Object[].class));
         verify(sqlConnection)
                 .selectResultSetUnregisteredQuery(
                         eq("SELECT short_table_name, table_name FROM atlasdb_table_names WHERE LOWER"
@@ -182,7 +192,7 @@ public class OracleTableNameUnmapperTest {
                                 + generatePlaceholders(
                                         numberOfEntries - AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)
                                 + ")"),
-                        any());
+                        any(Object[].class));
         verifyNoMoreInteractions(sqlConnection);
     }
 
@@ -221,11 +231,12 @@ public class OracleTableNameUnmapperTest {
                 .isEmpty();
     }
 
-    private void mockShortNamesToLongNamesQuery(Map<String, String> shortTableNamesToLongTableNames) {
+    private OngoingStubbing<AgnosticResultSet> mockShortNamesToLongNamesQuery(
+            Map<String, String> shortTableNamesToLongTableNames) {
         OngoingStubbing<AgnosticResultSet> ongoingStubbing = when(sqlConnection.selectResultSetUnregisteredQuery(
                 startsWith("SELECT short_table_name, table_name FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
                         + " WHERE LOWER(short_table_name)"),
-                any()));
+                any(Object[].class)));
 
         for (List<Entry<String, String>> batch : Iterables.partition(
                 shortTableNamesToLongTableNames.entrySet(), AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT)) {
@@ -236,6 +247,7 @@ public class OracleTableNameUnmapperTest {
                     DBType.ORACLE,
                     Map.of("short_table_name", 0, "SHORT_TABLE_NAME", 0, "table_name", 1, "TABLE_NAME", 1)));
         }
+        return ongoingStubbing;
     }
 
     private String generatePlaceholders(int numberOfPlaceholders) {

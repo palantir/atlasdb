@@ -246,19 +246,20 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
      * @throws SQLException if connection is invalid and cannot be used.
      */
     private void testConnection(Connection connection) throws SQLException {
-        if (connConfig.getTestQuery().isEmpty()) {
-            if (!connection.isValid(connConfig.getSocketTimeoutSeconds())) {
-                throw new SQLException(String.format("Connection %s is not valid", connection));
-            }
-        } else {
-            try (PreparedStatement stmt = connection.prepareStatement(connConfig.getTestQuery())) {
+        if (connConfig.getTestQuery().isPresent()) {
+            try (PreparedStatement stmt =
+                    connection.prepareStatement(connConfig.getTestQuery().get())) {
                 stmt.setFetchSize(1); // only need first row result
                 ResultSet rs = stmt.executeQuery();
                 if (!rs.next()) {
                     throw new SQLException(String.format(
                             "Connection %s could not be validated as it did not return any results for test query %s",
-                            connection, connConfig.getTestQuery()));
+                            connection, connConfig.getTestQuery().get()));
                 }
+            }
+        } else {
+            if (!connection.isValid(connConfig.getSocketTimeoutSeconds())) {
+                throw new SQLException(String.format("Connection %s is not valid", connection));
             }
         }
     }

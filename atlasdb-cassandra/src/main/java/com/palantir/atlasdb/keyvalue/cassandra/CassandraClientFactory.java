@@ -303,16 +303,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static class ClientCreationFailedException extends AtlasDbDependencyException {
+    static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
         ClientCreationFailedException(String message, Exception cause) {
             super(message, cause);
-        }
-
-        @Override
-        public Exception getCause() {
-            return (Exception) super.getCause();
         }
     }
 

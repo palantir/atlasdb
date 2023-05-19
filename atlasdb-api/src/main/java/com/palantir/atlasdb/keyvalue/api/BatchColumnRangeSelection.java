@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import java.io.Serializable;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class BatchColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -40,8 +41,8 @@ public final class BatchColumnRangeSelection implements Serializable {
 
     @JsonCreator
     public static BatchColumnRangeSelection create(
-            @JsonProperty("startCol") byte[] startCol,
-            @JsonProperty("endCol") byte[] endCol,
+            @JsonProperty("startCol") byte @Nullable [] startCol,
+            @JsonProperty("endCol") byte @Nullable [] endCol,
             @JsonProperty("batchHint") int batchHint) {
         return new BatchColumnRangeSelection(new ColumnRangeSelection(startCol, endCol), batchHint);
     }

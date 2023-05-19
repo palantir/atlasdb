@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
@@ -90,7 +89,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
                 writeExecutionLatch.await();
                 Uninterruptibles.sleepUninterruptibly(
                         Duration.ofMillis(ThreadLocalRandom.current().nextInt(10)));
-                pueTable.update(startTimestamp, TransactionStatuses.committed(startTimestamp + writerIndex));
+                pueTable.update(startTimestamp, TransactionStatus.committed(startTimestamp + writerIndex));
             } catch (RuntimeException e) {
                 // Expected - some failures will happen as part of our test.
             }
@@ -154,7 +153,7 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
 
         public List<Optional<Long>> getTimestampReads() {
             return timestampReads.stream()
-                    .map(TransactionStatuses::getCommitTimestamp)
+                    .map(TransactionStatus::getCommitTimestamp)
                     .collect(Collectors.toList());
         }
 

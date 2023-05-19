@@ -20,7 +20,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Aborted;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Committed;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -39,20 +40,21 @@ public enum V1EncodingStrategy implements TransactionStatusEncodingStrategy<Tran
     }
 
     @Override
-    public byte[] encodeCommitStatusAsValue(long _ignoredStartTimestamp, TransactionStatus commitStatus) {
-        return TransactionStatuses.caseOf(commitStatus)
-                .committed(TransactionConstants::getValueForTimestamp)
-                .aborted_(TransactionConstants.DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE)
-                .otherwise(() -> {
-                    throw new SafeIllegalStateException(
-                            "Illegal transaction status", SafeArg.of("status", commitStatus));
-                });
+    public byte[] encodeCommitStatusAsValue(long _ignoredStartTimestamp, TransactionStatus status) {
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return TransactionConstants.getValueForTimestamp(committed.commitTimestamp());
+        } else if (status instanceof Aborted) {
+            return TransactionConstants.DIRECT_ENCODING_ABORTED_TRANSACTION_VALUE;
+        } else {
+            throw new SafeIllegalStateException("Illegal transaction status", SafeArg.of("status", status));
+        }
     }
 
     @Override
     public TransactionStatus decodeValueAsCommitStatus(long _ignoredStartTimestamp, byte[] value) {
         if (value == null) {
-            return TransactionConstants.IN_PROGRESS;
+            return TransactionStatus.inProgress();
         }
 
         return TransactionStatusUtils.fromTimestamp(TransactionConstants.getTimestampForValue(value));

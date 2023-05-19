@@ -269,6 +269,16 @@ public class CassandraServiceTest {
         }
     }
 
+    @Test
+    public void ports() throws Exception {
+        assertThat(CassandraService.only(IntStream.of(1, 1, 1))).isEqualTo(1);
+        assertThat(CassandraService.only(IntStream.generate(() -> 4224).limit(15)))
+                .isEqualTo(4224);
+        assertThatThrownBy(() -> CassandraService.only(IntStream.of(1, 2, 1)))
+                .isInstanceOf(UnknownHostException.class)
+                .hasMessageContaining("No single known port");
+    }
+
     private Set<CassandraServer> getRecommendedHostsFromAThousandTrials(
             CassandraService cassandra, Set<CassandraServer> hosts) {
         return IntStream.range(0, 1_000)

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.logsafe.DoNotLog;
-import com.palantir.tokens.auth.BearerToken;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -34,19 +33,13 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockRuntimeConfiguration.class)
 @Value.Immutable
-@JsonIgnoreProperties({"targeted-sweep-locks", "test-only-lock-watches"})
+@JsonIgnoreProperties({"targeted-sweep-locks", "test-only-lock-watches", "permitted-backup-token"})
 public abstract class TimeLockRuntimeConfiguration {
 
     @Value.Default
     public PaxosRuntimeConfiguration paxos() {
         return ImmutablePaxosRuntimeConfiguration.builder().build();
     }
-
-    /**
-     *  The token required by other services to use backup and restore-related endpoints.
-     */
-    @JsonProperty("permitted-backup-token")
-    public abstract Optional<BearerToken> permittedBackupToken();
 
     /**
      * As of now, TimeLock is not equipped to handle live-changes in the cluster configuration. For this reason,

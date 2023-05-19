@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Avoid boxing for Cassandra known port checks
+  links:
+  - https://github.com/palantir/atlasdb/pull/6562

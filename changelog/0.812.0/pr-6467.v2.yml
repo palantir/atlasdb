@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Remove slf4j javadocs link
+  links:
+  - https://github.com/palantir/atlasdb/pull/6467

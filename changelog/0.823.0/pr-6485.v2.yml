@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Asynchronous initialisation now logs when the initialisation an individual
+    object starts, as well as when the executor is shutdown.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6485

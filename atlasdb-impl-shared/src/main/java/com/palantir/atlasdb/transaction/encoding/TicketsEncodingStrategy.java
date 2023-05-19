@@ -20,7 +20,8 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Aborted;
+import com.palantir.atlasdb.transaction.service.TransactionStatus.Committed;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
@@ -59,25 +60,26 @@ public enum TicketsEncodingStrategy implements TransactionStatusEncodingStrategy
     }
 
     @Override
-    public byte[] encodeCommitStatusAsValue(long startTimestamp, TransactionStatus commitStatus) {
-        return TransactionStatuses.caseOf(commitStatus)
-                .committed(ts -> TransactionConstants.getValueForTimestamp(ts - startTimestamp))
-                .aborted_(TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)
-                .otherwise(() -> {
-                    throw new SafeIllegalArgumentException(
-                            "Unexpected transaction status", SafeArg.of("status", commitStatus));
-                });
+    public byte[] encodeCommitStatusAsValue(long startTimestamp, TransactionStatus status) {
+        if (status instanceof Committed) {
+            Committed committed = (Committed) status;
+            return TransactionConstants.getValueForTimestamp(committed.commitTimestamp() - startTimestamp);
+        } else if (status instanceof Aborted) {
+            return TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE;
+        } else {
+            throw new SafeIllegalArgumentException("Unexpected transaction status", SafeArg.of("status", status));
+        }
     }
 
     @Override
     public TransactionStatus decodeValueAsCommitStatus(long startTimestamp, byte[] value) {
         if (value == null) {
-            return TransactionConstants.IN_PROGRESS;
+            return TransactionStatus.inProgress();
         }
         if (Arrays.equals(value, TransactionConstants.TICKETS_ENCODING_ABORTED_TRANSACTION_VALUE)) {
-            return TransactionConstants.ABORTED;
+            return TransactionStatus.aborted();
         }
-        return TransactionStatuses.committed(startTimestamp + TransactionConstants.getTimestampForValue(value));
+        return TransactionStatus.committed(startTimestamp + TransactionConstants.getTimestampForValue(value));
     }
 
     public Stream<byte[]> getRowSetCoveringTimestampRange(long fromInclusive, long toInclusive) {

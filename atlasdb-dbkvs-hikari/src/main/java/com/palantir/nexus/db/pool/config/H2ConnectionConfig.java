@@ -51,12 +51,6 @@ public abstract class H2ConnectionConfig extends ConnectionConfig {
     }
 
     @Override
-    @Value.Default
-    public String getTestQuery() {
-        return "SELECT 1";
-    }
-
-    @Override
     public final DBType getDbType() {
         return DBType.H2_MEMORY;
     }

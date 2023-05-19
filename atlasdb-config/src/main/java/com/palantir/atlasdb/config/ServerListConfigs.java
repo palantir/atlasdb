@@ -27,13 +27,6 @@ public final class ServerListConfigs {
     }
 
     public static Refreshable<ServerListConfig> getTimeLockServersFromAtlasDbConfig(
-            AtlasDbConfig config, Optional<AtlasDbRuntimeConfig> atlasDbRuntimeConfig) {
-        Refreshable<Optional<TimeLockRuntimeConfig>> timelockRuntimeConfig =
-                Refreshable.only(atlasDbRuntimeConfig.flatMap(AtlasDbRuntimeConfig::timelockRuntime));
-        return getServerListConfigSupplierForTimeLock(config, timelockRuntimeConfig);
-    }
-
-    public static Refreshable<ServerListConfig> getTimeLockServersFromAtlasDbConfig(
             AtlasDbConfig config, Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Refreshable<Optional<TimeLockRuntimeConfig>> timelockRuntimeConfig =
                 runtimeConfigSupplier.map(AtlasDbRuntimeConfig::timelockRuntime);

@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * Utility class to make manipulating {@link io.vavr.collection.Map} and {@link io.vavr.collection.Set} less
  * error-prone as all methods that modify state return a *new* instance in vavr.
  */
-final class StructureHolder<V> {
+public final class StructureHolder<V> {
     private final Supplier<V> initialValueSupplier;
     private V structure;
 
@@ -32,23 +32,23 @@ final class StructureHolder<V> {
         this.structure = initialValueSupplier.get();
     }
 
-    synchronized void with(Function<V, V> mutator) {
+    public synchronized void with(Function<V, V> mutator) {
         structure = mutator.apply(structure);
     }
 
-    synchronized V getSnapshot() {
+    public synchronized V getSnapshot() {
         return structure;
     }
 
-    synchronized <K> K apply(Function<V, K> function) {
+    public synchronized <K> K apply(Function<V, K> function) {
         return function.apply(structure);
     }
 
-    synchronized void resetToInitialValue() {
+    public synchronized void resetToInitialValue() {
         structure = initialValueSupplier.get();
     }
 
-    static <V> StructureHolder<V> create(Supplier<V> initialValue) {
+    public static <V> StructureHolder<V> create(Supplier<V> initialValue) {
         return new StructureHolder<>(initialValue);
     }
 }

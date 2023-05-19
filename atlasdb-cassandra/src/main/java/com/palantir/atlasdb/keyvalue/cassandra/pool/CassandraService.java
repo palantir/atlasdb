@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
@@ -35,14 +36,19 @@ import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -59,9 +65,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.PrimitiveIterator.OfInt;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,6 +76,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
@@ -117,23 +124,10 @@ public class CassandraService implements AutoCloseable {
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
     }
 
-    public static CassandraService createInitialized(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            Blacklist blacklist,
-            CassandraClientPoolMetrics poolMetrics) {
-        CassandraService cassandraService =
-                new CassandraService(metricsManager, config, runtimeConfig, blacklist, poolMetrics);
-        cassandraService.cacheInitialCassandraHosts();
-        cassandraService.refreshTokenRangesAndGetServers();
-        return cassandraService;
-    }
-
     @Override
     public void close() {}
 
-    public ImmutableSet<CassandraServer> refreshTokenRangesAndGetServers() {
+    public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
         // explicitly not using immutable builders to deduplicate nodes
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
@@ -184,7 +178,7 @@ public class CassandraService implements AutoCloseable {
             tokenMap = tokensInterner.intern(newTokenRing.build());
             hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
-            return ImmutableSet.copyOf(servers);
+            return CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE);
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
@@ -193,13 +187,18 @@ public class CassandraService implements AutoCloseable {
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
-            ImmutableSet<CassandraServer> resolvedConfigAddresses = getCurrentServerListFromConfig();
+            ImmutableMap<CassandraServer, CassandraServerOrigin> resolvedConfigAddresses =
+                    getCurrentServerListFromConfig();
 
-            ImmutableSet<CassandraServer> lastKnownAddresses = tokenMap.asMapOfRanges().values().stream()
-                    .flatMap(Collection::stream)
-                    .collect(ImmutableSet.toImmutableSet());
+            ImmutableMap<CassandraServer, CassandraServerOrigin> lastKnownAddresses =
+                    CassandraServerOrigin.mapAllServersToOrigin(
+                            tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream),
+                            CassandraServerOrigin.LAST_KNOWN);
 
-            return Sets.union(resolvedConfigAddresses, lastKnownAddresses).immutableCopy();
+            return ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
+                    .putAll(lastKnownAddresses)
+                    .putAll(resolvedConfigAddresses)
+                    .buildKeepingLast();
         }
     }
 
@@ -207,10 +206,11 @@ public class CassandraService implements AutoCloseable {
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
      * */
-    public ImmutableSet<CassandraServer> getCurrentServerListFromConfig() {
-        return getServersSocketAddressesFromConfig().stream()
-                .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost))
-                .collect(ImmutableSet.toImmutableSet());
+    public ImmutableMap<CassandraServer, CassandraServerOrigin> getCurrentServerListFromConfig() {
+        return CassandraServerOrigin.mapAllServersToOrigin(
+                getServersSocketAddressesFromConfig().stream()
+                        .map(cassandraHost -> CassandraServer.of(cassandraHost.getHostString(), cassandraHost)),
+                CassandraServerOrigin.CONFIG);
     }
 
     private ImmutableSet<InetSocketAddress> getServersSocketAddressesFromConfig() {
@@ -306,17 +306,26 @@ public class CassandraService implements AutoCloseable {
     }
 
     private int getKnownPort() throws UnknownHostException {
-        Set<Integer> allKnownPorts = Stream.concat(
+        // Avoid allocations and intermediate collection as this is on hot path
+        return only(Stream.concat(
                         currentPools.keySet().stream().map(CassandraServer::proxy),
                         getServersSocketAddressesFromConfig().stream())
-                .map(InetSocketAddress::getPort)
-                .collect(Collectors.toSet());
+                .mapToInt(InetSocketAddress::getPort));
+    }
 
-        if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
-            return Iterables.getOnlyElement(allKnownPorts);
-        } else {
+    @VisibleForTesting
+    static int only(IntStream intStream) throws UnknownHostException {
+        OfInt iterator = intStream.iterator();
+        if (!iterator.hasNext()) {
             throw new UnknownHostException("No single known port");
         }
+        int port = iterator.next();
+        while (iterator.hasNext()) {
+            if (port != iterator.next()) {
+                throw new UnknownHostException("No single known port");
+            }
+        }
+        return port;
     }
 
     private ImmutableSet<CassandraServer> getHostsFor(byte[] key) {
@@ -381,8 +390,7 @@ public class CassandraService implements AutoCloseable {
     }
 
     public CassandraClientPoolingContainer getRandomGoodHost() {
-        return getRandomGoodHostForPredicate(address -> true)
-                .orElseThrow(() -> new SafeIllegalStateException("No hosts available."));
+        return getRandomGoodHostForPredicate(address -> true).orElseThrow(NoHostsAvailableException::new);
     }
 
     private String getRingViewDescription() {
@@ -412,9 +420,8 @@ public class CassandraService implements AutoCloseable {
     @VisibleForTesting
     Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
         Set<CassandraServer> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
-        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> matchingPools = currentPools.entrySet().stream()
-                .filter(e -> localFilteredHosts.contains(e.getKey()))
-                .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+        Map<CassandraServer, CassandraClientPoolingContainer> matchingPools =
+                ImmutableMap.copyOf(Maps.filterKeys(currentPools, localFilteredHosts::contains));
         if (matchingPools.isEmpty()) {
             return Optional.empty();
         }
@@ -504,7 +511,8 @@ public class CassandraService implements AutoCloseable {
     }
 
     public void cacheInitialCassandraHosts() {
-        ImmutableSet<CassandraServer> thriftSocket = getCurrentServerListFromConfig();
+        ImmutableSet<CassandraServer> thriftSocket =
+                getCurrentServerListFromConfig().keySet();
 
         cassandraHosts = thriftSocket.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
@@ -519,5 +527,24 @@ public class CassandraService implements AutoCloseable {
     @VisibleForTesting
     void overrideHostToDatacenterMapping(ImmutableMap<CassandraServer, String> hostToDatacenterOverride) {
         this.hostToDatacenter = hostToDatacenterOverride;
+    }
+
+    private static final class NoHostsAvailableException extends AtlasDbDependencyException implements SafeLoggable {
+
+        private static final String MESSAGE = "No hosts available.";
+
+        NoHostsAvailableException() {
+            super(MESSAGE);
+        }
+
+        @Override
+        public @Safe String getLogMessage() {
+            return MESSAGE;
+        }
+
+        @Override
+        public List<Arg<?>> getArgs() {
+            return List.of();
+        }
     }
 }

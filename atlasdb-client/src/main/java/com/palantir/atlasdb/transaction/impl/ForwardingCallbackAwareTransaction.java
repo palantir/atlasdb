@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public abstract class ForwardingCallbackAwareTransaction extends ForwardingTransaction
+public abstract class ForwardingCallbackAwareTransaction extends ForwardingExpectationsAwareTransaction
         implements CallbackAwareTransaction {
 
     @Override

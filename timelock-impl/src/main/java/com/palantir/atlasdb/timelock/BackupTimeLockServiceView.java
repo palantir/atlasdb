@@ -25,10 +25,6 @@ import java.util.Set;
 
 // View containing only the methods necessary for AtlasBackup/RestoreService functionality
 public interface BackupTimeLockServiceView {
-    long getFreshTimestamp();
-
-    void fastForwardTimestamp(long currentTimestamp);
-
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     ListenableFuture<RefreshLockResponseV2> refreshLockLeases(Set<LockToken> tokens);

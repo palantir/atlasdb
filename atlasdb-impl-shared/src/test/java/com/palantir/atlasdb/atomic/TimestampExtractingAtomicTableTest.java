@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
@@ -42,7 +41,7 @@ public class TimestampExtractingAtomicTableTest {
     public void canExtractCommittedTransaction() throws ExecutionException, InterruptedException {
         Iterable<Long> keys = ImmutableList.of(1L, 2L, 3L);
         Map<Long, TransactionStatus> commits = KeyedStream.of(keys)
-                .map(key -> TransactionStatuses.committed(commitTs(key)))
+                .map(key -> TransactionStatus.committed(commitTs(key)))
                 .collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
@@ -54,7 +53,7 @@ public class TimestampExtractingAtomicTableTest {
     public void canExtractAbortedTransaction() throws ExecutionException, InterruptedException {
         Iterable<Long> keys = ImmutableList.of(1L);
         Map<Long, TransactionStatus> commits =
-                KeyedStream.of(keys).map(_key -> TransactionConstants.ABORTED).collectToMap();
+                KeyedStream.of(keys).map(_key -> TransactionStatus.aborted()).collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         Map<Long, Long> expected = KeyedStream.of(keys)
@@ -70,9 +69,9 @@ public class TimestampExtractingAtomicTableTest {
         Iterable<Long> keys = ImmutableList.of(committedTs, abortedTs);
         Map<Long, TransactionStatus> commits = ImmutableMap.of(
                 committedTs,
-                TransactionStatuses.committed(commitTs(committedTs)),
+                TransactionStatus.committed(commitTs(committedTs)),
                 abortedTs,
-                TransactionConstants.ABORTED);
+                TransactionStatus.aborted());
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         Map<Long, Long> expected =
@@ -83,9 +82,8 @@ public class TimestampExtractingAtomicTableTest {
     @Test
     public void ignoresInProgressTransaction() throws ExecutionException, InterruptedException {
         Iterable<Long> keys = ImmutableList.of(1L);
-        Map<Long, TransactionStatus> commits = KeyedStream.of(keys)
-                .map(_key -> TransactionConstants.IN_PROGRESS)
-                .collectToMap();
+        Map<Long, TransactionStatus> commits =
+                KeyedStream.of(keys).map(_key -> TransactionStatus.inProgress()).collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         assertThat(timestampExtractingAtomicTable.get(keys).get()).isEmpty();
@@ -95,7 +93,7 @@ public class TimestampExtractingAtomicTableTest {
     public void throwsOnUnknownTransaction() {
         Iterable<Long> keys = ImmutableList.of(1L);
         Map<Long, TransactionStatus> commits =
-                KeyedStream.of(keys).map(_key -> TransactionConstants.UNKNOWN).collectToMap();
+                KeyedStream.of(keys).map(_key -> TransactionStatus.unknown()).collectToMap();
         when(delegate.get(keys)).thenReturn(Futures.immediateFuture(commits));
 
         assertThatThrownBy(() -> timestampExtractingAtomicTable.get(keys).get())

@@ -1388,7 +1388,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     .toMap();
         });
         assertThat(cells)
-                .isEqualTo(ImmutableMap.of(
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
                         row1,
                         ImmutableList.of(firstRowFirstColumn, firstRowSecondColumn),
                         row2,
