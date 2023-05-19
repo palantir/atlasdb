@@ -42,32 +42,33 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings("DangerousIdentityKey")
 public class PaxosRemoteClientsTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private PaxosInstallConfiguration paxosInstallConfiguration;
-    private TimeLockInstallConfiguration installConfiguration;
     private PaxosResourcesFactory.TimelockPaxosInstallationContext context;
 
     @Before
     public void setUp() {
-        paxosInstallConfiguration = PaxosInstallConfiguration.builder()
+        PaxosInstallConfiguration paxosInstallConfiguration = PaxosInstallConfiguration.builder()
                 .isNewService(false)
                 .dataDirectory(temporaryFolder.getRoot())
                 .sqlitePersistence(SqlitePaxosPersistenceConfigurations.DEFAULT)
                 .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
-        installConfiguration = TimeLockInstallConfiguration.builder()
+        TimeLockInstallConfiguration installConfiguration = TimeLockInstallConfiguration.builder()
                 .paxos(paxosInstallConfiguration) // Normally awful, but too onerous to set up
                 .timestampBoundPersistence(
                         ImmutablePaxosTsBoundPersisterConfiguration.builder().build())
                 .build();
         TimeLockDialogueServiceProvider dialogueServiceProvider = mock(TimeLockDialogueServiceProvider.class);
         when(dialogueServiceProvider.createSingleNodeInstrumentedProxy(anyString(), any(), anyBoolean()))
-                .thenAnswer(invocation -> mock(invocation.getArgument(1)));
+                .thenAnswer(invocation -> mock(invocation.<Class<?>>getArgument(1)));
         context = ImmutableTimelockPaxosInstallationContext.builder()
                 .install(installConfiguration)
                 .cluster(ImmutableDefaultClusterConfiguration.builder()

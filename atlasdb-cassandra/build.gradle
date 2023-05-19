@@ -58,6 +58,7 @@ dependencies {
   implementation project(':commons-executors')
   implementation project(':timestamp-api')
 
+  testImplementation 'commons-codec:commons-codec'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'

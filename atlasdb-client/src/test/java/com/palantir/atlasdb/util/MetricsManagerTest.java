@@ -23,6 +23,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import org.junit.After;
@@ -43,7 +44,7 @@ public class MetricsManagerTest {
     private static final Gauge<Long> GAUGE = () -> 1L;
 
     private final MetricRegistry registry = new MetricRegistry();
-    private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
     private final MetricsManager metricsManager =
             new MetricsManager(registry, taggedMetricRegistry, tableReference -> tableReference
                     .getTableName()
@@ -53,14 +54,15 @@ public class MetricsManagerTest {
     public void registersMetricsByName() {
         metricsManager.registerMetric(INTEGER_CLASS, ERROR_OOM, GAUGE);
 
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(INTEGER_CLASS, ERROR_OOM));
+        assertThat(taggedMetricRegistry.getMetrics().keySet().stream().map(MetricName::safeName))
+                .containsExactly(MetricRegistry.name(INTEGER_CLASS, ERROR_OOM));
     }
 
     @Test
     public void registersMeters() {
         metricsManager.registerOrGetMeter(INTEGER_CLASS, RUNTIME, METER_NAME);
 
-        assertThat(registry.getMeters().keySet())
+        assertThat(taggedMetricRegistry.getMetrics().keySet().stream().map(MetricName::safeName))
                 .containsExactly(MetricRegistry.name(INTEGER_CLASS, RUNTIME, METER_NAME));
     }
 
@@ -69,7 +71,7 @@ public class MetricsManagerTest {
         metricsManager.registerMetric(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
         metricsManager.registerMetric(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS, GAUGE);
 
-        assertThat(registry.getNames())
+        assertThat(taggedMetricRegistry.getMetrics().keySet().stream().map(MetricName::safeName))
                 .containsExactlyInAnyOrder(
                         MetricRegistry.name(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS),
                         MetricRegistry.name(BOOLEAN_CLASS, ERROR_OUT_OF_BOUNDS));
@@ -79,7 +81,8 @@ public class MetricsManagerTest {
     public void registerOrGetMeterMeterRegistersTheFullyQualifiedClassNameMetric() {
         metricsManager.registerOrGetMeter(INTEGER_CLASS, ERROR_OUT_OF_BOUNDS);
 
-        assertThat(registry.getNames()).containsExactly("java.lang.Integer.error.outofbounds");
+        assertThat(taggedMetricRegistry.getMetrics().keySet().stream().map(MetricName::safeName))
+                .containsExactly("java.lang.Integer.error.outofbounds");
     }
 
     @Test
@@ -105,5 +108,6 @@ public class MetricsManagerTest {
     @After
     public void tearDown() {
         registry.removeMatching(MetricFilter.ALL);
+        taggedMetricRegistry.getMetrics().keySet().forEach(taggedMetricRegistry::remove);
     }
 }

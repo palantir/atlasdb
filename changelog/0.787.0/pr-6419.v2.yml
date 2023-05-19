@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |
+    Rewrite logCurrentState to safelog to normal service logs rather than custom yml serialization to file.
+    A sanitized version is safelogged (excluding exact lock descriptors), and a full version is logged at unsafe.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6419

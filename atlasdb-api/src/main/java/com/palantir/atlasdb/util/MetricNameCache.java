@@ -32,7 +32,7 @@ final class MetricNameCache {
     private final LoadingCache<Key, MetricName> cache;
 
     MetricNameCache() {
-        this.cache = Caffeine.newBuilder().build(new CacheLoader<Key, MetricName>() {
+        this.cache = Caffeine.newBuilder().build(new CacheLoader<>() {
             @Nullable
             @Override
             public MetricName load(@Nonnull Key key) {
@@ -52,7 +52,7 @@ final class MetricNameCache {
         cache.invalidateAll();
     }
 
-    @Value.Immutable
+    @Value.Immutable(lazyhash = true)
     interface Key {
 
         @Value.Parameter

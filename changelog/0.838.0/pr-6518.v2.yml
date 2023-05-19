@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We no longer use Jersey sub-resource locators for user-facing timestamp,
+    timestamp management and lock v1 endpoints (except for the asynchronous TimeLock
+    service).
+  links:
+  - https://github.com/palantir/atlasdb/pull/6518

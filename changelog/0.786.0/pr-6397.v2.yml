@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Intern Namespace and TableReference names
+  links:
+  - https://github.com/palantir/atlasdb/pull/6397

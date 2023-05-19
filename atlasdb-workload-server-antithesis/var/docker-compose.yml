@@ -1,0 +1,123 @@
+version: '2'
+
+services:
+  cassandra1:
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+    container_name: cassandra1
+    volumes:
+      - /opt/config/volumes/cassandra1:/var/lib/cassandra
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.2
+
+  cassandra2:
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+    container_name: cassandra2
+    volumes:
+      - /opt/config/volumes/cassandra2:/var/lib/cassandra
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.3
+
+  cassandra3:
+    image: palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=512m
+      - HEAP_NEWSIZE=64m
+      - LOCAL_JMX=no
+      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+    container_name: cassandra3
+    volumes:
+      - /opt/config/volumes/cassandra3:/var/lib/cassandra
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.4
+
+  timelock1.palantir.pt:
+    image: palantirtechnologies/timelock-server-distribution:unspecified
+    command: [ bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
+                          && service/bin/init.sh console' ]
+    ports:
+      - "8421"
+      - "8422"
+    container_name: timelock1.palantir.pt
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.5
+
+  timelock2.palantir.pt:
+    image: palantirtechnologies/timelock-server-distribution:unspecified
+    command: [ bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
+                          && service/bin/init.sh console' ]
+    ports:
+      - "8421"
+      - "8422"
+    container_name: timelock2.palantir.pt
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.6
+
+  timelock3.palantir.pt:
+    image: palantirtechnologies/timelock-server-distribution:unspecified
+    command: [bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
+                          && service/bin/init.sh console' ]
+    ports:
+      - "8421"
+      - "8422"
+    container_name: timelock3.palantir.pt
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.7
+
+
+  workload-server:
+    image: palantirtechnologies/atlasdb-workload-server-distribution:unspecified
+    command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml
+                         && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160
+                         && service/bin/init.sh console']
+    container_name: workload-server
+    depends_on:
+      - cassandra1
+      - cassandra2
+      - cassandra3
+      - timelock1.palantir.pt
+      - timelock2.palantir.pt
+      - timelock3.palantir.pt
+    networks:
+      antithesis-net:
+        ipv4_address: 10.20.20.8
+
+networks:
+  antithesis-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.20.0/24

@@ -1,10 +1,10 @@
-version: 2
+version: 2.1
 
 jobs:
   build:
     docker:
       - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
+    resource_class: 2xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
@@ -17,7 +17,7 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
 
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
-      - run: ./gradlew --profile --parallel --stacktrace classes testClasses
+      - run: ./gradlew --scan --profile --parallel --stacktrace classes testClasses
 
       - save_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
@@ -31,8 +31,10 @@ jobs:
           root: .
           paths: [ . ]
 
-  test:
-    parallelism: 12
+  test-suite:
+    parameters:
+      suite:
+        type: integer
     machine:
       image: ubuntu-2004:202111-02
     resource_class: xlarge
@@ -66,7 +68,7 @@ jobs:
               curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
-          command: ./scripts/circle-ci/run-circle-tests.sh
+          command: ./scripts/circle-ci/run-circle-tests.sh << parameters.suite >>
           no_output_timeout: 900
       - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
@@ -78,11 +80,16 @@ jobs:
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - when:
+          # Persist to workspace for the compile/compileTest container to keep deploy fast.
+          condition:
+            equal: [ 13, << parameters.suite >> ]
+          steps:
+            - persist_to_workspace:
+                root: .
+                paths: [ . ]
       - store_artifacts:
           path: /home/circleci/artifacts
-      - persist_to_workspace:
-          root: .
-          paths: [ . ]
 
   trial-publish:
     docker:
@@ -95,7 +102,13 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
-      - run: ./gradlew --profile --stacktrace --continue publishToMavenLocal
+      - run: ./gradlew --scan --profile --stacktrace --continue publishToMavenLocal
+
+  test:
+    docker: [ { image: 'busybox:1.34.1' } ]
+    resource_class: small
+    steps:
+      - run: {command: echo "Ran all required tests successfully"}
 
   deploy:
     docker:
@@ -110,7 +123,7 @@ jobs:
       - attach_workspace: { at: . }
       - add_ssh_keys:
           fingerprints:
-            - "20:d7:2c:43:a2:d9:38:86:45:c0:70:cc:c9:87:95:5b"
+            - "b6:ba:27:37:84:8f:eb:b0:ee:0b:7c:c1:fc:18:32:5f"
       - run: sudo apt-get update
       - run: sudo apt-get install python python3-pip
       - run:
@@ -118,7 +131,7 @@ jobs:
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               git status
-              ./gradlew --profile --stacktrace --continue publish
+              ./gradlew --scan --profile --stacktrace --continue publish
             fi
       - run:
           command: |
@@ -130,15 +143,35 @@ jobs:
             fi
 
 workflows:
-  version: 2
   check:
     jobs:
       - build:
           filters:
             tags:
               only: /.*/
-      - test:
+      - test-suite:
           requires: [build]
+          matrix:
+            alias: test-no-tl
+            parameters:
+              # intentionally excluding 12 (TimeLock migration ETE test) from this collection
+              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13]
+          filters:
+            tags:
+              only: /.*/
+      - test-suite:
+          requires: [build]
+          matrix:
+            alias: test-tl
+            parameters:
+              suite: [12]
+          filters:
+            branches:
+              only: /(tlmete.*|develop)/
+            tags:
+              only: /.*/
+      - test:
+          requires: [test-tl, test-no-tl]
           filters:
             tags:
               only: /.*/

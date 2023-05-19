@@ -72,6 +72,7 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -81,7 +82,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -182,7 +182,6 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxNormalLockAge;
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
-    private final String lockStateLoggerDir;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
 
@@ -256,7 +255,6 @@ public final class LockServiceImpl
         this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
-        this.lockStateLoggerDir = options.getLockStateLoggerDir();
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
     }
 
@@ -1171,69 +1169,48 @@ public final class LockServiceImpl
      */
     @Override
     public void logCurrentState() {
-        StringBuilder logString = getGeneralLockStats();
-        log.info("Current State: {}", SafeArg.of("state", logString.toString()));
-
-        try {
-            logAllHeldAndOutstandingLocks();
-        } catch (IOException e) {
-            log.error("Can't dump state to Yaml", e);
-            throw new IllegalStateException(e);
-        }
+        new LockServiceStateLogger(
+                        heldLocksTokenMap, outstandingLockRequestMultimap, descriptorToLockMap.asMap(), safeLockStats())
+                .logLocks();
     }
 
-    private void logAllHeldAndOutstandingLocks() throws IOException {
-        LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
-                heldLocksTokenMap, outstandingLockRequestMultimap, descriptorToLockMap.asMap(), lockStateLoggerDir);
-        lockServiceStateLogger.logLocks();
-    }
-
-    private StringBuilder getGeneralLockStats() {
-        StringBuilder logString = new StringBuilder();
-        logString
-                .append("Logging current state. Time = ")
-                .append(currentTimeMillis())
-                .append("\n");
-        logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
-        logString
-                .append("maxAllowedLockTimeout = ")
-                .append(maxAllowedLockTimeout)
-                .append("\n");
-        logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
-        logString
-                .append("descriptorToLockMap.size = ")
-                .append(descriptorToLockMap.estimatedSize())
-                .append("\n");
-        logString
-                .append("outstandingLockRequestMultimap.size = ")
-                .append(outstandingLockRequestMultimap.size())
-                .append("\n");
-        logString
-                .append("heldLocksTokenMap.size = ")
-                .append(heldLocksTokenMap.size())
-                .append("\n");
-        logString
-                .append("heldLocksGrantMap.size = ")
-                .append(heldLocksGrantMap.size())
-                .append("\n");
-        logString
-                .append("lockTokenReaperQueue.size = ")
-                .append(lockTokenReaperQueue.size())
-                .append("\n");
-        logString
-                .append("lockGrantReaperQueue.size = ")
-                .append(lockGrantReaperQueue.size())
-                .append("\n");
-        logString
-                .append("lockClientMultimap.size = ")
-                .append(lockClientMultimap.size())
-                .append("\n");
-        logString
-                .append("lockClientMultimap.size = ")
-                .append(lockClientMultimap.size())
-                .append("\n");
-
-        return logString;
+    @Safe
+    private String safeLockStats() {
+        return "Logging current state. Time = " + currentTimeMillis()
+                + "\n"
+                + "isStandaloneServer = "
+                + isStandaloneServer
+                + "\n"
+                + "maxAllowedLockTimeout = "
+                + maxAllowedLockTimeout
+                + "\n"
+                + "maxAllowedClockDrift = "
+                + maxAllowedClockDrift
+                + "\n"
+                + "descriptorToLockMap.size = "
+                + descriptorToLockMap.estimatedSize()
+                + "\n"
+                + "outstandingLockRequestMultimap.size = "
+                + outstandingLockRequestMultimap.size()
+                + "\n"
+                + "heldLocksTokenMap.size = "
+                + heldLocksTokenMap.size()
+                + "\n"
+                + "heldLocksGrantMap.size = "
+                + heldLocksGrantMap.size()
+                + "\n"
+                + "lockTokenReaperQueue.size = "
+                + lockTokenReaperQueue.size()
+                + "\n"
+                + "lockGrantReaperQueue.size = "
+                + lockGrantReaperQueue.size()
+                + "\n"
+                + "lockClientMultimap.size = "
+                + lockClientMultimap.size()
+                + "\n"
+                + "lockClientMultimap.size = "
+                + lockClientMultimap.size()
+                + "\n";
     }
 
     @Override

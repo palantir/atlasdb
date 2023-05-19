@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.config;
 
-import com.palantir.tokens.auth.BearerToken;
 import java.util.Optional;
 
 public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfiguration {
@@ -29,11 +28,6 @@ public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfi
     @Override
     public PaxosRuntimeConfiguration paxos() {
         return runtime.paxos();
-    }
-
-    @Override
-    public Optional<BearerToken> permittedBackupToken() {
-        return runtime.permittedBackupToken();
     }
 
     @Override

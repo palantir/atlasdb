@@ -92,4 +92,11 @@ public class NamespaceTest {
         expectFailure(".", Namespace.STRICTLY_CHECKED_NAME);
         expectFailure("name.space", Namespace.STRICTLY_CHECKED_NAME);
     }
+
+    @Test
+    public void invalid() {
+        assertThatThrownBy(() -> Namespace.create(null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Namespace.create(null, Namespace.UNCHECKED_NAME))
+                .isInstanceOf(NullPointerException.class);
+    }
 }

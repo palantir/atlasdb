@@ -20,13 +20,16 @@ import com.palantir.lock.LockGroupBehavior;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.TimeDuration;
+import com.palantir.logsafe.Safe;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Safe
 public abstract class SimpleLockRequest {
 
-    public static SimpleLockRequest of(LockRequest request, String lockDescriptor, LockMode lockMode, String clientId) {
+    public static SimpleLockRequest of(
+            LockRequest request, ObfuscatedLockDescriptor lockDescriptor, LockMode lockMode, ClientId clientId) {
         return ImmutableSimpleLockRequest.builder()
                 .lockDescriptor(lockDescriptor)
                 .lockMode(lockMode)
@@ -42,7 +45,7 @@ public abstract class SimpleLockRequest {
     }
 
     @Value.Parameter
-    public abstract String getLockDescriptor();
+    public abstract ObfuscatedLockDescriptor getLockDescriptor();
 
     @Value.Parameter
     public abstract LockMode getLockMode();
@@ -68,7 +71,7 @@ public abstract class SimpleLockRequest {
     public abstract Long getVersionId();
 
     @Value.Parameter
-    public abstract String getClientId();
+    public abstract ClientId getClientId();
 
     @Value.Parameter
     public abstract String getCreatingThread();

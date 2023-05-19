@@ -19,24 +19,16 @@ package com.palantir.atlasdb.timelock.management;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.backup.AuthHeaderValidator;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.DisableNamespacesResponse;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesRequest;
-import com.palantir.atlasdb.timelock.api.ReenableNamespacesResponse;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementServiceEndpoints;
 import com.palantir.atlasdb.timelock.api.management.UndertowTimeLockManagementService;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
-import com.palantir.conjure.java.api.errors.ErrorType;
-import com.palantir.conjure.java.api.errors.ServiceException;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
@@ -50,23 +42,17 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     private static final SafeLogger log = SafeLoggerFactory.get(TimeLockManagementResource.class);
 
     private final Set<PersistentNamespaceLoader> namespaceLoaders;
-    private final AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater;
     private final TimelockNamespaces timelockNamespaces;
-    private final AuthHeaderValidator authHeaderValidator;
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final ServiceLifecycleController serviceLifecycleController;
 
     private TimeLockManagementResource(
             Set<PersistentNamespaceLoader> namespaceLoaders,
-            AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
             TimelockNamespaces timelockNamespaces,
-            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         this.namespaceLoaders = namespaceLoaders;
-        this.allNodesDisabledNamespacesUpdater = allNodesDisabledNamespacesUpdater;
         this.timelockNamespaces = timelockNamespaces;
-        this.authHeaderValidator = authHeaderValidator;
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.serviceLifecycleController = serviceLifecycleController;
     }
@@ -74,15 +60,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     public static TimeLockManagementResource create(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
-            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return new TimeLockManagementResource(
                 createNamespaceLoaders(persistentNamespaceContext),
-                allNodesDisabledNamespacesUpdater,
                 timelockNamespaces,
-                authHeaderValidator,
                 redirectRetryTargeter,
                 serviceLifecycleController);
     }
@@ -90,33 +72,28 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     public static UndertowService undertow(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
-            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return TimeLockManagementServiceEndpoints.of(TimeLockManagementResource.create(
-                persistentNamespaceContext,
-                timelockNamespaces,
-                allNodesDisabledNamespacesUpdater,
-                authHeaderValidator,
-                redirectRetryTargeter,
-                serviceLifecycleController));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
     }
 
     public static TimeLockManagementService jersey(
             PersistentNamespaceContext persistentNamespaceContext,
             TimelockNamespaces timelockNamespaces,
-            AllNodesDisabledNamespacesUpdater allNodesDisabledNamespacesUpdater,
-            AuthHeaderValidator authHeaderValidator,
             RedirectRetryTargeter redirectRetryTargeter,
             ServiceLifecycleController serviceLifecycleController) {
         return new JerseyAdapter(TimeLockManagementResource.create(
-                persistentNamespaceContext,
-                timelockNamespaces,
-                allNodesDisabledNamespacesUpdater,
-                authHeaderValidator,
-                redirectRetryTargeter,
-                serviceLifecycleController));
+                persistentNamespaceContext, timelockNamespaces, redirectRetryTargeter, serviceLifecycleController));
+    }
+
+    @Override
+    public ListenableFuture<Set<String>> getActiveNamespaces(AuthHeader authHeader) {
+        // This endpoint only returns state already in memory, so it's okay to NOT make it async.
+        return Futures.immediateFuture(timelockNamespaces.getActiveClients().stream()
+                .map(Client::value)
+                .filter(value -> !value.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
+                .collect(Collectors.toSet()));
     }
 
     @Override
@@ -149,42 +126,6 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     }
 
     @Override
-    public ListenableFuture<DisableNamespacesResponse> disableTimelock(
-            AuthHeader authHeader, DisableNamespacesRequest request) {
-        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
-            log.error(
-                    "Attempted to disable TimeLock with an invalid auth header. "
-                            + "The provided token must match the configured permitted-backup-token.",
-                    SafeArg.of("namespaces", request.getNamespaces()));
-            throw new ServiceException(ErrorType.PERMISSION_DENIED);
-        }
-        return handleExceptions(() -> disableInternal(authHeader, request));
-    }
-
-    private ListenableFuture<DisableNamespacesResponse> disableInternal(
-            AuthHeader authHeader, DisableNamespacesRequest request) {
-        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.disableOnAllNodes(authHeader, request));
-    }
-
-    @Override
-    public ListenableFuture<ReenableNamespacesResponse> reenableTimelock(
-            AuthHeader authHeader, ReenableNamespacesRequest request) {
-        if (!authHeaderValidator.suppliedHeaderMatchesConfig(authHeader)) {
-            log.error(
-                    "Attempted to re-enable TimeLock with an invalid auth header. "
-                            + "The provided token must match the configured permitted-backup-token.",
-                    SafeArg.of("request", request));
-            throw new ServiceException(ErrorType.PERMISSION_DENIED);
-        }
-        return handleExceptions(() -> reenableInternal(authHeader, request));
-    }
-
-    public ListenableFuture<ReenableNamespacesResponse> reenableInternal(
-            AuthHeader authHeader, ReenableNamespacesRequest request) {
-        return Futures.immediateFuture(allNodesDisabledNamespacesUpdater.reEnableOnAllNodes(authHeader, request));
-    }
-
-    @Override
     public ListenableFuture<UUID> getServerLifecycleId(AuthHeader authHeader) {
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
@@ -194,6 +135,14 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         log.info("Forcefully stopping TimeLock service.");
         serviceLifecycleController.forceKillTimeLock();
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
+    }
+
+    @Override
+    public ListenableFuture<Void> fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
+        return handleExceptions(() -> {
+            timelockNamespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(currentTimestamp);
+            return Futures.immediateFuture(null);
+        });
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
@@ -227,6 +176,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
+        public Set<String> getActiveNamespaces(AuthHeader authHeader) {
+            return unwrap(resource.getActiveNamespaces(authHeader));
+        }
+
+        @Override
         public void achieveConsensus(AuthHeader authHeader, Set<String> namespaces) {
             unwrap(resource.achieveConsensus(authHeader, namespaces));
         }
@@ -237,16 +191,6 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         }
 
         @Override
-        public DisableNamespacesResponse disableTimelock(AuthHeader authHeader, DisableNamespacesRequest request) {
-            return unwrap(resource.disableTimelock(authHeader, request));
-        }
-
-        @Override
-        public ReenableNamespacesResponse reenableTimelock(AuthHeader authHeader, ReenableNamespacesRequest request) {
-            return unwrap(resource.reenableTimelock(authHeader, request));
-        }
-
-        @Override
         public UUID getServerLifecycleId(AuthHeader authHeader) {
             return unwrap(resource.getServerLifecycleId(authHeader));
         }
@@ -254,6 +198,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public UUID forceKillTimeLockServer(AuthHeader authHeader) {
             return unwrap(resource.forceKillTimeLockServer(authHeader));
+        }
+
+        @Override
+        public void fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
+            unwrap(resource.fastForwardTimestamp(authHeader, namespace, currentTimestamp));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

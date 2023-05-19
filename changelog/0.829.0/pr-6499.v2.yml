@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Disable AtlasDB DB connection testing by default in favor of relying
+    on Hikari's connection testing.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6499

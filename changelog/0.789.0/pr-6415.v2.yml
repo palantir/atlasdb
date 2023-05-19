@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: 'Cassandra client pool improvement: in the event there is no quorum,
+    we check the new nodes for their perspective of what the cluster should look like.
+    If new nodes are in agreement and their agreement matches the agreed-upon host
+    IDs that the old nodes agreed on, we consider them to be consistent. This allows
+    for handling of cases where the Cassandra cluster changes the IPs of all nodes
+    between bounces.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6415

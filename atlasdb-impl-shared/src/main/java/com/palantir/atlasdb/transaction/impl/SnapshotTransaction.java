@@ -43,6 +43,7 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -96,6 +97,9 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -151,10 +155,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -216,7 +222,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    final KeyValueService keyValueService;
+    final TrackingKeyValueService keyValueService;
     final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
@@ -265,6 +271,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final Closer closer = Closer.create();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -273,7 +280,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            KeyValueService delegateKeyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -302,7 +309,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = keyValueService;
+        this.keyValueService = new TrackingKeyValueServiceImpl(delegateKeyValueService);
         this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
@@ -447,7 +454,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
-        Iterable<byte[]> stableRows = ImmutableList.copyOf(rows);
+        ImmutableList<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
         RowColumnRangeIterator rawResults = keyValueService.getRowsColumnRange(
                 tableRef, stableRows, columnRangeSelection, batchHint, getStartTimestamp());
@@ -457,10 +464,11 @@ public class SnapshotTransaction extends AbstractTransaction
 
         BatchColumnRangeSelection batchColumnRangeSelection =
                 BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
-        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, rawResults));
+        return scopeToTransaction(getPostFilteredColumns(tableRef, batchColumnRangeSelection, stableRows, rawResults));
     }
 
     @Override
+    @SuppressWarnings("MustBeClosedChecker") // Sadly we can't close properly here without an ABI break :/
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkGetPreconditions(tableRef);
@@ -468,23 +476,26 @@ public class SnapshotTransaction extends AbstractTransaction
             return ImmutableMap.of();
         }
         hasReads = true;
-        Map<byte[], RowColumnRangeIterator> rawResults =
-                keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp());
-        ImmutableSortedMap.Builder<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResultsBuilder =
-                ImmutableSortedMap.orderedBy(PtBytes.BYTES_COMPARATOR);
-        for (Map.Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
+        ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
+                keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp()),
+                PtBytes.BYTES_COMPARATOR);
+        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
+                .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
+                    // explicitly not using Optional due to allocation perf overhead
+                    Iterator<Map.Entry<Cell, byte[]>> entryIterator;
+                    RowColumnRangeIterator rawIterator = rawResults.get(row);
+                    if (rawIterator != null) {
+                        entryIterator = closer.register(
+                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator));
+                    } else {
+                        entryIterator = ClosableIterators.wrapWithEmptyClose(
+                                getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
+                                        .entrySet()
+                                        .iterator());
+                    }
+                    return scopeToTransaction(entryIterator);
+                }));
 
-            // Sadly we can't close properly here without an ABI break :/
-            @SuppressWarnings("MustBeClosedChecker")
-            ClosableIterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
-                    getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-
-            postFilteredResultsBuilder.put(row, scopeToTransaction(postFilteredIterator));
-        }
-        SortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                postFilteredResultsBuilder.buildOrThrow();
         // validate requirements here as the first batch for each of the above iterators will not check
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return postFilteredResults;
@@ -576,8 +587,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
             Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
-        Comparator<Map.Entry<Cell, V>> comp = Comparator.comparing(Map.Entry::getKey, cellComparator);
-        return Iterators.mergeSorted(iterators, comp);
+        return Iterators.mergeSorted(iterators, Map.Entry.comparingByKey(cellComparator));
     }
 
     /**
@@ -622,10 +632,12 @@ public class SnapshotTransaction extends AbstractTransaction
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
+            List<byte[]> expectedRows,
             RowColumnRangeIterator rawIterator) {
         Iterator<Map.Entry<Cell, Value>> postFilterIterator =
                 getRowColumnRangePostFiltered(tableRef, rawIterator, batchColumnRangeSelection.getBatchHint());
-        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(postFilterIterator);
+        Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow =
+                partitionByRow(postFilterIterator, expectedRows.iterator());
         Iterator<Map.Entry<Cell, byte[]>> merged = Iterators.concat(Iterators.transform(rawResultsByRow, row -> {
             SortedMap<Cell, byte[]> localWrites =
                     getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row.getKey());
@@ -728,19 +740,34 @@ public class SnapshotTransaction extends AbstractTransaction
      * per non-empty row.
      */
     private Iterator<Map.Entry<byte[], RowColumnRangeIterator>> partitionByRow(
-            Iterator<Map.Entry<Cell, Value>> rawResults) {
+            Iterator<Map.Entry<Cell, Value>> rawResults, Iterator<byte[]> expectedRows) {
         PeekingIterator<Map.Entry<Cell, Value>> peekableRawResults = Iterators.peekingIterator(rawResults);
-        return new AbstractIterator<Map.Entry<byte[], RowColumnRangeIterator>>() {
+        return new AbstractIterator<>() {
             byte[] prevRowName;
 
             @Override
             protected Map.Entry<byte[], RowColumnRangeIterator> computeNext() {
                 finishConsumingPreviousRow(peekableRawResults);
-                if (!peekableRawResults.hasNext()) {
+                if (!expectedRows.hasNext()) {
+                    if (peekableRawResults.hasNext()) {
+                        throw new SafeIllegalStateException(
+                                "Iterators are not consistent: there is some data returned by getRowsColumnRange()"
+                                        + " even when we expect no more rows. This is likely an AtlasDB product bug.",
+                                UnsafeArg.of("nextRawResult", peekableRawResults.peek()));
+                    }
                     return endOfData();
                 }
+                byte[] nextExpectedRow = expectedRows.next();
+
+                if (!peekableRawResults.hasNext()) {
+                    return Maps.immutableEntry(nextExpectedRow, EmptyRowColumnRangeIterator.INSTANCE);
+                }
                 byte[] nextRowName = peekableRawResults.peek().getKey().getRowName();
-                Iterator<Map.Entry<Cell, Value>> columnsIterator = new AbstractIterator<Map.Entry<Cell, Value>>() {
+                if (!Arrays.equals(nextRowName, nextExpectedRow)) {
+                    return Maps.immutableEntry(nextExpectedRow, EmptyRowColumnRangeIterator.INSTANCE);
+                }
+
+                Iterator<Map.Entry<Cell, Value>> columnsIterator = new AbstractIterator<>() {
                     @Override
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
@@ -769,6 +796,20 @@ public class SnapshotTransaction extends AbstractTransaction
                 }
             }
         };
+    }
+
+    private enum EmptyRowColumnRangeIterator implements RowColumnRangeIterator {
+        INSTANCE;
+
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Map.Entry<Cell, Value> next() {
+            throw new NoSuchElementException();
+        }
     }
 
     @Override
@@ -1123,7 +1164,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive)
+                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1161,9 +1202,9 @@ public class SnapshotTransaction extends AbstractTransaction
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
                 postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
-            Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(
-                    getLocalWritesForRange(tableRef, range.getStartInclusive(), range.getEndExclusive())
-                            .entrySet());
+            Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
+                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                    .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
             return BatchingVisitableFromIterable.create(mergeIterators).batchAccept(userRequestedSize, visitor);
@@ -1279,14 +1320,21 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
+     *
+     * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
+     * {@link RangeRequest}.
      */
-    private SortedMap<Cell, byte[]> getLocalWritesForRange(TableReference tableRef, byte[] startRow, byte[] endRow) {
+    private SortedMap<Cell, byte[]> getLocalWritesForRange(
+            TableReference tableRef, byte[] startRow, byte[] endRow, SortedSet<byte[]> selectedColumns) {
         SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
         if (startRow.length != 0) {
             writes = writes.tailMap(Cells.createSmallestCellForRow(startRow));
         }
         if (endRow.length != 0) {
             writes = writes.headMap(Cells.createSmallestCellForRow(endRow));
+        }
+        if (!selectedColumns.isEmpty()) {
+            writes = Maps.filterKeys(writes, cell -> selectedColumns.contains(cell.getColumnName()));
         }
         return writes;
     }
@@ -1717,6 +1765,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void abort() {
         if (state.get() == State.ABORTED) {
+            close();
             return;
         }
         while (true) {
@@ -1737,8 +1786,17 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
                     }
                 }
+                close();
                 return;
             }
+        }
+    }
+
+    private void close() {
+        try {
+            closer.close();
+        } catch (Exception | Error e) {
+            log.warn("Error while closing transaction resources", e);
         }
     }
 
@@ -1787,6 +1845,7 @@ public class SnapshotTransaction extends AbstractTransaction
     public void commit(TransactionService transactionService) {
         commitWithoutCallbacks(transactionService);
         runSuccessCallbacksIfDefinitivelyCommitted();
+        close();
     }
 
     @Override
@@ -2526,6 +2585,20 @@ public class SnapshotTransaction extends AbstractTransaction
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
         return anyTableRequiresImmutableTimestampLocking && needsToValidate;
     }
+
+    @Override
+    public long getAgeMillis() {
+        return System.currentTimeMillis() - timeCreated;
+    }
+
+    @Override
+    public TransactionReadInfo getReadInfo() {
+        return keyValueService.getOverallReadInfo();
+    }
+
+    // TODO(aalouane): implement and call this on transaction exit
+    @Override
+    public void reportExpectationsCollectedData() {}
 
     private long getStartTimestamp() {
         return startTimestamp.get();

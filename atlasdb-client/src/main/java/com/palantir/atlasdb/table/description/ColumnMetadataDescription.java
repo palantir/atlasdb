@@ -22,11 +22,15 @@ import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class ColumnMetadataDescription {
+    @Nullable
     final ImmutableSet<NamedColumnDescription> namedColumns;
+
+    @Nullable
     final DynamicColumnDescription dynamicColumn;
 
     public ColumnMetadataDescription() {
@@ -44,10 +48,12 @@ public class ColumnMetadataDescription {
         this.dynamicColumn = dynamicColumn;
     }
 
+    @Nullable
     public Set<NamedColumnDescription> getNamedColumns() {
         return namedColumns;
     }
 
+    @Nullable
     public DynamicColumnDescription getDynamicColumn() {
         return dynamicColumn;
     }

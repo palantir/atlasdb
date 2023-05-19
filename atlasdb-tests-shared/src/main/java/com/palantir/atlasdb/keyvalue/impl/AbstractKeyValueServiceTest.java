@@ -84,6 +84,7 @@ import org.assertj.core.data.MapEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.xnio.ByteString;
 
 @SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractKeyValueServiceTest {
@@ -199,6 +200,19 @@ public abstract class AbstractKeyValueServiceTest {
             results.put(result.getKey(), result.getValue());
         }
         return results;
+    }
+
+    @Test
+    public void getRowColumnRange_ReturnsEmptyIteratorIfNoCellsPresent() {
+        List<byte[]> rows = ImmutableList.of(row(1), row(2), row(12));
+        Set<ByteString> comparableRows = rows.stream().map(ByteString::of).collect(Collectors.toSet());
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                rows,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertThat(values.keySet().stream().map(ByteString::of)).hasSameElementsAs(comparableRows);
+        assertThat(values.values()).allMatch(iterator -> !iterator.hasNext());
     }
 
     @Test

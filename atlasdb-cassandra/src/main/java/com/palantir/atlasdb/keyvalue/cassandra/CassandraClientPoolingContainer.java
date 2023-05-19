@@ -49,10 +49,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.layered.TFramedTransport;
 
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientPoolingContainer.class);
@@ -117,12 +117,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
-        ThreadNames.setThreadName(
-                Thread.currentThread(),
-                origName
-                        + " calling cassandra host " + proxy.getHostString() + ':' + proxy.getPort()
-                        + " started at " + Instant.now()
-                        + " - " + count.getAndIncrement());
+        String newThreadName = origName + " to cassandra " + proxy.getHostString() + ':' + proxy.getPort() + " - "
+                + count.getAndIncrement();
+        if (log.isDebugEnabled()) {
+            // the timestamp is expensive to stringify, only add to thread names when debugging
+            newThreadName += " started at " + Instant.now();
+        }
+        ThreadNames.setThreadName(Thread.currentThread(), newThreadName);
         try {
             openRequests.getAndIncrement();
             return runWithGoodResource(fn);

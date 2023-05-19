@@ -29,6 +29,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.junit.Test;
@@ -53,7 +54,8 @@ public class TimestampTrackerTest {
     @Test
     public void defaultTrackerGeneratesTimestampMetrics() {
         createDefaultTracker();
-        assertThat(metricsManager.getRegistry().getNames())
+        assertThat(metricsManager.getTaggedRegistry().getMetrics().keySet().stream()
+                        .map(MetricName::safeName))
                 .containsExactlyInAnyOrder(
                         buildFullyQualifiedMetricName(IMMUTABLE_TIMESTAMP_NAME),
                         buildFullyQualifiedMetricName(FRESH_TIMESTAMP_NAME),
@@ -175,6 +177,11 @@ public class TimestampTrackerTest {
 
     @SuppressWarnings("unchecked") // We know the gauges we are registering produce Longs
     private Gauge<Long> getGauge(String shortName) {
-        return (Gauge<Long>) metricsManager.getRegistry().getGauges().get(buildFullyQualifiedMetricName(shortName));
+        return (Gauge<Long>) (Gauge<?>) metricsManager
+                .getTaggedRegistry()
+                .gauge(MetricName.builder()
+                        .safeName(buildFullyQualifiedMetricName(shortName))
+                        .build())
+                .orElseThrow();
     }
 }

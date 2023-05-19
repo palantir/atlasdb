@@ -21,11 +21,11 @@ import com.palantir.atlasdb.factory.TimeLockHelperServices;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
-import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
@@ -57,7 +57,6 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tokens.auth.BearerToken;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +72,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
-    private static final BearerToken BEARER_TOKEN = BearerToken.valueOf("test-token");
     private static final int THREAD_POOL_SIZE = 128;
     private static final int BLOCKING_TIMEOUT_MS = 60 * 800; // 0.8 mins to ms
 
@@ -121,7 +119,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 .cluster(PartialServiceConfiguration.of(List.of("local"), Optional.empty()))
                 .build();
         TimeLockRuntimeConfiguration runtime = ImmutableTimeLockRuntimeConfiguration.builder()
-                .permittedBackupToken(BEARER_TOKEN)
                 .clusterSnapshot(clusterConfig)
                 .build();
 
@@ -209,11 +206,6 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     @Override
-    public AsyncTimelockResource getTimelockResource() {
-        return delegate.getTimelockResource();
-    }
-
-    @Override
     public AsyncTimelockService getTimelockService() {
         return delegate.getTimelockService();
     }
@@ -221,6 +213,11 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     @Override
     public TimestampManagementService getTimestampManagementService() {
         return delegate.getTimestampManagementService();
+    }
+
+    @Override
+    public LockLog getLockLog() {
+        return delegate.getLockLog();
     }
 
     public ManagedTimestampService getManagedTimestampService() {

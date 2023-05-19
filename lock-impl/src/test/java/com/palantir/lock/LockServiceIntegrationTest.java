@@ -16,14 +16,11 @@
 package com.palantir.lock;
 
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceTestUtils;
 
 public final class LockServiceIntegrationTest extends LockServiceTest {
     @Override
     protected LockService getLockService() {
-        return LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .lockStateLoggerDir(LockServiceTestUtils.TEST_LOG_STATE_DIR)
-                .build());
+        return LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build());
     }
 }

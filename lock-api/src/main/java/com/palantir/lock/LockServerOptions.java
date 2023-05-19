@@ -48,6 +48,7 @@ public class LockServerOptions implements Serializable {
      * client accessing it.
      */
     @Value.Default
+    @JsonProperty("isStandaloneServer")
     public boolean isStandaloneServer() {
         return true;
     }
@@ -141,8 +142,7 @@ public class LockServerOptions implements Serializable {
                 && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equals(getLockStateLoggerDir(), other.getLockStateLoggerDir());
+                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout());
     }
 
     @Override
@@ -155,7 +155,6 @@ public class LockServerOptions implements Serializable {
                 getMaxNormalLockAge(),
                 getRandomBitCount(),
                 getStuckTransactionTimeout(),
-                getLockStateLoggerDir(),
                 slowLogTriggerMillis());
     }
 
@@ -169,7 +168,6 @@ public class LockServerOptions implements Serializable {
                 .add("maxNormalLockAge", getMaxNormalLockAge())
                 .add("randomBitCount", getRandomBitCount())
                 .add("stuckTransactionTimeout", getStuckTransactionTimeout())
-                .add("lockStateLoggerDir", getLockStateLoggerDir())
                 .add("slowLogTriggerMillis", slowLogTriggerMillis())
                 .toString();
     }
@@ -180,11 +178,6 @@ public class LockServerOptions implements Serializable {
 
     protected Object writeReplace() {
         return new SerializationProxy(this);
-    }
-
-    @Value.Default
-    public String getLockStateLoggerDir() {
-        return "log/state";
     }
 
     public static Builder builder() {
@@ -203,7 +196,6 @@ public class LockServerOptions implements Serializable {
         private final SimpleTimeDuration maxNormalLockAge;
         private final int randomBitCount;
         private final SimpleTimeDuration stuckTransactionTimeout;
-        private final String lockStateLoggerDir;
         private final long slowLogTriggerMillis;
 
         SerializationProxy(LockServerOptions lockServerOptions) {
@@ -214,7 +206,6 @@ public class LockServerOptions implements Serializable {
             maxNormalLockAge = SimpleTimeDuration.of(lockServerOptions.getMaxNormalLockAge());
             randomBitCount = lockServerOptions.getRandomBitCount();
             stuckTransactionTimeout = SimpleTimeDuration.of(lockServerOptions.getStuckTransactionTimeout());
-            lockStateLoggerDir = lockServerOptions.getLockStateLoggerDir();
             slowLogTriggerMillis = lockServerOptions.slowLogTriggerMillis();
         }
 
@@ -227,7 +218,6 @@ public class LockServerOptions implements Serializable {
                 @JsonProperty("maxNormalLockAge") SimpleTimeDuration maxNormalLockAge,
                 @JsonProperty("stuckTransactionTimeout") SimpleTimeDuration stuckTransactionTimeout,
                 @JsonProperty("randomBitCount") int randomBitCount,
-                @JsonProperty("lockStateLoggerDir") String lockStateLoggerDir,
                 @JsonProperty("slowLogTriggerMillis") long slowLogTriggerMillis) {
             this.isStandaloneServer = isStandaloneServer;
             this.maxAllowedLockTimeout = maxAllowedLockTimeout;
@@ -236,7 +226,6 @@ public class LockServerOptions implements Serializable {
             this.maxNormalLockAge = maxNormalLockAge;
             this.randomBitCount = randomBitCount;
             this.stuckTransactionTimeout = stuckTransactionTimeout;
-            this.lockStateLoggerDir = lockStateLoggerDir;
             this.slowLogTriggerMillis = slowLogTriggerMillis;
         }
 
@@ -253,7 +242,6 @@ public class LockServerOptions implements Serializable {
                     .maxNormalLockAge(maxNormalLockAge)
                     .randomBitCount(randomBitCount)
                     .stuckTransactionTimeout(stuckTransactionTimeout)
-                    .lockStateLoggerDir(lockStateLoggerDir)
                     .slowLogTriggerMillis(slowLogTriggerMillis)
                     .build();
         }

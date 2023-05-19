@@ -27,3 +27,97 @@ acceptedBreaks:
       new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
         \ int, int)"
       justification: "revert"
+  "0.787.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.exception.checkedAdded"
+      old: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
+        \ int, int)"
+      new: "method org.apache.thrift.transport.TSocket com.palantir.atlasdb.keyvalue.cassandra.InstrumentedTSocket.Factory::create(java.lang.String,\
+        \ int, int) throws org.apache.thrift.transport.TTransportException"
+      justification: "required for libthrift upgrade"
+  "0.792.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.CassandraRepairHelper"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.ClusterMetadataUtils"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.CqlCluster"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.ImmutableRangesForRepair"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.cassandra.backup.RangesForRepair"
+      justification: "Unused backup restore code"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.backup.KvsRunner"
+      justification: "Unused backup restore code"
+    - code: "java.method.removed"
+      old: "method java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken>\
+        \ com.palantir.atlasdb.cassandra.backup.CqlSession::retrieveRowKeysAtConsistencyAll(java.util.List<com.datastax.driver.core.Statement>)"
+      justification: "Unused backup restore code"
+  "0.795.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken::getLowerExclusive(com.google.common.collect.Range<com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken>)"
+      justification: "Removing unused ABR code"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::createInitialized(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      justification: "Removing unused ABR code"
+  "0.801.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::getNewHostsWithInconsistentTopologiesAndRetry(===java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>===,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer>,\
+        \ java.time.Duration, java.time.Duration)"
+      new: "parameter java.util.Set<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::getNewHostsWithInconsistentTopologiesAndRetry(===java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin>===, java.util.Map<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer>,\
+        \ java.time.Duration, java.time.Duration)"
+      justification: "Internal Cassandra KVS APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.google.common.collect.ImmutableSet<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::getCurrentServerListFromConfig()"
+      new: "method com.google.common.collect.ImmutableMap<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin> com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::getCurrentServerListFromConfig()"
+      justification: "Internal Cassandra KVS APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.google.common.collect.ImmutableSet<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::refreshTokenRangesAndGetServers()"
+      new: "method com.google.common.collect.ImmutableMap<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin> com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::refreshTokenRangesAndGetServers()"
+      justification: "Internal Cassandra KVS APIs"
+  "0.808.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.transaction.service.TransactionStatuses"
+      justification: "Internal methods"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.service.TransactionStatus.Cases<R\
+        \ extends java.lang.Object>"
+      justification: "Internal methods"
+    - code: "java.method.removed"
+      old: "method <R> R com.palantir.atlasdb.transaction.service.TransactionStatus::match(com.palantir.atlasdb.transaction.service.TransactionStatus.Cases<R>)"
+      justification: "Internal methods"
+    - code: "java.method.removed"
+      old: "method boolean com.palantir.atlasdb.transaction.service.TransactionStatus::equals(java.lang.Object)"
+      justification: "Internal methods"
+  "0.815.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.expectations.ExpectationsAwareTransaction"
+      justification: "moving out of API"
+  "0.824.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.removed"
+      old: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createThreadPoolWihtoutSpans(java.lang.String,\
+        \ int, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
+      justification: "Protected method"

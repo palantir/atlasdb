@@ -18,6 +18,7 @@ package com.palantir.nexus.db.sql;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.nexus.db.DBType;
 import java.util.List;
 import org.junit.Test;
 
@@ -68,5 +69,52 @@ public class SQLStringTest {
     public void testCanonicalizeBlanks() throws Exception {
         List<String> testBatch = ImmutableList.of("", " ", " ;; ; ");
         testBatch.forEach(sql -> assertThat(SQLString.canonicalizeString(sql)).isEmpty());
+    }
+
+    @Test
+    public void testMakeCommentString() {
+        String sql = "SELECT 1 FROM dual";
+        assertThat(SQLString.prependPrefix(null, null, sql))
+                .isEqualTo("/* UnregisteredSQLString */ SELECT 1 FROM dual");
+        assertThat(SQLString.prependPrefix(null, DBType.POSTGRESQL, sql))
+                .isEqualTo("/* UnregisteredSQLString dbType: POSTGRESQL */ SELECT 1 FROM dual");
+        assertThat(SQLString.prependPrefix(null, DBType.ORACLE, sql))
+                .isEqualTo("/* UnregisteredSQLString dbType: ORACLE */ SELECT 1 FROM dual");
+        assertThat(SQLString.prependPrefix("test", DBType.POSTGRESQL, sql))
+                .isEqualTo("/* SQLString Identifier: test dbType: POSTGRESQL */ SELECT 1 FROM dual");
+        assertThat(SQLString.prependPrefix("test", DBType.ORACLE, sql))
+                .isEqualTo("/* SQLString Identifier: test dbType: ORACLE */ SELECT 1 FROM dual");
+    }
+
+    @Test
+    public void createUnregistered() {
+        String sql = "SELECT 1 FROM dual";
+        assertThat(SQLString.getUnregisteredQuery(sql)).isNotNull().satisfies(unregisteredQuery -> {
+            assertThat(unregisteredQuery.getKey()).isNull();
+            assertThat(unregisteredQuery.getQuery()).isEqualTo("/* UnregisteredSQLString */ SELECT 1 FROM dual");
+        });
+        assertThat(new SQLString(null, sql, null)).satisfies(sqlString -> {
+            assertThat(sqlString.getKey()).isNull();
+            assertThat(sqlString.getQuery()).isEqualTo("/* UnregisteredSQLString */ SELECT 1 FROM dual");
+        });
+        assertThat(new SQLString(null, sql, DBType.POSTGRESQL)).satisfies(sqlString -> {
+            assertThat(sqlString.getKey()).isNull();
+            assertThat(sqlString.getQuery())
+                    .isEqualTo("/* UnregisteredSQLString dbType: POSTGRESQL */ SELECT 1 FROM dual");
+        });
+    }
+
+    @Test
+    public void createRegistered() {
+        String sql = "SELECT 1 from dual";
+        assertThat(new SQLString("testKey", sql, null)).satisfies(sqlString -> {
+            assertThat(sqlString.getKey()).isEqualTo("testKey");
+            assertThat(sqlString.getQuery()).isEqualTo("/* SQLString Identifier: testKey */ SELECT 1 from dual");
+        });
+        assertThat(new SQLString("testKey", sql, DBType.POSTGRESQL)).satisfies(sqlString -> {
+            assertThat(sqlString.getKey()).isEqualTo("testKey");
+            assertThat(sqlString.getQuery())
+                    .isEqualTo("/* SQLString Identifier: testKey dbType: POSTGRESQL */ SELECT 1 from dual");
+        });
     }
 }

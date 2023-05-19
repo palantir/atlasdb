@@ -17,8 +17,8 @@
 package com.palantir.paxos;
 
 import com.palantir.common.persist.Persistable;
+import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.Set;
 import java.util.function.Function;
 import javax.sql.DataSource;
 import org.jdbi.v3.core.Jdbi;
@@ -138,7 +138,9 @@ public class SqlitePaxosStateLog<V extends Persistable & Versionable> implements
                 @Bind("useCase") String useCase,
                 @BindPojo("round") Iterable<PaxosRound<V>> rounds);
 
-        @SqlQuery("SELECT DISTINCT(namespace) FROM paxosLog")
-        Set<String> getAllNamespaces();
+        // This is performant as long as the query plan is SEARCH.
+        @SqlQuery("SELECT MIN(namespace) FROM paxosLog WHERE namespace > :maybeLastReadNamespace")
+        Optional<String> getNextLexicographicallySmallestNamespace(
+                @Bind("maybeLastReadNamespace") String maybeLastReadNamespace);
     }
 }

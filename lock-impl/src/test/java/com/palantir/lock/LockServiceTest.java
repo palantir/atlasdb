@@ -27,7 +27,6 @@ import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.logger.LockServiceTestUtils;
 import com.palantir.util.Mutable;
 import com.palantir.util.Mutables;
 import java.io.File;
@@ -538,8 +537,6 @@ public abstract class LockServiceTest {
             logCallFuture.get(logCurrentStateCallTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             throw new AssertionError("If we exceed the timeout, the call is hung and it's a failure", e);
-        } finally {
-            LockServiceTestUtils.cleanUpLogStateDir();
         }
     }
 

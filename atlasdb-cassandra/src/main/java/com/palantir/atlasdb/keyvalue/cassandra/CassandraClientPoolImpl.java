@@ -32,8 +32,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.ScheduledExecutorServiceFactory;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import one.util.streamex.EntryStream;
 
 /**
  * Feature breakdown:
@@ -67,9 +68,9 @@ import java.util.concurrent.TimeUnit;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-
-    private static final ScheduledExecutorServiceFactory REFRESH_DAEMON_FACTORY =
-            ScheduledExecutorServiceFactory.of(new NamedThreadFactory("CassandraClientPoolRefresh", true));
+    private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
+            new InitializeableScheduledExecutorServiceSupplier(
+                    new NamedThreadFactory("CassandraClientPoolRefresh", true));
 
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraClientPool {
         @Override
@@ -146,7 +147,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            ScheduledExecutorServiceFactory refreshDaemonFactory,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             Blacklist blacklist,
             CassandraService cassandra,
             CassandraTopologyValidator cassandraTopologyValidator,
@@ -156,7 +157,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                refreshDaemonFactory,
+                initializeableExecutorSupplier,
                 exceptionHandler,
                 blacklist,
                 cassandra,
@@ -208,7 +209,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 config,
                 runtimeConfig,
                 startupChecks,
-                REFRESH_DAEMON_FACTORY,
+                SHARED_EXECUTOR_SUPPLIER,
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, runtimeConfig, blacklist, metrics),
@@ -221,7 +222,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
-            ScheduledExecutorServiceFactory refreshDaemonFactory,
+            InitializeableScheduledExecutorServiceSupplier initializeableExecutorSupplier,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist,
             CassandraService cassandra,
@@ -231,7 +232,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this.config = config;
         this.runtimeConfig = runtimeConfig;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = refreshDaemonFactory.create(config.numPoolRefreshingThreads());
+        initializeableExecutorSupplier.initialize(config.numPoolRefreshingThreads());
+        this.refreshDaemon = initializeableExecutorSupplier.get();
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
         this.cassandra = cassandra;
@@ -338,10 +340,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    void setServersInPoolTo(ImmutableSet<CassandraServer> desiredServers) {
+    void setServersInPoolTo(ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers) {
         Set<CassandraServer> currentServers = getCachedServers();
-        SetView<CassandraServer> serversToAdd = Sets.difference(desiredServers, currentServers);
-        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers);
+        Map<CassandraServer, CassandraServerOrigin> serversToAdd = EntryStream.of(desiredServers)
+                .removeKeys(currentServers::contains)
+                .toImmutableMap();
+        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
 
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
@@ -363,7 +367,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
                     + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
                     + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)));
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
     }
@@ -379,13 +383,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     Set<CassandraServer> validateNewHostsTopologiesAndMaybeAddToPool(
             Map<CassandraServer, CassandraClientPoolingContainer> currentContainers,
-            Set<CassandraServer> serversToAdd) {
+            Map<CassandraServer, CassandraServerOrigin> serversToAdd) {
         if (serversToAdd.isEmpty()) {
             return Set.of();
         }
-
+        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
-                getContainerForNewServers(serversToAdd);
+                getContainerForNewServers(serversToAddWithoutOrigin);
 
         Preconditions.checkArgument(
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
@@ -407,7 +411,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
                         serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
 
-        Set<CassandraServer> validatedServersToAdd = Sets.difference(serversToAdd, newHostsWithDifferingTopology);
+        Set<CassandraServer> validatedServersToAdd =
+                Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
         newHostsWithDifferingTopology.forEach(
                 server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
@@ -496,7 +501,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     (cassandraServer, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tServer: %s was marked unreachable via proxy: %s, with exception: %s%n",
                             cassandraServer.cassandraHostName(),
-                            cassandraServer.proxy().getHostString(),
+                            CassandraLogHelper.host(cassandraServer.proxy()),
                             exception.toString())));
         }
 

@@ -41,7 +41,7 @@ public class CassandraClientPoolMetrics {
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;
-        this.aggregateRequestMetrics = new RequestMetrics(metricsManager, null);
+        this.aggregateRequestMetrics = new RequestMetrics(metricsManager);
         this.poolExhaustionCounter =
                 metricsManager.registerOrGetCounter(CassandraClientPoolMetrics.class, "pool-exhaustion");
         this.outlierControllers = createOutlierControllers(metricsManager);
@@ -123,12 +123,11 @@ public class CassandraClientPoolMetrics {
         private final Meter totalRequestExceptions;
         private final Meter totalRequestConnectionExceptions;
 
-        RequestMetrics(MetricsManager metricsManager, String metricPrefix) {
-            totalRequests = metricsManager.registerOrGetMeter(CassandraClientPool.class, metricPrefix, "requests");
-            totalRequestExceptions =
-                    metricsManager.registerOrGetMeter(CassandraClientPool.class, metricPrefix, "requestExceptions");
-            totalRequestConnectionExceptions = metricsManager.registerOrGetMeter(
-                    CassandraClientPool.class, metricPrefix, "requestConnectionExceptions");
+        RequestMetrics(MetricsManager metricsManager) {
+            totalRequests = metricsManager.registerOrGetMeter(CassandraClientPool.class, "requests");
+            totalRequestExceptions = metricsManager.registerOrGetMeter(CassandraClientPool.class, "requestExceptions");
+            totalRequestConnectionExceptions =
+                    metricsManager.registerOrGetMeter(CassandraClientPool.class, "requestConnectionExceptions");
         }
 
         void markRequest() {

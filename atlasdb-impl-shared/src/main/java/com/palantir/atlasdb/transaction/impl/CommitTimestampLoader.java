@@ -31,7 +31,6 @@ import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import com.palantir.atlasdb.transaction.service.TransactionStatuses;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -141,13 +140,13 @@ public final class CommitTimestampLoader {
             long start = entry.getKey();
             TransactionStatus commitStatus = entry.getValue();
 
-            if (commitStatus.equals(TransactionStatuses.inProgress())) {
+            if (commitStatus.equals(TransactionStatus.inProgress())) {
                 continue;
             }
 
             long commitTs = TransactionStatusUtils.getCommitTsFromStatus(
                     start, commitStatus, abortedTransactionsCache::isKnownAbandoned);
-            if (commitStatus.equals(TransactionStatuses.unknown())) {
+            if (commitStatus.equals(TransactionStatus.unknown())) {
                 shouldValidate = true;
             } else {
                 timestampCache.putAlreadyCommittedTransaction(start, commitTs);

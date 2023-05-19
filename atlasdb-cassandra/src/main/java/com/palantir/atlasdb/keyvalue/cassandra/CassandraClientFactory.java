@@ -58,10 +58,10 @@ import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.layered.TFramedTransport;
 import org.immutables.value.Value;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
@@ -303,16 +303,11 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
     }
 
-    static class ClientCreationFailedException extends AtlasDbDependencyException {
+    static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
         ClientCreationFailedException(String message, Exception cause) {
             super(message, cause);
-        }
-
-        @Override
-        public Exception getCause() {
-            return (Exception) super.getCause();
         }
     }
 

@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.logsafe.SafeArg;
@@ -447,14 +448,15 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
 
         CassandraClientPoolImpl pool = createClientPool();
-        Set<CassandraServer> serversToAdd = Set.of(CASS_SERVER_1);
+        ImmutableMap<CassandraServer, CassandraServerOrigin> serversToAdd =
+                ImmutableMap.of(CASS_SERVER_1, CassandraServerOrigin.TOKEN_RANGE);
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2);
         assertThatLoggableExceptionThrownBy(
                         () -> pool.validateNewHostsTopologiesAndMaybeAddToPool(poolServers, serversToAdd))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("The current pool of servers should not have any server(s) that are being added.")
                 .hasExactlyArgs(
-                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
+                        SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
                         SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(poolServers.keySet())));
     }
 
@@ -469,9 +471,9 @@ public final class CassandraClientPoolTest {
         CassandraClientPoolingContainer container1 = currentPoolSnapshot.get(CASS_SERVER_1);
         verifyNoInteractions(container1);
 
-        cassandraClientPool.setServersInPoolTo(ImmutableSet.of(CASS_SERVER_3));
+        cassandraClientPool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.TOKEN_RANGE));
         // The refresh will mark absence of host1 beyond limit of tolerance
-        cassandraClientPool.setServersInPoolTo(ImmutableSet.of(CASS_SERVER_3));
+        cassandraClientPool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.TOKEN_RANGE));
         assertThat(cassandraClientPool.getCurrentPools()).containsOnlyKeys(CASS_SERVER_3);
         verify(container1).shutdownPooling();
     }
@@ -486,7 +488,9 @@ public final class CassandraClientPoolTest {
 
     private void setCassandraServersTo(CassandraServer... servers) {
         when(cassandra.refreshTokenRangesAndGetServers())
-                .thenReturn(Arrays.stream(servers).collect(ImmutableSet.toImmutableSet()));
+                .thenReturn(Arrays.stream(servers)
+                        .collect(ImmutableMap.toImmutableMap(
+                                Function.identity(), _v -> CassandraServerOrigin.TOKEN_RANGE)));
     }
 
     private CassandraClientPoolImpl createClientPool() {
@@ -495,7 +499,7 @@ public final class CassandraClientPoolTest {
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
-                _numThreads -> deterministicExecutor,
+                InitializeableScheduledExecutorServiceSupplier.createForTests(deterministicExecutor),
                 blacklist,
                 cassandra,
                 cassandraTopologyValidator,
@@ -653,7 +657,10 @@ public final class CassandraClientPoolTest {
 
     private Object getAggregateMetricValueForMetricName(String metricName) {
         String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, metricName);
-        return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
+        return taggedMetricRegistry
+                .gauge(MetricName.builder().safeName(fullyQualifiedMetricName).build())
+                .orElseThrow()
+                .getValue();
     }
 
     private void setupThriftServers(Set<InetSocketAddress> servers) {
@@ -661,9 +668,10 @@ public final class CassandraClientPoolTest {
                 ImmutableDefaultConfig.builder().addAllThriftHosts(servers).build();
         when(runtimeConfig.servers()).thenReturn(config);
         when(cassandra.getCurrentServerListFromConfig())
-                .thenReturn(config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
-                        .map(CassandraServer::of)
-                        .collect(ImmutableSet.toImmutableSet()));
+                .thenReturn(CassandraServerOrigin.mapAllServersToOrigin(
+                        config.accept(CassandraServersConfigs.ThriftHostsExtractingVisitor.INSTANCE).stream()
+                                .map(CassandraServer::of),
+                        CassandraServerOrigin.CONFIG));
     }
 
     private void setupHostsWithConsistentTopology() {

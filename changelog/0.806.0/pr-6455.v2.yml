@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: AtlasDB clients can now recover after receiving a dissenting response
+    to a Cassandra Topology check.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6455

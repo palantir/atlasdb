@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -48,6 +51,12 @@ import java.util.concurrent.Future;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
+
+    private static final LoadingCache<TableReference, String> internalTableNames = Caffeine.newBuilder()
+            .weigher((TableReference key, String value) -> Ints.saturatedCast(key.sizeInBytes() + value.length()))
+            .maximumWeight(1_000_000)
+            .build(AbstractKeyValueService::computeInternalTableName);
+
     protected ExecutorService executor;
 
     /**
@@ -61,38 +70,37 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     /**
      * Creates a fixed thread pool.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param corePoolSize size of the core pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int corePoolSize) {
-        return createThreadPool(threadNamePrefix, corePoolSize, corePoolSize);
+    protected static ExecutorService createFixedThreadPool(String name, int corePoolSize) {
+        return createThreadPool(name, corePoolSize, corePoolSize);
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPool(String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPool(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPool(String name, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPool(maxPoolSize, name);
     }
 
     /**
      * Creates a thread pool with number of threads between {@code _corePoolSize} and {@code maxPoolSize}.
      * It does not create a span.
      *
-     * @param threadNamePrefix thread name prefix
+     * @param name thread name prefix
      * @param _corePoolSize size of the core pool
      * @param maxPoolSize maximum size of the pool
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createThreadPoolWihtoutSpans(
-            String threadNamePrefix, int _corePoolSize, int maxPoolSize) {
-        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, threadNamePrefix);
+    protected static ExecutorService createThreadPoolWithoutSpans(String name, int _corePoolSize, int maxPoolSize) {
+        return PTExecutors.newFixedThreadPoolWithoutSpan(maxPoolSize, name);
     }
 
     @Override
@@ -195,6 +203,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     public static String internalTableName(TableReference tableRef) {
+        return internalTableNames.get(tableRef);
+    }
+
+    private static String computeInternalTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         if (tableName.startsWith("_")) {
             return tableName;

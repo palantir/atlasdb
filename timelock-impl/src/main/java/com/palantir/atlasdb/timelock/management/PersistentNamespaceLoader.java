@@ -22,6 +22,8 @@ import java.util.Set;
 public interface PersistentNamespaceLoader {
     /**
      * Gets all namespaces that have been persisted (via the persistence method under question).
+     * No transactionality guarantees are given: namespace additions and deletions while the
+     * request is running may or may not be reflected in the output.
      */
     Set<Client> getAllPersistedNamespaces();
 }

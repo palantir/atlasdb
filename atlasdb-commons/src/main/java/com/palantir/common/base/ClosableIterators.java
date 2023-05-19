@@ -34,7 +34,7 @@ public final class ClosableIterators {
     }
 
     public static <T> ClosableIterator<T> wrapWithEmptyClose(final Iterator<? extends T> it) {
-        return new EmptyClose<T>() {
+        return new EmptyClose<>() {
             @Override
             public boolean hasNext() {
                 return it.hasNext();
@@ -72,7 +72,7 @@ public final class ClosableIterators {
      * method fails.
      */
     public static <T> ClosableIterator<T> appendOnClose(ClosableIterator<T> closableIterator, final Closeable onClose) {
-        return new ClosableIterator<T>() {
+        return new ClosableIterator<>() {
             @Override
             public boolean hasNext() {
                 return closableIterator.hasNext();
@@ -90,21 +90,17 @@ public final class ClosableIterators {
 
             @Override
             public void close() {
-                try {
+                try (onClose) {
                     closableIterator.close();
-                } finally {
-                    try {
-                        onClose.close();
-                    } catch (IOException e) {
-                        Throwables.throwUncheckedException(e);
-                    }
+                } catch (IOException e) {
+                    throw Throwables.throwUncheckedException(e);
                 }
             }
         };
     }
 
     public static <T> ClosableIterator<T> wrap(final Iterator<? extends T> it, final Closeable closable) {
-        return new ClosableIterator<T>() {
+        return new ClosableIterator<>() {
 
             @Override
             public boolean hasNext() {
@@ -126,7 +122,7 @@ public final class ClosableIterators {
                 try {
                     closable.close();
                 } catch (IOException e) {
-                    Throwables.throwUncheckedException(e);
+                    throw Throwables.throwUncheckedException(e);
                 }
             }
         };

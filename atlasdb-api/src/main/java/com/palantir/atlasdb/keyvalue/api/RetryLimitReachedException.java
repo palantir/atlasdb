@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class RetryLimitReachedException extends AtlasDbDependencyException implements SafeLoggable {
+
     private static final String MESSAGE = "Request was retried and failed each time for the request.";
 
     private final int numRetries;

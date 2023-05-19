@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    While reviewing JFR from some high volume AtlasDB client services (think mountains), I noticed they spend a significant amount of time verifying that the Cassandra ports are the same in
+    `com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService.getKnownPort():300`.
+
+    We can optimize this for the happy path where the port is known and consistent for a ~10x improvement.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6451

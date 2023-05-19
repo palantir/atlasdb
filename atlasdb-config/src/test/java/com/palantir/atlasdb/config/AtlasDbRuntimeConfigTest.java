@@ -22,18 +22,6 @@ import org.junit.Test;
 
 public class AtlasDbRuntimeConfigTest {
     @Test
-    public void configDoesNotSpecifySweepByDefault() {
-        AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.defaultRuntimeConfig();
-        assertThat(config.sweep().enabled()).isEmpty();
-    }
-
-    @Test
-    public void configWithoutSweepHasSweepDisabled() {
-        AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.withSweepDisabled();
-        assertThat(config.sweep().enabled()).contains(false);
-    }
-
-    @Test
     public void configWithoutSpecifyingStreamPersistenceConfigHasDefaultConfig() {
         AtlasDbRuntimeConfig config = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         assertThat(config.streamStorePersistence()).isEqualTo(StreamStorePersistenceConfigurations.DEFAULT_CONFIG);

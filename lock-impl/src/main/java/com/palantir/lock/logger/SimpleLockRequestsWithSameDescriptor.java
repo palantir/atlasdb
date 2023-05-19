@@ -15,30 +15,18 @@
  */
 package com.palantir.lock.logger;
 
-import java.util.ArrayList;
+import com.palantir.logsafe.Safe;
 import java.util.List;
+import org.immutables.value.Value;
 
-public class SimpleLockRequestsWithSameDescriptor {
-    private final String lockDescriptor;
-    private List<SimpleLockRequest> lockRequests = new ArrayList<>();
+@Value.Immutable
+@Safe
+public interface SimpleLockRequestsWithSameDescriptor {
+    ObfuscatedLockDescriptor getLockDescriptor();
 
-    SimpleLockRequestsWithSameDescriptor(String lockDescriptor) {
-        this.lockDescriptor = lockDescriptor;
-    }
+    List<SimpleLockRequest> getLockRequests();
 
-    void addLockRequest(SimpleLockRequest lockRequest) {
-        lockRequests.add(lockRequest);
-    }
-
-    public String getLockDescriptor() {
-        return lockDescriptor;
-    }
-
-    public List<SimpleLockRequest> getLockRequests() {
-        return lockRequests;
-    }
-
-    public int getLockRequestsCount() {
-        return lockRequests.size();
+    default int getLockRequestsCount() {
+        return getLockRequests().size();
     }
 }

@@ -18,12 +18,15 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.benmanes.caffeine.cache.Interner;
 import com.palantir.logsafe.Preconditions;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.Validate;
 
 public final class Namespace {
+    private static final Interner<String> names = Interner.newStrongInterner();
+
     public static final Namespace EMPTY_NAMESPACE = new Namespace("");
     public static final Namespace DEFAULT_NAMESPACE = new Namespace("default");
 
@@ -64,7 +67,7 @@ public final class Namespace {
 
     @JsonCreator
     private Namespace(@JsonProperty("name") String name) {
-        this.name = name;
+        this.name = names.intern(name);
     }
 
     @JsonIgnore

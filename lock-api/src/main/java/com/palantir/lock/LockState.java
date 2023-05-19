@@ -16,6 +16,7 @@
 
 package com.palantir.lock;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
@@ -26,8 +27,10 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableLockState.class)
 @JsonDeserialize(as = ImmutableLockState.class)
 public interface LockState {
+    @JsonProperty("isWriteLocked")
     boolean isWriteLocked();
 
+    @JsonProperty("isFrozen")
     boolean isFrozen();
 
     List<LockClient> exactCurrentLockHolders();

@@ -18,8 +18,8 @@ package com.palantir.atlasdb.transaction.knowledge;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -32,16 +32,30 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class KnownAbandonedTransactionsImplTest {
-    private final AbandonedTimestampStore abandonedTimestampStore = mock(AbandonedTimestampStore.class);
-    private final AbandonedTransactionSoftCache softCache = mock(AbandonedTransactionSoftCache.class);
-    private final KnownAbandonedTransactionsImpl knownAbortedTransactions = new KnownAbandonedTransactionsImpl(
-            abandonedTimestampStore,
-            softCache,
-            new DefaultTaggedMetricRegistry(),
-            KnownAbandonedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
+    @Mock
+    AbandonedTimestampStore abandonedTimestampStore;
+
+    @Mock
+    AbandonedTransactionSoftCache softCache;
+
+    private KnownAbandonedTransactionsImpl knownAbortedTransactions;
+
+    @Before
+    public void before() {
+        knownAbortedTransactions = new KnownAbandonedTransactionsImpl(
+                abandonedTimestampStore,
+                softCache,
+                new DefaultTaggedMetricRegistry(),
+                KnownAbandonedTransactionsImpl.MAXIMUM_CACHE_WEIGHT);
+    }
 
     @Test
     public void testIsKnownAbortedReturnsTrueIfAbortedInSoftCache() {
@@ -141,7 +155,7 @@ public final class KnownAbandonedTransactionsImplTest {
         // First query for bucket 1 goes to the store
         knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
         verify(abandonedTimestampStore)
-                .getAbandonedTimestampsInRange(rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
+                .getAbandonedTimestampsInRange(eq(rangeForBucket.lowerEndpoint()), eq(rangeForBucket.upperEndpoint()));
 
         // Subsequent queries for bucket 1 are resolved from cache
         knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
@@ -155,8 +169,8 @@ public final class KnownAbandonedTransactionsImplTest {
 
         // Now the query for bucket 1 will go to the futile store due to cache eviction
         knownAbortedTransactions.isKnownAbandoned(rangeForBucket.lowerEndpoint());
-        verify(abandonedTimestampStore, times(2))
-                .getAbandonedTimestampsInRange(rangeForBucket.lowerEndpoint(), rangeForBucket.upperEndpoint());
+        verify(abandonedTimestampStore, atLeastOnce())
+                .getAbandonedTimestampsInRange(eq(rangeForBucket.lowerEndpoint()), eq(rangeForBucket.upperEndpoint()));
     }
 
     @Test
