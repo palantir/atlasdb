@@ -101,13 +101,9 @@ public final class OracleDdlTable implements DbDdlTable {
         int compressionSetting = getOptimalIndexCompression(metadata);
 
         if (tableExists()) {
-            if (log.isDebugEnabled()) {
-                log.debug("Table {} already exists.", LoggingArgs.tableRef(tableRef));
-            }
+            log.info("Table {} already exists.", LoggingArgs.tableRef(tableRef));
             if (needsOverflow) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Table {} needs overflow.", LoggingArgs.tableRef(tableRef));
-                }
+                log.info("Table {} needs overflow.", LoggingArgs.tableRef(tableRef));
                 TableValueStyle existingStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
                 if (existingStyle != TableValueStyle.OVERFLOW) {
                     throwForMissingOverflowTable();
@@ -133,23 +129,20 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void maybeAlterTableToHaveOverflowColumn() {
-        if (log.isDebugEnabled()) {
-            log.debug("Potentially altering table {} to have overflow column.", LoggingArgs.tableRef(tableRef));
-        }
+        log.info("Potentially altering table {} to have overflow column.", LoggingArgs.tableRef(tableRef));
         if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Config contains table {}, checking if we can alter table.", LoggingArgs.tableRef(tableRef));
-            }
+            log.info("Config contains table {}, checking if we can alter table.", LoggingArgs.tableRef(tableRef));
             try {
                 String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
-                if (log.isDebugEnabled()) {
-                    log.debug(
-                            "Overflow table migrated status: {}, overflow table existence status: {}, overflow "
-                                    + "column exists status: {}",
-                            SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),
-                            SafeArg.of("overflowTableExists", overflowTableExists()),
-                            SafeArg.of("overflowColumnExists", overflowColumnExists(shortTableName)));
-                }
+                log.info(
+                        "Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, "
+                                + "overflow "
+                                + "column exists status: {}",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),
+                        SafeArg.of("overflowTableExists", overflowTableExists()),
+                        SafeArg.of("overflowColumnExists", overflowColumnExists(shortTableName)));
+
                 if (overflowTableHasMigrated() && overflowTableExists() && !overflowColumnExists(shortTableName)) {
                     alterTableToHaveOverflowColumn(shortTableName);
                 }
