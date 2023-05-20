@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.Token;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.io.BaseEncoding;
@@ -26,11 +25,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Locale;
-import java.util.function.IntPredicate;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
-
     final byte[] bytes;
 
     public LightweightOppToken(byte[] bytes) {
@@ -38,32 +34,7 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
     }
 
     public static LightweightOppToken fromHex(String token) {
-        // OPP tokens should be lowercase already, use upper if needed, and convert mixed to uppercase if needed
-        byte[] bytes = isAllLowercaseOrDigits(token)
-                ? BaseEncoding.base16().lowerCase().decode(token)
-                : isAllUppercaseOrDigits(token)
-                        ? BaseEncoding.base16().decode(token)
-                        : BaseEncoding.base16().decode(token.toUpperCase(Locale.ROOT));
-        return new LightweightOppToken(bytes);
-    }
-
-    @VisibleForTesting
-    static boolean isAllLowercaseOrDigits(String token) {
-        return allMatch(token, ch -> Character.isDigit(ch) || Character.isLowerCase(ch));
-    }
-
-    private static boolean isAllUppercaseOrDigits(String token) {
-        return allMatch(token, ch -> Character.isDigit(ch) || Character.isUpperCase(ch));
-    }
-
-    private static boolean allMatch(String token, IntPredicate predicate) {
-        for (int i = 0; i < token.length(); i++) {
-            char ch = token.charAt(i);
-            if (!predicate.test(ch)) {
-                return false;
-            }
-        }
-        return true;
+        return new LightweightOppToken(Tokens.hexDecode(token));
     }
 
     public static LightweightOppToken of(Cell cell) {
