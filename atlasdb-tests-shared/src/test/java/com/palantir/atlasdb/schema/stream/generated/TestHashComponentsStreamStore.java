@@ -168,7 +168,8 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         }
         TestHashComponentsStreamMetadataTable table = tables.getTestHashComponentsStreamMetadataTable(t);
         Map<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
         Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow r : m.keySet()) {
             for (TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class TestHashComponentsStreamStore extends AbstractPersistentStrea
     }
 
     private Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> rows = new HashSet<>();
+        Set<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow.of(h));
         }
