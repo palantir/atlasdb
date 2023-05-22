@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -32,12 +30,7 @@ public final class ConflictDetectionManagers {
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(new CacheLoader<>() {
-            @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
-                return Optional.of(ConflictHandler.IGNORE_ALL);
-            }
-        });
+        return new ConflictDetectionManager(tableReference -> Optional.of(ConflictHandler.IGNORE_ALL));
     }
 
     /**
@@ -65,18 +58,15 @@ public final class ConflictDetectionManagers {
     }
 
     private static ConflictDetectionManager create(KeyValueService kvs, boolean warmCache) {
-        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(new CacheLoader<>() {
-            @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
-                byte[] metadata = kvs.getMetadataForTable(tableReference);
-                if (metadata.length == 0) {
-                    log.error(
-                            "Tried to make a transaction over a table that has no metadata: {}.",
-                            LoggingArgs.tableRef("tableReference", tableReference));
-                    return Optional.empty();
-                } else {
-                    return Optional.of(getConflictHandlerFromMetadata(metadata));
-                }
+        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(tableReference -> {
+            byte[] metadata = kvs.getMetadataForTable(tableReference);
+            if (metadata.length == 0) {
+                log.error(
+                        "Tried to make a transaction over a table that has no metadata: {}.",
+                        LoggingArgs.tableRef("tableReference", tableReference));
+                return Optional.empty();
+            } else {
+                return Optional.of(getConflictHandlerFromMetadata(metadata));
             }
         });
         if (warmCache) {

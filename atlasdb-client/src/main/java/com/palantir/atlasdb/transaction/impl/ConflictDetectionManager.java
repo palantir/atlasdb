@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
@@ -39,7 +39,7 @@ public class ConflictDetectionManager {
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
     public ConflictDetectionManager(CacheLoader<TableReference, Optional<ConflictHandler>> loader) {
-        this.cache = CacheBuilder.newBuilder().maximumSize(100_000).build(loader);
+        this.cache = Caffeine.newBuilder().maximumSize(100_000).build(loader);
     }
 
     public void warmCacheWith(Map<TableReference, Optional<ConflictHandler>> preload) {
@@ -51,6 +51,6 @@ public class ConflictDetectionManager {
     }
 
     public Optional<ConflictHandler> get(TableReference tableReference) {
-        return cache.getUnchecked(tableReference);
+        return cache.get(tableReference);
     }
 }

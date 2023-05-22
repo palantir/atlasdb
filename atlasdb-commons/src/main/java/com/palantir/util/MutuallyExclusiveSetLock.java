@@ -15,11 +15,9 @@
  */
 package com.palantir.util;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
@@ -54,17 +52,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author carrino
  */
 public class MutuallyExclusiveSetLock<T> {
-    private final boolean fair;
     private final Comparator<? super T> comparator;
-    private final Set<Thread> threadSet = Sets.newSetFromMap(new ConcurrentHashMap<Thread, Boolean>());
-    private final LoadingCache<T, ReentrantLock> syncMap = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(new CacheLoader<T, ReentrantLock>() {
-                @Override
-                public ReentrantLock load(T key) {
-                    return new ReentrantLock(fair);
-                }
-            });
+    private final Set<Thread> threadSet = ConcurrentHashMap.newKeySet();
+    private final LoadingCache<T, ReentrantLock> syncMap;
 
     /**
      * Constructs a new <code>MutuallyExclusiveSetLock</code>
@@ -102,12 +92,12 @@ public class MutuallyExclusiveSetLock<T> {
      */
     @Deprecated
     public MutuallyExclusiveSetLock(boolean fair, Comparator<? super T> comparator) {
-        this.fair = fair;
         this.comparator = comparator;
+        this.syncMap = Caffeine.newBuilder().weakValues().build(key -> new ReentrantLock(fair));
     }
 
     public static <T extends Comparable<? super T>> MutuallyExclusiveSetLock<T> create(boolean fair) {
-        return new MutuallyExclusiveSetLock<T>(fair);
+        return new MutuallyExclusiveSetLock<>(fair);
     }
 
     /**
@@ -119,7 +109,7 @@ public class MutuallyExclusiveSetLock<T> {
      * @param comparator a <code>java.util.Comparator</code> to use in determining lock order.
      */
     public static <T> MutuallyExclusiveSetLock<T> createWithComparator(boolean fair, Comparator<? super T> comparator) {
-        return new MutuallyExclusiveSetLock<T>(fair, comparator);
+        return new MutuallyExclusiveSetLock<>(fair, comparator);
     }
 
     /**
@@ -130,7 +120,7 @@ public class MutuallyExclusiveSetLock<T> {
      */
     public boolean isLocked(Iterable<T> items) {
         for (T t : items) {
-            ReentrantLock lock = syncMap.getUnchecked(t);
+            ReentrantLock lock = syncMap.get(t);
             if (!lock.isHeldByCurrentThread()) {
                 return false;
             }
@@ -157,7 +147,7 @@ public class MutuallyExclusiveSetLock<T> {
             lock.lock();
         }
         threadSet.add(Thread.currentThread());
-        return new LockState<T>(sortedLocks.values(), this);
+        return new LockState<>(sortedLocks.values(), this);
     }
 
     public LockState<T> lockOnObjectsInterruptibly(Iterable<T> lockObjects) throws InterruptedException {
@@ -170,7 +160,7 @@ public class MutuallyExclusiveSetLock<T> {
                 lock.lockInterruptibly();
                 toUnlock.add(lock);
             }
-            LockState<T> ret = new LockState<T>(sortedLocks.values(), this);
+            LockState<T> ret = new LockState<>(sortedLocks.values(), this);
             threadSet.add(Thread.currentThread());
             toUnlock.clear();
             return ret;
@@ -201,7 +191,7 @@ public class MutuallyExclusiveSetLock<T> {
         }
 
         // verify that the compareTo and equals are consistent in that we are always locking on all objects
-        SortedSet<T> treeSet = new TreeSet<T>(comparator);
+        SortedSet<T> treeSet = new TreeSet<>(comparator);
         treeSet.addAll(hashSet);
         if (treeSet.size() != hashSet.size()) {
             throw new SafeIllegalArgumentException("The number of elements using .equals and compareTo differ. "
@@ -242,9 +232,9 @@ public class MutuallyExclusiveSetLock<T> {
     }
 
     private SortedMap<T, ReentrantLock> getSortedLocks(Collection<T> lockObjects) {
-        final TreeMap<T, ReentrantLock> sortedLocks = new TreeMap<T, ReentrantLock>(comparator);
+        final TreeMap<T, ReentrantLock> sortedLocks = new TreeMap<>(comparator);
         for (T t : lockObjects) {
-            sortedLocks.put(t, syncMap.getUnchecked(t));
+            sortedLocks.put(t, syncMap.get(t));
         }
         return sortedLocks;
     }

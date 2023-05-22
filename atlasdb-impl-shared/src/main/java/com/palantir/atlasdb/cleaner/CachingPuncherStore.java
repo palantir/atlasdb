@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 
 /**
  * Wrap another PuncherStore, optimizing the #get() operation to operate on a local cache, only
@@ -31,14 +30,8 @@ public final class CachingPuncherStore implements PuncherStore {
     private static final int CACHE_SIZE = 64000;
 
     public static CachingPuncherStore create(final PuncherStore puncherStore, long granularityMillis) {
-        LoadingCache<Long, Long> timeMillisToTimestamp = CacheBuilder.newBuilder()
-                .maximumSize(CACHE_SIZE)
-                .build(new CacheLoader<Long, Long>() {
-                    @Override
-                    public Long load(Long timeMillis) throws Exception {
-                        return puncherStore.get(timeMillis);
-                    }
-                });
+        LoadingCache<Long, Long> timeMillisToTimestamp =
+                Caffeine.newBuilder().maximumSize(CACHE_SIZE).build(puncherStore::get);
         return new CachingPuncherStore(puncherStore, timeMillisToTimestamp, granularityMillis);
     }
 
@@ -66,7 +59,7 @@ public final class CachingPuncherStore implements PuncherStore {
     @Override
     public Long get(Long timeMillis) {
         long approximateTimeMillis = timeMillis - (timeMillis % granularityMillis);
-        return timeMillisToTimestamp.getUnchecked(approximateTimeMillis);
+        return timeMillisToTimestamp.get(approximateTimeMillis);
     }
 
     @Override

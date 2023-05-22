@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.impl;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -31,24 +30,21 @@ public class TableMetadataCache {
 
     @Inject
     public TableMetadataCache(final KeyValueService kvs) {
-        this.cache = CacheBuilder.newBuilder()
+        this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(Duration.ofMinutes(15))
-                .build(new CacheLoader<String, TableMetadata>() {
-                    @Override
-                    public TableMetadata load(String tableName) throws Exception {
-                        byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
-                        if (rawMetadata == null || rawMetadata.length == 0) {
-                            return EMPTY;
-                        }
-                        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+                .build(tableName -> {
+                    byte[] rawMetadata = kvs.getMetadataForTable(TableReference.createUnsafe(tableName));
+                    if (rawMetadata == null || rawMetadata.length == 0) {
+                        return EMPTY;
                     }
+                    return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
                 });
     }
 
     @CheckForNull
     @SuppressWarnings("ImmutablesReferenceEquality")
     public TableMetadata getMetadata(String tableName) {
-        TableMetadata ret = cache.getUnchecked(tableName);
+        TableMetadata ret = cache.get(tableName);
         if (ret == EMPTY) {
             return null;
         }

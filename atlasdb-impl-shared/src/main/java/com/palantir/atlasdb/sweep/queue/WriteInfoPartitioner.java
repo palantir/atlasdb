@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
@@ -41,13 +40,8 @@ public class WriteInfoPartitioner {
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
 
-    private final LoadingCache<TableReference, SweeperStrategy> cache = CacheBuilder.newBuilder()
-            .build(new CacheLoader<>() {
-                @Override
-                public SweeperStrategy load(TableReference key) {
-                    return getStrategyFromKvs(key);
-                }
-            });
+    private final LoadingCache<TableReference, SweeperStrategy> cache =
+            Caffeine.newBuilder().build(this::getStrategyFromKvs);
 
     public WriteInfoPartitioner(KeyValueService kvs, Supplier<Integer> numShards) {
         this.kvs = kvs;
@@ -96,7 +90,7 @@ public class WriteInfoPartitioner {
     }
 
     SweeperStrategy getStrategyForTable(TableReference tableRef) {
-        return cache.getUnchecked(tableRef);
+        return cache.get(tableRef);
     }
 
     private SweeperStrategy getStrategyFromKvs(TableReference tableRef) {

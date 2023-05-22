@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.time.Duration;
@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 public class TableMetadataCache {
     private static final TableMetadata EMPTY = TableMetadata.allDefault();
 
-    private final Cache<TableReference, TableMetadata> cache = CacheBuilder.newBuilder()
+    private final Cache<TableReference, TableMetadata> cache = Caffeine.newBuilder()
             .maximumSize(10000)
             .expireAfterWrite(Duration.ofHours(1))
             .build();
