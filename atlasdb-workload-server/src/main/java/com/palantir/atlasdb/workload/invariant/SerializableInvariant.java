@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import one.util.streamex.StreamEx;
 
-public enum SerializableInvariant implements Invariant<List<InvalidWitnessedTransaction>> {
+public enum SerializableInvariant implements TransactionInvariant {
     INSTANCE;
 
     @Override
