@@ -101,6 +101,6 @@ case "$test_suite_index" in
     10) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_10[@]} ;;
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
     12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
-    12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
-    13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
+    13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
+    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
