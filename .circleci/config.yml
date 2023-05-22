@@ -159,7 +159,7 @@ workflows:
             tags:
               only: /.*/
       - test-suite:
-          requires: [build]
+          requires: [build, compile]
           matrix:
             alias: test-no-tl
             parameters:
@@ -169,7 +169,7 @@ workflows:
             tags:
               only: /.*/
       - test-suite:
-          requires: [build]
+          requires: [build, compile]
           matrix:
             alias: test-tl
             parameters:
