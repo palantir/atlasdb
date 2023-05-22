@@ -399,10 +399,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         conns.get()
                 .updateManyUnregisteredQuery(
                         " /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */ "
-                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
-                                + "   FROM " + overflowTable + " m "
-                                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
-                                + ") */ "
+                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ")"
+                                + "            NO_INDEX_FFS(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ß"
+                                + " FROM " + overflowTable + " m "
+                                + " WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
+                                + "   ) */ "
                                 + "                        i.overflow "
                                 + "                   FROM " + shortTableName + " i "
                                 + "                  WHERE i.row_name = ? "
