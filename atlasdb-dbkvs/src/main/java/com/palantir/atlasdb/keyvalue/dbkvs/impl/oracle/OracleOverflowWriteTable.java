@@ -352,8 +352,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         conns.get()
                 .updateManyUnregisteredQuery(
                         " /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
-                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
-                                + "   FROM " + overflowTable + " m "
+                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") "
+                                + "            NO_INDEX_FFS(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
+                                + "  FROM " + overflowTable + " m "
                                 + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
                                 + ") */ "
                                 + "                        i.overflow "
@@ -368,8 +369,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private void deleteOverflowRange(String overflowTable, String shortTableName, RangeRequest range) {
         StringBuilder query = new StringBuilder();
         query.append(" /* DELETE_RANGE_OVERFLOW (").append(overflowTable).append(") */ ");
-        query.append(" DELETE /*+ INDEX(m pk_").append(overflowTable).append(") */ ");
-        query.append("   FROM ").append(overflowTable).append(" m ");
+        query.append(" DELETE /*+ INDEX(m pk_").append(overflowTable).append(") ");
+        query.append("            NO_INDEX_FFS(m pk_").append(overflowTable).append(") */ ");
+        query.append(" FROM ").append(overflowTable).append(" m ");
         query.append(" WHERE m.id IN (");
 
         // subquery for finding rows in the short table
@@ -400,7 +402,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 .updateManyUnregisteredQuery(
                         " /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */ "
                                 + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ")"
-                                + "            NO_INDEX_FFS(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ß"
+                                + "            NO_INDEX_FFS(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */"
                                 + " FROM " + overflowTable + " m "
                                 + " WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
                                 + "   ) */ "
