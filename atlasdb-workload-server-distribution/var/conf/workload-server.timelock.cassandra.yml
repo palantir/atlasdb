@@ -53,7 +53,7 @@ install:
     type: ring
   singleBusyCellConfig:
     tableConfiguration:
-      tableName: single-busy-cell-test
+      tableName: single_busy_cell_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: single-busy-cell
