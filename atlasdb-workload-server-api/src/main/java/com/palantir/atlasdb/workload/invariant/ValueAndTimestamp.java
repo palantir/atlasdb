@@ -23,19 +23,36 @@ import org.immutables.value.Value;
  * Occasionally, storing just a value might not be enough context needed when validating an invariant.
  *
  * For example, to detect that the ABA problem has occurred (ABA problem (https://en.wikipedia.org/wiki/ABA_problem),
- * values alone would not be sufficient. Storing the timestamp associated with the value, such as the startTimestamp,
+ * values alone would not be sufficient. Storing the timestamp associated with the value, such as the start timestamp,
  * would be able to catch these sort of cases.
  */
 @Value.Immutable
 public interface ValueAndTimestamp {
+    ValueAndTimestamp EMPTY = of(Optional.empty(), Optional.empty());
 
     @Value.Parameter
     Optional<Integer> value();
 
     @Value.Parameter
-    Long timestamp();
+    Optional<Long> timestamp();
+
+    static ValueAndTimestamp empty() {
+        return EMPTY;
+    }
+
+    static ValueAndTimestamp of(Optional<Integer> value) {
+        return of(value, Optional.empty());
+    }
 
     static ValueAndTimestamp of(Optional<Integer> value, Long timestamp) {
+        return of(value, Optional.of(timestamp));
+    }
+
+    static ValueAndTimestamp of(Integer value, Long timestamp) {
+        return of(Optional.of(value), Optional.of(timestamp));
+    }
+
+    static ValueAndTimestamp of(Optional<Integer> value, Optional<Long> timestamp) {
         return ImmutableValueAndTimestamp.of(value, timestamp);
     }
 }

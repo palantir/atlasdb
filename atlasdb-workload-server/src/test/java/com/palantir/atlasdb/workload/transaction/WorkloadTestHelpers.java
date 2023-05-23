@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.transaction;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.workload.invariant.ValueAndTimestamp;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
@@ -58,5 +59,9 @@ public final class WorkloadTestHelpers {
             TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_ONE);
     public static final TableAndWorkloadCell TABLE_WORKLOAD_CELL_TWO =
             TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO);
+
+    public static final ValueAndTimestamp VALUE_ONE_AND_TIMESTAMP = ValueAndTimestamp.of(VALUE_ONE, 1L);
+
+    public static final ValueAndTimestamp VALUE_TWO_AND_TIMESTAMP = ValueAndTimestamp.of(VALUE_TWO, 1L);
     public static final String WORKFLOW = "example-workflow";
 }

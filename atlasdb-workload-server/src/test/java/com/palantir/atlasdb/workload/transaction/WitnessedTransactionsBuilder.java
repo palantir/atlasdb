@@ -40,6 +40,11 @@ public final class WitnessedTransactionsBuilder {
         this.table = table;
     }
 
+    public WitnessedTransactionBuilder startTransaction(long startTimestamp) {
+        timestampCounter.set(startTimestamp);
+        return new WitnessedTransactionBuilder(startTimestamp);
+    }
+
     public WitnessedTransactionBuilder startTransaction() {
         return new WitnessedTransactionBuilder(timestampCounter.incrementAndGet());
     }

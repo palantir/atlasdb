@@ -35,14 +35,14 @@ import java.util.Optional;
  *
  * Objects created from this class should only be used within a scope of a single transaction.
  */
-final class SnapshotIsolationInvariantVisitor
+final class SnapshotInvariantVisitor
         implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
 
     private final Long startTimestamp;
     private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView;
     private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView;
 
-    SnapshotIsolationInvariantVisitor(
+    SnapshotInvariantVisitor(
             Long startTimestamp,
             StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView,
             StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView) {
@@ -53,8 +53,9 @@ final class SnapshotIsolationInvariantVisitor
 
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
-        Optional<Integer> expected =
-                fetchValueFromView(readTransactionAction.table(), readTransactionAction.cell(), readView);
+        Optional<Integer> expected = fetchValueFromView(
+                        readTransactionAction.table(), readTransactionAction.cell(), readView)
+                .value();
         if (!expected.equals(readTransactionAction.value())) {
             return Optional.of(InvalidWitnessedTransactionAction.of(
                     readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expected)));
@@ -102,25 +103,21 @@ final class SnapshotIsolationInvariantVisitor
      * that means we have missed a write-write conflict, as it should have conflicted with this transaction.
      */
     private Optional<MismatchedValue> checkForWriteWriteConflicts(String table, WorkloadCell cell) {
-        Optional<Integer> previous = fetchValueFromView(table, cell, readView);
-        Optional<Integer> latest = fetchValueFromView(table, cell, latestView);
+        ValueAndTimestamp previous = fetchValueFromView(table, cell, readView);
+        ValueAndTimestamp latest = fetchValueFromView(table, cell, latestView);
 
         if (!previous.equals(latest)) {
-            return Optional.of(MismatchedValue.of(previous, latest));
+            return Optional.of(MismatchedValue.of(latest, previous));
         }
 
         return Optional.empty();
     }
 
-    private Optional<Integer> fetchValueFromView(
+    private ValueAndTimestamp fetchValueFromView(
             String tableName,
             WorkloadCell workloadCell,
             StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> view) {
         TableAndWorkloadCell tableAndWorkloadCell = TableAndWorkloadCell.of(tableName, workloadCell);
-        return view.getSnapshot()
-                .get(tableAndWorkloadCell)
-                .toJavaOptional()
-                .map(ValueAndTimestamp::value)
-                .orElseGet(Optional::empty);
+        return view.getSnapshot().get(tableAndWorkloadCell).toJavaOptional().orElseGet(ValueAndTimestamp::empty);
     }
 }

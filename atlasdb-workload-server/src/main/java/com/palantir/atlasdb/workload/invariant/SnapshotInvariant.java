@@ -44,17 +44,19 @@ import one.util.streamex.StreamEx;
  * Otherwise, once the transaction is replayed on top of the latest view, we persist this new view at the
  * commit timestamp.
  */
-public final class SnapshotIsolationInvariant implements TransactionInvariant {
+public enum SnapshotInvariant implements TransactionInvariant {
+    INSTANCE;
+
     @Override
     public void accept(
             WorkflowHistory workflowHistory, Consumer<List<InvalidWitnessedTransaction>> invalidWitnessedTransactions) {
-        TableView tableView = new TableView();
+        VersionedTableView<TableAndWorkloadCell, ValueAndTimestamp> tableView = new VersionedTableView<>();
         List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
                 .mapPartial(witnessedTransaction -> {
                     StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestTableView =
                             tableView.getLatestTableView();
 
-                    SnapshotIsolationInvariantVisitor visitor = new SnapshotIsolationInvariantVisitor(
+                    SnapshotInvariantVisitor visitor = new SnapshotInvariantVisitor(
                             witnessedTransaction.startTimestamp(),
                             latestTableView,
                             tableView.getView(witnessedTransaction.startTimestamp()));
