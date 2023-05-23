@@ -54,6 +54,10 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
         this.maybeNamespace = maybeNamespace.map(Namespace::create);
     }
 
+    public boolean isInitialized() {
+        return transactionManager.isInitialized();
+    }
+
     @Override
     public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
         return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
