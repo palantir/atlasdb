@@ -156,9 +156,20 @@ workflows:
           matrix:
             alias: test-no-tl
             parameters:
-              # intentionally excluding 13 (TimeLock migration ETE test) from this collection
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14]
+              # intentionally excluding  3 (TimeLock integration test) from this collection, it's ran with more resources
+              # intentionally excluding 13 (TimeLock migration ETE test) from this collection, it's ran conditionally
+              suite: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14]
               resource_class: ["xlarge"]
+          filters:
+            tags:
+              only: /.*/
+      - test-suite:
+          requires: [build]
+          matrix:
+            alias: test-tl-integ
+            parameters:
+              suite: [3]
+              resource_class: ["2xlarge"]
           filters:
             tags:
               only: /.*/
@@ -175,7 +186,7 @@ workflows:
             tags:
               only: /.*/
       - test:
-          requires: [test-tl, test-no-tl]
+          requires: [test-tl-integ, test-tl, test-no-tl]
           filters:
             tags:
               only: /.*/
