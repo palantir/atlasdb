@@ -19,14 +19,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 import org.junit.Test;
+import org.mockito.MockMakers;
+import org.mockito.MockSettings;
 
 public class PredicateSwitchedProxyTest {
-    private final IntConsumer decorated = mock(IntConsumer.class);
-    private final IntConsumer delegate = mock(IntConsumer.class);
+    private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
+    private final IntConsumer decorated = mock(IntConsumer.class, mockSettings);
+    private final IntConsumer delegate = mock(IntConsumer.class, mockSettings);
 
     private final AtomicBoolean atomicBoolean = new AtomicBoolean(false);
 

@@ -19,24 +19,29 @@ package com.palantir.common.concurrent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.google.common.util.concurrent.Futures;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import org.junit.Test;
+import org.mockito.MockMakers;
 
 public class CheckedRejectionExecutorServiceTest {
-    private static final Runnable DO_NOTHING = () -> {};
-    private static final Callable<Integer> RETURN_ONE = () -> 1;
-    private static final RejectedExecutionException REJECTED_EXECUTION_EXCEPTION = new RejectedExecutionException();
+    private final Runnable DO_NOTHING = () -> {};
+    private final Callable<Integer> RETURN_ONE = () -> 1;
+    private final RejectedExecutionException REJECTED_EXECUTION_EXCEPTION = new RejectedExecutionException("test");
 
-    private final ExecutorService delegate = mock(ExecutorService.class);
+    private final ExecutorService delegate =
+            mock(ExecutorService.class, withSettings().mockMaker(MockMakers.SUBCLASS));
     private final CheckedRejectionExecutorService checkedRejectionExecutor =
             new CheckedRejectionExecutorService(delegate);
 
@@ -44,6 +49,7 @@ public class CheckedRejectionExecutorServiceTest {
     public void passesCallThroughExecute() throws CheckedRejectedExecutionException {
         checkedRejectionExecutor.execute(DO_NOTHING);
         verify(delegate, times(1)).execute(DO_NOTHING);
+        verifyNoMoreInteractions(delegate);
     }
 
     @Test
@@ -52,22 +58,27 @@ public class CheckedRejectionExecutorServiceTest {
         assertThat(Futures.getUnchecked(checkedRejectionExecutor.submit(RETURN_ONE)))
                 .isEqualTo(1);
         verify(delegate, times(1)).submit(RETURN_ONE);
+        verifyNoMoreInteractions(delegate);
     }
 
     @Test
     public void propagatesRejectionThroughExecute() {
-        doThrow(REJECTED_EXECUTION_EXCEPTION).when(delegate).execute(any());
+        doThrow(REJECTED_EXECUTION_EXCEPTION).when(delegate).execute(any(Runnable.class));
         assertThatThrownBy(() -> checkedRejectionExecutor.execute(DO_NOTHING))
                 .isInstanceOf(CheckedRejectedExecutionException.class)
                 .hasCause(REJECTED_EXECUTION_EXCEPTION);
+        verify(delegate).execute(eq(DO_NOTHING));
+        verifyNoMoreInteractions(delegate);
     }
 
     @Test
     @SuppressWarnings("unchecked") // Mocks
     public void propagatesRejectionThroughSubmit() {
-        doThrow(REJECTED_EXECUTION_EXCEPTION).when(delegate).submit(any(Callable.class));
+        when(delegate.submit(any(Callable.class))).thenThrow(REJECTED_EXECUTION_EXCEPTION);
         assertThatThrownBy(() -> checkedRejectionExecutor.submit(RETURN_ONE))
                 .isInstanceOf(CheckedRejectedExecutionException.class)
                 .hasCause(REJECTED_EXECUTION_EXCEPTION);
+        verify(delegate).submit(eq(RETURN_ONE));
+        verifyNoMoreInteractions(delegate);
     }
 }
