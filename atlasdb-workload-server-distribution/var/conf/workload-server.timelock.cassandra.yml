@@ -37,6 +37,7 @@ install:
         password: cassandra
       ssl: false
       replicationFactor: 3
+      gcGraceSeconds: 300
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
