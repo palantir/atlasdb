@@ -23,19 +23,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.palantir.util.TimedRunner.TaskContext;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockMakers;
+import org.mockito.MockSettings;
 
 public final class TimedRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("test");
     private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
 
-    private Runnable noOpRunnable = mock(Runnable.class);
-    private Runnable throwingRunnable = mock(Runnable.class);
+    private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
+    private Runnable noOpRunnable = mock(Runnable.class, mockSettings);
+    private Runnable throwingRunnable = mock(Runnable.class, mockSettings);
 
     @Before
     public void setupMocks() {
@@ -46,7 +50,7 @@ public final class TimedRunnerTest {
     public void runnerRunsOneTask() throws Exception {
         TimedRunner runner = TimedRunner.create(Duration.ofSeconds(1));
 
-        Callable<Integer> task = mock(Callable.class);
+        Callable<Integer> task = mock(Callable.class, mockSettings);
         when(task.call()).thenReturn(5);
         int result = runner.run(TaskContext.create(task, noOpRunnable));
 
@@ -58,7 +62,7 @@ public final class TimedRunnerTest {
     @Test
     public void exceptionsAreThrownWhenRunningSingleton() {
         TimedRunner runner = TimedRunner.create(Duration.ofSeconds(1));
-        Runnable failureHandler = mock(Runnable.class);
+        Runnable failureHandler = mock(Runnable.class, mockSettings);
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
                 .isEqualTo(EXCEPTION_1);
@@ -68,7 +72,7 @@ public final class TimedRunnerTest {
     @Test
     public void correctSuppressedExceptionsAreThrownIfFailureHandlerThrows() {
         TimedRunner runner = TimedRunner.create(Duration.ofSeconds(1));
-        Runnable failureHandler = mock(Runnable.class);
+        Runnable failureHandler = mock(Runnable.class, mockSettings);
         doThrow(EXCEPTION_2).when(failureHandler).run();
 
         assertThatThrownBy(() -> runner.run(TaskContext.createRunnable(throwingRunnable, failureHandler)))
