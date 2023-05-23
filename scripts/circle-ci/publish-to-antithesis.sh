@@ -38,3 +38,7 @@ docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${$1}
 
 docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${$1}
 docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${$1}
+
+if [[ "$1" = "config-check" ]]; then
+  curl -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__configcheck__minimal
+fi
