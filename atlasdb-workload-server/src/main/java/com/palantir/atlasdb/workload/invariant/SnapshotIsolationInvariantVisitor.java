@@ -27,26 +27,34 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import io.vavr.collection.Map;
 import java.util.Optional;
 
+/**
+ * Replays transactions and validates for conflicts on the latest and read view.
+ *
+ * The latest view will be a view of the database at the commit timestamp, while the read view will be the view of
+ * the database at the start timestamp.
+ *
+ * Objects created from this class should only be used within a scope of a single transaction.
+ */
 final class SnapshotIsolationInvariantVisitor
         implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
 
     private final Long startTimestamp;
-    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestTableView;
+    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView;
     private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView;
 
     SnapshotIsolationInvariantVisitor(
             Long startTimestamp,
-            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestTableView,
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView,
             StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView) {
         this.startTimestamp = startTimestamp;
-        this.latestTableView = latestTableView;
+        this.latestView = latestView;
         this.readView = readView;
     }
 
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
         Optional<Integer> expected =
-                fetchValueFromReadView(readTransactionAction.table(), readTransactionAction.cell());
+                fetchValueFromView(readTransactionAction.table(), readTransactionAction.cell(), readView);
         if (!expected.equals(readTransactionAction.value())) {
             return Optional.of(InvalidWitnessedTransactionAction.of(
                     readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expected)));
@@ -57,9 +65,7 @@ final class SnapshotIsolationInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
         Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
-                        writeTransactionAction.table(),
-                        writeTransactionAction.cell(),
-                        Optional.of(writeTransactionAction.value()))
+                        writeTransactionAction.table(), writeTransactionAction.cell())
                 .map(mismatchedValue -> InvalidWitnessedTransactionAction.of(writeTransactionAction, mismatchedValue));
 
         applyWrites(
@@ -72,7 +78,7 @@ final class SnapshotIsolationInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
-                        deleteTransactionAction.table(), deleteTransactionAction.cell(), Optional.empty())
+                        deleteTransactionAction.table(), deleteTransactionAction.cell())
                 .map(mismatchedValue -> InvalidWitnessedTransactionAction.of(deleteTransactionAction, mismatchedValue));
 
         applyWrites(deleteTransactionAction.table(), deleteTransactionAction.cell(), Optional.empty());
@@ -87,7 +93,7 @@ final class SnapshotIsolationInvariantVisitor
     private void applyWrites(String tableName, WorkloadCell cell, Optional<Integer> value) {
         readView.with(table ->
                 table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndTimestamp.of(value, startTimestamp)));
-        latestTableView.with(table ->
+        latestView.with(table ->
                 table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndTimestamp.of(value, startTimestamp)));
     }
 
@@ -95,19 +101,23 @@ final class SnapshotIsolationInvariantVisitor
      * Checks that the value we are writing has not changed from our read view and the latest view. If it has,
      * that means we have missed a write-write conflict, as it should have conflicted with this transaction.
      */
-    private Optional<MismatchedValue> checkForWriteWriteConflicts(
-            String table, WorkloadCell cell, Optional<Integer> value) {
-        Optional<Integer> expected = fetchValueFromReadView(table, cell);
-        if (!expected.equals(value)) {
-            return Optional.of(MismatchedValue.of(value, expected));
+    private Optional<MismatchedValue> checkForWriteWriteConflicts(String table, WorkloadCell cell) {
+        Optional<Integer> previous = fetchValueFromView(table, cell, readView);
+        Optional<Integer> latest = fetchValueFromView(table, cell, latestView);
+
+        if (!previous.equals(latest)) {
+            return Optional.of(MismatchedValue.of(previous, latest));
         }
 
         return Optional.empty();
     }
 
-    private Optional<Integer> fetchValueFromReadView(String tableName, WorkloadCell workloadCell) {
+    private Optional<Integer> fetchValueFromView(
+            String tableName,
+            WorkloadCell workloadCell,
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> view) {
         TableAndWorkloadCell tableAndWorkloadCell = TableAndWorkloadCell.of(tableName, workloadCell);
-        return readView.getSnapshot()
+        return view.getSnapshot()
                 .get(tableAndWorkloadCell)
                 .toJavaOptional()
                 .map(ValueAndTimestamp::value)

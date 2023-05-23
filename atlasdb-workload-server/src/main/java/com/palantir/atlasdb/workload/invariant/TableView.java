@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import io.vavr.collection.Map;
 import java.util.NavigableMap;
@@ -29,12 +30,15 @@ public final class TableView {
         tableViews.put(commitTimestamp, tableView);
     }
 
-    public io.vavr.collection.Map<TableAndWorkloadCell, ValueAndTimestamp> getView(Long startTimestamp) {
-        return Optional.ofNullable(tableViews.lowerEntry(startTimestamp).getValue())
-                .orElseGet(io.vavr.collection.HashMap::empty);
+    public StructureHolder<io.vavr.collection.Map<TableAndWorkloadCell, ValueAndTimestamp>> getView(
+            Long startTimestamp) {
+        return StructureHolder.create(
+                () -> Optional.ofNullable(tableViews.lowerEntry(startTimestamp).getValue())
+                        .orElseGet(io.vavr.collection.HashMap::empty));
     }
 
-    public io.vavr.collection.Map<TableAndWorkloadCell, ValueAndTimestamp> getLatestTableView() {
-        return Optional.ofNullable(tableViews.lastEntry().getValue()).orElseGet(io.vavr.collection.HashMap::empty);
+    public StructureHolder<io.vavr.collection.Map<TableAndWorkloadCell, ValueAndTimestamp>> getLatestTableView() {
+        return StructureHolder.create(() ->
+                Optional.ofNullable(tableViews.lastEntry().getValue()).orElseGet(io.vavr.collection.HashMap::empty));
     }
 }

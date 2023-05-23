@@ -27,6 +27,23 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import one.util.streamex.StreamEx;
 
+/**
+ * This invariant checks that the snapshot isolation property is maintained.
+ * <p>
+ * The way this check works, is by replaying all transactions sorted by their effective timestamp. Transactions are
+ * replayed to an immutable map, allowing us to track each table's state at any given time. These table views are
+ * persisted to a {@link java.util.NavigableMap} by the commit timestamp of each transaction, with the value being
+ * the version of the immutable map at that point-in-time.
+ * <p>
+ * Reads are validated by comparing values from the view of a table at the start timestamp (read view),
+ * and comparing to what we've witnessed. Local writes are replayed onto the read view to ensure we
+ * don't flag false-positives, but is not witnessed by other transactions.
+ * <p>
+ * Writes are validated by first checking that the value we're writing to hasn't changed between the read view and the
+ * latest view. This would indicate a write-write conflict miss, as we should've conflicted with this transaction.
+ * Otherwise, once the transaction is replayed on top of the latest view, we persist this new view at the
+ * commit timestamp.
+ */
 public final class SnapshotIsolationInvariant implements TransactionInvariant {
     @Override
     public void accept(
@@ -35,11 +52,13 @@ public final class SnapshotIsolationInvariant implements TransactionInvariant {
         List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
                 .mapPartial(witnessedTransaction -> {
                     StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestTableView =
-                            StructureHolder.create(tableView::getLatestTableView);
-                    StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView =
-                            StructureHolder.create(() -> tableView.getView(witnessedTransaction.startTimestamp()));
+                            tableView.getLatestTableView();
+
                     SnapshotIsolationInvariantVisitor visitor = new SnapshotIsolationInvariantVisitor(
-                            witnessedTransaction.startTimestamp(), latestTableView, readView);
+                            witnessedTransaction.startTimestamp(),
+                            latestTableView,
+                            tableView.getView(witnessedTransaction.startTimestamp()));
+
                     List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
                                     witnessedTransaction.actions())
                             .mapPartial(action -> action.accept(visitor))
