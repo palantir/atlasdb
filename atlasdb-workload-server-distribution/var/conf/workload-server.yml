@@ -1,9 +1,10 @@
 runtime: {}
 install:
   atlas:
-    namespace: test
+    initializeAsync: true
     keyValueService:
       type: memory
+    namespace: test
   singleRowTwoCellsConfig:
     tableConfiguration:
       tableName: two-cells-test
