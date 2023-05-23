@@ -4,14 +4,6 @@ set -x
 
 BASE_GRADLE_ARGS="--profile"
 
-function checkDocsBuild {
-     pyenv install 3.5.4
-     pyenv global 3.5.4
-     # these versions are quite old, but the docs all stop building on newer versions. Since the docs publish has now been failing for like 6 months, I'm trying to maintain the status quo.
-     pip3 install sphinx==3.5.4 sphinx_rtd_theme==0.5.0 requests==2.24.0 recommonmark==0.6.0 pygments==2.5.2 markupsafe==1.1.1 jinja2==2.11.2 alabaster==0.7.12 babel==2.8.0 certifi==2020.6.20 sphinxcontrib-websupport==1.1.2 setuptools==44.1.1 typing==3.7.4.3 urllib3==1.25.10 snowballstemmer==2.0.0 six==1.15.0
-     cd docs/
-     make html
-}
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:testSubset1')
 
@@ -39,8 +31,6 @@ CONTAINER_12=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' )
 
 CONTAINER_13=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_14=('compileJava' 'compileTestJava')
-
 # Excluded as it is split into two subsets
 EXCLUDED=(':atlasdb-cassandra-integration-tests:check')
 
@@ -57,7 +47,7 @@ test_suite_index=$1
 # Short circuit the build if it's docs only
 if ./scripts/circle-ci/check-only-docs-changes.sh; then
     if [ "$test_suite_index" -eq 0 ]; then
-        checkDocsBuild
+        ./scripts/circle-ci/check-docs-build.sh
         exit $?
     fi
     exit 0
@@ -74,14 +64,11 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+HeapDumpOnOutOfMemoryEr
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:class+unload=off"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 
-# External builds have a 16gb limit.
-if [ "$test_suite_index" -eq "14" ]; then
-    export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
-elif [ "$test_suite_index" -eq "3" ]; then
+if [ "$test_suite_index" -eq "3" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
     BASE_GRADLE_ARGS+=" --scan --parallel"
 else
-    export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
+    export _JAVA_OPTIONS="-Xms4g -Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
     BASE_GRADLE_ARGS+=" --scan --parallel"
 fi
 export CASSANDRA_MAX_HEAP_SIZE=512m
@@ -102,5 +89,4 @@ case "$test_suite_index" in
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
     12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
     13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
-    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
