@@ -1950,8 +1950,10 @@ public class SnapshotTransaction extends AbstractTransaction
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
-                return;
             }
+            long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+            getTimer("nonWriteCommitTotalTimeSinceTxCreation")
+                    .update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
             return;
         }
 
