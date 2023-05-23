@@ -359,6 +359,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
+            metrics.recordPoolSize(getCurrentPools().size());
         }
 
         Preconditions.checkState(
