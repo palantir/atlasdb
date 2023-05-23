@@ -150,6 +150,7 @@ workflows:
             tags:
               only: /.*/
       - test-suite:
+          resource_class: 2xlarge
           requires: [build]
           matrix:
             alias: test-no-tl
