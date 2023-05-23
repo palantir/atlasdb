@@ -30,15 +30,16 @@ docker pull palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
 docker tag palantirtechnologies/cassandra:2.2.18-1.112.0-rc5 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc5
 docker push ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc5
 
-docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${$1}
-docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${$1}
+docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
+docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
 
-docker tag palantirtechnologies/atlasdb-workload-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${$1}
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${$1}
+docker tag palantirtechnologies/atlasdb-workload-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
 
-docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${$1}
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${$1}
+docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
 
 if [[ "$1" = "config-check" ]]; then
-  curl -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__configcheck__minimal
+  echo "Triggering simulation on Antithesis via the config-check webhook."
+  curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__configcheck__minimal
 fi
