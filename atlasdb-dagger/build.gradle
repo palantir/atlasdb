@@ -1,5 +1,3 @@
-apply plugin: 'com.github.johnrengelman.shadow'
-
 apply from: '../gradle/shared.gradle'
 
 dependencies {
@@ -17,6 +15,7 @@ dependencies {
   implementation project(':atlasdb-config')
   implementation project(':atlasdb-coordination-impl')
   implementation project(':atlasdb-impl-shared')
+  implementation project(':atlasdb-service')
   implementation project(':commons-executors')
   implementation project(':lock-api')
   implementation project(':lock-api-objects')
@@ -31,19 +30,4 @@ dependencies {
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.assertj:assertj-core'
 
-  shadow project(':atlasdb-service')
 }
-
-shadowJar {
-  mergeServiceFiles()
-  classifier ''
-
-  relocate('dagger', 'com.palantir.atlasdb.shaded.dagger')
-
-  dependencies {
-    include dependency('com.google.dagger:dagger')
-  }
-}
-
-jar.dependsOn shadowJar
-jar.onlyIf { false }
