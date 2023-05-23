@@ -36,9 +36,9 @@ import org.junit.Test;
 import org.mockito.MockMakers;
 
 public class CheckedRejectionExecutorServiceTest {
-    private final Runnable DO_NOTHING = () -> {};
-    private final Callable<Integer> RETURN_ONE = () -> 1;
-    private final RejectedExecutionException REJECTED_EXECUTION_EXCEPTION = new RejectedExecutionException("test");
+    private static final Runnable DO_NOTHING = () -> {};
+    private static final Callable<Integer> RETURN_ONE = () -> 1;
+    private static final RejectedExecutionException REJECTED_EXECUTION_EXCEPTION = new RejectedExecutionException("test");
 
     private final ExecutorService delegate =
             mock(ExecutorService.class, withSettings().mockMaker(MockMakers.SUBCLASS));
