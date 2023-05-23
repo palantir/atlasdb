@@ -27,11 +27,14 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class LightweightOppToken implements Comparable<LightweightOppToken> {
-
     final byte[] bytes;
 
     public LightweightOppToken(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    public static LightweightOppToken fromHex(String token) {
+        return new LightweightOppToken(Tokens.hexDecode(token));
     }
 
     public static LightweightOppToken of(Cell cell) {

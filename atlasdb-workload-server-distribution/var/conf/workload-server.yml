@@ -1,9 +1,10 @@
 runtime: {}
 install:
   atlas:
-    namespace: test
+    initializeAsync: true
     keyValueService:
       type: memory
+    namespace: test
   singleRowTwoCellsConfig:
     tableConfiguration:
       tableName: two-cells-test
@@ -22,4 +23,11 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: transient-rows
+  singleBusyCellConfig:
+    tableConfiguration:
+      tableName: single-busy-cell-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell
+    maxThreadCount: 2
   exitAfterRunning: true

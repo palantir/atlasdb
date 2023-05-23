@@ -24,10 +24,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
@@ -62,9 +62,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.PrimitiveIterator.OfInt;
@@ -162,10 +160,8 @@ public class CassandraService implements AutoCloseable {
                     servers.addAll(hosts);
                     hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
 
-                    LightweightOppToken startToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getStart_token().toUpperCase(Locale.ROOT)));
-                    LightweightOppToken endToken = new LightweightOppToken(BaseEncoding.base16()
-                            .decode(tokenRange.getEnd_token().toUpperCase(Locale.ROOT)));
+                    LightweightOppToken startToken = LightweightOppToken.fromHex(tokenRange.getStart_token());
+                    LightweightOppToken endToken = LightweightOppToken.fromHex(tokenRange.getEnd_token());
                     if (startToken.compareTo(endToken) <= 0) {
                         newTokenRing.put(Range.openClosed(startToken, endToken), hosts);
                     } else {
@@ -420,9 +416,8 @@ public class CassandraService implements AutoCloseable {
     @VisibleForTesting
     Optional<CassandraServer> getRandomHostByActiveConnections(Set<CassandraServer> desiredHosts) {
         Set<CassandraServer> localFilteredHosts = maybeFilterLocalHosts(desiredHosts);
-        ImmutableMap<CassandraServer, CassandraClientPoolingContainer> matchingPools = currentPools.entrySet().stream()
-                .filter(e -> localFilteredHosts.contains(e.getKey()))
-                .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+        Map<CassandraServer, CassandraClientPoolingContainer> matchingPools =
+                ImmutableMap.copyOf(Maps.filterKeys(currentPools, localFilteredHosts::contains));
         if (matchingPools.isEmpty()) {
             return Optional.empty();
         }

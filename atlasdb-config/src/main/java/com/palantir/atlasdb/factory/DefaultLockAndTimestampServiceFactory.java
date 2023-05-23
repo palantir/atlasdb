@@ -96,6 +96,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.ws.rs.ClientErrorException;
 
@@ -118,6 +119,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private final Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders;
     private final Set<Schema> schemas;
 
+    private final Function<TimelockService, TimeLockClient> timelockClientFactory;
+
     public DefaultLockAndTimestampServiceFactory(
             MetricsManager metricsManager,
             AtlasDbConfig config,
@@ -132,6 +135,38 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Set<Schema> schemas) {
+        this(
+                metricsManager,
+                config,
+                runtimeConfig,
+                registrar,
+                lock,
+                time,
+                invalidator,
+                userAgent,
+                lockDiagnosticComponents,
+                reloadingFactory,
+                timeLockFeedbackBackgroundTask,
+                timelockRequestBatcherProviders,
+                schemas,
+                TimeLockClient::createDefault);
+    }
+
+    public DefaultLockAndTimestampServiceFactory(
+            MetricsManager metricsManager,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            Consumer<Object> registrar,
+            Supplier<LockService> lock,
+            Supplier<ManagedTimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            UserAgent userAgent,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
+            ReloadingFactory reloadingFactory,
+            Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            Set<Schema> schemas,
+            Function<TimelockService, TimeLockClient> timelockClientFactory) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -145,6 +180,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         this.timeLockFeedbackBackgroundTask = timeLockFeedbackBackgroundTask;
         this.timelockRequestBatcherProviders = timelockRequestBatcherProviders;
         this.schemas = schemas;
+        this.timelockClientFactory = timelockClientFactory;
     }
 
     @Override
@@ -166,9 +202,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         return withMetrics(metricsManager, withRefreshingLockService(lockAndTimestampServices));
     }
 
-    private static LockAndTimestampServices withRefreshingLockService(
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
+    private LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+        TimeLockClient timeLockClient = timelockClientFactory.apply(lockAndTimestampServices.timelock());
         ProfilingTimelockService profilingService = ProfilingTimelockService.create(timeLockClient);
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)

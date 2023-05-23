@@ -168,7 +168,8 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         }
         ValueStreamMetadataTable table = tables.getValueStreamMetadataTable(t);
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
         Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<ValueStreamHashAidxTable.ValueStreamHashAidxRow, ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (ValueStreamHashAidxTable.ValueStreamHashAidxRow r : m.keySet()) {
             for (ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class ValueStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = new HashSet<>();
+        Set<ValueStreamHashAidxTable.ValueStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(ValueStreamHashAidxTable.ValueStreamHashAidxRow.of(h));
         }

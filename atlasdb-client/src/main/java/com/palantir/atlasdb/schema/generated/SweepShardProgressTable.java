@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -684,6 +685,7 @@ public final class SweepShardProgressTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -707,5 +709,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vxDaJU4r7oWggNPDq0Qu6Q==";
+    static String __CLASS_HASH = "2Fj81SsG3WRpPjQ1kYDw3A==";
 }

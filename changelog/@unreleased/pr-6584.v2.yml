@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[CBT] Split up container 3 and add more max heap to timelock integTest'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6584

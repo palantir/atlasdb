@@ -22,6 +22,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -34,6 +35,8 @@ import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
@@ -46,6 +49,7 @@ import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -56,6 +60,7 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -129,6 +134,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().ringConfig();
         TransientRowsWorkflowConfiguration transientRowsWorkflowConfiguration =
                 configuration.install().transientRowsConfig();
+        SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
+                configuration.install().singleBusyCellConfig();
+
+        waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
                 .run(
@@ -137,7 +146,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         createRingWorkflowValidator(
                                 transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
                         createTransientRowsWorkflowValidator(
-                                transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()));
+                                transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellWorkflowValidator(
+                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -146,6 +157,29 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         if (configuration.install().exitAfterRunning()) {
             System.exit(0);
         }
+    }
+
+
+    private void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
+        // TODO (jkong): This is awful, but sufficient for now.
+        Instant deadline = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(5));
+        while (Instant.now().isBefore(deadline)) {
+            if (factory.isInitialized()) {
+                log.info("AtlasDB transaction store factory initialized.");
+                return;
+            } else {
+                log.info(
+                        "AtlasDB transaction store factory not yet initialized. Waiting for five seconds; we won't"
+                                + " retry after {}.",
+                        SafeArg.of("deadline", deadline));
+                Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+            }
+        }
+        log.error("AtlasDB transaction store factory not initialized after five minutes, which suggests that there's"
+                + " likely to be some issue with starting up one of our service's dependencies.");
+        log.info("antithesis: terminate");
+        log.error("Workflow will now exit.");
+        System.exit(1);
     }
 
     private WorkflowAndInvariants<Workflow> createTransientRowsWorkflowValidator(
@@ -167,6 +201,34 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .addInvariantReporters(TransientRowsWorkflows.getSummaryLogInvariantReporter(workflowConfig))
                 .build();
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleBusyCellWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleBusyCellWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutor = lifecycle
+                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        ExecutorService writeExecutor = lifecycle
+                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(
+                SingleBusyCellWorkflows.create(
+                        transactionStore,
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutor),
+                        MoreExecutors.listeningDecorator(writeExecutor)),
+                new DurableWritesInvariantMetricReporter(
+                        SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+                SerializableInvariantLogReporter.INSTANCE);
     }
 
     private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(

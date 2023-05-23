@@ -18,6 +18,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -670,6 +671,7 @@ public final class HotspottyDataStreamValueTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -693,5 +695,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qpxadEqMHw8NeLcCZ0b7oA==";
+    static String __CLASS_HASH = "9KSCRtbyVXFg2nb/7Wc8OA==";
 }

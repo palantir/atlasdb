@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
 import com.google.common.base.Function;
@@ -670,6 +671,7 @@ public final class SnapshotsStreamValueTable implements
      * {@link Multimaps}
      * {@link NamedColumnValue}
      * {@link Namespace}
+     * {@link Nullable}
      * {@link Objects}
      * {@link Optional}
      * {@link Persistable}
@@ -693,5 +695,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "VELEHtyEvSAidzHk7HUynw==";
+    static String __CLASS_HASH = "9m/lRuE/UHMttmLTS1Q8iQ==";
 }

@@ -168,7 +168,8 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         }
         HotspottyDataStreamMetadataTable table = tables.getHotspottyDataStreamMetadataTable(t);
         Map<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
         Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow, HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow r : m.keySet()) {
             for (HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class HotspottyDataStreamStore extends AbstractPersistentStreamStor
     }
 
     private Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = new HashSet<>();
+        Set<HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(HotspottyDataStreamHashAidxTable.HotspottyDataStreamHashAidxRow.of(h));
         }

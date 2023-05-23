@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -224,7 +225,7 @@ public final class CassandraClientPoolTest {
     }
 
     private CassandraServer getServerForIndex(int index) {
-        return CassandraServer.of(InetSocketAddress.createUnresolved(Integer.toString(index), index));
+        return CassandraServer.of(InetSocketAddress.createUnresolved(Integer.toString(index), 8000));
     }
 
     @Test
@@ -310,6 +311,7 @@ public final class CassandraClientPoolTest {
 
         createClientPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1);
+        assertPoolSizeMetricIsEqualTo(1);
     }
 
     @Test
@@ -321,10 +323,12 @@ public final class CassandraClientPoolTest {
 
         createClientPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        assertPoolSizeMetricIsEqualTo(3);
 
         setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
         refreshPool();
         assertThat(poolServers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2);
+        assertPoolSizeMetricIsEqualTo(2);
     }
 
     @Test
@@ -495,7 +499,7 @@ public final class CassandraClientPoolTest {
 
     private CassandraClientPoolImpl createClientPool() {
         return CassandraClientPoolImpl.createImplForTest(
-                MetricsManagers.createForTests(),
+                MetricsManagers.of(metricRegistry, taggedMetricRegistry),
                 config,
                 refreshableRuntimeConfig,
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
@@ -686,5 +690,17 @@ public final class CassandraClientPoolTest {
 
     private void refreshPool() {
         deterministicExecutor.tick(POOL_REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void assertPoolSizeMetricIsEqualTo(long expected) {
+        assertThat(taggedMetricRegistry
+                        .<Long>gauge(MetricName.builder()
+                                .safeName(MetricRegistry.name(
+                                        CassandraClientPoolMetrics.class,
+                                        CassandraClientPoolMetrics.POOL_SIZE_METRIC_NAME))
+                                .build())
+                        .get()
+                        .getValue())
+                .isEqualTo(expected);
     }
 }
