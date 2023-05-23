@@ -17,9 +17,6 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,10 +45,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 public class TransientRowsWorkflowsTest {
     private static final int ITERATION_COUNT = 5;
