@@ -26,14 +26,10 @@ final class Tokens {
     private static final BaseEncoding LOWER_CASE_HEX = BaseEncoding.base16().lowerCase();
 
     static byte[] hexDecode(String token) {
-        // OPP tokens should be lowercase already, use upper if needed, and convert mixed to uppercase if needed
-        byte[] decoded;
-        if (Tokens.isAllLowercaseOrDigits(token)) {
-            decoded = LOWER_CASE_HEX.decode(token);
-        } else {
-            decoded = BaseEncoding.base16().decode(token.toUpperCase(Locale.ROOT));
-        }
-        return decoded;
+        // OPP tokens should be lowercase -- fast path assumes this; slow fallback converts to uppercase
+        return Tokens.isAllLowercaseOrDigits(token)
+                ? LOWER_CASE_HEX.decode(token)
+                : BaseEncoding.base16().decode(token.toUpperCase(Locale.ROOT));
     }
 
     @VisibleForTesting

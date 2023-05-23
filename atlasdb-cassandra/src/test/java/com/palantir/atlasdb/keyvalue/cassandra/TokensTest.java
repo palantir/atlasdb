@@ -29,34 +29,9 @@ import org.junit.Test;
 public final class TokensTest {
     @Test
     public void decodeHex() {
-        Stream.concat(
-                        Stream.of(
-                                "",
-                                "0F",
-                                "decafbad",
-                                "0123456789ABCDEF",
-                                "0123456789abcdef",
-                                "0123456789Abcdef",
-                                "0123456789aBcdef",
-                                "0123456789abCdef",
-                                "0123456789abcDef",
-                                "0123456789abcdEf",
-                                "0123456789abcdeF",
-                                Long.toHexString(Long.MIN_VALUE),
-                                Long.toHexString(Long.MAX_VALUE)),
-                        Stream.concat(
-                                IntStream.range(0, 32).mapToObj(i -> {
-                                    byte[] bytes = new byte[i * 2];
-                                    ThreadLocalRandom.current().nextBytes(bytes);
-                                    return BaseEncoding.base16().encode(bytes);
-                                }),
-                                IntStream.range(0, 10_000).mapToObj(_i -> BaseEncoding.base16()
-                                        .encode(Longs.toByteArray(
-                                                ThreadLocalRandom.current().nextLong())))))
-                .flatMap(input -> Stream.of(input, input.toLowerCase(Locale.ROOT), input.toUpperCase(Locale.ROOT)))
-                .forEach(input -> assertThat(Tokens.hexDecode(input))
-                        .as("token '%s'", input)
-                        .hasSize(input.length() / 2));
+        generateTokens().forEach(input -> assertThat(Tokens.hexDecode(input))
+                .as("token '%s'", input)
+                .hasSize(input.length() / 2));
     }
 
     @Test
@@ -79,5 +54,53 @@ public final class TokensTest {
                 .isTrue();
         assertThat(Tokens.allMatch("abcefghijklmnopqrstuvwxyz", Character::isUpperCase))
                 .isFalse();
+    }
+
+    static Stream<String> generateTokens() {
+        return Stream.concat(
+                        Stream.of(
+                                "",
+                                "0F",
+                                "decafbad",
+                                "0123456789ABCDEF",
+                                "0123456789abcdef",
+                                "0123456789Abcdef",
+                                "0123456789aBcdef",
+                                "0123456789abCdef",
+                                "0123456789abcDef",
+                                "0123456789abcdEf",
+                                "0123456789abcdeF",
+                                Long.toHexString(Long.MIN_VALUE),
+                                Long.toHexString(Long.MAX_VALUE)),
+                        Stream.concat(
+                                IntStream.range(0, 32).mapToObj(i -> {
+                                    byte[] bytes = new byte[i * 2];
+                                    ThreadLocalRandom.current().nextBytes(bytes);
+                                    return BaseEncoding.base16().encode(bytes);
+                                }),
+                                IntStream.range(0, 1_000).mapToObj(_i -> BaseEncoding.base16()
+                                        .encode(Longs.toByteArray(
+                                                ThreadLocalRandom.current().nextLong())))))
+                .flatMap(input -> Stream.of(
+                        input, input.toLowerCase(Locale.ROOT), input.toUpperCase(Locale.ROOT), shuffleCase(input)));
+    }
+
+    private static String shuffleCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        StringBuilder sb = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+            if (Character.isAlphabetic(ch) && ThreadLocalRandom.current().nextBoolean()) {
+                if (Character.isLowerCase(ch)) {
+                    ch = Character.toUpperCase(ch);
+                } else {
+                    ch = Character.toLowerCase(ch);
+                }
+            }
+            sb.append(ch);
+        }
+        return sb.toString();
     }
 }

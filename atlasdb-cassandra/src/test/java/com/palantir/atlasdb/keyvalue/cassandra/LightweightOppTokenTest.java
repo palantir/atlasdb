@@ -18,15 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.Longs;
 import com.palantir.conjure.java.lib.Bytes;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Locale;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,39 +37,19 @@ public class LightweightOppTokenTest {
 
     @Parameters(name = "{index}: input=\"{0}\"")
     public static Collection<Object[]> data() {
-        return Stream.concat(
-                        Stream.of(
-                                "0F",
-                                "decafbad",
-                                "0123456789ABCDEF",
-                                "0123456789abcdef",
-                                "0123456789Abcdef",
-                                "0123456789aBcdef",
-                                "0123456789abCdef",
-                                "0123456789abcDef",
-                                "0123456789abcdEf",
-                                "0123456789abcdeF",
-                                Long.toHexString(Long.MIN_VALUE),
-                                Long.toHexString(Long.MAX_VALUE)),
-                        Stream.concat(
-                                IntStream.range(0, 32).mapToObj(i -> {
-                                    byte[] bytes = new byte[i * 2];
-                                    ThreadLocalRandom.current().nextBytes(bytes);
-                                    return BaseEncoding.base16().encode(bytes);
-                                }),
-                                IntStream.range(0, 1000).mapToObj(_i -> BaseEncoding.base16()
-                                        .encode(Longs.toByteArray(
-                                                ThreadLocalRandom.current().nextLong())))))
+        return TokensTest.generateTokens()
                 .flatMap(input -> Stream.of(input, input.toLowerCase(Locale.ROOT), input.toUpperCase(Locale.ROOT)))
                 .map(input -> new Object[] {input})
                 .collect(Collectors.toList());
     }
 
     @Test
-    public void inputsAreValid() {
+    public void inputsAreValidBase16Strings() {
+        assertThat(input).matches("^[0-9a-fA-F]*$");
         assertThat(input.length() % 2 == 0)
                 .as("input must be even length to base16 decode")
                 .isTrue();
+        assertThat(CassandraHex.hexToBytes(input)).hasSize(input.length() / 2);
     }
 
     @Test
@@ -87,7 +63,7 @@ public class LightweightOppTokenTest {
                 .hasSize(input.length() / 2)
                 .isEqualTo(tokenFromLowerCase.bytes)
                 .isEqualTo(tokenFromUpperCase.bytes)
-                .isEqualTo(tokenFromBytes);
+                .isEqualTo(tokenFromBytes.bytes);
         assertThat(token)
                 .isNotNull()
                 .isEqualTo(tokenFromLowerCase)
@@ -99,7 +75,7 @@ public class LightweightOppTokenTest {
     }
 
     @Test
-    public void createFromHex() throws Exception {
+    public void fromHexCorrectlyDeserializesStrings() throws Exception {
         LightweightOppToken token = LightweightOppToken.fromHex(input);
         Bytes expectedBytes = Bytes.from(org.apache.commons.codec.binary.Hex.decodeHex(input));
         assertThat(token.bytes).contains(expectedBytes.asNewByteArray());
