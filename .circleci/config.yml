@@ -154,8 +154,8 @@ workflows:
           matrix:
             alias: test-no-tl
             parameters:
-              # intentionally excluding 12 (TimeLock migration ETE test) from this collection
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13]
+              # intentionally excluding 13 (TimeLock migration ETE test) from this collection
+              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14]
           filters:
             tags:
               only: /.*/
@@ -164,7 +164,7 @@ workflows:
           matrix:
             alias: test-tl
             parameters:
-              suite: [12]
+              suite: [13]
           filters:
             branches:
               only: /(tlmete.*|develop)/
