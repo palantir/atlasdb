@@ -40,6 +40,10 @@ public interface ValueAndTimestamp {
         return EMPTY;
     }
 
+    static ValueAndTimestamp of(Integer value) {
+        return of(Optional.of(value));
+    }
+
     static ValueAndTimestamp of(Optional<Integer> value) {
         return of(value, Optional.empty());
     }

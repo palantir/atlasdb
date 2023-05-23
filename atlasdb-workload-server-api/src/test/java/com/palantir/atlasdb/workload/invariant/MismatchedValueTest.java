@@ -21,13 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.logsafe.SafeArg;
-import java.util.Optional;
 import org.junit.Test;
 
 public final class MismatchedValueTest {
 
-    private static final Optional<Integer> VALUE_ONE = Optional.of(15);
-    private static final Optional<Integer> VALUE_TWO = Optional.of(25);
+    private static final ValueAndTimestamp VALUE_ONE = ValueAndTimestamp.of(25);
+    private static final ValueAndTimestamp VALUE_TWO = ValueAndTimestamp.of(15);
 
     @Test
     public void canConstructMismatchedValueFromTwoDifferentValues() {
