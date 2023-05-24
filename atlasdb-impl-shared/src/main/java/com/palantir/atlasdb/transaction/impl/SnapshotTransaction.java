@@ -1951,9 +1951,8 @@ public class SnapshotTransaction extends AbstractTransaction
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
             }
-            long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             getTimer("nonWriteCommitTotalTimeSinceTxCreation")
-                    .update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
+                    .update(Duration.of(transactionTimerContext.stop(), ChronoUnit.NANOS));
             return;
         }
 
