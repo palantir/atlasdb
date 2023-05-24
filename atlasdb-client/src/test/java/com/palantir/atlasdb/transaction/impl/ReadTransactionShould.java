@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweepStrategy;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.Before;
@@ -103,9 +102,5 @@ public class ReadTransactionShould {
             assertThat(e.getMessage()).contains(errorMessage);
             verifyNoMoreInteractions(delegateTransaction);
         }
-    }
-
-    private boolean hasExpectedParameterCount(Method method) {
-        return simpleGets.get(method.getName()).length == method.getParameterCount();
     }
 }
