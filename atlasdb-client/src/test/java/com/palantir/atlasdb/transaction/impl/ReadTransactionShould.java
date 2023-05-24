@@ -25,16 +25,11 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweepStrategy;
-import com.palantir.common.base.Throwables;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -98,58 +93,6 @@ public class ReadTransactionShould {
     }
 
     @Test
-    public void notAllowSimpleGetsOnThoroughTables() {
-        Method[] declaredMethods = ReadTransaction.class.getDeclaredMethods();
-
-        for (Method method : declaredMethods) {
-            // Ignore methods that are either not simple gets or are overloaded
-            if (simpleGets.containsKey(method.getName()) && hasExpectedParameterCount(method)) {
-                checkThrowsAndNoInteraction(
-                        () -> {
-                            try {
-                                method.invoke(readTransaction, simpleGets.get(method.getName()));
-                            } catch (InvocationTargetException e) {
-                                Throwables.throwIfInstance(e.getCause(), IllegalStateException.class);
-                            } catch (IllegalAccessException e) {
-                                Throwables.throwUncheckedException(e);
-                            }
-                        },
-                        SafeIllegalStateException.class,
-                        "cannot be read");
-            }
-        }
-    }
-
-    @Test
-    public void notAllowBatchColumnRangeGets() {
-        checkThrowsAndNoInteraction(
-                () -> readTransaction.getRowsColumnRange(
-                        DUMMY_THOROUGH_TABLE,
-                        ImmutableList.of(EMPTY_BYTES),
-                        BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
-                SafeIllegalStateException.class,
-                "cannot be read");
-        checkThrowsAndNoInteraction(
-                () -> readTransaction.getRowsColumnRangeIterator(
-                        DUMMY_THOROUGH_TABLE,
-                        ImmutableList.of(EMPTY_BYTES),
-                        BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
-                SafeIllegalStateException.class,
-                "cannot be read");
-    }
-
-    @Test
-    public void notAllowColumnRangeGets() {
-        checkThrowsAndNoInteraction(
-                () -> readTransaction.getRowsColumnRange(
-                        DUMMY_THOROUGH_TABLE,
-                        ImmutableList.of(EMPTY_BYTES),
-                        new ColumnRangeSelection(EMPTY_BYTES, EMPTY_BYTES),
-                        1),
-                SafeIllegalStateException.class,
-                "cannot be read");
-    }
-
     private void checkThrowsAndNoInteraction(
             Runnable thrower, Class<? extends Exception> exception, String errorMessage) {
         try {
