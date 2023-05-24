@@ -60,39 +60,59 @@ public final class RandomWorkflows {
             RandomWorkflowConfiguration randomWorkflowConfig,
             ListeningExecutorService executionExecutor,
             SecureRandom random) {
+        RandomWorkflowTask task = new RandomWorkflowTask(randomWorkflowConfig, random);
         return DefaultWorkflow.create(
-                store,
-                (txnStore, index) -> run(txnStore, randomWorkflowConfig, random),
-                randomWorkflowConfig,
-                executionExecutor);
+                store, (txnStore, _index) -> task.run(txnStore), randomWorkflowConfig, executionExecutor);
     }
 
-    private static Optional<WitnessedTransaction> run(
-            TransactionStore store, RandomWorkflowConfiguration workflowConfiguration, SecureRandom random) {
-        workflowConfiguration.transactionRateLimiter().acquire();
-        String tableName = workflowConfiguration.tableConfiguration().tableName();
-        List<ReadTransactionAction> reads = IntStream.range(0, random.nextInt(workflowConfiguration.maxReads()))
-                .boxed()
-                .map(index -> ImmutableReadTransactionAction.of(
-                        tableName, cell(random.nextInt(workflowConfiguration.maxCells()))))
-                .collect(Collectors.toList());
-        List<WriteTransactionAction> writes = IntStream.range(0, random.nextInt(workflowConfiguration.maxWrites()))
-                .boxed()
-                .map(index -> ImmutableWriteTransactionAction.of(
-                        tableName, cell(random.nextInt(workflowConfiguration.maxCells())), random.nextInt(100)))
-                .collect(Collectors.toList());
-        List<DeleteTransactionAction> deletes = IntStream.range(0, random.nextInt(workflowConfiguration.maxDeletes()))
-                .boxed()
-                .map(index -> ImmutableDeleteTransactionAction.of(
-                        tableName, cell(random.nextInt(workflowConfiguration.maxCells()))))
-                .collect(Collectors.toList());
-        List<TransactionAction> actions =
-                Stream.of(reads, writes, deletes).flatMap(Collection::stream).collect(Collectors.toList());
-        Collections.shuffle(actions);
-        return store.readWrite(actions);
-    }
+    private static final class RandomWorkflowTask {
 
-    private static WorkloadCell cell(int key) {
-        return ImmutableWorkloadCell.of(key, COLUMN);
+        private final RandomWorkflowConfiguration workflowConfiguration;
+        private final SecureRandom random;
+
+        public RandomWorkflowTask(RandomWorkflowConfiguration workflowConfiguration, SecureRandom random) {
+            this.workflowConfiguration = workflowConfiguration;
+            this.random = random;
+        }
+
+        public Optional<WitnessedTransaction> run(TransactionStore store) {
+            workflowConfiguration.transactionRateLimiter().acquire();
+            List<TransactionAction> actions = Stream.of(
+                            generateReadActions(), generateWriteActions(), generateDeleteActions())
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+            Collections.shuffle(actions);
+            return store.readWrite(actions);
+        }
+
+        private List<ReadTransactionAction> generateReadActions() {
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxReads()))
+                    .boxed()
+                    .map(index -> ImmutableReadTransactionAction.of(
+                            workflowConfiguration.tableConfiguration().tableName(), randomCell()))
+                    .collect(Collectors.toList());
+        }
+
+        private List<WriteTransactionAction> generateWriteActions() {
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxWrites()))
+                    .boxed()
+                    .map(index -> ImmutableWriteTransactionAction.of(
+                            workflowConfiguration.tableConfiguration().tableName(),
+                            randomCell(),
+                            random.nextInt(100_000)))
+                    .collect(Collectors.toList());
+        }
+
+        private List<DeleteTransactionAction> generateDeleteActions() {
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxDeletes()))
+                    .boxed()
+                    .map(index -> ImmutableDeleteTransactionAction.of(
+                            workflowConfiguration.tableConfiguration().tableName(), randomCell()))
+                    .collect(Collectors.toList());
+        }
+
+        private WorkloadCell randomCell() {
+            return ImmutableWorkloadCell.of(random.nextInt(workflowConfiguration.maxCells()), COLUMN);
+        }
     }
 }
