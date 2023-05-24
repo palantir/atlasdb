@@ -31,10 +31,12 @@ public final class BankBalanceUtils {
     private BankBalanceUtils() {}
 
     /**
-     * Checks the provided balances that all are present, and if so, returns them.
-     * If all balances are empty, it means we need to initialize, so we generate them.
+     * Validates all the bank balances provided. If all are empty, we will generate a new set of bank balances. If
+     * any are missing, an empty optional is returned to indicate failure state. If balances do not total to the
+     * expected amount, an empty optional is returned.
      *
-     * Otherwise, return an empty map to indicate that we are in a faulty state.
+     * @return An empty optional when validation has failed for bank balances. Otherwise, the optional will contain
+     * the validated (or generated) balances.
      */
     public static Optional<Map<Integer, Integer>> validateOrGenerateBalances(
             Map<Integer, Optional<Integer>> maybeBalances, Integer numberOfAccounts, Integer balancePerAccount) {
