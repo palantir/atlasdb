@@ -29,13 +29,13 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableBankBalanceWorkflowConfiguration.class)
 @JsonTypeName(BankBalanceWorkflowConfiguration.TYPE)
 public interface BankBalanceWorkflowConfiguration extends WorkflowConfiguration {
-    String TYPE = "singleRowTwoCells";
+    String TYPE = "bank-balance";
 
     TableConfiguration tableConfiguration();
 
     @Value.Default
     default Integer numberOfAccounts() {
-        return 5;
+        return 10;
     }
 
     @Value.Default

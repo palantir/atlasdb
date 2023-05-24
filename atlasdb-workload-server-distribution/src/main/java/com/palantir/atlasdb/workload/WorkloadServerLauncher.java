@@ -44,6 +44,8 @@ import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflows;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -136,6 +138,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
+        BankBalanceWorkflowConfiguration bankBalanceConfig =
+                configuration.install().bankBalanceConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
@@ -148,7 +152,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         createTransientRowsWorkflowValidator(
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
-                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
+                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -262,6 +267,28 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         SingleRowTwoCellsWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry)))
                 .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .build();
+    }
+
+    private WorkflowAndInvariants<Workflow> createBankBalanceWorkflow(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            BankBalanceWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService = lifecycle
+                .executorService(RingWorkflows.class.getSimpleName())
+                .maxThreads(workflowConfig.maxThreadCount())
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(BankBalanceWorkflows.create(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)))
                 .build();
     }
 
