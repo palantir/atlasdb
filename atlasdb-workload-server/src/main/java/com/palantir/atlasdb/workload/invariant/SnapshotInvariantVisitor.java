@@ -39,13 +39,13 @@ final class SnapshotInvariantVisitor
         implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
 
     private final Long startTimestamp;
-    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView;
-    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView;
+    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> latestView;
+    private final StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> readView;
 
     SnapshotInvariantVisitor(
             Long startTimestamp,
-            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestView,
-            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> readView) {
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> latestView,
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> readView) {
         this.startTimestamp = startTimestamp;
         this.latestView = latestView;
         this.readView = readView;
@@ -93,9 +93,9 @@ final class SnapshotInvariantVisitor
      */
     private void applyWrites(String tableName, WorkloadCell cell, Optional<Integer> value) {
         readView.with(table ->
-                table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndTimestamp.of(value, startTimestamp)));
+                table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndMaybeTimestamp.of(value, startTimestamp)));
         latestView.with(table ->
-                table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndTimestamp.of(value, startTimestamp)));
+                table.put(TableAndWorkloadCell.of(tableName, cell), ValueAndMaybeTimestamp.of(value, startTimestamp)));
     }
 
     /**
@@ -103,8 +103,8 @@ final class SnapshotInvariantVisitor
      * that means we have missed a write-write conflict, as it should have conflicted with this transaction.
      */
     private Optional<MismatchedValue> checkForWriteWriteConflicts(String table, WorkloadCell cell) {
-        ValueAndTimestamp previous = fetchValueFromView(table, cell, readView);
-        ValueAndTimestamp latest = fetchValueFromView(table, cell, latestView);
+        ValueAndMaybeTimestamp previous = fetchValueFromView(table, cell, readView);
+        ValueAndMaybeTimestamp latest = fetchValueFromView(table, cell, latestView);
 
         if (!previous.equals(latest)) {
             return Optional.of(MismatchedValue.of(latest, previous));
@@ -113,11 +113,11 @@ final class SnapshotInvariantVisitor
         return Optional.empty();
     }
 
-    private ValueAndTimestamp fetchValueFromView(
+    private static ValueAndMaybeTimestamp fetchValueFromView(
             String tableName,
             WorkloadCell workloadCell,
-            StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> view) {
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> view) {
         TableAndWorkloadCell tableAndWorkloadCell = TableAndWorkloadCell.of(tableName, workloadCell);
-        return view.getSnapshot().get(tableAndWorkloadCell).toJavaOptional().orElseGet(ValueAndTimestamp::empty);
+        return view.getSnapshot().get(tableAndWorkloadCell).toJavaOptional().orElseGet(ValueAndMaybeTimestamp::empty);
     }
 }

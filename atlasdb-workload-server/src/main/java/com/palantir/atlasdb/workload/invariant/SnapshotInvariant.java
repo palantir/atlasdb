@@ -16,16 +16,17 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import io.vavr.collection.Map;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
-import one.util.streamex.StreamEx;
 
 /**
  * This invariant checks that the snapshot isolation property is maintained.
@@ -50,34 +51,35 @@ public enum SnapshotInvariant implements TransactionInvariant {
     @Override
     public void accept(
             WorkflowHistory workflowHistory, Consumer<List<InvalidWitnessedTransaction>> invalidWitnessedTransactions) {
-        VersionedTableView<TableAndWorkloadCell, ValueAndTimestamp> tableView = new VersionedTableView<>();
-        List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
-                .mapPartial(witnessedTransaction -> {
-                    StructureHolder<Map<TableAndWorkloadCell, ValueAndTimestamp>> latestTableView =
-                            tableView.getLatestTableView();
+        ImmutableList.Builder<InvalidWitnessedTransaction> invalidTransactionsBuilder = new ImmutableList.Builder<>();
+        VersionedTableView<TableAndWorkloadCell, ValueAndMaybeTimestamp> tableView = new VersionedTableView<>();
+        for (WitnessedTransaction witnessedTransaction : workflowHistory.history()) {
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> latestTableView =
+                    tableView.getLatestTableView();
 
-                    SnapshotInvariantVisitor visitor = new SnapshotInvariantVisitor(
-                            witnessedTransaction.startTimestamp(),
-                            latestTableView,
-                            tableView.getView(witnessedTransaction.startTimestamp()));
+            SnapshotInvariantVisitor visitor = new SnapshotInvariantVisitor(
+                    witnessedTransaction.startTimestamp(),
+                    latestTableView,
+                    tableView.getView(witnessedTransaction.startTimestamp()));
 
-                    List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
-                                    witnessedTransaction.actions())
-                            .mapPartial(action -> action.accept(visitor))
-                            .toList();
+            ImmutableList.Builder<InvalidWitnessedTransactionAction> invalidTransactionActionsBuilder =
+                    new ImmutableList.Builder<>();
+            for (WitnessedTransactionAction action : witnessedTransaction.actions()) {
+                action.accept(visitor).ifPresent(invalidTransactionActionsBuilder::add);
+            }
 
-                    witnessedTransaction
-                            .commitTimestamp()
-                            .ifPresent(
-                                    commitTimestamp -> tableView.put(commitTimestamp, latestTableView.getSnapshot()));
+            List<InvalidWitnessedTransactionAction> invalidTransactionActions =
+                    invalidTransactionActionsBuilder.build();
 
-                    if (invalidTransactions.isEmpty()) {
-                        return Optional.empty();
-                    }
+            witnessedTransaction
+                    .commitTimestamp()
+                    .ifPresent(commitTimestamp -> tableView.put(commitTimestamp, latestTableView.getSnapshot()));
 
-                    return Optional.of(InvalidWitnessedTransaction.of(witnessedTransaction, invalidTransactions));
-                })
-                .toList();
-        invalidWitnessedTransactions.accept(transactions);
+            if (!invalidTransactionActions.isEmpty()) {
+                invalidTransactionsBuilder.add(
+                        InvalidWitnessedTransaction.of(witnessedTransaction, invalidTransactionActions));
+            }
+        }
+        invalidWitnessedTransactions.accept(invalidTransactionsBuilder.build());
     }
 }

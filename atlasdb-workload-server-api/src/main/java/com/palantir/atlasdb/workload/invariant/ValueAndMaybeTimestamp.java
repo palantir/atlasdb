@@ -27,36 +27,43 @@ import org.immutables.value.Value;
  * would be able to catch these sort of cases.
  */
 @Value.Immutable
-public interface ValueAndTimestamp {
-    ValueAndTimestamp EMPTY = of(Optional.empty(), Optional.empty());
+public interface ValueAndMaybeTimestamp {
+    ValueAndMaybeTimestamp EMPTY = of(Optional.empty(), Optional.empty());
 
+    /**
+     * Value, which when empty either indicates it does not exist, or has been deleted.
+     */
     @Value.Parameter
     Optional<Integer> value();
 
+    /**
+     * Optional timestamp associated with the value. When empty it means either it does not exist, or it is not needed
+     * for comparison.
+     */
     @Value.Parameter
     Optional<Long> timestamp();
 
-    static ValueAndTimestamp empty() {
+    static ValueAndMaybeTimestamp empty() {
         return EMPTY;
     }
 
-    static ValueAndTimestamp of(Integer value) {
+    static ValueAndMaybeTimestamp of(Integer value) {
         return of(Optional.of(value));
     }
 
-    static ValueAndTimestamp of(Optional<Integer> value) {
+    static ValueAndMaybeTimestamp of(Optional<Integer> value) {
         return of(value, Optional.empty());
     }
 
-    static ValueAndTimestamp of(Optional<Integer> value, Long timestamp) {
+    static ValueAndMaybeTimestamp of(Optional<Integer> value, Long timestamp) {
         return of(value, Optional.of(timestamp));
     }
 
-    static ValueAndTimestamp of(Integer value, Long timestamp) {
+    static ValueAndMaybeTimestamp of(Integer value, Long timestamp) {
         return of(Optional.of(value), Optional.of(timestamp));
     }
 
-    static ValueAndTimestamp of(Optional<Integer> value, Optional<Long> timestamp) {
-        return ImmutableValueAndTimestamp.of(value, timestamp);
+    static ValueAndMaybeTimestamp of(Optional<Integer> value, Optional<Long> timestamp) {
+        return ImmutableValueAndMaybeTimestamp.of(value, timestamp);
     }
 }

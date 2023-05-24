@@ -24,10 +24,10 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface MismatchedValue {
     @Value.Parameter
-    ValueAndTimestamp actual();
+    ValueAndMaybeTimestamp actual();
 
     @Value.Parameter
-    ValueAndTimestamp expected();
+    ValueAndMaybeTimestamp expected();
 
     @Value.Check
     default void actualAndExpectedAreNotEqualToEachOther() {
@@ -39,10 +39,10 @@ public interface MismatchedValue {
     }
 
     static MismatchedValue of(Optional<Integer> actual, Optional<Integer> expected) {
-        return MismatchedValue.of(ValueAndTimestamp.of(actual), ValueAndTimestamp.of(expected));
+        return MismatchedValue.of(ValueAndMaybeTimestamp.of(actual), ValueAndMaybeTimestamp.of(expected));
     }
 
-    static MismatchedValue of(ValueAndTimestamp actual, ValueAndTimestamp expected) {
+    static MismatchedValue of(ValueAndMaybeTimestamp actual, ValueAndMaybeTimestamp expected) {
         return ImmutableMismatchedValue.of(actual, expected);
     }
 }

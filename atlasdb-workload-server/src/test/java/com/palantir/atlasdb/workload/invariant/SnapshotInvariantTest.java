@@ -65,7 +65,7 @@ public final class SnapshotInvariantTest {
         assertThat(invalidAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
         assertThat(invalidAction.mismatchedValue())
                 .isEqualTo(MismatchedValue.of(
-                        ValueAndTimestamp.of(WorkloadTestHelpers.VALUE_ONE, 1L), ValueAndTimestamp.empty()));
+                        ValueAndMaybeTimestamp.of(WorkloadTestHelpers.VALUE_ONE, 1L), ValueAndMaybeTimestamp.empty()));
     }
 
     @Test
@@ -92,7 +92,8 @@ public final class SnapshotInvariantTest {
         InvalidWitnessedTransactionAction invalidAction = Iterables.getOnlyElement(invalidTransaction.invalidActions());
         assertThat(invalidAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
         assertThat(invalidAction.mismatchedValue())
-                .isEqualTo(MismatchedValue.of(ValueAndTimestamp.of(Optional.empty(), 1L), ValueAndTimestamp.empty()));
+                .isEqualTo(MismatchedValue.of(
+                        ValueAndMaybeTimestamp.of(Optional.empty(), 1L), ValueAndMaybeTimestamp.empty()));
     }
 
     @Test
@@ -128,6 +129,28 @@ public final class SnapshotInvariantTest {
                 .startTransaction(12L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_TWO)
                 .endTransaction(13L)
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void properlyReplaysReadsAndWrites() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
+                .startTransaction(1L)
+                .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
+                .endTransaction(10L)
+                .startTransaction(5L)
+                .read(5, 10)
+                .endTransaction(15L)
+                .startTransaction(16L)
+                .read(5, 10, WorkloadTestHelpers.VALUE_ONE)
+                .endTransaction(17L)
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
                 .history(transactions)

@@ -41,7 +41,9 @@ public final class WitnessedTransactionsBuilder {
     }
 
     public WitnessedTransactionBuilder startTransaction(long startTimestamp) {
-        timestampCounter.set(startTimestamp);
+        if (startTimestamp > timestampCounter.get()) {
+            timestampCounter.set(startTimestamp);
+        }
         return new WitnessedTransactionBuilder(startTimestamp);
     }
 

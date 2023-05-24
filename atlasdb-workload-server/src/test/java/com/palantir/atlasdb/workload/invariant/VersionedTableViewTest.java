@@ -16,10 +16,14 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
+import java.util.TreeMap;
 import org.junit.Test;
 
 public final class VersionedTableViewTest {
@@ -46,7 +50,23 @@ public final class VersionedTableViewTest {
         VersionedTableView<Long, Long> tableView = new VersionedTableView<>();
         Map<Long, Long> expectedView = HashMap.of(10L, 20L);
         tableView.put(1L, expectedView);
-        tableView.put(2L, HashMap.of(20L, 30L));
+        tableView.put(3L, HashMap.of(20L, 30L));
         assertThat(tableView.getView(2L).getSnapshot()).isEqualTo(expectedView);
+    }
+
+    @Test
+    public void getViewThrowsWhenFetchingViewForTimestampThatExists() {
+        Long timestamp = 1L;
+        VersionedTableView<Long, Long> tableView = new VersionedTableView<>();
+        Map<Long, Long> expectedView = HashMap.of(10L, 20L);
+        tableView.put(timestamp, expectedView);
+
+        TreeMap<Long, Map<Long, Long>> tableViews = new TreeMap<>();
+        tableViews.put(timestamp, tableView.getLatestTableView().getSnapshot());
+
+        assertThatLoggableExceptionThrownBy(() -> tableView.getView(1L).getSnapshot())
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageContaining("It is expected when obtaining a view")
+                .hasExactlyArgs(SafeArg.of("startTimestamp", 1L), SafeArg.of("tableViews", tableViews));
     }
 }

@@ -25,8 +25,8 @@ import org.junit.Test;
 
 public final class MismatchedValueTest {
 
-    private static final ValueAndTimestamp VALUE_ONE = ValueAndTimestamp.of(25);
-    private static final ValueAndTimestamp VALUE_TWO = ValueAndTimestamp.of(15);
+    private static final ValueAndMaybeTimestamp VALUE_ONE = ValueAndMaybeTimestamp.of(25);
+    private static final ValueAndMaybeTimestamp VALUE_TWO = ValueAndMaybeTimestamp.of(15);
 
     @Test
     public void canConstructMismatchedValueFromTwoDifferentValues() {

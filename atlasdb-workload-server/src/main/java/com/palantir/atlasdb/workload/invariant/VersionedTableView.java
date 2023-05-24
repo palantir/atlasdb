@@ -17,11 +17,15 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import javax.annotation.concurrent.NotThreadSafe;
 
+@NotThreadSafe
 public final class VersionedTableView<K, V> {
     private final java.util.NavigableMap<Long, Map<K, V>> tableViews = new TreeMap<>();
 
@@ -30,6 +34,13 @@ public final class VersionedTableView<K, V> {
     }
 
     public StructureHolder<Map<K, V>> getView(Long startTimestamp) {
+        Preconditions.checkArgument(
+                !tableViews.containsKey(startTimestamp),
+                "It is expected when obtaining a view "
+                        + "from the start timestamp, that it should not already exist or be present within the map. "
+                        + "As all keys in this map should be commit timestamps, and all timestamps are immutable.",
+                SafeArg.of("startTimestamp", startTimestamp),
+                SafeArg.of("tableViews", tableViews));
         return StructureHolder.create(() -> Optional.ofNullable(tableViews.lowerEntry(startTimestamp))
                 .map(java.util.Map.Entry::getValue)
                 .orElseGet(HashMap::empty));
