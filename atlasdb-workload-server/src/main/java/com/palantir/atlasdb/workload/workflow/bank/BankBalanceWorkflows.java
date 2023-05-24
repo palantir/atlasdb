@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.workflow.bank;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
@@ -24,17 +25,33 @@ import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
 import com.palantir.atlasdb.workload.workflow.Workflow;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import one.util.streamex.EntryStream;
+import org.jetbrains.annotations.VisibleForTesting;
 
+/**
+ * A workflow which performs a number of account balance transfers between accounts.
+ */
 public final class BankBalanceWorkflows {
 
-    public static Workflow createSingleRowTwoCell(
+    private static final SafeLogger log = SafeLoggerFactory.get(BankBalanceWorkflows.class);
+    private static final SecureRandom RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
+
+    private static final Integer COLUMN = 0;
+
+    private BankBalanceWorkflows() {
+        // utility
+    }
+
+    public static Workflow create(
             InteractiveTransactionStore store,
             BankBalanceWorkflowConfiguration bankBalanceWorkflowConfiguration,
             ListeningExecutorService executionExecutor) {
@@ -46,14 +63,32 @@ public final class BankBalanceWorkflows {
                 executionExecutor);
     }
 
-    private static class BankBalanceRunTask {
+    @VisibleForTesting
+    static Workflow create(
+            InteractiveTransactionStore store,
+            BankBalanceWorkflowConfiguration bankBalanceWorkflowConfiguration,
+            ListeningExecutorService executionExecutor,
+            AtomicBoolean skipRunning) {
+        BankBalanceRunTask runTask = new BankBalanceRunTask(skipRunning, bankBalanceWorkflowConfiguration);
+        return DefaultWorkflow.create(
+                store,
+                (txnStore, _index) -> runTask.run(txnStore),
+                bankBalanceWorkflowConfiguration,
+                executionExecutor);
+    }
 
-        private static final Integer COLUMN = 0;
-        private final AtomicBoolean skipRunning = new AtomicBoolean(false);
+    private static class BankBalanceRunTask {
+        private final AtomicBoolean skipRunning;
 
         private final BankBalanceWorkflowConfiguration workflowConfiguration;
 
         public BankBalanceRunTask(BankBalanceWorkflowConfiguration workflowConfiguration) {
+            this(new AtomicBoolean(), workflowConfiguration);
+        }
+
+        @VisibleForTesting
+        BankBalanceRunTask(AtomicBoolean skipRunning, BankBalanceWorkflowConfiguration workflowConfiguration) {
+            this.skipRunning = skipRunning;
             this.workflowConfiguration = workflowConfiguration;
         }
 
@@ -63,59 +98,39 @@ public final class BankBalanceWorkflows {
             }
             workflowConfiguration.transactionRateLimiter().acquire();
             return store.readWrite(txn -> {
-                if (isBalanceValid(txn)) {}
+                Map<Integer, Optional<Integer>> maybeBalances = getAccountBalances(txn);
+                BankBalanceUtils.validateOrGenerateBalances(
+                                maybeBalances,
+                                workflowConfiguration.numberOfAccounts(),
+                                workflowConfiguration.initialBalancePerAccount())
+                        .ifPresentOrElse(balances -> performTransfers(txn, balances), () -> {
+                            if (skipRunning.compareAndSet(false, true)) {
+                                log.error(
+                                        "Balance validation failed, indicating we have violated snapshot isolation.",
+                                        SafeArg.of("maybeBalances", maybeBalances));
+                            }
+                        });
             });
+        }
+
+        private void performTransfers(InteractiveTransaction transaction, Map<Integer, Integer> balances) {
+            Map<Integer, Integer> newBalances = BankBalanceUtils.performTransfers(
+                    balances, RANDOM.nextInt(balances.size()), workflowConfiguration.transferAmount(), RANDOM);
+            newBalances.forEach((account, balance) -> transaction.write(
+                    workflowConfiguration.tableConfiguration().tableName(), getCellForAccount(account), balance));
         }
 
         private Map<Integer, Optional<Integer>> getAccountBalances(InteractiveTransaction transaction) {
             return IntStream.range(0, workflowConfiguration.numberOfAccounts())
                     .boxed()
-                    .collect(Collectors.toMap(Function.identity(),
-                            index -> transaction.read(workflowConfiguration.tableConfiguration().tableName(),
-                                    getCellForAccount(index))));
+                    .collect(Collectors.toMap(
+                            Function.identity(),
+                            index -> transaction.read(
+                                    workflowConfiguration.tableConfiguration().tableName(), getCellForAccount(index))));
         }
+    }
 
-        private Map<Integer, Integer> generateBalances() {
-            return IntStream.range(0, workflowConfiguration.numberOfAccounts())
-                    .boxed()
-                    .collect(Collectors.toMap(Function.identity(),
-                            index -> workflowConfiguration.initialBalancePerAccount()));
-        }
-
-        private Optional<Map<Integer, Integer>> getOrInitializeBalances(InteractiveTransaction transaction) {
-            Map<Integer, Optional<Integer>> balances = getAccountBalances(transaction);
-            if (getAccountBalances(transaction).values().stream().allMatch(Optional::isPresent)) {
-                return Optional.of(EntryStream.of(getAccountBalances(transaction)).mapValues(Optional::get).toMap());
-            }
-
-            if (balances.values().stream().anyMatch(Optional::isEmpty)) {
-                skipRunning.set(true);
-                return Optional.empty();
-            }
-
-            Map<Integer, Integer> balancesToWrite = generateBalances();
-
-
-
-            return Optional.of(balancesToWrite);
-        }
-
-        private boolean isBalanceValid(InteractiveTransaction transaction) {
-            Map<Integer, Integer> accountBalances =
-
-            if (BankBalanceUtils.getMissingTotalBalance(balances.values(), totalBalance) != 0)) {
-                log.error(
-                        "Total balance is not correct. Expected: {}, Actual: {}",
-                        workflowConfiguration.numAccounts() * workflowConfiguration.initialBalance(),
-                        totalBalance);
-                skipRunning.set(true);
-                return false;
-            }
-            return true;
-        }
-
-        private WorkloadCell getCellForAccount(int accountIndex) {
-            return ImmutableWorkloadCell.of(accountIndex, COLUMN);
-        }
+    public static WorkloadCell getCellForAccount(int accountIndex) {
+        return ImmutableWorkloadCell.of(accountIndex, COLUMN);
     }
 }

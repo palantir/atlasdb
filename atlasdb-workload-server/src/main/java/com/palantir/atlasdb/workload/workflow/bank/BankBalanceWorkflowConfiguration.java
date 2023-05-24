@@ -43,9 +43,9 @@ public interface BankBalanceWorkflowConfiguration extends WorkflowConfiguration 
         return 100;
     }
 
-    @Value.Derived
-    default Integer totalBalance() {
-        return numberOfAccounts() * initialBalancePerAccount();
+    @Value.Default
+    default Integer transferAmount() {
+        return 75;
     }
 
     @Value.Lazy
