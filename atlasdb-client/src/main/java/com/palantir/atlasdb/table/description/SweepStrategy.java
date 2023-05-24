@@ -30,7 +30,7 @@ public final class SweepStrategy {
 
     public static final SweepStrategy CONSERVATIVE =
             new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);
-    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
+    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), false);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
     private final boolean mustCheckImmutableLockAfterReads;
