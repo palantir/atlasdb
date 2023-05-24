@@ -159,7 +159,6 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         }
     }
 
-
     private void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
         // TODO (jkong): This is awful, but sufficient for now.
         Instant deadline = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(5));
