@@ -28,6 +28,9 @@ import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,6 +42,7 @@ import java.util.stream.Collectors;
  * to delete the other.
  */
 public final class SingleRowTwoCellsWorkflows {
+    private static final SafeLogger log = SafeLoggerFactory.get(SingleRowTwoCellsWorkflows.class);
     private static final int SINGLE_ROW = 1;
     private static final int FIRST_COLUMN = 1;
     private static final int SECOND_COLUMN = 2;
@@ -70,7 +74,11 @@ public final class SingleRowTwoCellsWorkflows {
 
         List<TransactionAction> transactionActions = createTransactionActions(
                 taskIndex, workflowConfiguration.tableConfiguration().tableName());
-        return store.readWrite(transactionActions);
+        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(transactionActions);
+        maybeTransaction.ifPresent(_transaction -> log.info(
+                "Transaction successfully committed for single row two cells workflow for task index {}.",
+                SafeArg.of("taskIndex", taskIndex)));
+        return maybeTransaction;
     }
 
     @VisibleForTesting
