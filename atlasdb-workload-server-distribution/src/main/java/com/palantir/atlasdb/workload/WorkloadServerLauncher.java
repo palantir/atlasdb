@@ -39,8 +39,11 @@ import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguratio
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
+import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
+import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -129,6 +132,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
                 configuration.install().ringConfig();
+        TransientRowsWorkflowConfiguration transientRowsWorkflowConfiguration =
+                configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
 
@@ -140,6 +145,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
                         createRingWorkflowValidator(
                                 transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
+                        createTransientRowsWorkflowValidator(
+                                transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
                                 transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
 
@@ -174,6 +181,27 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         System.exit(1);
     }
 
+    private WorkflowAndInvariants<Workflow> createTransientRowsWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            TransientRowsWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService =
+                createExecutorService(workflowConfig, lifecycle, TransientRowsWorkflows.class);
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(TransientRowsWorkflows.create(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        TransientRowsWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .addInvariantReporters(TransientRowsWorkflows.getSummaryLogInvariantReporter(workflowConfig))
+                .build();
+    }
+
     private WorkflowAndInvariants<Workflow> createSingleBusyCellWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleBusyCellWorkflowConfiguration workflowConfig,
@@ -206,10 +234,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             RingWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
-        ExecutorService executorService = lifecycle
-                .executorService(RingWorkflows.class.getSimpleName())
-                .maxThreads(workflowConfig.maxThreadCount())
-                .build();
+        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RingWorkflows.class);
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
                         workflowConfig.tableConfiguration().tableName(),
@@ -223,10 +248,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             SingleRowTwoCellsWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
-        ExecutorService executorService = lifecycle
-                .executorService(RingWorkflows.class.getSimpleName())
-                .maxThreads(workflowConfig.maxThreadCount())
-                .build();
+        ExecutorService executorService =
+                createExecutorService(workflowConfig, lifecycle, SingleRowTwoCellsWorkflows.class);
         TransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
                         workflowConfig.tableConfiguration().tableName(),
@@ -250,5 +273,13 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     @VisibleForTesting
     TaggedMetricRegistry getTaggedMetricRegistry() {
         return taggedMetricRegistry;
+    }
+
+    private static <T> ExecutorService createExecutorService(
+            WorkflowConfiguration workflowConfig, LifecycleEnvironment lifecycle, Class<T> workflowFactoryClass) {
+        return lifecycle
+                .executorService(workflowFactoryClass.getSimpleName())
+                .maxThreads(workflowConfig.maxThreadCount())
+                .build();
     }
 }

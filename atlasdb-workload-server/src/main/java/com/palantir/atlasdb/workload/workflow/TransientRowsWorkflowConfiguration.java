@@ -19,20 +19,14 @@ package com.palantir.atlasdb.workload.workflow;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.util.concurrent.RateLimiter;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
-@JsonTypeName(SingleRowTwoCellsWorkflowConfiguration.TYPE)
-public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
-    String TYPE = "single-row-two-cells";
+@JsonSerialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
+@JsonTypeName(TransientRowsWorkflowConfiguration.TYPE)
+public interface TransientRowsWorkflowConfiguration extends WorkflowConfiguration {
+    String TYPE = "transient-rows";
 
     TableConfiguration tableConfiguration();
-
-    @Value.Lazy
-    default RateLimiter transactionRateLimiter() {
-        return RateLimiter.create(rateLimit());
-    }
 }

@@ -46,13 +46,19 @@ install:
       tableName: two_cells_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
-    type: singleRowTwoCells
+    type: single-row-two-cells
   ringConfig:
     tableConfiguration:
       tableName: ring_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: ring
+  transientRowsConfig:
+    tableConfiguration:
+      tableName: transient_rows_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: transient-rows
   singleBusyCellConfig:
     tableConfiguration:
       tableName: single_busy_cell_test
