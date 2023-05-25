@@ -575,25 +575,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 cellComparator);
     }
 
-    @VisibleForTesting
-    static void reportExpectationsCollectedData(
-            ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics, boolean isStillRunning) {
-        if (isStillRunning) {
-            log.error("reportExpectationsCollectedData is called on an in-progress transaction");
-            return;
-        }
-
-        long ageMillis = transaction.getAgeMillis();
-        TransactionReadInfo info = transaction.getReadInfo();
-
-        metrics.ageMillis().update(ageMillis);
-        metrics.bytesRead().update(info.bytesRead());
-        metrics.kvsCalls().update(info.kvsCalls());
-
-        info.maximumBytesKvsCallInfo()
-                .ifPresent(kvsCallReadInfo -> metrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
-    }
-
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
@@ -2627,6 +2608,26 @@ public class SnapshotTransaction extends AbstractTransaction
     public void reportExpectationsCollectedData() {
         reportExpectationsCollectedData(this, expectationsDataCollectionMetrics, isStillRunning());
     }
+
+    @VisibleForTesting
+    static void reportExpectationsCollectedData(
+            ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics, boolean isStillRunning) {
+        if (isStillRunning) {
+            log.error("reportExpectationsCollectedData is called on an in-progress transaction");
+            return;
+        }
+
+        long ageMillis = transaction.getAgeMillis();
+        TransactionReadInfo info = transaction.getReadInfo();
+
+        metrics.ageMillis().update(ageMillis);
+        metrics.bytesRead().update(info.bytesRead());
+        metrics.kvsCalls().update(info.kvsCalls());
+
+        info.maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo -> metrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
+    }
+
 
     private long getStartTimestamp() {
         return startTimestamp.get();
