@@ -275,7 +275,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             BankBalanceWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = lifecycle
-                .executorService(RingWorkflows.class.getSimpleName())
+                .executorService(BankBalanceWorkflows.class.getSimpleName())
                 .maxThreads(workflowConfig.maxThreadCount())
                 .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
@@ -287,8 +287,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .workflow(BankBalanceWorkflows.create(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
-                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
-                        DurableWritesMetrics.of(taggedMetricRegistry)))
+                        BankBalanceWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
                 .build();
     }
 

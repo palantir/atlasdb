@@ -45,7 +45,7 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 public final class BankBalanceWorkflowsTest {
-    private static final String TABLE_NAME = "ring.ring";
+    private static final String TABLE_NAME = "bank.bank";
     private static final BankBalanceWorkflowConfiguration CONFIGURATION =
             ImmutableBankBalanceWorkflowConfiguration.builder()
                     .tableConfiguration(ImmutableTableConfiguration.builder()
