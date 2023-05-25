@@ -22,8 +22,10 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
+import jdk.jfr.SettingDefinition;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,60 +38,50 @@ public final class ExpectationsMetricsReportingTest {
     private static final ImmutableTransactionReadInfo BLANK_READ_INFO =
             ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(0).build();
 
-    private static final ExpectationsMetrics METRICS =
-            ExpectationsMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
-
-    @Mock
-    ExpectationsAwareTransaction transaction;
+    private ExpectationsMetrics metrics;
 
     @Before
     public void setUp() {
-        // avoids stub/mock NPEs
-        when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO);
+        metrics = ExpectationsMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
     }
 
     @Test
     public void ageReported() {
         long age = 129L;
-        when(transaction.getAgeMillis()).thenReturn(age);
-        reportMetrics();
-        assertThat(METRICS.ageMillis().getSnapshot().getValues()).containsOnly(age);
+        SnapshotTransaction.reportExpectationsCollectedData(age, BLANK_READ_INFO, metrics);
+        assertThat(metrics.ageMillis().getSnapshot().getValues()).containsOnly(age);
     }
 
     @Test
     public void bytesReadReported() {
         long bytes = 1290L;
-        when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO.withBytesRead(bytes));
-        reportMetrics();
-        assertThat(METRICS.bytesRead().getSnapshot().getValues()).containsOnly(bytes);
+        reportMetrics(BLANK_READ_INFO.withBytesRead(bytes));
+        assertThat(metrics.bytesRead().getSnapshot().getValues()).containsOnly(bytes);
     }
 
     @Test
     public void kvsCallsReported() {
         long calls = 12L;
-        when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO.withKvsCalls(calls));
-        reportMetrics();
-        assertThat(METRICS.kvsReads().getSnapshot().getValues()).containsOnly(calls);
+        reportMetrics(BLANK_READ_INFO.withKvsCalls(calls));
+        assertThat(metrics.kvsReads().getSnapshot().getValues()).containsOnly(calls);
     }
 
     @Test
     public void mostKvsBytesReadInSingleCallNotReportedOnReadInfoWithEmptyMaximumBytesKvsCallOnFinishedTransaction() {
-        reportMetrics();
-        assertThat(METRICS.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
+        reportMetrics(BLANK_READ_INFO);
+        assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
                 .isEmpty();
     }
 
     @Test
     public void mostKvsBytesReadInSingleCallReportedOnReadInfoWithPresentMaximumBytesKvsCallOnFinishedTransaction() {
         long bytes = 193L;
-        when(transaction.getReadInfo())
-                .thenReturn(BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
-        reportMetrics();
-        assertThat(METRICS.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
+        reportMetrics(BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
+        assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
                 .containsOnly(bytes);
     }
 
-    private void reportMetrics() {
-        SnapshotTransaction.reportExpectationsCollectedData(transaction, METRICS);
+    private void reportMetrics(TransactionReadInfo readInfo) {
+        SnapshotTransaction.reportExpectationsCollectedData(0L, readInfo, metrics);
     }
 }

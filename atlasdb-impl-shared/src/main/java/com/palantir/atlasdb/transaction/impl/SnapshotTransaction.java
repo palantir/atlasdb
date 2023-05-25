@@ -2614,19 +2614,17 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        reportExpectationsCollectedData(this, expectationsDataCollectionMetrics);
+        reportExpectationsCollectedData(getAgeMillis(), getReadInfo(), expectationsDataCollectionMetrics);
     }
 
     @VisibleForTesting
-    static void reportExpectationsCollectedData(ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics) {
-        long ageMillis = transaction.getAgeMillis();
-        TransactionReadInfo info = transaction.getReadInfo();
-
+    static void reportExpectationsCollectedData(
+            long ageMillis, TransactionReadInfo readInfo, ExpectationsMetrics metrics) {
         metrics.ageMillis().update(ageMillis);
-        metrics.bytesRead().update(info.bytesRead());
-        metrics.kvsReads().update(info.kvsCalls());
+        metrics.bytesRead().update(readInfo.bytesRead());
+        metrics.kvsReads().update(readInfo.kvsCalls());
 
-        info.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
+        readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
                 .update(kvsCallReadInfo.bytesRead()));
     }
 
