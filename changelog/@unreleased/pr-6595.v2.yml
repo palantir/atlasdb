@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: '[TEX] Report transaction level metrics'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6595
