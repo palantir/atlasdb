@@ -81,22 +81,22 @@ public final class RandomWorkflows {
                             generateReadActions(), generateWriteActions(), generateDeleteActions())
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
-            Collections.shuffle(actions);
+            Collections.shuffle(actions, random);
             return store.readWrite(actions);
         }
 
         private List<ReadTransactionAction> generateReadActions() {
-            return IntStream.range(0, random.nextInt(workflowConfiguration.maxReads()))
+            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxReads()))
                     .boxed()
-                    .map(index -> ImmutableReadTransactionAction.of(
+                    .map(_index -> ImmutableReadTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
                     .collect(Collectors.toList());
         }
 
         private List<WriteTransactionAction> generateWriteActions() {
-            return IntStream.range(0, random.nextInt(workflowConfiguration.maxWrites()))
+            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxWrites()))
                     .boxed()
-                    .map(index -> ImmutableWriteTransactionAction.of(
+                    .map(_index -> ImmutableWriteTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(),
                             randomCell(),
                             random.nextInt(100_000)))
@@ -104,9 +104,9 @@ public final class RandomWorkflows {
         }
 
         private List<DeleteTransactionAction> generateDeleteActions() {
-            return IntStream.range(0, random.nextInt(workflowConfiguration.maxDeletes()))
+            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxDeletes()))
                     .boxed()
-                    .map(index -> ImmutableDeleteTransactionAction.of(
+                    .map(_index -> ImmutableDeleteTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
                     .collect(Collectors.toList());
         }

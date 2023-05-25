@@ -73,7 +73,7 @@ public class RandomWorkflowsTest {
         this.workflow = RandomWorkflows.create(
                 memoryStore,
                 CONFIGURATION,
-                MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)),
+                MoreExecutors.listeningDecorator(PTExecutors.newSingleThreadExecutor()),
                 random);
     }
 
