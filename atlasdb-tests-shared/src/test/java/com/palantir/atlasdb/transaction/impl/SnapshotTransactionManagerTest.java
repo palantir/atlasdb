@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -240,7 +241,7 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME)
                 .contains("expectations.bytesRead")
                 .contains("expectations.kvsReads")
-                .contains("expectations.mostKvsBytesReadInSingleCall");
+                .contains("expectations.ageMillis");
         assertThat(registry.timer(MetricName.builder()
                                 .safeName(SETUP_TASK_METRIC_NAME)
                                 .build())
