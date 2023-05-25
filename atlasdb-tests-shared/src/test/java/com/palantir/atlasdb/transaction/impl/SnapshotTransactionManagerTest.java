@@ -239,8 +239,8 @@ public class SnapshotTransactionManagerTest {
                 .contains(SETUP_TASK_METRIC_NAME)
                 .contains(FINISH_TASK_METRIC_NAME)
                 .contains("expectations.bytesRead")
-                .contains("expectations.kvsCalls")
-                .contains("expectations.ageMillis");
+                .contains("expectations.kvsReads")
+                .contains("expectations.mostKvsBytesReadInSingleCall");
         assertThat(registry.timer(MetricName.builder()
                                 .safeName(SETUP_TASK_METRIC_NAME)
                                 .build())

@@ -8,12 +8,12 @@ namespaces:
       bytesRead:
         docs: Bytes read by a transaction through Atlas kvs read calls
         type: histogram
-      kvsCalls:
+      kvsReads:
         docs: Number of Atlas kvs read calls made by a transaction
         type: histogram
       ageMillis:
         docs: Elapsed duration in milliseconds for a transaction
         type: histogram
-      worstKvsBytesRead:
+      mostKvsBytesReadInSingleCall:
         docs: Most bytes read by a transaction in one Atlas kvs read call
         type: histogram

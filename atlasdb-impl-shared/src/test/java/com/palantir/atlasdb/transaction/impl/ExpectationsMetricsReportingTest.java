@@ -70,22 +70,24 @@ public final class ExpectationsMetricsReportingTest {
         long calls = 12L;
         when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO.withKvsCalls(calls));
         reportMetrics();
-        assertThat(metrics.kvsCalls().getSnapshot().getValues()).containsOnly(calls);
+        assertThat(metrics.kvsReads().getSnapshot().getValues()).containsOnly(calls);
     }
 
     @Test
-    public void worstKvsBytesReadNotReportedOnReadInfoWithEmptyMaximumBytesKvsCallOnFinishedTransaction() {
+    public void mostKvsBytesReadInSingleCallNotReportedOnReadInfoWithEmptyMaximumBytesKvsCallOnFinishedTransaction() {
         reportMetrics();
-        assertThat(metrics.worstKvsBytesRead().getSnapshot().getValues()).isEmpty();
+        assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
+                .isEmpty();
     }
 
     @Test
-    public void worstKvsBytesReadReportedOnReadInfoWithPresentMaximumBytesKvsCallOnFinishedTransaction() {
+    public void mostKvsBytesReadInSingleCallReportedOnReadInfoWithPresentMaximumBytesKvsCallOnFinishedTransaction() {
         long bytes = 193L;
         when(transaction.getReadInfo())
                 .thenReturn(BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
         reportMetrics();
-        assertThat(metrics.worstKvsBytesRead().getSnapshot().getValues()).containsOnly(bytes);
+        assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
+                .containsOnly(bytes);
     }
 
     private void reportMetrics() {

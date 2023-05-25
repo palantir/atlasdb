@@ -2623,10 +2623,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
         metrics.ageMillis().update(ageMillis);
         metrics.bytesRead().update(info.bytesRead());
-        metrics.kvsCalls().update(info.kvsCalls());
+        metrics.kvsReads().update(info.kvsCalls());
 
-        info.maximumBytesKvsCallInfo()
-                .ifPresent(kvsCallReadInfo -> metrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
+        info.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
+                .update(kvsCallReadInfo.bytesRead()));
     }
 
     private long getStartTimestamp() {
