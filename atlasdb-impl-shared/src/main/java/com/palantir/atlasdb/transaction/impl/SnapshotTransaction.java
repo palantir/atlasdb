@@ -1827,7 +1827,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean isStillRunning() {
-        return state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING;
+        State stateNow = state.get();
+        return stateNow == State.UNCOMMITTED || stateNow == State.COMMITTING;
     }
 
     /**
