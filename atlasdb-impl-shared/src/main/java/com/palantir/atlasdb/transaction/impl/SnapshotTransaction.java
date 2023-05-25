@@ -2628,7 +2628,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 .ifPresent(kvsCallReadInfo -> metrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
     }
 
-
     private long getStartTimestamp() {
         return startTimestamp.get();
     }
