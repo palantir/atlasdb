@@ -86,7 +86,7 @@ public final class RandomWorkflows {
         }
 
         private List<ReadTransactionAction> generateReadActions() {
-            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxReads()))
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxReads() + 1))
                     .boxed()
                     .map(_index -> ImmutableReadTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
@@ -94,7 +94,7 @@ public final class RandomWorkflows {
         }
 
         private List<WriteTransactionAction> generateWriteActions() {
-            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxWrites()))
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxWrites() + 1))
                     .boxed()
                     .map(_index -> ImmutableWriteTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(),
@@ -104,7 +104,7 @@ public final class RandomWorkflows {
         }
 
         private List<DeleteTransactionAction> generateDeleteActions() {
-            return IntStream.rangeClosed(0, random.nextInt(workflowConfiguration.maxDeletes()))
+            return IntStream.range(0, random.nextInt(workflowConfiguration.maxDeletes() + 1))
                     .boxed()
                     .map(_index -> ImmutableDeleteTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
