@@ -98,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -265,12 +266,14 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
+    private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     protected volatile boolean hasReads;
 
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+
     protected final Closer closer = Closer.create();
 
     /**
@@ -345,6 +348,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -569,6 +573,25 @@ public class SnapshotTransaction extends AbstractTransaction
                         .entrySet()
                         .iterator()),
                 cellComparator);
+    }
+
+    @VisibleForTesting
+    static void reportExpectationsCollectedData(
+            ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics, boolean isStillRunning) {
+        if (isStillRunning) {
+            log.error("reportExpectationsCollectedData is called on an in-progress transaction");
+            return;
+        }
+
+        long ageMillis = transaction.getAgeMillis();
+        TransactionReadInfo info = transaction.getReadInfo();
+
+        metrics.ageMillis().update(ageMillis);
+        metrics.bytesRead().update(info.bytesRead());
+        metrics.kvsCalls().update(info.kvsCalls());
+
+        info.maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo -> metrics.worstKvsBytesRead().update(kvsCallReadInfo.bytesRead()));
     }
 
     /**
@@ -1817,9 +1840,13 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void ensureStillRunning() {
-        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
+        if (!isStillRunning()) {
             throw new CommittedTransactionException();
         }
+    }
+
+    private boolean isStillRunning() {
+        return state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING;
     }
 
     /**
@@ -2596,9 +2623,10 @@ public class SnapshotTransaction extends AbstractTransaction
         return keyValueService.getOverallReadInfo();
     }
 
-    // TODO(aalouane): implement and call this on transaction exit
     @Override
-    public void reportExpectationsCollectedData() {}
+    public void reportExpectationsCollectedData() {
+        reportExpectationsCollectedData(this, expectationsDataCollectionMetrics, isStillRunning());
+    }
 
     private long getStartTimestamp() {
         return startTimestamp.get();
