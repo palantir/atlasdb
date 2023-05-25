@@ -2606,17 +2606,18 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void reportExpectationsCollectedData() {
-        reportExpectationsCollectedData(this, expectationsDataCollectionMetrics, isStillRunning());
-    }
-
-    @VisibleForTesting
-    static void reportExpectationsCollectedData(
-            ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics, boolean isStillRunning) {
-        if (isStillRunning) {
-            log.error("reportExpectationsCollectedData is called on an in-progress transaction");
+        if (isStillRunning()) {
+            log.error(
+                    "reportExpectationsCollectedData is called on an in-progress transaction",
+                    SafeArg.of("state", state.get()));
             return;
         }
 
+        reportExpectationsCollectedData(this, expectationsDataCollectionMetrics);
+    }
+
+    @VisibleForTesting
+    static void reportExpectationsCollectedData(ExpectationsAwareTransaction transaction, ExpectationsMetrics metrics) {
         long ageMillis = transaction.getAgeMillis();
         TransactionReadInfo info = transaction.getReadInfo();
 

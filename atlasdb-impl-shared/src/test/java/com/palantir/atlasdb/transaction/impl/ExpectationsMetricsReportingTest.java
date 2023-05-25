@@ -50,39 +50,32 @@ public final class ExpectationsMetricsReportingTest {
     }
 
     @Test
-    public void noMetricsAreReportedOnRunningTransaction() {
-        ExpectationsMetrics spiedOnMetrics = spy(metrics);
-        SnapshotTransaction.reportExpectationsCollectedData(transaction, spiedOnMetrics, true);
-        verifyNoInteractions(spiedOnMetrics);
-    }
-
-    @Test
-    public void ageReportedOnFinishedTransaction() {
+    public void ageReported() {
         long age = 129L;
         when(transaction.getAgeMillis()).thenReturn(age);
-        reportMetricsOnFinishedTransaction();
+        reportMetrics();
         assertThat(metrics.ageMillis().getSnapshot().getValues()).containsOnly(age);
     }
 
     @Test
-    public void bytesReadReportedOnFinishedTransaction() {
+    public void bytesReadReported() {
         long bytes = 1290L;
         when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO.withBytesRead(bytes));
-        reportMetricsOnFinishedTransaction();
+        reportMetrics();
         assertThat(metrics.bytesRead().getSnapshot().getValues()).containsOnly(bytes);
     }
 
     @Test
-    public void kvsCallsReportedOnFinishedTransaction() {
+    public void kvsCallsReported() {
         long calls = 12L;
         when(transaction.getReadInfo()).thenReturn(BLANK_READ_INFO.withKvsCalls(calls));
-        reportMetricsOnFinishedTransaction();
+        reportMetrics();
         assertThat(metrics.kvsCalls().getSnapshot().getValues()).containsOnly(calls);
     }
 
     @Test
     public void worstKvsBytesReadNotReportedOnReadInfoWithEmptyMaximumBytesKvsCallOnFinishedTransaction() {
-        reportMetricsOnFinishedTransaction();
+        reportMetrics();
         assertThat(metrics.worstKvsBytesRead().getSnapshot().getValues()).isEmpty();
     }
 
@@ -91,11 +84,11 @@ public final class ExpectationsMetricsReportingTest {
         long bytes = 193L;
         when(transaction.getReadInfo())
                 .thenReturn(BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
-        reportMetricsOnFinishedTransaction();
+        reportMetrics();
         assertThat(metrics.worstKvsBytesRead().getSnapshot().getValues()).containsOnly(bytes);
     }
 
-    private void reportMetricsOnFinishedTransaction() {
-        SnapshotTransaction.reportExpectationsCollectedData(transaction, metrics, false);
+    private void reportMetrics() {
+        SnapshotTransaction.reportExpectationsCollectedData(transaction, metrics);
     }
 }
