@@ -408,7 +408,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get()
                 .updateManyUnregisteredQuery(
-                        " /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */"
+                        " /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */"
                                 + " DELETE"
                                 + " /*+"
                                 + "   INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ")"
