@@ -19,6 +19,7 @@ runtime:
           trustStorePath: "var/security/trustStore.jks"
 install:
   atlas:
+    initializeAsync: true
     keyValueService:
       type: cassandra
       servers:
@@ -36,6 +37,7 @@ install:
         password: cassandra
       ssl: false
       replicationFactor: 3
+      gcGraceSeconds: 300
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
@@ -44,16 +46,22 @@ install:
       tableName: two_cells_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
-    type: singleRowTwoCells
+    type: single-row-two-cells
   ringConfig:
     tableConfiguration:
       tableName: ring_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: ring
+  transientRowsConfig:
+    tableConfiguration:
+      tableName: transient_rows_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: transient-rows
   singleBusyCellConfig:
     tableConfiguration:
-      tableName: single-busy-cell-test
+      tableName: single_busy_cell_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: single-busy-cell

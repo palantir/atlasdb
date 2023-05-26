@@ -95,12 +95,15 @@ public final class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void create(byte[] tableMetadata) {
+        log.info("Attempting to create table {}.", LoggingArgs.tableRef(tableRef));
         TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
         boolean needsOverflow = needsOverflow(metadata);
         int compressionSetting = getOptimalIndexCompression(metadata);
 
         if (tableExists()) {
+            log.info("Table {} already exists.", LoggingArgs.tableRef(tableRef));
             if (needsOverflow) {
+                log.info("Table {} needs overflow.", LoggingArgs.tableRef(tableRef));
                 TableValueStyle existingStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
                 if (existingStyle != TableValueStyle.OVERFLOW) {
                     throwForMissingOverflowTable();
@@ -126,9 +129,20 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void maybeAlterTableToHaveOverflowColumn() {
+        log.info("Potentially altering table {} to have overflow column.", LoggingArgs.tableRef(tableRef));
         if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
+            log.info("Config contains table {}, checking if we can alter table.", LoggingArgs.tableRef(tableRef));
             try {
                 String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+                log.info(
+                        "Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, "
+                                + "overflow "
+                                + "column exists status: {}",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),
+                        SafeArg.of("overflowTableExists", overflowTableExists()),
+                        SafeArg.of("overflowColumnExists", overflowColumnExists(shortTableName)));
+
                 if (overflowTableHasMigrated() && overflowTableExists() && !overflowColumnExists(shortTableName)) {
                     alterTableToHaveOverflowColumn(shortTableName);
                 }

@@ -5,6 +5,7 @@ def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
 docker {
     name "palantirtechnologies/${project.name}:${imageVersion}"
     tags 'latest', 'snapshot'
+    labels(['version': imageVersion])
     files distTar.outputs
 }
 

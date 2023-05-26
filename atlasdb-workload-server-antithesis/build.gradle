@@ -7,5 +7,5 @@ def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
 docker {
     name "palantirtechnologies/${project.name}:${imageVersion}"
     tags 'latest', 'snapshot'
-    files 'var/docker-compose.yml'
+    files 'var/docker-compose.yml', 'var/compact.sh', 'var/flush.sh'
 }

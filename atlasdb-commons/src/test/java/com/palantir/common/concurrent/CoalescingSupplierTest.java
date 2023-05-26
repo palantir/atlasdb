@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -49,12 +50,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.MockMakers;
 
 @RunWith(Parameterized.class)
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;
 
-    private final Supplier<Integer> delegate = mock(Supplier.class);
+    private final Supplier<Integer> delegate =
+            mock(Supplier.class, withSettings().mockMaker(MockMakers.SUBCLASS));
     private final FreezableSupplier freezableDelegate = new FreezableSupplier(delegate);
     private final CoalescingSupplier<Integer> coalescing = new CoalescingSupplier<>(freezableDelegate);
 

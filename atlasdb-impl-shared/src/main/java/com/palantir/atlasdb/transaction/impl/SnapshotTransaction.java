@@ -98,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -265,12 +266,14 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
+    private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     protected volatile boolean hasReads;
 
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+
     protected final Closer closer = Closer.create();
 
     /**
@@ -345,6 +348,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
     }
 
     protected TransactionScopedCache getCache() {
@@ -1817,9 +1821,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void ensureStillRunning() {
-        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
+        if (!isStillRunning()) {
             throw new CommittedTransactionException();
         }
+    }
+
+    private boolean isStillRunning() {
+        State stateNow = state.get();
+        return stateNow == State.UNCOMMITTED || stateNow == State.COMMITTING;
     }
 
     /**
@@ -1950,8 +1959,9 @@ public class SnapshotTransaction extends AbstractTransaction
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
-                return;
             }
+            getTimer("nonWriteCommitTotalTimeSinceTxCreation")
+                    .update(Duration.of(transactionTimerContext.stop(), ChronoUnit.NANOS));
             return;
         }
 
@@ -2596,9 +2606,28 @@ public class SnapshotTransaction extends AbstractTransaction
         return keyValueService.getOverallReadInfo();
     }
 
-    // TODO(aalouane): implement and call this on transaction exit
     @Override
-    public void reportExpectationsCollectedData() {}
+    public void reportExpectationsCollectedData() {
+        if (isStillRunning()) {
+            log.error(
+                    "reportExpectationsCollectedData is called on an in-progress transaction",
+                    SafeArg.of("state", state.get()));
+            return;
+        }
+
+        reportExpectationsCollectedData(getAgeMillis(), getReadInfo(), expectationsDataCollectionMetrics);
+    }
+
+    @VisibleForTesting
+    static void reportExpectationsCollectedData(
+            long ageMillis, TransactionReadInfo readInfo, ExpectationsMetrics metrics) {
+        metrics.ageMillis().update(ageMillis);
+        metrics.bytesRead().update(readInfo.bytesRead());
+        metrics.kvsReads().update(readInfo.kvsCalls());
+
+        readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
+                .update(kvsCallReadInfo.bytesRead()));
+    }
 
     private long getStartTimestamp() {
         return startTimestamp.get();

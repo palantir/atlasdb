@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Adds metric for tracking the size of the cassandra client pool
+  links:
+  - https://github.com/palantir/atlasdb/pull/6554
