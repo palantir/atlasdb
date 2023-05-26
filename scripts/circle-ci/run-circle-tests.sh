@@ -39,8 +39,6 @@ CONTAINER_12=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' )
 
 CONTAINER_13=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_14=('compileJava' 'compileTestJava')
-
 # Excluded as it is split into two subsets
 EXCLUDED=(':atlasdb-cassandra-integration-tests:check')
 
@@ -75,20 +73,19 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:class+unload=off"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$test_suite_index" -eq "14" ]; then
-    export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
-elif [ "$test_suite_index" -eq "3" ]; then
+if [ "$test_suite_index" -eq "3" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
-    BASE_GRADLE_ARGS+=" --scan --parallel"
 else
-    export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
-    BASE_GRADLE_ARGS+=" --scan --parallel"
+    export _JAVA_OPTIONS="-Xms4g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 fi
+
+BASE_GRADLE_ARGS+=" --scan --parallel"
+
 export CASSANDRA_MAX_HEAP_SIZE=512m
 export CASSANDRA_HEAP_NEWSIZE=64m
 
 case "$test_suite_index" in
-    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
+    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check && checkDocsBuild;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
     2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
@@ -102,5 +99,4 @@ case "$test_suite_index" in
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
     12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
     13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
-    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} --stacktrace -PenableErrorProne=true && checkDocsBuild ;;
 esac
