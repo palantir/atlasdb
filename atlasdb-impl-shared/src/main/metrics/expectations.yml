@@ -1,0 +1,19 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.transaction.expectations'
+
+namespaces:
+  expectations:
+    docs: Data collection on transaction patterns
+    metrics:
+      bytesRead:
+        docs: Bytes read by a transaction through Atlas kvs read calls
+        type: histogram
+      kvsReads:
+        docs: Number of Atlas kvs read calls made by a transaction
+        type: histogram
+      ageMillis:
+        docs: Elapsed duration in milliseconds for a transaction
+        type: histogram
+      mostKvsBytesReadInSingleCall:
+        docs: Most bytes read by a transaction in one Atlas kvs read call
+        type: histogram
