@@ -35,6 +35,8 @@ import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflows;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadsNoTouchWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
@@ -136,6 +138,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
+        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+                configuration.install().singleBusyCellReadsNoTouchConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
@@ -148,7 +152,11 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         createTransientRowsWorkflowValidator(
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
-                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
+                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                                transactionStoreFactory,
+                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                                environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -227,6 +235,35 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         MoreExecutors.listeningDecorator(writeExecutor)),
                 new DurableWritesInvariantMetricReporter(
                         SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+                SerializableInvariantLogReporter.INSTANCE);
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleBusyCellReadNoTouchWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleBusyCellReadsNoTouchWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutor = lifecycle
+                .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        ExecutorService writeExecutor = lifecycle
+                .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(
+                SingleBusyCellReadNoTouchWorkflows.create(
+                        transactionStore,
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutor),
+                        MoreExecutors.listeningDecorator(writeExecutor)),
+                new DurableWritesInvariantMetricReporter(
+                        SingleBusyCellReadNoTouchWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)),
                 SerializableInvariantLogReporter.INSTANCE);
     }
 
