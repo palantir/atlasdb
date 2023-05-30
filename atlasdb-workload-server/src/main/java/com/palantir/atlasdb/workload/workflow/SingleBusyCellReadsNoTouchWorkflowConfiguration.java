@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableSingleBusyCellWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableSingleBusyCellWorkflowConfiguration.class)
+@JsonSerialize(as = ImmutableSingleBusyCellReadsNoTouchWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableSingleBusyCellReadsNoTouchWorkflowConfiguration.class)
 @JsonTypeName(SingleBusyCellReadsNoTouchWorkflowConfiguration.TYPE)
 public interface SingleBusyCellReadsNoTouchWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "single-busy-cell-reads-no-touch";
