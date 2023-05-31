@@ -59,7 +59,7 @@ public class TransactionOutcomeMetricsAssert
         return this;
     }
 
-    public TransactionOutcomeMetricsAssert hasLocksAcquisitionFailures(long count) {
+    public TransactionOutcomeMetricsAssert hasLockAcquisitionFailures(long count) {
         checkPresentAndCheckCount(TransactionOutcome.LOCK_ACQUISITION_FAILED, count);
         return this;
     }

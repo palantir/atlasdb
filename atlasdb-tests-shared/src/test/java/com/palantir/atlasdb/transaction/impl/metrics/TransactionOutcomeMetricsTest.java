@@ -85,7 +85,7 @@ public class TransactionOutcomeMetricsTest {
                 .hasPutUnlessExistsFailures(4)
                 .hasRollbackOther(5)
                 .hasPreCommitCheckFailures(6)
-                .hasLocksAcquisitionFailures(7);
+                .hasLockAcquisitionFailures(7);
     }
 
     @Test
