@@ -41,8 +41,10 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -185,7 +187,25 @@ public class TransientRowsWorkflowsTest {
                 .build();
         invariant.accept(falseHistory, reference::set);
 
-        assertThat(reference.get()).hasSize(ITERATION_COUNT - 1);
+        assertThat(reference.get())
+                .hasSize(ITERATION_COUNT - 1)
+                .allSatisfy(TransientRowsWorkflowsTest::inconsistencyInvolvesPairOfPrimaryAndSummaryCells);
+    }
+
+    private static void inconsistencyInvolvesPairOfPrimaryAndSummaryCells(CrossCellInconsistency inconsistency) {
+        Map<TableAndWorkloadCell, Optional<Integer>> readValues = inconsistency.inconsistentValues();
+        TableAndWorkloadCell summaryCell = readValues.keySet().stream()
+                .filter(tableAndWorkloadCell -> tableAndWorkloadCell.cell().key() == TransientRowsWorkflows.SUMMARY_ROW)
+                .findAny()
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Expected to find a read of the summary row", SafeArg.of("readValues", readValues)));
+        TableAndWorkloadCell primaryCell = TableAndWorkloadCell.of(
+                summaryCell.tableName(),
+                ImmutableWorkloadCell.of(summaryCell.cell().column(), TransientRowsWorkflows.COLUMN));
+
+        assertThat(readValues.keySet()).containsExactlyInAnyOrder(summaryCell, primaryCell);
+        assertThat(readValues.values())
+                .containsExactlyInAnyOrder(Optional.empty(), Optional.of(TransientRowsWorkflows.VALUE));
     }
 
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
