@@ -68,7 +68,7 @@ install:
     maxThreadCount: 2
   singleBusyCellReadsNoTouchConfig:
     tableConfiguration:
-      tableName: single-busy-cell-test
+      tableName: single_busy_cell_no_touch_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: single-busy-cell-reads-no-touch
