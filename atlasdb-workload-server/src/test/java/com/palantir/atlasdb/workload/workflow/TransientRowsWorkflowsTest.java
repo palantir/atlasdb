@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -190,6 +191,99 @@ public class TransientRowsWorkflowsTest {
         assertThat(reference.get())
                 .hasSize(ITERATION_COUNT - 1)
                 .allSatisfy(TransientRowsWorkflowsTest::inconsistencyInvolvesPairOfPrimaryAndSummaryCells);
+    }
+
+    @Test
+    public void invariantThrowsOnTransactionsFailingToReadTheSummaryRow() {
+        WitnessedReadTransactionAction readWitness = WitnessedReadTransactionAction.of(
+                TABLE_NAME, ImmutableWorkloadCell.of(5, TransientRowsWorkflows.COLUMN), Optional.empty());
+        WorkflowHistory history = getWorkflowHistory(ImmutableList.of(readWitness));
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Expected to find a read of the summary row")
+                .hasExactlyArgs(SafeArg.of("actions", ImmutableList.of(readWitness)));
+    }
+
+    @Test
+    public void invariantThrowsOnTransactionsReadingTheSummaryButFailingToReadTheCorrespondingPrimaryRow() {
+        List<WitnessedTransactionAction> actions = ImmutableList.of(
+                WitnessedReadTransactionAction.of(
+                        TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()),
+                WitnessedReadTransactionAction.of(
+                        TABLE_NAME, ImmutableWorkloadCell.of(2, TransientRowsWorkflows.COLUMN), Optional.empty()));
+        WorkflowHistory history = getWorkflowHistory(actions);
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Expected to find a read of a corresponding normal row")
+                .hasExactlyArgs(SafeArg.of("actions", actions));
+    }
+
+    @Test
+    public void invariantRecordsNoViolationIfCorrespondingCellsBothEmpty() {
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
+        List<WitnessedTransactionAction> actions =
+                getReadWitnessesForSingleTransaction(2, Optional.empty(), Optional.empty());
+        WorkflowHistory history = getWorkflowHistory(actions);
+        invariant.accept(history, reference::set);
+        assertThat(reference.get()).isEmpty();
+    }
+
+    @Test
+    public void invariantRecordsNoViolationIfCorrespondingCellsBothPresent() {
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
+        List<WitnessedTransactionAction> actions = getReadWitnessesForSingleTransaction(
+                2, Optional.of(TransientRowsWorkflows.VALUE), Optional.of(TransientRowsWorkflows.VALUE));
+        WorkflowHistory history = getWorkflowHistory(actions);
+        invariant.accept(history, reference::set);
+        assertThat(reference.get()).isEmpty();
+    }
+
+    @Test
+    public void invariantRecordsViolationsIfSummaryIsPresentAndPrimaryIsAbsent() {
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
+        List<WitnessedTransactionAction> actions =
+                getReadWitnessesForSingleTransaction(2, Optional.of(TransientRowsWorkflows.VALUE), Optional.empty());
+        WorkflowHistory history = getWorkflowHistory(actions);
+        invariant.accept(history, reference::set);
+        assertThat(reference.get())
+                .hasSize(1)
+                .allSatisfy(TransientRowsWorkflowsTest::inconsistencyInvolvesPairOfPrimaryAndSummaryCells);
+    }
+
+    @Test
+    public void invariantRecordsViolationsIfSummaryIsAbsentAndPrimaryIsPresent() {
+        OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
+        List<WitnessedTransactionAction> actions =
+                getReadWitnessesForSingleTransaction(2, Optional.empty(), Optional.of(TransientRowsWorkflows.VALUE));
+        WorkflowHistory history = getWorkflowHistory(actions);
+        invariant.accept(history, reference::set);
+        assertThat(reference.get())
+                .hasSize(1)
+                .allSatisfy(TransientRowsWorkflowsTest::inconsistencyInvolvesPairOfPrimaryAndSummaryCells);
+    }
+
+    private ImmutableWorkflowHistory getWorkflowHistory(List<WitnessedTransactionAction> actions) {
+        return ImmutableWorkflowHistory.builder()
+                .transactionStore(transactionStore)
+                .history(ImmutableList.of(ImmutableFullyWitnessedTransaction.builder()
+                        .addAllActions(actions)
+                        .startTimestamp(0L)
+                        .commitTimestamp(1L)
+                        .build()))
+                .build();
+    }
+
+    private static List<WitnessedTransactionAction> getReadWitnessesForSingleTransaction(
+            int columnIndex, Optional<Integer> summaryValue, Optional<Integer> primaryValue) {
+        return ImmutableList.of(
+                WitnessedReadTransactionAction.of(
+                        TABLE_NAME,
+                        ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, columnIndex),
+                        summaryValue),
+                WitnessedReadTransactionAction.of(
+                        TABLE_NAME,
+                        ImmutableWorkloadCell.of(columnIndex, TransientRowsWorkflows.COLUMN),
+                        primaryValue));
     }
 
     private static void inconsistencyInvolvesPairOfPrimaryAndSummaryCells(CrossCellInconsistency inconsistency) {
