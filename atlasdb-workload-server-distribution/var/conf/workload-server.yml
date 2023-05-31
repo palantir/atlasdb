@@ -36,4 +36,10 @@ install:
       isolationLevel: SNAPSHOT
     iterationCount: 100
     type: bank-balance
+  randomConfig:
+    tableConfiguration:
+      tableName: random-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: random
   exitAfterRunning: true

@@ -351,31 +351,41 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get()
                 .updateManyUnregisteredQuery(
-                        " /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
-                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
-                                + "   FROM " + overflowTable + " m "
-                                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
-                                + ") */ "
-                                + "                        i.overflow "
-                                + "                   FROM " + shortTableName + " i "
-                                + "                  WHERE i.row_name = ? "
-                                + "                    AND i.col_name = ? "
-                                + "                    AND i.ts = ? "
-                                + "                    AND i.overflow IS NOT NULL)",
+                        "/* DELETE_ONE_OVERFLOW (" + overflowTable + ") */"
+                                + " DELETE"
+                                + " /*+"
+                                + "   INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ")"
+                                + "   LEADING(i) USE_NL(i m)"
+                                + " */"
+                                + " FROM " + overflowTable + " m"
+                                + " WHERE m.id IN"
+                                + "   (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */"
+                                + "     i.overflow"
+                                + "     FROM " + shortTableName + " i"
+                                + "     WHERE i.row_name = ?"
+                                + "       AND i.col_name = ?"
+                                + "       AND i.ts = ?"
+                                + "       AND i.overflow IS NOT NULL)",
                         args);
     }
 
     private void deleteOverflowRange(String overflowTable, String shortTableName, RangeRequest range) {
         StringBuilder query = new StringBuilder();
-        query.append(" /* DELETE_RANGE_OVERFLOW (").append(overflowTable).append(") */ ");
-        query.append(" DELETE /*+ INDEX(m pk_").append(overflowTable).append(") */ ");
-        query.append("   FROM ").append(overflowTable).append(" m ");
-        query.append(" WHERE m.id IN (");
+        query.append("/* DELETE_RANGE_OVERFLOW (")
+                .append(overflowTable)
+                .append(") */ DELETE /*+ INDEX(m ")
+                .append(PrimaryKeyConstraintNames.get(overflowTable))
+                .append(") LEADING(i) USE_NL(i m) */ FROM ")
+                .append(overflowTable)
+                .append(" m WHERE m.id IN (");
 
         // subquery for finding rows in the short table
-        query.append("SELECT /*+ INDEX(i pk_").append(shortTableName).append(") */ ");
-        query.append("       i.overflow ");
-        query.append("    FROM ").append(shortTableName).append(" i ");
+        query.append("SELECT /*+ INDEX(i ")
+                .append(PrimaryKeyConstraintNames.get(shortTableName))
+                .append(") */")
+                .append(" i.overflow FROM ")
+                .append(shortTableName)
+                .append(" i");
 
         // add where clauses
         WhereClauses whereClauses = WhereClauses.create("i", range, "i.overflow IS NOT NULL");
@@ -398,18 +408,22 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get()
                 .updateManyUnregisteredQuery(
-                        " /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */ "
-                                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
-                                + "   FROM " + overflowTable + " m "
-                                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName)
-                                + ") */ "
-                                + "                        i.overflow "
-                                + "                   FROM " + shortTableName + " i "
-                                + "                  WHERE i.row_name = ? "
-                                + "                    AND i.col_name = ? "
-                                + "                    AND i.ts >= ? "
-                                + "                    AND i.ts <= ? "
-                                + "                    AND i.overflow IS NOT NULL)",
+                        " /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */"
+                                + " DELETE"
+                                + " /*+"
+                                + "   INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ")"
+                                + "   LEADING(i) USE_NL(i m)"
+                                + " */"
+                                + " FROM " + overflowTable + " m"
+                                + " WHERE m.id IN"
+                                + "   (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */"
+                                + "     i.overflow"
+                                + "     FROM " + shortTableName + " i"
+                                + "     WHERE i.row_name = ?"
+                                + "       AND i.col_name = ?"
+                                + "       AND i.ts >= ?"
+                                + "       AND i.ts <= ?"
+                                + "       AND i.overflow IS NOT NULL)",
                         args);
     }
 
