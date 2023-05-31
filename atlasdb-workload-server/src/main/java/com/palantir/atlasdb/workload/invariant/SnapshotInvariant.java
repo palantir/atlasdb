@@ -19,8 +19,8 @@ package com.palantir.atlasdb.workload.invariant;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -62,13 +62,13 @@ public enum SnapshotInvariant implements TransactionInvariant {
                     latestTableView,
                     tableView.getView(witnessedTransaction.startTimestamp()));
 
-            ImmutableList.Builder<InvalidWitnessedTransactionAction> invalidTransactionActionsBuilder =
+            ImmutableList.Builder<InvalidWitnessedSingleCellTransactionAction> invalidTransactionActionsBuilder =
                     new ImmutableList.Builder<>();
             for (WitnessedTransactionAction action : witnessedTransaction.actions()) {
                 action.accept(visitor).ifPresent(invalidTransactionActionsBuilder::add);
             }
 
-            List<InvalidWitnessedTransactionAction> invalidTransactionActions =
+            List<InvalidWitnessedSingleCellTransactionAction> invalidTransactionActions =
                     invalidTransactionActionsBuilder.build();
 
             witnessedTransaction

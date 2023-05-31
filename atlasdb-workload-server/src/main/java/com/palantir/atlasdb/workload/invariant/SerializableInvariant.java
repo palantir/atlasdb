@@ -18,8 +18,8 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
@@ -39,7 +39,7 @@ public enum SerializableInvariant implements TransactionInvariant {
         SerializableInvariantVisitor visitor = new SerializableInvariantVisitor();
         List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
                 .mapPartial(witnessedTransaction -> {
-                    List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
+                    List<InvalidWitnessedSingleCellTransactionAction> invalidTransactions = StreamEx.of(
                                     witnessedTransaction.actions())
                             .mapPartial(action -> action.accept(visitor))
                             .toList();
@@ -55,12 +55,13 @@ public enum SerializableInvariant implements TransactionInvariant {
     }
 
     private static final class SerializableInvariantVisitor
-            implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
+            implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedSingleCellTransactionAction>> {
 
         private final InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
 
         @Override
-        public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
+        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
+                WitnessedReadTransactionAction readTransactionAction) {
             Optional<Integer> expectedValue = inMemoryTransactionReplayer
                     .getValues()
                     .get(TableAndWorkloadCell.of(readTransactionAction.table(), readTransactionAction.cell()))
@@ -68,7 +69,7 @@ public enum SerializableInvariant implements TransactionInvariant {
                     .orElseGet(Optional::empty);
 
             if (!expectedValue.equals(readTransactionAction.value())) {
-                return Optional.of(InvalidWitnessedTransactionAction.of(
+                return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
                         readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expectedValue)));
             }
 
@@ -76,14 +77,14 @@ public enum SerializableInvariant implements TransactionInvariant {
         }
 
         @Override
-        public Optional<InvalidWitnessedTransactionAction> visit(
+        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
                 WitnessedWriteTransactionAction writeTransactionAction) {
             inMemoryTransactionReplayer.visit(writeTransactionAction);
             return Optional.empty();
         }
 
         @Override
-        public Optional<InvalidWitnessedTransactionAction> visit(
+        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
                 WitnessedDeleteTransactionAction deleteTransactionAction) {
             inMemoryTransactionReplayer.visit(deleteTransactionAction);
             return Optional.empty();

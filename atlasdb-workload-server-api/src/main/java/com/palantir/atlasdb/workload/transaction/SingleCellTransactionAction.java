@@ -14,8 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.workload.transaction;
 
-public interface WitnessedTransactionAction {
-    <T> T accept(WitnessedTransactionActionVisitor<T> visitor);
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import org.immutables.value.Value;
+
+public interface SingleCellTransactionAction extends TransactionAction {
+    /** Table to apply transaction to. */
+    @Value.Parameter
+    String table();
+
+    /** Cell (Key, Column) to apply the action to. */
+    @Value.Parameter
+    WorkloadCell cell();
 }

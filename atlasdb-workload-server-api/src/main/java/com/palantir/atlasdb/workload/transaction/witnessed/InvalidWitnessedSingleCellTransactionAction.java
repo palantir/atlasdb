@@ -16,6 +16,19 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface WitnessedTransactionAction {
-    <T> T accept(WitnessedTransactionActionVisitor<T> visitor);
+import com.palantir.atlasdb.workload.invariant.MismatchedValue;
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface InvalidWitnessedSingleCellTransactionAction extends InvalidWitnessedTransactionAction {
+    @Value.Parameter
+    WitnessedSingleCellTransactionAction action();
+
+    @Value.Parameter
+    MismatchedValue mismatchedValue();
+
+    static InvalidWitnessedSingleCellTransactionAction of(
+            WitnessedSingleCellTransactionAction action, MismatchedValue mismatchedValue) {
+        return ImmutableInvalidWitnessedSingleCellTransactionAction.of(action, mismatchedValue);
+    }
 }

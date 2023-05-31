@@ -16,6 +16,15 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface WitnessedTransactionAction {
-    <T> T accept(WitnessedTransactionActionVisitor<T> visitor);
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import org.immutables.value.Value;
+
+public interface WitnessedSingleCellTransactionAction extends WitnessedTransactionAction {
+    /** Table action was applied to. */
+    @Value.Parameter
+    String table();
+
+    /** Cell (Key, Column) the action applied to. */
+    @Value.Parameter
+    WorkloadCell cell();
 }

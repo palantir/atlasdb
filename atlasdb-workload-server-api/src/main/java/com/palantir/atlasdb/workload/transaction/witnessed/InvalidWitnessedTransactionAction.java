@@ -16,18 +16,4 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.invariant.MismatchedValue;
-import org.immutables.value.Value;
-
-@Value.Immutable
-public interface InvalidWitnessedTransactionAction {
-    @Value.Parameter
-    WitnessedTransactionAction action();
-
-    @Value.Parameter
-    MismatchedValue mismatchedValue();
-
-    static InvalidWitnessedTransactionAction of(WitnessedTransactionAction action, MismatchedValue mismatchedValue) {
-        return ImmutableInvalidWitnessedTransactionAction.of(action, mismatchedValue);
-    }
-}
+public interface InvalidWitnessedTransactionAction {}

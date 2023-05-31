@@ -19,7 +19,7 @@ package com.palantir.atlasdb.workload.invariant;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
@@ -29,14 +29,14 @@ import java.util.Optional;
 
 /**
  * Replays transactions and validates for conflicts on the latest and read view.
- *
+ * <p>
  * The latest view will be a view of the database at the commit timestamp, while the read view will be the view of
  * the database at the start timestamp.
- *
+ * <p>
  * Objects created from this class should only be used within a scope of a single transaction.
  */
 final class SnapshotInvariantVisitor
-        implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
+        implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedSingleCellTransactionAction>> {
 
     private final Long startTimestamp;
     private final StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> latestView;
@@ -52,22 +52,25 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
+    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
+            WitnessedReadTransactionAction readTransactionAction) {
         Optional<Integer> expected = fetchValueFromView(
                         readTransactionAction.table(), readTransactionAction.cell(), readView)
                 .value();
         if (!expected.equals(readTransactionAction.value())) {
-            return Optional.of(InvalidWitnessedTransactionAction.of(
+            return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
                     readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expected)));
         }
         return Optional.empty();
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
-        Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
+    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
+            WitnessedWriteTransactionAction writeTransactionAction) {
+        Optional<InvalidWitnessedSingleCellTransactionAction> invalidAction = checkForWriteWriteConflicts(
                         writeTransactionAction.table(), writeTransactionAction.cell())
-                .map(mismatchedValue -> InvalidWitnessedTransactionAction.of(writeTransactionAction, mismatchedValue));
+                .map(mismatchedValue ->
+                        InvalidWitnessedSingleCellTransactionAction.of(writeTransactionAction, mismatchedValue));
 
         applyWrites(
                 writeTransactionAction.table(),
@@ -77,10 +80,12 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-        Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
+    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
+            WitnessedDeleteTransactionAction deleteTransactionAction) {
+        Optional<InvalidWitnessedSingleCellTransactionAction> invalidAction = checkForWriteWriteConflicts(
                         deleteTransactionAction.table(), deleteTransactionAction.cell())
-                .map(mismatchedValue -> InvalidWitnessedTransactionAction.of(deleteTransactionAction, mismatchedValue));
+                .map(mismatchedValue ->
+                        InvalidWitnessedSingleCellTransactionAction.of(deleteTransactionAction, mismatchedValue));
 
         applyWrites(deleteTransactionAction.table(), deleteTransactionAction.cell(), Optional.empty());
         return invalidAction;
