@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Transaction and KeyValueServices methods changed to received rows as
+    Collections instead of Iterables, except when originally returning iterators or
+    streams.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6597
