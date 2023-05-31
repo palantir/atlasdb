@@ -62,5 +62,10 @@ public enum TransactionOutcome {
      * that started before our start timestamp and hasn't committed). This will be logged at most once for a given
      * transaction being rolled back, even if multiple transactions aim to rollback the same transaction.
      */
-    ROLLBACK_OTHER
+    ROLLBACK_OTHER,
+
+    /**
+     * The transaction failed to acquire write locks at the beginning of the commit protocol.
+     */
+    LOCK_ACQUISITION_FAILED,
 }

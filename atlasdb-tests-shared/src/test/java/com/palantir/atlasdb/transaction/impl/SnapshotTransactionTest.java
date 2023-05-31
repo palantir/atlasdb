@@ -90,6 +90,7 @@ import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -118,6 +119,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
@@ -1482,6 +1484,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasFailedCommits(1)
                 .hasLocksExpired(1);
+    }
+
+    @Test
+    public void commitThrowsIfLocksAcquisitionFails() {
+        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
+        TimelockService timelockServiceMock = mock(TimelockService.class);
+        // Let request to acquire commit locks time out
+        when(timelockServiceMock.lock(any(), any())).thenReturn(LockResponse.timedOut());
+
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
+        LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
+        long transactionTs = conjureResponse.getTimestamps().start();
+
+        Transaction snapshot = getSnapshotTransactionWith(timelockServiceMock, () -> transactionTs, res, unused -> {
+        });
+
+        // Need a writer to trigger writer commit protocol
+        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+
+        // Lock acquisition should fail and be marked as time out
+        assertThatExceptionOfType(TransactionLockAcquisitionTimeoutException.class).isThrownBy(snapshot::commit);
+
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1)
+                .hasLocksAcquisitionFailures(1);
     }
 
     @Test
