@@ -17,6 +17,7 @@ package com.palantir.atlasdb.api;
 
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.logsafe.Preconditions;
+import java.util.Collection;
 
 /**
  * <pre>
@@ -32,10 +33,10 @@ import com.palantir.logsafe.Preconditions;
  */
 public class TableRowSelection {
     private final String tableName;
-    private final Iterable<byte[]> rows;
+    private final Collection<byte[]> rows;
     private final ColumnSelection columnSelection;
 
-    public TableRowSelection(String tableName, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+    public TableRowSelection(String tableName, Collection<byte[]> rows, ColumnSelection columnSelection) {
         this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
         this.rows = Preconditions.checkNotNull(rows, "rows must not be null!");
         this.columnSelection = columnSelection;
@@ -45,7 +46,7 @@ public class TableRowSelection {
         return tableName;
     }
 
-    public Iterable<byte[]> getRows() {
+    public Collection<byte[]> getRows() {
         return rows;
     }
 

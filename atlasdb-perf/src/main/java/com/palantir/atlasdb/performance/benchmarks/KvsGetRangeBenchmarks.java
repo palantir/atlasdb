@@ -26,6 +26,7 @@ import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +63,7 @@ public class KvsGetRangeBenchmarks {
     }
 
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
-        Iterable<RangeRequest> requests = table.getRangeRequests(1000, 1, false);
+        Collection<RangeRequest> requests = table.getRangeRequests(1000, 1, false);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
 

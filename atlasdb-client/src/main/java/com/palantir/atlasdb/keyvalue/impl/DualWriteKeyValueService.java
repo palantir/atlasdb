@@ -73,7 +73,7 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         return delegate1.getRows(tableRef, rows, columnSelection, timestamp);
     }
 
@@ -143,7 +143,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         delegate1.deleteRows(tableRef, rows);
         delegate2.deleteRows(tableRef, rows);
     }
@@ -175,7 +175,7 @@ public class DualWriteKeyValueService implements KeyValueService {
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         return delegate1.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -221,7 +221,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         delegate1.addGarbageCollectionSentinelValues(tableRef, cells);
         delegate2.addGarbageCollectionSentinelValues(tableRef, cells);
     }
@@ -282,7 +282,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
@@ -291,7 +291,7 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {

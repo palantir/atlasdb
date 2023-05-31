@@ -25,6 +25,8 @@ import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class TableRowSelectionDeserializer extends StdDeserializer<TableRowSelection> {
     private static final long serialVersionUID = 1L;
@@ -42,10 +44,19 @@ public class TableRowSelectionDeserializer extends StdDeserializer<TableRowSelec
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         Iterable<byte[]> rows = AtlasDeserializers.deserializeRows(metadata.getRowMetadata(), node.get("rows"));
         Iterable<byte[]> columns = AtlasDeserializers.deserializeNamedCols(metadata.getColumns(), node.get("cols"));
+        Collection<byte[]> rowCollection = iterableToCollection(rows);
         if (Iterables.isEmpty(columns)) {
-            return new TableRowSelection(tableName, rows, ColumnSelection.all());
+            return new TableRowSelection(tableName, rowCollection, ColumnSelection.all());
         } else {
-            return new TableRowSelection(tableName, rows, ColumnSelection.create(columns));
+            return new TableRowSelection(tableName, rowCollection, ColumnSelection.create(columns));
         }
+    }
+
+    private static <T> Collection<T> iterableToCollection(Iterable<T> iterable) {
+        Collection<T> collection = new ArrayList<T>();
+        for (T item : iterable) {
+            collection.add(item);
+        }
+        return collection;
     }
 }

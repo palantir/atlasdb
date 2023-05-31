@@ -30,6 +30,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.MapEntries;
 import java.io.PrintWriter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -166,7 +167,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         long start = System.currentTimeMillis();
         Map<Cell, Value> r = super.getRows(tableRef, rows, columnSelection, timestamp);
         long finish = System.currentTimeMillis();

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -123,7 +124,7 @@ public abstract class SweepQueueTable {
                 .stream();
     }
 
-    void deleteRows(Iterable<byte[]> rows) {
+    void deleteRows(Collection<byte[]> rows) {
         kvs.deleteRows(tableRef, rows);
     }
 }

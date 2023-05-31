@@ -159,7 +159,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         if (Iterables.isEmpty(rangeRequests)) {
             return ImmutableMap.of();
         }
@@ -176,7 +176,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
             return ImmutableMap.of();
         }

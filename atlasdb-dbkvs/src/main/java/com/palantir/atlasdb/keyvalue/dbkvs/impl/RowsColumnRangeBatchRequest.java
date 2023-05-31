@@ -25,8 +25,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 /**
- * Represents a batch to load in {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(
- * com.palantir.atlasdb.keyvalue.api.TableReference, Iterable, ColumnRangeSelection, int, long)}. The overall iteration
+ * Represents a batch to load in {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(com.palantir.atlasdb.keyvalue.api.TableReference, java.util.Collection, ColumnRangeSelection, int, long)}. The overall iteration
  * order returns all requested columns for the first row, followed by all requested columns for the second row, and so
  * forth. Hence, a single batch consists of some contiguous group of rows to fully load, plus optionally a first row
  * that has a different starting column and optionally a last row where we load a number of columns less than the total.

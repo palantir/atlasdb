@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,10 +109,10 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnSelection columnSelection,
             Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
-            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+            Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         ensureNotFinalised();
 
         if (!valueStore.isWatched(tableRef)) {

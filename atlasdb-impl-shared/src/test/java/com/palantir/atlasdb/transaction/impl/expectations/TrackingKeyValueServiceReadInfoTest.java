@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionRea
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -259,7 +260,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
     @Test
     public void readInfoIsCorrectAfterGetFirstBatchForRangesCall() {
-        Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
+        Collection<RangeRequest> rangeRequests = mock(Collection.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRangeRequestMapOfSize =
                 TrackingKeyValueServiceTestUtils.createPageByRangeRequestMapWithSize(size);
 

@@ -91,7 +91,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.addGarbageCollectionSentinelValues", sink -> {
             sink.tableRef(tableRef);
@@ -191,7 +191,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteRows", tableRef)) {
             delegate().deleteRows(tableRef, rows);
@@ -264,7 +264,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getFirstBatchForRanges", sink -> {
             sink.tableRef(tableRef);
@@ -356,7 +356,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRows", sink -> {
             sink.tableRef(tableRef);
@@ -370,7 +370,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         TraceStatistic original = TraceStatistics.getCurrentAndClear();
@@ -389,7 +389,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {

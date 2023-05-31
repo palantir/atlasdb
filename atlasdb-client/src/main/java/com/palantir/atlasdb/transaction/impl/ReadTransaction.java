@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -52,7 +53,7 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         checkTableName(tableRef);
         return delegate().getRows(tableRef, rows, columnSelection);
     }
@@ -109,14 +110,14 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkTableName(tableRef);
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkTableName(tableRef);
         return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
     }

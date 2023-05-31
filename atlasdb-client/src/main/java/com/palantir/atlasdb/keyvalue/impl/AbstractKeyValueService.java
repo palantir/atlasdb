@@ -178,7 +178,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         rows.forEach(row -> deleteRange(tableRef, RangeRequests.ofSingleRow(row)));
     }
 
@@ -222,7 +222,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
@@ -231,7 +231,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {

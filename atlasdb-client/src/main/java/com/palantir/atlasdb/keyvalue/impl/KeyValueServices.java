@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class KeyValueServices {
@@ -147,7 +148,7 @@ public final class KeyValueServices {
     public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(
             KeyValueService kvs,
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. "
@@ -195,7 +196,7 @@ public final class KeyValueServices {
     public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(
             KeyValueService kvs,
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int batchHint,
             long timestamp) {
@@ -208,7 +209,8 @@ public final class KeyValueServices {
         Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
                 kvs.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         // Return results in the same order as the provided rows.
-        Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
+        Iterable<RowColumnRangeIterator> orderedRanges =
+                rows.stream().map(rowsColumnRanges::get).collect(Collectors.toList());
         return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));
     }
 

@@ -43,6 +43,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
+import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -150,7 +151,7 @@ public final class ValidatingTransactionScopedCacheTest {
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
 
         Function<Set<Cell>, Map<Cell, byte[]>> cellLoader = mock(Function.class);
-        Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader = mock(Function.class);
+        Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader = mock(Function.class);
 
         // set up mock
         NavigableMap<byte[], RowResult<byte[]>> resultMap = new TreeMap<>(UnsignedBytes.lexicographicalComparator());
@@ -179,7 +180,7 @@ public final class ValidatingTransactionScopedCacheTest {
         ColumnSelection columns = ColumnSelection.create(rowsAndCols);
 
         Function<Set<Cell>, Map<Cell, byte[]>> cellLoader = mock(Function.class);
-        Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader = mock(Function.class);
+        Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader = mock(Function.class);
 
         when(rowLoader.apply(any())).thenReturn(new TreeMap<>(UnsignedBytes.lexicographicalComparator()));
 

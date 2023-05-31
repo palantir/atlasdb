@@ -43,6 +43,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,7 +88,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
         tracker.recordReadForTable(tableRef, "getRows", MeasuringUtils.sizeOf(result));
         return result;
@@ -96,7 +97,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         Map<byte[], RowColumnRangeIterator> result =
@@ -114,7 +115,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
@@ -166,7 +167,7 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
                 delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
         tracker.recordReadForTable(

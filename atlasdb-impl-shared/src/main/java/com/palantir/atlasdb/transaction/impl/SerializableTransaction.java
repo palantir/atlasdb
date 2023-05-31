@@ -85,6 +85,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -195,7 +196,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     @Idempotent
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         NavigableMap<byte[], RowResult<byte[]>> ret = super.getRows(tableRef, rows, columnSelection);
         markRowsRead(tableRef, rows, columnSelection, ret.values());
         return ret;
@@ -203,7 +204,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRange(tableRef, rows, columnRangeSelection);
         return KeyedStream.stream(ret)
@@ -222,7 +223,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> ret =
                 super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
         return KeyedStream.stream(ret)

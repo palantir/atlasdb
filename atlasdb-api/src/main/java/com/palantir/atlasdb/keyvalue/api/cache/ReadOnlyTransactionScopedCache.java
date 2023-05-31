@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
+import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -67,10 +68,10 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnSelection columnSelection,
             Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
-            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+            Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         return delegate.getRows(tableRef, rows, columnSelection, cellLoader, rowLoader);
     }
 

@@ -606,7 +606,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection selection, long startTs) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection selection, long startTs) {
         if (!selection.allColumnsSelected()) {
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
@@ -854,7 +854,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         Set<Map.Entry<CassandraServer, List<byte[]>>> rowsByHost = HostPartitioner.partitionByHost(
@@ -1307,7 +1307,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     @Idempotent
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         int concurrency = config.rangesConcurrency();
         return KeyValueServices.getFirstBatchForRangesUsingGetRangeConcurrent(
                 executor, this, tableRef, rangeRequests, timestamp, concurrency);
@@ -1741,7 +1741,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         Set<ByteBuffer> actualKeys = StreamSupport.stream(rows.spliterator(), false)
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toSet());
@@ -1805,13 +1805,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
             cellValuePutter.putWithOverriddenTimestamps(
                     "addGarbageCollectionSentinelValues",
                     tableRef,
-                    Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
+                    cells.stream().map(cell -> Maps.immutableEntry(cell, value)).collect(Collectors.toList()));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

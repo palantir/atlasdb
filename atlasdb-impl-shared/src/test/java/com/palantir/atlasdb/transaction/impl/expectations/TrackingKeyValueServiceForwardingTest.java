@@ -47,6 +47,7 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -258,7 +259,7 @@ public final class TrackingKeyValueServiceForwardingTest {
 
     @Test
     public void getFirstBatchForRangesForwardsDelegateResult() {
-        Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
+        Collection<RangeRequest> rangeRequests = mock(Collection.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> batchForRangesMap = mock(Map.class);
         when(delegate.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP))
                 .thenReturn(batchForRangesMap);

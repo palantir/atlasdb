@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -43,7 +42,9 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransaction;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -121,7 +122,7 @@ public abstract class AbstractSchemaApiTest {
         long value = getSingleRowFirstColumn(transaction, TEST_ROW_KEY);
 
         assertThat(value).isEqualTo(TEST_VALUE_LONG);
-        ArgumentCaptor<Iterable<byte[]>> argument = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Collection<byte[]>> argument = ArgumentCaptor.forClass(Collection.class);
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
         Iterable<byte[]> argumentRows = argument.getValue();
@@ -144,10 +145,10 @@ public abstract class AbstractSchemaApiTest {
         assertThat(result)
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(TEST_ROW_KEY, TEST_VALUE_LONG, TEST_ROW_KEY2, TEST_VALUE_LONG2));
-        ArgumentCaptor<Iterable<byte[]>> argument = ArgumentCaptor.forClass(Iterable.class);
+        ArgumentCaptor<Collection<byte[]>> argument = ArgumentCaptor.forClass(Collection.class);
         verify(transaction, times(1)).getRows(eq(tableRef), argument.capture(), eq(FIRST_COLUMN_SELECTION));
 
-        List<byte[]> argumentRows = Lists.newArrayList(argument.getValue());
+        List<byte[]> argumentRows = new ArrayList<>(argument.getValue());
         assertThat(argumentRows).hasSize(2);
         assertThat(argumentRows.get(0))
                 .usingComparator(UnsignedBytes.lexicographicalComparator())

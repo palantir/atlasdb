@@ -111,7 +111,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = new HashMap<>();
         ConcurrentNavigableMap<Key, byte[]> table = getTableMap(tableRef).entries;
         for (byte[] row : rows) {
@@ -176,7 +176,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
     }
 
@@ -314,7 +314,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         IdentityHashMap<byte[], RowColumnRangeIterator> result = new IdentityHashMap<>();
@@ -332,7 +332,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
@@ -686,7 +686,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         runWithLockForWrites(tableRef, table -> {
             for (Cell cell : cells) {
                 table.put(new Key(cell, Value.INVALID_VALUE_TIMESTAMP), ArrayUtils.EMPTY_BYTE_ARRAY);

@@ -38,6 +38,7 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -117,10 +118,10 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnSelection columnSelection,
             Function<Set<Cell>, Map<Cell, byte[]>> cellLoader,
-            Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
+            Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader) {
         if (shouldValidate()) {
             NavigableMap<byte[], RowResult<byte[]>> remoteReads = rowLoader.apply(rows);
             NavigableMap<byte[], RowResult<byte[]>> cacheReads = delegate.getRows(

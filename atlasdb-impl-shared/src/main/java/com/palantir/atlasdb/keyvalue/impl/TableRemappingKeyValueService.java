@@ -68,7 +68,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         try {
             delegate().addGarbageCollectionSentinelValues(tableMapper.getMappedTableName(tableRef), cells);
         } catch (TableMappingNotFoundException e) {
@@ -116,7 +116,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         try {
             delegate().deleteRows(tableMapper.getMappedTableName(tableRef), rows);
         } catch (TableMappingNotFoundException e) {
@@ -193,7 +193,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         try {
             return delegate()
                     .getFirstBatchForRanges(tableMapper.getMappedTableName(tableRef), rangeRequests, timestamp);
@@ -268,7 +268,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         try {
             return delegate().getRows(tableMapper.getMappedTableName(tableRef), rows, columnSelection, timestamp);
         } catch (TableMappingNotFoundException e) {
@@ -279,7 +279,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         try {
@@ -294,7 +294,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {

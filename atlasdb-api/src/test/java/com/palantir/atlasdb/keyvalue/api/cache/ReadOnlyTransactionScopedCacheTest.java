@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
+import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -56,7 +57,7 @@ public final class ReadOnlyTransactionScopedCacheTest {
     public Function<Set<Cell>, Map<Cell, byte[]>> immediateValueLoader;
 
     @Mock
-    public Function<Iterable<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader;
+    public Function<Collection<byte[]>, NavigableMap<byte[], RowResult<byte[]>>> rowLoader;
 
     @Test
     public void nonReadMethodsThrow() {

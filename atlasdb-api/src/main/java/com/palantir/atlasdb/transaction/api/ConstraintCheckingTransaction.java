@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -31,5 +32,5 @@ public interface ConstraintCheckingTransaction extends Transaction {
     /**
      * Returns the row result values in the key-value service, ignoring the cache of local writes.
      */
-    SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(TableReference tableRef, Iterable<byte[]> rows);
+    SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(TableReference tableRef, Collection<byte[]> rows);
 }

@@ -77,7 +77,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }

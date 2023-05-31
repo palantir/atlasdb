@@ -393,7 +393,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         if (columnSelection.allColumnsSelected()) {
             return getRowsInternal(tableRef, rows, columnSelection);
         }
@@ -408,7 +408,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private NavigableMap<byte[], RowResult<byte[]>> getRowsInternal(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         Timer.Context timer = getTimer("getRows").time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
@@ -444,7 +444,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return KeyedStream.stream(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection))
                 .map(BatchingVisitableFromIterable::create)
                 .map(this::scopeToTransaction)
@@ -474,7 +474,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     @SuppressWarnings("MustBeClosedChecker") // Sadly we can't close properly here without an ABI break :/
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
@@ -483,7 +483,7 @@ public class SnapshotTransaction extends AbstractTransaction
         ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
                 keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp()),
                 PtBytes.BYTES_COMPARATOR);
-        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
+        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = rows.stream()
                 .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
                     // explicitly not using Optional due to allocation perf overhead
                     Iterator<Map.Entry<Cell, byte[]>> entryIterator;
@@ -512,7 +512,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
-        Iterable<byte[]> distinctRows = getDistinctRows(rows);
+        Collection<byte[]> distinctRows = getDistinctRows(rows);
 
         hasReads = true;
         int batchSize = getPerRowBatchSize(batchColumnRangeSelection, Iterables.size(distinctRows));
@@ -739,7 +739,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name. {@link
-     * KeyValueService#getRowsColumnRange(TableReference, Iterable, ColumnRangeSelection, int, long)} guarantees that
+     * KeyValueService#getRowsColumnRange(TableReference, Collection, ColumnRangeSelection, int, long)} guarantees that
      * all columns for a single row are adjacent, so this method will return an {@link Iterator} with exactly one entry
      * per non-empty row.
      */
@@ -818,7 +818,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(
-            TableReference tableRef, Iterable<byte[]> rows) {
+            TableReference tableRef, Collection<byte[]> rows) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;

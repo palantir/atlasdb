@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -50,19 +51,19 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @Override
     public NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection) {
         return delegate().getRows(tableRef, rows, columnSelection);
     }
 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 
     @Override
     public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
     }
 

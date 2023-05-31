@@ -479,14 +479,18 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         for (int i = 0; i < totalPuts; i++) {
             putDirect("row" + i, "col1", "v1", 0);
         }
-
+        List<RangeRequest> requests = IntStream.range(0, 100)
+                .boxed()
+                .map(_x -> RangeRequest.builder().batchHint(1000).build())
+                .collect(Collectors.toList());
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
                 keyValueService.getFirstBatchForRanges(
                         TEST_TABLE,
-                        Iterables.limit(
-                                Iterables.cycle(
-                                        RangeRequest.builder().batchHint(1000).build()),
-                                100),
+                        requests,
+                        //                        Iterables.limit(
+                        //                                Iterables.cycle(
+                        //                                        RangeRequest.builder().batchHint(1000).build()),
+                        //                                100),
                         1);
         assertThat(ranges.keySet()).hasSize(1);
         assertThat(ranges.values().iterator().next().getResults()).hasSize(totalPuts);
@@ -502,15 +506,12 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             putDirect("row" + i, "col1", "v1", 0);
         }
 
+        List<RangeRequest> requests = IntStream.range(0, 100)
+                .boxed()
+                .map(_x -> RangeRequest.builder().batchHint(1000).build())
+                .collect(Collectors.toList());
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
-                keyValueService.getFirstBatchForRanges(
-                        TEST_TABLE,
-                        Iterables.limit(
-                                Iterables.cycle(RangeRequest.reverseBuilder()
-                                        .batchHint(1000)
-                                        .build()),
-                                100),
-                        1);
+                keyValueService.getFirstBatchForRanges(TEST_TABLE, requests, 1);
         assertThat(ranges.keySet()).hasSize(1);
         assertThat(ranges.values().iterator().next().getResults()).hasSize(totalPuts);
     }
@@ -523,9 +524,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
+        List<RangeRequest> requests =
+                IntStream.range(0, 100).boxed().map(_x -> rangeRequest).collect(Collectors.toList());
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
-                keyValueService.getFirstBatchForRanges(
-                        TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
+                keyValueService.getFirstBatchForRanges(TEST_TABLE, requests, 1);
         assertThat(ranges.keySet()).hasSize(1);
         assertThat(ranges.values().iterator().next().getResults()).hasSize(1);
         assertThat(PtBytes.toString(ranges.values()
@@ -549,9 +551,10 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         RangeRequest rangeRequest = RangeRequest.reverseBuilder().batchHint(1).build();
+        List<RangeRequest> requests =
+                IntStream.range(0, 100).boxed().map(_x -> rangeRequest).collect(Collectors.toList());
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges =
-                keyValueService.getFirstBatchForRanges(
-                        TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
+                keyValueService.getFirstBatchForRanges(TEST_TABLE, requests, 1);
         assertThat(ranges.keySet()).hasSize(1);
         assertThat(ranges.values().iterator().next().getResults()).hasSize(1);
         assertThat(PtBytes.toString(ranges.values()

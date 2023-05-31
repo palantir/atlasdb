@@ -158,7 +158,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         long startTime = System.currentTimeMillis();
         maybeLog(
                 () -> delegate.addGarbageCollectionSentinelValues(tableRef, cells),
@@ -197,7 +197,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+    public void deleteRows(TableReference tableRef, Collection<byte[]> rows) {
         maybeLog(() -> delegate.deleteRows(tableRef, rows), logTimeAndTableRows("deleteRows", tableRef, rows));
     }
 
@@ -251,7 +251,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         return maybeLog(
                 () -> delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp),
                 logTimeAndTable("getFirstBatchForRanges", tableRef));
@@ -306,7 +306,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         long startTime = System.currentTimeMillis();
         return KvsProfilingLogger.maybeLog(
                 () -> delegate.getRows(tableRef, rows, columnSelection, timestamp),
@@ -463,7 +463,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         long startTime = System.currentTimeMillis();
@@ -481,7 +481,7 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {

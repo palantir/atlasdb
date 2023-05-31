@@ -314,7 +314,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     @Override
     public Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         return getRowsBatching(tableRef, rows, columnSelection, timestamp);
     }
 
@@ -653,7 +653,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
 
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp) {
         return new DbKvsGetRanges(this, dbTables.getDbType(), connections, dbTables.getPrefixedTableNames())
                 .getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
@@ -812,7 +812,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         List<byte[]> rowList = ImmutableList.copyOf(rows);
@@ -846,7 +846,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp) {
@@ -1219,7 +1219,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells) {
         runWrite(tableRef, (Function<DbWriteTable, Void>) table -> {
             table.putSentinels(cells);
             return null;

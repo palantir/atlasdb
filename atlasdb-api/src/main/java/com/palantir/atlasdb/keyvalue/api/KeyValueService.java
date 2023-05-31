@@ -69,7 +69,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Idempotent
     @Timed
     Map<Cell, Value> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp);
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection, long timestamp);
 
     /**
      * Gets values from the key-value store for the specified rows and column range
@@ -89,14 +89,14 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Timed
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp);
 
     /**
      * Gets values from the key-value store for the specified rows and column range as a single iterator. This method
      * should be at least as performant as
-     * {@link #getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)}, and may be more
+     * {@link #getRowsColumnRange(TableReference, Collection, BatchColumnRangeSelection, long)}, and may be more
      * performant in some cases. Note that rows and columns must be non-empty: behaviour is undefined when
      * any of the rows or any of the columns in the column selection are the empty byte array.
      *
@@ -116,7 +116,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Timed
     RowColumnRangeIterator getRowsColumnRange(
             TableReference tableRef,
-            Iterable<byte[]> rows,
+            Collection<byte[]> rows,
             ColumnRangeSelection columnRangeSelection,
             int cellBatchHint,
             long timestamp);
@@ -395,7 +395,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    void deleteRows(TableReference tableRef, Iterable<byte[]> rows);
+    void deleteRows(TableReference tableRef, Collection<byte[]> rows);
 
     /**
      * For each cell, deletes all timestamps prior to the associated maximum timestamp. If this
@@ -516,7 +516,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Idempotent
     @Timed
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp);
+            TableReference tableRef, Collection<RangeRequest> rangeRequests, long timestamp);
 
     ////////////////////////////////////////////////////////////
     // TABLE CREATION AND METADATA
@@ -601,7 +601,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      */
     @Idempotent
     @Timed
-    void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells);
+    void addGarbageCollectionSentinelValues(TableReference tableRef, Collection<Cell> cells);
 
     /**
      * Gets timestamp values from the key-value store. For each cell, this returns all associated

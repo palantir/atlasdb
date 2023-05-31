@@ -27,6 +27,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -71,7 +72,7 @@ public interface Transaction {
      */
     @Idempotent
     NavigableMap<byte[], RowResult<byte[]>> getRows(
-            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection);
+            TableReference tableRef, Collection<byte[]> rows, ColumnSelection columnSelection);
 
     /**
      * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
@@ -93,7 +94,7 @@ public interface Transaction {
      */
     @Idempotent
     Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /**
      * Returns a single iterator over the cell-value pairs in {@code tableRef} for the specified {@code rows}, where the
@@ -140,7 +141,7 @@ public interface Transaction {
      */
     @Idempotent
     Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
+            TableReference tableRef, Collection<byte[]> rows, BatchColumnRangeSelection columnRangeSelection);
 
     /**
      * Returns an iterator over cell-value pairs within {@code tableRef} for the specified {@code rows}, where the
