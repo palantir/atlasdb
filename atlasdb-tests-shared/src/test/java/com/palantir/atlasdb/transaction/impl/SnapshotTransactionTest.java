@@ -33,6 +33,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Metric;
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -122,6 +124,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.MetricName;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -322,6 +325,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final byte[] COL_B = "b".getBytes(StandardCharsets.UTF_8);
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
@@ -2369,6 +2373,80 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq(writes),
                         any(ConstraintCheckingTransaction.class),
                         eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
+    }
+
+    private void assertCellCommitLocksCountEquals(long expected) {
+        assertThat(metricsManager.getTaggedRegistry().getMetrics())
+                .anySatisfy((MetricName metricName, Metric metric) -> {
+                    assertThat(metricName.safeName()).isEqualTo("expectations.cellCommitLocksRequested");
+                    assertThat(metric).isInstanceOf(Histogram.class);
+                    assertThat(((Histogram) metric).getSnapshot().getValues()).containsOnly(expected);
+                });
+    }
+
+    private void assertRowCommitLocksCountEquals(long expected) {
+        assertThat(metricsManager.getTaggedRegistry().getMetrics())
+                .anySatisfy((MetricName metricName, Metric metric) -> {
+                    assertThat(metricName.safeName()).isEqualTo("expectations.rowCommitLocksRequested");
+                    assertThat(metric).isInstanceOf(Histogram.class);
+                    assertThat(((Histogram) metric).getSnapshot().getValues()).containsOnly(expected);
+                });
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializableCell() {
+        // Will request commit locks for cells, but not rows
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
+
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+            return null;
+        });
+
+        assertCellCommitLocksCountEquals(1);
+        assertRowCommitLocksCountEquals(0);
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializable() {
+        // Will request commit locks for rows, but not cells
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
+
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+            return null;
+        });
+
+        assertCellCommitLocksCountEquals(0);
+        assertRowCommitLocksCountEquals(1);
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
+        // Will request commit locks for cells and rows
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
+
+        txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(
+                    TABLE,
+                    ImmutableMap.of(
+                            Cell.create(
+                                    "same_row".getBytes(StandardCharsets.UTF_8),
+                                    "column1".getBytes(StandardCharsets.UTF_8)),
+                            TEST_VALUE));
+            txn.put(
+                    TABLE,
+                    ImmutableMap.of(
+                            Cell.create(
+                                    "same_row".getBytes(StandardCharsets.UTF_8),
+                                    // Writing to the same row, but different column/cell
+                                    "column2".getBytes(StandardCharsets.UTF_8)),
+                            TEST_VALUE));
+            return null;
+        });
+
+        assertCellCommitLocksCountEquals(2);
+        assertRowCommitLocksCountEquals(1);
     }
 
     private void verifyPrefetchValidations(

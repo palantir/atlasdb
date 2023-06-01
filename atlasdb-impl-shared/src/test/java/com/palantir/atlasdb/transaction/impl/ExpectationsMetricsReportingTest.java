@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
@@ -34,6 +35,12 @@ public final class ExpectationsMetricsReportingTest {
     private static final ImmutableTransactionReadInfo BLANK_READ_INFO =
             ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(0).build();
 
+    private static final ImmutableTransactionCommitLockInfo BLANK_COMMIT_LOCK_INFO =
+            ImmutableTransactionCommitLockInfo.builder()
+                    .cellCommitLocksRequested(0L)
+                    .rowCommitLocksRequested(0L)
+                    .build();
+
     private ExpectationsMetrics metrics;
 
     @Before
@@ -44,7 +51,7 @@ public final class ExpectationsMetricsReportingTest {
     @Test
     public void ageReported() {
         long age = 129L;
-        SnapshotTransaction.reportExpectationsCollectedData(age, BLANK_READ_INFO, metrics);
+        SnapshotTransaction.reportExpectationsCollectedData(age, BLANK_READ_INFO, BLANK_COMMIT_LOCK_INFO, metrics);
         assertThat(metrics.ageMillis().getSnapshot().getValues()).containsOnly(age);
     }
 
@@ -77,7 +84,18 @@ public final class ExpectationsMetricsReportingTest {
                 .containsOnly(bytes);
     }
 
+    @Test
+    public void commitLocksRequestsReported() {
+        SnapshotTransaction.reportExpectationsCollectedData(
+                0L,
+                BLANK_READ_INFO,
+                BLANK_COMMIT_LOCK_INFO.withCellCommitLocksRequested(1).withRowCommitLocksRequested(2),
+                metrics);
+        assertThat(metrics.cellCommitLocksRequested().getSnapshot().getValues()).containsOnly(1);
+        assertThat(metrics.rowCommitLocksRequested().getSnapshot().getValues()).containsOnly(2);
+    }
+
     private void reportMetrics(TransactionReadInfo readInfo) {
-        SnapshotTransaction.reportExpectationsCollectedData(0L, readInfo, metrics);
+        SnapshotTransaction.reportExpectationsCollectedData(0L, readInfo, BLANK_COMMIT_LOCK_INFO, metrics);
     }
 }
