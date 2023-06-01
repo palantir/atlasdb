@@ -30,6 +30,12 @@ install:
     iterationCount: 100
     type: single-busy-cell
     maxThreadCount: 2
+  bankBalanceConfig:
+    tableConfiguration:
+      tableName: bank-balance-test
+      isolationLevel: SNAPSHOT
+    iterationCount: 100
+    type: bank-balance
   randomConfig:
     tableConfiguration:
       tableName: random-test
