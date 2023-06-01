@@ -324,6 +324,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
 
+    private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
+
     @Override
     @Before
     public void setUp() throws Exception {
@@ -1487,29 +1489,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void commitThrowsIfLockAcquisitionFails() {
-        final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+    public void commitThrowsIfCommitLockAcquisitionFails() {
+        TimelockService timelockService = mock(TimelockService.class);
+        when(timelockService.lock(any(), any())).thenReturn(LockResponse.timedOut());
+        Transaction txn = getSnapshotTransactionWith(timelockService);
 
-        TimelockService timelockServiceMock = mock(TimelockService.class);
-        // Let request to acquire commit locks time out
-        when(timelockServiceMock.lock(any(), any())).thenReturn(LockResponse.timedOut());
+        // We only request commit locks for transactions that write at least one value
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
 
-        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
-        LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
-        long transactionTs = conjureResponse.getTimestamps().start();
-
-        Transaction snapshot = getSnapshotTransactionWith(timelockServiceMock, () -> transactionTs, res, unused -> {});
-
-        // Need a writer to trigger writer commit protocol
-        snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
-
-        // Lock acquisition should fail and be marked as time out
-        assertThatExceptionOfType(TransactionLockAcquisitionTimeoutException.class)
-                .isThrownBy(snapshot::commit);
-
+        assertThatThrownBy(txn::commit)
+                .isInstanceOf(TransactionLockAcquisitionTimeoutException.class)
+                .hasMessage("Timed out while acquiring commit locks.");
         TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
                 .hasFailedCommits(1)
-                .hasLockAcquisitionFailures(1);
+                .hasCommitLockAcquisitionFailures(1);
     }
 
     @Test
@@ -2485,6 +2478,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private void setTransactionConfig(TransactionConfig config) {
         transactionConfig = config;
+    }
+
+    private Transaction getSnapshotTransactionWith(TimelockService timelockService) {
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
+        LockImmutableTimestampResponse lockImmutableTimestampResponse = conjureResponse.getImmutableTimestamp();
+        long transactionTs = conjureResponse.getTimestamps().start();
+        return getSnapshotTransactionWith(
+                timelockService, () -> transactionTs, lockImmutableTimestampResponse, unused -> {});
     }
 
     private Transaction getSnapshotTransactionWith(

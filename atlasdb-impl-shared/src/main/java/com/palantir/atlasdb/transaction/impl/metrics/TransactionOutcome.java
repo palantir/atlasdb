@@ -65,7 +65,7 @@ public enum TransactionOutcome {
     ROLLBACK_OTHER,
 
     /**
-     * The transaction failed to acquire write locks at the beginning of the commit protocol.
+     * The transaction failed to acquire commit locks at the beginning of the AtlasDB commit protocol.
      */
-    LOCK_ACQUISITION_FAILED,
+    COMMIT_LOCK_ACQUISITION_FAILED,
 }

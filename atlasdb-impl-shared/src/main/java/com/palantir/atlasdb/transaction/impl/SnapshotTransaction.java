@@ -2412,7 +2412,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 lockDescriptors, currentTransactionConfig, stackTraceSnapshot))
                         .build());
         if (!lockResponse.wasSuccessful()) {
-            transactionOutcomeMetrics.markLockAcquisitionFailed();
+            transactionOutcomeMetrics.markCommitLockAcquisitionFailed();
             log.error(
                     "Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
