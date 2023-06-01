@@ -134,6 +134,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
+        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+                configuration.install().singleBusyCellReadsNoTouchConfig();
         SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig =
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
@@ -144,13 +146,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().singleBusyCellConfig();
         RandomWorkflowConfiguration randomWorkflowConfig =
                 configuration.install().randomConfig();
-        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
-                configuration.install().singleBusyCellReadsNoTouchConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
                 .run(
+                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                                transactionStoreFactory,
+                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                                environment.lifecycle()),
                         createSingleRowTwoCellsWorkflowValidator(
                                 transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
                         createRingWorkflowValidator(
@@ -159,11 +163,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
                                 transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
-                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
-                        createSingleBusyCellReadNoTouchWorkflowValidator(
-                                transactionStoreFactory,
-                                singleBusyCellReadNoTouchWorkflowConfiguration,
-                                environment.lifecycle()));
+                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
