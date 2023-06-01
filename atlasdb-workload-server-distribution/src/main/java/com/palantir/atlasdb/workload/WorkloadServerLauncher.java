@@ -279,10 +279,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             AtlasDbTransactionStoreFactory transactionStoreFactory,
             BankBalanceWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
-        ExecutorService executorService = lifecycle
-                .executorService(BankBalanceWorkflows.class.getSimpleName())
-                .maxThreads(workflowConfig.maxThreadCount())
-                .build();
+        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, BankBalanceWorkflows.class);
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
                 Map.of(
                         workflowConfig.tableConfiguration().tableName(),
