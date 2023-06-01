@@ -21,6 +21,7 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,7 +34,7 @@ public interface InteractiveTransaction {
 
     void delete(String table, WorkloadCell workloadCell);
 
-    RowColumnRangeIterator getRowsColumnRange(
+    Map<Integer, RowColumnRangeIterator> getRowsColumnRange(
             String table, List<Integer> rows, WorkloadColumnRangeSelection workloadColumnRangeSelection);
 
     List<WitnessedTransactionAction> witness();

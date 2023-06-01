@@ -23,8 +23,14 @@ import org.immutables.value.Value;
 public interface WitnessedRowsColumnRangeExhaustionTransactionAction extends WitnessedTransactionAction {
     RowsColumnRangeReadTransactionAction originalAction();
 
+    int specificRow();
+
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.Builder builder() {
+        return ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.builder();
     }
 }

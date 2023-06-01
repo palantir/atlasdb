@@ -25,10 +25,14 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.workload.transaction.ImmutableRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -52,7 +56,7 @@ public final class AtlasDbInteractiveTransactionTest {
     }
 
     @Test
-    public void witnessRecordAllActions() {
+    public void witnessRecordsAllSingleCellActions() {
         assertThat(readWrite(transaction -> {
                     transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
                     transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
@@ -62,6 +66,58 @@ public final class AtlasDbInteractiveTransactionTest {
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
                         WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
                         WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE));
+    }
+
+    @Test
+    public void witnessRecordsRowColumnRangeReads() {
+        Integer keyOne = WORKLOAD_CELL_ONE.key();
+        Integer keyTwo = WORKLOAD_CELL_TWO.key();
+        assertThat(readWrite(transaction -> {
+                    transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
+                    Map<Integer, RowColumnRangeIterator> iteratorMap = transaction.getRowsColumnRange(
+                            TABLE_1,
+                            ImmutableList.of(keyOne, keyTwo),
+                            ImmutableWorkloadColumnRangeSelection.builder().build());
+
+                    RowColumnRangeIterator expectedEmpty = iteratorMap.get(keyOne);
+                    assertThat(expectedEmpty.hasNext()).isFalse();
+
+                    RowColumnRangeIterator expectedPresent = iteratorMap.get(keyTwo);
+                    while (expectedPresent.hasNext()) {
+                        expectedPresent.next();
+                    }
+                }))
+                .containsExactly(
+                        WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
+                        WitnessedRowsColumnRangeExhaustionTransactionAction.builder()
+                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
+                                        .table(TABLE_1)
+                                        .rows(ImmutableList.of(keyOne, keyTwo))
+                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
+                                                .build())
+                                        .build())
+                                .specificRow(keyOne)
+                                .build(),
+                        WitnessedRowsColumnRangeReadTransactionAction.builder()
+                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
+                                        .table(TABLE_1)
+                                        .rows(ImmutableList.of(keyOne, keyTwo))
+                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
+                                                .build())
+                                        .build())
+                                .cell(WORKLOAD_CELL_TWO)
+                                .specificRow(keyTwo)
+                                .value(VALUE_ONE)
+                                .build(),
+                        WitnessedRowsColumnRangeExhaustionTransactionAction.builder()
+                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
+                                        .table(TABLE_1)
+                                        .rows(ImmutableList.of(keyOne, keyTwo))
+                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
+                                                .build())
+                                        .build())
+                                .specificRow(keyTwo)
+                                .build());
     }
 
     @Test
@@ -91,6 +147,14 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void deleteThrowsWhenTableDoesNotExist() {
         assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.delete(TABLE_1, WORKLOAD_CELL_ONE));
+    }
+
+    @Test
+    public void getRowsColumnRangeThrowsWhenTableDoesNotExist() {
+        assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.getRowsColumnRange(
+                TABLE_1,
+                List.of(WORKLOAD_CELL_ONE.key()),
+                ImmutableWorkloadColumnRangeSelection.builder().build()));
     }
 
     @Test

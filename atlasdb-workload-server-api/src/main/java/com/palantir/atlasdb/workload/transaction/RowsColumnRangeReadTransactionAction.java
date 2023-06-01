@@ -41,18 +41,19 @@ public interface RowsColumnRangeReadTransactionAction extends TransactionAction 
         return visitor.visit(this);
     }
 
-    default WitnessedRowsColumnRangeExhaustionTransactionAction exhaustionWitness() {
+    default WitnessedRowsColumnRangeExhaustionTransactionAction exhaustionWitness(int specificRow) {
         return ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.builder()
                 .originalAction(this)
+                .specificRow(specificRow)
                 .build();
     }
 
-    default WitnessedRowsColumnRangeReadTransactionAction readWitness(WorkloadCell cell, int value) {
+    default WitnessedRowsColumnRangeReadTransactionAction readWitness(int specificRow, WorkloadCell cell, int value) {
         return ImmutableWitnessedRowsColumnRangeReadTransactionAction.builder()
                 .originalAction(this)
-                .table(this.table())
                 .cell(cell)
                 .value(value)
+                .specificRow(specificRow)
                 .build();
     }
 }

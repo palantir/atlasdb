@@ -24,8 +24,12 @@ import org.immutables.value.Value;
 public interface WitnessedRowsColumnRangeReadTransactionAction extends WitnessedSingleCellTransactionAction {
     RowsColumnRangeReadTransactionAction originalAction();
 
+    int specificRow();
+
     @Override
-    String table();
+    default String table() {
+        return originalAction().table();
+    }
 
     @Override
     WorkloadCell cell();
@@ -35,5 +39,9 @@ public interface WitnessedRowsColumnRangeReadTransactionAction extends Witnessed
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static ImmutableWitnessedRowsColumnRangeReadTransactionAction.Builder builder() {
+        return ImmutableWitnessedRowsColumnRangeReadTransactionAction.builder();
     }
 }
