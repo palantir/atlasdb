@@ -122,10 +122,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
+        // This is a single threaded executor; this is intentional, so that we only run one workflow at a time.
         ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
                 .build();
+
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
                 configuration.install().atlas(),
@@ -218,10 +220,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService readExecutor = lifecycle
                 .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         ExecutorService writeExecutor = lifecycle
                 .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
@@ -326,6 +330,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             WorkflowConfiguration workflowConfig, LifecycleEnvironment lifecycle, Class<T> workflowFactoryClass) {
         return lifecycle
                 .executorService(workflowFactoryClass.getSimpleName())
+                .minThreads(workflowConfig.maxThreadCount())
                 .maxThreads(workflowConfig.maxThreadCount())
                 .build();
     }
