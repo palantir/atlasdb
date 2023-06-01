@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add metric for number of commit lock acquisition failures
+  links:
+  - https://github.com/palantir/atlasdb/pull/6598

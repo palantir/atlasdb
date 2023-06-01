@@ -90,6 +90,7 @@ import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -118,6 +119,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
@@ -321,6 +323,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
+
+    private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
 
     @Override
     @Before
@@ -1485,6 +1489,23 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void commitThrowsIfCommitLockAcquisitionFails() {
+        TimelockService timelockService = mock(TimelockService.class);
+        when(timelockService.lock(any(), any())).thenReturn(LockResponse.timedOut());
+        Transaction txn = getSnapshotTransactionWith(timelockService);
+
+        // We only request commit locks for transactions that write at least one value
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+
+        assertThatThrownBy(txn::commit)
+                .isInstanceOf(TransactionLockAcquisitionTimeoutException.class)
+                .hasMessage("Timed out while acquiring commit locks.");
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1)
+                .hasCommitLockAcquisitionFailures(1);
+    }
+
+    @Test
     public void commitThrowsIfRolledBackAtCommitTime_alreadyAborted() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
@@ -2457,6 +2478,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private void setTransactionConfig(TransactionConfig config) {
         transactionConfig = config;
+    }
+
+    private Transaction getSnapshotTransactionWith(TimelockService timelockService) {
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
+        LockImmutableTimestampResponse lockImmutableTimestampResponse = conjureResponse.getImmutableTimestamp();
+        long transactionTs = conjureResponse.getTimestamps().start();
+        return getSnapshotTransactionWith(
+                timelockService, () -> transactionTs, lockImmutableTimestampResponse, unused -> {});
     }
 
     private Transaction getSnapshotTransactionWith(
