@@ -253,10 +253,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService readExecutor = lifecycle
                 .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         ExecutorService writeExecutor = lifecycle
                 .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
