@@ -16,18 +16,23 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import one.util.streamex.StreamEx;
 
 public enum SerializableInvariant implements TransactionInvariant {
@@ -39,10 +44,10 @@ public enum SerializableInvariant implements TransactionInvariant {
         SerializableInvariantVisitor visitor = new SerializableInvariantVisitor();
         List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
                 .mapPartial(witnessedTransaction -> {
-                    List<InvalidWitnessedSingleCellTransactionAction> invalidTransactions = StreamEx.of(
+                    List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
                                     witnessedTransaction.actions())
-                            .mapPartial(action -> action.accept(visitor))
-                            .toList();
+                            .flatCollection(action -> action.accept(visitor))
+                            .collect(Collectors.toList());
 
                     if (invalidTransactions.isEmpty()) {
                         return Optional.empty();
@@ -55,13 +60,12 @@ public enum SerializableInvariant implements TransactionInvariant {
     }
 
     private static final class SerializableInvariantVisitor
-            implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedSingleCellTransactionAction>> {
+            implements WitnessedTransactionActionVisitor<List<InvalidWitnessedTransactionAction>> {
 
         private final InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
 
         @Override
-        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-                WitnessedReadTransactionAction readTransactionAction) {
+        public List<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
             Optional<Integer> expectedValue = inMemoryTransactionReplayer
                     .getValues()
                     .get(TableAndWorkloadCell.of(readTransactionAction.table(), readTransactionAction.cell()))
@@ -69,25 +73,37 @@ public enum SerializableInvariant implements TransactionInvariant {
                     .orElseGet(Optional::empty);
 
             if (!expectedValue.equals(readTransactionAction.value())) {
-                return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
+                return ImmutableList.of(InvalidWitnessedSingleCellTransactionAction.of(
                         readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expectedValue)));
             }
 
-            return Optional.empty();
+            return ImmutableList.of();
         }
 
         @Override
-        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-                WitnessedWriteTransactionAction writeTransactionAction) {
+        public List<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
             inMemoryTransactionReplayer.visit(writeTransactionAction);
-            return Optional.empty();
+            return ImmutableList.of();
         }
 
         @Override
-        public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-                WitnessedDeleteTransactionAction deleteTransactionAction) {
+        public List<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
             inMemoryTransactionReplayer.visit(deleteTransactionAction);
-            return Optional.empty();
+            return ImmutableList.of();
+        }
+
+        @Override
+        public List<InvalidWitnessedTransactionAction> visit(
+                WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
+            // TODO (jkong): Not implemented yet
+            return ImmutableList.of();
+        }
+
+        @Override
+        public List<InvalidWitnessedTransactionAction> visit(
+                WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction) {
+            // TODO (jkong): Not implemented yet
+            return ImmutableList.of();
         }
     }
 }

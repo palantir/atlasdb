@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface WitnessedRowsColumnRangeExhaustionTransactionAction extends WitnessedTransactionAction {
+    RowsColumnRangeReadTransactionAction originalAction();
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
-
-    T visit(RowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction);
+    @Override
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

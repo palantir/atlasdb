@@ -19,13 +19,16 @@ package com.palantir.atlasdb.workload.util;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadColumnRangeSelection;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -92,5 +95,22 @@ public final class AtlasDbUtils {
 
     public static byte[] indexMetadata(ConflictHandler baseTableConflictHandler) {
         return tableMetadata(toIndexConflictHandler(baseTableConflictHandler));
+    }
+
+    public static ColumnRangeSelection toAtlasDbColumnRangeSelection(
+            WorkloadColumnRangeSelection workloadColumnRangeSelection) {
+        return new ColumnRangeSelection(
+                workloadColumnRangeSelection
+                        .startColumnInclusive()
+                        .map(Ints::toByteArray)
+                        .orElse(null),
+                workloadColumnRangeSelection
+                        .endColumnExclusive()
+                        .map(Ints::toByteArray)
+                        .orElse(null));
+    }
+
+    public static WorkloadCell toWorkloadCell(Cell key) {
+        return ImmutableWorkloadCell.of(Ints.fromByteArray(key.getRowName()), Ints.fromByteArray(key.getColumnName()));
     }
 }

@@ -20,6 +20,8 @@ import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.HashMap;
@@ -52,6 +54,16 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
         TableAndWorkloadCell tableAndWorkloadCell =
                 TableAndWorkloadCell.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
         values.with(map -> map.put(tableAndWorkloadCell, Optional.empty()));
+        return null;
+    }
+
+    @Override
+    public Void visit(WitnessedRowsColumnRangeReadTransactionAction _rowsColumnRangeReadTransactionAction) {
+        return null;
+    }
+
+    @Override
+    public Void visit(WitnessedRowsColumnRangeExhaustionTransactionAction _rowsColumnRangeExhaustionTransactionAction) {
         return null;
     }
 

@@ -28,8 +28,7 @@ public interface InvalidWitnessedTransaction {
     List<InvalidWitnessedTransactionAction> invalidActions();
 
     static InvalidWitnessedTransaction of(
-            WitnessedTransaction witnessedTransaction,
-            List<InvalidWitnessedSingleCellTransactionAction> invalidActions) {
+            WitnessedTransaction witnessedTransaction, List<InvalidWitnessedTransactionAction> invalidActions) {
         return ImmutableInvalidWitnessedTransaction.of(witnessedTransaction, invalidActions);
     }
 }

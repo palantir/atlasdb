@@ -16,16 +16,22 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.Map;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Replays transactions and validates for conflicts on the latest and read view.
@@ -36,7 +42,7 @@ import java.util.Optional;
  * Objects created from this class should only be used within a scope of a single transaction.
  */
 final class SnapshotInvariantVisitor
-        implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedSingleCellTransactionAction>> {
+        implements WitnessedTransactionActionVisitor<List<InvalidWitnessedTransactionAction>> {
 
     private final Long startTimestamp;
     private final StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> latestView;
@@ -52,21 +58,19 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-            WitnessedReadTransactionAction readTransactionAction) {
+    public List<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
         Optional<Integer> expected = fetchValueFromView(
                         readTransactionAction.table(), readTransactionAction.cell(), readView)
                 .value();
         if (!expected.equals(readTransactionAction.value())) {
-            return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
+            return ImmutableList.of(InvalidWitnessedSingleCellTransactionAction.of(
                     readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expected)));
         }
-        return Optional.empty();
+        return ImmutableList.of();
     }
 
     @Override
-    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-            WitnessedWriteTransactionAction writeTransactionAction) {
+    public List<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
         Optional<InvalidWitnessedSingleCellTransactionAction> invalidAction = checkForWriteWriteConflicts(
                         writeTransactionAction.table(), writeTransactionAction.cell())
                 .map(mismatchedValue ->
@@ -76,19 +80,32 @@ final class SnapshotInvariantVisitor
                 writeTransactionAction.table(),
                 writeTransactionAction.cell(),
                 Optional.of(writeTransactionAction.value()));
-        return invalidAction;
+        return invalidAction.stream().collect(Collectors.toList());
     }
 
     @Override
-    public Optional<InvalidWitnessedSingleCellTransactionAction> visit(
-            WitnessedDeleteTransactionAction deleteTransactionAction) {
+    public List<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         Optional<InvalidWitnessedSingleCellTransactionAction> invalidAction = checkForWriteWriteConflicts(
                         deleteTransactionAction.table(), deleteTransactionAction.cell())
                 .map(mismatchedValue ->
                         InvalidWitnessedSingleCellTransactionAction.of(deleteTransactionAction, mismatchedValue));
 
         applyWrites(deleteTransactionAction.table(), deleteTransactionAction.cell(), Optional.empty());
-        return invalidAction;
+        return invalidAction.stream().collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InvalidWitnessedTransactionAction> visit(
+            WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
+        // TODO(jkong): Not implemented yet
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<InvalidWitnessedTransactionAction> visit(
+            WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction) {
+        // TODO(jkong): Not implemented yet
+        return ImmutableList.of();
     }
 
     /**

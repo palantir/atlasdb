@@ -16,14 +16,24 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface WitnessedTransactionActionVisitor<T> {
-    T visit(WitnessedReadTransactionAction readTransactionAction);
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
+import org.immutables.value.Value;
 
-    T visit(WitnessedWriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface WitnessedRowsColumnRangeReadTransactionAction extends WitnessedSingleCellTransactionAction {
+    RowsColumnRangeReadTransactionAction originalAction();
 
-    T visit(WitnessedDeleteTransactionAction deleteTransactionAction);
+    @Override
+    String table();
 
-    T visit(WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction);
+    @Override
+    WorkloadCell cell();
 
-    T visit(WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction);
+    int value();
+
+    @Override
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
 }

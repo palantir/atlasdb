@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+public interface InvalidWitnessedRowColumnRangePageReadTransactionAction extends InvalidWitnessedTransactionAction {
+    WitnessedRowsColumnRangeReadTransactionAction action();
 
-    T visit(WriteTransactionAction writeTransactionAction);
-
-    T visit(DeleteTransactionAction deleteTransactionAction);
-
-    T visit(RowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction);
+    // TODO (jkong): Add whatever is needed to represent the mismatched value.
 }

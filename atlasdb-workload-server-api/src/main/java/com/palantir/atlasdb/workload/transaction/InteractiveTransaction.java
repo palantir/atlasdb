@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.RowColumnRangeIterator;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,9 @@ public interface InteractiveTransaction {
     void write(String table, WorkloadCell workloadCell, Integer value);
 
     void delete(String table, WorkloadCell workloadCell);
+
+    RowColumnRangeIterator getRowsColumnRange(
+            String table, List<Integer> rows, WorkloadColumnRangeSelection workloadColumnRangeSelection);
 
     List<WitnessedTransactionAction> witness();
 }

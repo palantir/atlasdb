@@ -16,11 +16,14 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.workload.transaction.ImmutableRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
+import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -30,11 +33,15 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
@@ -92,6 +99,44 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
+    public RowColumnRangeIterator getRowsColumnRange(
+            String table, List<Integer> rows, WorkloadColumnRangeSelection workloadColumnRangeSelection) {
+        Iterator<Entry<Cell, byte[]>> rawAtlasDbIterator = run(
+                tableReference -> transaction.getRowsColumnRange(
+                        tableReference,
+                        rows.stream().map(Ints::toByteArray).collect(Collectors.toList()),
+                        AtlasDbUtils.toAtlasDbColumnRangeSelection(workloadColumnRangeSelection),
+                        100), // TODO (jkong): Should this be configurable?
+                table);
+
+        RowsColumnRangeReadTransactionAction transactionAction = ImmutableRowsColumnRangeReadTransactionAction.builder()
+                .table(table)
+                .rows(rows)
+                .batchColumnRangeSelection(workloadColumnRangeSelection)
+                .build();
+        return new RowColumnRangeIterator() {
+            @Override
+            public boolean hasNext() {
+                boolean hasNext = rawAtlasDbIterator.hasNext();
+                if (!hasNext) {
+                    witnessedTransactionActions.add(transactionAction.exhaustionWitness());
+                }
+                return rawAtlasDbIterator.hasNext();
+            }
+
+            @Override
+            public Entry<WorkloadCell, Integer> next() {
+                Entry<Cell, byte[]> atlasDbEntry = rawAtlasDbIterator.next();
+
+                WorkloadCell workloadCell = AtlasDbUtils.toWorkloadCell(atlasDbEntry.getKey());
+                int value = Ints.fromByteArray(atlasDbEntry.getValue()); // TODO (jkong): No!
+                witnessedTransactionActions.add(transactionAction.readWitness(workloadCell, value));
+                return Maps.immutableEntry(workloadCell, value);
+            }
+        };
+    }
+
+    @Override
     public List<WitnessedTransactionAction> witness() {
         hasFinished = true;
         return witnessedTransactionActions;
@@ -106,10 +151,20 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     private <T> T run(BiFunction<TableReference, Cell, T> function, String table, WorkloadCell workloadCell) {
-        Preconditions.checkState(
-                !hasFinished, "Transaction has already been witnessed and can no longer perform any actions.");
+        checkTransactionHasNotFinished();
         Cell atlasCell = AtlasDbUtils.toAtlasCell(workloadCell);
         TableReference tableReference = getTableReferenceOrThrow(table);
         return function.apply(tableReference, atlasCell);
+    }
+
+    private <T> T run(Function<TableReference, T> function, String table) {
+        checkTransactionHasNotFinished();
+        TableReference tableReference = getTableReferenceOrThrow(table);
+        return function.apply(tableReference);
+    }
+
+    private void checkTransactionHasNotFinished() {
+        Preconditions.checkState(
+                !hasFinished, "Transaction has already been witnessed and can no longer perform any actions.");
     }
 }

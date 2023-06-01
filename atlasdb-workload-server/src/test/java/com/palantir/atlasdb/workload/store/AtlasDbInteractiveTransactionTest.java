@@ -111,6 +111,14 @@ public final class AtlasDbInteractiveTransactionTest {
                 transaction -> transaction.delete(TABLE_1, WORKLOAD_CELL_ONE));
     }
 
+    @Test
+    public void getRowsColumnRangeThrowsWhenInteractiveTransactionAlreadyWitnessed() {
+        assertThatThrownWhenInteractiveTransactionAlreadyWitnessed(transaction -> transaction.getRowsColumnRange(
+                TABLE_1,
+                List.of(WORKLOAD_CELL_ONE.key()),
+                ImmutableWorkloadColumnRangeSelection.builder().build()));
+    }
+
     private List<WitnessedTransactionAction> readWrite(Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {
         return manager.runTaskWithRetry(atlasTransaction -> {
             AtlasDbInteractiveTransaction interactiveTransaction =

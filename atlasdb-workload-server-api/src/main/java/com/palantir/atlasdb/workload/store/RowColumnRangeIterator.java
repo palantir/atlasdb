@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.store;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import java.util.Iterator;
+import java.util.Map.Entry;
 
-    T visit(WriteTransactionAction writeTransactionAction);
-
-    T visit(DeleteTransactionAction deleteTransactionAction);
-
-    T visit(RowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction);
-}
+public interface RowColumnRangeIterator extends Iterator<Entry<WorkloadCell, Integer>> {}
