@@ -2375,7 +2375,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
     }
 
-    private void assertCellCommitLocksCountEquals(long expected) {
+    private void assertCellCommitLocksMetricEquals(long expected) {
         assertThat(metricsManager.getTaggedRegistry().getMetrics())
                 .anySatisfy((MetricName metricName, Metric metric) -> {
                     assertThat(metricName.safeName()).isEqualTo("expectations.cellCommitLocksRequested");
@@ -2384,7 +2384,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 });
     }
 
-    private void assertRowCommitLocksCountEquals(long expected) {
+    private void assertRowCommitLocksMetricEquals(long expected) {
         assertThat(metricsManager.getTaggedRegistry().getMetrics())
                 .anySatisfy((MetricName metricName, Metric metric) -> {
                     assertThat(metricName.safeName()).isEqualTo("expectations.rowCommitLocksRequested");
@@ -2394,7 +2394,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectly_serializableCell() {
+    public void reportsRequestedCommitLocksCountCorrectly_serializableCell() {
         // Will request commit locks for cells, but not rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
 
@@ -2403,12 +2403,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         });
 
-        assertCellCommitLocksCountEquals(1);
-        assertRowCommitLocksCountEquals(0);
+        assertCellCommitLocksMetricEquals(1);
+        assertRowCommitLocksMetricEquals(0);
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectly_serializable() {
+    public void reportsRequestedCommitLocksCountCorrectly_serializable() {
         // Will request commit locks for rows, but not cells
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
 
@@ -2417,12 +2417,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         });
 
-        assertCellCommitLocksCountEquals(0);
-        assertRowCommitLocksCountEquals(1);
+        assertCellCommitLocksMetricEquals(0);
+        assertRowCommitLocksMetricEquals(1);
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
+    public void reportsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
         // Will request commit locks for cells and rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
 
@@ -2445,8 +2445,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             return null;
         });
 
-        assertCellCommitLocksCountEquals(2);
-        assertRowCommitLocksCountEquals(1);
+        assertCellCommitLocksMetricEquals(2);
+        assertRowCommitLocksMetricEquals(1);
     }
 
     private void verifyPrefetchValidations(
