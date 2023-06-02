@@ -97,12 +97,12 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
-import com.palantir.atlasdb.transaction.impl.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
-import com.palantir.atlasdb.transaction.impl.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -270,8 +270,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
-    private final AtomicLong cellCommitLocksRequested = new AtomicLong();
-    private final AtomicLong rowCommitLocksRequested = new AtomicLong();
+    private volatile long cellCommitLocksRequested = 0L;
+    private volatile long rowCommitLocksRequested = 0L;
 
     protected volatile boolean hasReads;
 
@@ -354,8 +354,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 immutableTimestamp,
                 knowledge);
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
-        this.cellCommitLocksRequested.set(0L);
-        this.rowCommitLocksRequested.set(0L);
     }
 
     protected TransactionScopedCache getCache() {
@@ -2455,6 +2453,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected Set<LockDescriptor> getLocksForWrites() {
         Set<LockDescriptor> result = new HashSet<>();
+        long cellLockCount = 0L;
+        long rowLockCount = 0L;
         for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
@@ -2463,12 +2463,11 @@ public class SnapshotTransaction extends AbstractTransaction
                     result.add(AtlasCellLockDescriptor.of(
                             tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
                 }
-                cellCommitLocksRequested.set(cellsToLock.size());
+                cellLockCount = cellsToLock.size();
             }
 
             if (conflictHandler.lockRowsForConflicts()) {
                 Cell lastCell = null;
-                long rowLockCount = 0L;
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
                         result.add(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
@@ -2476,12 +2475,13 @@ public class SnapshotTransaction extends AbstractTransaction
                     }
                     lastCell = cell;
                 }
-                rowCommitLocksRequested.set(rowLockCount);
             }
         }
         result.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
+        cellCommitLocksRequested = cellLockCount;
+        rowCommitLocksRequested = rowLockCount + 1;
         return result;
     }
 
@@ -2619,10 +2619,11 @@ public class SnapshotTransaction extends AbstractTransaction
         return keyValueService.getOverallReadInfo();
     }
 
+    @Override
     public TransactionCommitLockInfo getCommitLockInfo() {
         return ImmutableTransactionCommitLockInfo.builder()
-                .cellCommitLocksRequested(cellCommitLocksRequested.get())
-                .rowCommitLocksRequested(rowCommitLocksRequested.get())
+                .cellCommitLocksRequested(cellCommitLocksRequested)
+                .rowCommitLocksRequested(rowCommitLocksRequested)
                 .build();
     }
 

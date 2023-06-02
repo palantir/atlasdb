@@ -18,8 +18,8 @@ namespaces:
         docs: Most bytes read by a transaction in one Atlas kvs read call
         type: histogram
       cellCommitLocksRequested:
-        docs: Number of cell-level commit locks requested at the beginning of the commit protocol
+        docs: Number of cell-level commit locks requested as part of the commit protocol
         type: histogram
       rowCommitLocksRequested:
-        docs: Number of row-level commit locks requested at the beginning of the commit protocol
+        docs: Number of row-level commit locks requested as part of the commit protocol
         type: histogram

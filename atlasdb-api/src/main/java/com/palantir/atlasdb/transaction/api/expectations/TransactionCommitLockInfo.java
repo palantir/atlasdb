@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction.api.expectations;
 
 import org.immutables.value.Value;
 
@@ -24,7 +24,14 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface TransactionCommitLockInfo {
 
+    /**
+     * The number of cell-level locks requested as part of the commit protocol (excluding any user-defined locking).
+     */
     long cellCommitLocksRequested();
 
+    /**
+     * The number of row-level locks requested as part of the commit protocol (excluding any user-defined locking).
+     * For write transactions, this includes the single row lock that is requested for the transaction table itself.
+     */
     long rowCommitLocksRequested();
 }

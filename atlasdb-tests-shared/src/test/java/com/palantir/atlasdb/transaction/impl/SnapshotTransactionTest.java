@@ -33,8 +33,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Metric;
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -96,6 +94,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -124,7 +123,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.tritium.metrics.registry.MetricName;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -325,7 +323,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final byte[] COL_B = "b".getBytes(StandardCharsets.UTF_8);
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
@@ -2375,78 +2372,73 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
     }
 
-    private void assertCellCommitLocksMetricEquals(long expected) {
-        assertThat(metricsManager.getTaggedRegistry().getMetrics())
-                .anySatisfy((MetricName metricName, Metric metric) -> {
-                    assertThat(metricName.safeName()).isEqualTo("expectations.cellCommitLocksRequested");
-                    assertThat(metric).isInstanceOf(Histogram.class);
-                    assertThat(((Histogram) metric).getSnapshot().getValues()).containsOnly(expected);
-                });
-    }
-
-    private void assertRowCommitLocksMetricEquals(long expected) {
-        assertThat(metricsManager.getTaggedRegistry().getMetrics())
-                .anySatisfy((MetricName metricName, Metric metric) -> {
-                    assertThat(metricName.safeName()).isEqualTo("expectations.rowCommitLocksRequested");
-                    assertThat(metric).isInstanceOf(Histogram.class);
-                    assertThat(((Histogram) metric).getSnapshot().getValues()).containsOnly(expected);
-                });
-    }
-
     @Test
-    public void reportsRequestedCommitLocksCountCorrectly_serializableCell() {
+    public void setsRequestedCommitLocksCountCorrectly_serializableCell() {
         // Will request commit locks for cells, but not rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
 
-        txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-            return null;
-        });
+        // We can only get the commit info from a snapshot transaction
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
 
-        assertCellCommitLocksMetricEquals(1);
-        assertRowCommitLocksMetricEquals(0);
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        // For write transactions, we always lock an additional row in the transaction table
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0 + 1);
     }
 
     @Test
-    public void reportsRequestedCommitLocksCountCorrectly_serializable() {
+    public void setsRequestedCommitLocksCountCorrectly_serializable() {
         // Will request commit locks for rows, but not cells
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
 
-        txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-            return null;
-        });
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
 
-        assertCellCommitLocksMetricEquals(0);
-        assertRowCommitLocksMetricEquals(1);
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(0);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(2 + 1);
     }
 
     @Test
-    public void reportsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
+    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
         // Will request commit locks for cells and rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
 
-        txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(
-                    TABLE,
-                    ImmutableMap.of(
-                            Cell.create(
-                                    "same_row".getBytes(StandardCharsets.UTF_8),
-                                    "column1".getBytes(StandardCharsets.UTF_8)),
-                            TEST_VALUE));
-            txn.put(
-                    TABLE,
-                    ImmutableMap.of(
-                            Cell.create(
-                                    "same_row".getBytes(StandardCharsets.UTF_8),
-                                    // Writing to the same row, but different column/cell
-                                    "column2".getBytes(StandardCharsets.UTF_8)),
-                            TEST_VALUE));
-            return null;
-        });
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(
+                TABLE,
+                ImmutableMap.of(Cell.create(PtBytes.toBytes("same_row"), PtBytes.toBytes("column1")), TEST_VALUE));
+        txn.put(
+                TABLE,
+                ImmutableMap.of(
+                        Cell.create(
+                                PtBytes.toBytes("same_row"),
+                                // Writing to the same row, but different column/cell
+                                PtBytes.toBytes("column2")),
+                        TEST_VALUE));
+        txn.commit();
 
-        assertCellCommitLocksMetricEquals(2);
-        assertRowCommitLocksMetricEquals(1);
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_readOnlyTransaction() {
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.get(TABLE, ImmutableSet.of(TEST_CELL));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(0);
+        // Since this is a read-only transaction, we should not even lock a row in the transaction table itself
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0);
     }
 
     private void verifyPrefetchValidations(
