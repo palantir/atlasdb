@@ -14,34 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.workload.transaction.witnessed.range;
 
-import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
+import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WitnessedRowsColumnRangeReadTransactionAction extends WitnessedSingleCellTransactionAction {
+public interface WitnessedRowsColumnRangeIteratorCreationTransactionAction extends WitnessedTransactionAction {
     RowsColumnRangeReadTransactionAction originalAction();
 
+    UUID iteratorIdentifier();
+
     int specificRow();
-
-    @Override
-    default String table() {
-        return originalAction().table();
-    }
-
-    @Override
-    WorkloadCell cell();
-
-    int value();
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    static ImmutableWitnessedRowsColumnRangeReadTransactionAction.Builder builder() {
-        return ImmutableWitnessedRowsColumnRangeReadTransactionAction.builder();
+    static ImmutableWitnessedRowsColumnRangeIteratorCreationTransactionAction.Builder builder() {
+        return ImmutableWitnessedRowsColumnRangeIteratorCreationTransactionAction.builder();
     }
 }

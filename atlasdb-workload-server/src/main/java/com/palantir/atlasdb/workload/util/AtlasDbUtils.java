@@ -113,4 +113,8 @@ public final class AtlasDbUtils {
     public static WorkloadCell toWorkloadCell(Cell key) {
         return ImmutableWorkloadCell.of(Ints.fromByteArray(key.getRowName()), Ints.fromByteArray(key.getColumnName()));
     }
+
+    public static int toWorkloadValue(byte[] value) {
+        return Ints.fromByteArray(value);
+    }
 }

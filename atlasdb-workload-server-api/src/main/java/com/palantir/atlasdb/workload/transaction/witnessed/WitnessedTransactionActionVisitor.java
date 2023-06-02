@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
+
 public interface WitnessedTransactionActionVisitor<T> {
     T visit(WitnessedReadTransactionAction readTransactionAction);
 
@@ -25,5 +28,5 @@ public interface WitnessedTransactionActionVisitor<T> {
 
     T visit(WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction);
 
-    T visit(WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction);
+    T visit(WitnessedRowsColumnRangeIteratorCreationTransactionAction rowsColumnRangeIteratorCreationTransactionAction);
 }

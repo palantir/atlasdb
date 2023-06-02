@@ -20,10 +20,10 @@ import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import java.util.Optional;
@@ -58,12 +58,12 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
     }
 
     @Override
-    public Void visit(WitnessedRowsColumnRangeReadTransactionAction _rowsColumnRangeReadTransactionAction) {
+    public Void visit(WitnessedRowsColumnRangeReadTransactionAction unused) {
         return null;
     }
 
     @Override
-    public Void visit(WitnessedRowsColumnRangeExhaustionTransactionAction _rowsColumnRangeExhaustionTransactionAction) {
+    public Void visit(WitnessedRowsColumnRangeIteratorCreationTransactionAction unused) {
         return null;
     }
 

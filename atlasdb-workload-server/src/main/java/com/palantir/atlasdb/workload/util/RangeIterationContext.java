@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.workload.util;
 
-import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
+import java.util.UUID;
 
-public interface InvalidWitnessedRowColumnRangePageReadTransactionAction extends InvalidWitnessedTransactionAction {
-    WitnessedRowsColumnRangeReadTransactionAction action();
+public interface RangeIterationContext {
+    UUID iteratorIdentifier();
 
-    // TODO (jkong): Add whatever is needed to represent the mismatched value.
+    String table();
 }

@@ -18,10 +18,10 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 
 public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<TransactionAction> {
     INSTANCE;
@@ -44,12 +44,15 @@ public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<
 
     @Override
     public TransactionAction visit(WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
-        return rowsColumnRangeReadTransactionAction.originalAction();
+        throw new UnsupportedOperationException(
+                "Read transaction actions themselves cannot be directly converted to actions. Please consult with the"
+                        + " iterator creation action to determine what the original action was.");
     }
 
     @Override
     public TransactionAction visit(
-            WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction) {
-        return rowsColumnRangeExhaustionTransactionAction.originalAction();
+            WitnessedRowsColumnRangeIteratorCreationTransactionAction
+                    rowsColumnRangeIteratorCreationTransactionAction) {
+        return rowsColumnRangeIteratorCreationTransactionAction.originalAction();
     }
 }

@@ -24,10 +24,10 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingl
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import io.vavr.collection.Map;
 import java.util.List;
 import java.util.Optional;
@@ -103,9 +103,10 @@ final class SnapshotInvariantVisitor
 
     @Override
     public List<InvalidWitnessedTransactionAction> visit(
-            WitnessedRowsColumnRangeExhaustionTransactionAction rowsColumnRangeExhaustionTransactionAction) {
+            WitnessedRowsColumnRangeIteratorCreationTransactionAction
+                    rowsColumnRangeIteratorCreationTransactionAction) {
         // TODO(jkong): Not implemented yet
-        return ImmutableList.of();
+        return null;
     }
 
     /**

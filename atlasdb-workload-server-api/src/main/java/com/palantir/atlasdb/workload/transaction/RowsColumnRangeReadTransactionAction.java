@@ -18,11 +18,10 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadColumnRangeSelection;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedRowsColumnRangeReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import java.util.List;
+import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -41,19 +40,34 @@ public interface RowsColumnRangeReadTransactionAction extends TransactionAction 
         return visitor.visit(this);
     }
 
-    default WitnessedRowsColumnRangeExhaustionTransactionAction exhaustionWitness(int specificRow) {
-        return ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.builder()
+    default WitnessedRowsColumnRangeIteratorCreationTransactionAction creationWitness(UUID uuid, int specificRow) {
+        return WitnessedRowsColumnRangeIteratorCreationTransactionAction.builder()
                 .originalAction(this)
+                .iteratorIdentifier(uuid)
                 .specificRow(specificRow)
                 .build();
     }
 
-    default WitnessedRowsColumnRangeReadTransactionAction readWitness(int specificRow, WorkloadCell cell, int value) {
-        return ImmutableWitnessedRowsColumnRangeReadTransactionAction.builder()
-                .originalAction(this)
+    default WitnessedRowsColumnRangeReadTransactionAction exhaustionWitness(UUID uuid, int specificRow) {
+        return WitnessedRowsColumnRangeReadTransactionAction.builder()
+                .iteratorIdentifier(uuid)
+                .table(table())
+                .specificRow(specificRow)
+                .build();
+    }
+
+    default WitnessedRowsColumnRangeReadTransactionAction readWitness(
+            UUID uuid, int specificRow, WorkloadCell cell, int value) {
+        return WitnessedRowsColumnRangeReadTransactionAction.builder()
+                .iteratorIdentifier(uuid)
+                .table(table())
                 .cell(cell)
                 .value(value)
                 .specificRow(specificRow)
                 .build();
+    }
+
+    static ImmutableRowsColumnRangeReadTransactionAction.Builder builder() {
+        return ImmutableRowsColumnRangeReadTransactionAction.builder();
     }
 }

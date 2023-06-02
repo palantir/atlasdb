@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.workload.transaction.ImmutableRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -30,6 +28,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransact
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import com.palantir.atlasdb.workload.util.RangeIterators;
+import com.palantir.atlasdb.workload.util.RowColumnRangeReadIterationContext;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -101,7 +101,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public Map<Integer, RowColumnRangeIterator> getRowsColumnRange(
+    public Map<Integer, Iterator<Entry<WorkloadCell, Integer>>> getRowsColumnRange(
             String table, List<Integer> rows, WorkloadColumnRangeSelection workloadColumnRangeSelection) {
         Map<byte[], Iterator<Entry<Cell, byte[]>>> rawAtlasDbResults = run(
                 tableReference -> transaction.getRowsColumnRangeIterator(
@@ -109,36 +109,33 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                         rows.stream().map(Ints::toByteArray).collect(Collectors.toList()),
                         BatchColumnRangeSelection.create(
                                 AtlasDbUtils.toAtlasDbColumnRangeSelection(workloadColumnRangeSelection),
-                                100)), // TODO (jkong): Should this be configurable?
+                                100)), // TODO (jkong): Eventually this should be configurable
                 table);
 
-        RowsColumnRangeReadTransactionAction transactionAction = ImmutableRowsColumnRangeReadTransactionAction.builder()
+        RowsColumnRangeReadTransactionAction transactionAction = RowsColumnRangeReadTransactionAction.builder()
                 .table(table)
                 .rows(rows)
                 .batchColumnRangeSelection(workloadColumnRangeSelection)
                 .build();
+
+        Map<Integer, RowColumnRangeReadIterationContext> iterationContexts = EntryStream.of(rawAtlasDbResults)
+                .mapKeys(AtlasDbUtils::toWorkloadValue)
+                .<RowColumnRangeReadIterationContext>mapToValue(
+                        (row, unused) -> RowColumnRangeReadIterationContext.builder()
+                                .table(table)
+                                .specificRow(row)
+                                .build())
+                .toMap();
+        iterationContexts
+                .values()
+                .forEach(context -> witnessedTransactionActions.add(
+                        transactionAction.creationWitness(context.iteratorIdentifier(), context.specificRow())));
+
         return EntryStream.of(rawAtlasDbResults)
-                .mapKeys(Ints::fromByteArray)
-                .<RowColumnRangeIterator>mapToValue((row, iterator) -> new RowColumnRangeIterator() {
-                    @Override
-                    public boolean hasNext() {
-                        boolean hasNext = iterator.hasNext();
-                        if (!hasNext) {
-                            witnessedTransactionActions.add(transactionAction.exhaustionWitness(row));
-                        }
-                        return hasNext;
-                    }
-
-                    @Override
-                    public Entry<WorkloadCell, Integer> next() {
-                        Entry<Cell, byte[]> atlasDbEntry = iterator.next();
-
-                        WorkloadCell workloadCell = AtlasDbUtils.toWorkloadCell(atlasDbEntry.getKey());
-                        int value = Ints.fromByteArray(atlasDbEntry.getValue()); // TODO (jkong): oof
-                        witnessedTransactionActions.add(transactionAction.readWitness(row, workloadCell, value));
-                        return Maps.immutableEntry(workloadCell, value);
-                    }
-                })
+                .mapKeys(AtlasDbUtils::toWorkloadValue)
+                .<Iterator<Entry<WorkloadCell, Integer>>>mapToValue(
+                        (row, iterator) -> RangeIterators.rowColumnRangeIterator(
+                                iterationContexts.get(row), iterator, witnessedTransactionActions::add))
                 .toMap();
     }
 

@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.workload.util;
 
-import com.palantir.atlasdb.workload.transaction.RowsColumnRangeReadTransactionAction;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WitnessedRowsColumnRangeExhaustionTransactionAction extends WitnessedTransactionAction {
-    RowsColumnRangeReadTransactionAction originalAction();
-
+public interface RowColumnRangeReadIterationContext extends RangeIterationContext {
     int specificRow();
 
-    @Override
-    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    static ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.Builder builder() {
-        return ImmutableWitnessedRowsColumnRangeExhaustionTransactionAction.builder();
+    static ImmutableRowColumnRangeReadIterationContext.Builder builder() {
+        return ImmutableRowColumnRangeReadIterationContext.builder().iteratorIdentifier(UuidGenerator.randomUUID());
     }
 }

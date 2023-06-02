@@ -20,6 +20,7 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.NAME
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLES_TO_ATLAS_METADATA;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
+import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_TWO;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,15 +29,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.workload.transaction.ImmutableRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeExhaustionTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,55 +70,102 @@ public final class AtlasDbInteractiveTransactionTest {
     }
 
     @Test
-    public void witnessRecordsRowColumnRangeReads() {
-        Integer keyOne = WORKLOAD_CELL_ONE.key();
-        Integer keyTwo = WORKLOAD_CELL_TWO.key();
-        assertThat(readWrite(transaction -> {
-                    transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
-                    Map<Integer, RowColumnRangeIterator> iteratorMap = transaction.getRowsColumnRange(
-                            TABLE_1,
-                            ImmutableList.of(keyOne, keyTwo),
-                            ImmutableWorkloadColumnRangeSelection.builder().build());
+    public void witnessRecordsEmptyRowColumnRangeRead() {
+        List<WitnessedTransactionAction> witnessedActions = readWrite(transaction -> {
+            Map<Integer, Iterator<Map.Entry<WorkloadCell, Integer>>> iteratorMap = transaction.getRowsColumnRange(
+                    TABLE_1,
+                    ImmutableList.of(WORKLOAD_CELL_ONE.key()),
+                    ImmutableWorkloadColumnRangeSelection.builder().build());
 
-                    RowColumnRangeIterator expectedEmpty = iteratorMap.get(keyOne);
-                    assertThat(expectedEmpty.hasNext()).isFalse();
+            Iterator<Map.Entry<WorkloadCell, Integer>> iterator = iteratorMap.get(WORKLOAD_CELL_ONE.key());
+            assertThat(iterator.hasNext()).isFalse();
+        });
 
-                    RowColumnRangeIterator expectedPresent = iteratorMap.get(keyTwo);
-                    while (expectedPresent.hasNext()) {
-                        expectedPresent.next();
-                    }
-                }))
-                .containsExactly(
-                        WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
-                        WitnessedRowsColumnRangeExhaustionTransactionAction.builder()
-                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
-                                        .table(TABLE_1)
-                                        .rows(ImmutableList.of(keyOne, keyTwo))
-                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
-                                                .build())
-                                        .build())
-                                .specificRow(keyOne)
-                                .build(),
-                        WitnessedRowsColumnRangeReadTransactionAction.builder()
-                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
-                                        .table(TABLE_1)
-                                        .rows(ImmutableList.of(keyOne, keyTwo))
-                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
-                                                .build())
-                                        .build())
-                                .cell(WORKLOAD_CELL_TWO)
-                                .specificRow(keyTwo)
-                                .value(VALUE_ONE)
-                                .build(),
-                        WitnessedRowsColumnRangeExhaustionTransactionAction.builder()
-                                .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
-                                        .table(TABLE_1)
-                                        .rows(ImmutableList.of(keyOne, keyTwo))
-                                        .batchColumnRangeSelection(ImmutableWorkloadColumnRangeSelection.builder()
-                                                .build())
-                                        .build())
-                                .specificRow(keyTwo)
-                                .build());
+        assertThat(witnessedActions).hasSize(2);
+
+        WitnessedTransactionAction keyOneIteratorCreation = witnessedActions.get(0);
+        assertThat(keyOneIteratorCreation)
+                .as("the first action created an iterator")
+                .isInstanceOf(WitnessedRowsColumnRangeIteratorCreationTransactionAction.class);
+        WitnessedRowsColumnRangeIteratorCreationTransactionAction keyOneIteratorCreationAction =
+                (WitnessedRowsColumnRangeIteratorCreationTransactionAction) keyOneIteratorCreation;
+        assertThat(keyOneIteratorCreationAction.specificRow()).isEqualTo(WORKLOAD_CELL_ONE.key());
+
+        assertThat(witnessedActions.get(1))
+                .as("the second action exhausted the iterator for the first key")
+                .isInstanceOfSatisfying(WitnessedRowsColumnRangeReadTransactionAction.class, action -> {
+                    assertThat(action.iteratorIdentifier())
+                            .isEqualTo(keyOneIteratorCreationAction.iteratorIdentifier());
+                    assertThat(action.cell()).isEmpty();
+                    assertThat(action.value()).isEmpty();
+                });
+    }
+
+    @Test
+    public void witnessRecordsPresentRowColumnRangeReads() {
+        int keyOne = WORKLOAD_CELL_ONE.key();
+        readWrite(transaction -> {
+            transaction.write(TABLE_1, ImmutableWorkloadCell.of(keyOne, 13), VALUE_ONE);
+            transaction.write(TABLE_1, ImmutableWorkloadCell.of(keyOne, 21), VALUE_TWO);
+        });
+
+        List<WitnessedTransactionAction> witnessedTransactionActions = readWrite(transaction -> {
+            transaction.write(TABLE_1, ImmutableWorkloadCell.of(keyOne, 17), VALUE_ONE + VALUE_TWO);
+
+            Map<Integer, Iterator<Map.Entry<WorkloadCell, Integer>>> iteratorMap = transaction.getRowsColumnRange(
+                    TABLE_1,
+                    ImmutableList.of(keyOne),
+                    ImmutableWorkloadColumnRangeSelection.builder().build());
+
+            Iterator<Map.Entry<WorkloadCell, Integer>> iterator = iteratorMap.get(keyOne);
+            while (iterator.hasNext()) {
+                iterator.next();
+            }
+        });
+
+        assertThat(witnessedTransactionActions).hasSize(6);
+
+        WitnessedTransactionAction keyOneIteratorCreation = witnessedTransactionActions.get(1);
+        assertThat(keyOneIteratorCreation)
+                .as("the second action created an iterator")
+                .isInstanceOf(WitnessedRowsColumnRangeIteratorCreationTransactionAction.class);
+        WitnessedRowsColumnRangeIteratorCreationTransactionAction keyOneIteratorCreationAction =
+                (WitnessedRowsColumnRangeIteratorCreationTransactionAction) keyOneIteratorCreation;
+        assertThat(keyOneIteratorCreationAction.specificRow()).isEqualTo(keyOne);
+
+        assertThat(witnessedTransactionActions.get(2))
+                .as("the third action read the first cell for the row")
+                .isInstanceOfSatisfying(WitnessedRowsColumnRangeReadTransactionAction.class, action -> {
+                    assertThat(action.iteratorIdentifier())
+                            .isEqualTo(keyOneIteratorCreationAction.iteratorIdentifier());
+                    assertThat(action.cell()).contains(ImmutableWorkloadCell.of(keyOne, 13));
+                    assertThat(action.value()).contains(VALUE_ONE);
+                });
+        assertThat(witnessedTransactionActions.get(3))
+                .as("the fourth action read the second cell for the row, which was a local write")
+                .isInstanceOfSatisfying(WitnessedRowsColumnRangeReadTransactionAction.class, action -> {
+                    assertThat(action.iteratorIdentifier())
+                            .isEqualTo(keyOneIteratorCreationAction.iteratorIdentifier());
+                    assertThat(action.cell()).contains(ImmutableWorkloadCell.of(keyOne, 17));
+                    assertThat(action.value()).contains(VALUE_ONE + VALUE_TWO);
+                });
+        assertThat(witnessedTransactionActions.get(4))
+                .as("the fifth action read the third cell for the row")
+                .isInstanceOfSatisfying(WitnessedRowsColumnRangeReadTransactionAction.class, action -> {
+                    assertThat(action.iteratorIdentifier())
+                            .isEqualTo(keyOneIteratorCreationAction.iteratorIdentifier());
+                    assertThat(action.cell()).contains(ImmutableWorkloadCell.of(keyOne, 21));
+                    assertThat(action.value()).contains(VALUE_TWO);
+                });
+
+        assertThat(witnessedTransactionActions.get(5))
+                .as("the sixth action exhausted the iterator")
+                .isInstanceOfSatisfying(WitnessedRowsColumnRangeReadTransactionAction.class, action -> {
+                    assertThat(action.iteratorIdentifier())
+                            .isEqualTo(keyOneIteratorCreationAction.iteratorIdentifier());
+                    assertThat(action.cell()).isEmpty();
+                    assertThat(action.value()).isEmpty();
+                });
     }
 
     @Test
