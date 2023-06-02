@@ -186,6 +186,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
+import org.checkerframework.checker.units.qual.A;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -270,8 +271,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
-    private long cellCommitLocksRequested;
-    private long rowCommitLocksRequested;
+    private final AtomicLong cellCommitLocksRequested = new AtomicLong();
+    private final AtomicLong rowCommitLocksRequested = new AtomicLong();
 
     protected volatile boolean hasReads;
 
@@ -354,8 +355,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 immutableTimestamp,
                 knowledge);
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
-        this.cellCommitLocksRequested = 0L;
-        this.rowCommitLocksRequested = 0L;
+        this.cellCommitLocksRequested.set(0L);
+        this.rowCommitLocksRequested.set(0L);
     }
 
     protected TransactionScopedCache getCache() {
@@ -2463,7 +2464,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     result.add(AtlasCellLockDescriptor.of(
                             tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
                 }
-                cellCommitLocksRequested = cellsToLock.size();
+                cellCommitLocksRequested.set(cellsToLock.size());
             }
 
             if (conflictHandler.lockRowsForConflicts()) {
@@ -2476,7 +2477,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     }
                     lastCell = cell;
                 }
-                rowCommitLocksRequested = rowLockCount;
+                rowCommitLocksRequested.set(rowLockCount);
             }
         }
         result.add(AtlasRowLockDescriptor.of(
@@ -2621,8 +2622,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     public TransactionCommitLockInfo getCommitLockInfo() {
         return ImmutableTransactionCommitLockInfo.builder()
-                .cellCommitLocksRequested(cellCommitLocksRequested)
-                .rowCommitLocksRequested(rowCommitLocksRequested)
+                .cellCommitLocksRequested(cellCommitLocksRequested.get())
+                .rowCommitLocksRequested(rowCommitLocksRequested.get())
                 .build();
     }
 
