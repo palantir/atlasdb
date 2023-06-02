@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl.expectations;
 
 import org.immutables.value.Value;
 

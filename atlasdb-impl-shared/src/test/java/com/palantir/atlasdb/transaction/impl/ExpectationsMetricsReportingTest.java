@@ -19,10 +19,10 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
-import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.junit.Before;
 import org.junit.Test;
