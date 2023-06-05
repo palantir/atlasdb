@@ -63,6 +63,7 @@ public enum SerializableInvariant implements TransactionInvariant {
             implements WitnessedTransactionActionVisitor<List<InvalidWitnessedTransactionAction>> {
 
         private final InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
+        private final RowColumnRangeQueryManager rowColumnRangeQueryManager = RowColumnRangeQueryManager.create();
 
         @Override
         public List<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
@@ -83,12 +84,22 @@ public enum SerializableInvariant implements TransactionInvariant {
         @Override
         public List<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
             inMemoryTransactionReplayer.visit(writeTransactionAction);
+            rowColumnRangeQueryManager.invalidateOverlappingQueries(writeTransactionAction);
             return ImmutableList.of();
         }
 
         @Override
         public List<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
             inMemoryTransactionReplayer.visit(deleteTransactionAction);
+            rowColumnRangeQueryManager.invalidateOverlappingQueries(deleteTransactionAction);
+            return ImmutableList.of();
+        }
+
+        @Override
+        public List<InvalidWitnessedTransactionAction> visit(
+                WitnessedRowsColumnRangeIteratorCreationTransactionAction
+                        rowsColumnRangeIteratorCreationTransactionAction) {
+            rowColumnRangeQueryManager.trackQueryCreation(rowsColumnRangeIteratorCreationTransactionAction);
             return ImmutableList.of();
         }
 
@@ -97,14 +108,6 @@ public enum SerializableInvariant implements TransactionInvariant {
                 WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
             // TODO (jkong): Not implemented yet
             return ImmutableList.of();
-        }
-
-        @Override
-        public List<InvalidWitnessedTransactionAction> visit(
-                WitnessedRowsColumnRangeIteratorCreationTransactionAction
-                        rowsColumnRangeIteratorCreationTransactionAction) {
-            // TODO (jkong): Not implemented yet
-            return null;
         }
     }
 }

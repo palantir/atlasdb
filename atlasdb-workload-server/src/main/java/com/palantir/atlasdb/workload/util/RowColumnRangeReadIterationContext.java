@@ -16,13 +16,20 @@
 
 package com.palantir.atlasdb.workload.util;
 
+import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface RowColumnRangeReadIterationContext extends RangeIterationContext {
+    @Override
+    @Value.Default
+    default UUID iteratorIdentifier() {
+        return UuidGenerator.randomUUID();
+    }
+
     int specificRow();
 
     static ImmutableRowColumnRangeReadIterationContext.Builder builder() {
-        return ImmutableRowColumnRangeReadIterationContext.builder().iteratorIdentifier(UuidGenerator.randomUUID());
+        return ImmutableRowColumnRangeReadIterationContext.builder();
     }
 }

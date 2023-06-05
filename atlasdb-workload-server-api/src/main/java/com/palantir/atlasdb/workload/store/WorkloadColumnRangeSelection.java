@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import com.google.common.collect.Range;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -24,4 +25,29 @@ public interface WorkloadColumnRangeSelection {
     Optional<Integer> startColumnInclusive();
 
     Optional<Integer> endColumnExclusive();
+
+    default boolean contains(int column) {
+        return asGuavaRange().contains(column);
+    }
+
+    default Range<Integer> asGuavaRange() {
+        if (startColumnInclusive().isEmpty()) {
+            if (endColumnExclusive().isEmpty()) {
+                return Range.all();
+            } else {
+                return Range.lessThan(endColumnExclusive().get());
+            }
+        } else {
+            if (endColumnExclusive().isEmpty()) {
+                return Range.atLeast(startColumnInclusive().get());
+            } else {
+                return Range.closedOpen(
+                        startColumnInclusive().get(), endColumnExclusive().get());
+            }
+        }
+    }
+
+    static ImmutableWorkloadColumnRangeSelection.Builder builder() {
+        return ImmutableWorkloadColumnRangeSelection.builder();
+    }
 }
