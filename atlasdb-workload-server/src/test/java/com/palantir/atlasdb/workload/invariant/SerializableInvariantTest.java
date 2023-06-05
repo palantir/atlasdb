@@ -19,14 +19,17 @@ package com.palantir.atlasdb.workload.invariant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.workload.store.CellReferenceAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.InvalidWitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.ArrayList;
@@ -211,7 +214,8 @@ public final class SerializableInvariantTest {
     public void handlesRowColumnRangeScanLocalWriteSemantics() {
         UUID createdBeforeWriteReadingValue = UUID.randomUUID();
         UUID createdBeforeWriteNotReadingValue = UUID.randomUUID();
-        UUID createdAfterWrite = UUID.randomUUID();
+        UUID createdAfterWriteReadingValue = UUID.randomUUID();
+        UUID createdAfterWriteNotReadingValue = UUID.randomUUID();
 
         List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
@@ -221,16 +225,19 @@ public final class SerializableInvariantTest {
                 .startTransaction()
                 .createRowColumnRangeIterator(createdBeforeWriteReadingValue, 5, 0, 99)
                 .createRowColumnRangeIterator(createdBeforeWriteNotReadingValue, 5, 0, 99)
-                .write(5, 5, 5)
-                .createRowColumnRangeIterator(createdAfterWrite, 5, 0, 99)
-                .rowColumnRangeRead(createdAfterWrite, 5, 5, 5)
-                .rowColumnRangeRead(createdAfterWrite, 5, 10, 15)
-                .rowColumnRangeExhaustion(createdAfterWrite, 5)
-                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 5, 5)
+                .write(5, 5, 85)
+                .createRowColumnRangeIterator(createdAfterWriteReadingValue, 5, 0, 99)
+                .createRowColumnRangeIterator(createdAfterWriteNotReadingValue, 5, 0, 99)
+                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 5, 85)
                 .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 10, 15)
                 .rowColumnRangeExhaustion(createdBeforeWriteReadingValue, 5)
                 .rowColumnRangeRead(createdBeforeWriteNotReadingValue, 5, 10, 15)
                 .rowColumnRangeExhaustion(createdBeforeWriteNotReadingValue, 5)
+                .rowColumnRangeRead(createdAfterWriteReadingValue, 5, 5, 85)
+                .rowColumnRangeRead(createdAfterWriteReadingValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(createdAfterWriteReadingValue, 5)
+                .rowColumnRangeRead(createdAfterWriteNotReadingValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(createdAfterWriteNotReadingValue, 5)
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -238,6 +245,48 @@ public final class SerializableInvariantTest {
                 .transactionStore(readableTransactionStore)
                 .build();
         SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+
+        InvalidWitnessedTransaction invalidWitnessedTransaction = Iterables.getOnlyElement(invalidTransactions);
+
+        assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
+
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(
+                        InvalidWitnessedRowsColumnRangeReadTransactionAction.class,
+                        invalidWitnessedRowsColumnRangeReadTransactionAction -> {
+                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.rowColumnRangeRead())
+                                    .satisfies(rowColumnRangeRead -> assertThat(rowColumnRangeRead.iteratorIdentifier())
+                                            .isEqualTo(createdAfterWriteNotReadingValue));
+
+                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.expectedRead())
+                                    .contains(CellReferenceAndValue.builder()
+                                            .tableAndWorkloadCell(
+                                                    TableAndWorkloadCell.of("table", ImmutableWorkloadCell.of(5, 5)))
+                                            .value(85)
+                                            .build());
+                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.actualRead())
+                                    .contains(CellReferenceAndValue.builder()
+                                            .tableAndWorkloadCell(
+                                                    TableAndWorkloadCell.of("table", ImmutableWorkloadCell.of(5, 10)))
+                                            .value(15)
+                                            .build());
+                        });
+    }
+
+    @Test
+    public void identifiesMissingCellFromRowColumnRangeRead() {
+        // TODO
+    }
+
+    @Test
+    public void identifiesIncorrectCellFromRowColumnRangeRead() {
+        // TODO
+    }
+
+    @Test
+    public void identifiesIncorrectValueFromRowColumnRangeRead() {
+        // TODO
     }
 }
