@@ -16,12 +16,18 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.google.common.collect.Ordering;
+import com.palantir.atlasdb.workload.store.Columns;
+import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.ValidationStore;
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import io.vavr.Tuple;
+import io.vavr.collection.List;
+import io.vavr.collection.SortedMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -36,18 +42,28 @@ public enum DurableWritesInvariant implements Invariant<Map<TableAndWorkloadCell
         ReadableTransactionStore storeToValidate = workflowHistory.transactionStore();
         Map<TableAndWorkloadCell, MismatchedValue> cellsThatDoNotMatch = expectedState
                 .values()
-                .map((writtenCell, expectedValue) -> {
-                    Optional<MismatchedValue> maybeMismatchedValue = Optional.empty();
-                    Optional<Integer> actualValue = storeToValidate.get(writtenCell.tableName(), writtenCell.cell());
+                .flatMap((tableName, table) -> {
+                    SortedMap<Integer, Columns> tableContents = table.snapshot();
 
-                    if (!actualValue.equals(expectedValue)) {
-                        maybeMismatchedValue = Optional.of(MismatchedValue.of(actualValue, expectedValue));
-                    }
+                    // There is an issue with vavr, where flatMap on a sorted map is assumed to return a sorted map,
+                    // but this should not be the case if the key type on the returned tuples is not comparable. We
+                    // thus need to specify this ordering.
+                    return tableContents.flatMap(Ordering.arbitrary(), (row, columns) -> {
+                        SortedMap<Integer, Optional<Integer>> columnContents = columns.snapshot();
+                        return columnContents.flatMap(Ordering.arbitrary(), (column, value) -> {
+                            WorkloadCell cell = ImmutableWorkloadCell.of(row, column);
 
-                    return Tuple.of(writtenCell, maybeMismatchedValue);
+                            Optional<Integer> actualValue = storeToValidate.get(tableName, cell);
+
+                            if (!actualValue.equals(value)) {
+                                return List.of(Tuple.of(
+                                        TableAndWorkloadCell.of(tableName, cell),
+                                        MismatchedValue.of(actualValue, value)));
+                            }
+                            return List.of();
+                        });
+                    });
                 })
-                .filterValues(Optional::isPresent)
-                .mapValues(Optional::get)
                 .toJavaMap();
         invariantListener.accept(cellsThatDoNotMatch);
     }

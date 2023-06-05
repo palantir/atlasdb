@@ -20,13 +20,12 @@ import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import io.vavr.collection.Map;
 import java.util.List;
-import java.util.Optional;
 
 public final class InMemoryValidationStore implements ValidationStore {
 
-    private final Map<TableAndWorkloadCell, Optional<Integer>> values;
+    private final Map<String, Table> values;
 
-    private InMemoryValidationStore(Map<TableAndWorkloadCell, Optional<Integer>> values) {
+    public InMemoryValidationStore(Map<String, Table> values) {
         this.values = values;
     }
 
@@ -40,7 +39,7 @@ public final class InMemoryValidationStore implements ValidationStore {
     }
 
     @Override
-    public Map<TableAndWorkloadCell, Optional<Integer>> values() {
+    public Map<String, Table> values() {
         return values;
     }
 }

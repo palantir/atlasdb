@@ -25,11 +25,12 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.workload.store.Table;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
-import io.vavr.Tuple2;
+import io.vavr.collection.Map;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -53,10 +54,18 @@ public final class InMemoryTransactionReplayerTest {
         InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
         inMemoryTransactionReplayer.visit(WRITE_TRANSACTION_ACTION_1);
         inMemoryTransactionReplayer.visit(WRITE_TRANSACTION_ACTION_2);
-        assertThat(inMemoryTransactionReplayer.getValues())
-                .containsExactlyInAnyOrder(
-                        new Tuple2<>(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)),
-                        new Tuple2<>(TABLE_WORKLOAD_CELL_TWO, Optional.of(VALUE_TWO)));
+        Map<String, Table> tables = inMemoryTransactionReplayer.getValues();
+        assertThat(tables).hasSize(1);
+        assertThat(tables.get(TABLE_1).get()).satisfies(table -> {
+            assertThat(table.get(
+                            TABLE_WORKLOAD_CELL_ONE.cell().key(),
+                            TABLE_WORKLOAD_CELL_ONE.cell().column()))
+                    .contains(VALUE_ONE);
+            assertThat(table.get(
+                            TABLE_WORKLOAD_CELL_TWO.cell().key(),
+                            TABLE_WORKLOAD_CELL_TWO.cell().column()))
+                    .contains(VALUE_TWO);
+        });
     }
 
     @Test
@@ -66,9 +75,17 @@ public final class InMemoryTransactionReplayerTest {
         inMemoryTransactionReplayer.visit(WRITE_TRANSACTION_ACTION_1);
         inMemoryTransactionReplayer.visit(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE));
         inMemoryTransactionReplayer.visit(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO));
-        assertThat(inMemoryTransactionReplayer.getValues())
-                .containsExactlyInAnyOrder(
-                        new Tuple2<>(TABLE_WORKLOAD_CELL_ONE, Optional.empty()),
-                        new Tuple2<>(TABLE_WORKLOAD_CELL_TWO, Optional.empty()));
+        Map<String, Table> tables = inMemoryTransactionReplayer.getValues();
+        assertThat(tables).hasSize(1);
+        assertThat(tables.get(TABLE_1).get()).satisfies(table -> {
+            assertThat(table.get(
+                            TABLE_WORKLOAD_CELL_ONE.cell().key(),
+                            TABLE_WORKLOAD_CELL_ONE.cell().column()))
+                    .isEmpty();
+            assertThat(table.get(
+                            TABLE_WORKLOAD_CELL_TWO.cell().key(),
+                            TABLE_WORKLOAD_CELL_TWO.cell().column()))
+                    .isEmpty();
+        });
     }
 }

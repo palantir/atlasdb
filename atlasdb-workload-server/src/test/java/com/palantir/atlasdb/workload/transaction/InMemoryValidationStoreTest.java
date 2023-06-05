@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_1;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_ONE;
-import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.TABLE_WORKLOAD_CELL_TWO;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_ONE;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.VALUE_TWO;
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_ONE;
@@ -31,8 +29,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransac
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.Test;
 
 public final class InMemoryValidationStoreTest {
@@ -50,12 +46,13 @@ public final class InMemoryValidationStoreTest {
                         .commitTimestamp(4)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_TWO))
                         .build()));
-        assertThat(store.values().toJavaMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        TABLE_WORKLOAD_CELL_ONE,
-                        Optional.of(VALUE_ONE),
-                        TABLE_WORKLOAD_CELL_TWO,
-                        Optional.of(VALUE_TWO)));
+        assertThat(store.values()).hasSize(1);
+        assertThat(store.values().get(TABLE_1).get()).satisfies(table -> {
+            assertThat(table.get(WORKLOAD_CELL_ONE.key(), WORKLOAD_CELL_ONE.column()))
+                    .contains(VALUE_ONE);
+            assertThat(table.get(WORKLOAD_CELL_TWO.key(), WORKLOAD_CELL_TWO.column()))
+                    .contains(VALUE_TWO);
+        });
     }
 
     @Test
@@ -72,9 +69,16 @@ public final class InMemoryValidationStoreTest {
                         .commitTimestamp(4)
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
                         .build()));
-        assertThat(store.values().toJavaMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        TABLE_WORKLOAD_CELL_ONE, Optional.empty(), TABLE_WORKLOAD_CELL_TWO, Optional.of(VALUE_ONE)));
+        assertThat(store.values()).hasSize(1);
+        assertThat(store.values().get(TABLE_1).get()).satisfies(table -> {
+            assertThat(table.get(WORKLOAD_CELL_ONE.key(), WORKLOAD_CELL_ONE.column()))
+                    .isEmpty();
+            assertThat(table.containsKey(WORKLOAD_CELL_ONE.key(), WORKLOAD_CELL_ONE.column()))
+                    .as("a tombstone should have been explicitly written")
+                    .isTrue();
+            assertThat(table.get(WORKLOAD_CELL_TWO.key(), WORKLOAD_CELL_TWO.column()))
+                    .contains(VALUE_TWO);
+        });
     }
 
     @Test
@@ -95,14 +99,17 @@ public final class InMemoryValidationStoreTest {
                         .commitTimestamp(6)
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_TWO))
                         .build()));
-        assertThat(store.values().toJavaMap())
-                .containsExactlyInAnyOrderEntriesOf(Map.of(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_TWO)));
+        assertThat(store.values()).hasSize(1);
+        assertThat(store.values().get(TABLE_1).get()).satisfies(table -> {
+            assertThat(table.get(WORKLOAD_CELL_ONE.key(), WORKLOAD_CELL_ONE.column()))
+                    .contains(VALUE_TWO);
+        });
     }
 
     @Test
     public void valuesCannotBeModified() {
         ValidationStore validationStore = InMemoryValidationStore.create(List.of());
-        validationStore.values().put(TABLE_WORKLOAD_CELL_ONE, Optional.of(VALUE_TWO));
+        validationStore.values().get(TABLE_1).get().put(WORKLOAD_CELL_ONE.key(), WORKLOAD_CELL_ONE.column(), VALUE_ONE);
         assertThat(validationStore.values()).isEmpty();
     }
 }

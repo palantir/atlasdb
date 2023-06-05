@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
+import com.palantir.atlasdb.workload.store.DefaultTable;
+import com.palantir.atlasdb.workload.store.Table;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
@@ -24,14 +26,12 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
+import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
-import java.util.Optional;
 
 public final class InMemoryTransactionReplayer implements WitnessedTransactionActionVisitor<Void> {
-
-    private final StructureHolder<Map<TableAndWorkloadCell, Optional<Integer>>> values =
-            StructureHolder.create(HashMap::empty);
+    private final StructureHolder<Map<String, Table>> values = StructureHolder.create(HashMap::empty);
 
     @Override
     public Void visit(WitnessedReadTransactionAction _readTransactionAction) {
@@ -40,9 +40,16 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
 
     @Override
     public Void visit(WitnessedWriteTransactionAction writeTransactionAction) {
-        TableAndWorkloadCell tableAndWorkloadCell =
-                TableAndWorkloadCell.of(writeTransactionAction.table(), writeTransactionAction.cell());
-        values.with(map -> map.put(tableAndWorkloadCell, Optional.of(writeTransactionAction.value())));
+        values.with(map -> {
+            Tuple2<Table, ? extends Map<String, Table>> tuple =
+                    map.computeIfAbsent(writeTransactionAction.table(), unused -> DefaultTable.empty());
+            tuple._1()
+                    .put(
+                            writeTransactionAction.cell().key(),
+                            writeTransactionAction.cell().column(),
+                            writeTransactionAction.value());
+            return tuple._2();
+        });
         return null;
     }
 
@@ -53,7 +60,15 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
     public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         TableAndWorkloadCell tableAndWorkloadCell =
                 TableAndWorkloadCell.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
-        values.with(map -> map.put(tableAndWorkloadCell, Optional.empty()));
+        values.with(map -> {
+            Tuple2<Table, ? extends Map<String, Table>> tuple =
+                    map.computeIfAbsent(deleteTransactionAction.table(), unused -> DefaultTable.empty());
+            tuple._1()
+                    .delete(
+                            deleteTransactionAction.cell().key(),
+                            deleteTransactionAction.cell().column());
+            return tuple._2();
+        });
         return null;
     }
 
@@ -67,7 +82,7 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
         return null;
     }
 
-    public Map<TableAndWorkloadCell, Optional<Integer>> getValues() {
+    public Map<String, Table> getValues() {
         return values.getSnapshot();
     }
 }

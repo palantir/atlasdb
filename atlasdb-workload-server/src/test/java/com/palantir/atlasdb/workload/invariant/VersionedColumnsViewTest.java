@@ -26,7 +26,7 @@ import io.vavr.collection.Map;
 import java.util.TreeMap;
 import org.junit.Test;
 
-public final class VersionedTableViewTest {
+public final class VersionedColumnsViewTest {
     @Test
     public void putStoresTable() {
         VersionedTableView<Long, Long> tableView = new VersionedTableView<>();

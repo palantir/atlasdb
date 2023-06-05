@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
+import com.palantir.atlasdb.workload.invariant.RowColumnRangeQueryManager.RowColumnRangeQueryState;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
@@ -69,7 +69,10 @@ public enum SerializableInvariant implements TransactionInvariant {
         public List<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
             Optional<Integer> expectedValue = inMemoryTransactionReplayer
                     .getValues()
-                    .get(TableAndWorkloadCell.of(readTransactionAction.table(), readTransactionAction.cell()))
+                    .get(readTransactionAction.table())
+                    .map(table -> table.get(
+                            readTransactionAction.cell().key(),
+                            readTransactionAction.cell().column()))
                     .toJavaOptional()
                     .orElseGet(Optional::empty);
 
@@ -106,8 +109,13 @@ public enum SerializableInvariant implements TransactionInvariant {
         @Override
         public List<InvalidWitnessedTransactionAction> visit(
                 WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
-            // TODO (jkong): Not implemented yet
-            return ImmutableList.of();
+            Optional<RowColumnRangeQueryState> maybeLiveQueryState =
+                    rowColumnRangeQueryManager.getLiveQueryState(rowsColumnRangeReadTransactionAction);
+            if (maybeLiveQueryState.isEmpty()) {
+                return ImmutableList.of();
+            }
+            RowColumnRangeQueryState liveQueryState = maybeLiveQueryState.get();
+            return ImmutableList.of(); // TODO (jkong): Wrong
         }
     }
 }
