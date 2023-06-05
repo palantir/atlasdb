@@ -19,7 +19,6 @@ package com.palantir.atlasdb.workload.transaction;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.DefaultTable;
 import com.palantir.atlasdb.workload.store.Table;
-import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
@@ -58,8 +57,6 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
      */
     @Override
     public Void visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
-        TableAndWorkloadCell tableAndWorkloadCell =
-                TableAndWorkloadCell.of(deleteTransactionAction.table(), deleteTransactionAction.cell());
         values.with(map -> {
             Tuple2<Table, ? extends Map<String, Table>> tuple =
                     map.computeIfAbsent(deleteTransactionAction.table(), unused -> DefaultTable.empty());

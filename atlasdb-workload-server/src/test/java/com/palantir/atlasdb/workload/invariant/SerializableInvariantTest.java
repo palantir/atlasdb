@@ -32,6 +32,7 @@ import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -146,6 +147,90 @@ public final class SerializableInvariantTest {
                 .endTransaction()
                 .startTransaction()
                 .read(5, 10)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void handlesRowColumnRangeScansCoveringRange() {
+        UUID iteratorId = UUID.randomUUID();
+
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(5, 15, 21)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 5, 20)
+                .rowColumnRangeRead(iteratorId, 5, 10, 15)
+                .rowColumnRangeRead(iteratorId, 5, 15, 21)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void handlesRowColumnRangeScansOnlyReadingRelevantValues() {
+        UUID iteratorId = UUID.randomUUID();
+
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 5, 5)
+                .write(5, 10, 15)
+                .write(5, 15, 21)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 8, 13)
+                .rowColumnRangeRead(iteratorId, 5, 10, 15)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void handlesRowColumnRangeScanLocalWriteSemantics() {
+        UUID createdBeforeWriteReadingValue = UUID.randomUUID();
+        UUID createdBeforeWriteNotReadingValue = UUID.randomUUID();
+        UUID createdAfterWrite = UUID.randomUUID();
+
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(createdBeforeWriteReadingValue, 5, 0, 99)
+                .createRowColumnRangeIterator(createdBeforeWriteNotReadingValue, 5, 0, 99)
+                .write(5, 5, 5)
+                .createRowColumnRangeIterator(createdAfterWrite, 5, 0, 99)
+                .rowColumnRangeRead(createdAfterWrite, 5, 5, 5)
+                .rowColumnRangeRead(createdAfterWrite, 5, 10, 15)
+                .rowColumnRangeExhaustion(createdAfterWrite, 5)
+                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 5, 5)
+                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(createdBeforeWriteReadingValue, 5)
+                .rowColumnRangeRead(createdBeforeWriteNotReadingValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(createdBeforeWriteNotReadingValue, 5)
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()

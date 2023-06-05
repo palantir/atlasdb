@@ -17,16 +17,20 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class WitnessedTransactionsBuilder {
@@ -88,6 +92,44 @@ public final class WitnessedTransactionsBuilder {
         public WitnessedTransactionBuilder delete(Integer row, Integer column) {
             actions.add(WitnessedDeleteTransactionAction.of(table, ImmutableWorkloadCell.of(row, column)));
             needsCommitTimestamp = true;
+            return this;
+        }
+
+        public WitnessedTransactionBuilder createRowColumnRangeIterator(
+                UUID iteratorIdentifier, Integer row, Integer startColumnInclusive, Integer endColumnExclusive) {
+            actions.add(WitnessedRowsColumnRangeIteratorCreationTransactionAction.builder()
+                    .iteratorIdentifier(iteratorIdentifier)
+                    .specificRow(row)
+                    .originalAction(ImmutableRowsColumnRangeReadTransactionAction.builder()
+                            .table(table)
+                            .addRows(row)
+                            .batchColumnRangeSelection(WorkloadColumnRangeSelection.builder()
+                                    .startColumnInclusive(startColumnInclusive)
+                                    .endColumnExclusive(endColumnExclusive)
+                                    .build())
+                            .build())
+                    .build());
+            return this;
+        }
+
+        public WitnessedTransactionBuilder rowColumnRangeRead(
+                UUID iteratorIdentifier, Integer row, Integer column, Integer value) {
+            actions.add(WitnessedRowsColumnRangeReadTransactionAction.builder()
+                    .iteratorIdentifier(iteratorIdentifier)
+                    .table(table)
+                    .specificRow(row)
+                    .cell(ImmutableWorkloadCell.of(row, column))
+                    .value(value)
+                    .build());
+            return this;
+        }
+
+        public WitnessedTransactionBuilder rowColumnRangeExhaustion(UUID iteratorIdentifier, Integer row) {
+            actions.add(WitnessedRowsColumnRangeReadTransactionAction.builder()
+                    .iteratorIdentifier(iteratorIdentifier)
+                    .table(table)
+                    .specificRow(row)
+                    .build());
             return this;
         }
 

@@ -65,8 +65,9 @@ public final class DefaultColumns implements Columns {
         //  algorithm that is O(N) instead of O(log N) in the columns probably isn't the worst for now, given we
         //  don't expect to have many columns in a single row.
         return structureHolder.apply(map -> map.dropWhile(
-                        tuple -> startInclusive.map(start -> start < tuple._1()).orElse(false))
-                .takeWhile(tuple -> endExclusive.map(end -> end > tuple._1()).orElse(true)));
+                        tuple -> startInclusive.map(start -> tuple._1() < start).orElse(false))
+                .takeWhile(tuple -> endExclusive.map(end -> end > tuple._1()).orElse(true))
+                .filter(tuple -> tuple._2().isPresent()));
     }
 
     @Override

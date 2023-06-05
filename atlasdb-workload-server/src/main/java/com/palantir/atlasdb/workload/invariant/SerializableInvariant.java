@@ -18,6 +18,11 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.workload.invariant.RowColumnRangeQueryManager.RowColumnRangeQueryState;
+import com.palantir.atlasdb.workload.store.CellReferenceAndValue;
+import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
+import com.palantir.atlasdb.workload.store.Table;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
+import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
@@ -26,9 +31,11 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransa
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.InvalidWitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeIteratorCreationTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -112,10 +119,53 @@ public enum SerializableInvariant implements TransactionInvariant {
             Optional<RowColumnRangeQueryState> maybeLiveQueryState =
                     rowColumnRangeQueryManager.getLiveQueryState(rowsColumnRangeReadTransactionAction);
             if (maybeLiveQueryState.isEmpty()) {
+                // Query either does not exist, or corresponds to a range for which we have subsequently seen a write
+                // or delete - which is not defined behaviour.
                 return ImmutableList.of();
             }
             RowColumnRangeQueryState liveQueryState = maybeLiveQueryState.get();
-            return ImmutableList.of(); // TODO (jkong): Wrong
+            Table sourceTable = inMemoryTransactionReplayer
+                    .getValues()
+                    .get(rowsColumnRangeReadTransactionAction.table())
+                    .getOrElseThrow(() -> new SafeRuntimeException("Verifying read against nonexistent table"));
+            Optional<CellReferenceAndValue> expectedRead = sourceTable
+                    .getColumnsInRange(
+                            rowsColumnRangeReadTransactionAction.specificRow(),
+                            liveQueryState
+                                    .lastReadCell()
+                                    .map(WorkloadCell::column)
+                                    .map(column -> column + 1) // Find the starting point of the next query
+                                    .or(() -> liveQueryState
+                                            .workloadColumnRangeSelection()
+                                            .startColumnInclusive()),
+                            liveQueryState.workloadColumnRangeSelection().endColumnExclusive())
+                    .headOption()
+                    .toJavaOptional()
+                    .map(tuple -> CellReferenceAndValue.builder()
+                            .tableAndWorkloadCell(TableAndWorkloadCell.of(
+                                    rowsColumnRangeReadTransactionAction.table(),
+                                    ImmutableWorkloadCell.of(
+                                            rowsColumnRangeReadTransactionAction.specificRow(), tuple._1())))
+                            .value(tuple._2())
+                            .build());
+            Optional<CellReferenceAndValue> actualRead = rowsColumnRangeReadTransactionAction
+                    .cell()
+                    .map(workloadCell -> CellReferenceAndValue.builder()
+                            .tableAndWorkloadCell(
+                                    TableAndWorkloadCell.of(rowsColumnRangeReadTransactionAction.table(), workloadCell))
+                            .value(rowsColumnRangeReadTransactionAction.value())
+                            .build());
+
+            rowColumnRangeQueryManager.trackQueryRead(rowsColumnRangeReadTransactionAction);
+
+            if (!expectedRead.equals(actualRead)) {
+                return ImmutableList.of(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                        .rowColumnRangeRead(rowsColumnRangeReadTransactionAction)
+                        .expectedRead(expectedRead)
+                        .actualRead(actualRead)
+                        .build());
+            }
+            return ImmutableList.of();
         }
     }
 }

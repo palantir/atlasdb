@@ -114,6 +114,17 @@ public final class RowColumnRangeQueryManager {
                 .toJavaOptional();
     }
 
+    public void trackQueryRead(WitnessedRowsColumnRangeReadTransactionAction rowsColumnRangeReadTransactionAction) {
+        queriesByTable.with(map -> {
+            SingleTableLiveQueries liveQueries = map.get(rowsColumnRangeReadTransactionAction.table())
+                    .getOrElseThrow(() -> new SafeIllegalStateException(
+                            "Should not attempt to read from nonexistent iterator",
+                            SafeArg.of("table", rowsColumnRangeReadTransactionAction.table())));
+            liveQueries.trackQueryRead(rowsColumnRangeReadTransactionAction);
+            return map;
+        });
+    }
+
     @VisibleForTesting
     static final class SingleTableLiveQueries {
         private final StructureHolder<Multimap<Integer, RowColumnRangeQueryState>> queriesByRow;
@@ -157,6 +168,23 @@ public final class RowColumnRangeQueryManager {
                     .flatMap(queryStates -> queryStates.find(queryState ->
                             Objects.equals(queryState.iteratorId(), readTransactionAction.iteratorIdentifier())));
         }
+
+        public void trackQueryRead(WitnessedRowsColumnRangeReadTransactionAction witness) {
+            queriesByRow.with(map -> {
+                if (!map.containsKey(witness.specificRow())) {
+                    // Is fine. All the queries for this row have been invalidated.
+                    return map;
+                }
+                Traversable<RowColumnRangeQueryState> matchingQueryState = map.get(witness.specificRow())
+                        .get()
+                        .filter(state -> state.iteratorId().equals(witness.iteratorIdentifier()));
+                RowColumnRangeQueryState singleMatchingQuery = matchingQueryState.single();
+                return map.replace(
+                        witness.specificRow(),
+                        singleMatchingQuery,
+                        singleMatchingQuery.copyWithLastReadCell(witness.cell()));
+            });
+        }
     }
 
     @Value.Immutable
@@ -168,5 +196,12 @@ public final class RowColumnRangeQueryManager {
         // State used to check reads
 
         Optional<WorkloadCell> lastReadCell();
+
+        default RowColumnRangeQueryState copyWithLastReadCell(Optional<WorkloadCell> cell) {
+            return ImmutableRowColumnRangeQueryState.builder()
+                    .from(this)
+                    .lastReadCell(cell)
+                    .build();
+        }
     }
 }
