@@ -125,7 +125,7 @@ public final class AtlasDbInteractiveTransactionTest {
     }
 
     @Test
-    public void allRelevantCellsAreRecorded() {
+    public void allRelevantCellsAreRecordedForFullColumnScan() {
         int iterationCount = 1000;
         assertThat(readWrite(transaction -> {
                     IntStream.range(0, iterationCount)
@@ -141,6 +141,34 @@ public final class AtlasDbInteractiveTransactionTest {
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
                                         .containsExactlyEntriesOf(IntStream.range(0, iterationCount)
+                                                .boxed()
+                                                .collect(Collectors.toMap(index -> index, unused -> VALUE_ONE)))));
+    }
+
+    @Test
+    public void allRelevantCellsAreRecordedForSpecificRangeSubquery() {
+        int iterationCount = 1000;
+        int startInclusive = 313;
+        int endExclusive = 855;
+        assertThat(readWrite(transaction -> {
+                    IntStream.range(0, iterationCount)
+                            .forEach(column ->
+                                    transaction.write(TABLE_1, ImmutableWorkloadCell.of(1, column), VALUE_ONE));
+                    transaction.getRowColumnRange(
+                            TABLE_1,
+                            1,
+                            ColumnRangeSelection.builder()
+                                    .startColumnInclusive(startInclusive)
+                                    .endColumnExclusive(endExclusive)
+                                    .build());
+                }))
+                .hasSize(iterationCount + 1)
+                .element(iterationCount)
+                .satisfies(rowColumnRangeReadAction -> assertThat(rowColumnRangeReadAction)
+                        .isInstanceOfSatisfying(
+                                WitnessedRowColumnRangeReadTransactionAction.class,
+                                witness -> assertThat(witness.columnsAndValues())
+                                        .containsExactlyEntriesOf(IntStream.range(startInclusive, endExclusive)
                                                 .boxed()
                                                 .collect(Collectors.toMap(index -> index, unused -> VALUE_ONE)))));
     }
