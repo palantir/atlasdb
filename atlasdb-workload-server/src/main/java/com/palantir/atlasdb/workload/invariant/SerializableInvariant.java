@@ -16,8 +16,12 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
+import com.palantir.atlasdb.workload.transaction.RangeQueryReader;
+import com.palantir.atlasdb.workload.transaction.SimpleRangeQueryReader;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
@@ -60,6 +64,7 @@ public enum SerializableInvariant implements TransactionInvariant {
             implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
 
         private final InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
+        private final RangeQueryReader rangeQueryReader = new SimpleRangeQueryReader(inMemoryTransactionReplayer);
 
         @Override
         public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
@@ -94,7 +99,14 @@ public enum SerializableInvariant implements TransactionInvariant {
         @Override
         public Optional<InvalidWitnessedTransactionAction> visit(
                 WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-            // TODO (jkong): Not implemented yet
+            List<ColumnValue> expectedReads =
+                    rangeQueryReader.readRange(rowColumnRangeReadTransactionAction.originalQuery());
+            if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
+                return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()
+                        .witness(rowColumnRangeReadTransactionAction)
+                        .expectedColumnsAndValues(expectedReads)
+                        .build());
+            }
             return Optional.empty();
         }
     }

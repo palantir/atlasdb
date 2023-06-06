@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -88,6 +90,19 @@ public final class WitnessedTransactionsBuilder {
         public WitnessedTransactionBuilder delete(Integer row, Integer column) {
             actions.add(WitnessedDeleteTransactionAction.of(table, ImmutableWorkloadCell.of(row, column)));
             needsCommitTimestamp = true;
+            return this;
+        }
+
+        public WitnessedTransactionBuilder rowColumnRangeRead(
+                Integer row, ColumnRangeSelection columnRangeSelection, List<ColumnValue> valuesRead) {
+            actions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
+                    .originalQuery(RowColumnRangeReadTransactionAction.builder()
+                            .table(table)
+                            .row(row)
+                            .columnRangeSelection(columnRangeSelection)
+                            .build())
+                    .columnsAndValues(valuesRead)
+                    .build());
             return this;
         }
 
