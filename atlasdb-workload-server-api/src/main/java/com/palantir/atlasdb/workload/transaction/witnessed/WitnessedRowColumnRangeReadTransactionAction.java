@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
-import io.vavr.collection.Map;
+import java.util.Map;
 import org.immutables.value.Value;
 
 @Value.Immutable
