@@ -110,7 +110,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             tableReference,
                             List.of(AtlasDbUtils.toAtlasKey(row)),
                             BatchColumnRangeSelection.create(
-                                    AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 100));
+                                    AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 1));
                     List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
                             .mapKeys(Cell::getColumnName)
                             .mapKeys(AtlasDbUtils::fromAtlasColumn)

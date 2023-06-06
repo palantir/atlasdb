@@ -150,17 +150,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
-                .run(
-                        createSingleRowTwoCellsWorkflowValidator(
-                                transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
-                        createRingWorkflowValidator(
-                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
-                        createTransientRowsWorkflowValidator(
-                                transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
-                        createSingleBusyCellWorkflowValidator(
-                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
-                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
-                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
+                .run(createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -193,109 +183,109 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         System.exit(1);
     }
 
-    private WorkflowAndInvariants<Workflow> createTransientRowsWorkflowValidator(
-            AtlasDbTransactionStoreFactory transactionStoreFactory,
-            TransientRowsWorkflowConfiguration workflowConfig,
-            LifecycleEnvironment lifecycle) {
-        ExecutorService executorService =
-                createExecutorService(workflowConfig, lifecycle, TransientRowsWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
-        return WorkflowAndInvariants.builder()
-                .workflow(TransientRowsWorkflows.create(
-                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
-                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
-                        TransientRowsWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
-                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
-                .addInvariantReporters(TransientRowsWorkflows.getSummaryLogInvariantReporter(workflowConfig))
-                .build();
-    }
-
-    private WorkflowAndInvariants<Workflow> createSingleBusyCellWorkflowValidator(
-            AtlasDbTransactionStoreFactory transactionStoreFactory,
-            SingleBusyCellWorkflowConfiguration workflowConfig,
-            LifecycleEnvironment lifecycle) {
-        ExecutorService readExecutor = lifecycle
-                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
-                .minThreads(workflowConfig.maxThreadCount() / 2)
-                .maxThreads(workflowConfig.maxThreadCount() / 2)
-                .build();
-        ExecutorService writeExecutor = lifecycle
-                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
-                .minThreads(workflowConfig.maxThreadCount() / 2)
-                .maxThreads(workflowConfig.maxThreadCount() / 2)
-                .build();
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
-        return WorkflowAndInvariants.of(
-                SingleBusyCellWorkflows.create(
-                        transactionStore,
-                        workflowConfig,
-                        MoreExecutors.listeningDecorator(readExecutor),
-                        MoreExecutors.listeningDecorator(writeExecutor)),
-                new DurableWritesInvariantMetricReporter(
-                        SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
-                SerializableInvariantLogReporter.INSTANCE);
-    }
-
-    private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(
-            AtlasDbTransactionStoreFactory transactionStoreFactory,
-            RingWorkflowConfiguration workflowConfig,
-            LifecycleEnvironment lifecycle) {
-        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RingWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
-        return WorkflowAndInvariants.of(RingWorkflows.create(
-                transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)));
-    }
-
-    private WorkflowAndInvariants<Workflow> createSingleRowTwoCellsWorkflowValidator(
-            AtlasDbTransactionStoreFactory transactionStoreFactory,
-            SingleRowTwoCellsWorkflowConfiguration workflowConfig,
-            LifecycleEnvironment lifecycle) {
-        ExecutorService executorService =
-                createExecutorService(workflowConfig, lifecycle, SingleRowTwoCellsWorkflows.class);
-        TransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
-        return WorkflowAndInvariants.builder()
-                .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
-                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
-                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
-                        DurableWritesMetrics.of(taggedMetricRegistry)))
-                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
-                .build();
-    }
-
-    private WorkflowAndInvariants<Workflow> createBankBalanceWorkflow(
-            AtlasDbTransactionStoreFactory transactionStoreFactory,
-            BankBalanceWorkflowConfiguration workflowConfig,
-            LifecycleEnvironment lifecycle) {
-        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, BankBalanceWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
-        return WorkflowAndInvariants.builder()
-                .workflow(BankBalanceWorkflows.create(
-                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
-                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
-                        BankBalanceWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
-                .build();
-    }
+//    private WorkflowAndInvariants<Workflow> createTransientRowsWorkflowValidator(
+//            AtlasDbTransactionStoreFactory transactionStoreFactory,
+//            TransientRowsWorkflowConfiguration workflowConfig,
+//            LifecycleEnvironment lifecycle) {
+//        ExecutorService executorService =
+//                createExecutorService(workflowConfig, lifecycle, TransientRowsWorkflows.class);
+//        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+//                Map.of(
+//                        workflowConfig.tableConfiguration().tableName(),
+//                        workflowConfig.tableConfiguration().isolationLevel()),
+//                Set.of());
+//        return WorkflowAndInvariants.builder()
+//                .workflow(TransientRowsWorkflows.create(
+//                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+//                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+//                        TransientRowsWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+//                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+//                .addInvariantReporters(TransientRowsWorkflows.getSummaryLogInvariantReporter(workflowConfig))
+//                .build();
+//    }
+//
+//    private WorkflowAndInvariants<Workflow> createSingleBusyCellWorkflowValidator(
+//            AtlasDbTransactionStoreFactory transactionStoreFactory,
+//            SingleBusyCellWorkflowConfiguration workflowConfig,
+//            LifecycleEnvironment lifecycle) {
+//        ExecutorService readExecutor = lifecycle
+//                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
+//                .minThreads(workflowConfig.maxThreadCount() / 2)
+//                .maxThreads(workflowConfig.maxThreadCount() / 2)
+//                .build();
+//        ExecutorService writeExecutor = lifecycle
+//                .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
+//                .minThreads(workflowConfig.maxThreadCount() / 2)
+//                .maxThreads(workflowConfig.maxThreadCount() / 2)
+//                .build();
+//        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+//                Map.of(
+//                        workflowConfig.tableConfiguration().tableName(),
+//                        workflowConfig.tableConfiguration().isolationLevel()),
+//                Set.of());
+//        return WorkflowAndInvariants.of(
+//                SingleBusyCellWorkflows.create(
+//                        transactionStore,
+//                        workflowConfig,
+//                        MoreExecutors.listeningDecorator(readExecutor),
+//                        MoreExecutors.listeningDecorator(writeExecutor)),
+//                new DurableWritesInvariantMetricReporter(
+//                        SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+//                SerializableInvariantLogReporter.INSTANCE);
+//    }
+//
+//    private WorkflowAndInvariants<Workflow> createRingWorkflowValidator(
+//            AtlasDbTransactionStoreFactory transactionStoreFactory,
+//            RingWorkflowConfiguration workflowConfig,
+//            LifecycleEnvironment lifecycle) {
+//        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RingWorkflows.class);
+//        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+//                Map.of(
+//                        workflowConfig.tableConfiguration().tableName(),
+//                        workflowConfig.tableConfiguration().isolationLevel()),
+//                Set.of());
+//        return WorkflowAndInvariants.of(RingWorkflows.create(
+//                transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)));
+//    }
+//
+//    private WorkflowAndInvariants<Workflow> createSingleRowTwoCellsWorkflowValidator(
+//            AtlasDbTransactionStoreFactory transactionStoreFactory,
+//            SingleRowTwoCellsWorkflowConfiguration workflowConfig,
+//            LifecycleEnvironment lifecycle) {
+//        ExecutorService executorService =
+//                createExecutorService(workflowConfig, lifecycle, SingleRowTwoCellsWorkflows.class);
+//        TransactionStore transactionStore = transactionStoreFactory.create(
+//                Map.of(
+//                        workflowConfig.tableConfiguration().tableName(),
+//                        workflowConfig.tableConfiguration().isolationLevel()),
+//                Set.of());
+//        return WorkflowAndInvariants.builder()
+//                .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
+//                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+//                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+//                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
+//                        DurableWritesMetrics.of(taggedMetricRegistry)))
+//                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+//                .build();
+//    }
+//
+//    private WorkflowAndInvariants<Workflow> createBankBalanceWorkflow(
+//            AtlasDbTransactionStoreFactory transactionStoreFactory,
+//            BankBalanceWorkflowConfiguration workflowConfig,
+//            LifecycleEnvironment lifecycle) {
+//        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, BankBalanceWorkflows.class);
+//        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+//                Map.of(
+//                        workflowConfig.tableConfiguration().tableName(),
+//                        workflowConfig.tableConfiguration().isolationLevel()),
+//                Set.of());
+//        return WorkflowAndInvariants.builder()
+//                .workflow(BankBalanceWorkflows.create(
+//                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+//                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+//                        BankBalanceWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+//                .build();
+//    }
 
     private WorkflowAndInvariants<Workflow> createRandomWorkflow(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
