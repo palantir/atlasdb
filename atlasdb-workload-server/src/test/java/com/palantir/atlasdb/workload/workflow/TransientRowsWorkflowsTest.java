@@ -191,11 +191,12 @@ public class TransientRowsWorkflowsTest {
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
             WitnessedTransactionAction action) {
         if (action instanceof WitnessedReadTransactionAction) {
-            if (action.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
-                return WitnessedReadTransactionAction.of(action.table(), action.cell(), Optional.empty());
+            WitnessedReadTransactionAction readAction = (WitnessedReadTransactionAction) action;
+            if (readAction.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
+                return WitnessedReadTransactionAction.of(readAction.table(), readAction.cell(), Optional.empty());
             } else {
                 return WitnessedReadTransactionAction.of(
-                        action.table(), action.cell(), Optional.of(TransientRowsWorkflows.VALUE));
+                        readAction.table(), readAction.cell(), Optional.of(TransientRowsWorkflows.VALUE));
             }
         } else {
             return action;
