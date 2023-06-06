@@ -35,6 +35,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import com.palantir.atlasdb.workload.workflow.random.RandomWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.random.RandomWorkflows;
 import com.palantir.common.concurrent.PTExecutors;
 import java.security.SecureRandom;
 import java.util.Collection;

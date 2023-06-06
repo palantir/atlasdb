@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.workload.workflow.random;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.atlasdb.workload.workflow.ImmutableRandomWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.TableConfiguration;
+import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
 import org.immutables.value.Value;
 
 @Value.Immutable
