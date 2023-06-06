@@ -16,12 +16,22 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface WitnessedTransactionActionVisitor<T> {
-    T visit(WitnessedReadTransactionAction readTransactionAction);
+import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import io.vavr.collection.Map;
+import org.immutables.value.Value;
 
-    T visit(WitnessedWriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedTransactionAction {
+    RowColumnRangeReadTransactionAction originalQuery();
 
-    T visit(WitnessedDeleteTransactionAction deleteTransactionAction);
+    Map<Integer, Integer> columnsAndValues();
 
-    T visit(WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    @Override
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
+        return visitor.visit(this);
+    }
+
+    static ImmutableWitnessedRowColumnRangeReadTransactionAction.Builder builder() {
+        return ImmutableWitnessedRowColumnRangeReadTransactionAction.builder();
+    }
 }
