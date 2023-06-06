@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
-import java.util.Map;
+import java.util.List;
 import org.immutables.value.Value;
 
 /**
@@ -41,10 +42,14 @@ public interface RowColumnRangeReadTransactionAction extends TransactionAction {
         return visitor.visit(this);
     }
 
-    default WitnessedRowColumnRangeReadTransactionAction witness(Map<Integer, Integer> columnsAndValues) {
+    default WitnessedRowColumnRangeReadTransactionAction witness(List<ColumnValue> columnsAndValues) {
         return WitnessedRowColumnRangeReadTransactionAction.builder()
                 .originalQuery(this)
                 .columnsAndValues(columnsAndValues)
                 .build();
+    }
+
+    static ImmutableRowColumnRangeReadTransactionAction.Builder builder() {
+        return ImmutableRowColumnRangeReadTransactionAction.builder();
     }
 }
