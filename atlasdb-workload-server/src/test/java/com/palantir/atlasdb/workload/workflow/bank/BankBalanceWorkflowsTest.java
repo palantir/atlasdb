@@ -18,6 +18,7 @@ package com.palantir.atlasdb.workload.workflow.bank;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -29,7 +30,9 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
+import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
@@ -38,7 +41,6 @@ import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -84,12 +86,17 @@ public final class BankBalanceWorkflowsTest {
         List<WitnessedTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
 
-        List<WitnessedReadTransactionAction> initialReadActions = IntStream.range(0, CONFIGURATION.numberOfAccounts())
-                .boxed()
-                .map(index -> WitnessedReadTransactionAction.of(
-                        TABLE_NAME, BankBalanceWorkflows.getCellForAccount(index), Optional.empty()))
-                .collect(Collectors.toList());
-        assertThat(actions).containsAll(initialReadActions);
+        assertThat(actions)
+                .contains(WitnessedRowColumnRangeReadTransactionAction.builder()
+                        .originalQuery(RowColumnRangeReadTransactionAction.builder()
+                                .table(TABLE_NAME)
+                                .row(BankBalanceWorkflows.ROW)
+                                .columnRangeSelection(ColumnRangeSelection.builder()
+                                        .endColumnExclusive(CONFIGURATION.numberOfAccounts())
+                                        .build())
+                                .build())
+                        .columnsAndValues(ImmutableList.of())
+                        .build());
     }
 
     @Test
