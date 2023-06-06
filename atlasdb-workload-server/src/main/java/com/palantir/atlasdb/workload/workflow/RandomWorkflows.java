@@ -45,7 +45,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 public final class RandomWorkflows {
     private static final SecureRandom RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
-    private static final Integer COLUMN = 0;
 
     private RandomWorkflows() {
         // static factory
@@ -82,7 +81,10 @@ public final class RandomWorkflows {
         public Optional<WitnessedTransaction> run(TransactionStore store) {
             workflowConfiguration.transactionRateLimiter().acquire();
             List<TransactionAction> actions = Stream.of(
-                            generateReadActions(), generateWriteActions(), generateDeleteActions(), generateRowColumnRangeReadActions())
+                            generateReadActions(),
+                            generateWriteActions(),
+                            generateDeleteActions(),
+                            generateRowColumnRangeReadActions())
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
             Collections.shuffle(actions, random);
@@ -122,7 +124,9 @@ public final class RandomWorkflows {
                         WorkloadCell startCell = randomCell();
                         int endColumn = random.nextInt(workflowConfiguration.maxColumns());
                         Builder builder = ImmutableRowColumnRangeReadTransactionAction.builder()
-                                .table(workflowConfiguration.tableConfiguration().tableName())
+                                .table(workflowConfiguration
+                                        .tableConfiguration()
+                                        .tableName())
                                 .row(startCell.key());
                         if (startCell.column() < endColumn) {
                             builder.columnRangeSelection(ColumnRangeSelection.builder()
@@ -141,7 +145,8 @@ public final class RandomWorkflows {
         }
 
         private WorkloadCell randomCell() {
-            return ImmutableWorkloadCell.of(random.nextInt(workflowConfiguration.maxRows()),
+            return ImmutableWorkloadCell.of(
+                    random.nextInt(workflowConfiguration.maxRows()),
                     random.nextInt(workflowConfiguration.maxColumns()));
         }
     }
