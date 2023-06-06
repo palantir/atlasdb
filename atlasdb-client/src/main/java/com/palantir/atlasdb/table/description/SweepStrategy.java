@@ -69,10 +69,9 @@ public final class SweepStrategy {
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:
-                return false;
             case THOROUGH_MIGRATION:
             case THOROUGH:
-                return true;
+                return false;
         }
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
