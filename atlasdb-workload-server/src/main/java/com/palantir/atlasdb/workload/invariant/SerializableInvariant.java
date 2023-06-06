@@ -148,21 +148,13 @@ public enum SerializableInvariant implements TransactionInvariant {
                                             rowsColumnRangeReadTransactionAction.specificRow(), tuple._1())))
                             .value(tuple._2())
                             .build());
-            Optional<CellReferenceAndValue> actualRead = rowsColumnRangeReadTransactionAction
-                    .cell()
-                    .map(workloadCell -> CellReferenceAndValue.builder()
-                            .tableAndWorkloadCell(
-                                    TableAndWorkloadCell.of(rowsColumnRangeReadTransactionAction.table(), workloadCell))
-                            .value(rowsColumnRangeReadTransactionAction.value())
-                            .build());
 
             rowColumnRangeQueryManager.trackQueryRead(rowsColumnRangeReadTransactionAction);
 
-            if (!expectedRead.equals(actualRead)) {
+            if (!expectedRead.equals(rowsColumnRangeReadTransactionAction.cellReferenceAndValue())) {
                 return ImmutableList.of(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
                         .rowColumnRangeRead(rowsColumnRangeReadTransactionAction)
                         .expectedRead(expectedRead)
-                        .actualRead(actualRead)
                         .build());
             }
             return ImmutableList.of();

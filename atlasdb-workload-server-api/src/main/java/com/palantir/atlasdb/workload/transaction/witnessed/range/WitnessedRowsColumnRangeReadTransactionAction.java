@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed.range;
 
+import com.palantir.atlasdb.workload.store.CellReferenceAndValue;
+import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
@@ -35,6 +37,14 @@ public interface WitnessedRowsColumnRangeReadTransactionAction extends Witnessed
     Optional<WorkloadCell> cell();
 
     Optional<Integer> value();
+
+    @Value.Lazy
+    default Optional<CellReferenceAndValue> cellReferenceAndValue() {
+        return cell().map(presentCell -> CellReferenceAndValue.builder()
+                .tableAndWorkloadCell(TableAndWorkloadCell.of(table(), presentCell))
+                .value(value())
+                .build());
+    }
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {

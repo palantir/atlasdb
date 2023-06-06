@@ -29,7 +29,9 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTrans
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.ImmutableWitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.range.InvalidWitnessedRowsColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.range.WitnessedRowsColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.ArrayList;
@@ -115,11 +117,8 @@ public final class SerializableInvariantTest {
                 .transactionStore(readableTransactionStore)
                 .build();
         SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        InvalidWitnessedTransaction invalidWitnessedTransaction = Iterables.getOnlyElement(invalidTransactions);
-
-        assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
+                assertAndGetFinalTransactionInvalidity(invalidTransactions, transactions);
 
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(
@@ -161,7 +160,7 @@ public final class SerializableInvariantTest {
     }
 
     @Test
-    public void handlesRowColumnRangeScansCoveringRange() {
+    public void readsRowRangeToExhaustion() {
         UUID iteratorId = UUID.randomUUID();
 
         List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
@@ -186,7 +185,7 @@ public final class SerializableInvariantTest {
     }
 
     @Test
-    public void handlesRowColumnRangeScansOnlyReadingRelevantValues() {
+    public void onlyReadsRelevantValuesInRowColumnRangeScans() {
         UUID iteratorId = UUID.randomUUID();
 
         List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
@@ -211,9 +210,165 @@ public final class SerializableInvariantTest {
     }
 
     @Test
-    public void handlesRowColumnRangeScanLocalWriteSemantics() {
-        UUID createdBeforeWriteReadingValue = UUID.randomUUID();
-        UUID createdBeforeWriteNotReadingValue = UUID.randomUUID();
+    public void identifiesMissingCellFromRowColumnRangeRead() {
+        UUID iteratorId = UUID.randomUUID();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 0, 99)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                assertAndGetFinalTransactionInvalidity(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isEqualTo(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                        .rowColumnRangeRead(createWitnessedRowColumnRangeExhaustion(iteratorId, 5))
+                        .expectedRead(createCellReferenceAndValue(5, 10, 15))
+                        .build());
+    }
+
+    @Test
+    public void identifiesIncorrectCellFromRowColumnRangeRead() {
+        UUID iteratorId = UUID.randomUUID();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 0, 99)
+                .rowColumnRangeRead(iteratorId, 5, 8, 15)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
+        InvalidWitnessedTransaction invalidWitnessedTransaction = Iterables.getOnlyElement(invalidTransactions);
+        assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
+
+        // Note: This assertion may be slightly too sensitive, depending on how we continue verification after
+        // discovering an error.
+        assertThat(invalidWitnessedTransaction.invalidActions())
+                .containsExactly(
+                        InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                                .rowColumnRangeRead(createWitnessedRowColumnRangeRead(iteratorId, 5, 8, 15))
+                                .expectedRead(createCellReferenceAndValue(5, 10, 15))
+                                .build(),
+                        InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                                .rowColumnRangeRead(createWitnessedRowColumnRangeExhaustion(iteratorId, 5))
+                                .expectedRead(createCellReferenceAndValue(5, 10, 15))
+                                .build());
+    }
+
+    @Test
+    public void identifiesIncorrectValueFromRowColumnRangeRead() {
+        UUID iteratorId = UUID.randomUUID();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 0, 99)
+                .rowColumnRangeRead(iteratorId, 5, 10, 77777)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                assertAndGetFinalTransactionInvalidity(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isEqualTo(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                        .rowColumnRangeRead(createWitnessedRowColumnRangeRead(iteratorId, 5, 10, 77777))
+                        .expectedRead(createCellReferenceAndValue(5, 10, 15))
+                        .build());
+    }
+
+    @Test
+    public void identifiesAdditionalCellFromRowColumnRangeRead() {
+        UUID iteratorId = UUID.randomUUID();
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(5, 20, 25)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(iteratorId, 5, 15, 99)
+                .rowColumnRangeRead(iteratorId, 5, 10, 15)
+                .rowColumnRangeRead(iteratorId, 5, 20, 25)
+                .rowColumnRangeExhaustion(iteratorId, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                assertAndGetFinalTransactionInvalidity(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isEqualTo(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                        .rowColumnRangeRead(createWitnessedRowColumnRangeRead(iteratorId, 5, 10, 15))
+                        .expectedRead(createCellReferenceAndValue(5, 20, 25))
+                        .build());
+    }
+
+    @Test
+    public void permitsUndefinedRowColumnRangeScanBehaviourFollowingLocalConcurrentModification() {
+        UUID readingInsertedValue = UUID.randomUUID();
+        UUID notReadingInsertedValue = UUID.randomUUID();
+        UUID readingCorruptedData = UUID.randomUUID();
+
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .createRowColumnRangeIterator(readingInsertedValue, 5, 0, 99)
+                .createRowColumnRangeIterator(notReadingInsertedValue, 5, 0, 99)
+                .createRowColumnRangeIterator(readingCorruptedData, 5, 0, 99)
+                .write(5, 5, 85)
+                .rowColumnRangeRead(readingInsertedValue, 5, 5, 85)
+                .rowColumnRangeRead(readingInsertedValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(readingInsertedValue, 5)
+                .rowColumnRangeRead(notReadingInsertedValue, 5, 10, 15)
+                .rowColumnRangeExhaustion(notReadingInsertedValue, 5)
+                .rowColumnRangeRead(readingCorruptedData, 5, 7171717, 3141592)
+                .rowColumnRangeExhaustion(readingCorruptedData, 5)
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void includesPrecedingLocalWritesInRowColumnRangeScans() {
         UUID createdAfterWriteReadingValue = UUID.randomUUID();
         UUID createdAfterWriteNotReadingValue = UUID.randomUUID();
 
@@ -223,16 +378,9 @@ public final class SerializableInvariantTest {
                 .write(5, 10, 15)
                 .endTransaction()
                 .startTransaction()
-                .createRowColumnRangeIterator(createdBeforeWriteReadingValue, 5, 0, 99)
-                .createRowColumnRangeIterator(createdBeforeWriteNotReadingValue, 5, 0, 99)
                 .write(5, 5, 85)
                 .createRowColumnRangeIterator(createdAfterWriteReadingValue, 5, 0, 99)
                 .createRowColumnRangeIterator(createdAfterWriteNotReadingValue, 5, 0, 99)
-                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 5, 85)
-                .rowColumnRangeRead(createdBeforeWriteReadingValue, 5, 10, 15)
-                .rowColumnRangeExhaustion(createdBeforeWriteReadingValue, 5)
-                .rowColumnRangeRead(createdBeforeWriteNotReadingValue, 5, 10, 15)
-                .rowColumnRangeExhaustion(createdBeforeWriteNotReadingValue, 5)
                 .rowColumnRangeRead(createdAfterWriteReadingValue, 5, 5, 85)
                 .rowColumnRangeRead(createdAfterWriteReadingValue, 5, 10, 15)
                 .rowColumnRangeExhaustion(createdAfterWriteReadingValue, 5)
@@ -246,47 +394,49 @@ public final class SerializableInvariantTest {
                 .build();
         SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
 
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                assertAndGetFinalTransactionInvalidity(invalidTransactions, transactions);
+
+        assertThat(invalidWitnessedTransactionAction)
+                .isEqualTo(InvalidWitnessedRowsColumnRangeReadTransactionAction.builder()
+                        .rowColumnRangeRead(
+                                createWitnessedRowColumnRangeRead(createdAfterWriteNotReadingValue, 5, 10, 15))
+                        .expectedRead(createCellReferenceAndValue(5, 5, 85))
+                        .build());
+    }
+
+    private static InvalidWitnessedTransactionAction assertAndGetFinalTransactionInvalidity(
+            List<InvalidWitnessedTransaction> invalidTransactions, List<WitnessedTransaction> transactions) {
         InvalidWitnessedTransaction invalidWitnessedTransaction = Iterables.getOnlyElement(invalidTransactions);
 
         assertThat(invalidWitnessedTransaction.transaction()).isEqualTo(Iterables.getLast(transactions));
-        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
-
-        assertThat(invalidWitnessedTransactionAction)
-                .isInstanceOfSatisfying(
-                        InvalidWitnessedRowsColumnRangeReadTransactionAction.class,
-                        invalidWitnessedRowsColumnRangeReadTransactionAction -> {
-                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.rowColumnRangeRead())
-                                    .satisfies(rowColumnRangeRead -> assertThat(rowColumnRangeRead.iteratorIdentifier())
-                                            .isEqualTo(createdAfterWriteNotReadingValue));
-
-                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.expectedRead())
-                                    .contains(CellReferenceAndValue.builder()
-                                            .tableAndWorkloadCell(
-                                                    TableAndWorkloadCell.of("table", ImmutableWorkloadCell.of(5, 5)))
-                                            .value(85)
-                                            .build());
-                            assertThat(invalidWitnessedRowsColumnRangeReadTransactionAction.actualRead())
-                                    .contains(CellReferenceAndValue.builder()
-                                            .tableAndWorkloadCell(
-                                                    TableAndWorkloadCell.of("table", ImmutableWorkloadCell.of(5, 10)))
-                                            .value(15)
-                                            .build());
-                        });
+        return Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
     }
 
-    @Test
-    public void identifiesMissingCellFromRowColumnRangeRead() {
-        // TODO
+    private static ImmutableWitnessedRowsColumnRangeReadTransactionAction createWitnessedRowColumnRangeExhaustion(
+            UUID iteratorId, int specificRow) {
+        return WitnessedRowsColumnRangeReadTransactionAction.builder()
+                .iteratorIdentifier(iteratorId)
+                .specificRow(specificRow)
+                .table("table")
+                .build();
     }
 
-    @Test
-    public void identifiesIncorrectCellFromRowColumnRangeRead() {
-        // TODO
+    private static ImmutableWitnessedRowsColumnRangeReadTransactionAction createWitnessedRowColumnRangeRead(
+            UUID iteratorId, int specificRow, int column, int value) {
+        return WitnessedRowsColumnRangeReadTransactionAction.builder()
+                .iteratorIdentifier(iteratorId)
+                .specificRow(specificRow)
+                .table("table")
+                .cell(ImmutableWorkloadCell.of(specificRow, column))
+                .value(value)
+                .build();
     }
 
-    @Test
-    public void identifiesIncorrectValueFromRowColumnRangeRead() {
-        // TODO
+    private static CellReferenceAndValue createCellReferenceAndValue(int specificRow, int column, int value) {
+        return CellReferenceAndValue.builder()
+                .tableAndWorkloadCell(TableAndWorkloadCell.of("table", ImmutableWorkloadCell.of(specificRow, column)))
+                .value(value)
+                .build();
     }
 }
