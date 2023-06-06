@@ -25,10 +25,14 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
+import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -38,6 +42,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +58,7 @@ public final class AtlasDbInteractiveTransactionTest {
     }
 
     @Test
-    public void witnessRecordAllActions() {
+    public void witnessRecordsAllSingleCellActions() {
         assertThat(readWrite(transaction -> {
                     transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
                     transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
@@ -78,6 +84,68 @@ public final class AtlasDbInteractiveTransactionTest {
     }
 
     @Test
+    public void witnessRecordsColumnRangeActions() {
+        assertThat(readWrite(transaction -> {
+                    transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
+                    transaction.getRowColumnRange(
+                            TABLE_1,
+                            WORKLOAD_CELL_TWO.key(),
+                            ColumnRangeSelection.builder().build());
+                }))
+                .containsExactly(
+                        WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
+                        WitnessedRowColumnRangeReadTransactionAction.builder()
+                                .originalQuery(RowColumnRangeReadTransactionAction.builder()
+                                        .table(TABLE_1)
+                                        .row(WORKLOAD_CELL_TWO.key())
+                                        .columnRangeSelection(
+                                                ColumnRangeSelection.builder().build())
+                                        .build())
+                                .columnsAndValues(ImmutableSortedMap.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
+                                .build());
+    }
+
+    @Test
+    public void emptyColumnRangeReadsAreRecorded() {
+        assertThat(readWrite(transaction -> {
+                    transaction.getRowColumnRange(
+                            TABLE_1,
+                            WORKLOAD_CELL_TWO.key(),
+                            ColumnRangeSelection.builder().build());
+                }))
+                .containsExactly(WitnessedRowColumnRangeReadTransactionAction.builder()
+                        .originalQuery(RowColumnRangeReadTransactionAction.builder()
+                                .table(TABLE_1)
+                                .row(WORKLOAD_CELL_TWO.key())
+                                .columnRangeSelection(
+                                        ColumnRangeSelection.builder().build())
+                                .build())
+                        .columnsAndValues(ImmutableSortedMap.of())
+                        .build());
+    }
+
+    @Test
+    public void allRelevantCellsAreRecorded() {
+        int iterationCount = 1000;
+        assertThat(readWrite(transaction -> {
+                    IntStream.range(0, iterationCount)
+                            .forEach(column ->
+                                    transaction.write(TABLE_1, ImmutableWorkloadCell.of(1, column), VALUE_ONE));
+                    transaction.getRowColumnRange(
+                            TABLE_1, 1, ColumnRangeSelection.builder().build());
+                }))
+                .hasSize(iterationCount + 1)
+                .element(iterationCount)
+                .satisfies(rowColumnRangeReadAction -> assertThat(rowColumnRangeReadAction)
+                        .isInstanceOfSatisfying(
+                                WitnessedRowColumnRangeReadTransactionAction.class,
+                                witness -> assertThat(witness.columnsAndValues())
+                                        .containsExactlyEntriesOf(IntStream.range(0, iterationCount)
+                                                .boxed()
+                                                .collect(Collectors.toMap(index -> index, unused -> VALUE_ONE)))));
+    }
+
+    @Test
     public void readThrowsWhenTableDoesNotExist() {
         assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.read(TABLE_1, WORKLOAD_CELL_ONE));
     }
@@ -91,6 +159,12 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void deleteThrowsWhenTableDoesNotExist() {
         assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.delete(TABLE_1, WORKLOAD_CELL_ONE));
+    }
+
+    @Test
+    public void getRowsColumnRangeThrowsWhenTableDoesNotExist() {
+        assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.getRowColumnRange(
+                TABLE_1, WORKLOAD_CELL_ONE.key(), ColumnRangeSelection.builder().build()));
     }
 
     @Test
@@ -109,6 +183,12 @@ public final class AtlasDbInteractiveTransactionTest {
     public void deleteThrowsWhenInteractiveTransactionAlreadyWitnessed() {
         assertThatThrownWhenInteractiveTransactionAlreadyWitnessed(
                 transaction -> transaction.delete(TABLE_1, WORKLOAD_CELL_ONE));
+    }
+
+    @Test
+    public void getRowColumnRangeThrowsWhenInteractiveTransactionAlreadyWitnessed() {
+        assertThatThrownWhenInteractiveTransactionAlreadyWitnessed(transaction -> transaction.getRowColumnRange(
+                TABLE_1, WORKLOAD_CELL_ONE.key(), ColumnRangeSelection.builder().build()));
     }
 
     private List<WitnessedTransactionAction> readWrite(Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {

@@ -17,14 +17,14 @@
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
-import io.vavr.collection.Map;
+import java.util.SortedMap;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedTransactionAction {
     RowColumnRangeReadTransactionAction originalQuery();
 
-    Map<Integer, Integer> columnsAndValues();
+    SortedMap<Integer, Integer> columnsAndValues();
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {

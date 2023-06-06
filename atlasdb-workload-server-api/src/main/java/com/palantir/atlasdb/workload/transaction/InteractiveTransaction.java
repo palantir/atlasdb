@@ -20,6 +20,7 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedMap;
 
 /**
  * Allows for convenient interaction with a transactional store.
@@ -30,6 +31,8 @@ public interface InteractiveTransaction {
     void write(String table, WorkloadCell workloadCell, Integer value);
 
     void delete(String table, WorkloadCell workloadCell);
+
+    SortedMap<Integer, Integer> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection);
 
     List<WitnessedTransactionAction> witness();
 }
