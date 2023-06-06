@@ -25,7 +25,6 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
@@ -101,7 +100,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                         .columnRangeSelection(
                                                 ColumnRangeSelection.builder().build())
                                         .build())
-                                .columnsAndValues(ImmutableSortedMap.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
+                                .addColumnsAndValues(ColumnValue.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
                                 .build());
     }
 
@@ -120,7 +119,6 @@ public final class AtlasDbInteractiveTransactionTest {
                                 .columnRangeSelection(
                                         ColumnRangeSelection.builder().build())
                                 .build())
-                        .columnsAndValues(ImmutableSortedMap.of())
                         .build());
     }
 
@@ -140,9 +138,9 @@ public final class AtlasDbInteractiveTransactionTest {
                         .isInstanceOfSatisfying(
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
-                                        .containsExactlyEntriesOf(IntStream.range(0, iterationCount)
-                                                .boxed()
-                                                .collect(Collectors.toMap(index -> index, unused -> VALUE_ONE)))));
+                                        .isEqualTo(IntStream.range(0, iterationCount)
+                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .collect(Collectors.toList()))));
     }
 
     @Test
@@ -168,9 +166,9 @@ public final class AtlasDbInteractiveTransactionTest {
                         .isInstanceOfSatisfying(
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
-                                        .containsExactlyEntriesOf(IntStream.range(startInclusive, endExclusive)
-                                                .boxed()
-                                                .collect(Collectors.toMap(index -> index, unused -> VALUE_ONE)))));
+                                        .isEqualTo(IntStream.range(startInclusive, endExclusive)
+                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .collect(Collectors.toList()))));
     }
 
     @Test

@@ -16,19 +16,37 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
-import java.util.SortedMap;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedTransactionAction {
     RowColumnRangeReadTransactionAction originalQuery();
 
-    SortedMap<Integer, Integer> columnsAndValues();
+    List<ColumnValue> columnsAndValues();
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Value.Check
+    default void check() {
+        Set<Integer> knownColumns = new HashSet<>();
+        for (ColumnValue columnValue : columnsAndValues()) {
+            Preconditions.checkState(
+                    !knownColumns.contains(columnValue.column()),
+                    "Duplicate column in columnsAndValues",
+                    SafeArg.of("duplicatedColumn", columnValue.column()),
+                    SafeArg.of("columnsAndValues", columnsAndValues()));
+            knownColumns.add(columnValue.column());
+        }
     }
 
     static ImmutableWitnessedRowColumnRangeReadTransactionAction.Builder builder() {

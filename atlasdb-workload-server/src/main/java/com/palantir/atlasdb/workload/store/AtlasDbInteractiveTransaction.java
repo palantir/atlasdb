@@ -40,9 +40,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import one.util.streamex.EntryStream;
 
@@ -101,8 +101,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public SortedMap<Integer, Integer> getRowColumnRange(
-            String table, Integer row, ColumnRangeSelection columnRangeSelection) {
+    public List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection) {
         return run(
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in
@@ -112,12 +111,12 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             List.of(AtlasDbUtils.toAtlasKey(row)),
                             BatchColumnRangeSelection.create(
                                     AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 100));
-                    SortedMap<Integer, Integer> columnsAndValues = EntryStream.of(
-                                    iterators.get(AtlasDbUtils.toAtlasKey(row)))
+                    List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
                             .mapKeys(Cell::getColumnName)
                             .mapKeys(AtlasDbUtils::fromAtlasColumn)
                             .mapValues(AtlasDbUtils::fromAtlasValue)
-                            .toSortedMap();
+                            .map(entry -> ColumnValue.of(entry.getKey(), entry.getValue()))
+                            .collect(Collectors.toList());
                     witnessedTransactionActions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
                             .originalQuery(RowColumnRangeReadTransactionAction.builder()
                                     .table(table)
