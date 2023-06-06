@@ -64,7 +64,7 @@ public enum SerializableInvariant implements TransactionInvariant {
             implements WitnessedTransactionActionVisitor<Optional<InvalidWitnessedTransactionAction>> {
 
         private final InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
-        private final RangeQueryReader rangeQueryReader = new SimpleRangeQueryReader(inMemoryTransactionReplayer);
+        private final RangeQueryReader rangeQueryReader = SimpleRangeQueryReader.create(inMemoryTransactionReplayer);
 
         @Override
         public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {

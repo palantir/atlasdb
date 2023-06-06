@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
@@ -25,21 +26,27 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.vavr.collection.Map;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class SimpleRangeQueryReader implements RangeQueryReader {
     private static final SafeLogger log = SafeLoggerFactory.get(SimpleRangeQueryReader.class);
 
     private static final int LARGE_HISTORY_LIMIT = 30_000;
 
-    private final InMemoryTransactionReplayer transactionReplayer;
+    private final Supplier<Map<TableAndWorkloadCell, Optional<Integer>>> rawValueSupplier;
 
-    public SimpleRangeQueryReader(InMemoryTransactionReplayer transactionReplayer) {
-        this.transactionReplayer = transactionReplayer;
+    @VisibleForTesting
+    SimpleRangeQueryReader(Supplier<Map<TableAndWorkloadCell, Optional<Integer>>> rawValueSupplier) {
+        this.rawValueSupplier = rawValueSupplier;
+    }
+
+    public static RangeQueryReader create(InMemoryTransactionReplayer replayer) {
+        return new SimpleRangeQueryReader(replayer::getValues);
     }
 
     @Override
     public List<ColumnValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction) {
-        Map<TableAndWorkloadCell, Optional<Integer>> allValues = transactionReplayer.getValues();
+        Map<TableAndWorkloadCell, Optional<Integer>> allValues = rawValueSupplier.get();
         if (allValues.size() > LARGE_HISTORY_LIMIT) {
             log.error(
                     "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
@@ -65,6 +72,7 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
                         entry._2()
                                 .orElseThrow(() -> new SafeRuntimeException(
                                         "Empty values should already have been filtered out!"))))
+                .sortBy(ColumnValue::column)
                 .toJavaList();
     }
 }
