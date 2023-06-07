@@ -16,6 +16,7 @@
 package com.palantir.lock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
@@ -126,6 +127,27 @@ public class LockServerOptions implements Serializable {
         return 10000L;
     }
 
+    /**
+     * Whether the lock server should asynchronously collect information
+     * about which lock is currently owned by which client-thread.
+     */
+    @JsonProperty("collectThreadInfo")
+    @JsonIgnore
+    @Value.Default
+    public boolean collectThreadInfo() {
+        return false;
+    }
+
+    /**
+     * If collection is enabled, returns the interval at which snapshots about the current lock state are created.
+     */
+    @JsonProperty("threadInfoSnapshotInterval")
+    @JsonIgnore
+    @Value.Default
+    public TimeDuration threadInfoSnapshotInterval() {
+        return SimpleTimeDuration.of(5, TimeUnit.SECONDS);
+    }
+
     @Override
     public boolean equals(@Nullable Object obj) {
         if (this == obj) {
@@ -142,7 +164,9 @@ public class LockServerOptions implements Serializable {
                 && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout());
+                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
+                && collectThreadInfo() == other.collectThreadInfo()
+                && Objects.equals(threadInfoSnapshotInterval(), other.threadInfoSnapshotInterval());
     }
 
     @Override
@@ -155,7 +179,9 @@ public class LockServerOptions implements Serializable {
                 getMaxNormalLockAge(),
                 getRandomBitCount(),
                 getStuckTransactionTimeout(),
-                slowLogTriggerMillis());
+                slowLogTriggerMillis(),
+                collectThreadInfo(),
+                threadInfoSnapshotInterval());
     }
 
     @Override
@@ -169,6 +195,8 @@ public class LockServerOptions implements Serializable {
                 .add("randomBitCount", getRandomBitCount())
                 .add("stuckTransactionTimeout", getStuckTransactionTimeout())
                 .add("slowLogTriggerMillis", slowLogTriggerMillis())
+                .add("collectThreadInfo", collectThreadInfo())
+                .add("threadInfoSnapshotInterval", threadInfoSnapshotInterval())
                 .toString();
     }
 

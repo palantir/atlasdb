@@ -28,11 +28,11 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.FakeTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.ThreadAwareCloseableLockService;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -55,7 +55,7 @@ public class BlockingTimeLimitedLockServiceTest {
     private final TimeLimiter uncheckedThrowingLimiter = mock(TimeLimiter.class);
     private final TimeLimiter checkedThrowingLimiter = mock(TimeLimiter.class);
 
-    private final CloseableLockService delegate = mock(CloseableLockService.class);
+    private final ThreadAwareCloseableLockService delegate = mock(ThreadAwareCloseableLockService.class);
 
     private final BlockingTimeLimitedLockService acceptingService = createService(acceptingLimiter);
     private final BlockingTimeLimitedLockService timingOutService = createService(timingOutLimiter);

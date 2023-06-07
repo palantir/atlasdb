@@ -32,6 +32,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.ThreadAwareCloseableLockService;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -51,20 +52,20 @@ import org.immutables.value.Value;
 public class BlockingTimeLimitedLockService implements CloseableLockService {
     private static final SafeLogger log = SafeLoggerFactory.get(BlockingTimeLimitedLockService.class);
 
-    private final CloseableLockService delegate;
+    private final ThreadAwareCloseableLockService delegate;
     private final TimeLimiter timeLimiter;
     private final long blockingTimeLimitMillis;
 
     @VisibleForTesting
     BlockingTimeLimitedLockService(
-            CloseableLockService delegate, TimeLimiter timeLimiter, long blockingTimeLimitMillis) {
+            ThreadAwareCloseableLockService delegate, TimeLimiter timeLimiter, long blockingTimeLimitMillis) {
         this.delegate = delegate;
         this.timeLimiter = timeLimiter;
         this.blockingTimeLimitMillis = blockingTimeLimitMillis;
     }
 
     public static BlockingTimeLimitedLockService create(
-            CloseableLockService lockService, long blockingTimeLimitMillis) {
+            ThreadAwareCloseableLockService lockService, long blockingTimeLimitMillis) {
         // TODO (jkong): Inject the executor to allow application lifecycle managed executors.
         // Currently maintaining existing behaviour.
         return new BlockingTimeLimitedLockService(
