@@ -106,26 +106,18 @@ public class SingleBusyCellReadNoTouchWorkflowsTest {
         WorkflowHistory workflowHistory = workflow.run();
 
         Set<WitnessedTransaction> witnessedTransactionsWithReads = workflowHistory.history().stream()
-                .filter(this::transactionContainsReadAction)
+                .filter(txn -> txn.actions().stream().anyMatch(WitnessedReadTransactionAction.class::isInstance))
                 .collect(Collectors.toSet());
 
         Set<WitnessedTransaction> witnessedTransactionsWithWritesOrDeletes = workflowHistory.history().stream()
-                .filter(this::transactionContainsWriteOrDeleteAction)
+                .filter(txn -> txn.actions().stream()
+                        .anyMatch(action -> action instanceof WitnessedWriteTransactionAction
+                                || action instanceof WitnessedDeleteTransactionAction))
                 .collect(Collectors.toSet());
 
         Set<WitnessedTransaction> transactionsWithReadsAndWritesOrDeletes =
                 Sets.intersection(witnessedTransactionsWithReads, witnessedTransactionsWithWritesOrDeletes);
 
         assertThat(transactionsWithReadsAndWritesOrDeletes).isEmpty();
-    }
-
-    private boolean transactionContainsReadAction(WitnessedTransaction txn) {
-        return txn.actions().stream().anyMatch(WitnessedReadTransactionAction.class::isInstance);
-    }
-
-    private boolean transactionContainsWriteOrDeleteAction(WitnessedTransaction txn) {
-        return txn.actions().stream()
-                .anyMatch(action -> action instanceof WitnessedWriteTransactionAction
-                        || action instanceof WitnessedDeleteTransactionAction);
     }
 }
