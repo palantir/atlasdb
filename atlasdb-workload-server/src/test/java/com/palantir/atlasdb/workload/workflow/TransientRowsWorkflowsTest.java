@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class TransientRowsWorkflowsTest {
@@ -198,7 +199,8 @@ public class TransientRowsWorkflowsTest {
         WitnessedReadTransactionAction readWitness = WitnessedReadTransactionAction.of(
                 TABLE_NAME, ImmutableWorkloadCell.of(5, TransientRowsWorkflows.COLUMN), Optional.empty());
         WorkflowHistory history = getWorkflowHistory(ImmutableList.of(readWitness));
-        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {
+        }))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Expected to find a read of the summary row")
                 .hasExactlyArgs(SafeArg.of("actions", ImmutableList.of(readWitness)));
@@ -212,7 +214,8 @@ public class TransientRowsWorkflowsTest {
                 WitnessedReadTransactionAction.of(
                         TABLE_NAME, ImmutableWorkloadCell.of(2, TransientRowsWorkflows.COLUMN), Optional.empty()));
         WorkflowHistory history = getWorkflowHistory(actions);
-        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {
+        }))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Expected to find a read of a corresponding normal row")
                 .hasExactlyArgs(SafeArg.of("actions", actions));
@@ -293,13 +296,18 @@ public class TransientRowsWorkflowsTest {
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of the summary row", SafeArg.of("readValues", readValues)));
-        TableAndWorkloadCell primaryCell = TableAndWorkloadCell.of(
-                summaryCell.tableName(),
-                ImmutableWorkloadCell.of(summaryCell.cell().column(), TransientRowsWorkflows.COLUMN));
+        TableAndWorkloadCell primaryCell = getPrimaryCellForSummaryCell(summaryCell);
 
         assertThat(readValues.keySet()).containsExactlyInAnyOrder(summaryCell, primaryCell);
         assertThat(readValues.values())
                 .containsExactlyInAnyOrder(Optional.empty(), Optional.of(TransientRowsWorkflows.VALUE));
+    }
+
+    // This workflow uses a single table, where the summary row's columns correspond to rows with primary values.
+    private static TableAndWorkloadCell getPrimaryCellForSummaryCell(TableAndWorkloadCell summaryCell) {
+        return TableAndWorkloadCell.of(
+                summaryCell.tableName(),
+                ImmutableWorkloadCell.of(summaryCell.cell().column(), TransientRowsWorkflows.COLUMN));
     }
 
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
