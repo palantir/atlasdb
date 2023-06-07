@@ -136,8 +136,6 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
-        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
-                configuration.install().singleBusyCellReadsNoTouchConfig();
         SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig =
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
@@ -146,6 +144,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
+        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+                configuration.install().singleBusyCellReadsNoTouchConfig();
         BankBalanceWorkflowConfiguration bankBalanceConfig =
                 configuration.install().bankBalanceConfig();
         RandomWorkflowConfiguration randomWorkflowConfig =
@@ -155,10 +155,6 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
                 .run(
-                        createSingleBusyCellReadNoTouchWorkflowValidator(
-                                transactionStoreFactory,
-                                singleBusyCellReadNoTouchWorkflowConfiguration,
-                                environment.lifecycle()),
                         createSingleRowTwoCellsWorkflowValidator(
                                 transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
                         createRingWorkflowValidator(
@@ -167,6 +163,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
                                 transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                                transactionStoreFactory,
+                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                                environment.lifecycle()),
                         createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
                         createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
 
