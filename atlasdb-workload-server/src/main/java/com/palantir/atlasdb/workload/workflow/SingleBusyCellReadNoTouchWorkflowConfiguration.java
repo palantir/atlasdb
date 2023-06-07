@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableSingleBusyCellReadsNoTouchWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableSingleBusyCellReadsNoTouchWorkflowConfiguration.class)
-@JsonTypeName(SingleBusyCellReadsNoTouchWorkflowConfiguration.TYPE)
-public interface SingleBusyCellReadsNoTouchWorkflowConfiguration extends WorkflowConfiguration {
+@JsonSerialize(as = ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.class)
+@JsonTypeName(SingleBusyCellReadNoTouchWorkflowConfiguration.TYPE)
+public interface SingleBusyCellReadNoTouchWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "single-busy-cell-reads-no-touch";
 
     TableConfiguration tableConfiguration();

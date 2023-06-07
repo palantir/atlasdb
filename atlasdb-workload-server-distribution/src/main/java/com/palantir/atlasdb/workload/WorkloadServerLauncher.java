@@ -37,8 +37,8 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflows;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflows;
-import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadsNoTouchWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
@@ -144,7 +144,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
-        SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+        SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
                 configuration.install().singleBusyCellReadsNoTouchConfig();
         BankBalanceWorkflowConfiguration bankBalanceConfig =
                 configuration.install().bankBalanceConfig();
@@ -254,15 +254,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
     private WorkflowAndInvariants<Workflow> createSingleBusyCellReadNoTouchWorkflowValidator(
             AtlasDbTransactionStoreFactory transactionStoreFactory,
-            SingleBusyCellReadsNoTouchWorkflowConfiguration workflowConfig,
+            SingleBusyCellReadNoTouchWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
         ExecutorService readExecutor = lifecycle
-                .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
                 .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         ExecutorService writeExecutor = lifecycle
-                .executorService(SingleBusyCellReadsNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
                 .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();

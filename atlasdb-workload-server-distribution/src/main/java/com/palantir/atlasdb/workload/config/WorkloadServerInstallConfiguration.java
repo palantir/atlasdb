@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
-import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadsNoTouchWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
@@ -46,7 +46,7 @@ public interface WorkloadServerInstallConfiguration {
 
     RandomWorkflowConfiguration randomConfig();
 
-    SingleBusyCellReadsNoTouchWorkflowConfiguration singleBusyCellReadsNoTouchConfig();
+    SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadsNoTouchConfig();
 
     boolean exitAfterRunning();
 }

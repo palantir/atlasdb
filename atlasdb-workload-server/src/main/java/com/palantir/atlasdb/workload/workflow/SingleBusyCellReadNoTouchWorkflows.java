@@ -51,7 +51,7 @@ public final class SingleBusyCellReadNoTouchWorkflows {
 
     public static Workflow create(
             InteractiveTransactionStore store,
-            SingleBusyCellReadsNoTouchWorkflowConfiguration configuration,
+            SingleBusyCellReadNoTouchWorkflowConfiguration configuration,
             ListeningExecutorService readExecutor,
             ListeningExecutorService writeExecutor) {
         return () -> {
@@ -78,7 +78,7 @@ public final class SingleBusyCellReadNoTouchWorkflows {
 
     private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleReads(
             InteractiveTransactionStore store,
-            SingleBusyCellReadsNoTouchWorkflowConfiguration configuration,
+            SingleBusyCellReadNoTouchWorkflowConfiguration configuration,
             ListeningExecutorService readExecutor) {
         return IntStream.range(0, configuration.iterationCount() / 2)
                 .mapToObj(idx -> readExecutor.submit(() -> store.readWrite(
@@ -88,7 +88,7 @@ public final class SingleBusyCellReadNoTouchWorkflows {
 
     private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleWrites(
             InteractiveTransactionStore store,
-            SingleBusyCellReadsNoTouchWorkflowConfiguration configuration,
+            SingleBusyCellReadNoTouchWorkflowConfiguration configuration,
             ListeningExecutorService writeExecutor) {
         return IntStream.range(0, configuration.iterationCount() / 4)
                 .boxed()
