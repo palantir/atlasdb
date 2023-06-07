@@ -43,8 +43,7 @@ public interface RangeSlice {
             if (endExclusive().isEmpty()) {
                 return Range.atLeast(startInclusive().get());
             } else {
-                return Range.closedOpen(
-                        startInclusive().get(), endExclusive().get());
+                return Range.closedOpen(startInclusive().get(), endExclusive().get());
             }
         }
     }

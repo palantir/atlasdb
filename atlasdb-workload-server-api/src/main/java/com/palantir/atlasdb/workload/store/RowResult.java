@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.workload.store.RowResult;
-import com.palantir.atlasdb.workload.transaction.RowRangeReadTransactionAction;
-import java.util.List;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WitnessedRowRangeReadTransactionAction extends WitnessedTransactionAction {
-    RowRangeReadTransactionAction originalQuery();
+public interface RowResult {
+    int row();
 
-    List<RowResult> results();
+    Set<ColumnValue> columns();
 
-    @Override
-    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    static ImmutableWitnessedRowRangeReadTransactionAction.Builder builder() {
-        return ImmutableWitnessedRowRangeReadTransactionAction.builder();
+    static ImmutableRowResult.Builder builder() {
+        return ImmutableRowResult.builder();
     }
 }

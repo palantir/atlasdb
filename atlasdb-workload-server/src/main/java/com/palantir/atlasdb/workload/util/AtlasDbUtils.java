@@ -19,6 +19,8 @@ package com.palantir.atlasdb.workload.util;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -27,9 +29,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
+import com.palantir.atlasdb.workload.transaction.RangeSlice;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 public final class AtlasDbUtils {
 
@@ -53,6 +58,10 @@ public final class AtlasDbUtils {
 
     public static byte[] toAtlasKey(int key) {
         return Ints.toByteArray(key);
+    }
+
+    public static int fromAtlasRow(byte[] rowName) {
+        return Ints.fromByteArray(rowName);
     }
 
     public static int fromAtlasColumn(byte[] bytes) {
@@ -118,5 +127,15 @@ public final class AtlasDbUtils {
                         .endColumnExclusive()
                         .map(AtlasDbUtils::toAtlasKey)
                         .orElse(null));
+    }
+
+    public static RangeRequest toAtlasRangeRequest(RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse) {
+        RangeRequest.Builder builder = RangeRequest.builder(reverse)
+                .retainColumns(ColumnSelection.create(
+                        columns.stream().map(AtlasDbUtils::toAtlasKey).collect(Collectors.toSet())))
+                .batchHint(2);
+        rowsToRead.startInclusive().ifPresent(row -> builder.startRowInclusive(toAtlasKey(row)));
+        rowsToRead.endExclusive().ifPresent(row -> builder.endRowExclusive(toAtlasKey(row)));
+        return builder.build();
     }
 }

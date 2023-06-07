@@ -17,10 +17,12 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 
 /**
  * Allows for convenient interaction with a transactional store.
@@ -33,6 +35,8 @@ public interface InteractiveTransaction {
     void delete(String table, WorkloadCell workloadCell);
 
     List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection);
+
+    List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse);
 
     List<WitnessedTransactionAction> witness();
 }

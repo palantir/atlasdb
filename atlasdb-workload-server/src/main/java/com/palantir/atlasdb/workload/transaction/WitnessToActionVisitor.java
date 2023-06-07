@@ -18,8 +18,8 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 
@@ -43,7 +43,8 @@ public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<
     }
 
     @Override
-    public RowColumnRangeReadTransactionAction visit(WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
+    public RowColumnRangeReadTransactionAction visit(
+            WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
         return rowColumnRangeReadTransactionAction.originalQuery();
     }
 

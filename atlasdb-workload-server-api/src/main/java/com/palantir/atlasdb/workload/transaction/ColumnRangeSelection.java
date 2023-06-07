@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public final class ColumnRangeSelection {
@@ -39,6 +40,19 @@ public final class ColumnRangeSelection {
 
     public static ColumnRangeSelection.Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ColumnRangeSelection that = (ColumnRangeSelection) o;
+        return Objects.equals(rangeSlice, that.rangeSlice);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(rangeSlice);
     }
 
     public static final class Builder {

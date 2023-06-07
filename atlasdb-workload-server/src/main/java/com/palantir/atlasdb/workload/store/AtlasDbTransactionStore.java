@@ -173,7 +173,11 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
         @Override
         public Void visit(RowRangeReadTransactionAction rowRangeReadTransactionAction) {
-            // TODO (jkong): Not implemented yet!
+            transaction.getRange(
+                    rowRangeReadTransactionAction.table(),
+                    rowRangeReadTransactionAction.rowsToRead(),
+                    rowRangeReadTransactionAction.columns(),
+                    rowRangeReadTransactionAction.reverse());
             return null;
         }
     }

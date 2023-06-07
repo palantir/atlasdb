@@ -26,6 +26,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingl
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -106,6 +107,13 @@ final class SnapshotInvariantVisitor
                     .expectedColumnsAndValues(expectedReads)
                     .build());
         }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<InvalidWitnessedTransactionAction> visit(
+            WitnessedRowRangeReadTransactionAction rowReadTransactionAction) {
+        // TODO (jkong): Not implemented yet!
         return Optional.empty();
     }
 

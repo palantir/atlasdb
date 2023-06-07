@@ -23,13 +23,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
+import com.palantir.atlasdb.workload.transaction.RangeSlice;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.RowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import com.palantir.common.base.BatchingVisitables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -40,6 +44,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -127,6 +132,38 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             .columnsAndValues(columnsAndValues)
                             .build());
                     return columnsAndValues;
+                },
+                table);
+    }
+
+    @Override
+    public List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse) {
+        return run(
+                tableReference -> {
+                    List<RowResult> rowResults = BatchingVisitables.copyToList(transaction.getRange(
+                                    tableReference, AtlasDbUtils.toAtlasRangeRequest(rowsToRead, columns, reverse)))
+                            .stream()
+                            .map(atlasRowResult -> {
+                                return RowResult.builder()
+                                        .row(AtlasDbUtils.fromAtlasRow(atlasRowResult.getRowName()))
+                                        .addAllColumns(atlasRowResult.getColumns().entrySet().stream()
+                                                .map(entry -> ColumnValue.of(
+                                                        AtlasDbUtils.fromAtlasColumn(entry.getKey()),
+                                                        AtlasDbUtils.fromAtlasValue(entry.getValue())))
+                                                .collect(Collectors.toList()))
+                                        .build();
+                            })
+                            .collect(Collectors.toList());
+                    witnessedTransactionActions.add(WitnessedRowRangeReadTransactionAction.builder()
+                            .originalQuery(RowRangeReadTransactionAction.builder()
+                                    .table(table)
+                                    .rowsToRead(rowsToRead)
+                                    .columns(columns)
+                                    .reverse(reverse)
+                                    .build())
+                            .addAllResults(rowResults)
+                            .build());
+                    return rowResults;
                 },
                 table);
     }

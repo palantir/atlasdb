@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import java.util.Optional;
 import java.util.SortedSet;
 import org.immutables.value.Value;
 
@@ -37,9 +36,12 @@ public interface RowRangeReadTransactionAction extends TransactionAction {
 
     boolean reverse();
 
-
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    static ImmutableRowRangeReadTransactionAction.Builder builder() {
+        return ImmutableRowRangeReadTransactionAction.builder();
     }
 }
