@@ -26,8 +26,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingl
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -67,7 +67,8 @@ public enum SerializableInvariant implements TransactionInvariant {
         private final RangeQueryReader rangeQueryReader = SimpleRangeQueryReader.create(inMemoryTransactionReplayer);
 
         @Override
-        public Optional<InvalidWitnessedTransactionAction> visit(WitnessedSingleCellReadTransactionAction readTransactionAction) {
+        public Optional<InvalidWitnessedTransactionAction> visit(
+                WitnessedSingleCellReadTransactionAction readTransactionAction) {
             Optional<Integer> expectedValue = inMemoryTransactionReplayer
                     .getValues()
                     .get(TableAndWorkloadCell.of(readTransactionAction.table(), readTransactionAction.cell()))

@@ -58,8 +58,7 @@ public final class TransientRowsWorkflows {
 
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
-    private TransientRowsWorkflows() {
-    }
+    private TransientRowsWorkflows() {}
 
     public static Workflow create(
             InteractiveTransactionStore store,

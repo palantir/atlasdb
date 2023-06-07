@@ -86,8 +86,8 @@ public class RingWorkflowsTest {
 
         List<WitnessedSingleCellReadTransactionAction> initialReadActions = IntStream.range(0, CONFIGURATION.ringSize())
                 .boxed()
-                .map(index ->
-                        WitnessedSingleCellReadTransactionAction.of(TABLE_NAME, RingWorkflows.cell(index), Optional.empty()))
+                .map(index -> WitnessedSingleCellReadTransactionAction.of(
+                        TABLE_NAME, RingWorkflows.cell(index), Optional.empty()))
                 .collect(Collectors.toList());
         assertThat(actions).containsAll(initialReadActions);
     }

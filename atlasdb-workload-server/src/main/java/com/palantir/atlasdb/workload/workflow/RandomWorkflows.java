@@ -28,8 +28,8 @@ import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTran
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction.Builder;
 import com.palantir.atlasdb.workload.transaction.ImmutableSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;

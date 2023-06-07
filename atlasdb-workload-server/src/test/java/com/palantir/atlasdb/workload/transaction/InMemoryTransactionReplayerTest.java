@@ -43,8 +43,8 @@ public final class InMemoryTransactionReplayerTest {
     @Test
     public void readActionsAreIgnored() {
         InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
-        inMemoryTransactionReplayer.visit(
-                ImmutableWitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
+        inMemoryTransactionReplayer.visit(ImmutableWitnessedSingleCellReadTransactionAction.of(
+                TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
         assertThat(inMemoryTransactionReplayer.getValues()).isEmpty();
     }
 

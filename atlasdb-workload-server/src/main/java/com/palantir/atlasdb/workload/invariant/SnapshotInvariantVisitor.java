@@ -25,8 +25,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowCo
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.Map;
@@ -58,9 +58,10 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedSingleCellReadTransactionAction readTransactionAction) {
+    public Optional<InvalidWitnessedTransactionAction> visit(
+            WitnessedSingleCellReadTransactionAction readTransactionAction) {
         Optional<Integer> expected = fetchValueFromView(
-                readTransactionAction.table(), readTransactionAction.cell(), readView)
+                        readTransactionAction.table(), readTransactionAction.cell(), readView)
                 .value();
         if (!expected.equals(readTransactionAction.value())) {
             return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
@@ -72,7 +73,7 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedWriteTransactionAction writeTransactionAction) {
         Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
-                writeTransactionAction.table(), writeTransactionAction.cell())
+                        writeTransactionAction.table(), writeTransactionAction.cell())
                 .map(mismatchedValue ->
                         InvalidWitnessedSingleCellTransactionAction.of(writeTransactionAction, mismatchedValue));
 
@@ -86,7 +87,7 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(WitnessedDeleteTransactionAction deleteTransactionAction) {
         Optional<InvalidWitnessedTransactionAction> invalidAction = checkForWriteWriteConflicts(
-                deleteTransactionAction.table(), deleteTransactionAction.cell())
+                        deleteTransactionAction.table(), deleteTransactionAction.cell())
                 .map(mismatchedValue ->
                         InvalidWitnessedSingleCellTransactionAction.of(deleteTransactionAction, mismatchedValue));
 

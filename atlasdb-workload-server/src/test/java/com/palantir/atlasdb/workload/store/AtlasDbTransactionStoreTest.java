@@ -131,7 +131,8 @@ public final class AtlasDbTransactionStoreTest {
 
     @Test
     public void readWriteThrowsWhenTableDoesNotExist() {
-        assertThatThrownBy(() -> store.readWrite(List.of(SingleCellReadTransactionAction.of("chocolate", WORKLOAD_CELL_ONE))))
+        assertThatThrownBy(() ->
+                        store.readWrite(List.of(SingleCellReadTransactionAction.of("chocolate", WORKLOAD_CELL_ONE))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Transaction action has unknown table.");
     }
@@ -174,21 +175,21 @@ public final class AtlasDbTransactionStoreTest {
                 WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
         TransactionManager keyAlreadyExistsExceptionThrowingStore = spy(manager);
         doAnswer(invocation -> {
-            Supplier<CommitTimestampProvider> commitTimestampFetcher = invocation.getArgument(0);
-            ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
-                    invocation.getArgument(1);
-            return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
-                manager.getKeyValueService()
-                        .putUnlessExists(
-                                TransactionConstants.TRANSACTION_TABLE,
-                                Map.of(
-                                        V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(
-                                                txn.getTimestamp()),
-                                        Ints.toByteArray(-1)));
-                task.execute(txn, condition);
-                return null;
-            });
-        })
+                    Supplier<CommitTimestampProvider> commitTimestampFetcher = invocation.getArgument(0);
+                    ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
+                            invocation.getArgument(1);
+                    return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
+                        manager.getKeyValueService()
+                                .putUnlessExists(
+                                        TransactionConstants.TRANSACTION_TABLE,
+                                        Map.of(
+                                                V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(
+                                                        txn.getTimestamp()),
+                                                Ints.toByteArray(-1)));
+                        task.execute(txn, condition);
+                        return null;
+                    });
+                })
                 .when(keyAlreadyExistsExceptionThrowingStore)
                 .runTaskWithConditionWithRetry(any(Supplier.class), any());
         AtlasDbTransactionStore onlyKeyAlreadyExistsThrowingStore =

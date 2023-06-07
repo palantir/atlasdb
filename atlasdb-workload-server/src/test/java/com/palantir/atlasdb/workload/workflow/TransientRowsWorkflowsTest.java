@@ -193,7 +193,8 @@ public class TransientRowsWorkflowsTest {
         if (action instanceof WitnessedSingleCellReadTransactionAction) {
             WitnessedSingleCellReadTransactionAction readAction = (WitnessedSingleCellReadTransactionAction) action;
             if (readAction.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
-                return WitnessedSingleCellReadTransactionAction.of(readAction.table(), readAction.cell(), Optional.empty());
+                return WitnessedSingleCellReadTransactionAction.of(
+                        readAction.table(), readAction.cell(), Optional.empty());
             } else {
                 return WitnessedSingleCellReadTransactionAction.of(
                         readAction.table(), readAction.cell(), Optional.of(TransientRowsWorkflows.VALUE));

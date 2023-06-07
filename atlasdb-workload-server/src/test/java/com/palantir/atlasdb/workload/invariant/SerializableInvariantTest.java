@@ -286,7 +286,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(15, 21), ColumnValue.of(20, 34)));
     }
 
@@ -314,7 +314,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 
@@ -342,7 +342,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 
@@ -370,7 +370,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 
