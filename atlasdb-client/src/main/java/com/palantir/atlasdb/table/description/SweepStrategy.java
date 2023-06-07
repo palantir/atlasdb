@@ -30,7 +30,7 @@ public final class SweepStrategy {
 
     public static final SweepStrategy CONSERVATIVE =
             new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);
-    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), false);
+    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
     private final boolean mustCheckImmutableLockAfterReads;
@@ -69,9 +69,10 @@ public final class SweepStrategy {
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:
+                return false;
             case THOROUGH_MIGRATION:
             case THOROUGH:
-                return false;
+                return true;
         }
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
