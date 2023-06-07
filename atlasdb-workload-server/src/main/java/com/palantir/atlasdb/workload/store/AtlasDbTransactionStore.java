@@ -27,6 +27,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.RowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionActionVisitor;
@@ -167,6 +168,12 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                     rowColumnRangeReadTransactionAction.table(),
                     rowColumnRangeReadTransactionAction.row(),
                     rowColumnRangeReadTransactionAction.columnRangeSelection());
+            return null;
+        }
+
+        @Override
+        public Void visit(RowRangeReadTransactionAction rowRangeReadTransactionAction) {
+            // TODO (jkong): Not implemented yet!
             return null;
         }
     }

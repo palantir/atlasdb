@@ -16,51 +16,54 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.google.common.collect.Range;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
-import org.immutables.value.Value;
 
-@Value.Immutable
-public interface ColumnRangeSelection {
-    Optional<Integer> startColumnInclusive();
+public final class ColumnRangeSelection {
+    private final RangeSlice rangeSlice;
 
-    Optional<Integer> endColumnExclusive();
-
-    default boolean contains(int column) {
-        return asGuavaRange().contains(column);
+    public ColumnRangeSelection(RangeSlice rangeSlice) {
+        this.rangeSlice = rangeSlice;
     }
 
-    default Range<Integer> asGuavaRange() {
-        if (startColumnInclusive().isEmpty()) {
-            if (endColumnExclusive().isEmpty()) {
-                return Range.all();
-            } else {
-                return Range.lessThan(endColumnExclusive().get());
-            }
-        } else {
-            if (endColumnExclusive().isEmpty()) {
-                return Range.atLeast(startColumnInclusive().get());
-            } else {
-                return Range.closedOpen(
-                        startColumnInclusive().get(), endColumnExclusive().get());
-            }
+    public Optional<Integer> startColumnInclusive() {
+        return rangeSlice.startInclusive();
+    }
+
+    public Optional<Integer> endColumnExclusive() {
+        return rangeSlice.endExclusive();
+    }
+
+    public boolean contains(int column) {
+        return rangeSlice.contains(column);
+    }
+
+    public static ColumnRangeSelection.Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private Optional<Integer> startColumnInclusive = Optional.empty();
+        private Optional<Integer> endColumnExclusive = Optional.empty();
+
+        private Builder() {
+            // Use the static factory method
         }
-    }
 
-    @Value.Check
-    default void check() {
-        Preconditions.checkState(
-                startColumnInclusive().isEmpty()
-                        || endColumnExclusive().isEmpty()
-                        || startColumnInclusive().get() <= endColumnExclusive().get(),
-                "Start column must be less than or equal to end column",
-                SafeArg.of("startColumnInclusive", startColumnInclusive()),
-                SafeArg.of("endColumnExclusive", endColumnExclusive()));
-    }
+        public Builder startColumnInclusive(int startColumnInclusive) {
+            this.startColumnInclusive = Optional.of(startColumnInclusive);
+            return this;
+        }
 
-    static ImmutableColumnRangeSelection.Builder builder() {
-        return ImmutableColumnRangeSelection.builder();
+        public Builder endColumnExclusive(int endColumnExclusive) {
+            this.endColumnExclusive = Optional.of(endColumnExclusive);
+            return this;
+        }
+
+        public ColumnRangeSelection build() {
+            return new ColumnRangeSelection(ImmutableRangeSlice.builder()
+                    .startInclusive(startColumnInclusive)
+                    .endExclusive(endColumnExclusive)
+                    .build());
+        }
     }
 }

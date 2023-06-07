@@ -24,4 +24,6 @@ public interface TransactionActionVisitor<T> {
     T visit(DeleteTransactionAction deleteTransactionAction);
 
     T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+
+    T visit(RowRangeReadTransactionAction rowRangeReadTransactionAction);
 }

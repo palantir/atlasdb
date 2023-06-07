@@ -24,25 +24,25 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.junit.Test;
 
-public class ColumnRangeSelectionTest {
+public class RangeSliceTest {
     @Test
     public void cannotCreateRangeWithStartColumnGreaterThanEndColumn() {
-        assertThatLoggableExceptionThrownBy(() -> ColumnRangeSelection.builder()
-                        .startColumnInclusive(5)
-                        .endColumnExclusive(4)
-                        .build())
+        assertThatLoggableExceptionThrownBy(() -> RangeSlice.builder()
+                .startInclusive(5)
+                .endExclusive(4)
+                .build())
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Start column must be less than or equal to end column")
+                .hasMessageContaining("Start must be less than or equal to end")
                 .hasExactlyArgs(
-                        SafeArg.of("startColumnInclusive", Optional.of(5)),
-                        SafeArg.of("endColumnExclusive", Optional.of(4)));
+                        SafeArg.of("startInclusive", Optional.of(5)),
+                        SafeArg.of("endExclusive", Optional.of(4)));
     }
 
     @Test
     public void emptyRangeDoesNotContainAnyElements() {
-        ColumnRangeSelection emptyRange = ColumnRangeSelection.builder()
-                .startColumnInclusive(6)
-                .endColumnExclusive(6)
+        RangeSlice emptyRange = RangeSlice.builder()
+                .startInclusive(6)
+                .endExclusive(6)
                 .build();
         assertThat(emptyRange.contains(5)).isFalse();
         assertThat(emptyRange.contains(6)).isFalse();
@@ -53,9 +53,9 @@ public class ColumnRangeSelectionTest {
 
     @Test
     public void singleElementRangeContainsJustItself() {
-        ColumnRangeSelection justSeven = ColumnRangeSelection.builder()
-                .startColumnInclusive(7)
-                .endColumnExclusive(8)
+        RangeSlice justSeven = RangeSlice.builder()
+                .startInclusive(7)
+                .endExclusive(8)
                 .build();
         assertThat(justSeven.contains(6)).isFalse();
         assertThat(justSeven.contains(7)).isTrue();
@@ -66,7 +66,7 @@ public class ColumnRangeSelectionTest {
 
     @Test
     public void universalRangeContainsEverything() {
-        ColumnRangeSelection universal = ColumnRangeSelection.builder().build();
+        RangeSlice universal = RangeSlice.builder().build();
         assertThat(universal.contains(10241024)).isTrue();
         assertThat(universal.contains(-20482048)).isTrue();
         assertThat(universal.contains(40924092)).isTrue();
@@ -76,23 +76,23 @@ public class ColumnRangeSelectionTest {
 
     @Test
     public void lowerBoundedRangesContainCorrectElements() {
-        ColumnRangeSelection universal =
-                ColumnRangeSelection.builder().startColumnInclusive(5).build();
-        assertThat(universal.contains(4)).isFalse();
-        assertThat(universal.contains(5)).isTrue();
-        assertThat(universal.contains(6)).isTrue();
-        assertThat(universal.contains(Integer.MIN_VALUE)).isFalse();
-        assertThat(universal.contains(Integer.MAX_VALUE)).isTrue();
+        RangeSlice fiveOrGreater =
+                RangeSlice.builder().startInclusive(5).build();
+        assertThat(fiveOrGreater.contains(4)).isFalse();
+        assertThat(fiveOrGreater.contains(5)).isTrue();
+        assertThat(fiveOrGreater.contains(6)).isTrue();
+        assertThat(fiveOrGreater.contains(Integer.MIN_VALUE)).isFalse();
+        assertThat(fiveOrGreater.contains(Integer.MAX_VALUE)).isTrue();
     }
 
     @Test
     public void upperBoundedRangesContainCorrectElements() {
-        ColumnRangeSelection universal =
-                ColumnRangeSelection.builder().endColumnExclusive(5).build();
-        assertThat(universal.contains(4)).isTrue();
-        assertThat(universal.contains(5)).isFalse();
-        assertThat(universal.contains(6)).isFalse();
-        assertThat(universal.contains(Integer.MIN_VALUE)).isTrue();
-        assertThat(universal.contains(Integer.MAX_VALUE)).isFalse();
+        RangeSlice lessThanFive =
+                RangeSlice.builder().endExclusive(5).build();
+        assertThat(lessThanFive.contains(4)).isTrue();
+        assertThat(lessThanFive.contains(5)).isFalse();
+        assertThat(lessThanFive.contains(6)).isFalse();
+        assertThat(lessThanFive.contains(Integer.MIN_VALUE)).isTrue();
+        assertThat(lessThanFive.contains(Integer.MAX_VALUE)).isFalse();
     }
 }
