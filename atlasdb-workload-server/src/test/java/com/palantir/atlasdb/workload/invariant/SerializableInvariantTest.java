@@ -29,7 +29,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowCo
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -123,7 +123,7 @@ public final class SerializableInvariantTest {
                         InvalidWitnessedSingleCellTransactionAction.class,
                         invalidSingleCellWitnessedTransactionAction -> {
                             assertThat(invalidSingleCellWitnessedTransactionAction.action())
-                                    .isInstanceOfSatisfying(WitnessedReadTransactionAction.class, action -> {
+                                    .isInstanceOfSatisfying(WitnessedSingleCellReadTransactionAction.class, action -> {
                                         assertThat(action.cell()).isEqualTo(ImmutableWorkloadCell.of(5, 10));
                                         assertThat(action.value()).contains(15);
                                     });
@@ -286,7 +286,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
+                        action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(15, 21), ColumnValue.of(20, 34)));
     }
 
@@ -314,7 +314,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
+                        action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 
@@ -342,7 +342,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
+                        action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 
@@ -370,7 +370,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
+                        action.expectedColumnsAndValues())
                         .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
     }
 

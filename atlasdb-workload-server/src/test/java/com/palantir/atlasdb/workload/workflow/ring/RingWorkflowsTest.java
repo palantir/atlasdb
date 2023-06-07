@@ -29,7 +29,7 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
@@ -84,10 +84,10 @@ public class RingWorkflowsTest {
         List<WitnessedTransactionAction> actions =
                 Iterables.getOnlyElement(history.history()).actions();
 
-        List<WitnessedReadTransactionAction> initialReadActions = IntStream.range(0, CONFIGURATION.ringSize())
+        List<WitnessedSingleCellReadTransactionAction> initialReadActions = IntStream.range(0, CONFIGURATION.ringSize())
                 .boxed()
                 .map(index ->
-                        WitnessedReadTransactionAction.of(TABLE_NAME, RingWorkflows.cell(index), Optional.empty()))
+                        WitnessedSingleCellReadTransactionAction.of(TABLE_NAME, RingWorkflows.cell(index), Optional.empty()))
                 .collect(Collectors.toList());
         assertThat(actions).containsAll(initialReadActions);
     }

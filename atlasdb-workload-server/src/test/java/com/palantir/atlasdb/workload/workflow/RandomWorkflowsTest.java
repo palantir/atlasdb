@@ -30,7 +30,7 @@ import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -95,7 +95,7 @@ public class RandomWorkflowsTest {
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
         assertThat(actions).anyMatch(WitnessedWriteTransactionAction.class::isInstance);
-        assertThat(actions).anyMatch(WitnessedReadTransactionAction.class::isInstance);
+        assertThat(actions).anyMatch(WitnessedSingleCellReadTransactionAction.class::isInstance);
         assertThat(actions).anyMatch(WitnessedDeleteTransactionAction.class::isInstance);
         assertThat(actions).anyMatch(WitnessedRowColumnRangeReadTransactionAction.class::isInstance);
     }

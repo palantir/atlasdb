@@ -20,7 +20,7 @@ import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -69,7 +69,7 @@ public final class WitnessedTransactionsBuilder {
         }
 
         public WitnessedTransactionBuilder read(Integer row, Integer column, Optional<Integer> valueRead) {
-            actions.add(WitnessedReadTransactionAction.of(table, ImmutableWorkloadCell.of(row, column), valueRead));
+            actions.add(WitnessedSingleCellReadTransactionAction.of(table, ImmutableWorkloadCell.of(row, column), valueRead));
             return this;
         }
 

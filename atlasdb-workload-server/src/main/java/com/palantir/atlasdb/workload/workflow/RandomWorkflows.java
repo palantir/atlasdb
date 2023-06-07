@@ -24,11 +24,11 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ImmutableReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction.Builder;
+import com.palantir.atlasdb.workload.transaction.ImmutableSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
@@ -91,10 +91,10 @@ public final class RandomWorkflows {
             return store.readWrite(actions);
         }
 
-        private List<ReadTransactionAction> generateReadActions() {
+        private List<SingleCellReadTransactionAction> generateReadActions() {
             return IntStream.range(0, random.nextInt(workflowConfiguration.maxReads() + 1))
                     .boxed()
-                    .map(_index -> ImmutableReadTransactionAction.of(
+                    .map(_index -> ImmutableSingleCellReadTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
                     .collect(Collectors.toList());
         }

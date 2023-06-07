@@ -34,7 +34,7 @@ import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableFullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -107,7 +107,7 @@ public class TransientRowsWorkflowsTest {
         for (int index = 1; index < ITERATION_COUNT; index++) {
             assertThat(witnessedTransactions.get(index).actions()).hasSize(7).satisfies(actions -> {
                 assertThat(actions.subList(0, 2)).allMatch(WitnessedWriteTransactionAction.class::isInstance);
-                assertThat(actions.subList(2, 5)).allMatch(WitnessedReadTransactionAction.class::isInstance);
+                assertThat(actions.subList(2, 5)).allMatch(WitnessedSingleCellReadTransactionAction.class::isInstance);
                 assertThat(actions.subList(5, 7)).allMatch(WitnessedDeleteTransactionAction.class::isInstance);
             });
         }
@@ -190,12 +190,12 @@ public class TransientRowsWorkflowsTest {
 
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
             WitnessedTransactionAction action) {
-        if (action instanceof WitnessedReadTransactionAction) {
-            WitnessedReadTransactionAction readAction = (WitnessedReadTransactionAction) action;
+        if (action instanceof WitnessedSingleCellReadTransactionAction) {
+            WitnessedSingleCellReadTransactionAction readAction = (WitnessedSingleCellReadTransactionAction) action;
             if (readAction.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
-                return WitnessedReadTransactionAction.of(readAction.table(), readAction.cell(), Optional.empty());
+                return WitnessedSingleCellReadTransactionAction.of(readAction.table(), readAction.cell(), Optional.empty());
             } else {
-                return WitnessedReadTransactionAction.of(
+                return WitnessedSingleCellReadTransactionAction.of(
                         readAction.table(), readAction.cell(), Optional.of(TransientRowsWorkflows.VALUE));
             }
         } else {

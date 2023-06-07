@@ -33,8 +33,8 @@ public class MaybeWitnessedTransactionTest {
     @Test
     public void throwsWhenCommitTimestampIsNotPresentOnCreation() {
         assertThatLoggableExceptionThrownBy(() -> MaybeWitnessedTransaction.builder()
-                        .startTimestamp(START_TIMESTAMP)
-                        .build())
+                .startTimestamp(START_TIMESTAMP)
+                .build())
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining(
                         "Given how the transaction protocol works, a transaction for which we haven't retrieved the"
@@ -44,16 +44,16 @@ public class MaybeWitnessedTransactionTest {
     @Test
     public void doesNotThrowWhenCommitTimestampPresentOnCreation() {
         assertThatCode(() -> MaybeWitnessedTransaction.builder()
-                        .startTimestamp(START_TIMESTAMP)
-                        .commitTimestamp(COMMIT_TIMESTAMP)
-                        .build())
+                .startTimestamp(START_TIMESTAMP)
+                .commitTimestamp(COMMIT_TIMESTAMP)
+                .build())
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void toFullyWitnessedCopiesArgumentsCorrectly() {
         WitnessedWriteTransactionAction writeTransactionAction = mock(WitnessedWriteTransactionAction.class);
-        WitnessedReadTransactionAction readTransactionAction = mock(WitnessedReadTransactionAction.class);
+        WitnessedSingleCellReadTransactionAction readTransactionAction = mock(WitnessedSingleCellReadTransactionAction.class);
         List<WitnessedSingleCellTransactionAction> actions = List.of(readTransactionAction, writeTransactionAction);
         FullyWitnessedTransaction fullyWitnessedTransaction = MaybeWitnessedTransaction.builder()
                 .startTimestamp(START_TIMESTAMP)

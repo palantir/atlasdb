@@ -24,7 +24,7 @@ import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.TransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
@@ -97,15 +97,15 @@ public final class SingleRowTwoCellsWorkflows {
     private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                        DeleteTransactionAction.of(tableName, SECOND_CELL))
+                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                        DeleteTransactionAction.of(tableName, FIRST_CELL),
-                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                DeleteTransactionAction.of(tableName, FIRST_CELL),
+                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
     private static List<TransactionAction> createCellReadActions(String tableName) {
         return ImmutableList.of(
-                ReadTransactionAction.of(tableName, FIRST_CELL), ReadTransactionAction.of(tableName, SECOND_CELL));
+                SingleCellReadTransactionAction.of(tableName, FIRST_CELL), SingleCellReadTransactionAction.of(tableName, SECOND_CELL));
     }
 }

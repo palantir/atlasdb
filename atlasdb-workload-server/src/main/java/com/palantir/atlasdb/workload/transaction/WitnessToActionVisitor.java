@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -26,8 +26,8 @@ public enum WitnessToActionVisitor implements WitnessedTransactionActionVisitor<
     INSTANCE;
 
     @Override
-    public ReadTransactionAction visit(WitnessedReadTransactionAction readTransactionAction) {
-        return ImmutableReadTransactionAction.of(readTransactionAction.table(), readTransactionAction.cell());
+    public SingleCellReadTransactionAction visit(WitnessedSingleCellReadTransactionAction readTransactionAction) {
+        return ImmutableSingleCellReadTransactionAction.of(readTransactionAction.table(), readTransactionAction.cell());
     }
 
     @Override

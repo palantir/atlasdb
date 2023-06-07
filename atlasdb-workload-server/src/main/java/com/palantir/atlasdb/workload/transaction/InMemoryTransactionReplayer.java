@@ -19,7 +19,7 @@ package com.palantir.atlasdb.workload.transaction;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -33,7 +33,7 @@ public final class InMemoryTransactionReplayer implements WitnessedTransactionAc
             StructureHolder.create(HashMap::empty);
 
     @Override
-    public Void visit(WitnessedReadTransactionAction _readTransactionAction) {
+    public Void visit(WitnessedSingleCellReadTransactionAction _readTransactionAction) {
         return null;
     }
 

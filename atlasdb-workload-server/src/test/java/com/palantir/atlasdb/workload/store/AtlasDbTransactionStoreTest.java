@@ -46,11 +46,11 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore.CommitTimestampProvider;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessToActionVisitor;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.MaybeWitnessedTransaction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -102,10 +102,10 @@ public final class AtlasDbTransactionStoreTest {
     public void witnessedTransactionMaintainsOrder() {
         List<WitnessedTransactionAction> actions = List.of(
                 WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, 100),
-                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, Optional.of(100)),
-                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_THREE, Optional.empty()),
+                WitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, Optional.of(100)),
+                WitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_THREE, Optional.empty()),
                 WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, 24),
-                WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(24)));
+                WitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(24)));
         Optional<WitnessedTransaction> maybeTransaction = store.readWrite(actions.stream()
                 .map(action -> action.accept(WitnessToActionVisitor.INSTANCE))
                 .collect(Collectors.toList()));
@@ -118,12 +118,12 @@ public final class AtlasDbTransactionStoreTest {
     @Test
     public void readWriteHandlesAllTransactionTypes() {
         store.readWrite(List.of(WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE)));
-        assertThat(store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
+        assertThat(store.readWrite(List.of(SingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isPresent()
                 .map(WitnessedTransaction::actions)
                 .map(Iterables::getOnlyElement)
-                .map(WitnessedReadTransactionAction.class::cast)
-                .map(WitnessedReadTransactionAction::value)
+                .map(WitnessedSingleCellReadTransactionAction.class::cast)
+                .map(WitnessedSingleCellReadTransactionAction::value)
                 .contains(Optional.of(VALUE_ONE));
         store.readWrite(List.of(DeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
         assertThat(store.get(TABLE_1, WORKLOAD_CELL_ONE)).isEmpty();
@@ -131,7 +131,7 @@ public final class AtlasDbTransactionStoreTest {
 
     @Test
     public void readWriteThrowsWhenTableDoesNotExist() {
-        assertThatThrownBy(() -> store.readWrite(List.of(ReadTransactionAction.of("chocolate", WORKLOAD_CELL_ONE))))
+        assertThatThrownBy(() -> store.readWrite(List.of(SingleCellReadTransactionAction.of("chocolate", WORKLOAD_CELL_ONE))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Transaction action has unknown table.");
     }
@@ -144,14 +144,14 @@ public final class AtlasDbTransactionStoreTest {
         when(transactionManager.runTaskWithRetry(any())).thenThrow(new RuntimeException());
         AtlasDbTransactionStore transactionStore = AtlasDbTransactionStore.create(
                 transactionManager, Map.of(TABLE_REFERENCE, AtlasDbUtils.tableMetadata(ConflictHandler.SERIALIZABLE)));
-        assertThat(transactionStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
+        assertThat(transactionStore.readWrite(List.of(SingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isEmpty();
     }
 
     @Test
     public void readWriteHandlesReadOnlyTransaction() {
         Optional<WitnessedTransaction> witnessedTransaction =
-                store.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
+                store.readWrite(List.of(SingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE)));
         assertThat(witnessedTransaction).isPresent();
         assertThat(witnessedTransaction.get().commitTimestamp()).isEmpty();
     }
@@ -164,7 +164,7 @@ public final class AtlasDbTransactionStoreTest {
         doReturn(abortedTransaction).when(onlyAbortsManager).runTaskWithConditionWithRetry(any(Supplier.class), any());
         AtlasDbTransactionStore onlyAbortsStore =
                 AtlasDbTransactionStore.create(onlyAbortsManager, TABLES_TO_ATLAS_METADATA);
-        assertThat(onlyAbortsStore.readWrite(List.of(ReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
+        assertThat(onlyAbortsStore.readWrite(List.of(SingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))))
                 .isEmpty();
     }
 
@@ -174,21 +174,21 @@ public final class AtlasDbTransactionStoreTest {
                 WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE);
         TransactionManager keyAlreadyExistsExceptionThrowingStore = spy(manager);
         doAnswer(invocation -> {
-                    Supplier<CommitTimestampProvider> commitTimestampFetcher = invocation.getArgument(0);
-                    ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
-                            invocation.getArgument(1);
-                    return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
-                        manager.getKeyValueService()
-                                .putUnlessExists(
-                                        TransactionConstants.TRANSACTION_TABLE,
-                                        Map.of(
-                                                V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(
-                                                        txn.getTimestamp()),
-                                                Ints.toByteArray(-1)));
-                        task.execute(txn, condition);
-                        return null;
-                    });
-                })
+            Supplier<CommitTimestampProvider> commitTimestampFetcher = invocation.getArgument(0);
+            ConditionAwareTransactionTask<Void, CommitTimestampProvider, Exception> task =
+                    invocation.getArgument(1);
+            return manager.runTaskWithConditionWithRetry(commitTimestampFetcher, (txn, condition) -> {
+                manager.getKeyValueService()
+                        .putUnlessExists(
+                                TransactionConstants.TRANSACTION_TABLE,
+                                Map.of(
+                                        V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(
+                                                txn.getTimestamp()),
+                                        Ints.toByteArray(-1)));
+                task.execute(txn, condition);
+                return null;
+            });
+        })
                 .when(keyAlreadyExistsExceptionThrowingStore)
                 .runTaskWithConditionWithRetry(any(Supplier.class), any());
         AtlasDbTransactionStore onlyKeyAlreadyExistsThrowingStore =

@@ -14,27 +14,33 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface ReadTransactionAction extends SingleCellTransactionAction {
-
-    default WitnessedReadTransactionAction witness(Optional<Integer> value) {
-        return ImmutableWitnessedReadTransactionAction.of(table(), cell(), value);
-    }
+public interface WitnessedSingleCellReadTransactionAction extends WitnessedSingleCellTransactionAction {
 
     @Override
-    default <T> T accept(TransactionActionVisitor<T> visitor) {
+    @Value.Parameter
+    String table();
+
+    @Override
+    @Value.Parameter
+    WorkloadCell cell();
+
+    /** Value of the cell from the row read. Empty if it does not exist. */
+    @Value.Parameter
+    Optional<Integer> value();
+
+    @Override
+    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
     }
 
-    static ReadTransactionAction of(String table, WorkloadCell workloadCell) {
-        return ImmutableReadTransactionAction.of(table, workloadCell);
+    static WitnessedSingleCellReadTransactionAction of(String table, WorkloadCell cell, Optional<Integer> value) {
+        return ImmutableWitnessedSingleCellReadTransactionAction.of(table, cell, value);
     }
 }

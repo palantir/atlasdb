@@ -29,10 +29,10 @@ import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
@@ -69,40 +69,40 @@ public class SingleRowTwoCellsWorkflowsTest {
     public void createsReadsThenMutationsThenReads() {
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(0, TABLE_NAME))
                 .containsExactly(
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
                         WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 0),
                         DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(1, TABLE_NAME))
                 .containsExactly(
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
                         DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
                         WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, 1),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
     }
 
     @Test
     public void writesValueCorrespondingToTaskIndexInRelevantCell() {
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(31415926, TABLE_NAME))
                 .containsExactly(
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
                         WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 31415926),
                         DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
         assertThat(SingleRowTwoCellsWorkflows.createTransactionActions(6021023, TABLE_NAME))
                 .containsExactly(
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
                         DeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
                         WriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, 6021023),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
-                        ReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL),
+                        SingleCellReadTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL));
     }
 
     @Test
@@ -121,15 +121,15 @@ public class SingleRowTwoCellsWorkflowsTest {
                 .isInstanceOf(ReadOnlyTransactionStore.class);
         assertThat(Iterables.getOnlyElement(history.history()).actions())
                 .containsExactly(
-                        WitnessedReadTransactionAction.of(
+                        WitnessedSingleCellReadTransactionAction.of(
                                 TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.empty()),
-                        WitnessedReadTransactionAction.of(
+                        WitnessedSingleCellReadTransactionAction.of(
                                 TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()),
                         WitnessedWriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 0),
                         WitnessedDeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
-                        WitnessedReadTransactionAction.of(
+                        WitnessedSingleCellReadTransactionAction.of(
                                 TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.of(0)),
-                        WitnessedReadTransactionAction.of(
+                        WitnessedSingleCellReadTransactionAction.of(
                                 TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()));
     }
 }
