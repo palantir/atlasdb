@@ -39,7 +39,11 @@ import java.util.stream.Stream;
 /**
  * This workflow attempts to manipulate a single cell in a table, scheduling transactions that perform writes and
  * deletes, along with transactions that simply read. Notice that unlike other workflows, because the load is
- * considerably heterogeneous, we do not use a {@link DefaultWorkflow} to schedule transactions.
+ * considerably heterogeneous, we do not use a {@link DefaultWorkflow} to schedule transactions. This workflow differs
+ * from the {@link SingleBusyCellWorkflows} in the way that its read transaction only does read and doesn't touch the
+ * cell with its current value or -1. This allows us to exercise the code path of read-write transaction that only do,
+ * necessary to catch bugs like sweep deleting entries under a transaction if it doesn't check for immutableTimestamp
+ * lock.
  */
 public final class SingleBusyCellReadNoTouchWorkflows {
     private SingleBusyCellReadNoTouchWorkflows() {
