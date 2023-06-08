@@ -26,9 +26,11 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
@@ -70,6 +72,8 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.ThreadAwareCloseableLockService;
+import com.palantir.lock.ThreadAwareLockClient;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.Safe;
@@ -92,6 +96,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -104,6 +109,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -117,6 +123,7 @@ import org.slf4j.helpers.MessageFormatter;
 @ThreadSafe
 public final class LockServiceImpl
         implements LockService,
+                ThreadAwareCloseableLockService,
                 CloseableRemoteLockService,
                 CloseableLockService,
                 RemoteLockService,
@@ -139,6 +146,8 @@ public final class LockServiceImpl
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
+
+    public static boolean COLLECT_AND_LOG_THREAD_INFO = true;
 
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
@@ -181,6 +190,21 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
     private final SimpleTimeDuration stuckTransactionTimeout;
+
+    /** Whether or not to run a background task that periodically takes snapshot of which lock owned by which client-thread */
+    private final boolean collectThreadInfo;
+
+    /** If enabled, the background this will update the snapshot at this rate */
+    private final SimpleTimeDuration threadInfoSnapshotInterval;
+
+    /** If enabled, the background runner that takes snapshots of the current lock state */
+    private final Optional<ThreadInfoSnapshotRunner> threadInfoSnapshotRunner;
+
+    /**
+     * A relatively consistent snapshot of which lock is currently owned by which client-thread
+     */
+    private volatile Map<LockDescriptor, ThreadAwareLockClient> lastKnownThreadInfoSnapshot = ImmutableMap.of();
+
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
     private final LockClientIndices clientIndices = new LockClientIndices();
@@ -256,6 +280,11 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+
+        // thread info collection is off by default
+        this.collectThreadInfo = false;
+        this.threadInfoSnapshotInterval = SimpleTimeDuration.of(5, TimeUnit.SECONDS);
+        this.threadInfoSnapshotRunner = Optional.empty();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1227,6 +1256,40 @@ public final class LockServiceImpl
         return System.currentTimeMillis();
     }
 
+    @Override
+    public Map<LockDescriptor, ThreadAwareLockClient> getLastKnownThreadInfoSnapshot() {
+        return this.lastKnownThreadInfoSnapshot;
+    }
+
+    private void updateThreadInfoSnapshotIndefinitely() {
+        while (true) {
+            updateThreadInfoSnapshot();
+            // For benchmarking purposes, we want to retain the ability to run the background task at full load
+            if (threadInfoSnapshotInterval.toMillis() > 0) {
+                try {
+                    Thread.sleep(threadInfoSnapshotInterval.toMillis());
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }
+    }
+
+    @VisibleForTesting
+    void updateThreadInfoSnapshot() {
+        this.lastKnownThreadInfoSnapshot = heldLocksTokenMap.keySet().stream()
+                .flatMap(token -> {
+                    ThreadAwareLockClient threadAwareLockClient =
+                            token.getClient() == null || Strings.isNullOrEmpty(token.getRequestingThread())
+                                    ? ThreadAwareLockClient.UNKNOWN
+                                    : ThreadAwareLockClient.of(token.getClient(), token.getRequestingThread());
+                    return token.getLockDescriptors().stream()
+                            .map(lockDescriptor -> Map.entry(lockDescriptor, threadAwareLockClient));
+                })
+                // Although a lock can be held by multiple clients/threads, we only remember one to save space
+                .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (existing, replacement) -> existing));
+    }
+
     private static String updateThreadName(LockRequest request) {
         String currentThreadName = Thread.currentThread().getName();
         tryRenameThread(
@@ -1246,12 +1309,31 @@ public final class LockServiceImpl
         return from.getTokenId().toString(Character.MAX_RADIX);
     }
 
-    private final class LockReapRunner implements AutoCloseable {
-        private final Ownable<ExecutorService> executor;
-        private final List<Future<?>> taskFutures;
+    private abstract static class LockServiceRunner implements AutoCloseable {
+        protected final Ownable<ExecutorService> executor;
+        protected List<Future<?>> taskFutures;
+
+        protected LockServiceRunner(Ownable<ExecutorService> executor) {
+            this.executor = executor;
+        }
+
+        @Override
+        public void close() {
+            if (executor.isOwned()) {
+                executor.resource().shutdownNow();
+            } else {
+                // Even if we don't own the executor, these ordinarily run infinitely, and so MUST be interrupted.
+                // It's not enough to simply guard each iteration, because there are calls to blocking methods that may
+                // block infinitely if no further requests come in.
+                taskFutures.forEach(future -> future.cancel(true));
+            }
+        }
+    }
+
+    private final class LockReapRunner extends LockServiceRunner {
 
         private LockReapRunner(Ownable<ExecutorService> executor) {
-            this.executor = executor;
+            super(executor);
 
             Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
                 ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Token Reaper");
@@ -1265,17 +1347,21 @@ public final class LockServiceImpl
             });
             this.taskFutures = ImmutableList.of(tokenReaperFuture, grantReaperFuture);
         }
+    }
 
-        @Override
-        public void close() {
-            if (executor.isOwned()) {
-                executor.resource().shutdownNow();
-            } else {
-                // Even if we don't own the executor, these ordinarily run infinitely, and so MUST be interrupted.
-                // It's not enough to simply guard each iteration, because there are calls to blocking methods that may
-                // block infinitely if no further requests come in.
-                taskFutures.forEach(future -> future.cancel(true));
-            }
+    private final class ThreadInfoSnapshotRunner extends LockServiceRunner {
+
+        // TODO Remove this suppression once the background runner can be enabled via configuration.
+        @SuppressWarnings("UnusedMethod")
+        private ThreadInfoSnapshotRunner(Ownable<ExecutorService> executor) {
+            super(executor);
+
+            Future<Void> holdingThreadUpdaterFuture = executor.resource().submit(() -> {
+                ThreadNames.setThreadName(Thread.currentThread(), "Holding Thread Updater");
+                updateThreadInfoSnapshotIndefinitely();
+                return null;
+            });
+            this.taskFutures = ImmutableList.of(holdingThreadUpdaterFuture);
         }
     }
 }
