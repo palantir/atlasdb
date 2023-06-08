@@ -18,6 +18,7 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -68,7 +69,7 @@ public enum SerializableInvariant implements TransactionInvariant {
                     .orElseGet(Optional::empty);
 
             if (!expectedValue.equals(readTransactionAction.value())) {
-                return Optional.of(InvalidWitnessedTransactionAction.of(
+                return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
                         readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expectedValue)));
             }
 

@@ -20,7 +20,7 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface WitnessedDeleteTransactionAction extends WitnessedTransactionAction {
+public interface WitnessedDeleteTransactionAction extends WitnessedSingleCellTransactionAction {
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
