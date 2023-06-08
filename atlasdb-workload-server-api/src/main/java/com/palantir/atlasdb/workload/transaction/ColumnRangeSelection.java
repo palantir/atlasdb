@@ -43,10 +43,14 @@ public final class ColumnRangeSelection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ColumnRangeSelection that = (ColumnRangeSelection) o;
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        ColumnRangeSelection that = (ColumnRangeSelection) other;
         return Objects.equals(rangeSlice, that.rangeSlice);
     }
 
@@ -55,6 +59,7 @@ public final class ColumnRangeSelection {
         return Objects.hashCode(rangeSlice);
     }
 
+    @SuppressWarnings({"HiddenField"}) // Should be reasonable for builder classes
     public static final class Builder {
         private Optional<Integer> startColumnInclusive = Optional.empty();
         private Optional<Integer> endColumnExclusive = Optional.empty();
