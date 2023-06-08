@@ -29,27 +29,29 @@ import java.util.Optional;
 public final class SweepStrategy {
 
     public static final SweepStrategy CONSERVATIVE =
-            new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);
-    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
+            new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false, false);
+    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), false, true);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
-    private final boolean mustCheckImmutableLockAfterReads;
+    private final boolean mustCheckImmutableLockAfterNonEmptyReads;
+    private final boolean mustCheckImmutableLockAfterEmptyReads;
 
-    private SweepStrategy(Optional<SweeperStrategy> sweeperStrategy, boolean mustCheckImmutableLockAfterReads) {
+    private SweepStrategy(Optional<SweeperStrategy> sweeperStrategy, boolean mustCheckImmutableLockAfterNonEmptyReads, boolean mustCheckImmutableLockAfterEmptyReads) {
         this.sweeperStrategy = sweeperStrategy;
-        this.mustCheckImmutableLockAfterReads = mustCheckImmutableLockAfterReads;
+        this.mustCheckImmutableLockAfterNonEmptyReads = mustCheckImmutableLockAfterNonEmptyReads;
+        this.mustCheckImmutableLockAfterEmptyReads = mustCheckImmutableLockAfterEmptyReads;
     }
 
     public Optional<SweeperStrategy> getSweeperStrategy() {
         return sweeperStrategy;
     }
 
-    public boolean mustCheckImmutableLockAfterReads() {
-        return mustCheckImmutableLockAfterReads;
+    public boolean mustCheckImmutableLock(boolean hasReadEmptyCells) {
+        return hasReadEmptyCells ? mustCheckImmutableLockAfterEmptyReads : mustCheckImmutableLockAfterNonEmptyReads;
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
-        return new SweepStrategy(sweeperBehaviour(strategy), mustCheckImmutableLockAfterReads(strategy));
+        return new SweepStrategy(sweeperBehaviour(strategy), mustCheckImmutableLockAfterNonEmptyReads(strategy), mustCheckImmutableLockAfterEmptyReads(strategy));
     }
 
     private static Optional<SweeperStrategy> sweeperBehaviour(TableMetadataPersistence.SweepStrategy strategy) {
@@ -65,7 +67,18 @@ public final class SweepStrategy {
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
 
-    private static boolean mustCheckImmutableLockAfterReads(TableMetadataPersistence.SweepStrategy strategy) {
+    private static boolean mustCheckImmutableLockAfterNonEmptyReads(TableMetadataPersistence.SweepStrategy strategy) {
+        switch (strategy) {
+            case CONSERVATIVE:
+            case NOTHING:
+            case THOROUGH_MIGRATION:
+            case THOROUGH:
+                return false;
+        }
+        throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
+    }
+
+    private static boolean mustCheckImmutableLockAfterEmptyReads(TableMetadataPersistence.SweepStrategy strategy) {
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:
