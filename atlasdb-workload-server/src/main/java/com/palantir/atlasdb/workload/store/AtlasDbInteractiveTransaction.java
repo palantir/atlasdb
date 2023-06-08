@@ -137,29 +137,26 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse) {
+    public List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns) {
         return run(
                 tableReference -> {
                     List<RowResult> rowResults = BatchingVisitables.copyToList(transaction.getRange(
-                                    tableReference, AtlasDbUtils.toAtlasRangeRequest(rowsToRead, columns, reverse)))
+                                    tableReference, AtlasDbUtils.toAtlasRangeRequest(rowsToRead, columns)))
                             .stream()
-                            .map(atlasRowResult -> {
-                                return RowResult.builder()
-                                        .row(AtlasDbUtils.fromAtlasRow(atlasRowResult.getRowName()))
-                                        .addAllColumns(atlasRowResult.getColumns().entrySet().stream()
-                                                .map(entry -> ColumnValue.of(
-                                                        AtlasDbUtils.fromAtlasColumn(entry.getKey()),
-                                                        AtlasDbUtils.fromAtlasValue(entry.getValue())))
-                                                .collect(Collectors.toList()))
-                                        .build();
-                            })
+                            .map(atlasRowResult -> RowResult.builder()
+                                    .row(AtlasDbUtils.fromAtlasRow(atlasRowResult.getRowName()))
+                                    .addAllColumns(atlasRowResult.getColumns().entrySet().stream()
+                                            .map(entry -> ColumnValue.of(
+                                                    AtlasDbUtils.fromAtlasColumn(entry.getKey()),
+                                                    AtlasDbUtils.fromAtlasValue(entry.getValue())))
+                                            .collect(Collectors.toList()))
+                                    .build())
                             .collect(Collectors.toList());
                     witnessedTransactionActions.add(WitnessedRowRangeReadTransactionAction.builder()
                             .originalQuery(RowRangeReadTransactionAction.builder()
                                     .table(table)
                                     .rowsToRead(rowsToRead)
                                     .columns(columns)
-                                    .reverse(reverse)
                                     .build())
                             .addAllResults(rowResults)
                             .build());

@@ -25,6 +25,9 @@ import org.immutables.value.Value;
  * In the interest of implementation simplicity, one significant simplification is made: values read from getRanges
  * are accessed in batches through a live iterator, while for purposes of gathering a witness, we immediately drain the
  * iterator and use the set of cells read as the witness to this action.
+ * <p>
+ * We also do not currently support reversed ranges: this is also not currently supported in SnapshotTransaction, even
+ * though the API permits it.
  */
 @Value.Immutable
 public interface RowRangeReadTransactionAction extends TransactionAction {
@@ -33,8 +36,6 @@ public interface RowRangeReadTransactionAction extends TransactionAction {
     RangeSlice rowsToRead();
 
     SortedSet<Integer> columns();
-
-    boolean reverse();
 
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {

@@ -181,10 +181,7 @@ public final class AtlasDbInteractiveTransactionTest {
         assertThat(readWrite(transaction -> {
                     transaction.write(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE);
                     transaction.getRange(
-                            TABLE_1,
-                            RangeSlice.builder().build(),
-                            ImmutableSortedSet.of(WORKLOAD_CELL_TWO.column()),
-                            false);
+                            TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_TWO.column()));
                 }))
                 .containsExactly(
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
@@ -193,7 +190,6 @@ public final class AtlasDbInteractiveTransactionTest {
                                         .table(TABLE_1)
                                         .rowsToRead(RangeSlice.builder().build())
                                         .columns(ImmutableSortedSet.of(WORKLOAD_CELL_TWO.column()))
-                                        .reverse(false)
                                         .build())
                                 .addResults(RowResult.builder()
                                         .row(WORKLOAD_CELL_TWO.key())
@@ -204,22 +200,90 @@ public final class AtlasDbInteractiveTransactionTest {
 
     @Test
     public void emptyRowRangeScansAreRecorded() {
-        // TODO
+        assertThat(readWrite(transaction -> {
+                    transaction.getRange(
+                            TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_TWO.column()));
+                }))
+                .containsExactly(WitnessedRowRangeReadTransactionAction.builder()
+                        .originalQuery(RowRangeReadTransactionAction.builder()
+                                .table(TABLE_1)
+                                .rowsToRead(RangeSlice.builder().build())
+                                .columns(ImmutableSortedSet.of(WORKLOAD_CELL_TWO.column()))
+                                .build())
+                        .build());
     }
 
     @Test
     public void rowRangeScansReturnPreciselyValuesInRange() {
-        // TODO
-    }
+        int numWrites = 10;
+        int column = 5;
+        List<WitnessedTransactionAction> witnessedActions = readWrite(transaction -> {
+            IntStream.range(0, numWrites)
+                    .forEach(index -> transaction.write(
+                            TABLE_1,
+                            ImmutableWorkloadCell.builder()
+                                    .key(index)
+                                    .column(column)
+                                    .build(),
+                            index));
+            transaction.getRange(
+                    TABLE_1,
+                    RangeSlice.builder().startInclusive(3).endExclusive(8).build(),
+                    ImmutableSortedSet.of(column));
+        });
 
-    @Test
-    public void rowRangeScansCanBeReversed() {
-        // TODO
+        assertThat(witnessedActions)
+                .hasSize(numWrites + 1)
+                .endsWith(WitnessedRowRangeReadTransactionAction.builder()
+                        .originalQuery(RowRangeReadTransactionAction.builder()
+                                .table(TABLE_1)
+                                .rowsToRead(RangeSlice.builder()
+                                        .startInclusive(3)
+                                        .endExclusive(8)
+                                        .build())
+                                .columns(ImmutableSortedSet.of(column))
+                                .build())
+                        .addAllResults(IntStream.range(3, 8)
+                                .mapToObj(index -> RowResult.builder()
+                                        .row(index)
+                                        .addColumns(ColumnValue.of(column, index))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build());
     }
 
     @Test
     public void rowRangeScansOnlyReturnNecessaryColumns() {
-        // TODO
+        int numRows = 3;
+        List<WitnessedTransactionAction> witnessedActions = readWrite(transaction -> {
+            IntStream.range(0, numRows).forEach(index -> {
+                transaction.write(
+                        TABLE_1,
+                        ImmutableWorkloadCell.builder().key(index).column(1).build(),
+                        index);
+                transaction.write(
+                        TABLE_1,
+                        ImmutableWorkloadCell.builder().key(index).column(2).build(),
+                        index + 1);
+            });
+            transaction.getRange(TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(2));
+        });
+
+        assertThat(witnessedActions)
+                .hasSize(2 * numRows + 1)
+                .endsWith(WitnessedRowRangeReadTransactionAction.builder()
+                        .originalQuery(RowRangeReadTransactionAction.builder()
+                                .table(TABLE_1)
+                                .rowsToRead(RangeSlice.builder().build())
+                                .columns(ImmutableSortedSet.of(2))
+                                .build())
+                        .addAllResults(IntStream.range(0, numRows)
+                                .mapToObj(index -> RowResult.builder()
+                                        .row(index)
+                                        .addColumns(ColumnValue.of(2, index + 1))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build());
     }
 
     @Test
@@ -247,7 +311,7 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void getRangeThrowsWhenTableDoesNotExist() {
         assertThatThrownWhenUnknownTableReferenced(transaction -> transaction.getRange(
-                TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_ONE.column()), false));
+                TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_ONE.column())));
     }
 
     @Test
@@ -277,7 +341,7 @@ public final class AtlasDbInteractiveTransactionTest {
     @Test
     public void getRangeThrowsWhenInteractiveTransactionAlreadyWitnessed() {
         assertThatThrownWhenInteractiveTransactionAlreadyWitnessed(transaction -> transaction.getRange(
-                TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_ONE.column()), false));
+                TABLE_1, RangeSlice.builder().build(), ImmutableSortedSet.of(WORKLOAD_CELL_ONE.column())));
     }
 
     private List<WitnessedTransactionAction> readWrite(Consumer<AtlasDbInteractiveTransaction> transactionConsumer) {

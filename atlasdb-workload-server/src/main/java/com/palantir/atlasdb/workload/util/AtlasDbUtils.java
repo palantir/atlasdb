@@ -129,8 +129,8 @@ public final class AtlasDbUtils {
                         .orElse(null));
     }
 
-    public static RangeRequest toAtlasRangeRequest(RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse) {
-        RangeRequest.Builder builder = RangeRequest.builder(reverse)
+    public static RangeRequest toAtlasRangeRequest(RangeSlice rowsToRead, SortedSet<Integer> columns) {
+        RangeRequest.Builder builder = RangeRequest.builder()
                 .retainColumns(ColumnSelection.create(
                         columns.stream().map(AtlasDbUtils::toAtlasKey).collect(Collectors.toSet())))
                 .batchHint(2);

@@ -176,8 +176,7 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
             transaction.getRange(
                     rowRangeReadTransactionAction.table(),
                     rowRangeReadTransactionAction.rowsToRead(),
-                    rowRangeReadTransactionAction.columns(),
-                    rowRangeReadTransactionAction.reverse());
+                    rowRangeReadTransactionAction.columns());
             return null;
         }
     }

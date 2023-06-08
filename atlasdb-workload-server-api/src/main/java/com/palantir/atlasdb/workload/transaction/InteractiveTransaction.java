@@ -36,7 +36,7 @@ public interface InteractiveTransaction {
 
     List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection);
 
-    List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns, boolean reverse);
+    List<RowResult> getRange(String table, RangeSlice rowsToRead, SortedSet<Integer> columns);
 
     List<WitnessedTransactionAction> witness();
 }
