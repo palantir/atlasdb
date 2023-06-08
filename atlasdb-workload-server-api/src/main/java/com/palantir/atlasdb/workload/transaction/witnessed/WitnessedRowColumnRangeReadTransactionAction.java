@@ -46,7 +46,8 @@ public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedT
                 .map(ColumnValue::column)
                 .filter(column -> !knownColumns.add(column))
                 .collect(Collectors.toSet());
-        Preconditions.checkState(duplicateColumns.isEmpty(),
+        Preconditions.checkState(
+                duplicateColumns.isEmpty(),
                 "Duplicate columns in columnsAndValues",
                 SafeArg.of("duplicateColumns", duplicateColumns),
                 SafeArg.of("columnsAndValues", columnsAndValues()));
