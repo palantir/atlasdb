@@ -30,6 +30,7 @@ import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -44,14 +45,13 @@ import org.junit.Test;
 public class SingleBusyCellReadNoTouchWorkflowsTest {
     private static final String TABLE_NAME = "busy.readnotouch.cell";
     private static final int ITERATION_COUNT = 1_000;
-    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION =
-            ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.builder()
-                    .tableConfiguration(ImmutableTableConfiguration.builder()
-                            .tableName(TABLE_NAME)
-                            .isolationLevel(IsolationLevel.SERIALIZABLE)
-                            .build())
-                    .iterationCount(ITERATION_COUNT)
-                    .build();
+    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION = ImSin.builder()
+            .tableConfiguration(ImmutableTableConfiguration.builder()
+                    .tableName(TABLE_NAME)
+                    .isolationLevel(IsolationLevel.SERIALIZABLE)
+                    .build())
+            .iterationCount(ITERATION_COUNT)
+            .build();
 
     private final InteractiveTransactionStore transactionStore = AtlasDbTransactionStore.create(
             TransactionManagers.createInMemory(ImmutableSet.of()),
@@ -83,10 +83,11 @@ public class SingleBusyCellReadNoTouchWorkflowsTest {
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        assertThat(witnessedTransactionActions)
-                .allMatch(action -> action.table().equals(TABLE_NAME));
-        assertThat(witnessedTransactionActions)
-                .allMatch(action -> action.cell().equals(SingleBusyCellReadNoTouchWorkflows.BUSY_CELL));
+        assertThat(witnessedTransactionActions).allSatisfy(action -> assertThat(action)
+                .isInstanceOfSatisfying(WitnessedSingleCellTransactionAction.class, singleCellAction -> {
+                    assertThat(singleCellAction.table()).isEqualTo(TABLE_NAME);
+                    assertThat(singleCellAction.cell()).isEqualTo(SingleBusyCellReadNoTouchWorkflows.BUSY_CELL);
+                }));
     }
 
     @Test
