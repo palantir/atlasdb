@@ -86,6 +86,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
+import com.palantir.util.Pair;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -280,9 +281,10 @@ public final class LockServiceImpl
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
 
         // thread info collection is off by default
-        this.collectThreadInfo = false;
-        this.threadInfoSnapshotInterval = SimpleTimeDuration.of(5, TimeUnit.SECONDS);
-        this.threadInfoSnapshotRunner = Optional.empty();
+        this.collectThreadInfo = options.collectThreadInfo();
+        this.threadInfoSnapshotInterval = SimpleTimeDuration.of(options.threadInfoSnapshotInterval());
+        this.threadInfoSnapshotRunner =
+                collectThreadInfo ? Optional.of(new ThreadInfoSnapshotRunner(executor)) : Optional.empty();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1349,8 +1351,6 @@ public final class LockServiceImpl
 
     private final class ThreadInfoSnapshotRunner extends LockServiceRunner {
 
-        // TODO Remove this suppression once the background runner can be enabled via configuration.
-        @SuppressWarnings("UnusedMethod")
         private ThreadInfoSnapshotRunner(Ownable<ExecutorService> executor) {
             super(executor);
 

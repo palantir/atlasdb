@@ -29,6 +29,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.ThreadAwareCloseableLockService;
 import com.palantir.lock.ThreadAwareLockClient;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +38,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -47,8 +47,10 @@ import org.junit.Test;
 public class ThreadAwareLockServiceImplTest {
 
     // Disable background thread info collection by default, it will be invoked manually instead
-    private final LockServiceImpl lockService = LockServiceImpl.create(
-            LockServerOptions.builder().isStandaloneServer(false).build());
+    private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
+            .isStandaloneServer(false)
+            .collectThreadInfo(false)
+            .build());
 
     private final ExecutorService executor =
             PTExecutors.newCachedThreadPool(ThreadAwareLockServiceImplTest.class.getName());
@@ -246,28 +248,25 @@ public class ThreadAwareLockServiceImplTest {
 
     @Test
     public void backgroundCollectionWorks() throws InterruptedException {
-        // TODO this simulates the running background snapshotting task and should be replaced with the creation of a
-        // properly configured LockServiceImpl once everything has been wired together
-        Future<Void> future = executor.submit(() -> {
-            while (true) {
-                lockService.updateThreadInfoSnapshot();
-                Thread.sleep(100);
-            }
-        });
+        final ThreadAwareCloseableLockService lockWithServiceWithBackgroundRunner =
+                LockServiceImpl.create(LockServerOptions.builder()
+                        .isStandaloneServer(false)
+                        .collectThreadInfo(true)
+                        .threadInfoSnapshotInterval(SimpleTimeDuration.of(100, TimeUnit.MILLISECONDS))
+                        .build());
 
         LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(TEST_LOCK_1, LockMode.WRITE))
                 .withCreatingThreadName(TEST_THREAD_1)
                 .build();
-        lockService.lockWithFullLockResponse(TEST_LOCK_CLIENT, lockRequest);
+
+        lockWithServiceWithBackgroundRunner.lockWithFullLockResponse(TEST_LOCK_CLIENT, lockRequest);
 
         Awaitility.await("wait for background runner to take a snapshot")
                 .atMost(500, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> {
-                    assertThat(lockService.getLastKnownThreadInfoSnapshot())
+                    assertThat(lockWithServiceWithBackgroundRunner.getLastKnownThreadInfoSnapshot())
                             .containsExactly(
                                     Map.entry(TEST_LOCK_1, ThreadAwareLockClient.of(TEST_LOCK_CLIENT, TEST_THREAD_1)));
                 });
-
-        future.cancel(true);
     }
 }

@@ -54,6 +54,7 @@ include ":leader-election-api-protobufs"
 include ":leader-election-impl"
 include ":lock-api"
 include ":lock-api-objects"
+include ":lock-benchmark"
 include ":lock-conjure-api"
 include ":lock-conjure-api:lock-conjure-api-undertow"
 include ":lock-conjure-api:lock-conjure-api-jersey"
@@ -94,3 +95,4 @@ gradleEnterprise {
         uploadInBackground = !isCiServer
     }
 }
+
