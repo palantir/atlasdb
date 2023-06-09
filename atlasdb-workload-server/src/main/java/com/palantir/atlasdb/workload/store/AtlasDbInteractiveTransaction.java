@@ -107,7 +107,8 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<ColumnAndValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection) {
+    public List<ColumnAndValue> getRowColumnRange(
+            String table, Integer row, ColumnRangeSelection columnRangeSelection) {
         return run(
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in

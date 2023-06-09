@@ -38,10 +38,10 @@ public class SimpleRangeQueryReaderTest {
                 TableAndWorkloadCell.of(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.WORKLOAD_CELL_ONE),
                 Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                .table(WorkloadTestHelpers.TABLE_2)
-                .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key())
-                .columnRangeSelection(ColumnRangeSelection.builder().build())
-                .build()))
+                        .table(WorkloadTestHelpers.TABLE_2)
+                        .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key())
+                        .columnRangeSelection(ColumnRangeSelection.builder().build())
+                        .build()))
                 .isEmpty();
     }
 
@@ -51,10 +51,10 @@ public class SimpleRangeQueryReaderTest {
                 TableAndWorkloadCell.of(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.WORKLOAD_CELL_ONE),
                 Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                .table(WorkloadTestHelpers.TABLE_1)
-                .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key() + 1)
-                .columnRangeSelection(ColumnRangeSelection.builder().build())
-                .build()))
+                        .table(WorkloadTestHelpers.TABLE_1)
+                        .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key() + 1)
+                        .columnRangeSelection(ColumnRangeSelection.builder().build())
+                        .build()))
                 .isEmpty();
     }
 
@@ -67,13 +67,13 @@ public class SimpleRangeQueryReaderTest {
                     Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         }
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                .table(WorkloadTestHelpers.TABLE_1)
-                .row(1)
-                .columnRangeSelection(ColumnRangeSelection.builder()
-                        .startColumnInclusive(2)
-                        .endColumnExclusive(4)
-                        .build())
-                .build()))
+                        .table(WorkloadTestHelpers.TABLE_1)
+                        .row(1)
+                        .columnRangeSelection(ColumnRangeSelection.builder()
+                                .startColumnInclusive(2)
+                                .endColumnExclusive(4)
+                                .build())
+                        .build()))
                 .containsExactly(
                         ColumnAndValue.of(2, WorkloadTestHelpers.VALUE_ONE),
                         ColumnAndValue.of(3, WorkloadTestHelpers.VALUE_ONE));

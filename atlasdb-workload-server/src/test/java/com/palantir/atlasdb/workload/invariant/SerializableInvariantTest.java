@@ -238,7 +238,8 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)))
+                        ImmutableList.of(
+                                ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)))
                 .write(5, 10, 99)
                 .write(5, 13, 24)
                 .delete(5, 15)
@@ -286,8 +287,9 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
-                        .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)));
+                                action.expectedColumnsAndValues())
+                        .containsExactly(
+                                ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)));
     }
 
     @Test
@@ -302,7 +304,8 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 24), ColumnAndValue.of(20, 34)))
+                        ImmutableList.of(
+                                ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 24), ColumnAndValue.of(20, 34)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -314,7 +317,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
@@ -342,7 +345,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
@@ -370,7 +373,7 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                        action.expectedColumnsAndValues())
+                                action.expectedColumnsAndValues())
                         .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
