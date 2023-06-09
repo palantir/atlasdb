@@ -72,6 +72,9 @@ public class LockServiceBenchmarkState {
 
     private int maxBlockingDurationMillis = 100;
 
+    @Param({"nonBlocking_asManyAsPossible", "allRandom"})
+    public String requestSupplierMethodName;
+
     private List<LockDescriptor> heldLocksAtBeginning;
 
     private List<LockDescriptor> availableLocks;
@@ -118,7 +121,7 @@ public class LockServiceBenchmarkState {
                 .mapToObj(i -> StringLockDescriptor.of(Integer.toString(i)))
                 .collect(Collectors.toUnmodifiableList());
 
-        this.lockRequestSupplier = this::allRandom;
+        this.lockRequestSupplier = getRequestSupplierFromName(this.requestSupplierMethodName);
         this.lockService = LockServiceImpl.create(LockServerOptions.builder()
                 .collectThreadInfo(collectThreadInfo)
                 .threadInfoSnapshotInterval(
@@ -149,5 +152,16 @@ public class LockServiceBenchmarkState {
 
     public LockRequest generateLockRequest() {
         return this.lockRequestSupplier.get();
+    }
+
+    private Supplier<LockRequest> getRequestSupplierFromName(String name) {
+        switch (this.requestSupplierMethodName) {
+            case "nonBlocking_asManyAsPossible":
+                return this::nonBlocking_asManyAsPossible_randomMode;
+            case "allRandom":
+                return this::allRandom;
+            default:
+                throw new IllegalArgumentException(name + " is not a known request supplier");
+        }
     }
 }
