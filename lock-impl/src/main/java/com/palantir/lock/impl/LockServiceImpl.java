@@ -1338,11 +1338,19 @@ public final class LockServiceImpl
         private final Optional<ScheduledFuture<?>> scheduledFuture;
 
         private ThreadInfoSnapshotRunner() {
+            // Although LockServiceImpl is passed an executor, which is used by other background tasks like
+            // LockReapRunner, taking periodic snapshots of the current lock state requires a ScheduledExecutor.
+            // Since there is no scheduled counterpart to a CachedThreadPoolExecutor, we cannot just pass a
+            // scheduled executor to LockServiceImpl without possibly altering concurrent scaling behavior.
+            // Hence, the decision was made to construct a new executor instead, ignoring the one passed in the
+            // LockServiceImpl constructor. This decision should be revisited/reverted if
+            // - we decide to pass ScheduledExecutors for LockServiceImpl
+            // - we have the ability to wrap an existing executor to create a scheduled variant
             this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor();
             if (collectThreadInfo) {
                 ScheduledFuture<?> future = scheduledExecutor.scheduleWithFixedDelay(
                         () -> {
-                            ThreadNames.setThreadName(Thread.currentThread(), " Thread Info Snapshotter");
+                            ThreadNames.setThreadName(Thread.currentThread(), "Thread Info Snapshotter");
                             updateThreadInfoSnapshot();
                         },
                         0,
