@@ -105,6 +105,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -195,8 +197,11 @@ public final class LockServiceImpl
     /** If enabled, the background this will update the snapshot at this rate */
     private final SimpleTimeDuration threadInfoSnapshotInterval;
 
-    /** If enabled, the background runner that takes snapshots of the current lock state */
-    private final Optional<ThreadInfoSnapshotRunner> threadInfoSnapshotRunner;
+    /**
+     * The background runner that periodically takes snapshots of the current lock state.
+     * If thread info collection is disabled, nothing will actually be run.
+     */
+    private final ThreadInfoSnapshotRunner threadInfoSnapshotRunner;
 
     /**
      * A relatively consistent snapshot of which lock is currently owned by which client-thread
@@ -282,7 +287,7 @@ public final class LockServiceImpl
         // thread info collection is off by default
         this.collectThreadInfo = false;
         this.threadInfoSnapshotInterval = SimpleTimeDuration.of(5, TimeUnit.SECONDS);
-        this.threadInfoSnapshotRunner = Optional.empty();
+        this.threadInfoSnapshotRunner = new ThreadInfoSnapshotRunner();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1259,20 +1264,6 @@ public final class LockServiceImpl
         return this.lastKnownThreadInfoSnapshot;
     }
 
-    private void updateThreadInfoSnapshotIndefinitely() {
-        while (true) {
-            updateThreadInfoSnapshot();
-            // For benchmarking purposes, we want to retain the ability to run the background task at full load
-            if (threadInfoSnapshotInterval.toMillis() > 0) {
-                try {
-                    Thread.sleep(threadInfoSnapshotInterval.toMillis());
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }
-    }
-
     @VisibleForTesting
     void updateThreadInfoSnapshot() {
         this.lastKnownThreadInfoSnapshot = heldLocksTokenMap.keySet().stream()
@@ -1307,12 +1298,24 @@ public final class LockServiceImpl
         return from.getTokenId().toString(Character.MAX_RADIX);
     }
 
-    private abstract static class LockServiceRunner implements AutoCloseable {
-        protected final Ownable<ExecutorService> executor;
-        protected List<Future<?>> taskFutures;
+    private final class LockReapRunner implements AutoCloseable {
+        private final Ownable<ExecutorService> executor;
+        private final List<Future<?>> taskFutures;
 
-        protected LockServiceRunner(Ownable<ExecutorService> executor) {
+        private LockReapRunner(Ownable<ExecutorService> executor) {
             this.executor = executor;
+
+            Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
+                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Token Reaper");
+                reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
+                return null;
+            });
+            Future<Void> grantReaperFuture = executor.resource().submit(() -> {
+                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Grant Reaper");
+                reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
+                return null;
+            });
+            this.taskFutures = ImmutableList.of(tokenReaperFuture, grantReaperFuture);
         }
 
         @Override
@@ -1328,38 +1331,27 @@ public final class LockServiceImpl
         }
     }
 
-    private final class LockReapRunner extends LockServiceRunner {
+    private final class ThreadInfoSnapshotRunner {
 
-        private LockReapRunner(Ownable<ExecutorService> executor) {
-            super(executor);
+        private final ScheduledExecutorService scheduledExecutor;
 
-            Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
-                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Token Reaper");
-                reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-                return null;
-            });
-            Future<Void> grantReaperFuture = executor.resource().submit(() -> {
-                ThreadNames.setThreadName(Thread.currentThread(), "Held Locks Grant Reaper");
-                reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-                return null;
-            });
-            this.taskFutures = ImmutableList.of(tokenReaperFuture, grantReaperFuture);
-        }
-    }
+        private final Optional<ScheduledFuture<?>> scheduledFuture;
 
-    private final class ThreadInfoSnapshotRunner extends LockServiceRunner {
-
-        // TODO Remove this suppression once the background runner can be enabled via configuration.
-        @SuppressWarnings("UnusedMethod")
-        private ThreadInfoSnapshotRunner(Ownable<ExecutorService> executor) {
-            super(executor);
-
-            Future<Void> holdingThreadUpdaterFuture = executor.resource().submit(() -> {
-                ThreadNames.setThreadName(Thread.currentThread(), "Holding Thread Updater");
-                updateThreadInfoSnapshotIndefinitely();
-                return null;
-            });
-            this.taskFutures = ImmutableList.of(holdingThreadUpdaterFuture);
+        private ThreadInfoSnapshotRunner() {
+            this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor();
+            if (collectThreadInfo) {
+                ScheduledFuture<?> future = scheduledExecutor.scheduleWithFixedDelay(
+                        () -> {
+                            ThreadNames.setThreadName(Thread.currentThread(), " Thread Info Snapshotter");
+                            updateThreadInfoSnapshot();
+                        },
+                        0,
+                        threadInfoSnapshotInterval.toMillis(),
+                        TimeUnit.MILLISECONDS);
+                this.scheduledFuture = Optional.of(future);
+            } else {
+                this.scheduledFuture = Optional.empty();
+            }
         }
     }
 }
