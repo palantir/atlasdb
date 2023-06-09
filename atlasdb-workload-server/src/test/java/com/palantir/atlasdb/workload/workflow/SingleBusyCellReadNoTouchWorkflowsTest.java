@@ -45,13 +45,14 @@ import org.junit.Test;
 public class SingleBusyCellReadNoTouchWorkflowsTest {
     private static final String TABLE_NAME = "busy.readnotouch.cell";
     private static final int ITERATION_COUNT = 1_000;
-    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION = ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.builder()
-            .tableConfiguration(ImmutableTableConfiguration.builder()
-                    .tableName(TABLE_NAME)
-                    .isolationLevel(IsolationLevel.SERIALIZABLE)
-                    .build())
-            .iterationCount(ITERATION_COUNT)
-            .build();
+    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION =
+            ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.builder()
+                    .tableConfiguration(ImmutableTableConfiguration.builder()
+                            .tableName(TABLE_NAME)
+                            .isolationLevel(IsolationLevel.SERIALIZABLE)
+                            .build())
+                    .iterationCount(ITERATION_COUNT)
+                    .build();
 
     private final InteractiveTransactionStore transactionStore = AtlasDbTransactionStore.create(
             TransactionManagers.createInMemory(ImmutableSet.of()),
