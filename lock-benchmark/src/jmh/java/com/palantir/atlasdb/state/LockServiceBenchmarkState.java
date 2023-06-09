@@ -24,15 +24,18 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.ThreadAwareCloseableLockService;
+import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import java.util.List;
 import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import net.bytebuddy.build.Plugin.Factory.Simple;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -67,19 +70,43 @@ public class LockServiceBenchmarkState {
     @Param({"100"})
     public int threadInfoSnapshotIntervalMillis;
 
+    private int maxBlockingDurationMillis = 100;
+
     private List<LockDescriptor> heldLocksAtBeginning;
 
     private List<LockDescriptor> availableLocks;
 
+    @SuppressWarnings("UnusedMethod")
     private LockRequest nonBlocking_asManyAsPossible_randomMode() {
         SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
         for (int i = 0; i < locksPerRequest; i++) {
             locks.put(
-                    this.getAvailableLocks()
+                    availableLocks
                             .get(rand.nextInt(getAvailableLocks().size())),
-                    Math.random() > 0.5 ? LockMode.READ : LockMode.WRITE);
+                    rand.nextBoolean() ? LockMode.READ : LockMode.WRITE);
         }
         return LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
+    }
+
+    private LockRequest allRandom() {
+        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
+        final int numLocks = Math.max(1, rand.nextInt(locksPerRequest));
+        for (int i = 0; i < numLocks; i++) {
+            locks.put(
+                    availableLocks
+                            .get(rand.nextInt(getAvailableLocks().size())),
+                    rand.nextBoolean() ? LockMode.READ : LockMode.WRITE);
+        }
+        LockRequest.Builder builder = LockRequest.builder(locks);
+        if (rand.nextBoolean()) {
+            builder.lockAsManyAsPossible();
+        }
+        if (rand.nextBoolean()) {
+            builder.doNotBlock();
+        } else {
+            builder.blockForAtMost(SimpleTimeDuration.of(rand.nextInt(maxBlockingDurationMillis), TimeUnit.MILLISECONDS));
+        }
+        return builder.build();
     }
 
     @Setup
@@ -90,7 +117,8 @@ public class LockServiceBenchmarkState {
         this.availableLocks = IntStream.range(0, numAvailableLocks)
                 .mapToObj(i -> StringLockDescriptor.of(Integer.toString(i)))
                 .collect(Collectors.toUnmodifiableList());
-        this.lockRequestSupplier = this::nonBlocking_asManyAsPossible_randomMode;
+
+        this.lockRequestSupplier = this::allRandom;
         this.lockService = LockServiceImpl.create(LockServerOptions.builder()
                 .collectThreadInfo(collectThreadInfo)
                 .threadInfoSnapshotInterval(
