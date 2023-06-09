@@ -19,13 +19,17 @@ package com.palantir.atlasdb.workload.invariant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
+import com.palantir.atlasdb.workload.transaction.RangeSlice;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
@@ -375,6 +379,256 @@ public final class SerializableInvariantTest {
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
                                 action.expectedColumnsAndValues())
                         .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
+    }
+
+    @Test
+    public void readsEmptyRangeIfNoCellsPresent() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(10, 10, 21)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.builder()
+                                .startInclusive(15)
+                                .endExclusive(100)
+                                .build(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of())
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void readsRangeOfPresentCells() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(10, 10, 21)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, 15))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(10)
+                                        .addColumns(ColumnAndValue.of(10, 21))
+                                        .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void incorporatesLocalWritesIntoRowRangeScans() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(10, 10, 15)
+                .write(15, 10, 21)
+                .write(20, 10, 34)
+                .endTransaction()
+                .startTransaction()
+                .write(13, 10, 24)
+                .delete(15, 10)
+                .write(20, 10, 38)
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(10)
+                                        .addColumns(ColumnAndValue.of(10, 15))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(13)
+                                        .addColumns(ColumnAndValue.of(10, 24))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(20)
+                                        .addColumns(ColumnAndValue.of(10, 38))
+                                        .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void identifiesUnexpectedMissingCellInRowRangeRead() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .write(10, 10, 21)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(RowResult.builder()
+                                .row(10)
+                                .addColumns(ColumnAndValue.of(10, 21))
+                                .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                getSingularFinalInvalidAction(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(InvalidWitnessedRowRangeReadTransactionAction.class, action -> assertThat(
+                                action.expectedResults())
+                        .containsExactly(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, 15))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(10)
+                                        .addColumns(ColumnAndValue.of(10, 21))
+                                        .build()));
+    }
+
+    @Test
+    public void identifiesUnexpectedAdditionalCellInRowRangeRead() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 15)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, 21))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(10)
+                                        .addColumns(ColumnAndValue.of(10, 21))
+                                        .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                getSingularFinalInvalidAction(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(InvalidWitnessedRowRangeReadTransactionAction.class, action -> assertThat(
+                                action.expectedResults())
+                        .containsExactly(RowResult.builder()
+                                .row(5)
+                                .addColumns(ColumnAndValue.of(10, 15))
+                                .build()));
+    }
+
+    @Test
+    public void identifiesIncorrectCellValueInRowRangeRead() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 20)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(RowResult.builder()
+                                .row(5)
+                                .addColumns(ColumnAndValue.of(10, 21))
+                                .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                getSingularFinalInvalidAction(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(InvalidWitnessedRowRangeReadTransactionAction.class, action -> assertThat(
+                                action.expectedResults())
+                        .containsExactly(RowResult.builder()
+                                .row(5)
+                                .addColumns(ColumnAndValue.of(10, 20))
+                                .build()));
+    }
+
+    @Test
+    public void identifiesIncorrectOrderingInRowRangeRead() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
+                .startTransaction()
+                .write(5, 10, 20)
+                .write(15, 10, 28)
+                .endTransaction()
+                .startTransaction()
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(15)
+                                        .addColumns(ColumnAndValue.of(10, 28))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, 20))
+                                        .build()))
+                .endTransaction()
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
+                getSingularFinalInvalidAction(invalidTransactions, transactions);
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(InvalidWitnessedRowRangeReadTransactionAction.class, action -> assertThat(
+                                action.expectedResults())
+                        .containsExactly(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, 20))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(15)
+                                        .addColumns(ColumnAndValue.of(10, 28))
+                                        .build()));
     }
 
     private static InvalidWitnessedTransactionAction getSingularFinalInvalidAction(

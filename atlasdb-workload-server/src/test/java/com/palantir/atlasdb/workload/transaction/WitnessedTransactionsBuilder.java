@@ -18,6 +18,7 @@ package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
@@ -29,6 +30,7 @@ import com.palantir.logsafe.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class WitnessedTransactionsBuilder {
@@ -104,6 +106,17 @@ public final class WitnessedTransactionsBuilder {
                             .build())
                     .columnsAndValues(valuesRead)
                     .build());
+            return this;
+        }
+
+        public WitnessedTransactionBuilder rowRangeRead(
+                RangeSlice rows, SortedSet<Integer> columns, List<RowResult> results) {
+            actions.add(RowRangeReadTransactionAction.builder()
+                    .table(table)
+                    .rowsToRead(rows)
+                    .columns(columns)
+                    .build()
+                    .witness(results));
             return this;
         }
 

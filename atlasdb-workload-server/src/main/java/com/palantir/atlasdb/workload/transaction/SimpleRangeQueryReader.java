@@ -20,12 +20,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.invariant.ValueAndMaybeTimestamp;
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import io.vavr.Tuple2;
 import io.vavr.collection.Map;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -52,15 +55,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
     }
 
     @Override
-    public List<ColumnAndValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction) {
-        Map<TableAndWorkloadCell, Optional<Integer>> allValues = rawValueSupplier.get();
-        if (allValues.size() > LARGE_HISTORY_LIMIT) {
-            log.error(
-                    "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
-                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
-                        + " efficient range query implementation.",
-                    SafeArg.of("size", allValues.size()));
-        }
+    public List<ColumnAndValue> readColumnRange(RowColumnRangeReadTransactionAction readTransactionAction) {
+        Map<TableAndWorkloadCell, Optional<Integer>> allValues = getValuesAndLogIfLarge();
         return allValues
                 .filterKeys(tableAndWorkloadCell -> {
                     if (!tableAndWorkloadCell.tableName().equals(readTransactionAction.table())) {
@@ -81,5 +77,54 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
                                         "Empty values should already have been filtered out!"))))
                 .sortBy(ColumnAndValue::column)
                 .toJavaList();
+    }
+
+    @Override
+    public List<RowResult> readRowRange(RowRangeReadTransactionAction readTransactionAction) {
+        Map<TableAndWorkloadCell, Optional<Integer>> allValues = getValuesAndLogIfLarge();
+        return allValues
+                .filterKeys(tableAndWorkloadCell -> {
+                    if (!tableAndWorkloadCell.tableName().equals(readTransactionAction.table())) {
+                        return false;
+                    }
+                    if (!readTransactionAction
+                            .rowsToRead()
+                            .contains(tableAndWorkloadCell.cell().key())) {
+                        return false;
+                    }
+                    return readTransactionAction
+                            .columns()
+                            .contains(tableAndWorkloadCell.cell().column());
+                })
+                .filterValues(Optional::isPresent)
+                .groupBy(tuple -> tuple._1().cell().key())
+                .toSortedSet(Comparator.comparing(Tuple2::_1))
+                // This is a hack to work around what I view as an unexpected Vavr API (sorted set's map necessarily
+                // producing an ordered structure), when I only rely on the ordering above.
+                .toList()
+                .<RowResult>map(tuple -> RowResult.builder()
+                        .row(tuple._1())
+                        .addAllColumns(tuple._2()
+                                .map(entry -> ColumnAndValue.of(
+                                        entry._1().cell().column(),
+                                        entry._2()
+                                                .orElseThrow(() -> new SafeRuntimeException(
+                                                        "Empty values should already have been filtered out!"))))
+                                .sortBy(ColumnAndValue::column)
+                                .toJavaList())
+                        .build())
+                .toJavaList();
+    }
+
+    private Map<TableAndWorkloadCell, Optional<Integer>> getValuesAndLogIfLarge() {
+        Map<TableAndWorkloadCell, Optional<Integer>> allValues = rawValueSupplier.get();
+        if (allValues.size() > LARGE_HISTORY_LIMIT) {
+            log.error(
+                    "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
+                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
+                        + " efficient range query implementation.",
+                    SafeArg.of("size", allValues.size()));
+        }
+        return allValues;
     }
 }

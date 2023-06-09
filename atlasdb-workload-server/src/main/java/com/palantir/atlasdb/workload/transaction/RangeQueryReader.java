@@ -17,8 +17,11 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
+import com.palantir.atlasdb.workload.store.RowResult;
 import java.util.List;
 
 public interface RangeQueryReader {
-    List<ColumnAndValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction);
+    List<ColumnAndValue> readColumnRange(RowColumnRangeReadTransactionAction readTransactionAction);
+
+    List<RowResult> readRowRange(RowRangeReadTransactionAction readTransactionAction);
 }

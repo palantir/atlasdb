@@ -62,4 +62,8 @@ public interface RangeSlice {
     static ImmutableRangeSlice.Builder builder() {
         return ImmutableRangeSlice.builder();
     }
+
+    static RangeSlice all() {
+        return ImmutableRangeSlice.builder().build();
+    }
 }

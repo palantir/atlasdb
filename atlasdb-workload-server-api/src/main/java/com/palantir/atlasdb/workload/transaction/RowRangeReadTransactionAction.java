@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.RowResult;
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedRowRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowRangeReadTransactionAction;
+import java.util.List;
 import java.util.SortedSet;
 import org.immutables.value.Value;
 
@@ -40,6 +44,13 @@ public interface RowRangeReadTransactionAction extends TransactionAction {
     @Override
     default <T> T accept(TransactionActionVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    default WitnessedRowRangeReadTransactionAction witness(List<RowResult> results) {
+        return ImmutableWitnessedRowRangeReadTransactionAction.builder()
+                .originalQuery(this)
+                .results(results)
+                .build();
     }
 
     static ImmutableRowRangeReadTransactionAction.Builder builder() {

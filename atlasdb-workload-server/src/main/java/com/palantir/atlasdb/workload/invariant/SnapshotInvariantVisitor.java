@@ -18,10 +18,12 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.SimpleRangeQueryReader;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -100,7 +102,7 @@ final class SnapshotInvariantVisitor
     public Optional<InvalidWitnessedTransactionAction> visit(
             WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
         List<ColumnAndValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
-                .readRange(rowColumnRangeReadTransactionAction.originalQuery());
+                .readColumnRange(rowColumnRangeReadTransactionAction.originalQuery());
         if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
             return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()
                     .witness(rowColumnRangeReadTransactionAction)
@@ -113,7 +115,14 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(
             WitnessedRowRangeReadTransactionAction rowReadTransactionAction) {
-        // TODO (jkong): Not implemented yet!
+        List<RowResult> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
+                .readRowRange(rowReadTransactionAction.originalQuery());
+        if (!expectedReads.equals(rowReadTransactionAction.results())) {
+            return Optional.of(InvalidWitnessedRowRangeReadTransactionAction.builder()
+                    .witness(rowReadTransactionAction)
+                    .expectedResults(expectedReads)
+                    .build());
+        }
         return Optional.empty();
     }
 

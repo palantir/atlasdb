@@ -19,14 +19,19 @@ package com.palantir.atlasdb.workload.invariant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
+import com.palantir.atlasdb.workload.store.RowResult;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
+import com.palantir.atlasdb.workload.transaction.RangeSlice;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.RowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
 import com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
@@ -248,5 +253,99 @@ public final class SnapshotInvariantTest {
                             assertThat(invalidRowColumnRangeRead.expectedColumnsAndValues())
                                     .containsExactly(ColumnAndValue.of(30, WorkloadTestHelpers.VALUE_ONE));
                         });
+    }
+
+    @Test
+    public void rowRangeScanNotExpectedToReadColumnsCommittingAfterOurStart() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
+                .startTransaction(1L)
+                .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
+                .endTransaction(10L)
+                .startTransaction(5L)
+                .write(6, 10, WorkloadTestHelpers.VALUE_TWO)
+                .endTransaction(15L)
+                .startTransaction(12L)
+                .write(7, 10, WorkloadTestHelpers.VALUE_ONE + WorkloadTestHelpers.VALUE_TWO)
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_ONE))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(7)
+                                        .addColumns(ColumnAndValue.of(
+                                                10, WorkloadTestHelpers.VALUE_ONE + WorkloadTestHelpers.VALUE_TWO))
+                                        .build()))
+                .endTransaction(21L)
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        assertThat(invalidTransactions).isEmpty();
+    }
+
+    @Test
+    public void rowRangeScanFlagsColumnCommittingAfterOurStartAsViolating() {
+        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
+        List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
+                .startTransaction(5L)
+                .write(5, 10, WorkloadTestHelpers.VALUE_TWO)
+                .endTransaction(15L)
+                .startTransaction(12L)
+                .write(6, 10, WorkloadTestHelpers.VALUE_ONE)
+                .rowRangeRead(
+                        RangeSlice.all(),
+                        ImmutableSortedSet.of(10),
+                        ImmutableList.of(
+                                RowResult.builder()
+                                        .row(5)
+                                        .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_TWO))
+                                        .build(),
+                                RowResult.builder()
+                                        .row(6)
+                                        .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_ONE))
+                                        .build()))
+                .endTransaction(21L)
+                .build();
+        WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
+                .history(transactions)
+                .transactionStore(readableTransactionStore)
+                .build();
+        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
+        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidTransactions);
+        assertThat(invalidTransaction.transaction().startTimestamp()).isEqualTo(12L);
+        assertThat(invalidTransaction.transaction().commitTimestamp()).contains(21L);
+
+        InvalidWitnessedTransactionAction invalidAction = Iterables.getOnlyElement(invalidTransaction.invalidActions());
+        assertThat(invalidAction)
+                .isInstanceOfSatisfying(InvalidWitnessedRowRangeReadTransactionAction.class, invalidRowRangeRead -> {
+                    assertThat(invalidRowRangeRead.witness())
+                            .isEqualTo(RowRangeReadTransactionAction.builder()
+                                    .table(WorkloadTestHelpers.TABLE_1)
+                                    .rowsToRead(RangeSlice.all())
+                                    .columns(ImmutableSortedSet.of(10))
+                                    .build()
+                                    .witness(ImmutableList.of(
+                                            RowResult.builder()
+                                                    .row(5)
+                                                    .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_TWO))
+                                                    .build(),
+                                            RowResult.builder()
+                                                    .row(6)
+                                                    .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_ONE))
+                                                    .build())));
+                    assertThat(invalidRowRangeRead.expectedResults())
+                            .containsExactly(RowResult.builder()
+                                    .row(6)
+                                    .addColumns(ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_ONE))
+                                    .build());
+                });
     }
 }
