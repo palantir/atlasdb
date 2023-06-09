@@ -147,8 +147,6 @@ public final class LockServiceImpl
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
-    public static boolean COLLECT_AND_LOG_THREAD_INFO = true;
-
     @Immutable
     public static class HeldLocks<T extends ExpiringToken> {
         final T realToken;
