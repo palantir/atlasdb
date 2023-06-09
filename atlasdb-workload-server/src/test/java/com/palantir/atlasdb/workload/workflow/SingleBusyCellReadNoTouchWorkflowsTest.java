@@ -45,7 +45,7 @@ import org.junit.Test;
 public class SingleBusyCellReadNoTouchWorkflowsTest {
     private static final String TABLE_NAME = "busy.readnotouch.cell";
     private static final int ITERATION_COUNT = 1_000;
-    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION = ImSin.builder()
+    private static final SingleBusyCellReadNoTouchWorkflowConfiguration CONFIGURATION = ImmutableSingleBusyCellReadNoTouchWorkflowConfiguration.builder()
             .tableConfiguration(ImmutableTableConfiguration.builder()
                     .tableName(TABLE_NAME)
                     .isolationLevel(IsolationLevel.SERIALIZABLE)
