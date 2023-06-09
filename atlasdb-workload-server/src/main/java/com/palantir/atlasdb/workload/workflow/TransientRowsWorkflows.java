@@ -38,6 +38,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -141,10 +142,12 @@ public final class TransientRowsWorkflows {
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of the summary row", SafeArg.of("actions", actions)));
         WitnessedReadTransactionAction normalRowRead = readTransactionActions.stream()
-                .filter(action -> action.cell().key() != SUMMARY_ROW)
+                .filter(action -> Objects.equals(
+                                action.cell().key(), summaryRowRead.cell().column())
+                        && action.cell().column() == COLUMN)
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
-                        "Expected to find a read of a normal row", SafeArg.of("actions", actions)));
+                        "Expected to find a read of a corresponding normal row", SafeArg.of("actions", actions)));
         if (!summaryRowRead.value().equals(normalRowRead.value())) {
             return Stream.of(CrossCellInconsistency.builder()
                     .putInconsistentValues(

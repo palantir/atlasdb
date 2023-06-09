@@ -20,11 +20,19 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.google.common.collect.ImmutableList;
+<<<<<<< HEAD
+=======
+import com.google.common.collect.ImmutableSet;
+>>>>>>> origin/develop
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+<<<<<<< HEAD
+=======
+import java.util.List;
+>>>>>>> origin/develop
 import org.junit.Test;
 
 public class WitnessedRowColumnRangeReadTransactionActionTest {
@@ -44,8 +52,20 @@ public class WitnessedRowColumnRangeReadTransactionActionTest {
 
     @Test
     public void cannotCreateWitnessWithDuplicateColumns() {
+<<<<<<< HEAD
         assertThatLoggableExceptionThrownBy(() -> WitnessedRowColumnRangeReadTransactionAction.builder()
                         .addColumnsAndValues(ColumnValue.of(1, 5), ColumnValue.of(5, 1), ColumnValue.of(1, 3))
+=======
+        List<ColumnValue> columnsAndValues = ImmutableList.of(
+                ColumnValue.of(1, 5),
+                ColumnValue.of(5, 1),
+                ColumnValue.of(1, 3),
+                ColumnValue.of(5, 8),
+                ColumnValue.of(9, 99));
+
+        assertThatLoggableExceptionThrownBy(() -> WitnessedRowColumnRangeReadTransactionAction.builder()
+                        .addAllColumnsAndValues(columnsAndValues)
+>>>>>>> origin/develop
                         .originalQuery(RowColumnRangeReadTransactionAction.builder()
                                 .table("foo")
                                 .row(1)
@@ -54,11 +74,18 @@ public class WitnessedRowColumnRangeReadTransactionActionTest {
                                 .build())
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
+<<<<<<< HEAD
                 .hasMessageContaining("Duplicate column in columnsAndValues")
                 .hasExactlyArgs(
                         SafeArg.of("duplicatedColumn", 1),
                         SafeArg.of(
                                 "columnsAndValues",
                                 ImmutableList.of(ColumnValue.of(1, 5), ColumnValue.of(5, 1), ColumnValue.of(1, 3))));
+=======
+                .hasMessageContaining("Duplicate columns in columnsAndValues")
+                .hasExactlyArgs(
+                        SafeArg.of("duplicateColumns", ImmutableSet.of(1, 5)),
+                        SafeArg.of("columnsAndValues", columnsAndValues));
+>>>>>>> origin/develop
     }
 }
