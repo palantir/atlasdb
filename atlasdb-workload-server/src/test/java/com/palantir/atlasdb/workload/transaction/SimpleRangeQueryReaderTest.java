@@ -19,7 +19,7 @@ package com.palantir.atlasdb.workload.transaction;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import io.vavr.collection.HashMap;
@@ -38,10 +38,10 @@ public class SimpleRangeQueryReaderTest {
                 TableAndWorkloadCell.of(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.WORKLOAD_CELL_ONE),
                 Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                        .table(WorkloadTestHelpers.TABLE_2)
-                        .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key())
-                        .columnRangeSelection(ColumnRangeSelection.builder().build())
-                        .build()))
+                .table(WorkloadTestHelpers.TABLE_2)
+                .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key())
+                .columnRangeSelection(ColumnRangeSelection.builder().build())
+                .build()))
                 .isEmpty();
     }
 
@@ -51,10 +51,10 @@ public class SimpleRangeQueryReaderTest {
                 TableAndWorkloadCell.of(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.WORKLOAD_CELL_ONE),
                 Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                        .table(WorkloadTestHelpers.TABLE_1)
-                        .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key() + 1)
-                        .columnRangeSelection(ColumnRangeSelection.builder().build())
-                        .build()))
+                .table(WorkloadTestHelpers.TABLE_1)
+                .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key() + 1)
+                .columnRangeSelection(ColumnRangeSelection.builder().build())
+                .build()))
                 .isEmpty();
     }
 
@@ -67,15 +67,15 @@ public class SimpleRangeQueryReaderTest {
                     Optional.of(WorkloadTestHelpers.VALUE_ONE)));
         }
         assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
-                        .table(WorkloadTestHelpers.TABLE_1)
-                        .row(1)
-                        .columnRangeSelection(ColumnRangeSelection.builder()
-                                .startColumnInclusive(2)
-                                .endColumnExclusive(4)
-                                .build())
-                        .build()))
+                .table(WorkloadTestHelpers.TABLE_1)
+                .row(1)
+                .columnRangeSelection(ColumnRangeSelection.builder()
+                        .startColumnInclusive(2)
+                        .endColumnExclusive(4)
+                        .build())
+                .build()))
                 .containsExactly(
-                        ColumnValue.of(2, WorkloadTestHelpers.VALUE_ONE),
-                        ColumnValue.of(3, WorkloadTestHelpers.VALUE_ONE));
+                        ColumnAndValue.of(2, WorkloadTestHelpers.VALUE_ONE),
+                        ColumnAndValue.of(3, WorkloadTestHelpers.VALUE_ONE));
     }
 }

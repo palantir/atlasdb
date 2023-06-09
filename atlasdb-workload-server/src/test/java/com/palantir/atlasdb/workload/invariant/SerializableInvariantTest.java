@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
@@ -214,7 +214,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(10, 15), ColumnValue.of(15, 21)))
+                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -238,7 +238,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(10, 15), ColumnValue.of(15, 21), ColumnValue.of(20, 34)))
+                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)))
                 .write(5, 10, 99)
                 .write(5, 13, 24)
                 .delete(5, 15)
@@ -247,10 +247,10 @@ public final class SerializableInvariantTest {
                         5,
                         ColumnRangeSelection.builder().build(),
                         ImmutableList.of(
-                                ColumnValue.of(10, 99),
-                                ColumnValue.of(13, 24),
-                                ColumnValue.of(18, 36),
-                                ColumnValue.of(20, 34)))
+                                ColumnAndValue.of(10, 99),
+                                ColumnAndValue.of(13, 24),
+                                ColumnAndValue.of(18, 36),
+                                ColumnAndValue.of(20, 34)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -274,7 +274,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(10, 15), ColumnValue.of(20, 34)))
+                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -286,8 +286,8 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
-                        .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(15, 21), ColumnValue.of(20, 34)));
+                        action.expectedColumnsAndValues())
+                        .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 21), ColumnAndValue.of(20, 34)));
     }
 
     @Test
@@ -302,7 +302,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(10, 15), ColumnValue.of(15, 24), ColumnValue.of(20, 34)))
+                        ImmutableList.of(ColumnAndValue.of(10, 15), ColumnAndValue.of(15, 24), ColumnAndValue.of(20, 34)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -314,8 +314,8 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
-                        .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
+                        action.expectedColumnsAndValues())
+                        .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
     @Test
@@ -330,7 +330,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(10, 8888888), ColumnValue.of(20, 34)))
+                        ImmutableList.of(ColumnAndValue.of(10, 8888888), ColumnAndValue.of(20, 34)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -342,8 +342,8 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
-                        .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
+                        action.expectedColumnsAndValues())
+                        .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
     @Test
@@ -358,7 +358,7 @@ public final class SerializableInvariantTest {
                 .rowColumnRangeRead(
                         5,
                         ColumnRangeSelection.builder().build(),
-                        ImmutableList.of(ColumnValue.of(20, 34), ColumnValue.of(10, 15)))
+                        ImmutableList.of(ColumnAndValue.of(20, 34), ColumnAndValue.of(10, 15)))
                 .endTransaction()
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -370,8 +370,8 @@ public final class SerializableInvariantTest {
                 getSingularFinalInvalidAction(invalidTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
-                                action.expectedColumnsAndValues())
-                        .containsExactly(ColumnValue.of(10, 15), ColumnValue.of(20, 34)));
+                        action.expectedColumnsAndValues())
+                        .containsExactly(ColumnAndValue.of(10, 15), ColumnAndValue.of(20, 34)));
     }
 
     private static InvalidWitnessedTransactionAction getSingularFinalInvalidAction(

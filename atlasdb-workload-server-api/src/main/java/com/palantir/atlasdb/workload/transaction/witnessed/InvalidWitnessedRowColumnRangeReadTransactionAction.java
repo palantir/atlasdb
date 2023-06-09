@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.util.List;
@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 public interface InvalidWitnessedRowColumnRangeReadTransactionAction extends InvalidWitnessedTransactionAction {
     WitnessedRowColumnRangeReadTransactionAction witness();
 
-    List<ColumnValue> expectedColumnsAndValues();
+    List<ColumnAndValue> expectedColumnsAndValues();
 
     @Value.Check
     default void check() {

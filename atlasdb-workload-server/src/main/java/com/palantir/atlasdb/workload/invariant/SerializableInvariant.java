@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.RangeQueryReader;
@@ -101,7 +101,7 @@ public enum SerializableInvariant implements TransactionInvariant {
         @Override
         public Optional<InvalidWitnessedTransactionAction> visit(
                 WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-            List<ColumnValue> expectedReads =
+            List<ColumnAndValue> expectedReads =
                     rangeQueryReader.readRange(rowColumnRangeReadTransactionAction.originalQuery());
             if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
                 return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()

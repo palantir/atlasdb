@@ -107,7 +107,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection) {
+    public List<ColumnAndValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection) {
         return run(
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in
@@ -117,11 +117,11 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             List.of(AtlasDbUtils.toAtlasKey(row)),
                             BatchColumnRangeSelection.create(
                                     AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 100));
-                    List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
+                    List<ColumnAndValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
                             .mapKeys(Cell::getColumnName)
                             .mapKeys(AtlasDbUtils::fromAtlasColumn)
                             .mapValues(AtlasDbUtils::fromAtlasValue)
-                            .map(entry -> ColumnValue.of(entry.getKey(), entry.getValue()))
+                            .map(entry -> ColumnAndValue.of(entry.getKey(), entry.getValue()))
                             .collect(Collectors.toList());
                     witnessedTransactionActions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
                             .originalQuery(RowColumnRangeReadTransactionAction.builder()
@@ -146,7 +146,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             .map(atlasRowResult -> RowResult.builder()
                                     .row(AtlasDbUtils.fromAtlasRow(atlasRowResult.getRowName()))
                                     .addAllColumns(atlasRowResult.getColumns().entrySet().stream()
-                                            .map(entry -> ColumnValue.of(
+                                            .map(entry -> ColumnAndValue.of(
                                                     AtlasDbUtils.fromAtlasColumn(entry.getKey()),
                                                     AtlasDbUtils.fromAtlasValue(entry.getValue())))
                                             .collect(Collectors.toList()))

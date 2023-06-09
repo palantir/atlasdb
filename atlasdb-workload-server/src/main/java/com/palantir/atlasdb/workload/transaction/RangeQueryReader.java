@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import java.util.List;
 
 public interface RangeQueryReader {
-    List<ColumnValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction);
+    List<ColumnAndValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction);
 }

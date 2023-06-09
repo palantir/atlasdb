@@ -223,7 +223,7 @@ return).
     List<Todo> result = Lists.newArrayList();
     BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
     visitable.batchAccept(limit, item -> {
-        item.forEach(columnValue -> result.add(ImmutableTodo.of(columnValue.getValue())));
+        item.forEach(columnAndValue -> result.add(ImmutableTodo.of(columnAndValue.getValue())));
         return result.size() < limit;
     });
     return result.subList(0, limit); // The batch hint may not always be respected exactly.
@@ -248,11 +248,11 @@ size and cost ranges respectively. We also assume the existence of ``person`` (t
     List<Todo> result = Lists.newArrayList();
     BatchingVisitable<TodoTable.TodoColumnValue> visitable = Iterables.getOnlyElement(results.values());
     visitable.batchAccept(100, item -> {
-        item.forEach(columnValue -> {
+        item.forEach(columnAndValue -> {
             // needed to ignore values with an intermediate size that are not in the cost range
-            if (columnValue.getColumnName().getMonetaryCost() >= lowerCost &&
-                    columnValue.getColumnName().getMonetaryCost() <= upperCost) {
-                result.add(ImmutableTodo.of(columnValue.getValue()));
+            if (columnAndValue.getColumnName().getMonetaryCost() >= lowerCost &&
+                    columnAndValue.getColumnName().getMonetaryCost() <= upperCost) {
+                result.add(ImmutableTodo.of(columnAndValue.getValue()));
             }
         });
         return true;
@@ -297,8 +297,8 @@ Assume the existence of a Set of Strings, ``personSet``. This corresponds to per
 
             long smallestSize = smallestSizes.get(person);
             columnValues.stream()
-                    .filter(columnValue -> columnValue.getColumnName().getTaskSize() == smallestSize)
-                    .forEach(columnValue -> results.get(person).add(ImmutableTodo.of(columnValue.getValue())));
+                    .filter(columnAndValue -> columnAndValue.getColumnName().getTaskSize() == smallestSize)
+                    .forEach(columnAndValue -> results.get(person).add(ImmutableTodo.of(columnAndValue.getValue())));
 
             // If the last entry doesn't have the smallest size, we must have covered all of the smallest todos
             // in this batch. This works, because dynamic columns are returned in sorted order.

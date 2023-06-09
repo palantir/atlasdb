@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 public interface RowResult {
     int row();
 
-    Set<ColumnValue> columns();
+    Set<ColumnAndValue> columns();
 
     static ImmutableRowResult.Builder builder() {
         return ImmutableRowResult.builder();

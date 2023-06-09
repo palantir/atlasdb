@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -95,7 +95,7 @@ public final class WitnessedTransactionsBuilder {
         }
 
         public WitnessedTransactionBuilder rowColumnRangeRead(
-                Integer row, ColumnRangeSelection columnRangeSelection, List<ColumnValue> valuesRead) {
+                Integer row, ColumnRangeSelection columnRangeSelection, List<ColumnAndValue> valuesRead) {
             actions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
                     .originalQuery(RowColumnRangeReadTransactionAction.builder()
                             .table(table)

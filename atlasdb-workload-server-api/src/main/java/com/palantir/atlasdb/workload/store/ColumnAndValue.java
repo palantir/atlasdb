@@ -19,14 +19,14 @@ package com.palantir.atlasdb.workload.store;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ColumnValue {
+public interface ColumnAndValue {
     @Value.Parameter
     int column();
 
     @Value.Parameter
     int value();
 
-    static ColumnValue of(int column, int value) {
-        return ImmutableColumnValue.of(column, value);
+    static ColumnAndValue of(int column, int value) {
+        return ImmutableColumnAndValue.of(column, value);
     }
 }

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -29,7 +29,7 @@ import org.immutables.value.Value;
 public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedTransactionAction {
     RowColumnRangeReadTransactionAction originalQuery();
 
-    List<ColumnValue> columnsAndValues();
+    List<ColumnAndValue> columnsAndValues();
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
@@ -39,13 +39,13 @@ public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedT
     @Value.Check
     default void check() {
         Set<Integer> knownColumns = new HashSet<>();
-        for (ColumnValue columnValue : columnsAndValues()) {
+        for (ColumnAndValue columnAndValue : columnsAndValues()) {
             Preconditions.checkState(
-                    !knownColumns.contains(columnValue.column()),
+                    !knownColumns.contains(columnAndValue.column()),
                     "Duplicate column in columnsAndValues",
-                    SafeArg.of("duplicatedColumn", columnValue.column()),
+                    SafeArg.of("duplicatedColumn", columnAndValue.column()),
                     SafeArg.of("columnsAndValues", columnsAndValues()));
-            knownColumns.add(columnValue.column());
+            knownColumns.add(columnAndValue.column());
         }
     }
 
