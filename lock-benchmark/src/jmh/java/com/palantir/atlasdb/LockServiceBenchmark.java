@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.state.LockServiceBenchmarkState;
 import com.palantir.atlasdb.state.ThreadIndex;
 import com.palantir.lock.LockClient;
@@ -31,7 +32,7 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-@Measurement(iterations = 2)
+@Measurement(iterations = 1)
 @Warmup(iterations = 1)
 @Fork(2)
 public class LockServiceBenchmark {
@@ -39,7 +40,7 @@ public class LockServiceBenchmark {
     @BenchmarkMode(Mode.Throughput)
     @Benchmark
     @Threads(4)
-    public int lockSleepUnlockMultiThreaded(LockServiceBenchmarkState state, ThreadIndex threadIndex) {
+    public int lockSleepRefreshUnlockMultiThreaded(LockServiceBenchmarkState state, ThreadIndex threadIndex) {
         final LockClient client = LockClient.of("Benchmark Client " + threadIndex.getThreadId());
         final LockService lockService = state.getLockService();
         final LockRequest lockRequest = state.generateLockRequest();
@@ -48,8 +49,13 @@ public class LockServiceBenchmark {
             LockResponse lockResponse = lockService.lockWithFullLockResponse(client, lockRequest);
 
             // pretend we are doing something with them ...
-            if (state.sleepMs > 0) {
-                Thread.sleep(state.sleepMs);
+            for (int i = 0; i < state.refreshCount + 1; i++) {
+                if (state.sleepMs > 0) {
+                    Thread.sleep(state.sleepMs);
+                }
+                if (i < state.refreshCount && lockResponse.getLockRefreshToken() != null) {
+                    lockService.refreshLockRefreshTokens(ImmutableList.of(lockResponse.getLockRefreshToken()));
+                }
             }
 
             // give them back

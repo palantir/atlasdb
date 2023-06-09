@@ -86,7 +86,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
-import com.palantir.util.Pair;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;

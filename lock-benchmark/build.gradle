@@ -11,6 +11,11 @@ dependencies {
     compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
 }
 
+jmh {
+    profilers = ["gc"]
+    jvmArgs = ["-XX:+UseShenandoahGC"]
+}
+
 tasks.jmhCompileGeneratedClasses {
     options.annotationProcessorPath = configurations.errorprone
     options.errorprone.enabled = true

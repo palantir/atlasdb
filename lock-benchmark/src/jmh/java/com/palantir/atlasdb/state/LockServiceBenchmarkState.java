@@ -41,13 +41,16 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class LockServiceBenchmarkState {
     @Param({"true", "false"})
-    public boolean collectAndLogThreadInfo;
+    public boolean collectThreadInfo;
 
     @Param("20")
     public int locksPerRequest;
 
-    @Param({"50", "5", "0"})
+    @Param({"5"})
     public int sleepMs;
+
+    @Param({"2"})
+    public int refreshCount;
 
     private Supplier<LockRequest> lockRequestSupplier;
 
@@ -55,11 +58,14 @@ public class LockServiceBenchmarkState {
 
     private ThreadAwareCloseableLockService lockService;
 
-    @Param("1000000")
+    @Param({"1000000", "10000"})
     public int numHeldLocksAtBeginning;
 
     @Param("10000")
     public int numAvailableLocks;
+
+    @Param({"100"})
+    public int threadInfoSnapshotIntervalMillis;
 
     private List<LockDescriptor> heldLocksAtBeginning;
 
@@ -76,18 +82,6 @@ public class LockServiceBenchmarkState {
         return LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
     }
 
-    public void lockExclusively(LockDescriptor lockDescriptor) {
-        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-        locks.put(lockDescriptor, LockMode.WRITE);
-        LockRequest lockRequest =
-                LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
-        try {
-            lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @Setup
     public void setup() {
         this.heldLocksAtBeginning = IntStream.range(0, numHeldLocksAtBeginning)
@@ -98,13 +92,22 @@ public class LockServiceBenchmarkState {
                 .collect(Collectors.toUnmodifiableList());
         this.lockRequestSupplier = this::nonBlocking_asManyAsPossible_randomMode;
         this.lockService = LockServiceImpl.create(LockServerOptions.builder()
-                .collectThreadInfo(collectAndLogThreadInfo)
-                // We want to measure the worst-case scenario where our background task is constantly running
-                .threadInfoSnapshotInterval(SimpleTimeDuration.of(0, TimeUnit.MILLISECONDS))
+                .collectThreadInfo(collectThreadInfo)
+                .threadInfoSnapshotInterval(
+                        SimpleTimeDuration.of(threadInfoSnapshotIntervalMillis, TimeUnit.MILLISECONDS))
                 .isStandaloneServer(false)
                 .build());
+
+        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
         for (LockDescriptor lock : heldLocksAtBeginning) {
-            lockExclusively(lock);
+            locks.put(lock, LockMode.WRITE);
+        }
+        LockRequest lockRequest =
+                LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
+        try {
+            lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
