@@ -1,0 +1,22 @@
+apply from: "../gradle/shared.gradle"
+apply plugin: 'me.champeau.jmh'
+
+dependencies {
+    jmhImplementation project(path: ':lock-impl')
+    jmhImplementation project(path: ':lock-api')
+
+    jmhAnnotationProcessor 'org.immutables:value'
+    jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess'
+
+    compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
+}
+
+jmh {
+    profilers = ["gc"]
+    jvmArgs = ["-XX:+UseShenandoahGC"]
+}
+
+tasks.jmhCompileGeneratedClasses {
+    options.annotationProcessorPath = configurations.errorprone
+    options.errorprone.enabled = true
+}
