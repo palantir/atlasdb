@@ -21,6 +21,7 @@ import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
@@ -45,6 +46,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -70,6 +72,8 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.ThreadAwareCloseableLockService;
+import com.palantir.lock.ThreadAwareLockClient;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.Safe;
@@ -83,6 +87,7 @@ import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -117,6 +122,7 @@ import org.slf4j.helpers.MessageFormatter;
 @ThreadSafe
 public final class LockServiceImpl
         implements LockService,
+                ThreadAwareCloseableLockService,
                 CloseableRemoteLockService,
                 CloseableLockService,
                 RemoteLockService,
@@ -181,6 +187,22 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
     private final SimpleTimeDuration stuckTransactionTimeout;
+
+    /**
+     * Runtime configuration relating to the collection of information
+     * about which lock is (presumably) held by which thread.
+     */
+    private final DebugThreadInfoConfiguration threadInfoConfiguration;
+
+    private static final long MAX_THREAD_INFO_SIZE = 1_000_000;
+
+    private static final Duration THREAD_INFO_WRITE_EXPIRATION = Duration.ofMinutes(2);
+
+    /**
+     * Mapping of locks to the client thread that last acquired it successfully.
+     */
+    private final Cache<LockDescriptor, ThreadAwareLockClient> lastAcquiringThread;
+
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
     private final LockClientIndices clientIndices = new LockClientIndices();
@@ -256,6 +278,14 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+
+        // thread info collection is off by default
+        this.threadInfoConfiguration = options.threadInfoConfiguration();
+        this.lastAcquiringThread = Caffeine.newBuilder()
+                .executor(executor.resource())
+                .maximumSize(MAX_THREAD_INFO_SIZE)
+                .expireAfterWrite(THREAD_INFO_WRITE_EXPIRATION)
+                .build();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -283,6 +313,10 @@ public final class LockServiceImpl
                 if (!client.isAnonymous()) {
                     lockClientMultimap.put(client, token);
                 }
+                if (threadInfoConfiguration.recordThreadInfo()) {
+                    ThreadAwareLockClient lockHolderThread = ThreadAwareLockClient.of(client, requestThread);
+                    lockDescriptorMap.getKeys().forEach(lock -> lastAcquiringThread.put(lock, lockHolderThread));
+                }
                 return token;
             }
             log.error(
@@ -305,6 +339,11 @@ public final class LockServiceImpl
             HeldLocks<HeldLocksGrant> newHeldLocks = HeldLocks.of(grant, heldLocksMap);
             if (heldLocksGrantMap.putIfAbsent(grant, newHeldLocks) == null) {
                 lockGrantReaperQueue.add(grant);
+                if (threadInfoConfiguration.recordThreadInfo()) {
+                    ThreadAwareLockClient lockHolderThread =
+                            ThreadAwareLockClient.of(INTERNAL_LOCK_GRANT_CLIENT, "N/A");
+                    lockDescriptorMap.getKeys().forEach(lock -> lastAcquiringThread.put(lock, lockHolderThread));
+                }
                 return grant;
             }
             log.error(
@@ -1225,6 +1264,11 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    @Override
+    public ThreadAwareLockClient getLastAcquiringThread(LockDescriptor lock) {
+        return lastAcquiringThread.getIfPresent(lock);
     }
 
     private static String updateThreadName(LockRequest request) {
