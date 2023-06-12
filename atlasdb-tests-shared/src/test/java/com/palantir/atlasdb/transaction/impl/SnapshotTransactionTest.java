@@ -2373,6 +2373,19 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void setsRequestedCommitLocksCountCorrectly_readOnlyTransaction() {
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.get(TABLE, ImmutableSet.of(TEST_CELL));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(0);
+        // Since this is a read-only transaction, we should not even lock a row in the transaction table itself
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0);
+    }
+
+    @Test
     public void setsRequestedCommitLocksCountCorrectly_serializableCell() {
         // Will request commit locks for cells, but not rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
