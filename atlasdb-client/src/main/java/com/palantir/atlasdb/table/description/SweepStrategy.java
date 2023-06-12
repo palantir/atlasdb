@@ -36,7 +36,10 @@ public final class SweepStrategy {
     private final boolean mustCheckImmutableLockAfterNonEmptyReads;
     private final boolean mustCheckImmutableLockAfterEmptyReads;
 
-    private SweepStrategy(Optional<SweeperStrategy> sweeperStrategy, boolean mustCheckImmutableLockAfterNonEmptyReads, boolean mustCheckImmutableLockAfterEmptyReads) {
+    private SweepStrategy(
+            Optional<SweeperStrategy> sweeperStrategy,
+            boolean mustCheckImmutableLockAfterNonEmptyReads,
+            boolean mustCheckImmutableLockAfterEmptyReads) {
         this.sweeperStrategy = sweeperStrategy;
         this.mustCheckImmutableLockAfterNonEmptyReads = mustCheckImmutableLockAfterNonEmptyReads;
         this.mustCheckImmutableLockAfterEmptyReads = mustCheckImmutableLockAfterEmptyReads;
@@ -51,7 +54,10 @@ public final class SweepStrategy {
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
-        return new SweepStrategy(sweeperBehaviour(strategy), mustCheckImmutableLockAfterNonEmptyReads(strategy), mustCheckImmutableLockAfterEmptyReads(strategy));
+        return new SweepStrategy(
+                sweeperBehaviour(strategy),
+                mustCheckImmutableLockAfterNonEmptyReads(strategy),
+                mustCheckImmutableLockAfterEmptyReads(strategy));
     }
 
     private static Optional<SweeperStrategy> sweeperBehaviour(TableMetadataPersistence.SweepStrategy strategy) {
