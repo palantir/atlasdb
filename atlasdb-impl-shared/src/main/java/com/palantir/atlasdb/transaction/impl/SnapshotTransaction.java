@@ -416,15 +416,11 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
-        // Materializing Iterable to List explicitly here because we were already iterating through it twice, not
-        // respecting the fact that we might have exhausted the underlying iterator.
-        List<byte[]> rowsList = ImmutableList.copyOf(rows);
         Map<Cell, Value> rawResults =
-                new HashMap<>(keyValueService.getRows(tableRef, rowsList, columnSelection, getStartTimestamp()));
-        boolean hasReadEmptyCells = rawResults.size() < rowsList.size();
+                new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null && !writes.isEmpty()) {
-            for (byte[] row : rowsList) {
+            for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
             }
         }
@@ -438,11 +434,14 @@ public class SnapshotTransaction extends AbstractTransaction
             perfLogger.debug(
                     "getRows({}, {} rows) found {} rows, took {} ms",
                     LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("numRows", rowsList.size()),
+                    SafeArg.of("numRows", Iterables.size(rows)),
                     SafeArg.of("resultSize", results.size()),
                     SafeArg.of("timeTakenMillis", getRowsMillis));
         }
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), hasReadEmptyCells);
+        validatePreCommitRequirementsOnReadIfNecessary(
+                tableRef,
+                getStartTimestamp(),
+                true /* can't skip lock check as we don't know how many columns we're fetching */);
         return results;
     }
 
@@ -836,8 +835,10 @@ public class SnapshotTransaction extends AbstractTransaction
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, ColumnSelection.all(), getStartTimestamp()));
 
-        boolean hasReadEmptyCells = rawResults.size() < rows.size();
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), hasReadEmptyCells);
+        validatePreCommitRequirementsOnReadIfNecessary(
+                tableRef,
+                getStartTimestamp(),
+                true /* can't skip lock check as we don't know how many cells to expect for the column selection */);
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
