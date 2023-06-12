@@ -33,12 +33,12 @@ public interface RandomWorkflowConfiguration extends WorkflowConfiguration {
 
     @Value.Default
     default Integer maxWrites() {
-        return 5;
+        return 2;
     }
 
     @Value.Default
     default Integer maxReads() {
-        return 5;
+        return 2;
     }
 
     @Value.Default
@@ -48,17 +48,17 @@ public interface RandomWorkflowConfiguration extends WorkflowConfiguration {
 
     @Value.Default
     default Integer maxRowRangeScans() {
-        return 3;
+        return 1;
     }
 
     @Value.Default
     default Integer maxRows() {
-        return 5;
+        return 1;
     }
 
     @Value.Default
     default Integer maxColumns() {
-        return 5;
+        return 3;
     }
 
     @Value.Lazy
