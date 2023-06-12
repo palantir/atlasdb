@@ -22,6 +22,7 @@ import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
@@ -48,7 +49,7 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
-    private static final String TEST_LOCKID = "test_lockId";
+    private static final LockDescriptor TEST_LOCK = StringLockDescriptor.of("test_lockId");
     private static LockServiceImpl lockServiceWithSlowLogEnabled;
     private static LockServiceImpl lockServiceWithSlowLogDisabled;
 
@@ -94,7 +95,7 @@ public final class LockServiceImplTest {
     @Test
     public void slowLogShouldBeLoggedWhenLockResponseIsSlowButShouldNotBeLoggedAtDebug() {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
-        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCK, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
         assertThat(testLockServiceImplLogger.getLoggingEvents()).isEmpty();
@@ -102,19 +103,27 @@ public final class LockServiceImplTest {
         assertThat(testSlowLogger.getLoggingEvents()).hasSize(1);
         assertContainsMatchingLoggingEvent(
                 testSlowLogger.getLoggingEvents(),
-                warn("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
+                warn(
+                        "Blocked for {} ms to acquire lock {} {}.",
+                        lockDurationMillis,
+                        TEST_LOCK.getLockIdAsString(),
+                        "unsuccessfully"));
     }
 
     @Test
     public void debugLogShouldBeLoggedWhenLockResponseIsSlowButSlowLogIsDisabled() {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS + 5;
-        lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
+        lockServiceWithSlowLogDisabled.logSlowLockAcquisition(TEST_LOCK, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
         assertThat(testLockServiceImplLogger.getLoggingEvents()).hasSize(1);
         assertContainsMatchingLoggingEvent(
                 testLockServiceImplLogger.getLoggingEvents(),
-                debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
+                debug(
+                        "Blocked for {} ms to acquire lock {} {}.",
+                        lockDurationMillis,
+                        TEST_LOCK.getLockIdAsString(),
+                        "unsuccessfully"));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
@@ -122,12 +131,16 @@ public final class LockServiceImplTest {
     @Test
     public void debugLogShouldBeLoggedIfLockResponseTimeIsBetweenDebugTriggerTimeAndSlowLogTriggerMillis() {
         long lockDurationMillis = SLOW_LOG_TRIGGER_MILLIS - 5;
-        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCKID, LockClient.ANONYMOUS, lockDurationMillis);
+        lockServiceWithSlowLogEnabled.logSlowLockAcquisition(TEST_LOCK, LockClient.ANONYMOUS, lockDurationMillis);
 
         assertThat(testLockServiceImplLogger.isDebugEnabled()).isTrue();
         assertContainsMatchingLoggingEvent(
                 testLockServiceImplLogger.getLoggingEvents(),
-                debug("Blocked for {} ms to acquire lock {} {}.", lockDurationMillis, TEST_LOCKID, "unsuccessfully"));
+                debug(
+                        "Blocked for {} ms to acquire lock {} {}.",
+                        lockDurationMillis,
+                        TEST_LOCK.getLockIdAsString(),
+                        "unsuccessfully"));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
@@ -135,7 +148,7 @@ public final class LockServiceImplTest {
     @Test
     public void debugOrSlowLogShouldNotBeLoggedWhenLockResponseIsNotSlow() {
         lockServiceWithSlowLogEnabled.logSlowLockAcquisition(
-                TEST_LOCKID, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
+                TEST_LOCK, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
         assertThat(testLockServiceImplLogger.getLoggingEvents()).isEmpty();
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }

@@ -24,9 +24,12 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
+import com.palantir.logsafe.UnsafeArg;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +74,24 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     @VisibleForTesting
     Map<LockDescriptor, LockClientAndThread> getLastKnownThreadInfoSnapshot() {
         return this.lastKnownThreadInfoSnapshot;
+    }
+
+    /**
+     * Returns a consistent snapshot of thread information restricted to the given lock descriptors wrapped in an
+     * unsafe logging argument.
+     */
+    public UnsafeArg<Map<LockDescriptor, LockClientAndThread>> getRestrictedSnapshotAsLogArg(
+            Set<LockDescriptor> lockDescriptors) {
+        Map<LockDescriptor, LockClientAndThread> latestSnapshot = lastKnownThreadInfoSnapshot;
+        Map<LockDescriptor, LockClientAndThread> restrictedSnapshot = new HashMap<>();
+        for (LockDescriptor lock : lockDescriptors) {
+            restrictedSnapshot.put(lock, latestSnapshot.get(lock));
+        }
+        return UnsafeArg.of("presumedClientThreadHolders", restrictedSnapshot);
+    }
+
+    public boolean isRecordingThreadInfo() {
+        return this.threadInfoConfiguration.recordThreadInfo();
     }
 
     @VisibleForTesting

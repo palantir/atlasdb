@@ -72,6 +72,7 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -88,7 +89,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +104,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -467,23 +468,25 @@ public final class LockServiceImpl
                 token == null ? UnsafeArg.of("lockToken", "null") : UnsafeArg.of("lockToken", token));
     }
 
-    private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
+    @VisibleForTesting
+    void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
 
-        List<String> lockDescriptions = new ArrayList<>();
-        Iterator<Map.Entry<LockDescriptor, LockClient>> entries =
-                failedLocks.entrySet().iterator();
-        for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
-            Map.Entry<LockDescriptor, LockClient> entry = entries.next();
-            lockDescriptions.add(String.format(
-                    "Lock: %s, Holder: %s",
-                    entry.getKey().toString(), entry.getValue().toString()));
+        List<String> lockDescriptions = failedLocks.entrySet().stream()
+                .limit(MAX_FAILED_LOCKS_TO_LOG)
+                .map(entry -> String.format("Lock: %s, Holder: %s", entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
+        List<Arg<?>> logArgs = new ArrayList<>();
+        logArgs.add(SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())));
+        logArgs.add(SafeArg.of("numLocksFailed", failedLocks.size()));
+        logArgs.add(UnsafeArg.of("lockDescriptions", lockDescriptions));
+
+        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
+            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(
+                    failedLocks.keySet().stream().limit(MAX_FAILED_LOCKS_TO_LOG).collect(Collectors.toSet())));
         }
-        requestLogger.trace(
-                logMessage,
-                SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
-                SafeArg.of("numLocksFailed", failedLocks.size()),
-                UnsafeArg.of("lockDescriptions", lockDescriptions));
+        requestLogger.trace(logMessage, logArgs);
     }
 
     private boolean isBlocking(BlockingMode blockingMode) {
@@ -529,7 +532,7 @@ public final class LockServiceImpl
                 LockClient currentHolder = tryLock(lock.get(client, entry.getValue()), blockingMode, deadline);
                 if (log.isDebugEnabled() || isSlowLogEnabled()) {
                     long responseTimeMillis = System.currentTimeMillis() - startTime;
-                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
+                    logSlowLockAcquisition(entry.getKey(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -548,22 +551,22 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    void logSlowLockAcquisition(LockDescriptor lockDescriptor, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String lockId = lockDescriptor.getLockIdAsString();
 
-        // Note: The construction of params is pushed into the branches, as it may be expensive.
+        List<Arg<?>> logArgs = new ArrayList<Arg<?>>();
+        logArgs.add(SafeArg.of("durationMillis", durationMillis));
+        logArgs.add(UnsafeArg.of("lockId", lockId));
+        logArgs.add(SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+
+        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
+            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(Set.of(lockDescriptor)));
+        }
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.warn(
-                    slowLockLogMessage,
-                    SafeArg.of("durationMillis", durationMillis),
-                    UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+            SlowLockLogger.logger.warn(slowLockLogMessage, logArgs);
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(
-                    slowLockLogMessage,
-                    SafeArg.of("durationMillis", durationMillis),
-                    UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+            log.debug(slowLockLogMessage, logArgs);
         }
     }
 

@@ -32,18 +32,23 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.impl.LockThreadInfoSnapshotManager;
 import com.palantir.lock.remoting.BlockingTimeoutException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.ws.rs.PathParam;
 import org.immutables.value.Value;
@@ -51,24 +56,38 @@ import org.immutables.value.Value;
 public class BlockingTimeLimitedLockService implements CloseableLockService {
     private static final SafeLogger log = SafeLoggerFactory.get(BlockingTimeLimitedLockService.class);
 
+    @VisibleForTesting
+    static final int MAX_THREADINFO_TO_LOG = 20;
+
     private final CloseableLockService delegate;
     private final TimeLimiter timeLimiter;
     private final long blockingTimeLimitMillis;
 
+    private final LockThreadInfoSnapshotManager threadInfoSnapshotManager;
+
     @VisibleForTesting
     BlockingTimeLimitedLockService(
-            CloseableLockService delegate, TimeLimiter timeLimiter, long blockingTimeLimitMillis) {
+            CloseableLockService delegate,
+            TimeLimiter timeLimiter,
+            long blockingTimeLimitMillis,
+            LockThreadInfoSnapshotManager threadInfoSnapshotManager) {
         this.delegate = delegate;
         this.timeLimiter = timeLimiter;
         this.blockingTimeLimitMillis = blockingTimeLimitMillis;
+        this.threadInfoSnapshotManager = threadInfoSnapshotManager;
     }
 
     public static BlockingTimeLimitedLockService create(
-            CloseableLockService lockService, long blockingTimeLimitMillis) {
+            CloseableLockService lockService,
+            long blockingTimeLimitMillis,
+            LockThreadInfoSnapshotManager threadInfoSnapshotManager) {
         // TODO (jkong): Inject the executor to allow application lifecycle managed executors.
         // Currently maintaining existing behaviour.
         return new BlockingTimeLimitedLockService(
-                lockService, SimpleTimeLimiter.create(PTExecutors.newCachedThreadPool()), blockingTimeLimitMillis);
+                lockService,
+                SimpleTimeLimiter.create(PTExecutors.newCachedThreadPool()),
+                blockingTimeLimitMillis,
+                threadInfoSnapshotManager);
     }
 
     @Nullable
@@ -227,20 +246,26 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     }
 
     private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {
-        final String logMessage =
-                "Lock service timed out after {} milliseconds" + " when servicing {} for client \"{}\"";
-        log.info(
-                logMessage,
-                SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
-                SafeArg.of("method", specification.method()),
-                SafeArg.of("client", specification.client()),
-                UnsafeArg.of("lockRequest", specification.lockRequest()));
+        final String logMessage = "Lock service timed out after {} milliseconds when servicing {} for client \"{}\"";
+
+        List<Arg<?>> logArgs = new ArrayList<>();
+        logArgs.add(SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis));
+        logArgs.add(SafeArg.of("method", specification.method()));
+        logArgs.add(SafeArg.of("client", specification.client()));
+
+        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
+            Set<LockDescriptor> locksToLog = specification.lockRequest().getLockDescriptors().stream()
+                    .limit(MAX_THREADINFO_TO_LOG)
+                    .collect(Collectors.toSet());
+            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(locksToLog));
+        }
+        logArgs.add(UnsafeArg.of("lockRequest", specification.lockRequest()));
+        log.info(logMessage, logArgs);
 
         String errorMessage = String.format(
                 logMessage.replace("{}", "%s"),
-                blockingTimeLimitMillis,
-                specification.method(),
-                specification.client());
+                // Arg.toString() just stringifies the contained value
+                logArgs.toArray());
         return new BlockingTimeoutException(errorMessage);
     }
 
