@@ -5,7 +5,6 @@ dependencies {
     jmhImplementation project(path: ':lock-impl')
     jmhImplementation project(path: ':lock-api')
 
-    jmhAnnotationProcessor 'org.immutables:value'
     jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess'
 
     compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
