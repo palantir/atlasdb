@@ -1552,7 +1552,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void validateLocksOnReadsIfThoroughlySwept() {
+    public void doNotValidateLocksOnNonEmptyReadsIfThoroughlySwept() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateLocksOnEmptyReadsIfThoroughlySwept() {
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
@@ -1562,6 +1577,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class)
                 .isThrownBy(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
+    }
+
+    @Test
+    public void doNotValidateLocksOnCommitIfValidationFlagIsFalseAndOnlyReadNonEmptyValuesOnThoroughlySweptTable() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        assertThatCode(transaction::commit).doesNotThrowAnyException();
     }
 
     @Test
@@ -1579,7 +1610,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
+    public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithValidationOnReads() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfEmptyReadOnThoroughlySwept_WithValidationOnReads() {
         TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
@@ -1595,7 +1644,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
+    public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithoutValidationOnReads() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfEmptyReadOnThoroughlySwept_WithoutValidationOnReads() {
         TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
