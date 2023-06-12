@@ -45,6 +45,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -183,6 +184,8 @@ public final class LockServiceImpl
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
+    private final DebugThreadInfoConfiguration threadInfoConfiguration;
+
     private final LockClientIndices clientIndices = new LockClientIndices();
 
     /** The backing client-aware read write lock for each lock descriptor. */
@@ -256,6 +259,7 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+        this.threadInfoConfiguration = options.threadInfoConfiguration();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1225,6 +1229,11 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    /** Warning: Depending on the configuration, this will start up an asynchronous background task */
+    public LockThreadInfoSnapshotManager createSnapshotManager() {
+        return new LockThreadInfoSnapshotManager(this.threadInfoConfiguration, () -> this.heldLocksTokenMap);
     }
 
     private static String updateThreadName(LockRequest request) {
