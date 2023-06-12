@@ -441,7 +441,7 @@ public class SnapshotTransaction extends AbstractTransaction
         validatePreCommitRequirementsOnReadIfNecessary(
                 tableRef,
                 getStartTimestamp(),
-                true /* can't skip lock check as we don't know how many columns we're fetching */);
+                true /* can't skip lock check as we don't know how many cells to expect for the column selection */);
         return results;
     }
 
