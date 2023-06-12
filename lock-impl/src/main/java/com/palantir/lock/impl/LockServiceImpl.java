@@ -45,7 +45,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
-import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -184,7 +183,8 @@ public final class LockServiceImpl
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
-    private final DebugThreadInfoConfiguration threadInfoConfiguration;
+    /** Configurable background task that periodically collects snapshots about the current lock state */
+    private final LockThreadInfoSnapshotManager threadInfoSnapshotManager;
 
     private final LockClientIndices clientIndices = new LockClientIndices();
 
@@ -259,7 +259,9 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
-        this.threadInfoConfiguration = options.threadInfoConfiguration();
+        this.threadInfoSnapshotManager =
+                new LockThreadInfoSnapshotManager(options.threadInfoConfiguration(), () -> heldLocksTokenMap);
+        threadInfoSnapshotManager.start();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1231,9 +1233,8 @@ public final class LockServiceImpl
         return System.currentTimeMillis();
     }
 
-    /** Warning: Depending on the configuration, this will start up an asynchronous background task */
-    public LockThreadInfoSnapshotManager createSnapshotManager() {
-        return new LockThreadInfoSnapshotManager(this.threadInfoConfiguration, () -> this.heldLocksTokenMap);
+    public LockThreadInfoSnapshotManager getSnapshotManager() {
+        return this.threadInfoSnapshotManager;
     }
 
     private static String updateThreadName(LockRequest request) {

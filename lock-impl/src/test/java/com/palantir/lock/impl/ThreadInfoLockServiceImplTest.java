@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -43,20 +43,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
 
-public class ThreadAwareLockServiceImplTest {
-
-    // Disable background snapshotting, invoke explicitly instead
-    private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
-            .isStandaloneServer(false)
-            .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
-                    .recordThreadInfo(false)
-                    .build())
-            .build());
-
-    private final LockThreadInfoSnapshotManager snapshotRunner = lockService.createSnapshotManager();
-
+public class ThreadInfoLockServiceImplTest {
     private final ExecutorService executor =
-            PTExecutors.newCachedThreadPool(ThreadAwareLockServiceImplTest.class.getName());
+            PTExecutors.newCachedThreadPool(ThreadInfoLockServiceImplTest.class.getName());
 
     private static final LockDescriptor TEST_LOCK_1 = StringLockDescriptor.of("lock-1");
     private static final LockDescriptor TEST_LOCK_2 = StringLockDescriptor.of("lock-2");
@@ -70,6 +59,16 @@ public class ThreadAwareLockServiceImplTest {
                     ImmutableSortedMap.of(TEST_LOCK_1, LockMode.WRITE))
             .withCreatingThreadName(TEST_THREAD_1)
             .build();
+
+    // Disable background snapshotting, invoke explicitly instead
+    private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
+            .isStandaloneServer(false)
+            .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
+                    .recordThreadInfo(false)
+                    .build())
+            .build());
+
+    private final LockThreadInfoSnapshotManager snapshotRunner = lockService.getSnapshotManager();
 
     @Test
     public void initialThreadInfoIsEmpty() {
@@ -90,8 +89,8 @@ public class ThreadAwareLockServiceImplTest {
 
     @Test
     public void recordsThreadInfo_multipleUniqueLocks_fromDifferentThreads() throws InterruptedException {
-        final int numThreads = 10;
-        final int numLocksPerThread = 10;
+        int numThreads = 10;
+        int numLocksPerThread = 10;
 
         List<String> threadNames =
                 IntStream.range(0, numThreads).mapToObj(i -> "test-thread-" + i).collect(Collectors.toList());
@@ -202,7 +201,7 @@ public class ThreadAwareLockServiceImplTest {
 
     @Test
     public void recordsCorrectStateAfterMultipleOperations() throws Exception {
-        final CyclicBarrier barrier = new CyclicBarrier(2);
+        CountDownLatch latch = new CountDownLatch(1);
 
         // T1 locks 1 exclusively and locks 2 in shared mode
         LockResponse response1 = lockService.lockWithFullLockResponse(
@@ -232,11 +231,12 @@ public class ThreadAwareLockServiceImplTest {
                             .lockAsManyAsPossible()
                             .withCreatingThreadName(TEST_THREAD_3)
                             .build());
-            barrier.await();
+            latch.countDown();
             return response;
         });
         lockService.unlock(response1.getToken());
-        barrier.await();
+        latch.await();
+
         snapshotRunner.takeSnapshot();
 
         // T1 should hold nothing, T2 holds 3 in exclusive mode, T3 holds 1 in exclusive and 2 in shared mode
@@ -279,15 +279,14 @@ public class ThreadAwareLockServiceImplTest {
 
     @Test(timeout = 500L)
     public void backgroundSnapshotRunnerWorks() throws InterruptedException {
-        final LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
                 .isStandaloneServer(false)
                 .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(10L)
                         .build())
                 .build());
-        LockThreadInfoSnapshotManager backgroundSnapshotRunner =
-                lockServiceWithBackgroundRunner.createSnapshotManager();
+        LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
 
         LockResponse response = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
                 LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);

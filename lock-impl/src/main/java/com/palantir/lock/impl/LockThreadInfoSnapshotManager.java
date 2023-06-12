@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class LockThreadInfoSnapshotManager {
+public class LockThreadInfoSnapshotManager implements AutoCloseable {
     private DebugThreadInfoConfiguration threadInfoConfiguration;
 
     private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
@@ -49,21 +49,28 @@ public class LockThreadInfoSnapshotManager {
         this.threadInfoConfiguration = threadInfoConfiguration;
         this.tokenMapSupplier = mapSupplier;
         this.lastKnownThreadInfoSnapshot = ImmutableMap.of();
+    }
 
+    public void start() {
+        scheduleSnapshotting();
+    }
+
+    private void run() {
+        takeSnapshot();
+
+        // schedule next snapshot so this can be enabled/disabled at runtime
         scheduleSnapshotting();
     }
 
     private void scheduleSnapshotting() {
         if (threadInfoConfiguration.recordThreadInfo()) {
             scheduledExecutorService.schedule(
-                    this::takeSnapshot,
-                    threadInfoConfiguration.threadInfoSnapshotIntervalMillis(),
-                    TimeUnit.MILLISECONDS);
+                    this::run, threadInfoConfiguration.threadInfoSnapshotIntervalMillis(), TimeUnit.MILLISECONDS);
         }
     }
 
     /**
-     * Returns a consistent snapshot of tread information restricted to the given lock descriptors
+     * Returns a consistent snapshot of thread information restricted to the given lock descriptors
      */
     public Map<LockDescriptor, LockClientAndThread> getLastKnownThreadInfoSnapshot(
             Set<LockDescriptor> lockDescriptors) {
@@ -77,17 +84,19 @@ public class LockThreadInfoSnapshotManager {
     void takeSnapshot() {
         this.lastKnownThreadInfoSnapshot = tokenMapSupplier.get().keySet().stream()
                 .flatMap(token -> {
-                    LockClientAndThread threadAwareLockClient =
+                    LockClientAndThread clientThread =
                             token.getClient() == null || Strings.isNullOrEmpty(token.getRequestingThread())
                                     ? LockClientAndThread.UNKNOWN
                                     : LockClientAndThread.of(token.getClient(), token.getRequestingThread());
                     return token.getLockDescriptors().stream()
-                            .map(lockDescriptor -> Map.entry(lockDescriptor, threadAwareLockClient));
+                            .map(lockDescriptor -> Map.entry(lockDescriptor, clientThread));
                 })
                 // Although a lock can be held by multiple clients/threads, we only remember one to save space
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (existing, replacement) -> existing));
+    }
 
-        // schedule next snapshot so this can be enabled/disabled at runtime
-        scheduleSnapshotting();
+    @Override
+    public void close() {
+        scheduledExecutorService.shutdown();
     }
 }
