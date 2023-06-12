@@ -25,6 +25,8 @@ import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.refreshable.Disposable;
+import com.palantir.refreshable.Refreshable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,24 +40,34 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockThreadInfoSnapshotManager implements AutoCloseable {
-    private DebugThreadInfoConfiguration threadInfoConfiguration;
+    private Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration;
 
     private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
 
-    private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot;
+    private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot = ImmutableMap.of();
 
     private ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
+    private Disposable disposable;
+
+    private boolean isScheduled = false;
+
     public LockThreadInfoSnapshotManager(
-            DebugThreadInfoConfiguration threadInfoConfiguration,
+            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration,
             Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> mapSupplier) {
         this.threadInfoConfiguration = threadInfoConfiguration;
         this.tokenMapSupplier = mapSupplier;
-        this.lastKnownThreadInfoSnapshot = ImmutableMap.of();
     }
 
     public void start() {
         scheduleRun();
+        disposable = threadInfoConfiguration.subscribe(newThreadInfoConfiguration -> {
+            synchronized (this) {
+                if (!isScheduled) {
+                    scheduleRun();
+                }
+            }
+        });
     }
 
     private void run() {
@@ -65,10 +77,22 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         scheduleRun();
     }
 
-    private void scheduleRun() {
-        if (threadInfoConfiguration.recordThreadInfo()) {
+    @VisibleForTesting
+    synchronized boolean isScheduled() {
+        return isScheduled;
+    }
+
+    private synchronized void scheduleRun() {
+        if (threadInfoConfiguration.current().recordThreadInfo()) {
+            if (!isScheduled) {
+                isScheduled = true;
+            }
             scheduledExecutorService.schedule(
-                    this::run, threadInfoConfiguration.threadInfoSnapshotIntervalMillis(), TimeUnit.MILLISECONDS);
+                    this::run,
+                    threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis(),
+                    TimeUnit.MILLISECONDS);
+        } else {
+            isScheduled = false;
         }
     }
 
@@ -84,7 +108,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     public UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> getRestrictedSnapshotAsOptionalLogArg(
             Set<LockDescriptor> lockDescriptors) {
         String argName = "presumedClientThreadHoldersIfEnabled";
-        if (!threadInfoConfiguration.recordThreadInfo()) {
+        if (!threadInfoConfiguration.current().recordThreadInfo()) {
             return UnsafeArg.of(argName, Optional.empty());
         }
         Map<LockDescriptor, LockClientAndThread> latestSnapshot = lastKnownThreadInfoSnapshot;
@@ -113,5 +137,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     @Override
     public void close() {
         scheduledExecutorService.shutdown();
+        isScheduled = true;
+        disposable.dispose();
     }
 }

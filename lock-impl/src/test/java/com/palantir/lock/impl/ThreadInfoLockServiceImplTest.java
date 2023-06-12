@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ImmutableDebugThreadInfoConfiguration;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockClientAndThread;
@@ -32,6 +33,8 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,9 +71,9 @@ public class ThreadInfoLockServiceImplTest {
     // Disable background snapshotting, invoke explicitly instead
     private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
             .isStandaloneServer(false)
-            .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
+            .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                     .recordThreadInfo(false)
-                    .build())
+                    .build()))
             .build());
 
     @Test
@@ -276,10 +279,10 @@ public class ThreadInfoLockServiceImplTest {
     public void backgroundSnapshotRunnerWorks() throws InterruptedException {
         LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
                 .isStandaloneServer(false)
-                .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
+                .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(50L)
-                        .build())
+                        .build()))
                 .build());
         LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
 
@@ -309,10 +312,10 @@ public class ThreadInfoLockServiceImplTest {
     public void logArgIsUnsafeAndContainsRestrictedSnapshotIfRecordingThreadInfo() throws InterruptedException {
         LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
                 .isStandaloneServer(false)
-                .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
+                .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(50L)
-                        .build())
+                        .build()))
                 .build());
         LockRequest lockRequest2 = LockRequest.builder(
                         ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ, TEST_LOCK_2, LockMode.READ))
@@ -331,6 +334,57 @@ public class ThreadInfoLockServiceImplTest {
                         // Snapshot should be restricted to TEST_LOCK_1
                         Optional.of(
                                 Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1))))));
+    }
+
+    @Test
+    public void willRestartWhenConfigIsUpdated() throws InterruptedException {
+        SettableRefreshable<DebugThreadInfoConfiguration> refreshableThreadInfoConfiguration =
+                Refreshable.create(ImmutableDebugThreadInfoConfiguration.builder()
+                        .recordThreadInfo(true)
+                        .threadInfoSnapshotIntervalMillis(50L)
+                        .build());
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
+                .isStandaloneServer(false)
+                .threadInfoConfiguration(refreshableThreadInfoConfiguration)
+                .build());
+        LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
+
+        LockResponse lockResponse = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
+                LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+
+        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
+                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
+                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
+
+        // turn off background task
+        refreshableThreadInfoConfiguration.update(ImmutableDebugThreadInfoConfiguration.builder()
+                .recordThreadInfo(false)
+                .threadInfoSnapshotIntervalMillis(50L)
+                .build());
+
+        Awaitility.await()
+                .until(() ->
+                        !lockServiceWithBackgroundRunner.getSnapshotManager().isScheduled());
+
+        lockServiceWithBackgroundRunner.unlock(lockResponse.getToken());
+
+        // If background task was still running, it would take a snapshot in the meanwhile
+        Awaitility.await().atLeast(200, TimeUnit.MILLISECONDS);
+
+        // But we expect it to do nothing
+        assertThat(lockServiceWithBackgroundRunner.getSnapshotManager().getLastKnownThreadInfoSnapshot())
+                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1));
+
+        // turn background task back on
+        refreshableThreadInfoConfiguration.update(ImmutableDebugThreadInfoConfiguration.builder()
+                .recordThreadInfo(true)
+                .threadInfoSnapshotIntervalMillis(50L)
+                .build());
+
+        // Now the unlock should be reflected in the snapshot
+        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
+                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
+                .doesNotContainKey(TEST_LOCK_1));
     }
 
     private void forceSnapshot() {

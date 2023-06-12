@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
+import com.palantir.refreshable.Refreshable;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -132,8 +133,8 @@ public class LockServerOptions implements Serializable {
      */
     @JsonIgnore
     @Value.Default
-    public DebugThreadInfoConfiguration threadInfoConfiguration() {
-        return ImmutableDebugThreadInfoConfiguration.builder().build();
+    public Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration() {
+        return Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder().build());
     }
 
     @Override
@@ -153,7 +154,9 @@ public class LockServerOptions implements Serializable {
                 && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
                 && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equals(threadInfoConfiguration(), other.threadInfoConfiguration());
+                && Objects.equals(
+                        threadInfoConfiguration().current(),
+                        other.threadInfoConfiguration().current());
     }
 
     @Override
