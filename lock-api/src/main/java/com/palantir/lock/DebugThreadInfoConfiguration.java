@@ -16,10 +16,17 @@
 
 package com.palantir.lock;
 
+import java.time.Duration;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface DebugThreadInfoConfiguration {
+
+    /** Maximum number of lock to client-thread mappings. */
+    long MAX_THREAD_INFO_SIZE = 1_000_000;
+
+    /** Time, after which mappings expire and can be deleted. */
+    Duration THREAD_INFO_WRITE_EXPIRATION = Duration.ofMinutes(2);
 
     @Value.Default
     default boolean recordThreadInfo() {

@@ -87,7 +87,6 @@ import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.math.BigInteger;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -194,10 +193,6 @@ public final class LockServiceImpl
      */
     private final DebugThreadInfoConfiguration threadInfoConfiguration;
 
-    private static final long MAX_THREAD_INFO_SIZE = 1_000_000;
-
-    private static final Duration THREAD_INFO_WRITE_EXPIRATION = Duration.ofMinutes(2);
-
     /**
      * Mapping of locks to the client thread that last acquired it successfully.
      */
@@ -283,8 +278,8 @@ public final class LockServiceImpl
         this.threadInfoConfiguration = options.threadInfoConfiguration();
         this.lastAcquiringThread = Caffeine.newBuilder()
                 .executor(executor.resource())
-                .maximumSize(MAX_THREAD_INFO_SIZE)
-                .expireAfterWrite(THREAD_INFO_WRITE_EXPIRATION)
+                .maximumSize(DebugThreadInfoConfiguration.MAX_THREAD_INFO_SIZE)
+                .expireAfterWrite(DebugThreadInfoConfiguration.THREAD_INFO_WRITE_EXPIRATION)
                 .build();
     }
 
