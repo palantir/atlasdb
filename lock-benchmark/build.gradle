@@ -11,6 +11,8 @@ dependencies {
 }
 
 jmh {
+    resultsFile = project.file("${project.buildDir}/reports/jmh/results.txt")
+    resultFormat = 'CSV'
     profilers = ["gc"]
     jvmArgs = ["-XX:+UseShenandoahGC"]
 }

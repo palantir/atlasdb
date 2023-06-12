@@ -44,7 +44,7 @@ public class LockServiceBenchmarkState {
     @Param({"true", "false"})
     public boolean recordThreadInfo;
 
-    @Param({"20", "1000"})
+    @Param({"20", "10000"})
     public int locksPerRequest;
 
     @Param({"5", "0"})
@@ -56,7 +56,7 @@ public class LockServiceBenchmarkState {
     @Param({"10000"})
     public int numHeldLocksAtBeginning;
 
-    @Param("10000")
+    @Param("1000000")
     public int numAvailableLocks;
 
     @Param({"nonBlocking_asManyAsPossible"})
