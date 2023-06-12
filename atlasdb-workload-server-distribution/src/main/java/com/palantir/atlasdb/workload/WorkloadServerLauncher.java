@@ -35,6 +35,10 @@ import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.RandomWorkflows;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
@@ -44,6 +48,8 @@ import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflows;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflows;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -118,10 +124,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
+        // This is a single threaded executor; this is intentional, so that we only run one workflow at a time.
         ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
                 .build();
+
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
         AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
                 configuration.install().atlas(),
@@ -136,6 +144,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
+        SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+                configuration.install().singleBusyCellReadsNoTouchConfig();
+        BankBalanceWorkflowConfiguration bankBalanceConfig =
+                configuration.install().bankBalanceConfig();
+        RandomWorkflowConfiguration randomWorkflowConfig =
+                configuration.install().randomConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
@@ -148,7 +162,13 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         createTransientRowsWorkflowValidator(
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
-                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()));
+                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                                transactionStoreFactory,
+                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                                environment.lifecycle()),
+                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
+                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -208,10 +228,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService readExecutor = lifecycle
                 .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-read")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         ExecutorService writeExecutor = lifecycle
                 .executorService(SingleBusyCellWorkflowConfiguration.class.getSimpleName() + "-write")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
         InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
@@ -227,6 +249,37 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         MoreExecutors.listeningDecorator(writeExecutor)),
                 new DurableWritesInvariantMetricReporter(
                         SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+                SerializableInvariantLogReporter.INSTANCE);
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleBusyCellReadNoTouchWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleBusyCellReadNoTouchWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutor = lifecycle
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        ExecutorService writeExecutor = lifecycle
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(
+                SingleBusyCellReadNoTouchWorkflows.create(
+                        transactionStore,
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutor),
+                        MoreExecutors.listeningDecorator(writeExecutor)),
+                new DurableWritesInvariantMetricReporter(
+                        SingleBusyCellReadNoTouchWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)),
                 SerializableInvariantLogReporter.INSTANCE);
     }
 
@@ -265,6 +318,43 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .build();
     }
 
+    private WorkflowAndInvariants<Workflow> createBankBalanceWorkflow(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            BankBalanceWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, BankBalanceWorkflows.class);
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(BankBalanceWorkflows.create(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        BankBalanceWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+                .build();
+    }
+
+    private WorkflowAndInvariants<Workflow> createRandomWorkflow(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            RandomWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RandomWorkflows.class);
+        TransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(RandomWorkflows.create(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        RandomWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .build();
+    }
+
     @VisibleForTesting
     CountDownLatch workflowsRanLatch() {
         return workflowsRanLatch;
@@ -279,6 +369,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             WorkflowConfiguration workflowConfig, LifecycleEnvironment lifecycle, Class<T> workflowFactoryClass) {
         return lifecycle
                 .executorService(workflowFactoryClass.getSimpleName())
+                .minThreads(workflowConfig.maxThreadCount())
                 .maxThreads(workflowConfig.maxThreadCount())
                 .build();
     }

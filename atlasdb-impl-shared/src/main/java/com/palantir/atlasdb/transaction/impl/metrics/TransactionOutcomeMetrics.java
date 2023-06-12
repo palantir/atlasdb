@@ -85,6 +85,10 @@ public class TransactionOutcomeMetrics {
         getMeter(TransactionOutcome.ROLLBACK_OTHER).mark();
     }
 
+    public void markCommitLockAcquisitionFailed() {
+        getMeter(TransactionOutcome.COMMIT_LOCK_ACQUISITION_FAILED).mark();
+    }
+
     @VisibleForTesting
     Meter getMeter(TransactionOutcome outcome) {
         return getMeter(outcome, ImmutableMap.of());

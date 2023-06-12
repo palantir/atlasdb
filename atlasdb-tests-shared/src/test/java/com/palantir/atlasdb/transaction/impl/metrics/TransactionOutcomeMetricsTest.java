@@ -72,6 +72,7 @@ public class TransactionOutcomeMetricsTest {
                 .put(4, transactionOutcomeMetrics::markPutUnlessExistsFailed)
                 .put(5, transactionOutcomeMetrics::markRollbackOtherTransaction)
                 .put(6, transactionOutcomeMetrics::markPreCommitCheckFailed)
+                .put(7, transactionOutcomeMetrics::markCommitLockAcquisitionFailed)
                 .buildOrThrow();
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey())
@@ -83,7 +84,8 @@ public class TransactionOutcomeMetricsTest {
                 .hasLocksExpired(3)
                 .hasPutUnlessExistsFailures(4)
                 .hasRollbackOther(5)
-                .hasPreCommitCheckFailures(6);
+                .hasPreCommitCheckFailures(6)
+                .hasCommitLockAcquisitionFailures(7);
     }
 
     @Test
