@@ -825,7 +825,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(
-            TableReference tableRef, Collection<byte[]> rows) {
+            TableReference tableRef, Iterable<byte[]> rows) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(rows)) {
             return AbstractTransaction.EMPTY_SORTED_ROWS;
