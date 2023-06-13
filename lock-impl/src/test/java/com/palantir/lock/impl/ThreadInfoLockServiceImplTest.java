@@ -42,9 +42,6 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class ThreadInfoLockServiceImplTest {
-    private final ExecutorService executor =
-            PTExecutors.newCachedThreadPool(ThreadInfoLockServiceImplTest.class.getName());
-
     private static final LockDescriptor TEST_LOCK_1 = StringLockDescriptor.of("lock-1");
     private static final LockDescriptor TEST_LOCK_2 = StringLockDescriptor.of("lock-2");
     private static final LockDescriptor TEST_LOCK_3 = StringLockDescriptor.of("lock-3");
@@ -57,6 +54,9 @@ public class ThreadInfoLockServiceImplTest {
                     ImmutableSortedMap.of(TEST_LOCK_1, LockMode.WRITE))
             .withCreatingThreadName(TEST_THREAD_1)
             .build();
+
+    private final ExecutorService executor =
+            PTExecutors.newCachedThreadPool(ThreadInfoLockServiceImplTest.class.getName());
 
     // Disable background snapshotting, invoke explicitly instead
     private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
