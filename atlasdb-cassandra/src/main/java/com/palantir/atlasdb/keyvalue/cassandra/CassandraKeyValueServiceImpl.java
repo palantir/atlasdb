@@ -152,11 +152,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Each service can have one or many C* KVS.
  * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node:
- *
+ * <p>
  * n1->c1, c2, c3
  * n2->c5, c4, c9
  * n3->[N C* thrift client connections]
- *
+ * <p>
  * Where {n1, n2, n3} are the active nodes in the C* cluster. Also each
  * node contains the clients which are attached to the node.
  * if some nodes are down, and the change can be detected through active hosts,
@@ -215,7 +215,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     static final ConsistencyLevel WRITE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
-    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.ALL;
+    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
 
     private final Logger log;
 
@@ -594,15 +594,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param rows set containing the rows to retrieve values for.
      * @param selection specifies the set of columns to fetch.
      * @param startTs specifies the maximum timestamp (exclusive) at which to
-     *        retrieve each rows's value.
-     *
+     * retrieve each rows's value.
      * @return map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
+     * because they were deleted or never created in the first place)
+     * are simply not returned.
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
+     * (e.g., attempting to retrieve values from a non-existent table).
      */
     @Override
     public Map<Cell, Value> getRows(
@@ -777,15 +775,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
-     *        retrieve that rows's value.
-     *
+     * retrieve that rows's value.
      * @return map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
+     * because they were deleted or never created in the first place)
+     * are simply not returned.
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
+     * (e.g., attempting to retrieve values from a non-existent table).
      */
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
@@ -842,13 +838,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
-     *        contains duplicates (as defined by {@link Arrays#equals(byte[], byte[])}).
+     * contains duplicates (as defined by {@link Arrays#equals(byte[], byte[])}).
      * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
-     *
      * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
-     *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
-     *
+     * the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
     @Override
@@ -1074,10 +1068,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean completedCell, byte[] lastCol, int numRawResults, BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
-                        && (RangeRequests.isLastRowName(lastCol)
-                                || Arrays.equals(
-                                        RangeRequests.nextLexicographicName(lastCol),
-                                        columnRangeSelection.getEndCol())));
+                && (RangeRequests.isLastRowName(lastCol)
+                || Arrays.equals(
+                RangeRequests.nextLexicographicName(lastCol),
+                columnRangeSelection.getEndCol())));
     }
 
     private static byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -1107,7 +1101,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1129,8 +1122,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put with
-     *               non-negative timestamps less than {@link Long#MAX_VALUE}.
-     *
+     * non-negative timestamps less than {@link Long#MAX_VALUE}.
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1158,7 +1150,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1252,7 +1243,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Requires all Cassandra nodes to be reachable.
      *
      * @param tableRef the name of the table to truncate.
-     *
      * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
      * @throws RuntimeException if the table does not exist.
      */
@@ -1269,7 +1259,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Requires all Cassandra nodes to be reachable.
      *
      * @param tablesToTruncate set od tables to truncate.
-     *
      * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
      * @throws RuntimeException if the table does not exist.
      */
@@ -1285,16 +1274,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for.
-     *
      * @throws PalantirRuntimeException if not all hosts respond successfully.
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         new CellDeleter(
-                        clientPool,
-                        wrappingQueryRunner,
-                        DELETE_CONSISTENCY,
-                        mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete())
+                clientPool,
+                wrappingQueryRunner,
+                DELETE_CONSISTENCY,
+                mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete())
                 .delete(tableRef, keys);
     }
 
@@ -1315,15 +1303,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     // TODO(unknown): after cassandra change: handle reverse ranges
     // TODO(unknown): after cassandra change: handle column filtering
+
     /**
      * For each row in the specified range, returns the most recent version strictly before timestamp. Requires a
      * quorum of Cassandra nodes to be reachable.
-     *
+     * <p>
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
      *
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each row's value.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1344,7 +1332,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
-     *
      * @throws InsufficientConsistencyException if not all hosts respond successfully.
      */
     @Override
@@ -1389,7 +1376,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Returns a sorted list of row keys in the specified range; see
      * {@link CassandraKeyValueService#getRowKeysInRange(TableReference, byte[], byte[], int)}.
-     *
+     * <p>
      * Implementation specific: this method specifically does not read any of the columns and can therefore be used
      * in the presence of wide rows. However, as a side-effect, it may return row where the row only contains Cassandra
      * tombstones.
@@ -1409,12 +1396,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Drop the table, and also delete its table metadata. Requires a quorum of Cassandra nodes to be reachable.
      *
      * @param tableRef the name of the table to drop.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
      * may drop the tables, but fail to to persist the changes to the _metadata table.
-     *
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
@@ -1426,13 +1411,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Drop the tables, and also delete their table metadata. Requires a quorum of Cassandra nodes to be reachable.
      * <p>
      * Main gains here vs. dropTable:
-     *    - problems excepting, we will basically be serializing a rapid series of schema changes
-     *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
-     *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
-     *    - one less round trip
+     * - problems excepting, we will basically be serializing a rapid series of schema changes
+     * through a single host checked out from the client pool, so reduced chance of schema disagreement issues
+     * - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
+     * - one less round trip
      *
      * @param tablesToDrop the set of tables to drop.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
@@ -1450,7 +1434,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to create.
      * @param metadata the metadata of the table to create.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
@@ -1469,10 +1452,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Requires a quorum of Cassandra nodes to be up and available.
      * <p>
      * Main gains here vs. createTable:
-     *    - problems excepting, we will basically be serializing a rapid series of schema changes
-     *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
-     *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
-     *    - one less round trip
+     * - problems excepting, we will basically be serializing a rapid series of schema changes
+     * through a single host checked out from the client pool, so reduced chance of schema disagreement issues
+     * - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
+     * - one less round trip
      * <p>
      * createTables(existingTable, newMetadata) can perform a metadata-only update. Additionally, it is possible
      * that this metadata-only update performs a schema mutation by altering the CFDef (e. g., user changes metadata
@@ -1480,7 +1463,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * does not alter the CfId
      *
      * @param tablesToMetadata a mapping of names of tables to create to their respective metadata.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
@@ -1510,7 +1492,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * This will not contain the names of any hidden tables (e. g., the _metadata table).
      *
      * @return a set of TableReferences (table names) for all the visible tables
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions.
      */
@@ -1527,10 +1508,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * positives. Requires a quorum of Cassandra nodes to be reachable.
      *
      * @param tableRef the name of the table to get metadata for.
-     *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1565,7 +1544,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @return a mapping of table names to their respective metadata in form of a byte array.  Consider
      * {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are available.
      */
     @Override
@@ -1578,7 +1556,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to record metadata for.
      * @param meta a byte array representing the metadata to record.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
@@ -1594,7 +1571,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRefToMetadata a mapping from each table's name to the respective byte array representing
      * the metadata to record.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
      * its execution or Cassandra nodes fail to settle on a schema version after the Cassandra schema is mutated, we
@@ -1776,10 +1752,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         new CellRangeDeleter(
-                        clientPool,
-                        wrappingQueryRunner,
-                        DELETE_CONSISTENCY,
-                        mutationTimestampProvider::getRangeTombstoneTimestamp)
+                clientPool,
+                wrappingQueryRunner,
+                DELETE_CONSISTENCY,
+                mutationTimestampProvider::getRangeTombstoneTimestamp)
                 .deleteAllTimestamps(tableRef, deletes);
     }
 
@@ -1801,7 +1777,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to add the value to.
      * @param cells a set of cells to store the values in.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      */
     @Override
@@ -1829,7 +1804,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @param cells set containg cells to retrieve timestamps for.
      * @param ts maximum timestamp to get (exclusive).
      * @return multimap of timestamps by cell
-     *
      * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
      */
     @Override
@@ -1848,7 +1822,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
-     *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
      * @throws KeyAlreadyExistsException if you are putting a Cell with the same timestamp as one that already exists.
      */
@@ -1918,9 +1891,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static Column prepareColumnForPutUnlessExists(Map.Entry<Cell, byte[]> insertion) {
         return new Column(CassandraKeyValueServices.makeCompositeBuffer(
-                        insertion.getKey().getColumnName(),
-                        // Atlas timestamp
-                        CassandraConstants.CAS_TABLE_TIMESTAMP))
+                insertion.getKey().getColumnName(),
+                // Atlas timestamp
+                CassandraConstants.CAS_TABLE_TIMESTAMP))
                 // Cassandra timestamp
                 .setTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
                 .setValue(insertion.getValue());
@@ -1969,16 +1942,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Performs a check-and-set for multiple cells in a row into the key-value store.
      * Please see {@link MultiCheckAndSetRequest} for information about how to create this request,
      * and {@link KeyValueService} for more detailed documentation.
-     *
+     * <p>
      * If the call completes successfully, then you know that the old cells initially had the values you expected.
      * In this case, you can be sure that all your cells have been updated to their new values.
      * If the old cells initially did not have the values you expected, none of the cells will be updated and
      * {@link MultiCheckAndSetException} will be thrown.
      * Reads concurrent with this operation will not see a partial update.
-     *
+     * <p>
      * Another thing to note is that the check operation will **only be performed on values of cells that are declared
      * in the set of expected values** i.e. the check operation DOES NOT take updates into account.
-     *
+     * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
      * @param request the request, including table, rowName, old values and new values.
@@ -2114,10 +2087,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
-     *        retrieve that rows's value.
+     * retrieve that rows's value.
      * @return listenable future map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
+     * because they were deleted or never created in the first place)
+     * are simply not returned.
      */
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
