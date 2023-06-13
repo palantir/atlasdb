@@ -33,6 +33,7 @@ import com.palantir.lock.StringLockDescriptor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -55,6 +56,9 @@ public class ThreadInfoLockServiceImplTest {
             .withCreatingThreadName(TEST_THREAD_1)
             .build();
 
+    private static final LockClientAndThread ANONYMOUS_TEST_THREAD_1 =
+            LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1);
+
     private final ExecutorService executor =
             PTExecutors.newCachedThreadPool(ThreadInfoLockServiceImplTest.class.getName());
 
@@ -75,26 +79,39 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void recordsThreadInfoOnSingleLock() throws InterruptedException {
+    public void recordsThreadInfoForLock() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         forceSnapshot();
 
-        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(ANONYMOUS_TEST_THREAD_1);
     }
 
     @Test
-    public void recordsThreadInfoOnMultipleUniqueLocksFromDifferentThreads() throws InterruptedException {
+    public void recordsThreadInfoForUnlock() throws InterruptedException {
+        LockResponse response =
+                lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+        forceSnapshot();
+
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(ANONYMOUS_TEST_THREAD_1);
+
+        lockService.unlock(response.getToken());
+        forceSnapshot();
+
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
+    }
+
+    @Test
+    public void recordsThreadInfoForMultipleLocks() throws InterruptedException {
         int numThreads = 10;
         int numLocksPerThread = 10;
 
         List<String> threadNames =
                 IntStream.range(0, numThreads).mapToObj(i -> "test-thread-" + i).collect(Collectors.toList());
-        Map<String, List<LockDescriptor>> locksPerThread = new HashMap<>();
+        Map<String, Set<LockDescriptor>> locksPerThread = new HashMap<>();
         for (String threadName : threadNames) {
-            List<LockDescriptor> locks = IntStream.range(0, numLocksPerThread)
+            Set<LockDescriptor> locks = IntStream.range(0, numLocksPerThread)
                     .mapToObj(i -> StringLockDescriptor.of("test-lock-" + i + "-from-thread-" + threadName))
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
             locksPerThread.put(threadName, locks);
         }
 
@@ -115,7 +132,7 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void recordsThreadInfoOnSharedLockFromDifferentThreads() throws InterruptedException {
+    public void recordsThreadInfoForSharedLock() throws InterruptedException {
         LockRequest lockRequest1 = LockRequest.builder(ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ))
                 .withCreatingThreadName(TEST_THREAD_1)
                 .build();
@@ -125,14 +142,20 @@ public class ThreadInfoLockServiceImplTest {
                 .withCreatingThreadName(TEST_THREAD_2)
                 .build();
 
-        lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest1);
+        LockResponse lockResponse = lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest1);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
+
         forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isIn(
-                        LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1),
-                        LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
+                .isIn(ANONYMOUS_TEST_THREAD_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
+
+        lockService.unlock(lockResponse.getToken());
+
+        forceSnapshot();
+
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
     }
 
     @Test
@@ -149,41 +172,19 @@ public class ThreadInfoLockServiceImplTest {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
         forceSnapshot();
 
-        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
-    }
-
-    @Test
-    public void doesNotRecordFailedLocks() throws InterruptedException {
-        LockRequest lockRequest2 = LockRequest.builder(ImmutableSortedMap.of(TEST_LOCK_1, LockMode.WRITE))
-                .doNotBlock()
-                .lockAsManyAsPossible()
-                .withCreatingThreadName(TEST_THREAD_2)
-                .build();
-
-        lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-        lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
-        forceSnapshot();
-
-        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
-    }
-
-    @Test
-    public void recordsUnlockWriteLock() throws InterruptedException {
-        LockResponse response =
-                lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-
-        lockService.unlock(response.getToken());
-        forceSnapshot();
-
-        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(ANONYMOUS_TEST_THREAD_1);
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_2)).isNull();
     }
 
     @Test
     public void recordsUnlockAndFreezeForNonAnonymousClient() throws InterruptedException {
-        LockResponse response = lockService.lockWithFullLockResponse(
-                LockClient.of("non-anonymous-client"), LOCK_1_THREAD_1_WRITE_REQUEST);
+        LockClient client = LockClient.of("non-anonymous-client");
+
+        LockResponse response = lockService.lockWithFullLockResponse(client, LOCK_1_THREAD_1_WRITE_REQUEST);
+        forceSnapshot();
+
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(LockClientAndThread.of(client, TEST_THREAD_1));
+
         lockService.unlockAndFreeze(response.getToken());
         forceSnapshot();
 
@@ -252,7 +253,6 @@ public class ThreadInfoLockServiceImplTest {
         forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
-        // Lock 2 is a shared lock
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_2)).isNull();
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_3)).isNull();
     }
@@ -261,11 +261,14 @@ public class ThreadInfoLockServiceImplTest {
     public void refreshDoesNotChangeSnapshot() throws InterruptedException {
         LockResponse response =
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+        forceSnapshot();
+
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(ANONYMOUS_TEST_THREAD_1);
+
         lockService.refreshTokens(List.of(response.getToken()));
         forceSnapshot();
 
-        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+        assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isEqualTo(ANONYMOUS_TEST_THREAD_1);
     }
 
     @Test(timeout = 500L)
@@ -285,7 +288,7 @@ public class ThreadInfoLockServiceImplTest {
         Thread.sleep(50L);
 
         assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot().get(TEST_LOCK_1))
-                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(ANONYMOUS_TEST_THREAD_1);
 
         lockServiceWithBackgroundRunner.unlock(response.getToken());
 
