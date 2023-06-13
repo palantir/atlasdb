@@ -27,7 +27,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -69,15 +68,9 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         }
     }
 
-    /**
-     * Returns a consistent snapshot of thread information restricted to the given lock descriptors
-     */
-    public Map<LockDescriptor, LockClientAndThread> getLastKnownThreadInfoSnapshot(
-            Set<LockDescriptor> lockDescriptors) {
-        final Map<LockDescriptor, LockClientAndThread> currentSnapshot = this.lastKnownThreadInfoSnapshot;
-        return lockDescriptors.stream()
-                .filter(currentSnapshot::containsKey)
-                .collect(Collectors.toMap(lock -> lock, currentSnapshot::get));
+    @VisibleForTesting
+    Map<LockDescriptor, LockClientAndThread> getLastKnownThreadInfoSnapshot() {
+        return this.lastKnownThreadInfoSnapshot;
     }
 
     @VisibleForTesting

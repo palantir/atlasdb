@@ -33,7 +33,6 @@ import com.palantir.lock.StringLockDescriptor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -67,11 +66,9 @@ public class ThreadInfoLockServiceImplTest {
                     .build())
             .build());
 
-    private final LockThreadInfoSnapshotManager snapshotRunner = lockService.getSnapshotManager();
-
     @Test
     public void initialThreadInfoIsEmpty() {
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_2)).isNull();
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_3)).isNull();
@@ -80,7 +77,7 @@ public class ThreadInfoLockServiceImplTest {
     @Test
     public void recordsThreadInfoOnSingleLock() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
@@ -110,7 +107,7 @@ public class ThreadInfoLockServiceImplTest {
             lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
         }
 
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         locksPerThread.forEach((threadName, lockDescriptors) ->
                 lockDescriptors.forEach(lock -> assertThat(getLatestThreadInfoForLock(lock))
@@ -130,7 +127,7 @@ public class ThreadInfoLockServiceImplTest {
 
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest1);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isIn(
@@ -150,7 +147,7 @@ public class ThreadInfoLockServiceImplTest {
 
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
@@ -166,7 +163,7 @@ public class ThreadInfoLockServiceImplTest {
 
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
@@ -178,7 +175,7 @@ public class ThreadInfoLockServiceImplTest {
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
 
         lockService.unlock(response.getToken());
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
     }
@@ -188,7 +185,7 @@ public class ThreadInfoLockServiceImplTest {
         LockResponse response = lockService.lockWithFullLockResponse(
                 LockClient.of("non-anonymous-client"), LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.unlockAndFreeze(response.getToken());
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
     }
@@ -231,7 +228,7 @@ public class ThreadInfoLockServiceImplTest {
         lockService.unlock(response1.getToken());
         latch.await();
 
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         // T1 should hold nothing, T2 holds 3 in exclusive mode, T3 holds 1 in exclusive and 2 in shared mode
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
@@ -242,7 +239,7 @@ public class ThreadInfoLockServiceImplTest {
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
 
         lockService.unlock(response2.getToken());
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         // Only T3 should hold locks
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
@@ -252,7 +249,7 @@ public class ThreadInfoLockServiceImplTest {
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_3)).isNull();
 
         lockService.unlock(response3.get().getToken());
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1)).isNull();
         // Lock 2 is a shared lock
@@ -265,7 +262,7 @@ public class ThreadInfoLockServiceImplTest {
         LockResponse response =
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.refreshTokens(List.of(response.getToken()));
-        snapshotRunner.takeSnapshot();
+        forceSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
@@ -287,22 +284,22 @@ public class ThreadInfoLockServiceImplTest {
 
         Thread.sleep(50L);
 
-        assertThat(backgroundSnapshotRunner
-                        .getLastKnownThreadInfoSnapshot(Set.of(TEST_LOCK_1))
-                        .get(TEST_LOCK_1))
+        assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot().get(TEST_LOCK_1))
                 .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
 
         lockServiceWithBackgroundRunner.unlock(response.getToken());
 
         Thread.sleep(50L);
 
-        assertThat(backgroundSnapshotRunner
-                        .getLastKnownThreadInfoSnapshot(Set.of(TEST_LOCK_1))
-                        .get(TEST_LOCK_1))
+        assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot().get(TEST_LOCK_1))
                 .isNull();
     }
 
+    private void forceSnapshot() {
+        this.lockService.getSnapshotManager().takeSnapshot();
+    }
+
     private LockClientAndThread getLatestThreadInfoForLock(LockDescriptor lock) {
-        return snapshotRunner.getLastKnownThreadInfoSnapshot(Set.of(lock)).get(lock);
+        return lockService.getSnapshotManager().getLastKnownThreadInfoSnapshot().get(lock);
     }
 }
