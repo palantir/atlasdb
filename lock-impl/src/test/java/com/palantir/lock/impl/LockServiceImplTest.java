@@ -22,6 +22,7 @@ import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -30,9 +31,12 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.logsafe.UnsafeArg;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +53,10 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
-    private static final LockDescriptor TEST_LOCK = StringLockDescriptor.of("test_lockId");
+    private static final String TEST_LOCKID = "test-lockId";
+    private static final LockDescriptor TEST_LOCK = StringLockDescriptor.of(TEST_LOCKID);
+    private static final UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> threadInfoSnapshotLogArg =
+            UnsafeArg.of("presumedClientThreadHoldersIfEnabled", Optional.empty());
     private static LockServiceImpl lockServiceWithSlowLogEnabled;
     private static LockServiceImpl lockServiceWithSlowLogDisabled;
 
@@ -106,8 +113,9 @@ public final class LockServiceImplTest {
                 warn(
                         "Blocked for {} ms to acquire lock {} {}.",
                         lockDurationMillis,
-                        TEST_LOCK.getLockIdAsString(),
-                        "unsuccessfully"));
+                        TEST_LOCKID,
+                        "unsuccessfully",
+                        threadInfoSnapshotLogArg));
     }
 
     @Test
@@ -122,8 +130,9 @@ public final class LockServiceImplTest {
                 debug(
                         "Blocked for {} ms to acquire lock {} {}.",
                         lockDurationMillis,
-                        TEST_LOCK.getLockIdAsString(),
-                        "unsuccessfully"));
+                        TEST_LOCKID,
+                        "unsuccessfully",
+                        threadInfoSnapshotLogArg));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
@@ -139,8 +148,9 @@ public final class LockServiceImplTest {
                 debug(
                         "Blocked for {} ms to acquire lock {} {}.",
                         lockDurationMillis,
-                        TEST_LOCK.getLockIdAsString(),
-                        "unsuccessfully"));
+                        TEST_LOCKID,
+                        "unsuccessfully",
+                        threadInfoSnapshotLogArg));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }

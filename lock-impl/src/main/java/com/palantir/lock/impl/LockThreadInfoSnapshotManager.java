@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -80,14 +81,18 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
      * Returns a consistent snapshot of thread information restricted to the given lock descriptors wrapped in an
      * unsafe logging argument.
      */
-    public UnsafeArg<Map<LockDescriptor, LockClientAndThread>> getRestrictedSnapshotAsLogArg(
+    public UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> getRestrictedSnapshotAsOptionalLogArg(
             Set<LockDescriptor> lockDescriptors) {
+        final String argName = "presumedClientThreadHoldersIfEnabled";
+        if (!isRecordingThreadInfo()) {
+            return UnsafeArg.of(argName, Optional.empty());
+        }
         Map<LockDescriptor, LockClientAndThread> latestSnapshot = lastKnownThreadInfoSnapshot;
         Map<LockDescriptor, LockClientAndThread> restrictedSnapshot = new HashMap<>();
         for (LockDescriptor lock : lockDescriptors) {
             restrictedSnapshot.put(lock, latestSnapshot.get(lock));
         }
-        return UnsafeArg.of("presumedClientThreadHolders", restrictedSnapshot);
+        return UnsafeArg.of(argName, Optional.of(restrictedSnapshot));
     }
 
     public boolean isRecordingThreadInfo() {

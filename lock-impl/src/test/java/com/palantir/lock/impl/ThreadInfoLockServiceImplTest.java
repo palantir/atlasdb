@@ -30,6 +30,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -295,6 +296,17 @@ public class ThreadInfoLockServiceImplTest {
         Awaitility.waitAtMost(200, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
                         .doesNotContainKey(TEST_LOCK_1));
+    }
+
+    @Test
+    public void logArgIsUnsafeAndContainsRestrictedSnapshot() throws InterruptedException {
+        lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+        forceSnapshot();
+
+        assertThat(lockService.getSnapshotManager().getRestrictedSnapshotAsOptionalLogArg(Set.of(TEST_LOCK_1)))
+                .isEqualTo(UnsafeArg.of(
+                        "presumedClientThreadHoldersIfEnabled",
+                        Optional.of(Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1)))));
     }
 
     private void forceSnapshot() {

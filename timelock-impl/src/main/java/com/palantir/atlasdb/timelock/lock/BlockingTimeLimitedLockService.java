@@ -34,15 +34,12 @@ import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.impl.LockThreadInfoSnapshotManager;
 import com.palantir.lock.remoting.BlockingTimeoutException;
-import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -246,26 +243,24 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
     }
 
     private BlockingTimeoutException logAndHandleTimeout(LockRequestSpecification specification) {
-        final String logMessage = "Lock service timed out after {} milliseconds when servicing {} for client \"{}\"";
-
-        List<Arg<?>> logArgs = new ArrayList<>();
-        logArgs.add(SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis));
-        logArgs.add(SafeArg.of("method", specification.method()));
-        logArgs.add(SafeArg.of("client", specification.client()));
-
-        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
-            Set<LockDescriptor> locksToLog = specification.lockRequest().getLockDescriptors().stream()
-                    .limit(MAX_THREADINFO_TO_LOG)
-                    .collect(Collectors.toSet());
-            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(locksToLog));
-        }
-        logArgs.add(UnsafeArg.of("lockRequest", specification.lockRequest()));
-        log.info(logMessage, logArgs);
+        final String logMessage =
+                "Lock service timed out after {} milliseconds" + " when servicing {} for client \"{}\"";
+        log.info(
+                logMessage,
+                SafeArg.of("timeoutDurationMillis", blockingTimeLimitMillis),
+                SafeArg.of("method", specification.method()),
+                SafeArg.of("client", specification.client()),
+                UnsafeArg.of("lockRequest", specification.lockRequest()),
+                threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(
+                        specification.lockRequest().getLockDescriptors().stream()
+                                .limit(MAX_THREADINFO_TO_LOG)
+                                .collect(Collectors.toSet())));
 
         String errorMessage = String.format(
                 logMessage.replace("{}", "%s"),
-                // Arg.toString() just stringifies the contained value
-                logArgs.toArray());
+                blockingTimeLimitMillis,
+                specification.method(),
+                specification.client());
         return new BlockingTimeoutException(errorMessage);
     }
 

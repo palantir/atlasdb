@@ -72,7 +72,6 @@ import com.palantir.lock.SortedLockCollection;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
-import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -108,6 +107,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import one.util.streamex.EntryStream;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
@@ -468,25 +468,20 @@ public final class LockServiceImpl
                 token == null ? UnsafeArg.of("lockToken", "null") : UnsafeArg.of("lockToken", token));
     }
 
-    @VisibleForTesting
-    void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
+    private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
-
-        List<String> lockDescriptions = failedLocks.entrySet().stream()
+        List<String> lockDescriptions = EntryStream.of(failedLocks)
                 .limit(MAX_FAILED_LOCKS_TO_LOG)
-                .map(entry -> String.format("Lock: %s, Holder: %s", entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
-
-        List<Arg<?>> logArgs = new ArrayList<>();
-        logArgs.add(SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())));
-        logArgs.add(SafeArg.of("numLocksFailed", failedLocks.size()));
-        logArgs.add(UnsafeArg.of("lockDescriptions", lockDescriptions));
-
-        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
-            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(
-                    failedLocks.keySet().stream().limit(MAX_FAILED_LOCKS_TO_LOG).collect(Collectors.toSet())));
-        }
-        requestLogger.trace(logMessage, logArgs);
+                .mapKeyValue((key, value) -> String.format("Lock: %s, Holder: %s", key, value))
+                .toList();
+        requestLogger.trace(
+                logMessage,
+                SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
+                SafeArg.of("numLocksFailed", failedLocks.size()),
+                UnsafeArg.of("lockDescriptions", lockDescriptions),
+                threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(failedLocks.keySet().stream()
+                        .limit(MAX_FAILED_LOCKS_TO_LOG)
+                        .collect(Collectors.toSet())));
     }
 
     private boolean isBlocking(BlockingMode blockingMode) {
@@ -555,18 +550,21 @@ public final class LockServiceImpl
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
         final String lockId = lockDescriptor.getLockIdAsString();
 
-        List<Arg<?>> logArgs = new ArrayList<Arg<?>>();
-        logArgs.add(SafeArg.of("durationMillis", durationMillis));
-        logArgs.add(UnsafeArg.of("lockId", lockId));
-        logArgs.add(SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
-
-        if (threadInfoSnapshotManager.isRecordingThreadInfo()) {
-            logArgs.add(threadInfoSnapshotManager.getRestrictedSnapshotAsLogArg(Set.of(lockDescriptor)));
-        }
+        // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.warn(slowLockLogMessage, logArgs);
+            SlowLockLogger.logger.warn(
+                    slowLockLogMessage,
+                    SafeArg.of("durationMillis", durationMillis),
+                    UnsafeArg.of("lockId", lockId),
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
-            log.debug(slowLockLogMessage, logArgs);
+            log.debug(
+                    slowLockLogMessage,
+                    SafeArg.of("durationMillis", durationMillis),
+                    UnsafeArg.of("lockId", lockId),
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         }
     }
 
