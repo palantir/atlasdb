@@ -17,7 +17,6 @@
 package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.DebugThreadInfoConfiguration;
@@ -27,6 +26,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -51,17 +51,17 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     }
 
     public void start() {
-        scheduleSnapshotting();
+        scheduleRun();
     }
 
     private void run() {
         takeSnapshot();
 
         // schedule next snapshot so this can be enabled/disabled at runtime
-        scheduleSnapshotting();
+        scheduleRun();
     }
 
-    private void scheduleSnapshotting() {
+    private void scheduleRun() {
         if (threadInfoConfiguration.recordThreadInfo()) {
             scheduledExecutorService.schedule(
                     this::run, threadInfoConfiguration.threadInfoSnapshotIntervalMillis(), TimeUnit.MILLISECONDS);
@@ -78,8 +78,8 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         this.lastKnownThreadInfoSnapshot = tokenMapSupplier.get().keySet().stream()
                 .flatMap(token -> {
                     LockClientAndThread clientThread = LockClientAndThread.of(
-                            MoreObjects.firstNonNull(token.getClient(), LockClientAndThread.UNKNOWN.client()),
-                            MoreObjects.firstNonNull(
+                            Objects.requireNonNullElse(token.getClient(), LockClientAndThread.UNKNOWN.client()),
+                            Objects.requireNonNullElse(
                                     token.getRequestingThread(), LockClientAndThread.UNKNOWN.thread()));
                     return token.getLockDescriptors().stream()
                             .map(lockDescriptor -> Map.entry(lockDescriptor, clientThread));
