@@ -39,7 +39,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
 
-    private Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot;
+    private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot;
 
     private ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
