@@ -24,7 +24,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.ThreadAwareCloseableLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import java.util.List;
 import java.util.Random;
@@ -41,10 +40,11 @@ import org.openjdk.jmh.annotations.State;
 
 @State(Scope.Benchmark)
 public class LockServiceBenchmarkState {
+
     @Param({"true", "false"})
     public boolean recordThreadInfo;
 
-    @Param({"20", "10000"})
+    @Param({"20"})
     public int locksPerRequest;
 
     @Param({"5", "0"})
@@ -53,23 +53,26 @@ public class LockServiceBenchmarkState {
     @Param({"0"})
     public int refreshCount;
 
-    @Param({"10000"})
+    @Param({"1000000"})
     public int numHeldLocksAtBeginning;
 
-    @Param("1000000")
+    @Param({"1000000"})
     public int numAvailableLocks;
 
-    @Param({"nonBlocking_asManyAsPossible"})
+    @Param({"100"})
+    public long threadInfoSnapshotIntervalMillis;
+
+    @Param({"nonBlockingAsManyAsPossibleRandomMode"})
     public String requestSupplierMethodName;
 
-    private ThreadAwareCloseableLockService lockService;
-    private Supplier<LockRequest> lockRequestSupplier;
     private final int maxBlockingDurationMillis = 100;
     private final Random rand = new Random();
+    private LockServiceImpl lockService;
+    private Supplier<LockRequest> lockRequestSupplier;
     private List<LockDescriptor> heldLocksAtBeginning;
     private List<LockDescriptor> availableLocks;
 
-    private LockRequest nonBlocking_asManyAsPossible_randomMode() {
+    private LockRequest nonBlockingAsManyAsPossibleRandomMode() {
         SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
         for (int i = 0; i < locksPerRequest; i++) {
             locks.put(
@@ -81,7 +84,7 @@ public class LockServiceBenchmarkState {
 
     private LockRequest allRandom() {
         SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-        final int numLocks = Math.max(1, rand.nextInt(locksPerRequest));
+        int numLocks = Math.max(1, rand.nextInt(locksPerRequest));
         for (int i = 0; i < numLocks; i++) {
             locks.put(
                     availableLocks.get(rand.nextInt(getAvailableLocks().size())),
@@ -114,6 +117,7 @@ public class LockServiceBenchmarkState {
         this.lockService = LockServiceImpl.create(LockServerOptions.builder()
                 .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(recordThreadInfo)
+                        .threadInfoSnapshotIntervalMillis(threadInfoSnapshotIntervalMillis)
                         .build())
                 .isStandaloneServer(false)
                 .build());
@@ -131,7 +135,7 @@ public class LockServiceBenchmarkState {
         }
     }
 
-    public ThreadAwareCloseableLockService getLockService() {
+    public LockServiceImpl getLockService() {
         return this.lockService;
     }
 
@@ -145,8 +149,8 @@ public class LockServiceBenchmarkState {
 
     private Supplier<LockRequest> getRequestSupplierFromName(String name) {
         switch (this.requestSupplierMethodName) {
-            case "nonBlocking_asManyAsPossible":
-                return this::nonBlocking_asManyAsPossible_randomMode;
+            case "nonBlockingAsManyAsPossibleRandomMode":
+                return this::nonBlockingAsManyAsPossibleRandomMode;
             case "allRandom":
                 return this::allRandom;
             default:

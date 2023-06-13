@@ -43,7 +43,7 @@ public class LockServiceBenchmark {
      */
     @BenchmarkMode(Mode.Throughput)
     @Benchmark
-    @Threads(20)
+    @Threads(4)
     public int lockSleepRefreshUnlockMultiThreaded(LockServiceBenchmarkState state, ThreadIndex threadIndex) {
         final LockClient client = LockClient.of("Benchmark Client " + threadIndex.getThreadId());
         final LockService lockService = state.getLockService();
