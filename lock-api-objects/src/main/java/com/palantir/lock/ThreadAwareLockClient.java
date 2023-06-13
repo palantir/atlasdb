@@ -22,6 +22,8 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface ThreadAwareLockClient {
 
+    ThreadAwareLockClient UNKNOWN = ThreadAwareLockClient.of(LockClient.ANONYMOUS, "unknown-thread");
+
     @Nullable
     LockClient client();
 

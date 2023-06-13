@@ -19,10 +19,11 @@ package com.palantir.lock;
 public interface ThreadAwareCloseableLockService extends CloseableLockService {
 
     /**
-     * This is a debugging-only method providing best-effort information about which client-thread last successfully
-     * acquired a lock. This does not guarantee that the lock is still held by that thread as unlock operations are
-     * not recorded.
-     * Returns null if we have not recorded a thread acquisition for this lock yet.
+     * This is a debugging-only method providing a good-effort guess about which client-thread currently
+     * holds a given lock. This information may not reflect the actual state of the world.
+     * Returns null if we have not recorded a mapping for this lock.
+     * Returns {@link ThreadAwareLockClient#UNKNOWN} if we do not know if this lock is being held or who the current
+     * holder thread is.
      */
-    ThreadAwareLockClient getLastAcquiringThread(LockDescriptor lock);
+    ThreadAwareLockClient getHoldingThread(LockDescriptor lock);
 }

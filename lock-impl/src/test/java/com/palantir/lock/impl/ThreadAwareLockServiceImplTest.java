@@ -70,16 +70,16 @@ public class ThreadAwareLockServiceImplTest {
 
     @Test
     public void initialThreadInfoIsEmpty() {
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1)).isNull();
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_2)).isNull();
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_3)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_2)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_3)).isNull();
     }
 
     @Test
     public void recordsThreadInfo_singleLock() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
@@ -90,7 +90,7 @@ public class ThreadAwareLockServiceImplTest {
 
         defaultLockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
 
-        assertThat(defaultLockService.getLastAcquiringThread(TEST_LOCK_1)).isNull();
+        assertThat(defaultLockService.getHoldingThread(TEST_LOCK_1)).isNull();
     }
 
     @Test
@@ -123,7 +123,7 @@ public class ThreadAwareLockServiceImplTest {
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
         expected.forEach((lock, clientThread) -> {
-            assertThat(lockService.getLastAcquiringThread(lock)).isEqualTo(clientThread);
+            assertThat(lockService.getHoldingThread(lock)).isEqualTo(clientThread);
         });
     }
 
@@ -141,7 +141,7 @@ public class ThreadAwareLockServiceImplTest {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest1);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isIn(
                         ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1),
                         ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_2));
@@ -160,7 +160,7 @@ public class ThreadAwareLockServiceImplTest {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
@@ -175,17 +175,34 @@ public class ThreadAwareLockServiceImplTest {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
     @Test
-    public void recordsUnlock() throws InterruptedException {
+    public void recordsUnlockWriteLock() throws InterruptedException {
         LockResponse response =
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+
         lockService.unlock(response.getToken());
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1)).isNull();
+    }
+
+    @Test
+    public void recordsUnlockReadLock() throws InterruptedException {
+        LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ))
+                .doNotBlock()
+                .lockAsManyAsPossible()
+                .withCreatingThreadName(TEST_THREAD_1)
+                .build();
+        LockResponse response =
+                lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
+        lockService.unlock(response.getToken());
+
+        // WE know that the lock is not being held at the moment
+        // But since it is a shared lock our implementation does not know and is self-aware about that fact
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1)).isEqualTo(ThreadAwareLockClient.UNKNOWN);
     }
 
     @Test
@@ -194,7 +211,9 @@ public class ThreadAwareLockServiceImplTest {
                 LockClient.of("non-anonymous-client"), LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.unlockAndFreeze(response.getToken());
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1)).isNull();
+        // since it's a non-anonymous client, we cannot be certain about the current holder since
+        // the client could have multiple write locks
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1)).isEqualTo(ThreadAwareLockClient.UNKNOWN);
     }
 
     @Test
@@ -236,28 +255,28 @@ public class ThreadAwareLockServiceImplTest {
         barrier.await();
 
         // T1 should hold nothing, T2 holds 3 in exclusive mode, T3 holds 1 in exclusive and 2 in shared mode
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_2))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_2))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_3))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_3))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_2));
 
         lockService.unlock(response2.getToken());
 
         // Only T3 should hold locks
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_2))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_2))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_3)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_3)).isNull();
 
         lockService.unlock(response3.get().getToken());
 
-        // No more locks should be held
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1)).isNull();
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_2)).isNull();
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_3)).isNull();
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1)).isNull();
+        // Lock 2 is a shared lock
+        assertThat(lockService.getHoldingThread(TEST_LOCK_2)).isEqualTo(ThreadAwareLockClient.UNKNOWN);
+        assertThat(lockService.getHoldingThread(TEST_LOCK_3)).isNull();
     }
 
     @Test
@@ -266,7 +285,7 @@ public class ThreadAwareLockServiceImplTest {
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.convertToGrant(response.getToken());
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.INTERNAL_LOCK_GRANT_CLIENT, "N/A"));
     }
 
@@ -277,7 +296,7 @@ public class ThreadAwareLockServiceImplTest {
         HeldLocksGrant grant = lockService.convertToGrant(response.getToken());
         lockService.useGrant(LockClient.ANONYMOUS, grant);
 
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, "Converted from Grant, Missing Thread Name"));
     }
 
@@ -286,7 +305,7 @@ public class ThreadAwareLockServiceImplTest {
         LockResponse response =
                 lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         lockService.refreshTokens(List.of(response.getToken()));
-        assertThat(lockService.getLastAcquiringThread(TEST_LOCK_1))
+        assertThat(lockService.getHoldingThread(TEST_LOCK_1))
                 .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 }

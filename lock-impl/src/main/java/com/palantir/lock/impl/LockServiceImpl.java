@@ -194,9 +194,9 @@ public final class LockServiceImpl
     private final DebugThreadInfoConfiguration threadInfoConfiguration;
 
     /**
-     * Mapping of locks to the client thread that last acquired it successfully.
+     * Mapping of locks to the client thread that last held it.
      */
-    private final Cache<LockDescriptor, ThreadAwareLockClient> lastAcquiringThread;
+    private final Cache<LockDescriptor, ThreadAwareLockClient> lastHoldingThread;
 
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
@@ -276,7 +276,7 @@ public final class LockServiceImpl
 
         // thread info collection is off by default
         this.threadInfoConfiguration = options.threadInfoConfiguration();
-        this.lastAcquiringThread = Caffeine.newBuilder()
+        this.lastHoldingThread = Caffeine.newBuilder()
                 .executor(executor.resource())
                 .maximumSize(DebugThreadInfoConfiguration.MAX_THREAD_INFO_SIZE)
                 .expireAfterWrite(DebugThreadInfoConfiguration.THREAD_INFO_WRITE_EXPIRATION)
@@ -310,7 +310,7 @@ public final class LockServiceImpl
                 }
                 if (threadInfoConfiguration.recordThreadInfo()) {
                     ThreadAwareLockClient lockHolderThread = ThreadAwareLockClient.of(client, requestThread);
-                    lockDescriptorMap.getKeys().forEach(lock -> lastAcquiringThread.put(lock, lockHolderThread));
+                    lockDescriptorMap.getKeys().forEach(lock -> lastHoldingThread.put(lock, lockHolderThread));
                 }
                 return token;
             }
@@ -337,7 +337,7 @@ public final class LockServiceImpl
                 if (threadInfoConfiguration.recordThreadInfo()) {
                     ThreadAwareLockClient lockHolderThread =
                             ThreadAwareLockClient.of(INTERNAL_LOCK_GRANT_CLIENT, "N/A");
-                    lockDescriptorMap.getKeys().forEach(lock -> lastAcquiringThread.put(lock, lockHolderThread));
+                    lockDescriptorMap.getKeys().forEach(lock -> lastHoldingThread.put(lock, lockHolderThread));
                 }
                 return grant;
             }
@@ -678,7 +678,7 @@ public final class LockServiceImpl
         }
         if (threadInfoConfiguration.recordThreadInfo()) {
             // unlockAndFreeze will succeed
-            invalidateThreadInfoForHeldLocks(heldLocks.realToken);
+            updateThreadInfoForUnlock(heldLocks);
         }
         for (ClientAwareReadWriteLock lock : heldLocks.locks.getKeys()) {
             lock.get(client, LockMode.WRITE).unlockAndFreeze();
@@ -700,7 +700,7 @@ public final class LockServiceImpl
         }
         if (threadInfoConfiguration.recordThreadInfo()) {
             // we can assume that unlock will succeed at this point
-            invalidateThreadInfoForHeldLocks(heldLocks.realToken);
+            updateThreadInfoForUnlock(heldLocks);
         }
 
         long heldDuration = System.currentTimeMillis() - token.getCreationDateMs();
@@ -1269,15 +1269,23 @@ public final class LockServiceImpl
         return System.currentTimeMillis();
     }
 
-    private void invalidateThreadInfoForHeldLocks(ExpiringToken token) {
-        for (LockDescriptor lock : token.getLockDescriptors()) {
-            lastAcquiringThread.invalidate(lock);
-        }
+    private <T extends ExpiringToken> void updateThreadInfoForUnlock(HeldLocks<T> heldLocks) {
+        boolean isAnonymous = heldLocks.getRealToken().getClient().isAnonymous();
+        heldLocks.locks.entries().forEach(entry -> {
+            LockMode lockmode = entry.getValue();
+            LockDescriptor lockDescriptor = entry.getKey().getDescriptor();
+
+            if (isAnonymous && lockmode.equals(LockMode.WRITE)) {
+                lastHoldingThread.invalidate(lockDescriptor);
+            } else {
+                lastHoldingThread.put(lockDescriptor, ThreadAwareLockClient.UNKNOWN);
+            }
+        });
     }
 
     @Override
-    public ThreadAwareLockClient getLastAcquiringThread(LockDescriptor lock) {
-        return lastAcquiringThread.getIfPresent(lock);
+    public ThreadAwareLockClient getHoldingThread(LockDescriptor lock) {
+        return lastHoldingThread.getIfPresent(lock);
     }
 
     private static String updateThreadName(LockRequest request) {
