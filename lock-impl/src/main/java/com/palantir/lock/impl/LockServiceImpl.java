@@ -676,6 +676,10 @@ public final class LockServiceImpl
             throw new IllegalArgumentException(MessageFormatter.format(UNLOCK_AND_FREEZE, heldLocks.realToken)
                     .getMessage());
         }
+        if (threadInfoConfiguration.recordThreadInfo()) {
+            // unlockAndFreeze will succeed
+            invalidateThreadInfoForHeldLocks(heldLocks.realToken);
+        }
         for (ClientAwareReadWriteLock lock : heldLocks.locks.getKeys()) {
             lock.get(client, LockMode.WRITE).unlockAndFreeze();
         }
@@ -693,6 +697,10 @@ public final class LockServiceImpl
         @Nullable HeldLocks<T> heldLocks = heldLocksMap.remove(token);
         if (heldLocks == null) {
             return false;
+        }
+        if (threadInfoConfiguration.recordThreadInfo()) {
+            // we can assume that unlock will succeed at this point
+            invalidateThreadInfoForHeldLocks(heldLocks.realToken);
         }
 
         long heldDuration = System.currentTimeMillis() - token.getCreationDateMs();
@@ -1259,6 +1267,12 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    private void invalidateThreadInfoForHeldLocks(ExpiringToken token) {
+        for (LockDescriptor lock : token.getLockDescriptors()) {
+            lastAcquiringThread.invalidate(lock);
+        }
     }
 
     @Override
