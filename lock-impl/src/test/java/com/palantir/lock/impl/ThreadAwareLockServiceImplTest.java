@@ -196,8 +196,7 @@ public class ThreadAwareLockServiceImplTest {
                 .lockAsManyAsPossible()
                 .withCreatingThreadName(TEST_THREAD_1)
                 .build();
-        LockResponse response =
-                lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
+        LockResponse response = lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
         lockService.unlock(response.getToken());
 
         // WE know that the lock is not being held at the moment
