@@ -33,7 +33,6 @@ import com.palantir.lock.StringLockDescriptor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -79,7 +78,7 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void recordsThreadInfo_singleLock() throws InterruptedException {
+    public void recordsThreadInfoOnSingleLock() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         snapshotRunner.takeSnapshot();
 
@@ -88,7 +87,7 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void recordsThreadInfo_multipleUniqueLocks_fromDifferentThreads() throws InterruptedException {
+    public void recordsThreadInfoOnMultipleUniqueLocksFromDifferentThreads() throws InterruptedException {
         int numThreads = 10;
         int numLocksPerThread = 10;
 
@@ -113,18 +112,13 @@ public class ThreadInfoLockServiceImplTest {
 
         snapshotRunner.takeSnapshot();
 
-        Map<LockDescriptor, LockClientAndThread> expected = locksPerThread.keySet().stream()
-                .flatMap(threadName -> locksPerThread.get(threadName).stream()
-                        .map(lock -> Map.entry(lock, LockClientAndThread.of(LockClient.ANONYMOUS, threadName))))
-                .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-
-        expected.forEach((lock, clientThread) -> {
-            assertThat(getLatestThreadInfoForLock(lock)).isEqualTo(clientThread);
-        });
+        locksPerThread.forEach((threadName, lockDescriptors) ->
+                lockDescriptors.forEach(lock -> assertThat(getLatestThreadInfoForLock(lock))
+                        .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, threadName))));
     }
 
     @Test
-    public void recordsThreadInfo_sharedLock_fromDifferentThreads() throws InterruptedException {
+    public void recordsThreadInfoOnSharedLockFromDifferentThreads() throws InterruptedException {
         LockRequest lockRequest1 = LockRequest.builder(ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ))
                 .withCreatingThreadName(TEST_THREAD_1)
                 .build();

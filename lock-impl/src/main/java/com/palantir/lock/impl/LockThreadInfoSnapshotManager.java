@@ -17,7 +17,7 @@
 package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.DebugThreadInfoConfiguration;
@@ -84,10 +84,10 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     void takeSnapshot() {
         this.lastKnownThreadInfoSnapshot = tokenMapSupplier.get().keySet().stream()
                 .flatMap(token -> {
-                    LockClientAndThread clientThread =
-                            token.getClient() == null || Strings.isNullOrEmpty(token.getRequestingThread())
-                                    ? LockClientAndThread.UNKNOWN
-                                    : LockClientAndThread.of(token.getClient(), token.getRequestingThread());
+                    LockClientAndThread clientThread = LockClientAndThread.of(
+                            MoreObjects.firstNonNull(token.getClient(), LockClientAndThread.UNKNOWN.client()),
+                            MoreObjects.firstNonNull(
+                                    token.getRequestingThread(), LockClientAndThread.UNKNOWN.thread()));
                     return token.getLockDescriptors().stream()
                             .map(lockDescriptor -> Map.entry(lockDescriptor, clientThread));
                 })
