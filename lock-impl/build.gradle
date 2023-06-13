@@ -13,6 +13,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'joda-time:joda-time'
+  implementation 'one.util:streamex'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
@@ -22,6 +23,7 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
 
+  testImplementation 'org.awaitility:awaitility'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
