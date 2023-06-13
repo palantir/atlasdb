@@ -19,18 +19,18 @@ package com.palantir.lock;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ThreadAwareLockClient {
-    ThreadAwareLockClient UNKNOWN = ThreadAwareLockClient.of(LockClient.ANONYMOUS, "unknown-thread");
+public interface LockClientAndThread {
+    LockClientAndThread UNKNOWN = LockClientAndThread.of(LockClient.ANONYMOUS, "unknown-thread");
 
     LockClient client();
 
     String thread();
 
-    static ImmutableThreadAwareLockClient.Builder builder() {
-        return ImmutableThreadAwareLockClient.builder();
+    static ImmutableLockClientAndThread.Builder builder() {
+        return ImmutableLockClientAndThread.builder();
     }
 
-    static ThreadAwareLockClient of(LockClient client, String requestingThread) {
+    static LockClientAndThread of(LockClient client, String requestingThread) {
         return builder().client(client).thread(requestingThread).build();
     }
 }

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.ImmutableDebugThreadInfoConfiguration;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -29,7 +30,6 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.ThreadAwareLockClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +85,7 @@ public class ThreadAwareLockServiceImplTest {
         snapshotRunner.takeSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
     @Test
@@ -114,9 +114,9 @@ public class ThreadAwareLockServiceImplTest {
 
         snapshotRunner.takeSnapshot();
 
-        Map<LockDescriptor, ThreadAwareLockClient> expected = locksPerThread.keySet().stream()
+        Map<LockDescriptor, LockClientAndThread> expected = locksPerThread.keySet().stream()
                 .flatMap(threadName -> locksPerThread.get(threadName).stream()
-                        .map(lock -> Map.entry(lock, ThreadAwareLockClient.of(LockClient.ANONYMOUS, threadName))))
+                        .map(lock -> Map.entry(lock, LockClientAndThread.of(LockClient.ANONYMOUS, threadName))))
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
         expected.forEach((lock, clientThread) -> {
@@ -141,8 +141,8 @@ public class ThreadAwareLockServiceImplTest {
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
                 .isIn(
-                        ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1),
-                        ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_2));
+                        LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1),
+                        LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
     }
 
     @Test
@@ -160,7 +160,7 @@ public class ThreadAwareLockServiceImplTest {
         snapshotRunner.takeSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
     @Test
@@ -176,7 +176,7 @@ public class ThreadAwareLockServiceImplTest {
         snapshotRunner.takeSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
     @Test
@@ -241,20 +241,20 @@ public class ThreadAwareLockServiceImplTest {
 
         // T1 should hold nothing, T2 holds 3 in exclusive mode, T3 holds 1 in exclusive and 2 in shared mode
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_3));
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_2))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_3));
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_3))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_2));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_2));
 
         lockService.unlock(response2.getToken());
         snapshotRunner.takeSnapshot();
 
         // Only T3 should hold locks
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_3));
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_2))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_3));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_3));
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_3)).isNull();
 
         lockService.unlock(response3.get().getToken());
@@ -274,7 +274,7 @@ public class ThreadAwareLockServiceImplTest {
         snapshotRunner.takeSnapshot();
 
         assertThat(getLatestThreadInfoForLock(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
     }
 
     @Test(timeout = 500L)
@@ -297,7 +297,7 @@ public class ThreadAwareLockServiceImplTest {
         assertThat(backgroundSnapshotRunner
                         .getLastKnownThreadInfoSnapshot(Set.of(TEST_LOCK_1))
                         .get(TEST_LOCK_1))
-                .isEqualTo(ThreadAwareLockClient.of(LockClient.ANONYMOUS, TEST_THREAD_1));
+                .isEqualTo(LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1));
 
         lockServiceWithBackgroundRunner.unlock(response.getToken());
 
@@ -309,7 +309,7 @@ public class ThreadAwareLockServiceImplTest {
                 .isNull();
     }
 
-    private ThreadAwareLockClient getLatestThreadInfoForLock(LockDescriptor lock) {
+    private LockClientAndThread getLatestThreadInfoForLock(LockDescriptor lock) {
         return snapshotRunner.getLastKnownThreadInfoSnapshot(Set.of(lock)).get(lock);
     }
 }
