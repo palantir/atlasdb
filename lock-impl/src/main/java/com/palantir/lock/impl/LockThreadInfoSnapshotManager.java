@@ -70,12 +70,12 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     @VisibleForTesting
     Map<LockDescriptor, LockClientAndThread> getLastKnownThreadInfoSnapshot() {
-        return this.lastKnownThreadInfoSnapshot;
+        return lastKnownThreadInfoSnapshot;
     }
 
     @VisibleForTesting
     void takeSnapshot() {
-        this.lastKnownThreadInfoSnapshot = tokenMapSupplier.get().keySet().stream()
+        lastKnownThreadInfoSnapshot = tokenMapSupplier.get().keySet().stream()
                 .flatMap(token -> {
                     LockClientAndThread clientThread = LockClientAndThread.of(
                             Objects.requireNonNullElse(token.getClient(), LockClientAndThread.UNKNOWN.client()),
