@@ -71,7 +71,6 @@ dependencies {
     testImplementation 'io.dropwizard.metrics:metrics-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.jmock:jmock'
-    testImplementation 'uk.org.lidalia:slf4j-test'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-autobatch')
     testImplementation project(':atlasdb-client')
