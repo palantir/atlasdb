@@ -83,7 +83,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
      */
     public UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> getRestrictedSnapshotAsOptionalLogArg(
             Set<LockDescriptor> lockDescriptors) {
-        final String argName = "presumedClientThreadHoldersIfEnabled";
+        String argName = "presumedClientThreadHoldersIfEnabled";
         if (!threadInfoConfiguration.recordThreadInfo()) {
             return UnsafeArg.of(argName, Optional.empty());
         }

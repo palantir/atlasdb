@@ -55,7 +55,7 @@ public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
     private static final String TEST_LOCKID = "test_lockId";
     private static final LockDescriptor TEST_LOCK = StringLockDescriptor.of(TEST_LOCKID);
-    private static final UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> threadInfoSnapshotLogArg =
+    private static final UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> THREAD_INFO_SNAPSHOT_ARG =
             UnsafeArg.of("presumedClientThreadHoldersIfEnabled", Optional.empty());
     private static LockServiceImpl lockServiceWithSlowLogEnabled;
     private static LockServiceImpl lockServiceWithSlowLogDisabled;
@@ -115,7 +115,7 @@ public final class LockServiceImplTest {
                         lockDurationMillis,
                         TEST_LOCKID,
                         "unsuccessfully",
-                        threadInfoSnapshotLogArg));
+                        THREAD_INFO_SNAPSHOT_ARG));
     }
 
     @Test
@@ -132,7 +132,7 @@ public final class LockServiceImplTest {
                         lockDurationMillis,
                         TEST_LOCKID,
                         "unsuccessfully",
-                        threadInfoSnapshotLogArg));
+                        THREAD_INFO_SNAPSHOT_ARG));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }
@@ -150,7 +150,7 @@ public final class LockServiceImplTest {
                         lockDurationMillis,
                         TEST_LOCKID,
                         "unsuccessfully",
-                        threadInfoSnapshotLogArg));
+                        THREAD_INFO_SNAPSHOT_ARG));
 
         assertThat(testSlowLogger.getLoggingEvents()).isEmpty();
     }

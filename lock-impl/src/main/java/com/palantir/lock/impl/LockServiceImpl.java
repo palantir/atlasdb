@@ -88,9 +88,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -107,7 +109,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-import one.util.streamex.EntryStream;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
@@ -470,10 +471,16 @@ public final class LockServiceImpl
 
     private void logLockAcquisitionFailure(Map<LockDescriptor, LockClient> failedLocks) {
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
-        List<String> lockDescriptions = EntryStream.of(failedLocks)
-                .limit(MAX_FAILED_LOCKS_TO_LOG)
-                .mapKeyValue((key, value) -> String.format("Lock: %s, Holder: %s", key, value))
-                .toList();
+
+        List<String> lockDescriptions = new ArrayList<>();
+        Iterator<Entry<LockDescriptor, LockClient>> entries =
+                failedLocks.entrySet().iterator();
+        for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
+            Map.Entry<LockDescriptor, LockClient> entry = entries.next();
+            lockDescriptions.add(String.format(
+                    "Lock: %s, Holder: %s",
+                    entry.getKey().toString(), entry.getValue().toString()));
+        }
         requestLogger.trace(
                 logMessage,
                 SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
