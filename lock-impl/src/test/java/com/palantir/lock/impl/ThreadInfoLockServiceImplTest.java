@@ -352,6 +352,7 @@ public class ThreadInfoLockServiceImplTest {
         LockResponse lockResponse = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
                 LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
 
+        // background task is running and should take a snapshot
         Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
                         backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
                 .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
@@ -362,16 +363,14 @@ public class ThreadInfoLockServiceImplTest {
                 .threadInfoSnapshotIntervalMillis(50L)
                 .build());
 
-        Awaitility.await()
-                .until(() ->
-                        !lockServiceWithBackgroundRunner.getSnapshotManager().isScheduled());
+        Awaitility.await().until(() -> !backgroundSnapshotRunner.isScheduled());
 
         lockServiceWithBackgroundRunner.unlock(lockResponse.getToken());
 
-        // If background task was still running, it would take a snapshot in the meanwhile
+        // If background task was still running, it would take a snapshot at this moment
         Awaitility.await().atLeast(200, TimeUnit.MILLISECONDS);
 
-        // But we expect it to do nothing
+        // ...but we expect it to do nothing
         assertThat(lockServiceWithBackgroundRunner.getSnapshotManager().getLastKnownThreadInfoSnapshot())
                 .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1));
 
@@ -381,7 +380,7 @@ public class ThreadInfoLockServiceImplTest {
                 .threadInfoSnapshotIntervalMillis(50L)
                 .build());
 
-        // Now the unlock should be reflected in the snapshot
+        // Now the unlock request should be reflected in the snapshot
         Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
                         backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
                 .doesNotContainKey(TEST_LOCK_1));
