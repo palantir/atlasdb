@@ -24,7 +24,10 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Disposable;
 import com.palantir.refreshable.Refreshable;
 import java.util.HashMap;
@@ -40,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockThreadInfoSnapshotManager implements AutoCloseable {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockThreadInfoSnapshotManager.class);
     private Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration;
 
     private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
@@ -72,8 +76,10 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private void run() {
         takeSnapshot();
-
-        // schedule next snapshot so this can be enabled/disabled at runtime
+        log.info(
+                "Took lock thread info snapshot of size {}. Next snapshot due in {}",
+                SafeArg.of("snapshotSize", lastKnownThreadInfoSnapshot.size()),
+                SafeArg.of("snapshotInterval", threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
         scheduleRun();
     }
 
@@ -85,6 +91,11 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     private synchronized void scheduleRun() {
         if (threadInfoConfiguration.current().recordThreadInfo()) {
             if (!isRunning) {
+                log.info(
+                        "Starting to take lock thread info snapshots in the background",
+                        SafeArg.of(
+                                "snapshotInterval",
+                                threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
                 isRunning = true;
             }
             scheduledExecutorService.schedule(
@@ -92,6 +103,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                     threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis(),
                     TimeUnit.MILLISECONDS);
         } else {
+            log.info("Stopping background lock thread info snapshots");
             isRunning = false;
         }
     }
