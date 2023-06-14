@@ -170,7 +170,7 @@ public class LockServerOptions implements Serializable {
                 getRandomBitCount(),
                 getStuckTransactionTimeout(),
                 slowLogTriggerMillis(),
-                threadInfoConfiguration());
+                threadInfoConfiguration().current());
     }
 
     @Override
@@ -184,7 +184,7 @@ public class LockServerOptions implements Serializable {
                 .add("randomBitCount", getRandomBitCount())
                 .add("stuckTransactionTimeout", getStuckTransactionTimeout())
                 .add("slowLogTriggerMillis", slowLogTriggerMillis())
-                .add("threadInfoConfiguration", threadInfoConfiguration())
+                .add("threadInfoConfiguration", threadInfoConfiguration().current())
                 .toString();
     }
 
