@@ -92,6 +92,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -104,6 +105,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -471,7 +473,7 @@ public final class LockServiceImpl
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
 
         List<String> lockDescriptions = new ArrayList<>();
-        Iterator<Map.Entry<LockDescriptor, LockClient>> entries =
+        Iterator<Entry<LockDescriptor, LockClient>> entries =
                 failedLocks.entrySet().iterator();
         for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
             Map.Entry<LockDescriptor, LockClient> entry = entries.next();
@@ -483,7 +485,10 @@ public final class LockServiceImpl
                 logMessage,
                 SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
                 SafeArg.of("numLocksFailed", failedLocks.size()),
-                UnsafeArg.of("lockDescriptions", lockDescriptions));
+                UnsafeArg.of("lockDescriptions", lockDescriptions),
+                threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(failedLocks.keySet().stream()
+                        .limit(MAX_FAILED_LOCKS_TO_LOG)
+                        .collect(Collectors.toSet())));
     }
 
     private boolean isBlocking(BlockingMode blockingMode) {
@@ -529,7 +534,7 @@ public final class LockServiceImpl
                 LockClient currentHolder = tryLock(lock.get(client, entry.getValue()), blockingMode, deadline);
                 if (log.isDebugEnabled() || isSlowLogEnabled()) {
                     long responseTimeMillis = System.currentTimeMillis() - startTime;
-                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
+                    logSlowLockAcquisition(entry.getKey(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -548,8 +553,9 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    void logSlowLockAcquisition(LockDescriptor lockDescriptor, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String lockId = lockDescriptor.getLockIdAsString();
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
@@ -557,13 +563,15 @@ public final class LockServiceImpl
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         }
     }
 

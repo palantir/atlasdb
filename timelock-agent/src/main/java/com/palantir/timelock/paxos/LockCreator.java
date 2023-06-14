@@ -44,7 +44,8 @@ public class LockCreator {
                 .build();
 
         LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions, sharedExecutor);
-        CloseableLockService lockService = BlockingTimeLimitedLockService.create(rawLockService, blockingTimeoutMs);
+        CloseableLockService lockService = BlockingTimeLimitedLockService.create(
+                rawLockService, blockingTimeoutMs, rawLockService.getSnapshotManager());
 
         return new ThreadPooledLockService(lockService, -1, sharedThreadPool);
     }
