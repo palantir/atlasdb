@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.ImmutableDebugThreadInfoConfiguration;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockClientAndThread;
@@ -41,8 +42,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import one.util.streamex.IntStreamEx;
-import one.util.streamex.StreamEx;
 import org.awaitility.Awaitility;
 import org.junit.Test;
 
@@ -112,11 +111,11 @@ public class ThreadInfoLockServiceImplTest {
         List<String> threadNames =
                 IntStream.range(0, numThreads).mapToObj(i -> "test-thread-" + i).collect(Collectors.toList());
 
-        Map<String, Set<LockDescriptor>> locksPerThread = StreamEx.of(threadNames)
-                .mapToEntry(threadName -> IntStreamEx.range(0, numLocksPerThread)
+        Map<String, Set<LockDescriptor>> locksPerThread = KeyedStream.of(threadNames)
+                .map(threadName -> IntStream.range(0, numLocksPerThread)
                         .mapToObj(i -> StringLockDescriptor.of("test-lock-" + i + "-from-thread-" + threadName))
-                        .toSet())
-                .toMap();
+                        .collect(Collectors.toSet()))
+                .collectToMap();
 
         for (Map.Entry<String, Set<LockDescriptor>> entry : locksPerThread.entrySet()) {
             LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.copyOf(
@@ -287,15 +286,15 @@ public class ThreadInfoLockServiceImplTest {
         LockResponse response = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
                 LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
 
-        Awaitility.waitAtMost(200, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                        .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
+        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
+                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
+                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
 
         lockServiceWithBackgroundRunner.unlock(response.getToken());
 
-        Awaitility.waitAtMost(200, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> assertThat(backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                        .doesNotContainKey(TEST_LOCK_1));
+        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
+                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
+                .doesNotContainKey(TEST_LOCK_1));
     }
 
     @Test
@@ -335,7 +334,7 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     private void forceSnapshot() {
-        this.lockService.getSnapshotManager().takeSnapshot();
+        lockService.getSnapshotManager().takeSnapshot();
     }
 
     private Optional<LockClientAndThread> getLatestThreadInfoForLock(LockDescriptor lock) {

@@ -1235,7 +1235,7 @@ public final class LockServiceImpl
     }
 
     public LockThreadInfoSnapshotManager getSnapshotManager() {
-        return this.threadInfoSnapshotManager;
+        return threadInfoSnapshotManager;
     }
 
     private static String updateThreadName(LockRequest request) {
