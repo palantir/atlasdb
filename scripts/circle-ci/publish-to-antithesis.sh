@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -z "$1" ]]; then
+    echo "Usage: $0 <webhook name>. Example: $0 config-check"
+    exit 1
+fi
+
 if [[ -z "${ANTITHESIS_REPO_URL}" ]]; then
   echo "Antithesis image repository URL is not set as an environment variable, exiting."
   exit 1
@@ -10,20 +15,31 @@ if [[ -z "${ANTITHESIS_LOGIN_JSON}" ]]; then
   exit 1
 fi
 
+if [[ -z "${ANTITHESIS_WEBHOOK_PASSWORD}" ]]; then
+  echo "Antithesis webhook password is not set as an environment variable, exiting."
+  exit 1
+fi
+
 printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://${ANTITHESIS_REPO_URL} --password-stdin
 
-./gradlew --scan docker
+./gradlew --scan dockerTag
 
-docker pull palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
-docker tag palantirtechnologies/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra ${ANTITHESIS_REPO_URL}/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
-docker push ${ANTITHESIS_REPO_URL}/docker-cassandra-atlasdb:atlasdb-testing-palantir-cassandra
+VERSION=$(./gradlew -q printVersion)
 
-docker tag palantirtechnologies/timelock-server-distribution:unspecified ${ANTITHESIS_REPO_URL}/timelock-server-distribution:unspecified
-docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:unspecified
+docker pull palantirtechnologies/cassandra:2.2.18-1.112.0-rc5
+docker tag palantirtechnologies/cassandra:2.2.18-1.112.0-rc5 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc5
+docker push ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc5
 
-docker tag palantirtechnologies/atlasdb-workload-server-distribution:unspecified ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:unspecified
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:unspecified
+docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
+docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
 
-LATEST_ANTITHESIS_TAG=$(docker image ls palantirtechnologies/atlasdb-workload-server-antithesis --format "{{.Tag}}")
-docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${LATEST_ANTITHESIS_TAG} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${LATEST_ANTITHESIS_TAG}
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${LATEST_ANTITHESIS_TAG}
+docker tag palantirtechnologies/atlasdb-workload-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
+
+docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
+
+if [[ "$1" = "config-check" ]]; then
+  echo "Triggering simulation on Antithesis via the config-check webhook."
+  curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__configcheck__minimal
+fi

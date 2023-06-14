@@ -24,15 +24,13 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 public class LockServiceTestUtils {
 
     public static HeldLocksToken getFakeHeldLocksToken(
-            String clientName, String requestingThread, BigInteger tokenId, String... descriptors) {
-        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode =
-                getLockDescriptorLockMode(Arrays.asList(descriptors));
+            String clientName, String requestingThread, BigInteger tokenId, Map<String, LockMode> descriptors) {
+        ImmutableSortedMap<LockDescriptor, LockMode> lockDescriptorLockMode = getLockDescriptorLockMode(descriptors);
 
         return new HeldLocksToken(
                 tokenId,
@@ -45,11 +43,12 @@ public class LockServiceTestUtils {
                 requestingThread);
     }
 
-    public static ImmutableSortedMap<LockDescriptor, LockMode> getLockDescriptorLockMode(List<String> descriptors) {
+    public static ImmutableSortedMap<LockDescriptor, LockMode> getLockDescriptorLockMode(
+            Map<String, LockMode> descriptors) {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
-        for (String descriptor : descriptors) {
-            LockDescriptor descriptor1 = StringLockDescriptor.of(descriptor);
-            builder.put(descriptor1, LockMode.WRITE);
+        for (Map.Entry<String, LockMode> descriptorAndMode : descriptors.entrySet()) {
+            LockDescriptor descriptor1 = StringLockDescriptor.of(descriptorAndMode.getKey());
+            builder.put(descriptor1, descriptorAndMode.getValue());
         }
         return builder.buildOrThrow();
     }

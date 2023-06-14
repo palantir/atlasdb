@@ -168,7 +168,8 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         }
         DataStreamMetadataTable table = tables.getDataStreamMetadataTable(t);
         Map<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<DataStreamMetadataTable.DataStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
         Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<DataStreamHashAidxTable.DataStreamHashAidxRow, DataStreamHashAidxTable.DataStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (DataStreamHashAidxTable.DataStreamHashAidxRow r : m.keySet()) {
             for (DataStreamHashAidxTable.DataStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class DataStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<DataStreamHashAidxTable.DataStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = new HashSet<>();
+        Set<DataStreamHashAidxTable.DataStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(DataStreamHashAidxTable.DataStreamHashAidxRow.of(h));
         }

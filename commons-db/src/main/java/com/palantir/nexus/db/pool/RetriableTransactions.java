@@ -15,12 +15,12 @@
  */
 package com.palantir.nexus.db.pool;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.sql.Connection;
@@ -81,15 +81,15 @@ public final class RetriableTransactions {
         }
 
         public static <T> TransactionResult<T> success(T resultValue) {
-            return new TransactionResult<T>(TransactionStatus.SUCCESSFUL, resultValue, Optional.<Throwable>empty());
+            return new TransactionResult<>(TransactionStatus.SUCCESSFUL, resultValue, Optional.empty());
         }
 
         public static <T> TransactionResult<T> failure(Throwable error) {
-            return new TransactionResult<T>(TransactionStatus.FAILED, null /* result value */, Optional.of(error));
+            return new TransactionResult<>(TransactionStatus.FAILED, null /* result value */, Optional.of(error));
         }
 
         public static <T> TransactionResult<T> unknown(Throwable error) {
-            return new TransactionResult<T>(TransactionStatus.UNKNOWN, null /* result value */, Optional.of(error));
+            return new TransactionResult<>(TransactionStatus.UNKNOWN, null /* result value */, Optional.of(error));
         }
 
         public TransactionStatus getStatus() {
@@ -130,7 +130,7 @@ public final class RetriableTransactions {
         }
 
         class LexicalHelper {
-            long startTimeMs = System.currentTimeMillis();
+            final long startTimeMs = System.currentTimeMillis();
             boolean pending = false;
             UUID id = null;
             T result = null;
@@ -205,8 +205,7 @@ public final class RetriableTransactions {
             private void attemptTx() throws SQLException {
                 boolean ret = false;
                 try {
-                    Connection c = cm.getConnection();
-                    try {
+                    try (Connection c = cm.getConnection()) {
                         // Crash anywhere in here means no commit attempted and we stay in non-pending
                         c.setAutoCommit(false);
                         T newResult = tx.run(c);
@@ -224,10 +223,6 @@ public final class RetriableTransactions {
 
                         cleanTxLog(c, id);
                         c.commit();
-
-                        return;
-                    } finally {
-                        c.close();
                     }
                 } catch (SQLException e) {
                     if (ret) {
@@ -241,15 +236,12 @@ public final class RetriableTransactions {
             private boolean attemptVerify() throws SQLException {
                 boolean ret = false;
                 try {
-                    Connection c = cm.getConnection();
-                    try {
+                    try (Connection c = cm.getConnection()) {
                         ret = checkTxLog(c, id);
                         if (ret) {
                             cleanTxLog(c, id);
                         }
                         return ret;
-                    } finally {
-                        c.close();
                     }
                 } catch (SQLException e) {
                     if (ret) {
@@ -273,22 +265,16 @@ public final class RetriableTransactions {
         return new LexicalHelper().run();
     }
 
-    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables = CacheBuilder.newBuilder()
-            .weakKeys()
-            .build(new CacheLoader<ConnectionManager, AtomicBoolean>() {
-                @Override
-                public AtomicBoolean load(ConnectionManager cm) {
-                    return new AtomicBoolean(false);
-                }
-            });
+    private static final LoadingCache<ConnectionManager, AtomicBoolean> createdTxTables =
+            Caffeine.newBuilder().weakKeys().build(cm -> new AtomicBoolean(false));
 
     private static void createTxTable(ConnectionManager cm) throws SQLException {
-        AtomicBoolean createdTxTable = createdTxTables.getUnchecked(cm);
+        AtomicBoolean createdTxTable = createdTxTables.get(cm);
         if (createdTxTable.get()) {
             return;
         }
 
-        String varcharType = null;
+        String varcharType;
         switch (cm.getDbType()) {
             case ORACLE:
                 varcharType = "VARCHAR2";
@@ -300,23 +286,17 @@ public final class RetriableTransactions {
                 break;
 
             default:
-                throw new IllegalStateException();
-        }
-        if (varcharType == null) {
-            throw new IllegalStateException();
+                throw new SafeIllegalStateException("Unknown DB type", SafeArg.of("dbType", cm.getDbType()));
         }
 
         // I'd love to CREATE TABLE ... IF NOT EXISTS but Ye Olde Postgres (TM)
         // does not like it so we do something ugly.
         try {
-            Connection c = cm.getConnection();
-            try {
+            try (Connection c = cm.getConnection()) {
                 // Attempt to add to the table, but don't actually commit it.
                 c.setAutoCommit(false);
                 addTxLog(c, UUID.randomUUID());
                 c.rollback();
-            } finally {
-                c.close();
             }
             // Great, that worked, fallthrough to below but don't commit.
         } catch (SQLException e) {
@@ -327,13 +307,10 @@ public final class RetriableTransactions {
                     "To check whether the table exists we tried to use it. This caused an exception indicating that it"
                             + " did not exist. The exception was: ",
                     e);
-            Connection c = cm.getConnection();
-            try {
+            try (Connection c = cm.getConnection()) {
                 c.createStatement()
                         .execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType
                                 + "(36) PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            } finally {
-                c.close();
             }
             // Good enough, fallthrough to below.
         }
@@ -343,37 +320,25 @@ public final class RetriableTransactions {
     }
 
     private static void addTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("INSERT INTO " + TABLE_NAME + " (id) VALUES (?)");
-        try {
+        try (PreparedStatement ps = c.prepareStatement("INSERT INTO " + TABLE_NAME + " (id) VALUES (?)")) {
             ps.setString(1, id.toString());
             ps.executeUpdate();
-        } finally {
-            ps.close();
         }
     }
 
     private static boolean checkTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("SELECT 1 FROM " + TABLE_NAME + " WHERE id = ?");
-        try {
+        try (PreparedStatement ps = c.prepareStatement("SELECT 1 FROM " + TABLE_NAME + " WHERE id = ?")) {
             ps.setString(1, id.toString());
-            ResultSet rs = ps.executeQuery();
-            try {
+            try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
-            } finally {
-                rs.close();
             }
-        } finally {
-            ps.close();
         }
     }
 
     private static void cleanTxLog(Connection c, UUID id) throws SQLException {
-        PreparedStatement ps = c.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE id = ?");
-        try {
+        try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + TABLE_NAME + " WHERE id = ?")) {
             ps.setString(1, id.toString());
             ps.executeUpdate();
-        } finally {
-            ps.close();
         }
     }
 

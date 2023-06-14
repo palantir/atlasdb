@@ -15,9 +15,8 @@
  */
 package com.palantir.paxos;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.CoalescingSupplier;
 
@@ -27,29 +26,23 @@ import com.palantir.common.concurrent.CoalescingSupplier;
  */
 public class CoalescingPaxosLatestRoundVerifier implements PaxosLatestRoundVerifier {
 
-    private final PaxosLatestRoundVerifier delegate;
     // we only care about keeping the verifier for the latest round; the cache is just here to handle concurrency
     // around creating a new verifier for a newly requested round
-    private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound = CacheBuilder.newBuilder()
-            .maximumSize(1)
-            .build(new CacheLoader<Long, CoalescingSupplier<PaxosQuorumStatus>>() {
-                @Override
-                public CoalescingSupplier<PaxosQuorumStatus> load(Long key) throws Exception {
-                    return new CoalescingSupplier<>(() -> delegate.isLatestRound(key));
-                }
-            });
+    private final LoadingCache<Long, CoalescingSupplier<PaxosQuorumStatus>> verifiersByRound;
 
     public CoalescingPaxosLatestRoundVerifier(PaxosLatestRoundVerifier delegate) {
-        this.delegate = delegate;
+        this.verifiersByRound = Caffeine.newBuilder()
+                .maximumSize(1)
+                .build(key -> new CoalescingSupplier<>(() -> delegate.isLatestRound(key)));
     }
 
     @Override
     public ListenableFuture<PaxosQuorumStatus> isLatestRoundAsync(long round) {
-        return verifiersByRound.getUnchecked(round).getAsync();
+        return verifiersByRound.get(round).getAsync();
     }
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        return verifiersByRound.getUnchecked(round).get();
+        return verifiersByRound.get(round).get();
     }
 }

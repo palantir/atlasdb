@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.workflow;
+package com.palantir.atlasdb.buggify.api;
 
-import com.palantir.atlasdb.workload.invariant.InvariantReporter;
-import java.util.List;
-
-/**
- * Run the provided workflow and execute the provided invariant reporters.
- *
- * The idea of this class is that long-term we will want to have multiple ways to run/execute workflows,
- * rather than biasing towards the present case (just once).
- */
-public interface WorkflowRunner<WorkflowTypeT extends Workflow> {
-    void run(WorkflowTypeT workflow, List<InvariantReporter<?>> invariantReporters);
+public interface BuggifyFactory {
+    /**
+     * The probability of returning a buggify instance which performs actions.
+     */
+    Buggify maybe(double probability);
 }

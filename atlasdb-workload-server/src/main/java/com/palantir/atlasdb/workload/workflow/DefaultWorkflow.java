@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
     private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
@@ -45,7 +43,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
         this.readOnlyTransactionStore = readOnlyTransactionStore;
     }
 
-    public static <T extends TransactionStore> Workflow create(
+    public static <T extends TransactionStore> DefaultWorkflow<T> create(
             T store,
             KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration configuration,
@@ -60,7 +58,8 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
     @Override
     public WorkflowHistory run() {
         return ImmutableWorkflowHistory.builder()
-                .history(sortByEffectiveTimestamp(runTransactionTask()))
+                .history(
+                        WitnessedTransactions.sortAndFilterTransactions(readOnlyTransactionStore, runTransactionTask()))
                 .transactionStore(readOnlyTransactionStore)
                 .build();
     }
@@ -77,16 +76,5 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
         } catch (ExecutionException e) {
             throw new SafeRuntimeException("Error when running workflow task", e.getCause());
         }
-    }
-
-    @VisibleForTesting
-    static List<WitnessedTransaction> sortByEffectiveTimestamp(List<WitnessedTransaction> unorderedTransactions) {
-        return unorderedTransactions.stream()
-                .sorted(Comparator.comparingLong(DefaultWorkflow::effectiveTimestamp))
-                .collect(Collectors.toList());
-    }
-
-    private static long effectiveTimestamp(WitnessedTransaction witnessedTransaction) {
-        return witnessedTransaction.commitTimestamp().orElseGet(witnessedTransaction::startTimestamp);
     }
 }

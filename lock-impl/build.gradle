@@ -5,6 +5,7 @@ dependencies {
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
@@ -21,6 +22,7 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
 
+  testImplementation 'org.awaitility:awaitility'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'

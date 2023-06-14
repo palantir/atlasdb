@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.workload.workflow.ring;
 
 import com.google.common.collect.Iterators;
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,6 +35,7 @@ import java.util.stream.IntStream;
 import one.util.streamex.EntryStream;
 
 public final class RingGraph {
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     private final Map<Integer, Integer> ring;
 
     private RingGraph(Map<Integer, Integer> ring) {
@@ -66,7 +69,7 @@ public final class RingGraph {
      * (1) There are no missing entries
      * (2) There are no sub-cycles
      * (3) The ring is connected
-     *
+     * <p>
      * This is simply done by iterating over the length of the ring, and validating that we visited each node.
      * To ensure that the ring is connected, we do not track our entry into the ring (i.e. the first node we visit),
      * as we expect to have it be visited again as the last node.
@@ -100,7 +103,7 @@ public final class RingGraph {
      */
     private static RingGraph generateNewRing(Set<Integer> nodes) {
         List<Integer> keys = new ArrayList<>(nodes);
-        Collections.shuffle(keys);
+        Collections.shuffle(keys, SECURE_RANDOM);
         Iterator<Integer> valuesIterator = Iterators.cycle(keys);
         valuesIterator.next();
         return new RingGraph(

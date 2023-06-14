@@ -17,6 +17,7 @@ dependencies {
   implementation 'com.zaxxer:HikariCP'
   implementation 'joda-time:joda-time'
 
+  implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'

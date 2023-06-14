@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.lang.reflect.Proxy;
 import java.time.Clock;
@@ -31,18 +32,21 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockMakers;
+import org.mockito.MockSettings;
 
 public class ExperimentRunningProxyTest {
     private static final int EXPERIMENTAL_RESULT = 123;
     private static final int FALLBACK_RESULT = 1;
     private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("foo");
 
-    private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class);
-    private final Supplier<IntSupplier> experimentSupplier = mock(Supplier.class);
+    private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
+    private final IntSupplier experimentalIntSupplier = mock(IntSupplier.class, mockSettings);
+    private final Supplier<IntSupplier> experimentSupplier = mock(Supplier.class, mockSettings);
     private final IntSupplier fallbackIntSupplier = () -> FALLBACK_RESULT;
-    private final BooleanSupplier useExperimental = mock(BooleanSupplier.class);
-    private final BooleanSupplier enableFallback = mock(BooleanSupplier.class);
-    private final Clock clock = mock(Clock.class);
+    private final BooleanSupplier useExperimental = mock(BooleanSupplier.class, mockSettings);
+    private final BooleanSupplier enableFallback = mock(BooleanSupplier.class, mockSettings);
+    private final Clock clock = mock(Clock.class, mockSettings);
     private final AtomicLong errorCounter = new AtomicLong();
 
     private final IntSupplier proxyInstance = intSupplierForProxy(new ExperimentRunningProxy<>(

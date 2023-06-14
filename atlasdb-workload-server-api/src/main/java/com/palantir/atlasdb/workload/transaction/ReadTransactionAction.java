@@ -23,7 +23,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface ReadTransactionAction extends TransactionAction {
+public interface ReadTransactionAction extends SingleCellTransactionAction {
 
     default WitnessedReadTransactionAction witness(Optional<Integer> value) {
         return ImmutableWitnessedReadTransactionAction.of(table(), cell(), value);

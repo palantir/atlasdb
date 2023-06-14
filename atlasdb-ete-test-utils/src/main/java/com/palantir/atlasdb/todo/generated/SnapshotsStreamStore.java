@@ -168,7 +168,8 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
         }
         SnapshotsStreamMetadataTable table = tables.getSnapshotsStreamMetadataTable(t);
         Map<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
         Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow r : m.keySet()) {
             for (SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class SnapshotsStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> rows = new HashSet<>();
+        Set<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow.of(h));
         }

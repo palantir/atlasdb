@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.common.exception.PalantirRuntimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +74,8 @@ public class WriteInfoPartitionerTest {
     public void getStrategyThrowsForIllegalMetadata() {
         when(mockKvs.getMetadataForTable(any())).thenReturn(AtlasDbConstants.EMPTY_TABLE_METADATA);
         assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedShard(getTableRef("a"), 0, numShards)))
-                .isInstanceOf(UncheckedExecutionException.class);
+                .isInstanceOf(PalantirRuntimeException.class)
+                .hasMessageContaining("Message missing required fields: rowName, columns, conflictHandler");
     }
 
     @Test
@@ -82,7 +83,7 @@ public class WriteInfoPartitionerTest {
         RuntimeException cause = new RuntimeException("cause");
         when(mockKvs.getMetadataForTable(any())).thenThrow(cause);
         assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedShard(getTableRef("a"), 0, numShards)))
-                .isInstanceOf(UncheckedExecutionException.class)
+                .isInstanceOf(RuntimeException.class)
                 .hasCause(cause);
     }
 

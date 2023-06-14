@@ -15,9 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Disallows the same cell from being written twice with different values within
@@ -43,13 +41,8 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
 
     final Transaction delegate;
     final ImmutableSet<TableReference> noDoubleWritesTables;
-    final LoadingCache<TableReference, Map<Cell, byte[]>> writes = CacheBuilder.newBuilder()
-            .build(new CacheLoader<TableReference, Map<Cell, byte[]>>() {
-                @Override
-                public Map<Cell, byte[]> load(TableReference input) {
-                    return Collections.synchronizedMap(new HashMap<>());
-                }
-            });
+    final LoadingCache<TableReference, Map<Cell, byte[]>> writes =
+            Caffeine.newBuilder().build(input -> Collections.synchronizedMap(new HashMap<>()));
 
     public NoDuplicateWritesTransaction(Transaction delegate, Iterable<TableReference> noDoubleWritesTables) {
         this.delegate = delegate;
@@ -81,12 +74,7 @@ public class NoDuplicateWritesTransaction extends ForwardingTransaction {
 
     private void validateWrites(TableReference tableRef, Map<Cell, byte[]> values) {
         if (noDoubleWritesTables.contains(tableRef)) {
-            Map<Cell, byte[]> table;
-            try {
-                table = writes.get(tableRef);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e.getCause());
-            }
+            Map<Cell, byte[]> table = writes.get(tableRef);
             for (Map.Entry<Cell, byte[]> value : values.entrySet()) {
                 byte[] newValue = value.getValue();
                 byte[] oldValue = table.get(value.getKey());

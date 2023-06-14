@@ -1,10 +1,10 @@
-version: 2
+version: 2.1
 
 jobs:
   build:
     docker:
       - image: cimg/openjdk:11.0.10-node
-    resource_class: xlarge
+    resource_class: 2xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -Xlog:class+unload=off -Xlog:gc:build-%t-%p.gc.log"
@@ -31,8 +31,10 @@ jobs:
           root: .
           paths: [ . ]
 
-  test:
-    parallelism: 12
+  test-suite:
+    parameters:
+      suite:
+        type: integer
     machine:
       image: ubuntu-2004:202111-02
     resource_class: xlarge
@@ -66,7 +68,7 @@ jobs:
               curl https://cdn.azul.com/zulu/bin/zulu11.43.21-ca-jdk11.0.9-linux_x64.tar.gz | tar -xzf - -C /opt/java
               sudo ln -s /opt/java/zulu*/ /opt/java8
       - run:
-          command: ./scripts/circle-ci/run-circle-tests.sh
+          command: ./scripts/circle-ci/run-circle-tests.sh << parameters.suite >>
           no_output_timeout: 900
       - run: ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
@@ -78,11 +80,16 @@ jobs:
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - when:
+          # Persist to workspace for the compile/compileTest container to keep deploy fast.
+          condition:
+            equal: [ 13, << parameters.suite >> ]
+          steps:
+            - persist_to_workspace:
+                root: .
+                paths: [ . ]
       - store_artifacts:
           path: /home/circleci/artifacts
-      - persist_to_workspace:
-          root: .
-          paths: [ . ]
 
   trial-publish:
     docker:
@@ -96,6 +103,12 @@ jobs:
     steps:
       - attach_workspace: { at: . }
       - run: ./gradlew --scan --profile --stacktrace --continue publishToMavenLocal
+
+  test:
+    docker: [ { image: 'busybox:1.34.1' } ]
+    resource_class: small
+    steps:
+      - run: {command: echo "Ran all required tests successfully"}
 
   deploy:
     docker:
@@ -130,15 +143,35 @@ jobs:
             fi
 
 workflows:
-  version: 2
   check:
     jobs:
       - build:
           filters:
             tags:
               only: /.*/
-      - test:
+      - test-suite:
           requires: [build]
+          matrix:
+            alias: test-no-tl
+            parameters:
+              # intentionally excluding 13 (TimeLock migration ETE test) from this collection
+              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14]
+          filters:
+            tags:
+              only: /.*/
+      - test-suite:
+          requires: [build]
+          matrix:
+            alias: test-tl
+            parameters:
+              suite: [13]
+          filters:
+            branches:
+              only: /(tlmete.*|develop)/
+            tags:
+              only: /.*/
+      - test:
+          requires: [test-tl, test-no-tl]
           filters:
             tags:
               only: /.*/

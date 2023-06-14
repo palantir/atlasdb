@@ -295,10 +295,12 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ExecutorService newFixedThreadPool(int numThreads, String name) {
-        return MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrap(name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
-                name);
+        return MetricRegistries.executor()
+                .registry(SharedTaggedMetricRegistries.getSingleton())
+                .name(name)
+                .executor(PTExecutors.wrap(
+                        name, getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())))
+                .build();
     }
 
     /**
@@ -316,11 +318,12 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
     public static ExecutorService newFixedThreadPoolWithoutSpan(int numThreads, String name) {
-        return MetricRegistries.instrument(
-                SharedTaggedMetricRegistries.getSingleton(),
-                PTExecutors.wrapWithoutSpan(
-                        getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())),
-                name);
+        return MetricRegistries.executor()
+                .registry(SharedTaggedMetricRegistries.getSingleton())
+                .name(name)
+                .executor(PTExecutors.wrapWithoutSpan(
+                        getViewExecutor(name, numThreads, Integer.MAX_VALUE, SHARED_EXECUTOR.get())))
+                .build();
     }
 
     public static ExecutorService getViewExecutor(

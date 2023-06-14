@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert "[CBT] Split test into multiple workflows (#6555)"
+  links:
+  - https://github.com/palantir/atlasdb/pull/6568
