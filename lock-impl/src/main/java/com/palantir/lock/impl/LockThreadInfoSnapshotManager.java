@@ -50,7 +50,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private Disposable disposable;
 
-    private boolean isScheduled = false;
+    private boolean isRunning = false;
 
     public LockThreadInfoSnapshotManager(
             Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration,
@@ -63,7 +63,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         scheduleRun();
         disposable = threadInfoConfiguration.subscribe(newThreadInfoConfiguration -> {
             synchronized (this) {
-                if (!isScheduled) {
+                if (!isRunning) {
                     scheduleRun();
                 }
             }
@@ -78,21 +78,21 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     }
 
     @VisibleForTesting
-    synchronized boolean isScheduled() {
-        return isScheduled;
+    synchronized boolean isRunning() {
+        return isRunning;
     }
 
     private synchronized void scheduleRun() {
         if (threadInfoConfiguration.current().recordThreadInfo()) {
-            if (!isScheduled) {
-                isScheduled = true;
+            if (!isRunning) {
+                isRunning = true;
             }
             scheduledExecutorService.schedule(
                     this::run,
                     threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis(),
                     TimeUnit.MILLISECONDS);
         } else {
-            isScheduled = false;
+            isRunning = false;
         }
     }
 
@@ -137,7 +137,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     @Override
     public void close() {
         scheduledExecutorService.shutdown();
-        isScheduled = true;
+        isRunning = true;
         disposable.dispose();
     }
 }
