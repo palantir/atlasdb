@@ -54,7 +54,8 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private Disposable disposable;
 
-    private boolean isRunning = false;
+    @VisibleForTesting
+    boolean isRunning = false;
 
     public LockThreadInfoSnapshotManager(
             Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration,
@@ -81,11 +82,6 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                 SafeArg.of("snapshotSize", lastKnownThreadInfoSnapshot.size()),
                 SafeArg.of("snapshotInterval", threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
         scheduleRun();
-    }
-
-    @VisibleForTesting
-    synchronized boolean isRunning() {
-        return isRunning;
     }
 
     private synchronized void scheduleRun() {

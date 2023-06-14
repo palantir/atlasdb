@@ -363,7 +363,7 @@ public class ThreadInfoLockServiceImplTest {
                 .threadInfoSnapshotIntervalMillis(50L)
                 .build());
 
-        Awaitility.await().until(() -> !backgroundSnapshotRunner.isRunning());
+        Awaitility.await().until(() -> !backgroundSnapshotRunner.isRunning);
 
         lockServiceWithBackgroundRunner.unlock(lockResponse.getToken());
 
