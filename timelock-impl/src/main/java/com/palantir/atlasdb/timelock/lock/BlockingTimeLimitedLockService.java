@@ -53,8 +53,7 @@ import org.immutables.value.Value;
 public class BlockingTimeLimitedLockService implements CloseableLockService {
     private static final SafeLogger log = SafeLoggerFactory.get(BlockingTimeLimitedLockService.class);
 
-    @VisibleForTesting
-    static final int MAX_THREADINFO_TO_LOG = 20;
+    private static final int MAX_THREADINFO_TO_LOG = 20;
 
     private final CloseableLockService delegate;
     private final TimeLimiter timeLimiter;

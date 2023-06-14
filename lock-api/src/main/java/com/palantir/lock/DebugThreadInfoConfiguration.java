@@ -26,10 +26,6 @@ public interface DebugThreadInfoConfiguration {
         return false;
     }
 
-    /**
-     * Whether we should log thread info when we encounter lock contention.
-     * Obviously, this should only be enabled in conjunction with {@link DebugThreadInfoConfiguration#recordThreadInfo}.
-     */
     @Value.Default
     default long threadInfoSnapshotIntervalMillis() {
         return 5000L;

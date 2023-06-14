@@ -299,14 +299,39 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void logArgIsUnsafeAndContainsRestrictedSnapshot() throws InterruptedException {
+    public void logArgIsUnsafeAndContainsEmptyOptionalIfNotRecordingThreadInfo() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         forceSnapshot();
-
         assertThat(lockService.getSnapshotManager().getRestrictedSnapshotAsOptionalLogArg(Set.of(TEST_LOCK_1)))
+                .isEqualTo(UnsafeArg.of("presumedClientThreadHoldersIfEnabled", Optional.empty()));
+    }
+
+    @Test
+    public void logArgIsUnsafeAndContainsRestrictedSnapshotIfRecordingThreadInfo() throws InterruptedException {
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
+                .isStandaloneServer(false)
+                .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
+                        .recordThreadInfo(true)
+                        .threadInfoSnapshotIntervalMillis(50L)
+                        .build())
+                .build());
+        LockRequest lockRequest2 = LockRequest.builder(
+                        ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ, TEST_LOCK_2, LockMode.READ))
+                .doNotBlock()
+                .withCreatingThreadName(TEST_THREAD_2)
+                .build();
+
+        lockServiceWithBackgroundRunner.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+        lockServiceWithBackgroundRunner.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
+
+        Awaitility.waitAtMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(lockServiceWithBackgroundRunner
+                        .getSnapshotManager()
+                        .getRestrictedSnapshotAsOptionalLogArg(Set.of(TEST_LOCK_1)))
                 .isEqualTo(UnsafeArg.of(
                         "presumedClientThreadHoldersIfEnabled",
-                        Optional.of(Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1)))));
+                        // Snapshot should be restricted to TEST_LOCK_1
+                        Optional.of(
+                                Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1))))));
     }
 
     private void forceSnapshot() {

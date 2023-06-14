@@ -53,7 +53,7 @@ import uk.org.lidalia.slf4jtest.TestLoggerFactory;
 
 public final class LockServiceImplTest {
     public static final long SLOW_LOG_TRIGGER_MILLIS = LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS + 10;
-    private static final String TEST_LOCKID = "test-lockId";
+    private static final String TEST_LOCKID = "test_lockId";
     private static final LockDescriptor TEST_LOCK = StringLockDescriptor.of(TEST_LOCKID);
     private static final UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> threadInfoSnapshotLogArg =
             UnsafeArg.of("presumedClientThreadHoldersIfEnabled", Optional.empty());
