@@ -22,6 +22,7 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
 
+  testImplementation 'org.awaitility:awaitility'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'

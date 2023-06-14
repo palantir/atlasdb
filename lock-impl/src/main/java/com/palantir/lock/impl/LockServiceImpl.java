@@ -183,6 +183,9 @@ public final class LockServiceImpl
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
+    /** Configurable background task that periodically collects snapshots about the current lock state */
+    private final LockThreadInfoSnapshotManager threadInfoSnapshotManager;
+
     private final LockClientIndices clientIndices = new LockClientIndices();
 
     /** The backing client-aware read write lock for each lock descriptor. */
@@ -256,6 +259,9 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+        this.threadInfoSnapshotManager =
+                new LockThreadInfoSnapshotManager(options.threadInfoConfiguration(), () -> heldLocksTokenMap);
+        threadInfoSnapshotManager.start();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1225,6 +1231,10 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    public LockThreadInfoSnapshotManager getSnapshotManager() {
+        return threadInfoSnapshotManager;
     }
 
     private static String updateThreadName(LockRequest request) {
