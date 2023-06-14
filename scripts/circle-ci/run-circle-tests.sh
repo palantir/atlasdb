@@ -2,7 +2,7 @@
 
 set -x
 
-BASE_GRADLE_ARGS="--profile"
+BASE_GRADLE_ARGS="--scan --profile --continue"
 
 function checkDocsBuild {
      pyenv install 3.5.4
@@ -82,7 +82,7 @@ elif [ "$test_suite_index" -eq "3" ]; then
     BASE_GRADLE_ARGS+=" --scan --parallel"
 else
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"
-    BASE_GRADLE_ARGS+=" --scan --parallel"
+    BASE_GRADLE_ARGS+=" --parallel"
 fi
 export CASSANDRA_MAX_HEAP_SIZE=512m
 export CASSANDRA_HEAP_NEWSIZE=64m
