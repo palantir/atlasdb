@@ -69,28 +69,18 @@ public class LockServiceBenchmarkState {
     private final Random rand = new Random();
     private LockServiceImpl lockService;
     private Supplier<LockRequest> lockRequestSupplier;
-    private List<LockDescriptor> heldLocksAtBeginning;
     private List<LockDescriptor> availableLocks;
 
     private LockRequest nonBlockingAsManyAsPossibleRandomMode() {
-        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-        for (int i = 0; i < locksPerRequest; i++) {
-            locks.put(
-                    availableLocks.get(rand.nextInt(getAvailableLocks().size())),
-                    rand.nextBoolean() ? LockMode.READ : LockMode.WRITE);
-        }
-        return LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
+        return LockRequest.builder(getRandomLocksWithRandomMode(locksPerRequest))
+                .lockAsManyAsPossible()
+                .doNotBlock()
+                .build();
     }
 
     private LockRequest allRandom() {
-        SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-        int numLocks = Math.max(1, rand.nextInt(locksPerRequest));
-        for (int i = 0; i < numLocks; i++) {
-            locks.put(
-                    availableLocks.get(rand.nextInt(getAvailableLocks().size())),
-                    rand.nextBoolean() ? LockMode.READ : LockMode.WRITE);
-        }
-        LockRequest.Builder builder = LockRequest.builder(locks);
+        LockRequest.Builder builder =
+                LockRequest.builder(getRandomLocksWithRandomMode(Math.max(1, rand.nextInt(locksPerRequest))));
         if (rand.nextBoolean()) {
             builder.lockAsManyAsPossible();
         }
@@ -105,50 +95,50 @@ public class LockServiceBenchmarkState {
     }
 
     @Setup
-    public void setup() {
-        this.heldLocksAtBeginning = IntStream.range(0, numHeldLocksAtBeginning)
-                .mapToObj(i -> StringLockDescriptor.of(Integer.toString(i)))
-                .collect(Collectors.toList());
-        this.availableLocks = IntStream.range(0, numAvailableLocks)
+    public void setup() throws InterruptedException {
+        availableLocks = IntStream.range(0, numAvailableLocks)
                 .mapToObj(i -> StringLockDescriptor.of(Integer.toString(i)))
                 .collect(Collectors.toUnmodifiableList());
-
-        this.lockRequestSupplier = getRequestSupplierFromName(this.requestSupplierMethodName);
-        this.lockService = LockServiceImpl.create(LockServerOptions.builder()
+        lockRequestSupplier = getRequestSupplierFromName(requestSupplierMethodName);
+        lockService = LockServiceImpl.create(LockServerOptions.builder()
                 .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(recordThreadInfo)
                         .threadInfoSnapshotIntervalMillis(threadInfoSnapshotIntervalMillis)
                         .build())
                 .isStandaloneServer(false)
                 .build());
+        // Simulate locks that are permanently locked to saturate heldLocksTokenMap
+        lockService.lockWithFullLockResponse(
+                LockClient.ANONYMOUS,
+                LockRequest.builder(getRandomLocksWithRandomMode(numHeldLocksAtBeginning))
+                        .lockAsManyAsPossible()
+                        .doNotBlock()
+                        .build());
+    }
 
+    private SortedMap<LockDescriptor, LockMode> getRandomLocksWithRandomMode(int numLocks) {
         SortedMap<LockDescriptor, LockMode> locks = new TreeMap<>();
-        for (LockDescriptor lock : heldLocksAtBeginning) {
-            locks.put(lock, LockMode.WRITE);
-        }
-        LockRequest lockRequest =
-                LockRequest.builder(locks).lockAsManyAsPossible().doNotBlock().build();
-        try {
-            lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        IntStream.range(0, numLocks)
+                .forEach(i -> locks.put(
+                        availableLocks.get(rand.nextInt(availableLocks.size())),
+                        rand.nextBoolean() ? LockMode.READ : LockMode.WRITE));
+        return locks;
     }
 
     public LockServiceImpl getLockService() {
-        return this.lockService;
+        return lockService;
     }
 
     public List<LockDescriptor> getAvailableLocks() {
-        return this.availableLocks;
+        return availableLocks;
     }
 
     public LockRequest generateLockRequest() {
-        return this.lockRequestSupplier.get();
+        return lockRequestSupplier.get();
     }
 
     private Supplier<LockRequest> getRequestSupplierFromName(String name) {
-        switch (this.requestSupplierMethodName) {
+        switch (requestSupplierMethodName) {
             case "nonBlockingAsManyAsPossibleRandomMode":
                 return this::nonBlockingAsManyAsPossibleRandomMode;
             case "allRandom":

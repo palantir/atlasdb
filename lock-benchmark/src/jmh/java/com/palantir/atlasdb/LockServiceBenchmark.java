@@ -44,33 +44,31 @@ public class LockServiceBenchmark {
     @BenchmarkMode(Mode.Throughput)
     @Benchmark
     @Threads(4)
-    public int lockSleepRefreshUnlockMultiThreaded(LockServiceBenchmarkState state, ThreadIndex threadIndex) {
-        final LockClient client = LockClient.of("Benchmark Client " + threadIndex.getThreadId());
-        final LockService lockService = state.getLockService();
-        final LockRequest lockRequest = state.generateLockRequest();
-        try {
-            // acquire some locks
-            LockResponse lockResponse = lockService.lockWithFullLockResponse(client, lockRequest);
+    public int lockSleepRefreshUnlockMultiThreaded(LockServiceBenchmarkState state, ThreadIndex threadIndex)
+            throws InterruptedException {
+        LockClient client = LockClient.of("Benchmark Client " + threadIndex.getThreadId());
+        LockService lockService = state.getLockService();
+        LockRequest lockRequest = state.generateLockRequest();
 
-            // pretend we are doing something with them ...
-            for (int i = 0; i < state.refreshCount + 1; i++) {
-                if (state.sleepMs > 0) {
-                    Thread.sleep(state.sleepMs);
-                }
-                // maybe refresh as well
-                if (i < state.refreshCount && lockResponse.getLockRefreshToken() != null) {
-                    lockService.refreshLockRefreshTokens(ImmutableList.of(lockResponse.getLockRefreshToken()));
-                }
+        // acquire some locks
+        LockResponse lockResponse = lockService.lockWithFullLockResponse(client, lockRequest);
+
+        // pretend we are doing something with them ...
+        for (int i = 0; i < state.refreshCount + 1; i++) {
+            if (state.sleepMs > 0) {
+                Thread.sleep(state.sleepMs);
             }
-
-            // give them back
-            if (lockResponse.getLockRefreshToken() != null) {
-                lockService.unlock(lockResponse.getLockRefreshToken());
+            // maybe refresh as well
+            if (i < state.refreshCount && lockResponse.getLockRefreshToken() != null) {
+                lockService.refreshLockRefreshTokens(ImmutableList.of(lockResponse.getLockRefreshToken()));
             }
-
-            return lockResponse.getLocks().size();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
+
+        // give them back
+        if (lockResponse.getLockRefreshToken() != null) {
+            lockService.unlock(lockResponse.getLockRefreshToken());
+        }
+
+        return lockResponse.getLocks().size();
     }
 }
