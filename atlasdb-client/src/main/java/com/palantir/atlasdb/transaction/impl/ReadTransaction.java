@@ -138,7 +138,7 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
     private void checkTableName(TableReference tableRef) {
         SweepStrategy sweepStrategy = sweepStrategies.get(tableRef);
         Preconditions.checkState(
-                !sweepStrategy.mustCheckImmutableLock(true /* no read was actually done, but we don't want to use
+                !sweepStrategy.mustCheckImmutableLock(false /* no read was actually done, but we don't want to use
                 ReadTransaction on thoroughly swept tables */),
                 "This table cannot be read from a read-only transaction, because its "
                         + "sweep strategy is neither NOTHING nor CONSERVATIVE",

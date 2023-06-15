@@ -49,10 +49,10 @@ public final class SweepStrategy {
         return sweeperStrategy;
     }
 
-    public boolean mustCheckImmutableLock(boolean hasReadEmptyCells) {
-        return hasReadEmptyCells
-                ? mustCheckImmutableLockIfEmptyCellWasPossiblyRead
-                : mustCheckImmutableLockIfAllCellsReadAndPresent;
+    public boolean mustCheckImmutableLock(boolean allPossibleCellsReandAndPresent) {
+        return allPossibleCellsReandAndPresent
+                ? mustCheckImmutableLockIfAllCellsReadAndPresent
+                : mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
