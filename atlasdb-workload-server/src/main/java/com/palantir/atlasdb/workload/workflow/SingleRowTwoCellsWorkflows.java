@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
-import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
@@ -65,7 +64,8 @@ public final class SingleRowTwoCellsWorkflows {
             InteractiveTransactionStore store,
             SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsWorkflowConfiguration,
             ListeningExecutorService executionExecutor) {
-        store.readWrite(txn -> txn.write(singleRowTwoCellsWorkflowConfiguration.tableConfiguration().tableName(), FIRST_CELL, 1));
+        store.readWrite(txn -> txn.write(
+                singleRowTwoCellsWorkflowConfiguration.tableConfiguration().tableName(), FIRST_CELL, 1));
         return DefaultWorkflow.create(
                 store,
                 (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
@@ -74,18 +74,19 @@ public final class SingleRowTwoCellsWorkflows {
     }
 
     private static Optional<WitnessedTransaction> run(
-            InteractiveTransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
+            InteractiveTransactionStore store,
+            int taskIndex,
+            SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
         Optional<WitnessedTransaction> maybeTransaction = store.readWrite(txn -> {
             List<ColumnValue> values = txn.getRowColumnRange(
                     workflowConfiguration.tableConfiguration().tableName(),
                     SINGLE_ROW,
                     ColumnRangeSelection.builder().build());
-            Map<Integer, Integer> tableState = values.stream()
-                    .collect(Collectors.toMap(ColumnValue::column, ColumnValue::value));
+            Map<Integer, Integer> tableState =
+                    values.stream().collect(Collectors.toMap(ColumnValue::column, ColumnValue::value));
             if (tableState.size() != 1) {
-                log.error("Wrong number of values found in table state {}",
-                        SafeArg.of("tableState", tableState));
+                log.error("Wrong number of values found in table state {}", SafeArg.of("tableState", tableState));
             }
 
             if (tableState.containsKey(FIRST_COLUMN)) {
@@ -97,9 +98,9 @@ public final class SingleRowTwoCellsWorkflows {
             }
         });
 
-//        List<TransactionAction> transactionActions = createTransactionActions(
-//                taskIndex, workflowConfiguration.tableConfiguration().tableName());
-//        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(transactionActions);
+        //        List<TransactionAction> transactionActions = createTransactionActions(
+        //                taskIndex, workflowConfiguration.tableConfiguration().tableName());
+        //        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(transactionActions);
         maybeTransaction.ifPresent(_transaction -> log.info(
                 "Transaction successfully committed for single row two cells workflow for task index {}.",
                 SafeArg.of("taskIndex", taskIndex)));
@@ -122,11 +123,11 @@ public final class SingleRowTwoCellsWorkflows {
     private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                DeleteTransactionAction.of(tableName, SECOND_CELL))
+                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                        DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                DeleteTransactionAction.of(tableName, FIRST_CELL),
-                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                        DeleteTransactionAction.of(tableName, FIRST_CELL),
+                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
     private static List<TransactionAction> createCellReadActions(String tableName) {

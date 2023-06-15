@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -28,16 +27,11 @@ import com.palantir.atlasdb.workload.store.AtlasDbTransactionStore;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
-import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
-import java.util.Optional;
 import org.junit.Test;
 
 public class SingleRowTwoCellsWorkflowsTest {
@@ -120,17 +114,19 @@ public class SingleRowTwoCellsWorkflowsTest {
         assertThat(history.transactionStore())
                 .as("should return a read only tranasction store")
                 .isInstanceOf(ReadOnlyTransactionStore.class);
-//        assertThat(Iterables.getOnlyElement(history.history()).actions())
-//                .containsExactly(
-//                        WitnessedReadTransactionAction.of(
-//                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.empty()),
-//                        WitnessedReadTransactionAction.of(
-//                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()),
-//                        WitnessedWriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, 0),
-//                        WitnessedDeleteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL),
-//                        WitnessedReadTransactionAction.of(
-//                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.of(0)),
-//                        WitnessedReadTransactionAction.of(
-//                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()));
+        //        assertThat(Iterables.getOnlyElement(history.history()).actions())
+        //                .containsExactly(
+        //                        WitnessedReadTransactionAction.of(
+        //                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.empty()),
+        //                        WitnessedReadTransactionAction.of(
+        //                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()),
+        //                        WitnessedWriteTransactionAction.of(TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL,
+        // 0),
+        //                        WitnessedDeleteTransactionAction.of(TABLE_NAME,
+        // SingleRowTwoCellsWorkflows.SECOND_CELL),
+        //                        WitnessedReadTransactionAction.of(
+        //                                TABLE_NAME, SingleRowTwoCellsWorkflows.FIRST_CELL, Optional.of(0)),
+        //                        WitnessedReadTransactionAction.of(
+        //                                TABLE_NAME, SingleRowTwoCellsWorkflows.SECOND_CELL, Optional.empty()));
     }
 }
