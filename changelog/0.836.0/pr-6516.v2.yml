@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: AtlasDB no longer registers the `/sweep` endpoints.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6516

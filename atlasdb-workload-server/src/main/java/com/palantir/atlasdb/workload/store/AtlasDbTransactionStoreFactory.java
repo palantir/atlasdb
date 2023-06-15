@@ -28,6 +28,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.client.UnreliableTimeLockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
@@ -39,7 +41,10 @@ import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
-public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory {
+public final class AtlasDbTransactionStoreFactory implements TransactionStoreFactory<InteractiveTransactionStore> {
+
+    // Purposefully override the lock refresh interval to increase our chances of losing locks.
+    private static final int LOCK_REFRESH_INTERVAL_MS = 200;
 
     private final TransactionManager transactionManager;
     private final Optional<Namespace> maybeNamespace;
@@ -49,8 +54,12 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
         this.maybeNamespace = maybeNamespace.map(Namespace::create);
     }
 
+    public boolean isInitialized() {
+        return transactionManager.isInitialized();
+    }
+
     @Override
-    public TransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
+    public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
         return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
     }
 
@@ -138,6 +147,8 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .globalMetricsRegistry(metricsManager.getRegistry())
                 .globalTaggedMetricRegistry(metricsManager.getTaggedRegistry())
                 .runtimeConfigSupplier(atlasDbRuntimeConfig)
+                .defaultTimelockClientFactory(lockService -> TimeLockClient.createDefault(
+                        UnreliableTimeLockService.create(lockService), LOCK_REFRESH_INTERVAL_MS))
                 .build()
                 .serializable();
 

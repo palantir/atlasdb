@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
+import com.palantir.atlasdb.workload.store.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.ValidationStore;
-import com.palantir.atlasdb.workload.transaction.InMemoryValidationStore;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import io.vavr.Tuple;
 import java.util.Map;

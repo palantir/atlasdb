@@ -362,7 +362,8 @@ public class StreamStoreRenderer {
                     line("}");
                     line("putHashIndexTask(t, rowsToStoredMetadata);");
                     line();
-                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata = new HashMap<>();");
+                    line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata =");
+                    line("        Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());");
                     line("rowsToMetadata.putAll(rowsToStoredMetadata);");
                     line("rowsToMetadata.putAll(rowsToUnstoredMetadata);");
                     line("mdTable.putMetadata(rowsToMetadata);");
@@ -462,7 +463,10 @@ public class StreamStoreRenderer {
                             "Map<",
                             StreamMetadataRow,
                             ", StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));");
-                    line("Map<", StreamId, ", StreamMetadata> ret = new HashMap<>();");
+                    line(
+                            "Map<",
+                            StreamId,
+                            ", StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());");
                     line("for (Map.Entry<", StreamMetadataRow, ", StreamMetadata> e : metadatas.entrySet()) {");
                     {
                         line("ret.put(e.getKey().getId(), e.getValue());");
@@ -494,7 +498,7 @@ public class StreamStoreRenderer {
                             ", ",
                             StreamHashAidxColumnValue,
                             "> m = idx.getRowsMultimap(rows);");
-                    line("Map<", StreamId, ", Sha256Hash> hashForStreams = new HashMap<>();");
+                    line("Map<", StreamId, ", Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());");
                     line("for (", StreamHashAidxRow, " r : m.keySet()) {");
                     {
                         line("for (", StreamHashAidxColumnValue, " v : m.get(r)) {");
@@ -535,7 +539,7 @@ public class StreamStoreRenderer {
             private void getHashIndexRowsForHashes() {
                 line("private Set<", StreamHashAidxRow, "> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {");
                 {
-                    line("Set<", StreamHashAidxRow, "> rows = new HashSet<>();");
+                    line("Set<", StreamHashAidxRow, "> rows = Sets.newHashSetWithExpectedSize(hashes.size());");
                     line("for (Sha256Hash h : hashes) {");
                     {
                         line("rows.add(", StreamHashAidxRow, ".of(h));");

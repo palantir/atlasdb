@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
@@ -28,11 +27,7 @@ public final class TestConflictDetectionManagers {
     @VisibleForTesting
     static ConflictDetectionManager createWithStaticConflictDetection(
             Map<TableReference, Optional<ConflictHandler>> staticMap) {
-        return new ConflictDetectionManager(new CacheLoader<>() {
-            @Override
-            public Optional<ConflictHandler> load(TableReference tableReference) throws Exception {
-                return staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE));
-            }
-        });
+        return new ConflictDetectionManager(tableReference ->
+                staticMap.getOrDefault(tableReference, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE)));
     }
 }

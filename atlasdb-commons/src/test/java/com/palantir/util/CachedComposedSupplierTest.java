@@ -16,7 +16,9 @@
 package com.palantir.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.ExecutorService;
@@ -25,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.MockMakers;
 
 public class CachedComposedSupplierTest {
     private long counter;
@@ -37,7 +39,7 @@ public class CachedComposedSupplierTest {
     public void setup() {
         counter = 0;
         supplierCounter = 0;
-        mockVersionedSupplier = Mockito.mock(Supplier.class);
+        mockVersionedSupplier = mock(Supplier.class, withSettings().mockMaker(MockMakers.SUBCLASS));
         testSupplier = new CachedComposedSupplier<>(this::countingFunction, mockVersionedSupplier);
     }
 

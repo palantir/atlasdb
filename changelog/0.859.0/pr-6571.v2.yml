@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Generate StreamStore implementations with presized maps/sets
+  links:
+  - https://github.com/palantir/atlasdb/pull/6571

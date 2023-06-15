@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[CBT] Reorganize test job parallelism'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6548

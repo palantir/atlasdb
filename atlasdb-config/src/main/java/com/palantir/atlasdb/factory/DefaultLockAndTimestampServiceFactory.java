@@ -96,6 +96,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.ws.rs.ClientErrorException;
 
@@ -107,7 +108,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private final MetricsManager metricsManager;
     private final AtlasDbConfig config;
     private final Refreshable<AtlasDbRuntimeConfig> runtimeConfig;
-    private final Consumer<Object> env;
+    private final Consumer<Object> registrar;
     private final Supplier<LockService> lock;
     private final Supplier<ManagedTimestampService> time;
     private final TimestampStoreInvalidator invalidator;
@@ -118,11 +119,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private final Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders;
     private final Set<Schema> schemas;
 
+    private final Function<TimelockService, TimeLockClient> timelockClientFactory;
+
     public DefaultLockAndTimestampServiceFactory(
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -132,10 +135,42 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Set<Schema> schemas) {
+        this(
+                metricsManager,
+                config,
+                runtimeConfig,
+                registrar,
+                lock,
+                time,
+                invalidator,
+                userAgent,
+                lockDiagnosticComponents,
+                reloadingFactory,
+                timeLockFeedbackBackgroundTask,
+                timelockRequestBatcherProviders,
+                schemas,
+                TimeLockClient::createDefault);
+    }
+
+    public DefaultLockAndTimestampServiceFactory(
+            MetricsManager metricsManager,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            Consumer<Object> registrar,
+            Supplier<LockService> lock,
+            Supplier<ManagedTimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            UserAgent userAgent,
+            Optional<LockDiagnosticComponents> lockDiagnosticComponents,
+            ReloadingFactory reloadingFactory,
+            Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            Set<Schema> schemas,
+            Function<TimelockService, TimeLockClient> timelockClientFactory) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
-        this.env = env;
+        this.registrar = registrar;
         this.lock = lock;
         this.time = time;
         this.invalidator = invalidator;
@@ -145,6 +180,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         this.timeLockFeedbackBackgroundTask = timeLockFeedbackBackgroundTask;
         this.timelockRequestBatcherProviders = timelockRequestBatcherProviders;
         this.schemas = schemas;
+        this.timelockClientFactory = timelockClientFactory;
     }
 
     @Override
@@ -153,7 +189,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 metricsManager,
                 config,
                 runtimeConfig,
-                env,
+                registrar,
                 lock,
                 time,
                 invalidator,
@@ -166,9 +202,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         return withMetrics(metricsManager, withRefreshingLockService(lockAndTimestampServices));
     }
 
-    private static LockAndTimestampServices withRefreshingLockService(
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
+    private LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+        TimeLockClient timeLockClient = timelockClientFactory.apply(lockAndTimestampServices.timelock());
         ProfilingTimelockService profilingService = ProfilingTimelockService.create(timeLockClient);
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
@@ -198,7 +233,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -211,7 +246,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
+            return createRawLeaderServices(metricsManager, config.leader().get(), registrar, lock, time, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, runtimeConfig, userAgent);
         } else if (TransactionManagers.isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -227,7 +262,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                     timelockRequestBatcherProviders,
                     knownSchemas);
         } else {
-            return createRawEmbeddedServices(metricsManager, env, lock, time);
+            return createRawEmbeddedServices(metricsManager, registrar, lock, time);
         }
     }
 
@@ -412,13 +447,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private static LockAndTimestampServices createRawLeaderServices(
             MetricsManager metricsManager,
             LeaderConfig leaderConfig,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             UserAgent userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LocalPaxosServices localPaxosServices =
-                Leaders.createAndRegisterLocalServices(metricsManager, env, leaderConfig, userAgent);
+                Leaders.createAndRegisterLocalServices(metricsManager, registrar, leaderConfig, userAgent);
 
         LeadershipCoordinator leadershipCoordinator = localPaxosServices.leadershipCoordinator();
         LockService localLock =
@@ -432,9 +467,9 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         TimestampService localTime = getTimestampFacade(managedTimestampProxy);
         TimestampManagementService localManagement = getTimestampManagementFacade(managedTimestampProxy);
 
-        env.accept(localLock);
-        env.accept(localTime);
-        env.accept(localManagement);
+        registrar.accept(localLock);
+        registrar.accept(localTime);
+        registrar.accept(localManagement);
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
@@ -586,7 +621,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
     private static LockAndTimestampServices createRawEmbeddedServices(
             MetricsManager metricsManager,
-            Consumer<Object> env,
+            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
         LockService lockService =
@@ -599,9 +634,9 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         TimestampManagementService timestampManagementService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampManagementService.class);
 
-        env.accept(lockService);
-        env.accept(timeService);
-        env.accept(timestampManagementService);
+        registrar.accept(lockService);
+        registrar.accept(timeService);
+        registrar.accept(timestampManagementService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

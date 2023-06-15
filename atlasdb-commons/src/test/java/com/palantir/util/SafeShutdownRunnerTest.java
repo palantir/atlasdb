@@ -24,6 +24,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.time.Duration;
@@ -32,14 +33,17 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockMakers;
+import org.mockito.MockSettings;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("test");
     private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
 
-    private Runnable mockRunnable = mock(Runnable.class);
-    private Runnable throwingRunnable = mock(Runnable.class);
-    private Runnable blockingUninterruptibleRunnable = mock(Runnable.class);
+    private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
+    private Runnable mockRunnable = mock(Runnable.class, mockSettings);
+    private Runnable throwingRunnable = mock(Runnable.class, mockSettings);
+    private Runnable blockingUninterruptibleRunnable = mock(Runnable.class, mockSettings);
 
     @Before
     public void setupMocks() {

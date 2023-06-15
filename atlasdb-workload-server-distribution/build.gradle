@@ -1,7 +1,7 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'com.palantir.external-publish-dist'
-apply from: "../gradle/docker.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/docker.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
@@ -20,6 +20,7 @@ dependencies {
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jersey-server'
     implementation 'com.google.guava:guava'
 
+    implementation project(':atlasdb-buggify')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-workload-server')

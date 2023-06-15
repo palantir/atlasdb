@@ -27,14 +27,9 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableSingleRowTwoCellsWorkflowConfiguration.class)
 @JsonTypeName(SingleRowTwoCellsWorkflowConfiguration.TYPE)
 public interface SingleRowTwoCellsWorkflowConfiguration extends WorkflowConfiguration {
-    String TYPE = "singleRowTwoCells";
+    String TYPE = "single-row-two-cells";
 
     TableConfiguration tableConfiguration();
-
-    @Value.Default
-    default double rateLimit() {
-        return 100;
-    }
 
     @Value.Lazy
     default RateLimiter transactionRateLimiter() {

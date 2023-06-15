@@ -30,4 +30,5 @@ import java.util.function.BiFunction;
  * an exception.
  */
 @FunctionalInterface
-public interface KeyedTransactionTask extends BiFunction<TransactionStore, Integer, Optional<WitnessedTransaction>> {}
+public interface KeyedTransactionTask<T extends TransactionStore>
+        extends BiFunction<T, Integer, Optional<WitnessedTransaction>> {}

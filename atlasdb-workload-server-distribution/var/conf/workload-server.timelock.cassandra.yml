@@ -10,13 +10,16 @@ runtime:
     timelockRuntime:
       serversList:
         servers:
-          - 'http://timelock:8421'
+          - 'https://timelock1.palantir.pt:8421'
+          - 'https://timelock2.palantir.pt:8421'
+          - 'https://timelock3.palantir.pt:8421'
         sslConfiguration:
           keyStorePath: "var/security/keyStore.jks"
           keyStorePassword: "keystore"
           trustStorePath: "var/security/trustStore.jks"
 install:
   atlas:
+    initializeAsync: true
     keyValueService:
       type: cassandra
       servers:
@@ -34,6 +37,7 @@ install:
         password: cassandra
       ssl: false
       replicationFactor: 3
+      gcGraceSeconds: 300
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
@@ -42,5 +46,43 @@ install:
       tableName: two_cells_test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
-    type: singleRowTwoCells
+    type: single-row-two-cells
+  ringConfig:
+    tableConfiguration:
+      tableName: ring_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: ring
+  transientRowsConfig:
+    tableConfiguration:
+      tableName: transient_rows_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: transient-rows
+  singleBusyCellConfig:
+    tableConfiguration:
+      tableName: single_busy_cell_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell
+    maxThreadCount: 2
+  bankBalanceConfig:
+    tableConfiguration:
+      tableName: bank_balance_test
+      isolationLevel: SNAPSHOT
+    iterationCount: 100
+    type: bank-balance
+  randomConfig:
+    tableConfiguration:
+      tableName: random_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: random
+  singleBusyCellReadsNoTouchConfig:
+    tableConfiguration:
+      tableName: single_busy_cell_no_touch_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell-reads-no-touch
+    maxThreadCount: 2
   exitAfterRunning: true

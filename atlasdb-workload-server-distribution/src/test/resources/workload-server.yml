@@ -9,5 +9,43 @@ install:
       tableName: two-cells-test
       isolationLevel: SERIALIZABLE
     iterationCount: 100
-    type: singleRowTwoCells
+    type: single-row-two-cells
+  ringConfig:
+    tableConfiguration:
+      tableName: ring-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: ring
+  transientRowsConfig:
+    tableConfiguration:
+      tableName: transient-rows-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: transient-rows
+  singleBusyCellConfig:
+    tableConfiguration:
+      tableName: single-busy-cell-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell
+    maxThreadCount: 2
+  bankBalanceConfig:
+    tableConfiguration:
+      tableName: bank-balance-test
+      isolationLevel: SNAPSHOT
+    iterationCount: 100
+    type: bank-balance
+  randomConfig:
+    tableConfiguration:
+      tableName: random-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: random
+  singleBusyCellReadsNoTouchConfig:
+    tableConfiguration:
+      tableName: single-busy-cell-no-touch-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: single-busy-cell-reads-no-touch
+    maxThreadCount: 2
   exitAfterRunning: false

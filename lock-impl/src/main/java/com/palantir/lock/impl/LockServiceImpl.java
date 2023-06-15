@@ -21,12 +21,11 @@ import static com.palantir.lock.LockClient.INTERNAL_LOCK_GRANT_CLIENT;
 import static com.palantir.lock.LockGroupBehavior.LOCK_ALL_OR_NONE;
 import static com.palantir.lock.LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -93,12 +92,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -106,6 +105,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -185,17 +185,14 @@ public final class LockServiceImpl
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
+    /** Configurable background task that periodically collects snapshots about the current lock state */
+    private final LockThreadInfoSnapshotManager threadInfoSnapshotManager;
+
     private final LockClientIndices clientIndices = new LockClientIndices();
 
     /** The backing client-aware read write lock for each lock descriptor. */
-    private final LoadingCache<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap = CacheBuilder.newBuilder()
-            .weakValues()
-            .build(new CacheLoader<LockDescriptor, ClientAwareReadWriteLock>() {
-                @Override
-                public ClientAwareReadWriteLock load(LockDescriptor from) {
-                    return new LockServerLock(from, clientIndices);
-                }
-            });
+    private final LoadingCache<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap =
+            Caffeine.newBuilder().weakValues().build(from -> new LockServerLock(from, clientIndices));
 
     /** The locks (and canonical token) associated with each HeldLocksToken. */
     private final ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>> heldLocksTokenMap = new MapMaker().makeMap();
@@ -264,6 +261,9 @@ public final class LockServiceImpl
         this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+        this.threadInfoSnapshotManager =
+                new LockThreadInfoSnapshotManager(options.threadInfoConfiguration(), () -> heldLocksTokenMap);
+        threadInfoSnapshotManager.start();
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -473,7 +473,7 @@ public final class LockServiceImpl
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
 
         List<String> lockDescriptions = new ArrayList<>();
-        Iterator<Map.Entry<LockDescriptor, LockClient>> entries =
+        Iterator<Entry<LockDescriptor, LockClient>> entries =
                 failedLocks.entrySet().iterator();
         for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
             Map.Entry<LockDescriptor, LockClient> entry = entries.next();
@@ -485,7 +485,10 @@ public final class LockServiceImpl
                 logMessage,
                 SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
                 SafeArg.of("numLocksFailed", failedLocks.size()),
-                UnsafeArg.of("lockDescriptions", lockDescriptions));
+                UnsafeArg.of("lockDescriptions", lockDescriptions),
+                threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(failedLocks.keySet().stream()
+                        .limit(MAX_FAILED_LOCKS_TO_LOG)
+                        .collect(Collectors.toSet())));
     }
 
     private boolean isBlocking(BlockingMode blockingMode) {
@@ -521,12 +524,7 @@ public final class LockServiceImpl
                     continue;
                 }
 
-                ClientAwareReadWriteLock lock;
-                try {
-                    lock = descriptorToLockMap.get(entry.getKey());
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e.getCause());
-                }
+                ClientAwareReadWriteLock lock = descriptorToLockMap.get(entry.getKey());
                 if (locks.containsKey(lock)) {
                     // This is the 2nd time we are calling tryLocks and we already locked this one.
                     continue;
@@ -536,7 +534,7 @@ public final class LockServiceImpl
                 LockClient currentHolder = tryLock(lock.get(client, entry.getValue()), blockingMode, deadline);
                 if (log.isDebugEnabled() || isSlowLogEnabled()) {
                     long responseTimeMillis = System.currentTimeMillis() - startTime;
-                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
+                    logSlowLockAcquisition(entry.getKey(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -555,8 +553,9 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    void logSlowLockAcquisition(LockDescriptor lockDescriptor, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String lockId = lockDescriptor.getLockIdAsString();
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
@@ -564,13 +563,15 @@ public final class LockServiceImpl
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         }
     }
 
@@ -1201,7 +1202,7 @@ public final class LockServiceImpl
                 + maxAllowedClockDrift
                 + "\n"
                 + "descriptorToLockMap.size = "
-                + descriptorToLockMap.size()
+                + descriptorToLockMap.estimatedSize()
                 + "\n"
                 + "outstandingLockRequestMultimap.size = "
                 + outstandingLockRequestMultimap.size()
@@ -1238,6 +1239,10 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    public LockThreadInfoSnapshotManager getSnapshotManager() {
+        return threadInfoSnapshotManager;
     }
 
     private static String updateThreadName(LockRequest request) {

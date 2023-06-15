@@ -137,6 +137,14 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         return Futures.immediateFuture(serviceLifecycleController.getServerId());
     }
 
+    @Override
+    public ListenableFuture<Void> fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
+        return handleExceptions(() -> {
+            timelockNamespaces.get(namespace).getTimestampManagementService().fastForwardTimestamp(currentTimestamp);
+            return Futures.immediateFuture(null);
+        });
+    }
+
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
         return exceptionHandler.handleExceptions(supplier);
     }
@@ -190,6 +198,11 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
         @Override
         public UUID forceKillTimeLockServer(AuthHeader authHeader) {
             return unwrap(resource.forceKillTimeLockServer(authHeader));
+        }
+
+        @Override
+        public void fastForwardTimestamp(AuthHeader authHeader, String namespace, long currentTimestamp) {
+            unwrap(resource.fastForwardTimestamp(authHeader, namespace, currentTimestamp));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
