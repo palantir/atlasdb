@@ -441,11 +441,10 @@ public class SnapshotTransaction extends AbstractTransaction
                     SafeArg.of("timeTakenMillis", getRowsMillis));
         }
 
-        hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
         validatePreCommitRequirementsOnReadIfNecessary(
                 tableRef,
                 getStartTimestamp(),
-                true /* can't skip lock check as we don't know how many cells to expect for the column selection */);
+                false /* can't skip lock check as we don't know how many cells to expect for the column selection */);
         return results;
     }
 
@@ -472,7 +471,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (!rawResults.hasNext()) {
             hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
             validatePreCommitRequirementsOnReadIfNecessary(
-                    tableRef, getStartTimestamp(), true /* we can't skip checks for range scans*/);
+                    tableRef, getStartTimestamp(), false /* we can't skip checks for range scans*/);
         } // else the postFiltered iterator will check for each batch.
 
         BatchColumnRangeSelection batchColumnRangeSelection =
@@ -512,7 +511,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
         // validate requirements here as the first batch for each of the above iterators will not check
         validatePreCommitRequirementsOnReadIfNecessary(
-                tableRef, getStartTimestamp(), true /* we can't skip checks on range scans */);
+                tableRef, getStartTimestamp(), false /* we can't skip checks on range scans */);
         return postFilteredResults;
     }
 
@@ -685,7 +684,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
             TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            Map<Cell, Value> raw = validateBatch(tableRef, batch, true /* can't skip lock checks on range scans */);
+            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock checks on range scans */);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
@@ -710,7 +709,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 () -> {
                     hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
                     validatePreCommitRequirementsOnReadIfNecessary(
-                            tableRef, getStartTimestamp(), true /* we can't skip lock checks on range scans */);
+                            tableRef, getStartTimestamp(), false /* we can't skip lock checks on range scans */);
                 },
                 raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
     }
@@ -721,7 +720,7 @@ public class SnapshotTransaction extends AbstractTransaction
             int batchHint,
             Comparator<Cell> cellComparator) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            Map<Cell, Value> raw = validateBatch(tableRef, batch, true /* can't skip lock check on range scans */);
+            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock check on range scans */);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
@@ -733,8 +732,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private Map<Cell, Value> validateBatch(
-            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean hasReadEmptyCells) {
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), hasReadEmptyCells);
+            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndNonEmpty) {
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndNonEmpty);
         return ImmutableMap.copyOf(batch);
     }
 
@@ -848,7 +847,7 @@ public class SnapshotTransaction extends AbstractTransaction
         validatePreCommitRequirementsOnReadIfNecessary(
                 tableRef,
                 getStartTimestamp(),
-                true /* can't skip lock check as we don't know how many cells to expect for the column selection */);
+                false /* can't skip lock check as we don't know how many cells to expect for the column selection */);
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
@@ -962,7 +961,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     if (hasReadEmptyCells) {
                         hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
                     }
-                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), hasReadEmptyCells);
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), !hasReadEmptyCells);
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
@@ -987,7 +986,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (hasReadEmptyCells) {
             hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
         }
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), hasReadEmptyCells);
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), !hasReadEmptyCells);
 
         return filtered;
     }
@@ -1043,7 +1042,7 @@ public class SnapshotTransaction extends AbstractTransaction
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
                     hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
                     validatePreCommitRequirementsOnReadIfNecessary(
-                            tableRef, getStartTimestamp(), true /* can't skip lock check for range scans */);
+                            tableRef, getStartTimestamp(), false /* can't skip lock check for range scans */);
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(tableRef, firstPages.values());
 
@@ -1170,18 +1169,19 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void validatePreCommitRequirementsOnReadIfNecessary(
-            TableReference tableRef, long timestamp, boolean hasReadEmptyCells) {
-        if (isValidationNecessaryOnReads(tableRef, hasReadEmptyCells)) {
+            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndNonEmpty) {
+        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndNonEmpty)) {
             throwIfPreCommitRequirementsNotMet(null, timestamp);
         }
     }
 
-    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean hasReadEmptyCells) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, hasReadEmptyCells);
+    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndNonEmpty) {
+        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndNonEmpty);
     }
 
-    private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean hasReadEmptyCells) {
-        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(hasReadEmptyCells)
+    private boolean requiresImmutableTimestampLocking(
+            TableReference tableRef, boolean allPossibleCellsReadAndNonEmpty) {
+        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndNonEmpty)
                 || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
@@ -1337,7 +1337,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
                 validatePreCommitRequirementsOnReadIfNecessary(
-                        tableRef, getStartTimestamp(), true /* can't skip lock checks for range scans */);
+                        tableRef, getStartTimestamp(), false /* can't skip lock checks for range scans */);
                 results.markNumResultsNotDeleted(
                         Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
@@ -1713,7 +1713,7 @@ public class SnapshotTransaction extends AbstractTransaction
                             hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
                         }
                         validatePreCommitRequirementsOnReadIfNecessary(
-                                tableRef, getStartTimestamp(), hasReadEmptyCells);
+                                tableRef, getStartTimestamp(), !hasReadEmptyCells);
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },
                     MoreExecutors.directExecutor());
@@ -2629,7 +2629,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
         boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream()
                 .anyMatch(tableRef -> requiresImmutableTimestampLocking(
-                        tableRef, hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound));
+                        tableRef, !hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
         return anyTableRequiresImmutableTimestampLocking && needsToValidate;
     }
