@@ -168,7 +168,8 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         }
         StreamTestMaxMemStreamMetadataTable table = tables.getStreamTestMaxMemStreamMetadataTable(t);
         Map<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
         Set<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow r : m.keySet()) {
             for (StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class StreamTestMaxMemStreamStore extends AbstractPersistentStreamS
     }
 
     private Set<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow> rows = new HashSet<>();
+        Set<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow.of(h));
         }

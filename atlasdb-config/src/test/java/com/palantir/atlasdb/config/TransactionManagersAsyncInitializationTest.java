@@ -45,7 +45,7 @@ public class TransactionManagersAsyncInitializationTest {
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
 
-    private final Consumer<Object> environment = mock(Consumer.class);
+    private final Consumer<Object> registrar = mock(Consumer.class);
 
     @Test
     public void asyncInitializationEventuallySucceeds() {
@@ -59,7 +59,7 @@ public class TransactionManagersAsyncInitializationTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .addSchemas(GenericTestSchema.getSchema())
                 .build()
                 .serializable();
@@ -84,7 +84,7 @@ public class TransactionManagersAsyncInitializationTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
+                .registrar(registrar)
                 .addSchemas(GenericTestSchema.getSchema());
 
         assertThatCode(() -> build.build().serializable()).doesNotThrowAnyException();

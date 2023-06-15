@@ -29,16 +29,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.MockitoJUnitRunner;
 
 // Mock is used as a convenient supplier, alternatives are rather verbose
 @SuppressWarnings("DirectInvocationOnMock")
 @RunWith(MockitoJUnitRunner.class)
 public class ReplaceIfExceptionMatchingProxyTest {
-    @Mock
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private TestInterface delegate;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.SUBCLASS)
     private Supplier<TestInterface> supplier;
 
     interface TestInterface {

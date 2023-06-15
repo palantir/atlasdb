@@ -30,18 +30,17 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public final class ConcurrentTransactionRunner {
-    private final TransactionStore transactionStore;
+public final class ConcurrentTransactionRunner<T extends TransactionStore> {
+    private final T transactionStore;
     private final ListeningExecutorService listeningExecutorService;
 
-    public ConcurrentTransactionRunner(
-            TransactionStore transactionStore, ListeningExecutorService listeningExecutorService) {
+    public ConcurrentTransactionRunner(T transactionStore, ListeningExecutorService listeningExecutorService) {
         this.transactionStore = transactionStore;
         this.listeningExecutorService = listeningExecutorService;
     }
 
     public Future<List<WitnessedTransaction>> runConcurrentTransactionTask(
-            KeyedTransactionTask transactionTask, int taskMultiplicity) {
+            KeyedTransactionTask<T> transactionTask, int taskMultiplicity) {
         Preconditions.checkArgument(
                 taskMultiplicity >= 0,
                 "Tasks must be run a non-negative number of times",

@@ -168,7 +168,8 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
         putHashIndexTask(t, rowsToStoredMetadata);
 
-        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToMetadata = new HashMap<>();
+        Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> rowsToMetadata =
+                Maps.newHashMapWithExpectedSize(streamIdsToMetadata.size());
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
         mdTable.putMetadata(rowsToMetadata);
@@ -219,7 +220,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         }
         UserPhotosStreamMetadataTable table = tables.getUserPhotosStreamMetadataTable(t);
         Map<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> metadatas = table.getMetadatas(getMetadataRowsForIds(streamIds));
-        Map<Long, StreamMetadata> ret = new HashMap<>();
+        Map<Long, StreamMetadata> ret = Maps.newHashMapWithExpectedSize(metadatas.size());
         for (Map.Entry<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
             ret.put(e.getKey().getId(), e.getValue());
         }
@@ -235,7 +236,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
         Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = getHashIndexRowsForHashes(hashes);
 
         Multimap<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue> m = idx.getRowsMultimap(rows);
-        Map<Long, Sha256Hash> hashForStreams = new HashMap<>();
+        Map<Long, Sha256Hash> hashForStreams = Maps.newHashMapWithExpectedSize(m.size());
         for (UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow r : m.keySet()) {
             for (UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxColumnValue v : m.get(r)) {
                 Long streamId = v.getColumnName().getStreamId();
@@ -261,7 +262,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
     }
 
     private Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> getHashIndexRowsForHashes(final Set<Sha256Hash> hashes) {
-        Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = new HashSet<>();
+        Set<UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow> rows = Sets.newHashSetWithExpectedSize(hashes.size());
         for (Sha256Hash h : hashes) {
             rows.add(UserPhotosStreamHashAidxTable.UserPhotosStreamHashAidxRow.of(h));
         }

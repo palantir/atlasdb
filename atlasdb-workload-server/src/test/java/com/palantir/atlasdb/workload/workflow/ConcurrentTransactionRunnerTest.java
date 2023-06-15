@@ -33,7 +33,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedTransaction;
+import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
@@ -49,11 +49,12 @@ import org.junit.Test;
 public class ConcurrentTransactionRunnerTest {
     private static final int DEFAULT_TASK_MULTIPLICITY = 100;
 
-    private final KeyedTransactionTask task = mock(KeyedTransactionTask.class);
+    private final KeyedTransactionTask<TransactionStore> task = mock(KeyedTransactionTask.class);
     private final TransactionStore store = mock(TransactionStore.class);
     private final DeterministicScheduler scheduler = new DeterministicScheduler();
     private final ListeningExecutorService executorService = MoreExecutors.listeningDecorator(scheduler);
-    private final ConcurrentTransactionRunner runner = new ConcurrentTransactionRunner(store, executorService);
+    private final ConcurrentTransactionRunner<TransactionStore> runner =
+            new ConcurrentTransactionRunner<>(store, executorService);
 
     @Before
     public void setupTask() {
@@ -125,7 +126,7 @@ public class ConcurrentTransactionRunnerTest {
     }
 
     private static WitnessedTransaction createWitnessedTransactionWithStartTimestamp(int startTimestamp) {
-        return ImmutableWitnessedTransaction.builder()
+        return FullyWitnessedTransaction.builder()
                 .startTimestamp(startTimestamp)
                 .build();
     }

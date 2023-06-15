@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -66,7 +66,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     private final KeyValueService kvs;
     private final TransactionManager txManager;
     private final Cache<TransactionToken, OpenTransaction> transactions =
-            CacheBuilder.newBuilder().expireAfterAccess(Duration.ofHours(12)).build();
+            Caffeine.newBuilder().expireAfterAccess(Duration.ofHours(12)).build();
     private final TableMetadataCache metadataCache;
 
     @Inject

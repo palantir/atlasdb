@@ -27,6 +27,9 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BooleanSupplier;
+import java.util.function.IntSupplier;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
@@ -35,7 +38,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private static final long MAX_DAEMON_CLEAN_SHUTDOWN_TIME_MILLIS = 10_000;
 
     // Thread management
-    private final Supplier<Integer> sweepThreads;
+    private final IntSupplier sweepThreads;
     private Set<Thread> daemons;
     private final CountDownLatch shuttingDown = new CountDownLatch(1);
 
@@ -43,8 +46,8 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     private final LockService lockService;
     private final NextTableToSweepProvider nextTableToSweepProvider;
     private final AdjustableSweepBatchConfigSource sweepBatchConfigSource;
-    private final Supplier<Boolean> isSweepEnabled;
-    private final Supplier<Long> sweepPauseMillis;
+    private final BooleanSupplier isSweepEnabled;
+    private final LongSupplier sweepPauseMillis;
     private final Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig;
     private final SpecificTableSweeper specificTableSweeper;
     private final SweepOutcomeMetrics sweepOutcomeMetrics;
@@ -54,9 +57,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
             LockService lockService,
             NextTableToSweepProvider nextTableToSweepProvider,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
-            Supplier<Boolean> isSweepEnabled,
-            Supplier<Integer> sweepThreads,
-            Supplier<Long> sweepPauseMillis,
+            BooleanSupplier isSweepEnabled,
+            IntSupplier sweepThreads,
+            LongSupplier sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper) {
         this.sweepOutcomeMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
@@ -73,9 +76,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     public static BackgroundSweeperImpl create(
             MetricsManager metricsManager,
             AdjustableSweepBatchConfigSource sweepBatchConfigSource,
-            Supplier<Boolean> isSweepEnabled,
-            Supplier<Integer> sweepThreads,
-            Supplier<Long> sweepPauseMillis,
+            BooleanSupplier isSweepEnabled,
+            IntSupplier sweepThreads,
+            LongSupplier sweepPauseMillis,
             Supplier<SweepPriorityOverrideConfig> sweepPriorityOverrideConfig,
             SpecificTableSweeper specificTableSweeper) {
         NextTableToSweepProvider nextTableToSweepProvider = NextTableToSweepProvider.create(
@@ -98,7 +101,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
     @Override
     public synchronized void runInBackground() {
         Preconditions.checkState(daemons == null);
-        int numThreads = sweepThreads.get();
+        int numThreads = sweepThreads.getAsInt();
         daemons = Sets.newHashSetWithExpectedSize(numThreads);
 
         for (int idx = 1; idx <= numThreads; idx++) {

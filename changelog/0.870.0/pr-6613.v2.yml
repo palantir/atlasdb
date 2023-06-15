@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: There now exists an Antithesis workflow that exercises read-write transactions
+    that only do reads.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6613

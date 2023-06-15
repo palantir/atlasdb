@@ -26,7 +26,6 @@
     <suppress files=".*" checks="RedundantModifier"/>
     <suppress files=".*" checks="SummaryJavadocCheck"/>
     <suppress files=".*" checks="VisibilityModifier"/>
-    <suppress files=".*" id="BanGuavaCaches"/>
 
     <!-- Certain AtlasDB projects are ignored. -->
     <suppress files="atlasdb-client/*" checks="."/>

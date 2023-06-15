@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Use debian images for workload-server and timelock-server for integration
+    tests
+  links:
+  - https://github.com/palantir/atlasdb/pull/6527

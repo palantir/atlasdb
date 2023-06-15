@@ -19,7 +19,13 @@ package com.palantir.atlasdb.workload.config;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableWorkloadServerInstallConfiguration.class)
@@ -29,6 +35,18 @@ public interface WorkloadServerInstallConfiguration {
     AtlasDbConfig atlas();
 
     SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig();
+
+    RingWorkflowConfiguration ringConfig();
+
+    TransientRowsWorkflowConfiguration transientRowsConfig();
+
+    SingleBusyCellWorkflowConfiguration singleBusyCellConfig();
+
+    BankBalanceWorkflowConfiguration bankBalanceConfig();
+
+    RandomWorkflowConfiguration randomConfig();
+
+    SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadsNoTouchConfig();
 
     boolean exitAfterRunning();
 }

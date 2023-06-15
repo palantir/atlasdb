@@ -33,4 +33,9 @@ public final class ReadOnlyTransactionStore implements ReadableTransactionStore 
     public Optional<Integer> get(String table, WorkloadCell cell) {
         return delegate.get(table, cell);
     }
+
+    @Override
+    public boolean isCommitted(long startTimestamp) {
+        return delegate.isCommitted(startTimestamp);
+    }
 }
