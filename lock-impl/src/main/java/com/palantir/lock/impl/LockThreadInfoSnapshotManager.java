@@ -149,12 +149,10 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         scheduledExecutorService.shutdown();
-        synchronized (this) {
-            // To prevent scheduling of future tasks, which will throw an exception
-            isRunning = true;
-        }
+        // To prevent scheduling of future tasks, which will throw an exception
+        isRunning = true;
         disposable.dispose();
     }
 }
