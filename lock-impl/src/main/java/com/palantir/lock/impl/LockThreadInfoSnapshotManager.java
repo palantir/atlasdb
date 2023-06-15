@@ -41,6 +41,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.concurrent.GuardedBy;
 
 public class LockThreadInfoSnapshotManager implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LockThreadInfoSnapshotManager.class);
@@ -54,8 +55,8 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private Disposable disposable;
 
-    @VisibleForTesting
-    boolean isRunning = false;
+    @GuardedBy("this")
+    private boolean isRunning = false;
 
     public LockThreadInfoSnapshotManager(
             Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration,
@@ -82,6 +83,11 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                 SafeArg.of("snapshotSize", lastKnownThreadInfoSnapshot.size()),
                 SafeArg.of("snapshotInterval", threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
         scheduleRun();
+    }
+
+    @VisibleForTesting
+    synchronized boolean isRunning() {
+        return isRunning;
     }
 
     private synchronized void scheduleRun() {
@@ -145,7 +151,10 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     @Override
     public void close() {
         scheduledExecutorService.shutdown();
-        isRunning = true;
+        synchronized (this) {
+            // To prevent scheduling of future tasks, which will throw an exception
+            isRunning = true;
+        }
         disposable.dispose();
     }
 }
