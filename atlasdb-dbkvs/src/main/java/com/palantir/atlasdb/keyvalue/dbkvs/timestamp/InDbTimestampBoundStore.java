@@ -131,6 +131,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         this.physicalBoundStoreStrategy = physicalBoundStoreStrategy;
     }
 
+    @SuppressWarnings("GuardedBy") // TODO (jkong): synchronize?
     private void init() {
         try (Connection conn = connManager.getConnection()) {
             physicalBoundStoreStrategy.createTimestampTable(conn, this::getDbType);
