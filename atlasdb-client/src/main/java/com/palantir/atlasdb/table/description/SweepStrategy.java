@@ -33,16 +33,16 @@ public final class SweepStrategy {
     public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), false, true);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
-    private final boolean mustCheckImmutableLockAfterNonEmptyReads;
-    private final boolean mustCheckImmutableLockAfterEmptyReads;
+    private final boolean mustCheckImmutableLockIfAllCellsReadAndPresent;
+    private final boolean mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
 
     private SweepStrategy(
             Optional<SweeperStrategy> sweeperStrategy,
-            boolean mustCheckImmutableLockAfterNonEmptyReads,
-            boolean mustCheckImmutableLockAfterEmptyReads) {
+            boolean mustCheckImmutableLockIfAllCellsReadAndPresent,
+            boolean mustCheckImmutableLockIfEmptyCellWasPossiblyRead) {
         this.sweeperStrategy = sweeperStrategy;
-        this.mustCheckImmutableLockAfterNonEmptyReads = mustCheckImmutableLockAfterNonEmptyReads;
-        this.mustCheckImmutableLockAfterEmptyReads = mustCheckImmutableLockAfterEmptyReads;
+        this.mustCheckImmutableLockIfAllCellsReadAndPresent = mustCheckImmutableLockIfAllCellsReadAndPresent;
+        this.mustCheckImmutableLockIfEmptyCellWasPossiblyRead = mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
     }
 
     public Optional<SweeperStrategy> getSweeperStrategy() {
@@ -50,7 +50,9 @@ public final class SweepStrategy {
     }
 
     public boolean mustCheckImmutableLock(boolean hasReadEmptyCells) {
-        return hasReadEmptyCells ? mustCheckImmutableLockAfterEmptyReads : mustCheckImmutableLockAfterNonEmptyReads;
+        return hasReadEmptyCells
+                ? mustCheckImmutableLockIfEmptyCellWasPossiblyRead
+                : mustCheckImmutableLockIfAllCellsReadAndPresent;
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
