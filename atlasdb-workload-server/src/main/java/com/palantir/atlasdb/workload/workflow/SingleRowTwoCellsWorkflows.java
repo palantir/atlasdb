@@ -86,7 +86,7 @@ public final class SingleRowTwoCellsWorkflows {
             Map<Integer, Integer> tableState =
                     values.stream().collect(Collectors.toMap(ColumnValue::column, ColumnValue::value));
             if (tableState.size() != 1) {
-                log.error("Wrong number of values found in table state {}", SafeArg.of("tableState", tableState));
+                log.error("Detected transactions that violated our serializable isolation invariant {}", SafeArg.of("tableState", tableState));
             }
 
             if (tableState.containsKey(FIRST_COLUMN)) {
@@ -123,11 +123,11 @@ public final class SingleRowTwoCellsWorkflows {
     private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                        DeleteTransactionAction.of(tableName, SECOND_CELL))
+                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                        DeleteTransactionAction.of(tableName, FIRST_CELL),
-                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                DeleteTransactionAction.of(tableName, FIRST_CELL),
+                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
     private static List<TransactionAction> createCellReadActions(String tableName) {
