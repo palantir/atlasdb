@@ -198,15 +198,15 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     /**
      * In order to maintain the necessary invariants, we need to do the following:
      * <p>
-     *  1. For each new event, we apply it to the cache. The effects of this application is described in
-     *     {@link LockWatchValueScopingCache}.
-     *  2. For each transaction, we must ensure that we store a snapshot of the cache at the sequence corresponding
-     *     to the transaction's start timestamp. Note that not every sequence will have a corresponding timestamp, so we
-     *     don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
-     *     ever have new events, and that consecutive calls to this method will *always* have increasing sequences
-     *     (without this last guarantee, we'd need to store snapshots for all sequences).
-     *  3. For each transaction, we must create a transaction scoped cache. We do this now as we have tighter guarantees
-     *     around when the cache is created, and thus deleted.
+     * 1. For each new event, we apply it to the cache. The effects of this application is described in
+     * {@link LockWatchValueScopingCache}.
+     * 2. For each transaction, we must ensure that we store a snapshot of the cache at the sequence corresponding
+     * to the transaction's start timestamp. Note that not every sequence will have a corresponding timestamp, so we
+     * don't bother storing a snapshot for those sequences. Also note that we know that each call here will only
+     * ever have new events, and that consecutive calls to this method will *always* have increasing sequences
+     * (without this last guarantee, we'd need to store snapshots for all sequences).
+     * 3. For each transaction, we must create a transaction scoped cache. We do this now as we have tighter guarantees
+     * around when the cache is created, and thus deleted.
      */
     private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
@@ -244,6 +244,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .orElse(true);
     }
 
+    @SuppressWarnings("GuardedBy") // The stream operation is terminal within this synchronized method.
     private synchronized void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
         Set<Sequence> sequences = reversedMap.keySet();
         if (sequences.stream().map(snapshotStore::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
