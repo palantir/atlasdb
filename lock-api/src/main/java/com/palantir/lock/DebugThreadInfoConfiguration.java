@@ -35,6 +35,6 @@ public interface DebugThreadInfoConfiguration {
     @JsonProperty("thread-info-snapshot-interval-millis")
     @Value.Default
     default long threadInfoSnapshotIntervalMillis() {
-        return 5000L;
+        return 300000L;
     }
 }

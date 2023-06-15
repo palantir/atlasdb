@@ -386,6 +386,12 @@ public class ThreadInfoLockServiceImplTest {
                 .doesNotContainKey(TEST_LOCK_1));
     }
 
+    @Test
+    public void closesWithLockService() {
+        lockService.close();
+        assertThat(lockService.getSnapshotManager().isClosed()).isTrue();
+    }
+
     private void forceSnapshot() {
         lockService.getSnapshotManager().takeSnapshot();
     }

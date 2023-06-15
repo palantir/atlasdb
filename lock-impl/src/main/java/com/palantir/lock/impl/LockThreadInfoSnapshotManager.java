@@ -53,7 +53,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
 
     private ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
-    private Disposable disposable;
+    private Optional<Disposable> disposable;
 
     @GuardedBy("this")
     private boolean isRunning = false;
@@ -65,15 +65,18 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         this.tokenMapSupplier = mapSupplier;
     }
 
-    public void start() {
+    public synchronized void start() {
+        if (isRunning || isClosed()) {
+            return;
+        }
         scheduleRun();
-        disposable = threadInfoConfiguration.subscribe(newThreadInfoConfiguration -> {
+        disposable = Optional.of(threadInfoConfiguration.subscribe(newThreadInfoConfiguration -> {
             synchronized (this) {
                 if (!isRunning) {
                     scheduleRun();
                 }
             }
-        });
+        }));
     }
 
     private void run() {
@@ -91,6 +94,9 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     }
 
     private synchronized void scheduleRun() {
+        if (isClosed()) {
+            return;
+        }
         if (threadInfoConfiguration.current().recordThreadInfo()) {
             if (!isRunning) {
                 log.info(
@@ -148,11 +154,14 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (existing, replacement) -> existing));
     }
 
+    @VisibleForTesting
+    boolean isClosed() {
+        return scheduledExecutorService.isShutdown();
+    }
+
     @Override
     public synchronized void close() {
         scheduledExecutorService.shutdown();
-        // To prevent scheduling of future tasks, which will throw an exception
-        isRunning = true;
-        disposable.dispose();
+        disposable.ifPresent(Disposable::dispose);
     }
 }

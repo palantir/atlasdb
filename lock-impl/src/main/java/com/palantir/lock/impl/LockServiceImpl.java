@@ -1231,6 +1231,7 @@ public final class LockServiceImpl
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
             lockReapRunner.close();
+            threadInfoSnapshotManager.close();
             blockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
