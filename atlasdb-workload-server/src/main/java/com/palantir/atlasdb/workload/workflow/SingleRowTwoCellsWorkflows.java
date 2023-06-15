@@ -76,7 +76,7 @@ public final class SingleRowTwoCellsWorkflows {
     private static Optional<WitnessedTransaction> run(
             InteractiveTransactionStore store, int taskIndex, SingleRowTwoCellsWorkflowConfiguration workflowConfiguration) {
         workflowConfiguration.transactionRateLimiter().acquire();
-        store.readWrite(txn -> {
+        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(txn -> {
             List<ColumnValue> values = txn.getRowColumnRange(
                     workflowConfiguration.tableConfiguration().tableName(),
                     SINGLE_ROW,
@@ -97,9 +97,9 @@ public final class SingleRowTwoCellsWorkflows {
             }
         });
 
-        List<TransactionAction> transactionActions = createTransactionActions(
-                taskIndex, workflowConfiguration.tableConfiguration().tableName());
-        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(transactionActions);
+//        List<TransactionAction> transactionActions = createTransactionActions(
+//                taskIndex, workflowConfiguration.tableConfiguration().tableName());
+//        Optional<WitnessedTransaction> maybeTransaction = store.readWrite(transactionActions);
         maybeTransaction.ifPresent(_transaction -> log.info(
                 "Transaction successfully committed for single row two cells workflow for task index {}.",
                 SafeArg.of("taskIndex", taskIndex)));
