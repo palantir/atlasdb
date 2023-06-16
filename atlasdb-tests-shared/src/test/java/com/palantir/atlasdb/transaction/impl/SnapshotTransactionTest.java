@@ -1610,6 +1610,26 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void validateLocksOnCommitIfEmptyReadsFollowedByNonEmptyReadsIfValidationFlagIsFalse() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        // First reading empty value
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL_2));
+        // Then reading non-empty value.
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        // Make sure that lock is still validated in the end due to the initial empty read
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(transaction::commit);
+    }
+
+    @Test
     public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithValidationOnReads() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
