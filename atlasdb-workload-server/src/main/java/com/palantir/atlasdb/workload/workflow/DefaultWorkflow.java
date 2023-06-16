@@ -23,24 +23,45 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
     private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
     private final KeyedTransactionTask<T> transactionTask;
     private final WorkflowConfiguration workflowConfiguration;
     private final ReadOnlyTransactionStore readOnlyTransactionStore;
+    private final Supplier<Optional<WitnessedTransaction>> bootstrap;
 
     private DefaultWorkflow(
             ConcurrentTransactionRunner<T> concurrentTransactionRunner,
             KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration workflowConfiguration,
-            ReadOnlyTransactionStore readOnlyTransactionStore) {
+            ReadOnlyTransactionStore readOnlyTransactionStore,
+            Supplier<Optional<WitnessedTransaction>> bootstrap) {
         this.concurrentTransactionRunner = concurrentTransactionRunner;
         this.transactionTask = transactionTask;
         this.workflowConfiguration = workflowConfiguration;
         this.readOnlyTransactionStore = readOnlyTransactionStore;
+        this.bootstrap = bootstrap;
+    }
+
+    public static <T extends TransactionStore> DefaultWorkflow<T> create(
+            T store,
+            KeyedTransactionTask<T> transactionTask,
+            WorkflowConfiguration configuration,
+            ListeningExecutorService executionExecutor,
+            KeyedTransactionTask<T> setupTask) {
+        return new DefaultWorkflow<>(
+                new ConcurrentTransactionRunner<>(store, executionExecutor),
+                transactionTask,
+                configuration,
+                new ReadOnlyTransactionStore(store),
+                () -> setupTask.apply(store, 0));
     }
 
     public static <T extends TransactionStore> DefaultWorkflow<T> create(
@@ -48,18 +69,17 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
             KeyedTransactionTask<T> transactionTask,
             WorkflowConfiguration configuration,
             ListeningExecutorService executionExecutor) {
-        return new DefaultWorkflow<>(
-                new ConcurrentTransactionRunner<>(store, executionExecutor),
-                transactionTask,
-                configuration,
-                new ReadOnlyTransactionStore(store));
+        return create(store, transactionTask, configuration, executionExecutor, (s, i) -> Optional.empty());
     }
 
     @Override
     public WorkflowHistory run() {
+        Optional<WitnessedTransaction> bootstrapWitness = bootstrap.get();
         return ImmutableWorkflowHistory.builder()
-                .history(
-                        WitnessedTransactions.sortAndFilterTransactions(readOnlyTransactionStore, runTransactionTask()))
+                .history(WitnessedTransactions.sortAndFilterTransactions(
+                        readOnlyTransactionStore,
+                        Stream.concat(bootstrapWitness.stream(), runTransactionTask().stream())
+                                .collect(Collectors.toList())))
                 .transactionStore(readOnlyTransactionStore)
                 .build();
     }

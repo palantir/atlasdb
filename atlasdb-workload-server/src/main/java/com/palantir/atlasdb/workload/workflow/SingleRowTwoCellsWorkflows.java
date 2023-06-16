@@ -64,13 +64,17 @@ public final class SingleRowTwoCellsWorkflows {
             InteractiveTransactionStore store,
             SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsWorkflowConfiguration,
             ListeningExecutorService executionExecutor) {
-        store.readWrite(txn -> txn.write(
-                singleRowTwoCellsWorkflowConfiguration.tableConfiguration().tableName(), FIRST_CELL, 1));
         return DefaultWorkflow.create(
                 store,
                 (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
                 singleRowTwoCellsWorkflowConfiguration,
-                executionExecutor);
+                executionExecutor,
+                (st, idx) -> store.readWrite(txn -> txn.write(
+                        singleRowTwoCellsWorkflowConfiguration
+                                .tableConfiguration()
+                                .tableName(),
+                        FIRST_CELL,
+                        1)));
     }
 
     private static Optional<WitnessedTransaction> run(
@@ -86,10 +90,7 @@ public final class SingleRowTwoCellsWorkflows {
             Map<Integer, Integer> tableState =
                     values.stream().collect(Collectors.toMap(ColumnValue::column, ColumnValue::value));
             if (tableState.size() != 1) {
-                log.error(
-                        "Detected transactions that violated our serializable isolation invariant {}",
-                        SafeArg.of("tableState", tableState));
-                log.error("This is a hack null null null null null null {}", SafeArg.of("tableState", tableState));
+                flagViolation();
             }
 
             if (tableState.containsKey(FIRST_COLUMN)) {
@@ -108,6 +109,11 @@ public final class SingleRowTwoCellsWorkflows {
                 "Transaction successfully committed for single row two cells workflow for task index {}.",
                 SafeArg.of("taskIndex", taskIndex)));
         return maybeTransaction;
+    }
+
+    private static void flagViolation() {
+        log.error("Illegal table state observed!");
+        throw new NullPointerException("boom");
     }
 
     @VisibleForTesting
