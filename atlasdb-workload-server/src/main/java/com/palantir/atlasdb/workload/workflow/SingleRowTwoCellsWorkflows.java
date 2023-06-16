@@ -73,7 +73,7 @@ public final class SingleRowTwoCellsWorkflows {
                         singleRowTwoCellsWorkflowConfiguration
                                 .tableConfiguration()
                                 .tableName(),
-                        FIRST_CELL,
+                        SECOND_CELL,
                         1)));
     }
 
