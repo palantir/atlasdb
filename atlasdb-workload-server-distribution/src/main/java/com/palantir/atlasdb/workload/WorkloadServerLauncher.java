@@ -75,6 +75,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("UnusedMethod") // Not right now.
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
 
     private static final SafeLogger log = SafeLoggerFactory.get(WorkloadServerLauncher.class);
@@ -174,7 +175,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         // environment.lifecycle()),
                         //                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig,
                         // environment.lifecycle())
-                        );
+                );
 
         log.info("antithesis: terminate");
 
