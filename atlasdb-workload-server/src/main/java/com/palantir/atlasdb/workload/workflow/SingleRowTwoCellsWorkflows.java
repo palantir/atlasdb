@@ -111,6 +111,7 @@ public final class SingleRowTwoCellsWorkflows {
         return maybeTransaction;
     }
 
+    @SuppressWarnings("PreferSafeLoggableExceptions") // Specific type needed for external analysis
     private static void flagViolation() {
         log.error("Illegal table state observed!");
         throw new NullPointerException("boom");
@@ -132,11 +133,11 @@ public final class SingleRowTwoCellsWorkflows {
     private static List<TransactionAction> createCellUpdateActions(int taskIndex, String tableName) {
         return shouldWriteToFirstCell(taskIndex)
                 ? ImmutableList.of(
-                        WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
-                        DeleteTransactionAction.of(tableName, SECOND_CELL))
+                WriteTransactionAction.of(tableName, FIRST_CELL, taskIndex),
+                DeleteTransactionAction.of(tableName, SECOND_CELL))
                 : ImmutableList.of(
-                        DeleteTransactionAction.of(tableName, FIRST_CELL),
-                        WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
+                DeleteTransactionAction.of(tableName, FIRST_CELL),
+                WriteTransactionAction.of(tableName, SECOND_CELL, taskIndex));
     }
 
     private static List<TransactionAction> createCellReadActions(String tableName) {
