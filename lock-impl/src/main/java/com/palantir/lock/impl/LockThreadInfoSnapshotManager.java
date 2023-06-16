@@ -45,13 +45,13 @@ import javax.annotation.concurrent.GuardedBy;
 
 public class LockThreadInfoSnapshotManager implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LockThreadInfoSnapshotManager.class);
-    private Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration;
+    private final Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration;
 
-    private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
+    private final Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
 
     private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot = ImmutableMap.of();
 
-    private ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
 
     private Optional<Disposable> disposable;
 
@@ -82,9 +82,11 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     private void run() {
         takeSnapshot();
         log.info(
-                "Took lock thread info snapshot of size {}. Next snapshot due in {}",
+                "Took thread info snapshot of {} locks. Next snapshot due in {}ms",
                 SafeArg.of("snapshotSize", lastKnownThreadInfoSnapshot.size()),
-                SafeArg.of("snapshotInterval", threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
+                SafeArg.of(
+                        "snapshotIntervalMillis",
+                        threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
         scheduleRun();
     }
 
@@ -102,7 +104,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                 log.info(
                         "Starting to take lock thread info snapshots in the background",
                         SafeArg.of(
-                                "snapshotInterval",
+                                "snapshotIntervalMillis",
                                 threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
                 isRunning = true;
             }
