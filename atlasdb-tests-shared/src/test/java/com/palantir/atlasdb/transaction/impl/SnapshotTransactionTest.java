@@ -1586,7 +1586,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
-                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
