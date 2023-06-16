@@ -934,8 +934,10 @@ public class SnapshotTransaction extends AbstractTransaction
             }
         }
 
-        // We don't need to read any cells that were written locally.
-        Set<Cell> cellsWithNoLocalWrites = Sets.difference(cells, result.keySet());
+        // We don't need to read any cells that were written locally. Making an immutable copy because otherwise adding
+        // values to the result map would prevent us from calculating the correct size for
+        // allPossibleCellsReadAndNonEmpty, since Sets.difference gives us a live view.
+        Set<Cell> cellsWithNoLocalWrites = ImmutableSet.copyOf(Sets.difference(cells, result.keySet()));
         return Futures.transform(
                 getFromKeyValueService(tableRef, cellsWithNoLocalWrites, asyncKeyValueService, asyncTransactionService),
                 fromKeyValueService -> {
