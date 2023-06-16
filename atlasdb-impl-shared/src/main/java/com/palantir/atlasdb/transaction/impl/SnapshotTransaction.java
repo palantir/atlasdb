@@ -270,7 +270,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     protected volatile boolean hasReads;
-    protected Set<UUID> readsRequiringImmutableTimestampValidationAtCommitRound;
+    protected final Set<UUID> readsRequiringImmutableTimestampValidationAtCommitRound;
 
     protected final TimestampCache timestampCache;
 
