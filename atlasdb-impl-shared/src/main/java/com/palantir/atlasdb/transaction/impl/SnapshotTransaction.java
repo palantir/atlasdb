@@ -1457,12 +1457,7 @@ public class SnapshotTransaction extends AbstractTransaction
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 remainingResultsToPostFilter -> getWithPostFilteringIterate(
-                        tableRef,
-                        remainingResultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                        tableRef, remainingResultsToPostFilter, resultsAccumulator, transformer, asyncKeyValueService),
                 MoreExecutors.directExecutor());
     }
 
@@ -1471,30 +1466,20 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> remainingResultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
-        if (remainingResultsToPostFilter.isEmpty()) {
-            getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
-                    .inc(resultsAccumulator.size());
-            return Futures.immediateFuture(resultsAccumulator);
+            AsyncKeyValueService asyncKeyValueService) {
+        Map<Cell, Value> results = remainingResultsToPostFilter;
+        while (!results.isEmpty()) {
+            results = getWithPostFilteringInternal(
+                    tableReference,
+                    remainingResultsToPostFilter,
+                    resultsAccumulator,
+                    transformer,
+                    asyncKeyValueService);
         }
 
-        return Futures.transformAsync(
-                getWithPostFilteringInternal(
-                        tableReference,
-                        remainingResultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
-                remaining -> getWithPostFilteringIterate(
-                        tableReference,
-                        remaining,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
-                MoreExecutors.directExecutor());
+        getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
+                .inc(resultsAccumulator.size());
+        return Futures.immediateFuture(resultsAccumulator);
     }
 
     /**
@@ -1582,30 +1567,26 @@ public class SnapshotTransaction extends AbstractTransaction
      * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
      * filtered keys to the {@code resultsCollector} output param.
      */
-    private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
+    private <T> Map<Cell, Value> getWithPostFilteringInternal(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            AsyncKeyValueService asyncKeyValueService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
-
-        return Futures.transformAsync(
-                getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
-                commitTimestamps -> collectCellsToPostFilter(
-                        tableRef,
-                        rawResults,
-                        resultsCollector,
-                        transformer,
-                        asyncKeyValueService,
-                        orphanedSentinels,
-                        commitTimestamps),
-                MoreExecutors.directExecutor());
+        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, valuesStartTimestamps, true);
+        return collectCellsToPostFilter(
+                tableRef,
+                rawResults,
+                resultsCollector,
+                transformer,
+                asyncKeyValueService,
+                orphanedSentinels,
+                commitTimestamps);
     }
 
-    private <T> ListenableFuture<Map<Cell, Value>> collectCellsToPostFilter(
+    private <T> Map<Cell, Value> collectCellsToPostFilter(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
@@ -1674,20 +1655,15 @@ public class SnapshotTransaction extends AbstractTransaction
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
+                return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
 
         if (!keysToReload.isEmpty()) {
-            return Futures.transform(
-                    asyncKeyValueService.getAsync(tableRef, keysToReload),
-                    nextRawResults -> {
-                        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-                        return getRemainingResults(nextRawResults, keysAddedToResults);
-                    },
-                    MoreExecutors.directExecutor());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            return getRemainingResults(keyValueService.get(tableRef, keysToReload), keysAddedToResults);
         }
-        return Futures.immediateFuture(ImmutableMap.of());
+        return ImmutableMap.of();
     }
 
     private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
