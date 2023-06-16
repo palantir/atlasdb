@@ -155,21 +155,26 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
                 .run(
-//                        createSingleRowTwoCellsWorkflowValidator(
-//                                transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
-//                        createRingWorkflowValidator(
-//                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
+                        //                        createSingleRowTwoCellsWorkflowValidator(
+                        //                                transactionStoreFactory, singleRowTwoCellsConfig,
+                        // environment.lifecycle()),
+                        //                        createRingWorkflowValidator(
+                        //                                transactionStoreFactory, ringWorkflowConfiguration,
+                        // environment.lifecycle()),
                         createTransientRowsWorkflowValidator(
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle())
-//                        createSingleBusyCellWorkflowValidator(
-//                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
-//                        createSingleBusyCellReadNoTouchWorkflowValidator(
-//                                transactionStoreFactory,
-//                                singleBusyCellReadNoTouchWorkflowConfiguration,
-//                                environment.lifecycle()),
-//                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
-//                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle())
-                );
+                        //                        createSingleBusyCellWorkflowValidator(
+                        //                                transactionStoreFactory, singleBusyCellWorkflowConfiguration,
+                        // environment.lifecycle()),
+                        //                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                        //                                transactionStoreFactory,
+                        //                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                        //                                environment.lifecycle()),
+                        //                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig,
+                        // environment.lifecycle()),
+                        //                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig,
+                        // environment.lifecycle())
+                        );
 
         log.info("antithesis: terminate");
 
