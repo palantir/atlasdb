@@ -24,7 +24,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.google.errorprone.annotations.MustBeClosed;
-import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -71,7 +70,7 @@ import java.util.function.Consumer;
  * Wraps a {@link KeyValueService}'s methods with {@link com.palantir.tracing.Tracer}
  * instrumentation.
  */
-public final class TracingKeyValueService extends ForwardingObject implements AutoDelegate_KeyValueService {
+public final class TracingKeyValueService extends ForwardingObject implements KeyValueService {
 
     private static final String SERVICE_NAME = "atlasdb-kvs";
 
@@ -530,6 +529,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Au
             sink.tableRef(tableRef);
             sink.size("cells", timestampByCell);
         });
+    }
+
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegate().sweepsEntriesInStrictlyNonDecreasingFashion();
     }
 
     @MustBeClosed
