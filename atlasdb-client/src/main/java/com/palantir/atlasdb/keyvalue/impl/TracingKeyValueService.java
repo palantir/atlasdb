@@ -86,7 +86,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public KeyValueService delegate() {
+    protected KeyValueService delegate() {
         return delegate;
     }
 
