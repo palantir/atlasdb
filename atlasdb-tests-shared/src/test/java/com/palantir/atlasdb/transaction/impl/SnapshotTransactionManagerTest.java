@@ -240,7 +240,9 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME)
                 .contains("expectations.bytesRead")
                 .contains("expectations.kvsReads")
-                .contains("expectations.ageMillis");
+                .contains("expectations.ageMillis")
+                .contains("expectations.cellCommitLocksRequested")
+                .contains("expectations.rowCommitLocksRequested");
         assertThat(registry.timer(MetricName.builder()
                                 .safeName(SETUP_TASK_METRIC_NAME)
                                 .build())
