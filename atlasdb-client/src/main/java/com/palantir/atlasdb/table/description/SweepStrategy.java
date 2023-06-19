@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.table.description;
 
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -55,10 +56,10 @@ public final class SweepStrategy {
                 : mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
     }
 
-    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
+    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
         return new SweepStrategy(
                 sweeperBehaviour(strategy),
-                mustCheckImmutableLockAfterNonEmptyReads(strategy),
+                mustCheckImmutableLockAfterNonEmptyReads(strategy, kvs),
                 mustCheckImmutableLockAfterEmptyReads(strategy));
     }
 
@@ -75,7 +76,12 @@ public final class SweepStrategy {
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
 
-    private static boolean mustCheckImmutableLockAfterNonEmptyReads(TableMetadataPersistence.SweepStrategy strategy) {
+    private static boolean mustCheckImmutableLockAfterNonEmptyReads(
+            TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
+        if (!kvs.sweepsEntriesInStrictlyNonDecreasingFashion()) {
+            return mustCheckImmutableLockAfterEmptyReads(strategy);
+        }
+
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:
