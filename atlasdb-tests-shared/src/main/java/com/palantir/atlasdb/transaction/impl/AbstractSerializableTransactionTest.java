@@ -60,6 +60,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -1083,8 +1084,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         // Test table is not thorough, therefore no immutable timestamp lock checking
         testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE);
 
-        // Test table is thorough, but still no immutable timestamp lock checking
-        testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH);
+        if (keyValueService.sweepsEntriesInStrictlyNonDecreasingFashion()) {
+            testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH);
+        } else {
+            assertThatThrownBy(() -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH))
+                    .isExactlyInstanceOf(TransactionLockTimeoutException.class);
+        }
     }
 
     @Test
