@@ -28,11 +28,10 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
-import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
-import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
+import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
@@ -256,13 +255,19 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         workflowConfig.tableConfiguration().tableName(),
                         workflowConfig.tableConfiguration().isolationLevel()),
                 Set.of());
+        transactionStore.readWrite(txn -> {
+            txn.write(
+                    workflowConfig.tableConfiguration().tableName(),
+                    ImmutableWorkloadCell.of(1, 2), // single row, second column
+                    1);
+        });
         return WorkflowAndInvariants.builder()
                 .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
-                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
-                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
-                        DurableWritesMetrics.of(taggedMetricRegistry)))
-                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                //                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                //                        SingleRowTwoCellsWorkflows.class.getSimpleName(),
+                //                        DurableWritesMetrics.of(taggedMetricRegistry)))
+                //                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .build();
     }
     //

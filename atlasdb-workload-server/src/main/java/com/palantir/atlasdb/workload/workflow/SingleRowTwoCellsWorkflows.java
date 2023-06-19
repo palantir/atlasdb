@@ -68,13 +68,7 @@ public final class SingleRowTwoCellsWorkflows {
                 store,
                 (txnStore, index) -> run(txnStore, index, singleRowTwoCellsWorkflowConfiguration),
                 singleRowTwoCellsWorkflowConfiguration,
-                executionExecutor,
-                (st, idx) -> store.readWrite(txn -> txn.write(
-                        singleRowTwoCellsWorkflowConfiguration
-                                .tableConfiguration()
-                                .tableName(),
-                        SECOND_CELL,
-                        1)));
+                executionExecutor);
     }
 
     private static Optional<WitnessedTransaction> run(

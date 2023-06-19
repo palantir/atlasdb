@@ -41,5 +41,5 @@ docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
 
 if [[ "$1" = "config-check" ]]; then
   echo "Triggering simulation on Antithesis via the config-check webhook."
-  curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__configcheck__minimal
+  curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir__bravo__baseline
 fi

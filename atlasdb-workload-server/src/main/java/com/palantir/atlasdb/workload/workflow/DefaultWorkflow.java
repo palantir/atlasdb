@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
-import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
