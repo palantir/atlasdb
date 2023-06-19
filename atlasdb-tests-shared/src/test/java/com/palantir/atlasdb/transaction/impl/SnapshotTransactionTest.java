@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -123,6 +124,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -2448,8 +2450,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             } catch (TransactionFailedRetriableException _t) {
             }
         }
-        assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
-                .isInstanceOf(SafeIllegalStateException.class);
+        assertThatLoggableExceptionThrownBy(
+                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageStartingWith("Unable to filter cells")
+                .hasExactlyArgs(
+                        SafeArg.of("table", TABLE_NO_SWEEP),
+                        SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
     private void verifyPrefetchValidations(
