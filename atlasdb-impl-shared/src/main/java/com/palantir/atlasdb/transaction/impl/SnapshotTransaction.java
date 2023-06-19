@@ -210,7 +210,8 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
 
-    private static final int MAX_POST_FILTERING_ITERATIONS = 100_000;
+    @VisibleForTesting
+    static final int MAX_POST_FILTERING_ITERATIONS = 200;
 
     @VisibleForTesting
     static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
@@ -1489,7 +1490,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 asyncKeyValueService,
                                 asyncTransactionService));
                         Preconditions.checkState(
-                                iterations++ < MAX_POST_FILTERING_ITERATIONS,
+                                ++iterations < MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
                                         + "reaching max iterations. This is likely due to aborted cells lying around,"
                                         + " or in the very rare case, could be due to transactions which constantly "
@@ -1600,6 +1601,7 @@ public class SnapshotTransaction extends AbstractTransaction
             AsyncTransactionService asyncTransactionService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
+
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
                 commitTimestamps -> collectCellsToPostFilter(

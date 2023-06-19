@@ -77,11 +77,16 @@ public class AtlasDbTestCase {
 
     protected TransactionKnowledgeComponents knowledge;
 
+    protected ExecutorService deleteExecutor;
+
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
+    // Needed for preventing runnables from being executed by an executor service
+    @SuppressWarnings("DoNotMock")
     @Before
     public void setUp() throws Exception {
+        deleteExecutor = spy(MoreExecutors.newDirectExecutorService());
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimeLockRule.getLockService();
         timelockService = inMemoryTimeLockRule.getLegacyTimelockService();

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -317,6 +318,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
 
+    static final TableReference TABLE_NO_SWEEP = TableReference.createFromFullyQualifiedName("default.table6");
+
     private static final byte[] ROW_FOO = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] ROW_BAR = "bar".getBytes(StandardCharsets.UTF_8);
     private static final byte[] COL_A = "a".getBytes(StandardCharsets.UTF_8);
@@ -347,6 +350,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TABLE_SWEPT_THOROUGH_MIGRATION,
                 getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH_MIGRATION)
                         .persistToBytes());
+        keyValueService.createTable(
+                TABLE_NO_SWEEP,
+                getTableMetadataForSweepStrategy(SweepStrategy.NOTHING).persistToBytes());
     }
 
     @Override
@@ -361,7 +367,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 transactionWrapper,
                 keyValueServiceWrapper,
                 knowledge);
@@ -2426,6 +2432,24 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
         assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
         assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
+    }
+
+    @Test
+    public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
+        // Need to block deleter executor from deleting aborted values to help bloat the row.
+        doNothing().when(deleteExecutor).execute(any());
+
+        for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
+            try {
+                txManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (txn, _c) -> {
+                    txn.put(TABLE_NO_SWEEP, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+                    return null;
+                });
+            } catch (TransactionFailedRetriableException _t) {
+            }
+        }
+        assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                .isInstanceOf(SafeIllegalStateException.class);
     }
 
     private void verifyPrefetchValidations(
