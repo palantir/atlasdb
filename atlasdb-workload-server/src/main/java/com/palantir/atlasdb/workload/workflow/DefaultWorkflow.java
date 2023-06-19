@@ -17,11 +17,14 @@
 package com.palantir.atlasdb.workload.workflow;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -31,6 +34,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class DefaultWorkflow<T extends TransactionStore> implements Workflow {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultWorkflow.class);
+
     private final ConcurrentTransactionRunner<T> concurrentTransactionRunner;
     private final KeyedTransactionTask<T> transactionTask;
     private final WorkflowConfiguration workflowConfiguration;
@@ -75,6 +80,7 @@ public final class DefaultWorkflow<T extends TransactionStore> implements Workfl
     @Override
     public WorkflowHistory run() {
         Optional<WitnessedTransaction> bootstrapWitness = bootstrap.get();
+        log.info("antithesis: start_faults");
         return ImmutableWorkflowHistory.builder()
                 .history(WitnessedTransactions.sortAndFilterTransactions(
                         readOnlyTransactionStore,

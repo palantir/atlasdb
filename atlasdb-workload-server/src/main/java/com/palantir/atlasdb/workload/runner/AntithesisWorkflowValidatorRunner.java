@@ -41,7 +41,6 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     @Override
     public void run(List<WorkflowAndInvariants<Workflow>> workflowAndInvariants) {
         try {
-            log.info("antithesis: start_faults");
             List<WorkflowHistoryValidator> workflowHistoryValidators = Futures.allAsList(
                             submitWorkflowValidators(workflowAndInvariants))
                     .get();
