@@ -33,6 +33,7 @@ import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
@@ -60,6 +61,7 @@ import io.dropwizard.setup.Environment;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -255,12 +257,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         workflowConfig.tableConfiguration().tableName(),
                         workflowConfig.tableConfiguration().isolationLevel()),
                 Set.of());
-        transactionStore.readWrite(txn -> {
-            txn.write(
-                    workflowConfig.tableConfiguration().tableName(),
-                    ImmutableWorkloadCell.of(1, 2), // single row, second column
-                    1);
-        });
+        bootstrap(workflowConfig, transactionStore);
         return WorkflowAndInvariants.builder()
                 .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
@@ -269,6 +266,23 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 //                        DurableWritesMetrics.of(taggedMetricRegistry)))
                 //                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .build();
+    }
+
+    private static void bootstrap(
+            SingleRowTwoCellsWorkflowConfiguration workflowConfig, InteractiveTransactionStore transactionStore) {
+        Optional<WitnessedTransaction> witnessedTransaction;
+
+        while (true) {
+            witnessedTransaction = transactionStore.readWrite(txn -> {
+                txn.write(
+                        workflowConfig.tableConfiguration().tableName(),
+                        ImmutableWorkloadCell.of(1, 2), // single row, second column
+                        1);
+            });
+            if (witnessedTransaction.isPresent()) {
+                return;
+            }
+        }
     }
     //
     //    private WorkflowAndInvariants<Workflow> createBankBalanceWorkflow(
