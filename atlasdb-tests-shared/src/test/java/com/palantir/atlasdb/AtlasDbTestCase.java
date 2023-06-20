@@ -52,6 +52,7 @@ import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -82,11 +83,9 @@ public class AtlasDbTestCase {
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
-    // Needed for preventing runnables from being executed by an executor service
-    @SuppressWarnings("DoNotMock")
     @Before
     public void setUp() throws Exception {
-        deleteExecutor = MoreExecutors.newDirectExecutorService();
+        deleteExecutor = Executors.newSingleThreadExecutor();
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimeLockRule.getLockService();
         timelockService = inMemoryTimeLockRule.getLegacyTimelockService();

@@ -24,8 +24,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -153,6 +151,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -2437,31 +2436,36 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
     }
 
-    // @Test
-    // public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
-    //     // Need to block deleter executor from deleting aborted values to help bloat the row.
-    //     doNothing().when(deleteExecutor).execute(any());
-    //
-    //     for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
-    //         try {
-    //             txManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (txn, _c) -> {
-    //                 txn.put(TABLE_NO_SWEEP, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-    //                 return null;
-    //             });
-    //         } catch (TransactionFailedRetriableException _t) {
-    //             // Expected, as we want to create a large row with only aborted values.
-    //         }
-    //     }
-    //     assertThatLoggableExceptionThrownBy(
-    //                     () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
-    //             .isInstanceOf(SafeIllegalStateException.class)
-    //             .hasMessageStartingWith("Unable to filter cells")
-    //             .hasExactlyArgs(
-    //                     SafeArg.of("table", TABLE_NO_SWEEP),
-    //                     SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
-    //     doCallRealMethod().when(deleteExecutor).execute(any());
-    //     txManager.getKeyValueService().truncateTable(TABLE_NO_SWEEP);
-    // }
+    @Test
+    public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
+        // Need to block deleter executor from deleting aborted values to help bloat the row.
+        Future<?> future = deleteExecutor.submit(() -> {
+            try {
+                new Semaphore(0).acquire();
+            } catch (InterruptedException e) {
+                // Do nothing, we should stop.
+            }
+        });
+
+        for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
+            try {
+                txManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (txn, _c) -> {
+                    txn.put(TABLE_NO_SWEEP, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+                    return null;
+                });
+            } catch (TransactionFailedRetriableException _t) {
+                // Expected, as we want to create a large row with only aborted values.
+            }
+        }
+        assertThatLoggableExceptionThrownBy(
+                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageStartingWith("Unable to filter cells")
+                .hasExactlyArgs(
+                        SafeArg.of("table", TABLE_NO_SWEEP),
+                        SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
+        future.cancel(true);
+    }
 
     private void verifyPrefetchValidations(
             List<byte[]> rows,
