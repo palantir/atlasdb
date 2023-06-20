@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -2458,6 +2459,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .hasExactlyArgs(
                         SafeArg.of("table", TABLE_NO_SWEEP),
                         SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
+        doCallRealMethod().when(deleteExecutor).execute(any());
+        txManager.getKeyValueService().truncateTable(TABLE_NO_SWEEP);
     }
 
     private void verifyPrefetchValidations(
