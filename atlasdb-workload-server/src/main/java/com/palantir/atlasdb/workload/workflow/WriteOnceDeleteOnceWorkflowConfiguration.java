@@ -23,8 +23,8 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableTransientRowsWorkflowConfiguration.class)
+@JsonSerialize(as = ImmutableWriteOnceDeleteOnceWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableWriteOnceDeleteOnceWorkflowConfiguration.class)
 @JsonTypeName(WriteOnceDeleteOnceWorkflowConfiguration.TYPE)
 public interface WriteOnceDeleteOnceWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "write-once-delete-once";

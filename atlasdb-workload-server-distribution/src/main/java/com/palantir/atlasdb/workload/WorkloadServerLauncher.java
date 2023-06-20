@@ -129,8 +129,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())
-                .minThreads(8)
-                .maxThreads(8)
+                .minThreads(4)
+                .maxThreads(4)
                 .build();
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
