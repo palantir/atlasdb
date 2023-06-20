@@ -501,7 +501,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 }));
 
         // validate requirements here as the first batch for each of the above iterators will not check
-        //validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return postFilteredResults;
     }
 
@@ -697,7 +697,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 rawIterator,
                 columnRangeSelection,
                 () -> {
-                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                    // Hello. I am bug.
                 },
                 raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
     }
