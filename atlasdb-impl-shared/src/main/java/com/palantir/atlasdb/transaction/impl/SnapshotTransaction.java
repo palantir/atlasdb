@@ -1161,28 +1161,33 @@ public class SnapshotTransaction extends AbstractTransaction
         };
     }
 
+    /*
+    We don't have any guarantees that reads and commit will be executed in a single threaded manner, so we could in
+    theory return wrong results if we perform async reads while trying to commit. But our protocol doesn't aim to
+    support such case, and we're OK with having undefined behaviour in these occasions.
+
+    Example of such case:
+       - We're reading a thoroughly swept table with no configuration for immediate validation on reads.
+       - An async range scan is performed, but hasn't started executing yet.
+       - We start commit round on the main thread
+       - Commit doesn't check for immutable timestamp lock because
+           readsRequiringImmutableTimestampValidationAtCommitRound is empty
+       - We finish the range scan on the second thread, but validation is skipped due to the configuration and it adds
+            a value to readsRequiringImmutableTimestampValidationAtCommitRound set, but that is never checked due to
+            commit round having already happened.
+       - We then risk having returned inconsistent values in this transaction, since values could've been swept under us
+    */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndNonEmpty) {
-        UUID readId = UUID.randomUUID();
-        if (!allPossibleCellsReadAndNonEmpty) {
-            readsRequiringImmutableTimestampValidationAtCommitRound.add(readId);
-        }
-
         if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndNonEmpty)) {
             throwIfPreCommitRequirementsNotMet(null, timestamp);
-
-            // It may not be present, but that's OK.
-            readsRequiringImmutableTimestampValidationAtCommitRound.remove(readId);
+        } else if (!allPossibleCellsReadAndNonEmpty) {
+            readsRequiringImmutableTimestampValidationAtCommitRound.add(UUID.randomUUID());
         }
     }
 
     private void validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(TableReference tableRef, long timestamp) {
-        UUID readId = UUID.randomUUID();
-        readsRequiringImmutableTimestampValidationAtCommitRound.add(readId);
-        if (isValidationNecessaryOnReads(tableRef, false)) {
-            throwIfPreCommitRequirementsNotMet(null, timestamp);
-            readsRequiringImmutableTimestampValidationAtCommitRound.remove(readId);
-        }
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, timestamp, false);
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndNonEmpty) {
