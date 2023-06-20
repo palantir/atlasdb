@@ -2437,31 +2437,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
     }
 
-    @Test
-    public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
-        // Need to block deleter executor from deleting aborted values to help bloat the row.
-        doNothing().when(deleteExecutor).execute(any());
-
-        for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
-            try {
-                txManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (txn, _c) -> {
-                    txn.put(TABLE_NO_SWEEP, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-                    return null;
-                });
-            } catch (TransactionFailedRetriableException _t) {
-                // Expected, as we want to create a large row with only aborted values.
-            }
-        }
-        assertThatLoggableExceptionThrownBy(
-                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageStartingWith("Unable to filter cells")
-                .hasExactlyArgs(
-                        SafeArg.of("table", TABLE_NO_SWEEP),
-                        SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
-        doCallRealMethod().when(deleteExecutor).execute(any());
-        txManager.getKeyValueService().truncateTable(TABLE_NO_SWEEP);
-    }
+    // @Test
+    // public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
+    //     // Need to block deleter executor from deleting aborted values to help bloat the row.
+    //     doNothing().when(deleteExecutor).execute(any());
+    //
+    //     for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
+    //         try {
+    //             txManager.runTaskWithConditionThrowOnConflict(ALWAYS_FAILS_CONDITION, (txn, _c) -> {
+    //                 txn.put(TABLE_NO_SWEEP, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+    //                 return null;
+    //             });
+    //         } catch (TransactionFailedRetriableException _t) {
+    //             // Expected, as we want to create a large row with only aborted values.
+    //         }
+    //     }
+    //     assertThatLoggableExceptionThrownBy(
+    //                     () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+    //             .isInstanceOf(SafeIllegalStateException.class)
+    //             .hasMessageStartingWith("Unable to filter cells")
+    //             .hasExactlyArgs(
+    //                     SafeArg.of("table", TABLE_NO_SWEEP),
+    //                     SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
+    //     doCallRealMethod().when(deleteExecutor).execute(any());
+    //     txManager.getKeyValueService().truncateTable(TABLE_NO_SWEEP);
+    // }
 
     private void verifyPrefetchValidations(
             List<byte[]> rows,

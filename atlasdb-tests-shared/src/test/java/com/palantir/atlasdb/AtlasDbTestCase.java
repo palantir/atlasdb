@@ -86,7 +86,7 @@ public class AtlasDbTestCase {
     @SuppressWarnings("DoNotMock")
     @Before
     public void setUp() throws Exception {
-        deleteExecutor = spy(MoreExecutors.newDirectExecutorService());
+        deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimeLockRule.getLockService();
         timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
