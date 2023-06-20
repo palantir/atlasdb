@@ -2448,6 +2448,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     return null;
                 });
             } catch (TransactionFailedRetriableException _t) {
+                // Expected, as we want to create a large row with only aborted values.
             }
         }
         assertThatLoggableExceptionThrownBy(
