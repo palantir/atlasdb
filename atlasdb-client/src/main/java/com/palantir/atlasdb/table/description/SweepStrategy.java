@@ -35,15 +35,18 @@ public final class SweepStrategy {
 
     private final Optional<SweeperStrategy> sweeperStrategy;
     private final boolean mustCheckImmutableLockIfAllCellsReadAndPresent;
-    private final boolean mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
+
+    // When we either read an empty value or perform reads like a range-scan, where we can't be certain of how many
+    // values we expect.
+    private final boolean mustCheckImmutableLockIfNonExhaustiveRead;
 
     private SweepStrategy(
             Optional<SweeperStrategy> sweeperStrategy,
             boolean mustCheckImmutableLockIfAllCellsReadAndPresent,
-            boolean mustCheckImmutableLockIfEmptyCellWasPossiblyRead) {
+            boolean mustCheckImmutableLockIfNonExhaustiveRead) {
         this.sweeperStrategy = sweeperStrategy;
         this.mustCheckImmutableLockIfAllCellsReadAndPresent = mustCheckImmutableLockIfAllCellsReadAndPresent;
-        this.mustCheckImmutableLockIfEmptyCellWasPossiblyRead = mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
+        this.mustCheckImmutableLockIfNonExhaustiveRead = mustCheckImmutableLockIfNonExhaustiveRead;
     }
 
     public Optional<SweeperStrategy> getSweeperStrategy() {
@@ -53,14 +56,14 @@ public final class SweepStrategy {
     public boolean mustCheckImmutableLock(boolean allPossibleCellsReandAndPresent) {
         return allPossibleCellsReandAndPresent
                 ? mustCheckImmutableLockIfAllCellsReadAndPresent
-                : mustCheckImmutableLockIfEmptyCellWasPossiblyRead;
+                : mustCheckImmutableLockIfNonExhaustiveRead;
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
         return new SweepStrategy(
                 sweeperBehaviour(strategy),
-                mustCheckImmutableLockAfterNonEmptyReads(strategy, kvs),
-                mustCheckImmutableLockAfterEmptyReads(strategy));
+                mustCheckImmutableLockIfAllCellsReadAndPresent(strategy, kvs),
+                mustCheckImmutableLockIfNonExhaustiveRead(strategy));
     }
 
     private static Optional<SweeperStrategy> sweeperBehaviour(TableMetadataPersistence.SweepStrategy strategy) {
@@ -76,10 +79,10 @@ public final class SweepStrategy {
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
 
-    private static boolean mustCheckImmutableLockAfterNonEmptyReads(
+    private static boolean mustCheckImmutableLockIfAllCellsReadAndPresent(
             TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
         if (!kvs.sweepsEntriesInStrictlyNonDecreasingFashion()) {
-            return mustCheckImmutableLockAfterEmptyReads(strategy);
+            return mustCheckImmutableLockIfNonExhaustiveRead(strategy);
         }
 
         switch (strategy) {
@@ -92,7 +95,7 @@ public final class SweepStrategy {
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
 
-    private static boolean mustCheckImmutableLockAfterEmptyReads(TableMetadataPersistence.SweepStrategy strategy) {
+    private static boolean mustCheckImmutableLockIfNonExhaustiveRead(TableMetadataPersistence.SweepStrategy strategy) {
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:
