@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -55,7 +55,7 @@ public interface WriteInfo {
         int hash = 5381;
         hash = hash * 1439
                 + writeRef().orElse(SweepQueueUtils.DUMMY).cellReference().goodHash();
-        hash = hash * 1439 + LocalDate.now(ZoneId.of("UTC")).hashCode();
+        hash = hash * 1439 + LocalDate.now(ZoneOffset.UTC).hashCode();
         return hash;
     }
 
