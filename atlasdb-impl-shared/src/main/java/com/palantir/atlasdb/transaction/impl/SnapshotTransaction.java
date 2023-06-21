@@ -730,8 +730,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private Map<Cell, Value> validateBatch(
-            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndNonEmpty) {
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndNonEmpty);
+            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndPresent) {
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
         return ImmutableMap.copyOf(batch);
     }
 
@@ -937,7 +937,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally. Making an immutable copy because otherwise adding
         // values to the result map would prevent us from calculating the correct size for
-        // allPossibleCellsReadAndNonEmpty, since Sets.difference gives us a live view.
+        // allPossibleCellsReadAndPresent, since Sets.difference gives us a live view.
         Set<Cell> cellsWithNoLocalWrites = ImmutableSet.copyOf(Sets.difference(cells, result.keySet()));
         return Futures.transform(
                 getFromKeyValueService(tableRef, cellsWithNoLocalWrites, asyncKeyValueService, asyncTransactionService),
@@ -955,10 +955,10 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
-                    boolean allPossibleCellsReadAndNonEmpty =
+                    boolean allPossibleCellsReadAndPresent =
                             fromKeyValueService.size() == cellsWithNoLocalWrites.size();
                     validatePreCommitRequirementsOnReadIfNecessary(
-                            tableRef, getStartTimestamp(), allPossibleCellsReadAndNonEmpty);
+                            tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
@@ -980,8 +980,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
         TraceStatistics.incEmptyValues(unfiltered.size() - filtered.size());
 
-        boolean allPossibleCellsReadAndNonEmpty = unfiltered.size() == cells.size();
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndNonEmpty);
+        boolean allPossibleCellsReadAndPresent = unfiltered.size() == cells.size();
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
 
         return filtered;
     }
@@ -1184,21 +1184,20 @@ public class SnapshotTransaction extends AbstractTransaction
             lock, but never checked it and values could've been swept under us.
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
-            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndNonEmpty) {
-        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndNonEmpty)) {
+            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
+        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
             throwIfPreCommitRequirementsNotMet(null, timestamp);
-        } else if (!allPossibleCellsReadAndNonEmpty) {
+        } else if (!allPossibleCellsReadAndPresent) {
             hasPossiblyUnvalidatedReads = true;
         }
     }
 
-    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndNonEmpty) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndNonEmpty);
+    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
+        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
     }
 
-    private boolean requiresImmutableTimestampLocking(
-            TableReference tableRef, boolean allPossibleCellsReadAndNonEmpty) {
-        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndNonEmpty)
+    private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
+        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
                 || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
@@ -1724,9 +1723,9 @@ public class SnapshotTransaction extends AbstractTransaction
             return Futures.transform(
                     asyncKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
-                        boolean allPossibleCellsReadAndNonEmpty = nextRawResults.size() == keysToReload.size();
+                        boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         validatePreCommitRequirementsOnReadIfNecessary(
-                                tableRef, getStartTimestamp(), allPossibleCellsReadAndNonEmpty);
+                                tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },
                     MoreExecutors.directExecutor());
