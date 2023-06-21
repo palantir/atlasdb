@@ -22,6 +22,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
@@ -116,13 +117,18 @@ public final class SerializableInvariantTest {
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
                 Iterables.getOnlyElement(invalidWitnessedTransaction.invalidActions());
 
-        assertThat(invalidWitnessedTransactionAction.action())
-                .isInstanceOfSatisfying(WitnessedReadTransactionAction.class, action -> {
-                    assertThat(action.cell()).isEqualTo(ImmutableWorkloadCell.of(5, 10));
-                    assertThat(action.value()).contains(15);
-                });
-        assertThat(invalidWitnessedTransactionAction.mismatchedValue())
-                .isEqualTo(MismatchedValue.of(Optional.of(15), Optional.of(0)));
+        assertThat(invalidWitnessedTransactionAction)
+                .isInstanceOfSatisfying(
+                        InvalidWitnessedSingleCellTransactionAction.class,
+                        invalidSingleCellWitnessedTransactionAction -> {
+                            assertThat(invalidSingleCellWitnessedTransactionAction.action())
+                                    .isInstanceOfSatisfying(WitnessedReadTransactionAction.class, action -> {
+                                        assertThat(action.cell()).isEqualTo(ImmutableWorkloadCell.of(5, 10));
+                                        assertThat(action.value()).contains(15);
+                                    });
+                            assertThat(invalidSingleCellWitnessedTransactionAction.mismatchedValue())
+                                    .isEqualTo(MismatchedValue.of(Optional.of(15), Optional.of(0)));
+                        });
     }
 
     @Test

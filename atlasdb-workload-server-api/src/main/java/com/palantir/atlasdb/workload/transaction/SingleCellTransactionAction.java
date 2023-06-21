@@ -16,12 +16,15 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+public interface SingleCellTransactionAction extends TransactionAction {
+    /** Table to apply transaction to. */
+    @Value.Parameter
+    String table();
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
-
-    T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    /** Cell (Key, Column) to apply the action to. */
+    @Value.Parameter
+    WorkloadCell cell();
 }

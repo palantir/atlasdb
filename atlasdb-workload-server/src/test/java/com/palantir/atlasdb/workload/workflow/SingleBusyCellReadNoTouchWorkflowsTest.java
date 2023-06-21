@@ -30,6 +30,7 @@ import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -83,10 +84,11 @@ public class SingleBusyCellReadNoTouchWorkflowsTest {
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        assertThat(witnessedTransactionActions)
-                .allMatch(action -> action.table().equals(TABLE_NAME));
-        assertThat(witnessedTransactionActions)
-                .allMatch(action -> action.cell().equals(SingleBusyCellReadNoTouchWorkflows.BUSY_CELL));
+        assertThat(witnessedTransactionActions).allSatisfy(action -> assertThat(action)
+                .isInstanceOfSatisfying(WitnessedSingleCellTransactionAction.class, singleCellAction -> {
+                    assertThat(singleCellAction.table()).isEqualTo(TABLE_NAME);
+                    assertThat(singleCellAction.cell()).isEqualTo(SingleBusyCellReadNoTouchWorkflows.BUSY_CELL);
+                }));
     }
 
     @Test

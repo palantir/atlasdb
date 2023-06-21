@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import com.palantir.atlasdb.workload.store.WorkloadCell;
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+public interface WitnessedSingleCellTransactionAction extends WitnessedTransactionAction {
+    /** Table action was applied to. */
+    @Value.Parameter
+    String table();
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
-
-    T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    /** Cell (Key, Column) the action applied to. */
+    @Value.Parameter
+    WorkloadCell cell();
 }

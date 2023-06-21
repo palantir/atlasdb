@@ -22,7 +22,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface WriteTransactionAction extends TransactionAction {
+public interface WriteTransactionAction extends SingleCellTransactionAction {
 
     @Override
     @Value.Parameter

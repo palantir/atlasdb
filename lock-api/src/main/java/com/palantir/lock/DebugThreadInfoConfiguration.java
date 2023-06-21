@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.lock;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface DebugThreadInfoConfiguration {
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
+    @Value.Default
+    default boolean recordThreadInfo() {
+        return false;
+    }
 
-    T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    @Value.Default
+    default long threadInfoSnapshotIntervalMillis() {
+        return 5000L;
+    }
 }

@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction.witnessed;
+package com.palantir.atlasdb.transaction.api.expectations;
 
-import com.palantir.atlasdb.workload.store.WorkloadCell;
 import org.immutables.value.Value;
 
-@Value.Immutable(builder = false)
-public interface WitnessedDeleteTransactionAction extends WitnessedSingleCellTransactionAction {
+/**
+ * Data about the amount of commit locks requested by a transaction.
+ */
+@Value.Immutable
+public interface TransactionCommitLockInfo {
 
-    @Override
-    default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
+    /**
+     * The number of cell-level locks requested as part of the commit protocol (excluding any user-defined locking).
+     */
+    long cellCommitLocksRequested();
 
-    static WitnessedDeleteTransactionAction of(String table, WorkloadCell cell) {
-        return ImmutableWitnessedDeleteTransactionAction.of(table, cell);
-    }
+    /**
+     * The number of row-level locks requested as part of the commit protocol (excluding any user-defined locking).
+     * For write transactions, this includes the single row lock that is requested for the transaction table itself.
+     */
+    long rowCommitLocksRequested();
 }

@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.atlasdb.workload.store;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface ColumnValue {
+    @Value.Parameter
+    int column();
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
+    @Value.Parameter
+    int value();
 
-    T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    static ColumnValue of(int column, int value) {
+        return ImmutableColumnValue.of(column, value);
+    }
 }
