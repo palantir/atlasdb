@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.workload.store;
 
 import com.google.common.primitives.Ints;
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -40,6 +42,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -111,12 +114,18 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             List.of(AtlasDbUtils.toAtlasKey(row)),
                             BatchColumnRangeSelection.create(
                                     AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 1));
-                    List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
-                            .mapKeys(Cell::getColumnName)
-                            .mapKeys(AtlasDbUtils::fromAtlasColumn)
-                            .mapValues(AtlasDbUtils::fromAtlasValue)
-                            .map(entry -> ColumnValue.of(entry.getKey(), entry.getValue()))
-                            .collect(Collectors.toList());
+
+                    List<ColumnValue> columnsAndValues = new ArrayList<>();
+                    Iterator<Entry<Cell, byte[]>> relevantIterator = iterators.get(AtlasDbUtils.toAtlasKey(row));
+                    while (relevantIterator.hasNext()) {
+                        Entry<Cell, byte[]> entry = relevantIterator.next();
+                        columnsAndValues.add(ColumnValue.of(
+                                AtlasDbUtils.fromAtlasColumn(entry.getKey().getColumnName()),
+                                AtlasDbUtils.fromAtlasValue(entry.getValue())));
+                        DefaultBuggifyFactory.INSTANCE.maybe(0.5)
+                                .run(() -> Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS));
+                    }
+
                     witnessedTransactionActions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
                             .originalQuery(RowColumnRangeReadTransactionAction.builder()
                                     .table(table)
