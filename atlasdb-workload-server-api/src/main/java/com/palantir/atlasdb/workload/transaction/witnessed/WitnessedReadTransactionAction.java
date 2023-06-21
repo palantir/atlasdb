@@ -21,7 +21,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface WitnessedReadTransactionAction extends WitnessedTransactionAction {
+public interface WitnessedReadTransactionAction extends WitnessedSingleCellTransactionAction {
 
     @Override
     @Value.Parameter

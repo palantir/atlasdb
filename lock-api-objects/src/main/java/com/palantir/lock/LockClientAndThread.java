@@ -14,14 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.transaction;
+package com.palantir.lock;
 
-public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+import org.immutables.value.Value;
 
-    T visit(WriteTransactionAction writeTransactionAction);
+@Value.Immutable
+public interface LockClientAndThread {
+    LockClientAndThread UNKNOWN = LockClientAndThread.of(LockClient.ANONYMOUS, "unknown-thread");
 
-    T visit(DeleteTransactionAction deleteTransactionAction);
+    LockClient client();
 
-    T visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction);
+    String thread();
+
+    static ImmutableLockClientAndThread.Builder builder() {
+        return ImmutableLockClientAndThread.builder();
+    }
+
+    static LockClientAndThread of(LockClient client, String requestingThread) {
+        return builder().client(client).thread(requestingThread).build();
+    }
 }

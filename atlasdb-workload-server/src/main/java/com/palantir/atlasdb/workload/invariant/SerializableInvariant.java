@@ -18,10 +18,12 @@ package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -68,7 +70,7 @@ public enum SerializableInvariant implements TransactionInvariant {
                     .orElseGet(Optional::empty);
 
             if (!expectedValue.equals(readTransactionAction.value())) {
-                return Optional.of(InvalidWitnessedTransactionAction.of(
+                return Optional.of(InvalidWitnessedSingleCellTransactionAction.of(
                         readTransactionAction, MismatchedValue.of(readTransactionAction.value(), expectedValue)));
             }
 
@@ -86,6 +88,13 @@ public enum SerializableInvariant implements TransactionInvariant {
         public Optional<InvalidWitnessedTransactionAction> visit(
                 WitnessedDeleteTransactionAction deleteTransactionAction) {
             inMemoryTransactionReplayer.visit(deleteTransactionAction);
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<InvalidWitnessedTransactionAction> visit(
+                WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
+            // TODO (jkong): Not implemented yet
             return Optional.empty();
         }
     }

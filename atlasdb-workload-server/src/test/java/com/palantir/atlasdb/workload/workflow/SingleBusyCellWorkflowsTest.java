@@ -29,6 +29,7 @@ import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -77,9 +78,10 @@ public class SingleBusyCellWorkflowsTest {
     @Test
     public void successfulTransactionsOnlyReadOrModifyTheTargetCell() {
         WorkflowHistory workflowHistory = workflow.run();
-        List<WitnessedTransactionAction> witnessedTransactionActions = workflowHistory.history().stream()
+        List<WitnessedSingleCellTransactionAction> witnessedTransactionActions = workflowHistory.history().stream()
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
+                .map(WitnessedSingleCellTransactionAction.class::cast)
                 .collect(Collectors.toList());
         assertThat(witnessedTransactionActions)
                 .allMatch(action -> action.table().equals(TABLE_NAME));

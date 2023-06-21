@@ -97,6 +97,8 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
@@ -156,6 +158,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -267,6 +270,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
+    private volatile long cellCommitLocksRequested = 0L;
+    private volatile long rowCommitLocksRequested = 0L;
 
     protected volatile boolean hasReads;
 
@@ -2496,13 +2501,17 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected Set<LockDescriptor> getLocksForWrites() {
         Set<LockDescriptor> result = new HashSet<>();
+        long cellLockCount = 0L;
+        long rowLockCount = 0L;
         for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
+                NavigableSet<Cell> cellsToLock = getLocalWrites(tableRef).keySet();
+                for (Cell cell : cellsToLock) {
                     result.add(AtlasCellLockDescriptor.of(
                             tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
                 }
+                cellLockCount = cellsToLock.size();
             }
 
             if (conflictHandler.lockRowsForConflicts()) {
@@ -2510,6 +2519,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
                     if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
                         result.add(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
+                        rowLockCount++;
                     }
                     lastCell = cell;
                 }
@@ -2518,6 +2528,8 @@ public class SnapshotTransaction extends AbstractTransaction
         result.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
+        cellCommitLocksRequested = cellLockCount;
+        rowCommitLocksRequested = rowLockCount + 1;
         return result;
     }
 
@@ -2656,6 +2668,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
+    public TransactionCommitLockInfo getCommitLockInfo() {
+        return ImmutableTransactionCommitLockInfo.builder()
+                .cellCommitLocksRequested(cellCommitLocksRequested)
+                .rowCommitLocksRequested(rowCommitLocksRequested)
+                .build();
+    }
+
+    @Override
     public void reportExpectationsCollectedData() {
         if (isStillRunning()) {
             log.error(
@@ -2664,18 +2684,25 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        reportExpectationsCollectedData(getAgeMillis(), getReadInfo(), expectationsDataCollectionMetrics);
+        reportExpectationsCollectedData(
+                getAgeMillis(), getReadInfo(), getCommitLockInfo(), expectationsDataCollectionMetrics);
     }
 
     @VisibleForTesting
     static void reportExpectationsCollectedData(
-            long ageMillis, TransactionReadInfo readInfo, ExpectationsMetrics metrics) {
+            long ageMillis,
+            TransactionReadInfo readInfo,
+            TransactionCommitLockInfo commitLockInfo,
+            ExpectationsMetrics metrics) {
         metrics.ageMillis().update(ageMillis);
         metrics.bytesRead().update(readInfo.bytesRead());
         metrics.kvsReads().update(readInfo.kvsCalls());
 
         readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
                 .update(kvsCallReadInfo.bytesRead()));
+
+        metrics.cellCommitLocksRequested().update(commitLockInfo.cellCommitLocksRequested());
+        metrics.rowCommitLocksRequested().update(commitLockInfo.rowCommitLocksRequested());
     }
 
     private long getStartTimestamp() {

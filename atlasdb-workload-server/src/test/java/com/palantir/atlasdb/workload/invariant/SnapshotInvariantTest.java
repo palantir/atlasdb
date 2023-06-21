@@ -22,6 +22,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.transaction.WitnessedTransactionsBuilder;
 import com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
@@ -62,10 +63,14 @@ public final class SnapshotInvariantTest {
         assertThat(invalidTransaction.transaction().commitTimestamp()).contains(20L);
 
         InvalidWitnessedTransactionAction invalidAction = Iterables.getOnlyElement(invalidTransaction.invalidActions());
-        assertThat(invalidAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
-        assertThat(invalidAction.mismatchedValue())
-                .isEqualTo(MismatchedValue.of(
-                        ValueAndMaybeTimestamp.of(WorkloadTestHelpers.VALUE_ONE, 1L), ValueAndMaybeTimestamp.empty()));
+        assertThat(invalidAction)
+                .isInstanceOfSatisfying(InvalidWitnessedSingleCellTransactionAction.class, invalidSingleCellAction -> {
+                    assertThat(invalidSingleCellAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
+                    assertThat(invalidSingleCellAction.mismatchedValue())
+                            .isEqualTo(MismatchedValue.of(
+                                    ValueAndMaybeTimestamp.of(WorkloadTestHelpers.VALUE_ONE, 1L),
+                                    ValueAndMaybeTimestamp.empty()));
+                });
     }
 
     @Test
@@ -90,10 +95,13 @@ public final class SnapshotInvariantTest {
         assertThat(invalidTransaction.transaction().commitTimestamp()).contains(20L);
 
         InvalidWitnessedTransactionAction invalidAction = Iterables.getOnlyElement(invalidTransaction.invalidActions());
-        assertThat(invalidAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
-        assertThat(invalidAction.mismatchedValue())
-                .isEqualTo(MismatchedValue.of(
-                        ValueAndMaybeTimestamp.of(Optional.empty(), 1L), ValueAndMaybeTimestamp.empty()));
+        assertThat(invalidAction)
+                .isInstanceOfSatisfying(InvalidWitnessedSingleCellTransactionAction.class, invalidSingleCellAction -> {
+                    assertThat(invalidSingleCellAction.action().table()).isEqualTo(WorkloadTestHelpers.TABLE_1);
+                    assertThat(invalidSingleCellAction.mismatchedValue())
+                            .isEqualTo(MismatchedValue.of(
+                                    ValueAndMaybeTimestamp.of(Optional.empty(), 1L), ValueAndMaybeTimestamp.empty()));
+                });
     }
 
     @Test
