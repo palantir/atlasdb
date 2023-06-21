@@ -16,11 +16,9 @@
 package com.palantir.lock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
-import com.palantir.refreshable.Refreshable;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -128,15 +126,6 @@ public class LockServerOptions implements Serializable {
         return 10000L;
     }
 
-    /**
-     * Runtime configuration relating to thread info recording (which lock is held by which client-thread).
-     */
-    @JsonIgnore
-    @Value.Default
-    public Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration() {
-        return Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder().build());
-    }
-
     @Override
     public boolean equals(@Nullable Object obj) {
         if (this == obj) {
@@ -153,10 +142,7 @@ public class LockServerOptions implements Serializable {
                 && Objects.equals(getMaxAllowedClockDrift(), other.getMaxAllowedClockDrift())
                 && Objects.equals(getMaxAllowedBlockingDuration(), other.getMaxAllowedBlockingDuration())
                 && Objects.equals(getMaxNormalLockAge(), other.getMaxNormalLockAge())
-                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout())
-                && Objects.equals(
-                        threadInfoConfiguration().current(),
-                        other.threadInfoConfiguration().current());
+                && Objects.equals(getStuckTransactionTimeout(), other.getStuckTransactionTimeout());
     }
 
     @Override
@@ -169,8 +155,7 @@ public class LockServerOptions implements Serializable {
                 getMaxNormalLockAge(),
                 getRandomBitCount(),
                 getStuckTransactionTimeout(),
-                slowLogTriggerMillis(),
-                threadInfoConfiguration().current());
+                slowLogTriggerMillis());
     }
 
     @Override
@@ -184,7 +169,6 @@ public class LockServerOptions implements Serializable {
                 .add("randomBitCount", getRandomBitCount())
                 .add("stuckTransactionTimeout", getStuckTransactionTimeout())
                 .add("slowLogTriggerMillis", slowLogTriggerMillis())
-                .add("threadInfoConfiguration", threadInfoConfiguration().current())
                 .toString();
     }
 

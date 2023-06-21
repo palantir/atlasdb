@@ -49,6 +49,10 @@ import org.awaitility.Awaitility;
 import org.junit.Test;
 
 public class ThreadInfoLockServiceImplTest {
+
+    private static final ExecutorService LOCK_SERVICE_IMPL_EXECUTOR =
+            PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
+
     private static final LockDescriptor TEST_LOCK_1 = StringLockDescriptor.of("lock-1");
     private static final LockDescriptor TEST_LOCK_2 = StringLockDescriptor.of("lock-2");
     private static final LockDescriptor TEST_LOCK_3 = StringLockDescriptor.of("lock-3");
@@ -69,12 +73,12 @@ public class ThreadInfoLockServiceImplTest {
             PTExecutors.newCachedThreadPool(ThreadInfoLockServiceImplTest.class.getName());
 
     // Disable background snapshotting, invoke explicitly instead
-    private final LockServiceImpl lockService = LockServiceImpl.create(LockServerOptions.builder()
-            .isStandaloneServer(false)
-            .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
+    private final LockServiceImpl lockService = LockServiceImpl.create(
+            LockServerOptions.builder().isStandaloneServer(false).build(),
+            LOCK_SERVICE_IMPL_EXECUTOR,
+            Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                     .recordThreadInfo(false)
-                    .build()))
-            .build());
+                    .build()));
 
     @Test
     public void initialThreadInfoIsEmpty() {
@@ -277,13 +281,13 @@ public class ThreadInfoLockServiceImplTest {
 
     @Test
     public void backgroundSnapshotRunnerWorks() throws InterruptedException {
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build(),
+                LOCK_SERVICE_IMPL_EXECUTOR,
+                Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(50L)
-                        .build()))
-                .build());
+                        .build()));
         LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
 
         LockResponse response = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
@@ -310,13 +314,13 @@ public class ThreadInfoLockServiceImplTest {
 
     @Test
     public void logArgIsUnsafeAndContainsRestrictedSnapshotIfRecordingThreadInfo() throws InterruptedException {
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .threadInfoConfiguration(Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build(),
+                LOCK_SERVICE_IMPL_EXECUTOR,
+                Refreshable.only(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(50L)
-                        .build()))
-                .build());
+                        .build()));
         LockRequest lockRequest2 = LockRequest.builder(
                         ImmutableSortedMap.of(TEST_LOCK_1, LockMode.READ, TEST_LOCK_2, LockMode.READ))
                 .doNotBlock()
@@ -343,10 +347,10 @@ public class ThreadInfoLockServiceImplTest {
                         .recordThreadInfo(true)
                         .threadInfoSnapshotIntervalMillis(50L)
                         .build());
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .threadInfoConfiguration(refreshableThreadInfoConfiguration)
-                .build());
+        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build(),
+                LOCK_SERVICE_IMPL_EXECUTOR,
+                refreshableThreadInfoConfiguration);
         LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
 
         LockResponse lockResponse = lockServiceWithBackgroundRunner.lockWithFullLockResponse(

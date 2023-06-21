@@ -45,6 +45,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
+import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -80,6 +81,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.math.BigInteger;
@@ -233,26 +235,48 @@ public final class LockServiceImpl
     public static LockServiceImpl create(LockServerOptions options) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
-        return create(options, Ownable.owned(newExecutor));
+        return create(
+                options, Ownable.owned(newExecutor), Refreshable.only(LockServerConfigs.DEFAULT_THREAD_INFO_CONFIG));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
-        return create(options, Ownable.notOwned(injectedExecutor));
+        return create(
+                options,
+                Ownable.notOwned(injectedExecutor),
+                Refreshable.only(LockServerConfigs.DEFAULT_THREAD_INFO_CONFIG));
     }
 
-    private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
+    public static LockServiceImpl create(
+            LockServerOptions options,
+            ExecutorService injectedExecutor,
+            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
+        return create(options, Ownable.notOwned(injectedExecutor), threadInfoConfiguration);
+    }
+
+    private static LockServiceImpl create(
+            LockServerOptions options,
+            Ownable<ExecutorService> executor,
+            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", SafeArg.of("options", options));
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
         LockServiceImpl lockService = new LockServiceImpl(
-                options, () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName), executor);
+                options,
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName),
+                executor,
+                threadInfoConfiguration);
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+    private LockServiceImpl(
+            LockServerOptions options,
+            Runnable callOnClose,
+            Ownable<ExecutorService> executor,
+            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
         this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
         this.isStandaloneServer = options.isStandaloneServer();
@@ -262,7 +286,7 @@ public final class LockServiceImpl
         this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
         this.threadInfoSnapshotManager =
-                new LockThreadInfoSnapshotManager(options.threadInfoConfiguration(), () -> heldLocksTokenMap);
+                new LockThreadInfoSnapshotManager(threadInfoConfiguration, () -> heldLocksTokenMap);
         threadInfoSnapshotManager.start();
     }
 
