@@ -709,6 +709,12 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         verifyMultiCheckAndSet(ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)));
     }
 
+    @Test
+    public void cassandraHasStrictlyNonDecreasingSweep() {
+        assertThat(keyValueService.sweepsEntriesInStrictlyNonDecreasingFashion())
+                .isTrue();
+    }
+
     private void verifyMultiCheckAndSet(Map<Cell, byte[]> expectedValues) {
         Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, expectedValues.keySet(), 1L);
 
