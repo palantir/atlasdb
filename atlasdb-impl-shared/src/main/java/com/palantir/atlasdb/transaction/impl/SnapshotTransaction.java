@@ -269,7 +269,10 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
 
     protected volatile boolean hasReads;
-    protected volatile boolean hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound;
+
+    // On thoroughly swept tables, we might require a immutable timestamp lock check if we have performed a
+    // non-exhaustive read.
+    protected volatile boolean hasPossiblyUnvalidatedReads;
 
     protected final TimestampCache timestampCache;
 
@@ -334,7 +337,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
-        this.hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = false;
+        this.hasPossiblyUnvalidatedReads = false;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
@@ -1185,7 +1188,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndNonEmpty)) {
             throwIfPreCommitRequirementsNotMet(null, timestamp);
         } else if (!allPossibleCellsReadAndNonEmpty) {
-            hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound = true;
+            hasPossiblyUnvalidatedReads = true;
         }
     }
 
@@ -2638,8 +2641,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
         boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream()
-                .anyMatch(tableRef -> requiresImmutableTimestampLocking(
-                        tableRef, !hasReadsThatRequireImmutableTimestampLockValidationAtCommitRound));
+                .anyMatch(tableRef -> requiresImmutableTimestampLocking(tableRef, !hasPossiblyUnvalidatedReads));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
         return anyTableRequiresImmutableTimestampLocking && needsToValidate;
     }
