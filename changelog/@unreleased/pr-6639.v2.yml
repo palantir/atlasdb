@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: We now emit metrics with how often we're going exhaustive and non-exhaustive
+    KVS gets.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6639
