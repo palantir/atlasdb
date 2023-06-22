@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.codahale.metrics.Counter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -2426,6 +2427,76 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
         assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
         assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
+    }
+
+    @Test
+    public void emitExhaustiveMetricWhenReadingExistingValue() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
+        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet + 1);
+        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet);
+    }
+
+    @Test
+    public void emitNonExhaustiveMetricWhenReadingMissingValue() {
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
+        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL_2));
+
+        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet);
+        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet + 1);
+    }
+
+    @Test
+    public void emitNonExhaustiveMetricWhenReadingCombinatioOfPresentAndMissingValues() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
+        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2));
+
+        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet);
+        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet + 1);
     }
 
     private void verifyPrefetchValidations(

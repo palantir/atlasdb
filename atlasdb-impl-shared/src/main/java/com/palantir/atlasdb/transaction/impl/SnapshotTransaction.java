@@ -957,7 +957,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private void emitReadMetrics(boolean allPossibleCellsReadAndPresent) {
         Map<String, String> exhaustiveReadTags =
                 ImmutableMap.of("isExhaustive", Boolean.toString(allPossibleCellsReadAndPresent));
-        getCounter("snapshotTransactionGet", exhaustiveReadTags).inc();
+        getCounter("snapshotTransactionGetInternal", exhaustiveReadTags).inc();
     }
 
     @Override
