@@ -926,13 +926,12 @@ public class SnapshotTransaction extends AbstractTransaction
             }
         }
 
-        // We don't need to read any cells that were written locally.
+        // We don't need to read any cells that were written locally. Making an immutable copy because otherwise adding
+        // values to the result map would prevent us from calculating the correct size of the set for comparison later,
+        // since Sets.difference gives us a live view.
+        Set<Cell> cellsWithNoLocalWrites = ImmutableSet.copyOf(Sets.difference(cells, result.keySet()));
         return Futures.transform(
-                getFromKeyValueService(
-                        tableRef,
-                        Sets.difference(cells, result.keySet()),
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                getFromKeyValueService(tableRef, cellsWithNoLocalWrites, asyncKeyValueService, asyncTransactionService),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -946,10 +945,19 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("getOperation", operationName),
                                 SafeArg.of("durationMillis", getMillis));
                     }
+                    boolean allPossibleCellsReadAndPresent =
+                            fromKeyValueService.size() == cellsWithNoLocalWrites.size();
+                    emitReadMetrics(allPossibleCellsReadAndPresent);
                     validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private void emitReadMetrics(boolean allPossibleCellsReadAndPresent) {
+        Map<String, String> exhaustiveReadTags =
+                ImmutableMap.of("isExhaustive", Boolean.toString(allPossibleCellsReadAndPresent));
+        getCounter("snapshotTransactionGet", exhaustiveReadTags).inc();
     }
 
     @Override
@@ -2717,6 +2725,10 @@ public class SnapshotTransaction extends AbstractTransaction
     private Histogram getHistogram(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedHistogram(
                 SnapshotTransaction.class, name, metricsManager.getTableNameTagFor(tableRef));
+    }
+
+    private Counter getCounter(String name, Map<String, String> tags) {
+        return metricsManager.registerOrGetTaggedCounter(SnapshotTransaction.class, name, tags);
     }
 
     private Counter getCounter(String name, TableReference tableRef) {
