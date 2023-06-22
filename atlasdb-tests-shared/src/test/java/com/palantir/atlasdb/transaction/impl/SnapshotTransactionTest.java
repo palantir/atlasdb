@@ -2438,11 +2438,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
         long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
         long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
@@ -2460,11 +2458,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
         long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
         long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL_2));
@@ -2484,11 +2480,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "true"));
+        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
         long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = metricsManager.registerOrGetTaggedCounter(
-                SnapshotTransaction.class, "snapshotTransactionGetInternal", Map.of("isExhaustive", "false"));
+        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
         long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2));
@@ -2497,6 +2491,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet);
         long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
         assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet + 1);
+    }
+
+    private Counter getExhaustiveReadCounter(boolean isExhaustive) {
+        return metricsManager.registerOrGetTaggedCounter(
+                SnapshotTransaction.class,
+                "snapshotTransactionGetInternal",
+                Map.of("isExhaustive", Boolean.toString(isExhaustive)));
     }
 
     private void verifyPrefetchValidations(
