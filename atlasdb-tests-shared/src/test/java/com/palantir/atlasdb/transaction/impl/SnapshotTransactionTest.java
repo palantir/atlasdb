@@ -2438,16 +2438,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
-        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
-        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+        long exhaustiveReadsBeforeGet = getReadCounter(true).getCount();
+        long nonExhaustiveReadsBeforeGet = getReadCounter(false).getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
 
-        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        long exhaustiveReadsCountAfterGet = getReadCounter(true).getCount();
         assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet + 1);
-        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        long nonExhaustiveReadsCountAfterGet = getReadCounter(false).getCount();
         assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet);
     }
 
@@ -2458,16 +2456,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
-        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
-        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+        long exhaustiveReadsBeforeGet = getReadCounter(true).getCount();
+        long nonExhaustiveReadsBeforeGet = getReadCounter(false).getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL_2));
 
-        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        long exhaustiveReadsCountAfterGet = getReadCounter(true).getCount();
         assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet);
-        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        long nonExhaustiveReadsCountAfterGet = getReadCounter(false).getCount();
         assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet + 1);
     }
 
@@ -2480,20 +2476,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction =
                 getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
 
-        Counter exhaustiveReadCounter = getExhaustiveReadCounter(true);
-        long exhaustiveReadsBeforeGet = exhaustiveReadCounter.getCount();
-        Counter nonExhaustiveReadCounter = getExhaustiveReadCounter(false);
-        long nonExhaustiveReadsBeforeGet = nonExhaustiveReadCounter.getCount();
+        long exhaustiveReadsBeforeGet = getReadCounter(true).getCount();
+        long nonExhaustiveReadsBeforeGet = getReadCounter(false).getCount();
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2));
 
-        long exhaustiveReadsCountAfterGet = exhaustiveReadCounter.getCount();
+        long exhaustiveReadsCountAfterGet = getReadCounter(true).getCount();
         assertThat(exhaustiveReadsCountAfterGet).isEqualTo(exhaustiveReadsBeforeGet);
-        long nonExhaustiveReadsCountAfterGet = nonExhaustiveReadCounter.getCount();
+        long nonExhaustiveReadsCountAfterGet = getReadCounter(false).getCount();
         assertThat(nonExhaustiveReadsCountAfterGet).isEqualTo(nonExhaustiveReadsBeforeGet + 1);
     }
 
-    private Counter getExhaustiveReadCounter(boolean isExhaustive) {
+    private Counter getReadCounter(boolean isExhaustive) {
         return metricsManager.registerOrGetTaggedCounter(
                 SnapshotTransaction.class,
                 "snapshotTransactionGetInternal",
