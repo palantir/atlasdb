@@ -211,6 +211,9 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
 
     @VisibleForTesting
+    static final int MAX_POST_FILTERING_ITERATIONS = 200;
+
+    @VisibleForTesting
     static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
 
     private enum State {
@@ -1456,9 +1459,9 @@ public class SnapshotTransaction extends AbstractTransaction
 
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
-                remainingResultsToPostFilter -> getWithPostFilteringIterate(
+                resultsToPostFilter -> getWithPostFilteringIterate(
                         tableRef,
-                        remainingResultsToPostFilter,
+                        resultsToPostFilter,
                         resultsAccumulator,
                         transformer,
                         asyncKeyValueService,
@@ -1468,32 +1471,39 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
             TableReference tableReference,
-            Map<Cell, Value> remainingResultsToPostFilter,
+            Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
             Function<Value, T> transformer,
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
-        if (remainingResultsToPostFilter.isEmpty()) {
-            getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
-                    .inc(resultsAccumulator.size());
-            return Futures.immediateFuture(resultsAccumulator);
-        }
-
         return Futures.transformAsync(
-                getWithPostFilteringInternal(
-                        tableReference,
-                        remainingResultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
-                remaining -> getWithPostFilteringIterate(
-                        tableReference,
-                        remaining,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                Futures.immediateFuture(resultsToPostFilter),
+                results -> {
+                    int iterations = 0;
+                    Map<Cell, Value> remainingResultsToPostFilter = results;
+                    while (!remainingResultsToPostFilter.isEmpty()) {
+                        remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
+                                tableReference,
+                                remainingResultsToPostFilter,
+                                resultsAccumulator,
+                                transformer,
+                                asyncKeyValueService,
+                                asyncTransactionService));
+                        Preconditions.checkState(
+                                ++iterations < MAX_POST_FILTERING_ITERATIONS,
+                                "Unable to filter cells to find correct result after "
+                                        + "reaching max iterations. This is likely due to aborted cells lying around,"
+                                        + " or in the very rare case, could be due to transactions which constantly "
+                                        + "conflict but never commit. These values will be cleaned up eventually, but"
+                                        + " if the issue persists, ensure that sweep is caught up.",
+                                SafeArg.of("table", tableReference),
+                                SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
+                    }
+                    getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
+                            .inc(resultsAccumulator.size());
+
+                    return Futures.immediateFuture(resultsAccumulator);
+                },
                 MoreExecutors.directExecutor());
     }
 

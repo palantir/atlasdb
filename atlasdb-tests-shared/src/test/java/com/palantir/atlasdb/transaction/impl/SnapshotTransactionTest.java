@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -122,6 +123,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -317,6 +319,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
 
+    static final TableReference TABLE_NO_SWEEP = TableReference.createFromFullyQualifiedName("default.table6");
+
     private static final byte[] ROW_FOO = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] ROW_BAR = "bar".getBytes(StandardCharsets.UTF_8);
     private static final byte[] COL_A = "a".getBytes(StandardCharsets.UTF_8);
@@ -347,6 +351,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TABLE_SWEPT_THOROUGH_MIGRATION,
                 getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH_MIGRATION)
                         .persistToBytes());
+        keyValueService.createTable(
+                TABLE_NO_SWEEP,
+                getTableMetadataForSweepStrategy(SweepStrategy.NOTHING).persistToBytes());
     }
 
     @Override
@@ -361,7 +368,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 transactionWrapper,
                 keyValueServiceWrapper,
                 knowledge);
@@ -2426,6 +2433,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
         assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
         assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
+    }
+
+    @Test
+    public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
+        for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
+            putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
+        }
+        assertThatLoggableExceptionThrownBy(
+                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageStartingWith("Unable to filter cells")
+                .hasExactlyArgs(
+                        SafeArg.of("table", TABLE_NO_SWEEP),
+                        SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
     private void verifyPrefetchValidations(

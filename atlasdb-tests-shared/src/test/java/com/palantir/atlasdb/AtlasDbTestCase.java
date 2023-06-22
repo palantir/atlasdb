@@ -77,11 +77,14 @@ public class AtlasDbTestCase {
 
     protected TransactionKnowledgeComponents knowledge;
 
+    protected ExecutorService deleteExecutor;
+
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
     @Before
     public void setUp() throws Exception {
+        deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimeLockRule.getLockService();
         timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
