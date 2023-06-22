@@ -215,7 +215,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     static final ConsistencyLevel WRITE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
-    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.ALL;
+    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
 
     private final Logger log;
 
