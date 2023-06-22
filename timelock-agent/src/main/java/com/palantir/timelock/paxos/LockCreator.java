@@ -39,12 +39,12 @@ public class LockCreator {
     }
 
     public CloseableLockService createThreadPoolingLockService() {
-        LockServerOptions lockServerOptions = LockServerOptions.builder()
-                .slowLogTriggerMillis(runtime.get().slowLockLogTriggerMillis())
-                .build();
+        Refreshable<LockServerOptions> lockServerOptions = runtime.map(rt -> LockServerOptions.builder()
+                .slowLogTriggerMillis(rt.slowLockLogTriggerMillis())
+                .threadInfoConfiguration(rt.threadInfoConfiguration())
+                .build());
 
-        LockServiceImpl rawLockService = LockServiceImpl.create(
-                lockServerOptions, sharedExecutor, runtime.map(TimeLockRuntimeConfiguration::threadInfoConfiguration));
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions, sharedExecutor);
         CloseableLockService lockService = BlockingTimeLimitedLockService.create(
                 rawLockService, blockingTimeoutMs, rawLockService.getSnapshotManager());
 

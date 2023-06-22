@@ -45,7 +45,6 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.CloseableRemoteLockService;
-import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ExpiringToken;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
@@ -235,58 +234,47 @@ public final class LockServiceImpl
     public static LockServiceImpl create(LockServerOptions options) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
-        return create(
-                options, Ownable.owned(newExecutor), Refreshable.only(LockServerConfigs.DEFAULT_THREAD_INFO_CONFIG));
+        return create(Refreshable.only(options), Ownable.owned(newExecutor));
+    }
+
+    public static LockServiceImpl create(Refreshable<LockServerOptions> options, ExecutorService injectedExecutor) {
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
+        com.palantir.logsafe.Preconditions.checkNotNull(options.current());
+        return create(options, Ownable.notOwned(injectedExecutor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
-        return create(
-                options,
-                Ownable.notOwned(injectedExecutor),
-                Refreshable.only(LockServerConfigs.DEFAULT_THREAD_INFO_CONFIG));
+        return create(Refreshable.only(options), Ownable.notOwned(injectedExecutor));
     }
 
-    public static LockServiceImpl create(
-            LockServerOptions options,
-            ExecutorService injectedExecutor,
-            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
-        com.palantir.logsafe.Preconditions.checkNotNull(options);
-        return create(options, Ownable.notOwned(injectedExecutor), threadInfoConfiguration);
-    }
-
-    private static LockServiceImpl create(
-            LockServerOptions options,
-            Ownable<ExecutorService> executor,
-            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
+    private static LockServiceImpl create(Refreshable<LockServerOptions> options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", SafeArg.of("options", options));
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
         LockServiceImpl lockService = new LockServiceImpl(
-                options,
-                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName),
-                executor,
-                threadInfoConfiguration);
+                options, () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName), executor);
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
 
+    /**
+     * Only {@link LockServerOptions#threadInfoConfiguration()} is actually reloadable
+     */
     private LockServiceImpl(
-            LockServerOptions options,
-            Runnable callOnClose,
-            Ownable<ExecutorService> executor,
-            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration) {
+            Refreshable<LockServerOptions> options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+        LockServerOptions currentOptions = options.current();
         this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
-        this.isStandaloneServer = options.isStandaloneServer();
-        this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
-        this.slowLogTriggerMillis = options.slowLogTriggerMillis();
-        this.threadInfoSnapshotManager =
-                new LockThreadInfoSnapshotManager(threadInfoConfiguration, () -> heldLocksTokenMap);
+        this.isStandaloneServer = currentOptions.isStandaloneServer();
+        this.maxAllowedLockTimeout = SimpleTimeDuration.of(currentOptions.getMaxAllowedLockTimeout());
+        this.maxAllowedClockDrift = SimpleTimeDuration.of(currentOptions.getMaxAllowedClockDrift());
+        this.maxNormalLockAge = SimpleTimeDuration.of(currentOptions.getMaxNormalLockAge());
+        this.stuckTransactionTimeout = SimpleTimeDuration.of(currentOptions.getStuckTransactionTimeout());
+        this.slowLogTriggerMillis = currentOptions.slowLogTriggerMillis();
+        this.threadInfoSnapshotManager = new LockThreadInfoSnapshotManager(
+                options.map(LockServerOptions::threadInfoConfiguration), () -> heldLocksTokenMap);
         threadInfoSnapshotManager.start();
     }
 
