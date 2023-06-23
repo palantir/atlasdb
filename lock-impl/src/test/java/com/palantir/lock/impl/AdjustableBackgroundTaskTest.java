@@ -34,7 +34,7 @@ public class AdjustableBackgroundTaskTest {
      * Dummy deterministic scheduled executor service that cannot be shut down.
      * The default {@link DeterministicScheduler} throws an exception when calling {@link ExecutorService#isShutdown()}.
      */
-    static class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
+    private static class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
         @Override
         public boolean isShutdown() {
             return false;
@@ -44,15 +44,10 @@ public class AdjustableBackgroundTaskTest {
     // We have to ensure all of our delays are higher than MINIMUM_DELAY_IF_NOT_RUNNING
     // so it doesn't interfere with our tests
     private static final TimeDuration DEFAULT_DELAY = SimpleTimeDuration.of(10, TimeUnit.SECONDS);
-
     private final AtomicInteger field = new AtomicInteger(0);
-
     private final SettableRefreshable<Boolean> shouldRun = Refreshable.create(false);
-
     private final SettableRefreshable<TimeDuration> interval = Refreshable.create(DEFAULT_DELAY);
-
     private final NeverShutdownDeterministicScheduler scheduledExecutor = new NeverShutdownDeterministicScheduler();
-
     private final AdjustableBackgroundTask adjustableBackgroundTask =
             new AdjustableBackgroundTask(shouldRun, interval, field::incrementAndGet, scheduledExecutor);
 
