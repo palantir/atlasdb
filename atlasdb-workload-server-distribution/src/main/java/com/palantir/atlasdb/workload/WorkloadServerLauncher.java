@@ -121,7 +121,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         AntithesisCassandraSidecarResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
                 0,
-                10,
+                2,
                 TimeUnit.SECONDS);
     }
 
