@@ -275,7 +275,6 @@ public final class LockServiceImpl
         this.slowLogTriggerMillis = currentOptions.slowLogTriggerMillis();
         this.threadInfoSnapshotManager = new LockThreadInfoSnapshotManager(
                 options.map(LockServerOptions::threadInfoConfiguration), () -> heldLocksTokenMap);
-        threadInfoSnapshotManager.start();
     }
 
     private HeldLocksToken createHeldLocksToken(

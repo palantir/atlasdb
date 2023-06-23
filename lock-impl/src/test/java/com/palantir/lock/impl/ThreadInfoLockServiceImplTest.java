@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.ImmutableDebugThreadInfoConfiguration;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockClientAndThread;
@@ -33,8 +32,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.refreshable.Refreshable;
-import com.palantir.refreshable.SettableRefreshable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Test;
 
 public class ThreadInfoLockServiceImplTest {
@@ -276,31 +273,6 @@ public class ThreadInfoLockServiceImplTest {
     }
 
     @Test
-    public void backgroundSnapshotRunnerWorks() throws InterruptedException {
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
-                        .recordThreadInfo(true)
-                        .threadInfoSnapshotIntervalMillis(50L)
-                        .build())
-                .build());
-        LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
-
-        LockResponse response = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
-                LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-
-        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
-                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
-
-        lockServiceWithBackgroundRunner.unlock(response.getToken());
-
-        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
-                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                .doesNotContainKey(TEST_LOCK_1));
-    }
-
-    @Test
     public void logArgIsUnsafeAndContainsEmptyOptionalIfNotRecordingThreadInfo() throws InterruptedException {
         lockService.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
         forceSnapshot();
@@ -310,11 +282,10 @@ public class ThreadInfoLockServiceImplTest {
 
     @Test
     public void logArgIsUnsafeAndContainsRestrictedSnapshotIfRecordingThreadInfo() throws InterruptedException {
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(LockServerOptions.builder()
+        LockServiceImpl lockServiceWithRecordingEnabled = LockServiceImpl.create(LockServerOptions.builder()
                 .isStandaloneServer(false)
                 .threadInfoConfiguration(ImmutableDebugThreadInfoConfiguration.builder()
                         .recordThreadInfo(true)
-                        .threadInfoSnapshotIntervalMillis(50L)
                         .build())
                 .build());
         LockRequest lockRequest2 = LockRequest.builder(
@@ -323,75 +294,25 @@ public class ThreadInfoLockServiceImplTest {
                 .withCreatingThreadName(TEST_THREAD_2)
                 .build();
 
-        lockServiceWithBackgroundRunner.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-        lockServiceWithBackgroundRunner.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
+        lockServiceWithRecordingEnabled.lockWithFullLockResponse(LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
+        lockServiceWithRecordingEnabled.lockWithFullLockResponse(LockClient.ANONYMOUS, lockRequest2);
 
-        Awaitility.waitAtMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(lockServiceWithBackgroundRunner
+        lockServiceWithRecordingEnabled.getSnapshotManager().takeSnapshot();
+
+        assertThat(lockServiceWithRecordingEnabled
                         .getSnapshotManager()
                         .getRestrictedSnapshotAsOptionalLogArg(Set.of(TEST_LOCK_1)))
                 .isEqualTo(UnsafeArg.of(
                         "presumedClientThreadHoldersIfEnabled",
                         // Snapshot should be restricted to TEST_LOCK_1
-                        Optional.of(
-                                Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1))))));
+                        Optional.of(Map.of(TEST_LOCK_1, LockClientAndThread.of(LockClient.ANONYMOUS, TEST_THREAD_1)))));
+
+        lockServiceWithRecordingEnabled.close();
     }
 
-    @Test
-    public void willRestartWhenConfigIsUpdated() throws InterruptedException {
-        SettableRefreshable<DebugThreadInfoConfiguration> refreshableThreadInfoConfiguration =
-                Refreshable.create(ImmutableDebugThreadInfoConfiguration.builder()
-                        .recordThreadInfo(true)
-                        .threadInfoSnapshotIntervalMillis(50L)
-                        .build());
-        LockServiceImpl lockServiceWithBackgroundRunner = LockServiceImpl.create(
-                refreshableThreadInfoConfiguration.map(threadInfoConfig -> LockServerOptions.builder()
-                        .isStandaloneServer(false)
-                        .threadInfoConfiguration(threadInfoConfig)
-                        .build()),
-                executor);
-        LockThreadInfoSnapshotManager backgroundSnapshotRunner = lockServiceWithBackgroundRunner.getSnapshotManager();
-
-        LockResponse lockResponse = lockServiceWithBackgroundRunner.lockWithFullLockResponse(
-                LockClient.ANONYMOUS, LOCK_1_THREAD_1_WRITE_REQUEST);
-
-        // background task is running and should take a snapshot
-        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
-                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1)));
-
-        // turn off background task
-        refreshableThreadInfoConfiguration.update(ImmutableDebugThreadInfoConfiguration.builder()
-                .recordThreadInfo(false)
-                .threadInfoSnapshotIntervalMillis(50L)
-                .build());
-
-        Awaitility.await().until(() -> !backgroundSnapshotRunner.isRunning());
-
-        lockServiceWithBackgroundRunner.unlock(lockResponse.getToken());
-
-        // If background task was still running, it would take a snapshot at this moment
-        Awaitility.await().atLeast(200, TimeUnit.MILLISECONDS);
-
-        // ...but we expect it to do nothing
-        assertThat(lockServiceWithBackgroundRunner.getSnapshotManager().getLastKnownThreadInfoSnapshot())
-                .containsExactly(Map.entry(TEST_LOCK_1, ANONYMOUS_TEST_THREAD_1));
-
-        // turn background task back on
-        refreshableThreadInfoConfiguration.update(ImmutableDebugThreadInfoConfiguration.builder()
-                .recordThreadInfo(true)
-                .threadInfoSnapshotIntervalMillis(50L)
-                .build());
-
-        // Now the unlock request should be reflected in the snapshot
-        Awaitility.await().atMost(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(
-                        backgroundSnapshotRunner.getLastKnownThreadInfoSnapshot())
-                .doesNotContainKey(TEST_LOCK_1));
-    }
-
-    @Test
-    public void closesWithLockService() {
+    @After
+    public void tearDown() {
         lockService.close();
-        assertThat(lockService.getSnapshotManager().isClosed()).isTrue();
     }
 
     private void forceSnapshot() {
