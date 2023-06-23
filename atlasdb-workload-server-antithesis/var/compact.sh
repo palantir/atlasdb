@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 
-podman exec $1 bash -c 'palantir-cassandra-*/bin/nodetool compact'¡
+podman exec $1 bash -c 'palantir-cassandra-*/bin/nodetool compact'
