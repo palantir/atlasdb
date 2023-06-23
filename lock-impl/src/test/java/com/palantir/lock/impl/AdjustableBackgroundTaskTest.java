@@ -34,7 +34,7 @@ public class AdjustableBackgroundTaskTest {
      * Dummy deterministic scheduled executor service that cannot be shut down.
      * The default {@link DeterministicScheduler} throws an exception when calling {@link ExecutorService#isShutdown()}.
      */
-    private static class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
+    private static final class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
         @Override
         public boolean isShutdown() {
             return false;
