@@ -26,11 +26,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public final class AdjustableBackgroundTask implements Closeable {
-    /** A minimum duration between invocations if the task is not actually enabled.
+
+    /**
+     * A minimum duration between invocations if the task is not actually enabled.
      * This is to prevent having a blocking thread in the background that does nothing.
      */
-    @VisibleForTesting
-    static final TimeDuration MINIMUM_DELAY_IF_NOT_RUNNING = SimpleTimeDuration.of(1, TimeUnit.SECONDS);
+    private static final TimeDuration MINIMUM_DELAY_IF_NOT_RUNNING = SimpleTimeDuration.of(1, TimeUnit.SECONDS);
 
     private final ScheduledExecutorService scheduledExecutor;
     private final Supplier<Boolean> shouldRunSupplier;

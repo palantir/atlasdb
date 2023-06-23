@@ -22,6 +22,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -29,6 +30,10 @@ import org.junit.Test;
 
 public class AdjustableBackgroundTaskTest {
 
+    /**
+     * Dummy deterministic scheduled executor service that cannot be shut down.
+     * The default {@link DeterministicScheduler} throws an exception when calling {@link ExecutorService#isShutdown()}.
+     */
     static class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
         @Override
         public boolean isShutdown() {
@@ -36,10 +41,8 @@ public class AdjustableBackgroundTaskTest {
         }
     }
 
-    /** We have to ensure all of our delays are higher than
-     * {@link com.palantir.lock.impl.AdjustableBackgroundTask#MINIMUM_DELAY_IF_NOT_RUNNING}
-     * so it doesn't interfere.
-     */
+    // We have to ensure all of our delays are higher than MINIMUM_DELAY_IF_NOT_RUNNING
+    // so it doesn't interfere with our tests
     private static final TimeDuration DEFAULT_DELAY = SimpleTimeDuration.of(10, TimeUnit.SECONDS);
 
     private final AtomicInteger field = new AtomicInteger(0);
