@@ -29,14 +29,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.annotation.Output;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -229,7 +227,7 @@ public final class CassandraKeyValueServices {
         return buffer;
     }
 
-    static Pair<byte[], Long> decompose(ByteBuffer inputComposite) {
+    static ColumnAndTimestamp decomposeColumn(ByteBuffer inputComposite) {
         ByteBuffer composite = inputComposite.slice().order(ByteOrder.BIG_ENDIAN);
 
         short len = composite.getShort();
@@ -243,14 +241,14 @@ public final class CassandraKeyValueServices {
         com.palantir.logsafe.Preconditions.checkArgument(shouldBe8 == 8);
         long ts = composite.getLong();
 
-        return Pair.create(colName, ~ts);
+        return new ColumnAndTimestamp(colName, ~ts);
     }
 
     /**
      * Convenience method to get the name buffer for the specified column and
      * decompose it into the name and timestamp.
      */
-    public static Pair<byte[], Long> decomposeName(Column column) {
+    public static ColumnAndTimestamp decomposeColumnName(Column column) {
         ByteBuffer nameBuffer;
         if (column.isSetName()) {
             nameBuffer = column.bufferForName();
@@ -260,7 +258,7 @@ public final class CassandraKeyValueServices {
             // the transform to bytes and wrap ourselves
             nameBuffer = ByteBuffer.wrap(column.getName());
         }
-        return decompose(nameBuffer);
+        return decomposeColumn(nameBuffer);
     }
 
     public static byte[] getBytesFromByteBuffer(ByteBuffer buffer) {
@@ -402,17 +400,13 @@ public final class CassandraKeyValueServices {
 
         @Override
         public synchronized void visit(Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-            extractTimestampResults(collectedResults, results);
-        }
-    }
-
-    private static void extractTimestampResults(
-            @Output Multimap<Cell, Long> ret, Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
-        for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
-            byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
-            for (ColumnOrSuperColumn col : result.getValue()) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(col.column);
-                ret.put(Cell.create(row, pair.lhSide), pair.rhSide);
+            for (Map.Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
+                byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
+                for (ColumnOrSuperColumn col : result.getValue()) {
+                    ColumnAndTimestamp columnAndTimestamp = CassandraKeyValueServices.decomposeColumnName(col.column);
+                    Cell cell = Cell.create(row, columnAndTimestamp.columnName());
+                    collectedResults.put(cell, columnAndTimestamp.timestamp());
+                }
             }
         }
     }
@@ -428,5 +422,45 @@ public final class CassandraKeyValueServices {
             return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA);
         }
         return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
+    }
+
+    public static class ColumnAndTimestamp {
+        private final long timestamp;
+        private final byte[] columnName;
+
+        ColumnAndTimestamp(byte[] columnName, long timestamp) {
+            this.columnName = columnName;
+            this.timestamp = timestamp;
+        }
+
+        public byte[] columnName() {
+            return columnName;
+        }
+
+        public long timestamp() {
+            return timestamp;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            ColumnAndTimestamp that = (ColumnAndTimestamp) obj;
+            return timestamp == that.timestamp && Arrays.equals(columnName, that.columnName);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Long.hashCode(timestamp) + Arrays.hashCode(columnName);
+        }
+
+        @Override
+        public String toString() {
+            return "ColumnAndTimestamp{columnName=" + Arrays.toString(columnName) + ", timestamp=" + timestamp + '}';
+        }
     }
 }
