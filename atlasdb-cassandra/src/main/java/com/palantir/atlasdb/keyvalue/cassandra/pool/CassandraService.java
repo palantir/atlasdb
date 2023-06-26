@@ -149,16 +149,16 @@ public class CassandraService implements AutoCloseable {
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<EndpointDetails> endpointDetails = tokenRange.getEndpoint_details();
-                    ImmutableMap.Builder<CassandraServer, String> builder =
-                            ImmutableMap.builderWithExpectedSize(endpointDetails.size());
+                    ImmutableSet.Builder<CassandraServer> hostsBuilder =
+                            ImmutableSet.builderWithExpectedSize(endpointDetails.size());
                     for (EndpointDetails endpoint : endpointDetails) {
-                        builder.put(getAddressForHostThrowUnchecked(endpoint.getHost()), endpoint.getDatacenter());
+                        CassandraServer cassandraServer = getAddressForHostThrowUnchecked(endpoint.getHost());
+                        hostToDatacentersThisRefresh.put(cassandraServer, endpoint.getDatacenter());
+                        hostsBuilder.add(cassandraServer);
+                        servers.add(cassandraServer);
                     }
-                    ImmutableMap<CassandraServer, String> hostToDatacentersOnThisTokenRange = builder.build();
-                    ImmutableSet<CassandraServer> hosts = hostToDatacentersOnThisTokenRange.keySet();
-                    servers.addAll(hosts);
-                    hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
 
+                    ImmutableSet<CassandraServer> hosts = hostsBuilder.build();
                     LightweightOppToken startToken = LightweightOppToken.fromHex(tokenRange.getStart_token());
                     LightweightOppToken endToken = LightweightOppToken.fromHex(tokenRange.getEnd_token());
                     if (startToken.compareTo(endToken) <= 0) {
