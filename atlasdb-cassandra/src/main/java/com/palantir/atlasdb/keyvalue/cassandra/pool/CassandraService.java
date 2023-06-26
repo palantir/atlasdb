@@ -148,15 +148,14 @@ public class CassandraService implements AutoCloseable {
                 hostToDatacentersThisRefresh.put(onlyHost, onlyEndpoint.getDatacenter());
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    Map<CassandraServer, String> hostToDatacentersOnThisTokenRange = KeyedStream.of(
-                                    tokenRange.getEndpoint_details())
-                            .mapKeys(EndpointDetails::getHost)
-                            .mapKeys(this::getAddressForHostThrowUnchecked)
-                            .map(EndpointDetails::getDatacenter)
-                            .collectToMap();
-
-                    ImmutableSet<CassandraServer> hosts =
-                            ImmutableSet.copyOf(hostToDatacentersOnThisTokenRange.keySet());
+                    List<EndpointDetails> endpointDetails = tokenRange.getEndpoint_details();
+                    ImmutableMap.Builder<CassandraServer, String> builder =
+                            ImmutableMap.builderWithExpectedSize(endpointDetails.size());
+                    for (EndpointDetails endpoint : endpointDetails) {
+                        builder.put(getAddressForHostThrowUnchecked(endpoint.getHost()), endpoint.getDatacenter());
+                    }
+                    ImmutableMap<CassandraServer, String> hostToDatacentersOnThisTokenRange = builder.build();
+                    ImmutableSet<CassandraServer> hosts = hostToDatacentersOnThisTokenRange.keySet();
                     servers.addAll(hosts);
                     hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
 
