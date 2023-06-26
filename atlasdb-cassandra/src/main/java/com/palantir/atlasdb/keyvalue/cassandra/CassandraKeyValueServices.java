@@ -35,6 +35,7 @@ import com.palantir.common.visitor.Visitor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -227,6 +228,15 @@ public final class CassandraKeyValueServices {
         return buffer;
     }
 
+    /**
+     * @deprecated use {@link #decomposeColumn(ByteBuffer)}
+     */
+    @Deprecated
+    static Pair<byte[], Long> decompose(ByteBuffer inputComposite) {
+        ColumnAndTimestamp columnAndTimestamp = decomposeColumn(inputComposite);
+        return Pair.create(columnAndTimestamp.columnName(), columnAndTimestamp.timestamp());
+    }
+
     static ColumnAndTimestamp decomposeColumn(ByteBuffer inputComposite) {
         ByteBuffer composite = inputComposite.slice().order(ByteOrder.BIG_ENDIAN);
 
@@ -242,6 +252,15 @@ public final class CassandraKeyValueServices {
         long ts = composite.getLong();
 
         return new ColumnAndTimestamp(colName, ~ts);
+    }
+
+    /**
+     * @deprecated use {@link #decomposeColumnName(Column)}
+     */
+    @Deprecated
+    public static Pair<byte[], Long> decomposeName(Column column) {
+        ColumnAndTimestamp columnAndTimestamp = decomposeColumnName(column);
+        return Pair.create(columnAndTimestamp.columnName(), columnAndTimestamp.timestamp());
     }
 
     /**
