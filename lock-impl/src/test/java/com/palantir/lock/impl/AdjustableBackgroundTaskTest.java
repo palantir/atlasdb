@@ -18,38 +18,42 @@ package com.palantir.lock.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.TimeDuration;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
-import java.util.concurrent.ExecutorService;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AdjustableBackgroundTaskTest {
 
-    /**
-     * Dummy deterministic scheduled executor service that cannot be shut down.
-     * The default {@link DeterministicScheduler} throws an exception when calling {@link ExecutorService#isShutdown()}.
-     */
-    private static final class NeverShutdownDeterministicScheduler extends DeterministicScheduler {
-        @Override
-        public boolean isShutdown() {
-            return false;
-        }
-    }
-
     // We have to ensure all of our delays are higher than MINIMUM_DELAY_IF_NOT_RUNNING
     // so it doesn't interfere with our tests
-    private static final TimeDuration DEFAULT_DELAY = SimpleTimeDuration.of(10, TimeUnit.SECONDS);
+    private static final Duration DEFAULT_DELAY = Duration.ofSeconds(10);
     private final AtomicInteger field = new AtomicInteger(0);
     private final SettableRefreshable<Boolean> shouldRun = Refreshable.create(false);
-    private final SettableRefreshable<TimeDuration> interval = Refreshable.create(DEFAULT_DELAY);
-    private final NeverShutdownDeterministicScheduler scheduledExecutor = new NeverShutdownDeterministicScheduler();
-    private final AdjustableBackgroundTask adjustableBackgroundTask =
-            new AdjustableBackgroundTask(shouldRun, interval, field::incrementAndGet, scheduledExecutor);
+    private final SettableRefreshable<Duration> interval = Refreshable.create(DEFAULT_DELAY);
+    private final DeterministicScheduler scheduledExecutor = new DeterministicScheduler();
+    private final AtomicInteger numCallsToShouldRunSupplier = new AtomicInteger();
+    private final AtomicInteger numCallsToIntervalSupplier = new AtomicInteger(0);
+    AdjustableBackgroundTask adjustableBackgroundTask = new AdjustableBackgroundTask(
+            () -> {
+                numCallsToShouldRunSupplier.incrementAndGet();
+                return shouldRun.current();
+            },
+            () -> {
+                numCallsToIntervalSupplier.incrementAndGet();
+                return interval.current();
+            },
+            field::incrementAndGet,
+            scheduledExecutor);
+
+    @BeforeClass
+    public static void testDelayShouldNotExceedMinimumDelay() {
+        assertThat(DEFAULT_DELAY).isGreaterThanOrEqualTo(AdjustableBackgroundTask.MINIMUM_DELAY_IF_NOT_RUNNING);
+    }
 
     @Test
     public void doesNotRunTaskDuringConstruction() {
@@ -58,18 +62,16 @@ public class AdjustableBackgroundTaskTest {
 
     @Test
     public void doesNotRunTaskByDefault() {
-        int before = field.get();
         tick(DEFAULT_DELAY);
-        assertThat(field.get()).isEqualTo(before);
+        assertThat(field.get()).isEqualTo(0);
     }
 
     @Test
     public void canBeEnabledDisabledAndReEnabled() {
-        int before = field.get();
         shouldRun.update(true);
         tick(DEFAULT_DELAY);
         int after = field.get();
-        assertThat(after).isEqualTo(before + 1);
+        assertThat(after).isEqualTo(1);
 
         shouldRun.update(false);
         tick(DEFAULT_DELAY);
@@ -81,16 +83,44 @@ public class AdjustableBackgroundTaskTest {
     }
 
     @Test
-    public void canAdjustDuration() {
-        int before = field.get();
-        TimeDuration newInterval = SimpleTimeDuration.of(42, TimeUnit.SECONDS);
+    public void canAdjustDurationBelowMinimumDelayIfRunning() {
+        Duration newInterval = Duration.ofMillis(1);
         interval.update(newInterval);
         shouldRun.update(true);
-        tick(SimpleTimeDuration.of(10 * newInterval.toMillis(), TimeUnit.MILLISECONDS));
-        assertThat(field.get()).isEqualTo(before + 10);
+        // will run the task once
+        tick(DEFAULT_DELAY);
+        tick(Duration.ofMillis(10 - 1));
+        assertThat(field.get()).isEqualTo(10);
     }
 
-    private void tick(TimeDuration duration) {
+    @Test
+    public void runsSuppliersAtReducedIntervalIfNotRunning() {
+        Duration newInterval = Duration.ofMillis(1);
+        interval.update(newInterval);
+        Duration elapsedDuration = Duration.ofSeconds(10);
+        // will invoke suppliers an additional time
+        tick(DEFAULT_DELAY);
+        tick(elapsedDuration);
+
+        assertThat(field.get()).isEqualTo(0);
+        // suppliers are also called once when running the constructor
+        assertThat(numCallsToShouldRunSupplier.get())
+                .isEqualTo(elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_DELAY_IF_NOT_RUNNING) + 2);
+        assertThat(numCallsToIntervalSupplier.get())
+                .isEqualTo(elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_DELAY_IF_NOT_RUNNING) + 2);
+    }
+
+    @Test
+    public void suppliersAreCalledTogetherWithTask() {
+        shouldRun.update(true);
+        tick(Duration.ofSeconds(10 * DEFAULT_DELAY.toSeconds()));
+        assertThat(field.get()).isEqualTo(10);
+        // suppliers are also called once when running the constructor
+        assertThat(numCallsToShouldRunSupplier.get()).isEqualTo(11);
+        assertThat(numCallsToIntervalSupplier.get()).isEqualTo(11);
+    }
+
+    private void tick(Duration duration) {
         scheduledExecutor.tick(duration.toMillis(), TimeUnit.MILLISECONDS);
     }
 }

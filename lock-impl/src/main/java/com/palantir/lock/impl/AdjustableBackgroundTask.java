@@ -18,9 +18,11 @@ package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.TimeDuration;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
+import java.time.Duration;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -31,15 +33,18 @@ public final class AdjustableBackgroundTask implements Closeable {
      * A minimum duration between invocations if the task is not actually enabled.
      * This is to prevent having a blocking thread in the background that does nothing.
      */
-    private static final TimeDuration MINIMUM_DELAY_IF_NOT_RUNNING = SimpleTimeDuration.of(1, TimeUnit.SECONDS);
+    @VisibleForTesting
+    static final Duration MINIMUM_DELAY_IF_NOT_RUNNING = Duration.ofSeconds(1);
+
+    private static final SafeLogger log = SafeLoggerFactory.get(AdjustableBackgroundTask.class);
 
     private final ScheduledExecutorService scheduledExecutor;
     private final Supplier<Boolean> shouldRunSupplier;
-    private final Supplier<TimeDuration> intervalSupplier;
+    private final Supplier<Duration> intervalSupplier;
     private final Runnable task;
 
     public static AdjustableBackgroundTask create(
-            Supplier<Boolean> shouldRunSupplier, Supplier<TimeDuration> delaySupplier, Runnable task) {
+            Supplier<Boolean> shouldRunSupplier, Supplier<Duration> delaySupplier, Runnable task) {
         return new AdjustableBackgroundTask(
                 shouldRunSupplier, delaySupplier, task, PTExecutors.newSingleThreadScheduledExecutor());
     }
@@ -47,7 +52,7 @@ public final class AdjustableBackgroundTask implements Closeable {
     @VisibleForTesting
     AdjustableBackgroundTask(
             Supplier<Boolean> shouldRunSupplier,
-            Supplier<TimeDuration> intervalSupplier,
+            Supplier<Duration> intervalSupplier,
             Runnable task,
             ScheduledExecutorService scheduledExecutor) {
         this.shouldRunSupplier = shouldRunSupplier;
@@ -57,22 +62,33 @@ public final class AdjustableBackgroundTask implements Closeable {
         run();
     }
 
-    private synchronized void run() {
-        if (shouldRunSupplier.get()) {
-            task.run();
+    private void run() {
+        boolean shouldRun = shouldRunSupplier.get();
+        if (shouldRun) {
+            try {
+                task.run();
+            } catch (Exception e) {
+                if (Thread.interrupted()) {
+                    log.error("Task was interrupted", e);
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                log.error("Error occurred during task", e);
+            }
         }
-        if (!scheduledExecutor.isShutdown()) {
+        try {
+            long intervalMillis = intervalSupplier.get().toMillis();
             scheduledExecutor.schedule(
                     this::run,
-                    Math.max(
-                            MINIMUM_DELAY_IF_NOT_RUNNING.toMillis(),
-                            intervalSupplier.get().toMillis()),
+                    shouldRun ? intervalMillis : Math.max(MINIMUM_DELAY_IF_NOT_RUNNING.toMillis(), intervalMillis),
                     TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            // that's ok, we were probably closed
         }
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         scheduledExecutor.shutdown();
     }
 }

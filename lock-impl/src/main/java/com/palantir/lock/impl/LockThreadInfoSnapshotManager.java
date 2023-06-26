@@ -22,13 +22,13 @@ import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,7 +36,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -57,8 +56,7 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
         this.tokenMapSupplier = mapSupplier;
         this.backgroundTask = AdjustableBackgroundTask.create(
                 threadInfoConfiguration.map(DebugThreadInfoConfiguration::recordThreadInfo),
-                threadInfoConfiguration.map(config ->
-                        SimpleTimeDuration.of(config.threadInfoSnapshotIntervalMillis(), TimeUnit.MILLISECONDS)),
+                threadInfoConfiguration.map(config -> Duration.ofMillis(config.threadInfoSnapshotIntervalMillis())),
                 this::takeSnapshot);
     }
 
