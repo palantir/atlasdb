@@ -45,9 +45,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
-import one.util.streamex.EntryStream;
 
 @NotThreadSafe
 final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
@@ -122,7 +120,8 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                         columnsAndValues.add(ColumnValue.of(
                                 AtlasDbUtils.fromAtlasColumn(entry.getKey().getColumnName()),
                                 AtlasDbUtils.fromAtlasValue(entry.getValue())));
-                        DefaultBuggifyFactory.INSTANCE.maybe(0.5)
+                        DefaultBuggifyFactory.INSTANCE
+                                .maybe(0.5)
                                 .run(() -> Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS));
                     }
 
