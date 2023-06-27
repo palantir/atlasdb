@@ -34,7 +34,7 @@ public final class AdjustableBackgroundTask implements Closeable {
      * This is to prevent having a blocking thread in the background that does nothing.
      */
     @VisibleForTesting
-    static final Duration MINIMUM_DELAY_IF_NOT_RUNNING = Duration.ofSeconds(1);
+    static final Duration MINIMUM_INTERVAL_IF_NOT_RUNNING = Duration.ofSeconds(1);
 
     private static final SafeLogger log = SafeLoggerFactory.get(AdjustableBackgroundTask.class);
 
@@ -80,7 +80,7 @@ public final class AdjustableBackgroundTask implements Closeable {
             long intervalMillis = intervalSupplier.get().toMillis();
             scheduledExecutor.schedule(
                     this::run,
-                    shouldRun ? intervalMillis : Math.max(MINIMUM_DELAY_IF_NOT_RUNNING.toMillis(), intervalMillis),
+                    shouldRun ? intervalMillis : Math.max(MINIMUM_INTERVAL_IF_NOT_RUNNING.toMillis(), intervalMillis),
                     TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
             // that's ok, we were probably closed
