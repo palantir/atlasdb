@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
@@ -31,6 +30,7 @@ import org.immutables.value.Value;
 
 public class BatchSizeIncreasingIterator<T> implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(BatchSizeIncreasingIterator.class);
+    private static final int MAX_BATCH_SIZE = 1000;
 
     private final int originalBatchSize;
     private final BatchProvider<T> batchProvider;
@@ -72,7 +72,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
-        return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+        return (int) Math.min(batchSize, MAX_BATCH_SIZE);
     }
 
     private void updateResultsIfNeeded() {
