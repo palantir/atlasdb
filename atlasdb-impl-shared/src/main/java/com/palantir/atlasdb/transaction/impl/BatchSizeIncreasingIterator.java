@@ -35,6 +35,8 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
     private final int originalBatchSize;
     private final BatchProvider<T> batchProvider;
 
+    private final int maxBatchSize;
+
     private ClosableIterator<T> currentResults;
     private byte[] lastToken;
 
@@ -51,6 +53,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
+        this.maxBatchSize = originalBatchSize * 8;
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
@@ -72,7 +75,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
-        return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+        return (int) Math.min(batchSize, Math.min(maxBatchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE));
     }
 
     private void updateResultsIfNeeded() {
