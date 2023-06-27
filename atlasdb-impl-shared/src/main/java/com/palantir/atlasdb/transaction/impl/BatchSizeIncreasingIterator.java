@@ -30,7 +30,7 @@ import org.immutables.value.Value;
 
 public class BatchSizeIncreasingIterator<T> implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(BatchSizeIncreasingIterator.class);
-    private static final int MAX_BATCH_SIZE = 1000;
+    private static final int MAX_BATCH_SIZE = 10;
 
     private final int originalBatchSize;
     private final BatchProvider<T> batchProvider;
