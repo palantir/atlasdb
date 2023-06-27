@@ -20,4 +20,7 @@ public final class LockServerConfigs {
     private LockServerConfigs() {}
 
     public static final LockServerOptions DEFAULT = LockServerOptions.builder().build();
+
+    public static final DebugThreadInfoConfiguration DEFAULT_THREAD_INFO_CONFIG =
+            ImmutableDebugThreadInfoConfiguration.builder().build();
 }

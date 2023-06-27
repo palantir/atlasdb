@@ -80,6 +80,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.math.BigInteger;
@@ -233,15 +234,21 @@ public final class LockServiceImpl
     public static LockServiceImpl create(LockServerOptions options) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
-        return create(options, Ownable.owned(newExecutor));
+        return create(Refreshable.only(options), Ownable.owned(newExecutor));
+    }
+
+    public static LockServiceImpl create(Refreshable<LockServerOptions> options, ExecutorService injectedExecutor) {
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
+        com.palantir.logsafe.Preconditions.checkNotNull(options.current());
+        return create(options, Ownable.notOwned(injectedExecutor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
-        return create(options, Ownable.notOwned(injectedExecutor));
+        return create(Refreshable.only(options), Ownable.notOwned(injectedExecutor));
     }
 
-    private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
+    private static LockServiceImpl create(Refreshable<LockServerOptions> options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", SafeArg.of("options", options));
         }
@@ -252,18 +259,22 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+    /**
+     * Only {@link LockServerOptions#threadInfoConfiguration()} is actually reloadable
+     */
+    private LockServiceImpl(
+            Refreshable<LockServerOptions> options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+        LockServerOptions currentOptions = options.current();
         this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
-        this.isStandaloneServer = options.isStandaloneServer();
-        this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
-        this.slowLogTriggerMillis = options.slowLogTriggerMillis();
-        this.threadInfoSnapshotManager =
-                new LockThreadInfoSnapshotManager(options.threadInfoConfiguration(), () -> heldLocksTokenMap);
-        threadInfoSnapshotManager.start();
+        this.isStandaloneServer = currentOptions.isStandaloneServer();
+        this.maxAllowedLockTimeout = SimpleTimeDuration.of(currentOptions.getMaxAllowedLockTimeout());
+        this.maxAllowedClockDrift = SimpleTimeDuration.of(currentOptions.getMaxAllowedClockDrift());
+        this.maxNormalLockAge = SimpleTimeDuration.of(currentOptions.getMaxNormalLockAge());
+        this.stuckTransactionTimeout = SimpleTimeDuration.of(currentOptions.getStuckTransactionTimeout());
+        this.slowLogTriggerMillis = currentOptions.slowLogTriggerMillis();
+        this.threadInfoSnapshotManager = new LockThreadInfoSnapshotManager(
+                options.map(LockServerOptions::threadInfoConfiguration), () -> heldLocksTokenMap);
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -1231,6 +1242,7 @@ public final class LockServiceImpl
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
             lockReapRunner.close();
+            threadInfoSnapshotManager.close();
             blockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
