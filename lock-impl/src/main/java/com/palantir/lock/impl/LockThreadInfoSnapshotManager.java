@@ -73,6 +73,8 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
             Set<LockDescriptor> lockDescriptors) {
         String argName = "presumedClientThreadHoldersIfEnabled";
         if (!threadInfoConfiguration.current().recordThreadInfo()) {
+            // Avoids keeping the value alive even though we are never returning it
+            lastKnownThreadInfoSnapshot = Map.of();
             return UnsafeArg.of(argName, Optional.empty());
         }
         Map<LockDescriptor, LockClientAndThread> latestSnapshot = lastKnownThreadInfoSnapshot;

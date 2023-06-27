@@ -22,23 +22,24 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AdjustableBackgroundTaskTest {
     private static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(10);
-    private final AtomicInteger field = new AtomicInteger(0);
-    private final SettableRefreshable<Boolean> shouldRun = Refreshable.create(false);
+    private final AtomicLong field = new AtomicLong(0);
+    private final AtomicBoolean shouldRun = new AtomicBoolean(false);
     private final SettableRefreshable<Duration> interval = Refreshable.create(DEFAULT_INTERVAL);
     private final DeterministicScheduler scheduledExecutor = new DeterministicScheduler();
-    private final AtomicInteger numCallsToShouldRunSupplier = new AtomicInteger();
-    private final AtomicInteger numCallsToIntervalSupplier = new AtomicInteger(0);
+    private final AtomicLong numCallsToShouldRunSupplier = new AtomicLong(0);
+    private final AtomicLong numCallsToIntervalSupplier = new AtomicLong(0);
     private final AdjustableBackgroundTask adjustableBackgroundTask = new AdjustableBackgroundTask(
             () -> {
                 numCallsToShouldRunSupplier.incrementAndGet();
-                return shouldRun.current();
+                return shouldRun.get();
             },
             () -> {
                 numCallsToIntervalSupplier.incrementAndGet();
@@ -67,16 +68,16 @@ public class AdjustableBackgroundTaskTest {
 
     @Test
     public void canBeEnabledDisabledAndReEnabled() {
-        shouldRun.update(true);
+        shouldRun.set(true);
         tick(DEFAULT_INTERVAL);
-        int after = field.get();
+        long after = field.get();
         assertThat(after).isEqualTo(1);
 
-        shouldRun.update(false);
+        shouldRun.set(false);
         tick(DEFAULT_INTERVAL);
         assertThat(field.get()).isEqualTo(after);
 
-        shouldRun.update(true);
+        shouldRun.set(true);
         tick(DEFAULT_INTERVAL);
         assertThat(field.get()).isEqualTo(after + 1);
     }
@@ -85,8 +86,8 @@ public class AdjustableBackgroundTaskTest {
     public void canAdjustInterval() {
         Duration newInterval = Duration.ofMinutes(1);
         interval.update(newInterval);
-        shouldRun.update(true);
-        // will run the task once
+        shouldRun.set(true);
+        // initial run was scheduled at default interval
         tick(DEFAULT_INTERVAL);
         tick(Duration.ofMinutes(42 - 1));
         assertThat(field.get()).isEqualTo(42);
@@ -96,8 +97,8 @@ public class AdjustableBackgroundTaskTest {
     public void canAdjustIntervalBelowMinimumDelayIfRunning() {
         Duration newInterval = Duration.ofMillis(1);
         interval.update(newInterval);
-        shouldRun.update(true);
-        // will run the task once
+        shouldRun.set(true);
+        // initial run was scheduled at default interval
         tick(DEFAULT_INTERVAL);
         tick(Duration.ofMillis(10 - 1));
         assertThat(field.get()).isEqualTo(10);
@@ -108,20 +109,26 @@ public class AdjustableBackgroundTaskTest {
         Duration newInterval = Duration.ofMillis(1);
         interval.update(newInterval);
         Duration elapsedDuration = Duration.ofSeconds(10);
-        // will invoke suppliers an additional time
+        // initial run was scheduled at default interval, this will run suppliers once
         tick(DEFAULT_INTERVAL);
         tick(elapsedDuration);
         assertThat(field.get()).isEqualTo(0);
         // suppliers are also called once when running the constructor
         assertThat(numCallsToShouldRunSupplier.get())
-                .isEqualTo(elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_INTERVAL_IF_NOT_RUNNING) + 2);
+                .as("Ensure the number of times we checked if we should run is at most the number of times"
+                        + " MINIMUM_INTERVAL_IF_NOT_RUNNING has elapsed")
+                .isLessThanOrEqualTo(
+                        elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_INTERVAL_IF_NOT_RUNNING) + 2);
         assertThat(numCallsToIntervalSupplier.get())
-                .isEqualTo(elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_INTERVAL_IF_NOT_RUNNING) + 2);
+                .as("Ensure the number of times we checked at what interval we should run is at most the number of"
+                        + " times MINIMUM_INTERVAL_IF_NOT_RUNNING has elapsed")
+                .isLessThanOrEqualTo(
+                        elapsedDuration.dividedBy(AdjustableBackgroundTask.MINIMUM_INTERVAL_IF_NOT_RUNNING) + 2);
     }
 
     @Test
     public void suppliersAreCalledTogetherWithTask() {
-        shouldRun.update(true);
+        shouldRun.set(true);
         tick(Duration.ofSeconds(10 * DEFAULT_INTERVAL.toSeconds()));
         assertThat(field.get()).isEqualTo(10);
         // suppliers are also called once when running the constructor

@@ -18,6 +18,7 @@ package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -69,11 +70,14 @@ public final class AdjustableBackgroundTask implements Closeable {
                 task.run();
             } catch (Exception e) {
                 if (Thread.interrupted()) {
-                    log.error("Task was interrupted", e);
+                    log.error("Task was interrupted. Stopping background execution.", e);
                     Thread.currentThread().interrupt();
                     return;
                 }
-                log.error("Error occurred during task", e);
+                log.error("Exception occurred during task", e);
+            } catch (Error e) {
+                log.error("Error occurred during task. Stopping background execution.", e);
+                return;
             }
         }
         try {
@@ -83,7 +87,10 @@ public final class AdjustableBackgroundTask implements Closeable {
                     shouldRun ? intervalMillis : Math.max(MINIMUM_INTERVAL_IF_NOT_RUNNING.toMillis(), intervalMillis),
                     TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
-            // that's ok, we were probably closed
+            log.warn(
+                    "Scheduler rejected execution",
+                    SafeArg.of("schedulerIsShutdown", scheduledExecutor.isShutdown()),
+                    e);
         }
     }
 
