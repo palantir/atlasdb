@@ -148,18 +148,17 @@ public class CassandraService implements AutoCloseable {
                 hostToDatacentersThisRefresh.put(onlyHost, onlyEndpoint.getDatacenter());
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    Map<CassandraServer, String> hostToDatacentersOnThisTokenRange = KeyedStream.of(
-                                    tokenRange.getEndpoint_details())
-                            .mapKeys(EndpointDetails::getHost)
-                            .mapKeys(this::getAddressForHostThrowUnchecked)
-                            .map(EndpointDetails::getDatacenter)
-                            .collectToMap();
+                    List<EndpointDetails> endpointDetails = tokenRange.getEndpoint_details();
+                    ImmutableSet.Builder<CassandraServer> hostsBuilder =
+                            ImmutableSet.builderWithExpectedSize(endpointDetails.size());
+                    for (EndpointDetails endpoint : endpointDetails) {
+                        CassandraServer cassandraServer = getAddressForHostThrowUnchecked(endpoint.getHost());
+                        hostToDatacentersThisRefresh.put(cassandraServer, endpoint.getDatacenter());
+                        hostsBuilder.add(cassandraServer);
+                        servers.add(cassandraServer);
+                    }
 
-                    ImmutableSet<CassandraServer> hosts =
-                            ImmutableSet.copyOf(hostToDatacentersOnThisTokenRange.keySet());
-                    servers.addAll(hosts);
-                    hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
-
+                    ImmutableSet<CassandraServer> hosts = hostsBuilder.build();
                     LightweightOppToken startToken = LightweightOppToken.fromHex(tokenRange.getStart_token());
                     LightweightOppToken endToken = LightweightOppToken.fromHex(tokenRange.getEnd_token());
                     if (startToken.compareTo(endToken) <= 0) {
