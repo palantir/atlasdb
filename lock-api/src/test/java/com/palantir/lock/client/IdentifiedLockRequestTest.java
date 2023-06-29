@@ -45,7 +45,7 @@ public class IdentifiedLockRequestTest {
             .build();
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             StringLockDescriptor.of("lock1"), ChangeMetadata.created("something".getBytes(StandardCharsets.UTF_8))));
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .registerModule(new Jdk8Module())
             .registerModule(new GuavaModule());
@@ -63,42 +63,42 @@ public class IdentifiedLockRequestTest {
                 "baseline");
     }
 
-    private void assertSerializedEquals(IdentifiedLockRequest request, String jsonFileName) {
+    private static void assertSerializedEquals(IdentifiedLockRequest request, String jsonFileName) {
         try {
             Path path = getJsonPath(jsonFileName);
             if (REWRITE_JSON_BLOBS) {
-                mapper.writeValue(path.toFile(), request);
+                MAPPER.writeValue(path.toFile(), request);
             }
             String serialized = serialize(request);
-            assertThat(mapper.readTree(serialized))
+            assertThat(MAPPER.readTree(serialized))
                     .as("Serialization yields identical JSON representation")
-                    .isEqualTo(mapper.readTree(Files.readString(path)));
+                    .isEqualTo(MAPPER.readTree(Files.readString(path)));
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
-    private void assertDeserializedEquals(String jsonFileName, IdentifiedLockRequest request) {
+    private static void assertDeserializedEquals(String jsonFileName, IdentifiedLockRequest request) {
         assertThat(deserialize(jsonFileName)).isEqualTo(request);
     }
 
-    private String serialize(IdentifiedLockRequest request) {
+    private static String serialize(IdentifiedLockRequest request) {
         try {
-            return mapper.writeValueAsString(request);
+            return MAPPER.writeValueAsString(request);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
-    private IdentifiedLockRequest deserialize(String jsonFileName) {
+    private static IdentifiedLockRequest deserialize(String jsonFileName) {
         try {
-            return mapper.readValue(Files.readString(getJsonPath(jsonFileName)), IdentifiedLockRequest.class);
+            return MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), IdentifiedLockRequest.class);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
     }
 
-    private Path getJsonPath(String jsonFileName) {
+    private static Path getJsonPath(String jsonFileName) {
         return Paths.get(BASE + jsonFileName + ".json");
     }
 }
