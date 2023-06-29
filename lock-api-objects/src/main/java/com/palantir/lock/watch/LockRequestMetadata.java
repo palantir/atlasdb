@@ -30,4 +30,10 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface LockRequestMetadata {
     Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata();
+
+    static LockRequestMetadata of(Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata) {
+        return ImmutableLockRequestMetadata.builder()
+                .lockDescriptorToChangeMetadata(lockDescriptorToChangeMetadata)
+                .build();
+    }
 }

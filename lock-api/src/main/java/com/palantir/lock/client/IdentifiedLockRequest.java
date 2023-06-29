@@ -15,10 +15,12 @@
  */
 package com.palantir.lock.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import java.util.Set;
@@ -43,15 +45,32 @@ public interface IdentifiedLockRequest {
     @Value.Parameter
     Optional<String> getClientDescription();
 
+    @Value.Parameter
+    @JsonIgnore
+    Optional<LockRequestMetadata> getMetadata();
+
     static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
         return ImmutableIdentifiedLockRequest.of(
-                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty());
+                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.empty(), Optional.empty());
     }
 
     static IdentifiedLockRequest of(
             Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableIdentifiedLockRequest.of(
-                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription));
+                UUID.randomUUID(), lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription), Optional.empty());
+    }
+
+    static IdentifiedLockRequest of(
+            Set<LockDescriptor> lockDescriptors,
+            long acquireTimeoutMs,
+            String clientDescription,
+            LockRequestMetadata metadata) {
+        return ImmutableIdentifiedLockRequest.of(
+                UUID.randomUUID(),
+                lockDescriptors,
+                acquireTimeoutMs,
+                Optional.of(clientDescription),
+                Optional.of(metadata));
     }
 
     static IdentifiedLockRequest from(LockRequest lockRequest) {
