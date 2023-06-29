@@ -36,7 +36,7 @@ import org.junit.Test;
 
 public class IdentifiedLockRequestTest {
     private static final String BASE = "src/test/resources/identified-lock-request-wire-format/";
-    private static final Mode MODE = Mode.CI;
+    private static final boolean REWRITE_JSON_BLOBS = false;
     private static final IdentifiedLockRequest BASELINE_REQUEST = ImmutableIdentifiedLockRequest.builder()
             .requestId(new UUID(1337, 42))
             .lockDescriptors(ImmutableSet.of(StringLockDescriptor.of("lock1"), StringLockDescriptor.of("lock2")))
@@ -49,15 +49,6 @@ public class IdentifiedLockRequestTest {
             .enable(SerializationFeature.INDENT_OUTPUT)
             .registerModule(new Jdk8Module())
             .registerModule(new GuavaModule());
-
-    private enum Mode {
-        DEV,
-        CI;
-
-        boolean isDev() {
-            return this.equals(Mode.DEV);
-        }
-    }
 
     @Test
     public void baselineRequestIsFullCompat() {
@@ -75,7 +66,7 @@ public class IdentifiedLockRequestTest {
     private void assertSerializedEquals(IdentifiedLockRequest request, String jsonFileName) {
         try {
             Path path = getJsonPath(jsonFileName);
-            if (MODE.isDev()) {
+            if (REWRITE_JSON_BLOBS) {
                 mapper.writeValue(path.toFile(), request);
             }
             String serialized = serialize(request);
