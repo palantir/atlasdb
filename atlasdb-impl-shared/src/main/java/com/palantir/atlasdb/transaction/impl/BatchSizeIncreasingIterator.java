@@ -53,7 +53,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
-        this.maxBatchSize = originalBatchSize * 8;
+        this.maxBatchSize = Math.min(originalBatchSize * 8, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
