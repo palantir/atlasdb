@@ -2033,6 +2033,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return clusterStatus;
     }
 
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return true;
+    }
+
     private static boolean isClusterQuorumAvaialble(ClusterAvailabilityStatus clusterStatus) {
         return clusterStatus.equals(ClusterAvailabilityStatus.ALL_AVAILABLE)
                 || clusterStatus.equals(ClusterAvailabilityStatus.QUORUM_AVAILABLE);
