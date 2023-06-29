@@ -287,17 +287,15 @@ public class CassandraService implements AutoCloseable {
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
-        return CassandraServer.of(cassandraHostName, getReachableProxies(cassandraHostName));
-    }
-
-    private ImmutableSet<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
-        InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
+        InetAddress[] resolvedHosts = InetAddress.getAllByName(cassandraHostName);
         int knownPort = getKnownPort();
 
         // It is okay to have reachable proxies that do not have a hostname
-        return Stream.of(resolvedHosts)
-                .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
-                .collect(ImmutableSet.toImmutableSet());
+        ImmutableSet.Builder<InetSocketAddress> proxies = ImmutableSet.builderWithExpectedSize(resolvedHosts.length);
+        for (InetAddress host : resolvedHosts) {
+            proxies.add(new InetSocketAddress(host, knownPort));
+        }
+        return CassandraServer.of(cassandraHostName, proxies.build());
     }
 
     private int getKnownPort() throws UnknownHostException {
