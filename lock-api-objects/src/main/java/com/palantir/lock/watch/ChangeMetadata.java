@@ -30,6 +30,7 @@ import org.immutables.value.Value.Immutable;
 
 /**
  * The subtypes of this class can be used to document CRUD-like operations that were applied to a value.
+ * However, the READ case is not accounted for as no locks are taken out for reads.
  * Every instance should be associated with a {@link com.palantir.lock.LockDescriptor}.
  * It is up to the users of metadata to know the type of value it refers to
  * and how to interpret the different subtypes.
@@ -38,8 +39,8 @@ import org.immutables.value.Value.Immutable;
 @JsonSubTypes({
     @JsonSubTypes.Type(value = Unchanged.class, name = Unchanged.TYPE),
     @JsonSubTypes.Type(value = Updated.class, name = Updated.TYPE),
-    @JsonSubTypes.Type(value = Deleted.class, name = Deleted.TYPE),
-    @JsonSubTypes.Type(value = Created.class, name = Created.TYPE),
+        @JsonSubTypes.Type(value = Deleted.class, name = Deleted.TYPE),
+        @JsonSubTypes.Type(value = Created.class, name = Created.TYPE),
 })
 public interface ChangeMetadata {
     <T> T accept(Visitor<T> visitor);
@@ -48,16 +49,16 @@ public interface ChangeMetadata {
         return ImmutableUnchanged.builder().build();
     }
 
-    static Updated updated(byte[] before, byte[] after) {
-        return ImmutableUpdated.of(before, after);
+    static Updated updated(byte[] oldValue, byte[] newValue) {
+        return ImmutableUpdated.of(oldValue, newValue);
     }
 
-    static Deleted deleted(byte[] before) {
-        return ImmutableDeleted.of(before);
+    static Deleted deleted(byte[] oldValue) {
+        return ImmutableDeleted.of(oldValue);
     }
 
-    static Created created(byte[] after) {
-        return ImmutableCreated.of(after);
+    static Created created(byte[] newValue) {
+        return ImmutableCreated.of(newValue);
     }
 
     interface Visitor<T> {

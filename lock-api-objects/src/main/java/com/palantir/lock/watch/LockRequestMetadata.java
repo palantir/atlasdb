@@ -23,7 +23,8 @@ import org.immutables.value.Value;
 
 /**
  * Metadata attached to a lock request and to any {@link LockEvent} created as a result of that request.
- * Instances of this class should not be serialized as-is.
+ * Ideally, this class is not serialized as-is to JSON due to the repetition of {@link LockDescriptor} values
+ * in {@link LockRequestMetadata#lockDescriptorToChangeMetadata()} and the parent object.
  */
 @Unsafe
 @Value.Immutable
