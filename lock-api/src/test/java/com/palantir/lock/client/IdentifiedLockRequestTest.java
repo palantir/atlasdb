@@ -45,11 +45,6 @@ public class IdentifiedLockRequestTest {
             .build();
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             StringLockDescriptor.of("lock1"), ChangeMetadata.created("something".getBytes(StandardCharsets.UTF_8))));
-    private static final String SERIALIZED_LOCK_REQUEST = "{"
-            + "\"requestId\":\"885afd9c-de62-44ff-a517-5db14b71bfaa\","
-            + "\"lockDescriptors\":[{\"bytes\":\"Zm9v\"}],"
-            + "\"acquireTimeoutMs\":123,"
-            + "\"clientDescription\":\"Thread: main\"}";
     private static final ObjectMapper mapper = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .registerModule(new Jdk8Module())
@@ -62,13 +57,6 @@ public class IdentifiedLockRequestTest {
         boolean isDev() {
             return this.equals(Mode.DEV);
         }
-    }
-
-    @Test
-    public void ensureSerdeBackcompat() throws Exception {
-        IdentifiedLockRequest request = mapper.readValue(SERIALIZED_LOCK_REQUEST, IdentifiedLockRequest.class);
-        String deserialized = mapper.writeValueAsString(request);
-        assertThat(mapper.readTree(deserialized)).isEqualTo(mapper.readTree(SERIALIZED_LOCK_REQUEST));
     }
 
     @Test
@@ -90,8 +78,8 @@ public class IdentifiedLockRequestTest {
             if (MODE.isDev()) {
                 mapper.writeValue(path.toFile(), request);
             }
-            String deserialized = mapper.writeValueAsString(request);
-            assertThat(mapper.readTree(deserialized))
+            String serialized = serialize(request);
+            assertThat(mapper.readTree(serialized))
                     .as("Serialization yields identical JSON representation")
                     .isEqualTo(mapper.readTree(Files.readString(path)));
         } catch (Throwable t) {
@@ -100,10 +88,20 @@ public class IdentifiedLockRequestTest {
     }
 
     private void assertDeserializedEquals(String jsonFileName, IdentifiedLockRequest request) {
+        assertThat(deserialize(jsonFileName)).isEqualTo(request);
+    }
+
+    private String serialize(IdentifiedLockRequest request) {
         try {
-            assertThat(mapper.readValue(Files.readString(getJsonPath(jsonFileName)), IdentifiedLockRequest.class))
-                    .as("Deserialization yields equal Java representation")
-                    .isEqualTo(request);
+            return mapper.writeValueAsString(request);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
+    }
+
+    private IdentifiedLockRequest deserialize(String jsonFileName) {
+        try {
+            return mapper.readValue(Files.readString(getJsonPath(jsonFileName)), IdentifiedLockRequest.class);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
