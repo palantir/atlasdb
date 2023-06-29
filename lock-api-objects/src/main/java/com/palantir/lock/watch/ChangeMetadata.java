@@ -39,8 +39,8 @@ import org.immutables.value.Value.Immutable;
 @JsonSubTypes({
     @JsonSubTypes.Type(value = Unchanged.class, name = Unchanged.TYPE),
     @JsonSubTypes.Type(value = Updated.class, name = Updated.TYPE),
-        @JsonSubTypes.Type(value = Deleted.class, name = Deleted.TYPE),
-        @JsonSubTypes.Type(value = Created.class, name = Created.TYPE),
+    @JsonSubTypes.Type(value = Deleted.class, name = Deleted.TYPE),
+    @JsonSubTypes.Type(value = Created.class, name = Created.TYPE),
 })
 public interface ChangeMetadata {
     <T> T accept(Visitor<T> visitor);
