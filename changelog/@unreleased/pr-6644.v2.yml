@@ -1,5 +1,5 @@
 type: improvement
 improvement:
-  description: Add LockMetadata interface with CRUD-like Metadata events
+  description: Create LockRequestMetadata and ChangeMetadata
   links:
   - https://github.com/palantir/atlasdb/pull/6644
