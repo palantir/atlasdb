@@ -22,7 +22,8 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 /**
- * Metadata that is attached to lock requests and to any {@link LockEvent} created as a result of that request.
+ * Metadata attached to a lock request and to any {@link LockEvent} created as a result of that request.
+ * Instances of this class should not be serialized as-is.
  */
 @Unsafe
 @Value.Immutable
