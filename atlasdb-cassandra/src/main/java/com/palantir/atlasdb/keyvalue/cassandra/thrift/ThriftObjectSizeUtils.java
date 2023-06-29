@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.RandomAccess;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.Column;
@@ -290,8 +291,18 @@ public final class ThriftObjectSizeUtils {
         }
 
         long sum = 0;
-        for (T item : collection) {
-            sum += sizeFunction.apply(item);
+        if (collection instanceof List && collection instanceof RandomAccess) {
+            List<T> list = (List<T>) collection;
+            // random access lists can be more efficiently accessed via List::get(int)
+            // as this avoids allocating iterator
+            //noinspection ForLoopReplaceableByForEach -- performance sensitive
+            for (int i = 0; i < list.size(); i++) {
+                sum += sizeFunction.apply(list.get(i));
+            }
+        } else {
+            for (T item : collection) {
+                sum += sizeFunction.apply(item);
+            }
         }
         return sum;
     }
