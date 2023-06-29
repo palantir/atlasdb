@@ -75,7 +75,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
-        return (int) Math.min(batchSize, Math.min(maxBatchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE));
+        return (int) Math.min(batchSize, maxBatchSize);
     }
 
     private void updateResultsIfNeeded() {
