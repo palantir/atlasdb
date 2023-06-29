@@ -22,9 +22,13 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.lock.watch.ImmutableLockRequestMetadata;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -34,12 +38,14 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -104,8 +110,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        runIfDescriptorsMatchLockWatches(locksTakenOut, filteredLocks -> lockEventLog.logLock(filteredLocks, token));
+    public void registerLock(
+            Set<LockDescriptor> locksTakenOut, LockToken token, Optional<LockRequestMetadata> metadata) {
+        runIfDescriptorsMatchLockWatchesWithMetadata(
+                locksTakenOut,
+                metadata,
+                (filteredLocks, filteredMetadata) -> lockEventLog.logLock(filteredLocks, token, filteredMetadata));
     }
 
     @Override
@@ -147,13 +157,33 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     private void runIfDescriptorsMatchLockWatches(
             Set<LockDescriptor> unfiltered, Consumer<Set<LockDescriptor>> consumer) {
+        runIfDescriptorsMatchLockWatchesWithMetadata(
+                unfiltered, Optional.empty(), (lockDescriptors, unused) -> consumer.accept(lockDescriptors));
+    }
+
+    private void runIfDescriptorsMatchLockWatchesWithMetadata(
+            Set<LockDescriptor> unfilteredLocks,
+            Optional<LockRequestMetadata> unfilteredMetadata,
+            BiConsumer<Set<LockDescriptor>, Optional<LockRequestMetadata>> biConsumer) {
         watchesLock.readLock().lock();
         try {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
-            Set<LockDescriptor> filtered =
-                    unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
-            if (!filtered.isEmpty()) {
-                consumer.accept(filtered);
+            Set<LockDescriptor> filteredLocks =
+                    unfilteredLocks.stream().filter(ranges::contains).collect(Collectors.toSet());
+            // We would expect metadata to be absent in ~1/2 of the cases, so this ternary will save us some overhead
+            Optional<LockRequestMetadata> filteredMetadata = unfilteredMetadata
+                    .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                    .map(unfilteredLockMetadata -> {
+                        Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
+                                        unfilteredLockMetadata.entrySet().stream())
+                                .filterKeys(ranges::contains)
+                                .collectToMap();
+                        return ImmutableLockRequestMetadata.builder()
+                                .lockDescriptorToChangeMetadata(filteredLockMetadata)
+                                .build();
+                    });
+            if (!filteredLocks.isEmpty()) {
+                biConsumer.accept(filteredLocks, filteredMetadata);
             }
         } finally {
             watchesLock.readLock().unlock();

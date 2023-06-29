@@ -32,6 +32,7 @@ import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -188,7 +189,7 @@ public class HeldLocksCollectionTest {
         AsyncResult<Leased<LockToken>> asyncResult = heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
         verify(lockWatcher)
-                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
+                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken(), Optional.empty());
 
         Lease lease = asyncResult.get().lease();
 
@@ -206,7 +207,7 @@ public class HeldLocksCollectionTest {
         heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
         result.complete(heldLocksForId(REQUEST_ID));
         verify(lockWatcher)
-                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken());
+                .registerLock(ImmutableSet.of(LOCK_DESCRIPTOR), result.get().getToken(), Optional.empty());
 
         heldLocksCollection.unlock(ImmutableSet.of(LockToken.of(REQUEST_ID)));
         verify(lockWatcher).registerUnlock(ImmutableSet.of(LOCK_DESCRIPTOR));
