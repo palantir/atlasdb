@@ -45,7 +45,7 @@ public class BatchSizeIncreasingIteratorTest {
                 new TestBatchProvider(1000),
                 originalBatchSize,
                 ClosableIterators.wrap(List.of(0).iterator()));
-        // This will make the batch size increasing iterator that it is only getting deleted values, which will
+        // This will make the batch size increasing iterator think that it is only getting deleted values, which will
         // result in an increase by BatchSizeIncreasingIterator.INCREASE_FACTOR.
         iterator.markNumResultsNotDeleted(0);
         IntStream.range(0, BatchSizeIncreasingIterator.MAX_FACTOR / BatchSizeIncreasingIterator.INCREASE_FACTOR + 1)
