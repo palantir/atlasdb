@@ -169,7 +169,6 @@ public class LockWatchingServiceImpl implements LockWatchingService {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
             Set<LockDescriptor> filteredLocks =
                     unfilteredLocks.stream().filter(ranges::contains).collect(Collectors.toSet());
-            // We would expect metadata to be absent in ~1/2 of the cases, so this ternary will save us some overhead
             Optional<LockRequestMetadata> filteredMetadata = unfilteredMetadata
                     .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
                     .map(unfilteredLockMetadata -> {
@@ -180,7 +179,6 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                         return LockRequestMetadata.of(filteredLockMetadata);
                     });
             // Even if our metadata is non-empty after filtering, but our locks are, we do not proceed.
-            // This is done to maintain the existing lock watch semantics
             if (!filteredLocks.isEmpty()) {
                 biConsumer.accept(filteredLocks, filteredMetadata);
             }
