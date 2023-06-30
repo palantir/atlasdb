@@ -27,7 +27,6 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.ChangeMetadata;
-import com.palantir.lock.watch.ImmutableLockRequestMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -178,10 +177,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                                         unfilteredLockMetadata.entrySet().stream())
                                 .filterKeys(ranges::contains)
                                 .collectToMap();
-                        return ImmutableLockRequestMetadata.builder()
-                                .lockDescriptorToChangeMetadata(filteredLockMetadata)
-                                .build();
+                        return LockRequestMetadata.of(filteredLockMetadata);
                     });
+            // Even if our metadata is non-empty after filtering, but our locks are, we do not proceed.
+            // This is done to maintain the existing lock watch semantics
             if (!filteredLocks.isEmpty()) {
                 biConsumer.accept(filteredLocks, filteredMetadata);
             }
