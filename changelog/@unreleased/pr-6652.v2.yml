@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[LWMeta] Add index encoding utility class'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6652
