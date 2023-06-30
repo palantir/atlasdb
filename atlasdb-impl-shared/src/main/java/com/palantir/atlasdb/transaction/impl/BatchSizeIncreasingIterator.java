@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -31,6 +32,12 @@ import org.immutables.value.Value;
 
 public class BatchSizeIncreasingIterator<T> implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(BatchSizeIncreasingIterator.class);
+
+    @VisibleForTesting
+    static final Integer MAX_FACTOR = 8;
+
+    @VisibleForTesting
+    static final Integer INCREASE_FACTOR = 4;
 
     private final int originalBatchSize;
     private final BatchProvider<T> batchProvider;
@@ -53,7 +60,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
-        this.maxBatchSize = Math.min(originalBatchSize * 8, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+        this.maxBatchSize = Math.min(originalBatchSize * MAX_FACTOR, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
@@ -67,7 +74,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             return originalBatchSize;
         }
         final long batchSize;
-        long maxNewBatchSize = numReturned * 4;
+        long maxNewBatchSize = numReturned * INCREASE_FACTOR;
         if (numNotDeleted == 0) {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
             batchSize = maxNewBatchSize;
