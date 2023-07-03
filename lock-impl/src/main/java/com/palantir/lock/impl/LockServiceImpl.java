@@ -80,6 +80,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
 import java.math.BigInteger;
@@ -92,6 +93,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -104,6 +106,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -183,6 +186,9 @@ public final class LockServiceImpl
     private final SimpleTimeDuration stuckTransactionTimeout;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
+    /** Configurable background task that periodically collects snapshots about the current lock state */
+    private final LockThreadInfoSnapshotManager threadInfoSnapshotManager;
+
     private final LockClientIndices clientIndices = new LockClientIndices();
 
     /** The backing client-aware read write lock for each lock descriptor. */
@@ -228,15 +234,21 @@ public final class LockServiceImpl
     public static LockServiceImpl create(LockServerOptions options) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors.newCachedThreadPool(LockServiceImpl.class.getName());
-        return create(options, Ownable.owned(newExecutor));
+        return create(Refreshable.only(options), Ownable.owned(newExecutor));
+    }
+
+    public static LockServiceImpl create(Refreshable<LockServerOptions> options, ExecutorService injectedExecutor) {
+        com.palantir.logsafe.Preconditions.checkNotNull(options);
+        com.palantir.logsafe.Preconditions.checkNotNull(options.current());
+        return create(options, Ownable.notOwned(injectedExecutor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         com.palantir.logsafe.Preconditions.checkNotNull(options);
-        return create(options, Ownable.notOwned(injectedExecutor));
+        return create(Refreshable.only(options), Ownable.notOwned(injectedExecutor));
     }
 
-    private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
+    private static LockServiceImpl create(Refreshable<LockServerOptions> options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", SafeArg.of("options", options));
         }
@@ -247,15 +259,22 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+    /**
+     * Only {@link LockServerOptions#threadInfoConfiguration()} is actually reloadable
+     */
+    private LockServiceImpl(
+            Refreshable<LockServerOptions> options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+        LockServerOptions currentOptions = options.current();
         this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
-        this.isStandaloneServer = options.isStandaloneServer();
-        this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        this.stuckTransactionTimeout = SimpleTimeDuration.of(options.getStuckTransactionTimeout());
-        this.slowLogTriggerMillis = options.slowLogTriggerMillis();
+        this.isStandaloneServer = currentOptions.isStandaloneServer();
+        this.maxAllowedLockTimeout = SimpleTimeDuration.of(currentOptions.getMaxAllowedLockTimeout());
+        this.maxAllowedClockDrift = SimpleTimeDuration.of(currentOptions.getMaxAllowedClockDrift());
+        this.maxNormalLockAge = SimpleTimeDuration.of(currentOptions.getMaxNormalLockAge());
+        this.stuckTransactionTimeout = SimpleTimeDuration.of(currentOptions.getStuckTransactionTimeout());
+        this.slowLogTriggerMillis = currentOptions.slowLogTriggerMillis();
+        this.threadInfoSnapshotManager = new LockThreadInfoSnapshotManager(
+                options.map(LockServerOptions::threadInfoConfiguration), () -> heldLocksTokenMap);
     }
 
     private HeldLocksToken createHeldLocksToken(
@@ -465,7 +484,7 @@ public final class LockServiceImpl
         final String logMessage = "Current holders of the first {} of {} total failed locks were: {}";
 
         List<String> lockDescriptions = new ArrayList<>();
-        Iterator<Map.Entry<LockDescriptor, LockClient>> entries =
+        Iterator<Entry<LockDescriptor, LockClient>> entries =
                 failedLocks.entrySet().iterator();
         for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG && entries.hasNext(); i++) {
             Map.Entry<LockDescriptor, LockClient> entry = entries.next();
@@ -477,7 +496,10 @@ public final class LockServiceImpl
                 logMessage,
                 SafeArg.of("numLocksLogged", Math.min(MAX_FAILED_LOCKS_TO_LOG, failedLocks.size())),
                 SafeArg.of("numLocksFailed", failedLocks.size()),
-                UnsafeArg.of("lockDescriptions", lockDescriptions));
+                UnsafeArg.of("lockDescriptions", lockDescriptions),
+                threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(failedLocks.keySet().stream()
+                        .limit(MAX_FAILED_LOCKS_TO_LOG)
+                        .collect(Collectors.toSet())));
     }
 
     private boolean isBlocking(BlockingMode blockingMode) {
@@ -523,7 +545,7 @@ public final class LockServiceImpl
                 LockClient currentHolder = tryLock(lock.get(client, entry.getValue()), blockingMode, deadline);
                 if (log.isDebugEnabled() || isSlowLogEnabled()) {
                     long responseTimeMillis = System.currentTimeMillis() - startTime;
-                    logSlowLockAcquisition(entry.getKey().toString(), currentHolder, responseTimeMillis);
+                    logSlowLockAcquisition(entry.getKey(), currentHolder, responseTimeMillis);
                 }
                 if (currentHolder == null) {
                     locks.put(lock, entry.getValue());
@@ -542,8 +564,9 @@ public final class LockServiceImpl
     }
 
     @VisibleForTesting
-    void logSlowLockAcquisition(String lockId, LockClient currentHolder, long durationMillis) {
+    void logSlowLockAcquisition(LockDescriptor lockDescriptor, LockClient currentHolder, long durationMillis) {
         final String slowLockLogMessage = "Blocked for {} ms to acquire lock {} {}.";
+        final String lockId = lockDescriptor.getLockIdAsString();
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
@@ -551,13 +574,15 @@ public final class LockServiceImpl
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(
                     slowLockLogMessage,
                     SafeArg.of("durationMillis", durationMillis),
                     UnsafeArg.of("lockId", lockId),
-                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"));
+                    SafeArg.of("outcome", currentHolder == null ? "successfully" : "unsuccessfully"),
+                    threadInfoSnapshotManager.getRestrictedSnapshotAsOptionalLogArg(Set.of(lockDescriptor)));
         }
     }
 
@@ -1217,6 +1242,7 @@ public final class LockServiceImpl
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
             lockReapRunner.close();
+            threadInfoSnapshotManager.close();
             blockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
@@ -1225,6 +1251,10 @@ public final class LockServiceImpl
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    public LockThreadInfoSnapshotManager getSnapshotManager() {
+        return threadInfoSnapshotManager;
     }
 
     private static String updateThreadName(LockRequest request) {

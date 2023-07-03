@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.table.description;
 
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -29,27 +30,40 @@ import java.util.Optional;
 public final class SweepStrategy {
 
     public static final SweepStrategy CONSERVATIVE =
-            new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false);
-    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), true);
+            new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false, false);
+    public static final SweepStrategy THOROUGH = new SweepStrategy(Optional.of(SweeperStrategy.THOROUGH), false, true);
 
     private final Optional<SweeperStrategy> sweeperStrategy;
-    private final boolean mustCheckImmutableLockAfterReads;
+    private final boolean mustCheckImmutableLockIfAllCellsReadAndPresent;
 
-    private SweepStrategy(Optional<SweeperStrategy> sweeperStrategy, boolean mustCheckImmutableLockAfterReads) {
+    // When we either read an empty value or perform reads like a range-scan, where we can't be certain of how many
+    // values we expect.
+    private final boolean mustCheckImmutableLockIfNonExhaustiveRead;
+
+    private SweepStrategy(
+            Optional<SweeperStrategy> sweeperStrategy,
+            boolean mustCheckImmutableLockIfAllCellsReadAndPresent,
+            boolean mustCheckImmutableLockIfNonExhaustiveRead) {
         this.sweeperStrategy = sweeperStrategy;
-        this.mustCheckImmutableLockAfterReads = mustCheckImmutableLockAfterReads;
+        this.mustCheckImmutableLockIfAllCellsReadAndPresent = mustCheckImmutableLockIfAllCellsReadAndPresent;
+        this.mustCheckImmutableLockIfNonExhaustiveRead = mustCheckImmutableLockIfNonExhaustiveRead;
     }
 
     public Optional<SweeperStrategy> getSweeperStrategy() {
         return sweeperStrategy;
     }
 
-    public boolean mustCheckImmutableLockAfterReads() {
-        return mustCheckImmutableLockAfterReads;
+    public boolean mustCheckImmutableLock(boolean allPossibleCellsReandAndPresent) {
+        return allPossibleCellsReandAndPresent
+                ? mustCheckImmutableLockIfAllCellsReadAndPresent
+                : mustCheckImmutableLockIfNonExhaustiveRead;
     }
 
-    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy) {
-        return new SweepStrategy(sweeperBehaviour(strategy), mustCheckImmutableLockAfterReads(strategy));
+    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
+        return new SweepStrategy(
+                sweeperBehaviour(strategy),
+                mustCheckImmutableLockIfAllCellsReadAndPresent(strategy, kvs),
+                mustCheckImmutableLockIfNonExhaustiveRead(strategy));
     }
 
     private static Optional<SweeperStrategy> sweeperBehaviour(TableMetadataPersistence.SweepStrategy strategy) {
@@ -65,7 +79,23 @@ public final class SweepStrategy {
         throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
     }
 
-    private static boolean mustCheckImmutableLockAfterReads(TableMetadataPersistence.SweepStrategy strategy) {
+    private static boolean mustCheckImmutableLockIfAllCellsReadAndPresent(
+            TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
+        if (!kvs.sweepsEntriesInStrictlyNonDecreasingFashion()) {
+            return mustCheckImmutableLockIfNonExhaustiveRead(strategy);
+        }
+
+        switch (strategy) {
+            case CONSERVATIVE:
+            case NOTHING:
+            case THOROUGH_MIGRATION:
+            case THOROUGH:
+                return false;
+        }
+        throw new SafeIllegalStateException("Unknown case", SafeArg.of("strategy", strategy));
+    }
+
+    private static boolean mustCheckImmutableLockIfNonExhaustiveRead(TableMetadataPersistence.SweepStrategy strategy) {
         switch (strategy) {
             case CONSERVATIVE:
             case NOTHING:

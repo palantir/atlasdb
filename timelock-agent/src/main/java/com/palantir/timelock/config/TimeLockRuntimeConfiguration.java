@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.lock.DebugThreadInfoConfiguration;
+import com.palantir.lock.ImmutableDebugThreadInfoConfiguration;
 import com.palantir.logsafe.DoNotLog;
 import java.util.Optional;
 import org.immutables.value.Value;
@@ -77,6 +79,12 @@ public abstract class TimeLockRuntimeConfiguration {
 
     @JsonProperty("timestamp-bound-persistence")
     public abstract Optional<TsBoundPersisterRuntimeConfiguration> timestampBoundPersistence();
+
+    @JsonProperty("debug-thread-info-config")
+    @Value.Default
+    public DebugThreadInfoConfiguration threadInfoConfiguration() {
+        return ImmutableDebugThreadInfoConfiguration.builder().build();
+    }
 
     @Value.Check
     public void check() {

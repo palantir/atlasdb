@@ -482,4 +482,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             throw new IllegalArgumentException(e);
         }
     }
+
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegate.sweepsEntriesInStrictlyNonDecreasingFashion();
+    }
 }

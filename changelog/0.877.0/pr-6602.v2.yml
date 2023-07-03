@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Add metrics for number of requested cell/row-level commit locks
+  links:
+  - https://github.com/palantir/atlasdb/pull/6602

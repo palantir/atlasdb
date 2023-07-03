@@ -21,7 +21,6 @@ import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -95,14 +94,12 @@ public final class WitnessedTransactionsBuilder {
 
         public WitnessedTransactionBuilder rowColumnRangeRead(
                 Integer row, ColumnRangeSelection columnRangeSelection, List<ColumnValue> valuesRead) {
-            actions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
-                    .originalQuery(RowColumnRangeReadTransactionAction.builder()
-                            .table(table)
-                            .row(row)
-                            .columnRangeSelection(columnRangeSelection)
-                            .build())
-                    .columnsAndValues(valuesRead)
-                    .build());
+            RowColumnRangeReadTransactionAction transactionAction = RowColumnRangeReadTransactionAction.builder()
+                    .table(table)
+                    .row(row)
+                    .columnRangeSelection(columnRangeSelection)
+                    .build();
+            actions.add(transactionAction.witness(valuesRead));
             return this;
         }
 

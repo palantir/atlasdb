@@ -18,7 +18,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.codahale.metrics.Histogram;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
@@ -34,6 +36,12 @@ public final class ExpectationsMetricsReportingTest {
     private static final ImmutableTransactionReadInfo BLANK_READ_INFO =
             ImmutableTransactionReadInfo.builder().bytesRead(0).kvsCalls(0).build();
 
+    private static final ImmutableTransactionCommitLockInfo BLANK_COMMIT_LOCK_INFO =
+            ImmutableTransactionCommitLockInfo.builder()
+                    .cellCommitLocksRequested(0L)
+                    .rowCommitLocksRequested(0L)
+                    .build();
+
     private ExpectationsMetrics metrics;
 
     @Before
@@ -44,27 +52,27 @@ public final class ExpectationsMetricsReportingTest {
     @Test
     public void ageReported() {
         long age = 129L;
-        SnapshotTransaction.reportExpectationsCollectedData(age, BLANK_READ_INFO, metrics);
-        assertThat(metrics.ageMillis().getSnapshot().getValues()).containsOnly(age);
+        SnapshotTransaction.reportExpectationsCollectedData(age, BLANK_READ_INFO, BLANK_COMMIT_LOCK_INFO, metrics);
+        assertHistogramHasSingleValue(metrics.ageMillis(), age);
     }
 
     @Test
     public void bytesReadReported() {
         long bytes = 1290L;
-        reportMetrics(BLANK_READ_INFO.withBytesRead(bytes));
-        assertThat(metrics.bytesRead().getSnapshot().getValues()).containsOnly(bytes);
+        reportMetricsWithReadInfo(BLANK_READ_INFO.withBytesRead(bytes));
+        assertHistogramHasSingleValue(metrics.bytesRead(), bytes);
     }
 
     @Test
     public void kvsCallsReported() {
         long calls = 12L;
-        reportMetrics(BLANK_READ_INFO.withKvsCalls(calls));
-        assertThat(metrics.kvsReads().getSnapshot().getValues()).containsOnly(calls);
+        reportMetricsWithReadInfo(BLANK_READ_INFO.withKvsCalls(calls));
+        assertHistogramHasSingleValue(metrics.kvsReads(), calls);
     }
 
     @Test
     public void mostKvsBytesReadInSingleCallNotReportedOnReadInfoWithEmptyMaximumBytesKvsCallOnFinishedTransaction() {
-        reportMetrics(BLANK_READ_INFO);
+        reportMetricsWithReadInfo(BLANK_READ_INFO);
         assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
                 .isEmpty();
     }
@@ -72,12 +80,30 @@ public final class ExpectationsMetricsReportingTest {
     @Test
     public void mostKvsBytesReadInSingleCallReportedOnReadInfoWithPresentMaximumBytesKvsCallOnFinishedTransaction() {
         long bytes = 193L;
-        reportMetrics(BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
-        assertThat(metrics.mostKvsBytesReadInSingleCall().getSnapshot().getValues())
-                .containsOnly(bytes);
+        reportMetricsWithReadInfo(
+                BLANK_READ_INFO.withMaximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of("dummy", bytes)));
+        assertHistogramHasSingleValue(metrics.mostKvsBytesReadInSingleCall(), bytes);
     }
 
-    private void reportMetrics(TransactionReadInfo readInfo) {
-        SnapshotTransaction.reportExpectationsCollectedData(0L, readInfo, metrics);
+    @Test
+    public void commitLocksRequestsReported() {
+        SnapshotTransaction.reportExpectationsCollectedData(
+                0L,
+                BLANK_READ_INFO,
+                ImmutableTransactionCommitLockInfo.builder()
+                        .cellCommitLocksRequested(1)
+                        .rowCommitLocksRequested(2)
+                        .build(),
+                metrics);
+        assertHistogramHasSingleValue(metrics.cellCommitLocksRequested(), 1);
+        assertHistogramHasSingleValue(metrics.rowCommitLocksRequested(), 2);
+    }
+
+    private void reportMetricsWithReadInfo(TransactionReadInfo readInfo) {
+        SnapshotTransaction.reportExpectationsCollectedData(0L, readInfo, BLANK_COMMIT_LOCK_INFO, metrics);
+    }
+
+    private void assertHistogramHasSingleValue(Histogram histogram, long expected) {
+        assertThat(histogram.getSnapshot().getValues()).containsOnly(expected);
     }
 }

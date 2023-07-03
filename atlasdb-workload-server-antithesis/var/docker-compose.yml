@@ -15,8 +15,6 @@ services:
       - LOCAL_JMX=no
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
     container_name: cassandra1
-    volumes:
-      - /opt/config/volumes/cassandra1:/var/lib/cassandra
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.2
@@ -35,8 +33,6 @@ services:
       - LOCAL_JMX=no
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
     container_name: cassandra2
-    volumes:
-      - /opt/config/volumes/cassandra2:/var/lib/cassandra
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.3
@@ -55,8 +51,6 @@ services:
       - LOCAL_JMX=no
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
     container_name: cassandra3
-    volumes:
-      - /opt/config/volumes/cassandra3:/var/lib/cassandra
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.4
