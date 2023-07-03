@@ -47,8 +47,18 @@ public interface RandomWorkflowConfiguration extends WorkflowConfiguration {
     }
 
     @Value.Default
-    default Integer maxCells() {
-        return 10;
+    default Integer maxRowRangeScans() {
+        return 3;
+    }
+
+    @Value.Default
+    default Integer maxRows() {
+        return 5;
+    }
+
+    @Value.Default
+    default Integer maxColumns() {
+        return 5;
     }
 
     @Value.Lazy
