@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.vavr.collection.Map;
@@ -67,11 +66,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
                             .contains(tableAndWorkloadCell.cell().column());
                 })
                 .filterValues(Optional::isPresent)
-                .map(entry -> ColumnValue.of(
-                        entry._1().cell().column(),
-                        entry._2()
-                                .orElseThrow(() -> new SafeRuntimeException(
-                                        "Empty values should already have been filtered out!"))))
+                .mapValues(Optional::get)
+                .map(entry -> ColumnValue.of(entry._1().cell().column(), entry._2()))
                 .sortBy(ColumnValue::column)
                 .toJavaList();
     }

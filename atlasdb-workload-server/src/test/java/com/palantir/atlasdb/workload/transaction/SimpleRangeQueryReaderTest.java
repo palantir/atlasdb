@@ -78,4 +78,17 @@ public class SimpleRangeQueryReaderTest {
                         ColumnValue.of(2, WorkloadTestHelpers.VALUE_ONE),
                         ColumnValue.of(3, WorkloadTestHelpers.VALUE_ONE));
     }
+
+    @Test
+    public void doesNotReturnExplicitlyEmptyValues() {
+        valueMap.with(map -> map.put(
+                TableAndWorkloadCell.of(WorkloadTestHelpers.TABLE_1, WorkloadTestHelpers.WORKLOAD_CELL_ONE),
+                Optional.empty()));
+        assertThat(reader.readRange(RowColumnRangeReadTransactionAction.builder()
+                        .table(WorkloadTestHelpers.TABLE_1)
+                        .row(WorkloadTestHelpers.WORKLOAD_CELL_ONE.key())
+                        .columnRangeSelection(ColumnRangeSelection.builder().build())
+                        .build()))
+                .isEmpty();
+    }
 }
