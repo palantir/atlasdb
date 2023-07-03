@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
+import com.palantir.atlasdb.workload.invariant.ValueAndMaybeTimestamp;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
@@ -41,6 +43,11 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
 
     public static RangeQueryReader create(InMemoryTransactionReplayer replayer) {
         return new SimpleRangeQueryReader(replayer::getValues);
+    }
+
+    public static RangeQueryReader createForSnapshot(
+            StructureHolder<Map<TableAndWorkloadCell, ValueAndMaybeTimestamp>> readView) {
+        return new SimpleRangeQueryReader(() -> readView.getSnapshot().mapValues(ValueAndMaybeTimestamp::value));
     }
 
     @Override

@@ -17,8 +17,11 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.SimpleRangeQueryReader;
+import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -27,6 +30,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRan
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.Map;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -93,7 +97,14 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(
             WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-        // TODO (jkong): Not implemented yet
+        List<ColumnValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
+                .readRange(rowColumnRangeReadTransactionAction.originalQuery());
+        if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
+            return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()
+                    .witness(rowColumnRangeReadTransactionAction)
+                    .expectedColumnsAndValues(expectedReads)
+                    .build());
+        }
         return Optional.empty();
     }
 
