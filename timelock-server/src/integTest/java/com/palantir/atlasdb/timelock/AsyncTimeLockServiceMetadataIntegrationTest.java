@@ -43,9 +43,9 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
+import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
-import com.palantir.lock.watch.LockWatchStateUpdate.Visitor;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.nio.charset.StandardCharsets;
@@ -63,6 +63,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AsyncTimeLockServiceMetadataIntegrationTest {
+    private static final TokenVisitor TOKEN_VISITOR = new TokenVisitor();
+    private static final LockWatchEventVisitor LOCK_WATCH_EVENT_VISITOR = new LockWatchEventVisitor();
+    private static final LockWatchStateUpdateVisitor LOCK_WATCH_STATE_UPDATE_VISITOR =
+            new LockWatchStateUpdateVisitor();
+
     private static final String WATCHED_TABLE_NAME = "watched-table";
     private static final LockDescriptor WATCHED_LOCK_1 =
             AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, "lock1".getBytes(StandardCharsets.UTF_8));
@@ -202,22 +207,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {
         return getAllLockWatchEvents().stream()
-                .map(event -> event.accept(new LockWatchEvent.Visitor<Optional<LockEvent>>() {
-                    @Override
-                    public Optional<LockEvent> visit(LockEvent lockEvent) {
-                        return Optional.of(lockEvent);
-                    }
-
-                    @Override
-                    public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
-                        return Optional.empty();
-                    }
-
-                    @Override
-                    public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-                        return Optional.empty();
-                    }
-                }))
+                .map(event -> event.accept(LOCK_WATCH_EVENT_VISITOR))
                 .flatMap(Optional::stream)
                 .map(LockEvent::metadata)
                 .collect(Collectors.toList());
@@ -227,17 +217,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
         ConjureStartTransactionsResponse response =
                 waitForFuture(timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion));
 
-        return response.getLockWatchUpdate().accept(new Visitor<>() {
-            @Override
-            public List<LockWatchEvent> visit(Success success) {
-                return success.events();
-            }
-
-            @Override
-            public List<LockWatchEvent> visit(Snapshot snapshot) {
-                return ImmutableList.of();
-            }
-        });
+        return response.getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
     }
 
     private static <T> T waitForFuture(Future<T> future) {
@@ -250,21 +230,52 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
     }
 
     private static LockToken getToken(LockResponseV2 response) {
-        return response.accept(new LockResponseV2.Visitor<Optional<LockToken>>() {
-                    @Override
-                    public Optional<LockToken> visit(Successful successful) {
-                        return Optional.of(successful.getToken());
-                    }
-
-                    @Override
-                    public Optional<LockToken> visit(Unsuccessful failure) {
-                        return Optional.empty();
-                    }
-                })
-                .orElseThrow();
+        return response.accept(TOKEN_VISITOR).orElseThrow();
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
         return IdentifiedLockRequest.of(metadata.keySet(), 1000, "testClient", LockRequestMetadata.of(metadata));
+    }
+
+    private static final class TokenVisitor implements LockResponseV2.Visitor<Optional<LockToken>> {
+        @Override
+        public Optional<LockToken> visit(Successful successful) {
+            return Optional.of(successful.getToken());
+        }
+
+        @Override
+        public Optional<LockToken> visit(Unsuccessful failure) {
+            return Optional.empty();
+        }
+    }
+
+    private static final class LockWatchEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
+        @Override
+        public Optional<LockEvent> visit(LockEvent lockEvent) {
+            return Optional.of(lockEvent);
+        }
+
+        @Override
+        public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
+        }
+    }
+
+    private static final class LockWatchStateUpdateVisitor
+            implements LockWatchStateUpdate.Visitor<List<LockWatchEvent>> {
+        @Override
+        public List<LockWatchEvent> visit(Success success) {
+            return success.events();
+        }
+
+        @Override
+        public List<LockWatchEvent> visit(Snapshot snapshot) {
+            return ImmutableList.of();
+        }
     }
 }
