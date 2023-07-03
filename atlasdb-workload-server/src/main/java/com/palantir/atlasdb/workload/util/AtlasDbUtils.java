@@ -26,6 +26,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -50,8 +51,20 @@ public final class AtlasDbUtils {
         }
     }
 
+    public static byte[] toAtlasKey(int key) {
+        return Ints.toByteArray(key);
+    }
+
+    public static int fromAtlasColumn(byte[] bytes) {
+        return Ints.fromByteArray(bytes);
+    }
+
+    public static int fromAtlasValue(byte[] value) {
+        return Ints.fromByteArray(value);
+    }
+
     public static Cell toAtlasCell(WorkloadCell cell) {
-        return Cell.create(Ints.toByteArray(cell.key()), Ints.toByteArray(cell.column()));
+        return Cell.create(toAtlasKey(cell.key()), Ints.toByteArray(cell.column()));
     }
 
     public static byte[] tableMetadata(ConflictHandler conflictHandler) {
@@ -92,5 +105,18 @@ public final class AtlasDbUtils {
 
     public static byte[] indexMetadata(ConflictHandler baseTableConflictHandler) {
         return tableMetadata(toIndexConflictHandler(baseTableConflictHandler));
+    }
+
+    public static com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection toAtlasColumnRangeSelection(
+            ColumnRangeSelection columnRangeSelection) {
+        return new com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection(
+                columnRangeSelection
+                        .startColumnInclusive()
+                        .map(AtlasDbUtils::toAtlasKey)
+                        .orElse(null),
+                columnRangeSelection
+                        .endColumnExclusive()
+                        .map(AtlasDbUtils::toAtlasKey)
+                        .orElse(null));
     }
 }

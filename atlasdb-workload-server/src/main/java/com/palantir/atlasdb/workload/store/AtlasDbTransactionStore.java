@@ -163,8 +163,11 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
         @Override
         public Void visit(RowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-            // TODO (jkong): Not implemented yet
-            throw new UnsupportedOperationException("Not implemented yet");
+            transaction.getRowColumnRange(
+                    rowColumnRangeReadTransactionAction.table(),
+                    rowColumnRangeReadTransactionAction.row(),
+                    rowColumnRangeReadTransactionAction.columnRangeSelection());
+            return null;
         }
     }
 
