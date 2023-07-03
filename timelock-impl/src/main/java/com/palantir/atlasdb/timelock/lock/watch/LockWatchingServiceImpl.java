@@ -169,6 +169,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
             Set<LockDescriptor> filteredLocks =
                     unfilteredLocks.stream().filter(ranges::contains).collect(Collectors.toSet());
+            if (filteredLocks.isEmpty()) {
+                return;
+            }
+            // Filtering metadata after deciding if we should even proceed might save us some computation
             Optional<LockRequestMetadata> filteredMetadata = unfilteredMetadata
                     .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
                     .map(unfilteredLockMetadata -> {
@@ -178,10 +182,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                                 .collectToMap();
                         return LockRequestMetadata.of(filteredLockMetadata);
                     });
-            // Even if our metadata is non-empty after filtering, but our locks are, we do not proceed.
-            if (!filteredLocks.isEmpty()) {
-                biConsumer.accept(filteredLocks, filteredMetadata);
-            }
+            biConsumer.accept(filteredLocks, filteredMetadata);
         } finally {
             watchesLock.readLock().unlock();
         }

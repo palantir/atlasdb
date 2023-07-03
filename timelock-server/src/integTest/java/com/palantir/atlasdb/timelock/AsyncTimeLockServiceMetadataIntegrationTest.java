@@ -123,7 +123,6 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
 
     @Test
     public void lockEventDoesNotContainMetadataThatIsNotWatched() {
-
         IdentifiedLockRequest mixedRequest =
                 standardRequestWithMetadata(ImmutableMap.<LockDescriptor, ChangeMetadata>builder()
                         .putAll(ALL_WATCHED_LOCKS_WITH_METADATA)
@@ -146,6 +145,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
                 ChangeMetadata.updated(
                         "bla".getBytes(StandardCharsets.UTF_8), "blabla".getBytes(StandardCharsets.UTF_8))));
         waitForFuture(timeLockService.lock(mixedRequest));
+
         assertThat(getAllLockEventsMetadata()).isEmpty();
     }
 
