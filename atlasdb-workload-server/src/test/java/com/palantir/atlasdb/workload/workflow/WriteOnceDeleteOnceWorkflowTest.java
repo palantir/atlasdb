@@ -102,22 +102,22 @@ public class WriteOnceDeleteOnceWorkflowTest {
         List<WitnessedTransaction> transactions = workflow.run().history();
 
         assertThat(transactions.size()).isEqualTo(4);
-        assertThat(getTransactionAction(transactions.get(0), WitnessedWriteTransactionAction.class)
-                        .cell()
-                        .key())
-                .isEqualTo(0);
-        assertThat(getTransactionAction(transactions.get(1), WitnessedDeleteTransactionAction.class)
-                        .cell()
-                        .key())
-                .isEqualTo(0);
-        assertThat(getTransactionAction(transactions.get(2), WitnessedWriteTransactionAction.class)
-                        .cell()
-                        .key())
-                .isEqualTo(1);
-        assertThat(getTransactionAction(transactions.get(3), WitnessedDeleteTransactionAction.class)
-                        .cell()
-                        .key())
-                .isEqualTo(1);
+        assertWriteTransaction(transactions.get(0), 0);
+        assertDeleteTransaction(transactions.get(1), 0);
+        assertWriteTransaction(transactions.get(2), 1);
+        assertDeleteTransaction(transactions.get(3), 1);
+    }
+
+    private void assertWriteTransaction(WitnessedTransaction transaction, int key) {
+        WitnessedWriteTransactionAction action =
+                getTransactionAction(transaction, WitnessedWriteTransactionAction.class);
+        assertThat(action.cell().key()).isEqualTo(key);
+    }
+
+    private void assertDeleteTransaction(WitnessedTransaction transaction, int key) {
+        WitnessedDeleteTransactionAction action =
+                getTransactionAction(transaction, WitnessedDeleteTransactionAction.class);
+        assertThat(action.cell().key()).isEqualTo(key);
     }
 
     private <T> T getTransactionAction(WitnessedTransaction transaction, Class<T> clazz) {
