@@ -178,7 +178,11 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                     .map(unfilteredLockMetadata -> {
                         Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
                                         unfilteredLockMetadata.entrySet().stream())
-                                .filterKeys(ranges::contains)
+                                // For an efficient encoding, we enforce that metadata is never attached to a lock
+                                // descriptor that is not contained in the original request, so this lookup is
+                                // sufficient.
+                                // It is also cheaper than calling RangeSet::contains.
+                                .filterKeys(filteredLocks::contains)
                                 .collectToMap();
                         return LockRequestMetadata.of(filteredLockMetadata);
                     });

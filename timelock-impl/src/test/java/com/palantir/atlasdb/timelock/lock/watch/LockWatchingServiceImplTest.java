@@ -108,7 +108,7 @@ public class LockWatchingServiceImplTest {
         Set<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR);
 
         Future<?> registerLock = executor.submit(() -> {
-            lockWatcher.registerLock(locks, TOKEN, Optional.empty());
+            lockWatcher.registerLock(locks, TOKEN);
             otherTaskCompleted.countDown();
             return null;
         });
@@ -152,11 +152,11 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         Set<LockDescriptor> cellDescriptor = ImmutableSet.of(CELL_DESCRIPTOR);
-        lockWatcher.registerLock(cellDescriptor, TOKEN, attachMetadataToLocks(cellDescriptor));
+        lockWatcher.registerLock(cellDescriptor, TOKEN, createMetadataForLocks(cellDescriptor));
 
         assertLoggedEvents(ImmutableList.of(
                 createdEvent(request.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                lockEvent(cellDescriptor, attachMetadataToLocks(cellDescriptor))));
+                lockEvent(cellDescriptor, createMetadataForLocks(cellDescriptor))));
     }
 
     @Test
@@ -237,12 +237,12 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(request);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, cellSuffixDescriptor);
-        lockWatcher.registerLock(locks, TOKEN, attachMetadataToLocks(locks));
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
 
         ImmutableSet<LockDescriptor> expectedFilteredLocks = ImmutableSet.of(CELL_DESCRIPTOR);
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(request.getReferences(), ImmutableSet.of()),
-                lockEvent(expectedFilteredLocks, attachMetadataToLocks(expectedFilteredLocks)));
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(expectedFilteredLocks)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -253,12 +253,12 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(rowRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, ROW_DESCRIPTOR);
-        lockWatcher.registerLock(locks, TOKEN, attachMetadataToLocks(locks));
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
 
         ImmutableSet<LockDescriptor> expectedFilteredLocks = ImmutableSet.of(ROW_DESCRIPTOR, CELL_DESCRIPTOR);
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(rowRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                lockEvent(expectedFilteredLocks, attachMetadataToLocks(expectedFilteredLocks)));
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(expectedFilteredLocks)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -271,12 +271,12 @@ public class LockWatchingServiceImplTest {
         lockWatcher.startWatching(prefixRequest);
 
         ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, ROW_DESCRIPTOR, notPrefixDescriptor);
-        lockWatcher.registerLock(locks, TOKEN, attachMetadataToLocks(locks));
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
 
         ImmutableSet<LockDescriptor> expectedFilteredLocks = ImmutableSet.of(CELL_DESCRIPTOR, ROW_DESCRIPTOR);
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(prefixRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                lockEvent(expectedFilteredLocks, attachMetadataToLocks(expectedFilteredLocks)));
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(expectedFilteredLocks)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -299,12 +299,12 @@ public class LockWatchingServiceImplTest {
         ImmutableSet<LockDescriptor> locks =
                 ImmutableSet.of(cellInRange, cellOutOfRange, rowInRange, rowInRange2, rowOutOfRange);
 
-        lockWatcher.registerLock(locks, TOKEN, attachMetadataToLocks(locks));
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
 
         ImmutableSet<LockDescriptor> expectedFilteredLocks = ImmutableSet.of(cellInRange, rowInRange, rowInRange2);
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(rangeRequest.getReferences(), ImmutableSet.of()),
-                lockEvent(expectedFilteredLocks, attachMetadataToLocks(expectedFilteredLocks)));
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(expectedFilteredLocks)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -319,13 +319,13 @@ public class LockWatchingServiceImplTest {
 
         ImmutableSet<LockDescriptor> locks =
                 ImmutableSet.of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
-        lockWatcher.registerLock(locks, TOKEN, attachMetadataToLocks(locks));
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
 
         ImmutableSet<LockDescriptor> expectedFilteredLocks =
                 ImmutableSet.of(ROW_DESCRIPTOR, CELL_DESCRIPTOR, rowInRange);
         List<LockWatchEvent> expectedEvents = ImmutableList.of(
                 createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
-                lockEvent(expectedFilteredLocks, attachMetadataToLocks(expectedFilteredLocks)));
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(expectedFilteredLocks)));
         assertLoggedEvents(expectedEvents);
     }
 
@@ -370,9 +370,9 @@ public class LockWatchingServiceImplTest {
         return AtlasRowLockDescriptor.of(TABLE_2.getQualifiedName(), ROW);
     }
 
-    private static Optional<LockRequestMetadata> attachMetadataToLocks(Set<LockDescriptor> lockDescriptors) {
+    private static Optional<LockRequestMetadata> createMetadataForLocks(Set<LockDescriptor> lockDescriptors) {
         return Optional.of(LockRequestMetadata.of(
-                KeyedStream.of(lockDescriptors).map(unused -> DUMMY_METADATA).collectToMap()));
+                KeyedStream.of(lockDescriptors).map(_unused -> DUMMY_METADATA).collectToMap()));
     }
 
     private void assertLoggedEvents(List<LockWatchEvent> expectedEvents) {

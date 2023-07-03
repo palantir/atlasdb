@@ -22,13 +22,13 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -49,7 +49,6 @@ import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,7 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
-import org.awaitility.Awaitility;
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,22 +69,22 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
 
     private static final String WATCHED_TABLE_NAME = "watched-table";
     private static final LockDescriptor WATCHED_LOCK_1 =
-            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, "lock1".getBytes(StandardCharsets.UTF_8));
+            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock1"));
     private static final LockDescriptor WATCHED_LOCK_2 =
-            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, "lock2".getBytes(StandardCharsets.UTF_8));
+            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock2"));
     private static final LockDescriptor WATCHED_LOCK_3 =
-            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, "lock3".getBytes(StandardCharsets.UTF_8));
+            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock3"));
     private static final LockDescriptor WATCHED_LOCK_4 =
-            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, "lock4".getBytes(StandardCharsets.UTF_8));
+            AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock4"));
     private static final Map<LockDescriptor, ChangeMetadata> ALL_WATCHED_LOCKS_WITH_METADATA = ImmutableMap.of(
             WATCHED_LOCK_1,
             ChangeMetadata.unchanged(),
             WATCHED_LOCK_2,
-            ChangeMetadata.updated("old".getBytes(StandardCharsets.UTF_8), "new".getBytes(StandardCharsets.UTF_8)),
+            ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new")),
             WATCHED_LOCK_3,
-            ChangeMetadata.deleted("deleted".getBytes(StandardCharsets.UTF_8)),
+            ChangeMetadata.deleted(PtBytes.toBytes("deleted")),
             WATCHED_LOCK_4,
-            ChangeMetadata.created("created".getBytes(StandardCharsets.UTF_8)));
+            ChangeMetadata.created(PtBytes.toBytes("created")));
     private static final String UNWATCHED_TABLE_NAME = "a-random-unwatched-table";
     private static final LockDescriptor UNWATCHED_LOCK_1 =
             AtlasRowLockDescriptor.of(UNWATCHED_TABLE_NAME, "lock1".getBytes(StandardCharsets.UTF_8));
@@ -93,7 +92,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 10000L);
-    private final ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduledExecutorService = new DeterministicScheduler();
     private final AsyncLockService asyncLockService =
             AsyncLockService.createDefault(lockLog, scheduledExecutorService, scheduledExecutorService);
     private final AsyncTimelockServiceImpl timeLockService =
@@ -108,14 +107,14 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
                     .build();
 
     @Before
-    public void setupLockServiceWithWatches() {
+    public void setup() {
         timeLockService.startWatching(
                 LockWatchRequest.of(ImmutableSet.of(LockWatchReferences.entireTable(WATCHED_TABLE_NAME))));
     }
 
     @Test
     public void lockEventContainsMetadataFromRequestIfWatched() {
-        waitForFuture(timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA));
+        assertDone(timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA));
 
         assertThat(getAllLockEventsMetadata())
                 .containsExactly(Optional.of(LockRequestMetadata.of(ALL_WATCHED_LOCKS_WITH_METADATA)));
@@ -131,8 +130,8 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
                                 ChangeMetadata.updated(
                                         "bla".getBytes(StandardCharsets.UTF_8),
                                         "blabla".getBytes(StandardCharsets.UTF_8)))
-                        .buildKeepingLast());
-        waitForFuture(timeLockService.lock(mixedRequest));
+                        .buildOrThrow());
+        assertDone(timeLockService.lock(mixedRequest));
 
         assertThat(getAllLockEventsMetadata())
                 .containsExactly(Optional.of(LockRequestMetadata.of(ALL_WATCHED_LOCKS_WITH_METADATA)));
@@ -144,7 +143,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
                 UNWATCHED_LOCK_1,
                 ChangeMetadata.updated(
                         "bla".getBytes(StandardCharsets.UTF_8), "blabla".getBytes(StandardCharsets.UTF_8))));
-        waitForFuture(timeLockService.lock(mixedRequest));
+        assertDone(timeLockService.lock(mixedRequest));
 
         assertThat(getAllLockEventsMetadata()).isEmpty();
     }
@@ -155,7 +154,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
         ALL_WATCHED_LOCKS_WITH_METADATA.forEach((lock, metadata) -> {
             Map<LockDescriptor, ChangeMetadata> map = ImmutableMap.of(lock, metadata);
             IdentifiedLockRequest request = standardRequestWithMetadata(map);
-            waitForFuture(timeLockService.lock(request));
+            assertDone(timeLockService.lock(request));
             metadataList.add(Optional.of(LockRequestMetadata.of(map)));
         });
 
@@ -168,7 +167,7 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
         IdentifiedLockRequest requestWithoutMetadata = ImmutableIdentifiedLockRequest.copyOf(
                         standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA))
                 .withMetadata(Optional.empty());
-        waitForFuture(timeLockService.lock(requestWithoutMetadata));
+        assertDone(timeLockService.lock(requestWithoutMetadata));
 
         assertThat(getAllLockEventsMetadata()).containsExactly(Optional.empty());
     }
@@ -184,21 +183,21 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
             // -> LockEvent with metadata
             Map<LockDescriptor, ChangeMetadata> map = ImmutableMap.of(lock, metadata);
             IdentifiedLockRequest requestWithMetadata = standardRequestWithMetadata(map);
-            LockResponseV2 response = waitForFuture(timeLockService.lock(requestWithMetadata));
+            LockResponseV2 response = assertDone(timeLockService.lock(requestWithMetadata));
             metadataList.add(Optional.of(LockRequestMetadata.of(map)));
 
             // -> UnlockEvent
-            waitForFuture(timeLockService.unlock(ImmutableSet.of(getToken(response))));
+            assertDone(timeLockService.unlock(ImmutableSet.of(getToken(response))));
 
             // -> LockEvent with absent metadata
             IdentifiedLockRequest requestWithoutMetadata = ImmutableIdentifiedLockRequest.copyOf(
                             standardRequestWithMetadata(map))
                     .withMetadata(Optional.empty());
-            response = waitForFuture(timeLockService.lock(requestWithoutMetadata));
+            response = assertDone(timeLockService.lock(requestWithoutMetadata));
             metadataList.add(Optional.empty());
 
             // -> UnlockEvent
-            waitForFuture(timeLockService.unlock(ImmutableSet.of(getToken(response))));
+            assertDone(timeLockService.unlock(ImmutableSet.of(getToken(response))));
         });
 
         assertThat(getAllLockWatchEvents()).hasSize(5 * ALL_WATCHED_LOCKS_WITH_METADATA.size());
@@ -215,13 +214,13 @@ public class AsyncTimeLockServiceMetadataIntegrationTest {
 
     private List<LockWatchEvent> getAllLockWatchEvents() {
         ConjureStartTransactionsResponse response =
-                waitForFuture(timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion));
+                assertDone(timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion));
 
         return response.getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
     }
 
-    private static <T> T waitForFuture(Future<T> future) {
-        Awaitility.await().atMost(Duration.ofMillis(200)).until(future::isDone);
+    private static <T> T assertDone(Future<T> future) {
+        assertThat(future).isDone();
         try {
             return future.get();
         } catch (Throwable t) {
