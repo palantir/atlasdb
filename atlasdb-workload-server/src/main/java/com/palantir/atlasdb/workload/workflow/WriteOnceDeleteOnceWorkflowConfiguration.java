@@ -31,6 +31,15 @@ public interface WriteOnceDeleteOnceWorkflowConfiguration extends WorkflowConfig
 
     TableConfiguration tableConfiguration();
 
+    /**
+     * The maximum value for the row key.
+     * This is half the iteration count, so we ideally perform two actions per cell.
+     */
+    @Value.Derived
+    default Integer maxKey() {
+        return iterationCount() / 2;
+    }
+
     @Value.Lazy
     default RateLimiter transactionRateLimiter() {
         return RateLimiter.create(rateLimit());

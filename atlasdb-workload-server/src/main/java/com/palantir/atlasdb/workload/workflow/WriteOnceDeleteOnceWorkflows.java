@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
@@ -25,7 +27,14 @@ import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import java.security.SecureRandom;
 import java.util.Optional;
+import java.util.function.IntFunction;
 
+/**
+ * The idea of this class is to catch bugs around tombstone drops, by having a
+ * workflow which _mostly_ writes once then deletes once for a given cell. Probability and randomness are used to
+ * enforce this behaviour, thus it's possible to have a write without a delete, or visa versa; some cells may
+ * randomly be written or deleted multiple times as well.
+ */
 public final class WriteOnceDeleteOnceWorkflows {
 
     private static final SecureRandom RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
@@ -40,24 +49,58 @@ public final class WriteOnceDeleteOnceWorkflows {
             InteractiveTransactionStore store,
             WriteOnceDeleteOnceWorkflowConfiguration configuration,
             ListeningExecutorService executionExecutor) {
-        return DefaultWorkflow.create(
-                store, (txnStore, index) -> run(txnStore, index, configuration), configuration, executionExecutor);
+        return create(store, configuration, executionExecutor, DefaultBuggifyFactory.INSTANCE, RANDOM::nextInt);
     }
 
-    private static Optional<WitnessedTransaction> run(
-            InteractiveTransactionStore store, int taskIndex, WriteOnceDeleteOnceWorkflowConfiguration configuration) {
-        configuration.transactionRateLimiter().acquire();
-        return store.readWrite(txn -> {
-            Integer cellIndex = RANDOM.nextInt(100);
-            if (DefaultBuggifyFactory.INSTANCE.maybe(taskIndex * 0.01).asBoolean()) {
-                txn.delete(configuration.tableConfiguration().tableName(), cell(cellIndex));
-            } else {
-                txn.write(configuration.tableConfiguration().tableName(), cell(cellIndex), RANDOM.nextInt(10000));
-            }
-        });
+    @VisibleForTesting
+    static Workflow create(
+            InteractiveTransactionStore store,
+            WriteOnceDeleteOnceWorkflowConfiguration configuration,
+            ListeningExecutorService executionExecutor,
+            BuggifyFactory buggifyFactory,
+            IntFunction<Integer> randomNumberGenerator) {
+        WriteOnceDeleteOnceWorkflow workflow =
+                new WriteOnceDeleteOnceWorkflow(buggifyFactory, randomNumberGenerator, configuration);
+        return DefaultWorkflow.create(store, workflow::run, configuration, executionExecutor);
     }
 
-    private static WorkloadCell cell(Integer index) {
+    private static class WriteOnceDeleteOnceWorkflow {
+        private final BuggifyFactory buggifyFactory;
+        private final IntFunction<Integer> rowKeyGenerator;
+        private final WriteOnceDeleteOnceWorkflowConfiguration configuration;
+
+        public WriteOnceDeleteOnceWorkflow(
+                BuggifyFactory buggifyFactory,
+                IntFunction<Integer> rowKeyGenerator,
+                WriteOnceDeleteOnceWorkflowConfiguration configuration) {
+            this.buggifyFactory = buggifyFactory;
+            this.rowKeyGenerator = rowKeyGenerator;
+            this.configuration = configuration;
+        }
+
+        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store, int taskIndex) {
+            configuration.transactionRateLimiter().acquire();
+            return store.readWrite(txn -> {
+                Integer rowKey = rowKeyGenerator.apply(configuration.maxKey());
+                if (buggifyFactory
+                        .maybe(calculateChanceForDelete(taskIndex, configuration.iterationCount()))
+                        .asBoolean()) {
+                    txn.delete(configuration.tableConfiguration().tableName(), cell(rowKey));
+                } else {
+                    txn.write(configuration.tableConfiguration().tableName(), cell(rowKey), RANDOM.nextInt(10000));
+                }
+            });
+        }
+    }
+
+    @VisibleForTesting
+    static Double calculateChanceForDelete(int taskIndex, int iterationCount) {
+        // Index generation is [inclusive, exclusive], so we need to add 1 to the task index.
+        return (taskIndex + 1.0) / iterationCount;
+    }
+
+    @VisibleForTesting
+    static WorkloadCell cell(Integer index) {
         return ImmutableWorkloadCell.of(index, COLUMN);
     }
 }
