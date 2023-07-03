@@ -101,6 +101,6 @@ public final class RingGraphTest {
 
     @Test
     public void asMapConvertsCorrectly() {
-        assertThat(RingGraph.from(VALID_RING).asMap()).isEqualTo(VALID_RING);
+        assertThat(RingGraph.from(VALID_RING).asMap()).containsExactlyInAnyOrderEntriesOf(VALID_RING);
     }
 }

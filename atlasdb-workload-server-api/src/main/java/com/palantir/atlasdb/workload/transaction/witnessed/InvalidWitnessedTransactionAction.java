@@ -16,4 +16,6 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-public interface InvalidWitnessedTransactionAction {}
+public interface InvalidWitnessedTransactionAction {
+    // Marker interface
+}

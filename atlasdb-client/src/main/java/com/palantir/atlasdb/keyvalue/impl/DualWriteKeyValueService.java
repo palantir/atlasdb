@@ -318,4 +318,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.getAsync(tableRef, timestampByCell);
     }
+
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegate1.sweepsEntriesInStrictlyNonDecreasingFashion();
+    }
 }

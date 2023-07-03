@@ -50,6 +50,7 @@ dependencies {
   testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.common:streams'
   testImplementation 'com.palantir.safe-logging:safe-logging'
+  testImplementation 'com.palantir.safe-logging:preconditions-assertj'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'commons-io:commons-io'

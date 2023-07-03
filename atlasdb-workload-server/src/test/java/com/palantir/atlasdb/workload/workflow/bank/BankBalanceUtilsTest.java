@@ -67,7 +67,7 @@ public final class BankBalanceUtilsTest {
         when(random.nextInt(anyInt())).thenReturn(0, 1);
         Map<Integer, Integer> balances = Map.of(0, 1, 1, 1);
         Map<Integer, Integer> newBalances = BankBalanceUtils.performTransfers(balances, 1, 1, random);
-        assertThat(newBalances).isEqualTo(Map.of(0, 0, 1, 2));
+        assertThat(newBalances).containsExactlyInAnyOrderEntriesOf(Map.of(0, 0, 1, 2));
         assertThat(newBalances.values().stream().mapToInt(Integer::intValue).sum())
                 .isEqualTo(2);
     }
@@ -77,6 +77,6 @@ public final class BankBalanceUtilsTest {
         when(random.nextInt(anyInt())).thenReturn(0, 1);
         Map<Integer, Integer> balances = Map.of(0, 0, 1, 2);
         Map<Integer, Integer> newBalances = BankBalanceUtils.performTransfers(balances, 1, 1, random);
-        assertThat(newBalances).isEqualTo(balances);
+        assertThat(newBalances).containsExactlyInAnyOrderEntriesOf(balances);
     }
 }

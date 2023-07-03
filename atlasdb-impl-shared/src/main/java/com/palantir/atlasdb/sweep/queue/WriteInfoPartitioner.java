@@ -95,9 +95,11 @@ public class WriteInfoPartitioner {
 
     private SweeperStrategy getStrategyFromKvs(TableReference tableRef) {
         try {
-            return SweepStrategy.from(TableMetadata.BYTES_HYDRATOR
-                            .hydrateFromBytes(kvs.getMetadataForTable(tableRef))
-                            .getSweepStrategy())
+            return SweepStrategy.from(
+                            TableMetadata.BYTES_HYDRATOR
+                                    .hydrateFromBytes(kvs.getMetadataForTable(tableRef))
+                                    .getSweepStrategy(),
+                            kvs)
                     .getSweeperStrategy()
                     .orElse(SweeperStrategy.NON_SWEEPABLE);
         } catch (Exception e) {
