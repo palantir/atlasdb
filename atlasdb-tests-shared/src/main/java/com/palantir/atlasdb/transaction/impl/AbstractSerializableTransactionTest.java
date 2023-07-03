@@ -1080,16 +1080,18 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMarkTableInvolvedChecksLocksForExpiryOnCommitWhenRequired() {
-        // Test table is thorough, therefore we check immutable timestamp lock
-        assertThatThrownBy(() -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH))
-                .isExactlyInstanceOf(TransactionLockTimeoutException.class);
-    }
-
-    @Test
     public void testMarkTableInvolvedDoesNoCheckLocksForExpiryOnCommitWhenNotRequired() {
         // Test table is not thorough, therefore no immutable timestamp lock checking
-        testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE);
+        assertThatCode(() -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE))
+                .doesNotThrowAnyException();
+
+        if (keyValueService.sweepsEntriesInStrictlyNonDecreasingFashion()) {
+            assertThatCode(() -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH))
+                    .doesNotThrowAnyException();
+        } else {
+            assertThatThrownBy(() -> testMarkTableInvolvedLockChecksForExpiryOnCommit(TEST_TABLE_THOROUGH))
+                    .isExactlyInstanceOf(TransactionLockTimeoutException.class);
+        }
     }
 
     @Test

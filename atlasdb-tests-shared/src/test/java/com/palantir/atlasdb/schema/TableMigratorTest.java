@@ -89,7 +89,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
-        final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative();
+        final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
         final MetricsManager metricsManager = MetricsManagers.createForTests();
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
@@ -128,7 +128,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         checkpointer.deleteCheckpoints();
 
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
-        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative();
+        final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,

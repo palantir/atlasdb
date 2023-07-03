@@ -152,7 +152,7 @@ public class SweepTaskRunner {
             return SweepResults.createEmptySweepResultWithNoMoreToSweep();
         }
         SweepStrategy sweepStrategy = SweepStrategy.from(
-                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy());
+                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy(), keyValueService);
         Optional<Sweeper> maybeSweeper = sweepStrategy.getSweeperStrategy().map(Sweeper::of);
         if (runType == RunType.WAS_CONSERVATIVE_NOW_THOROUGH
                 && sweepStrategy.getSweeperStrategy().equals(Optional.of(SweeperStrategy.CONSERVATIVE))) {

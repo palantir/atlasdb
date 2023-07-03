@@ -130,7 +130,7 @@ public class TransientRowsWorkflowsTest {
         transactionStore.readWrite(txn -> txn.delete(TABLE_NAME, ImmutableWorkloadCell.of(ITERATION_COUNT - 1, 1)));
         invariant.accept(history, reference::set);
         assertThat(reference.get())
-                .isEqualTo(ImmutableList.of(CrossCellInconsistency.builder()
+                .containsExactly(CrossCellInconsistency.builder()
                         .putInconsistentValues(
                                 TableAndWorkloadCell.of(
                                         TABLE_NAME,
@@ -142,7 +142,7 @@ public class TransientRowsWorkflowsTest {
                                         ImmutableWorkloadCell.of(
                                                 TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 1)),
                                 Optional.of(0))
-                        .build()));
+                        .build());
     }
 
     @Test
@@ -155,7 +155,7 @@ public class TransientRowsWorkflowsTest {
                 TransientRowsWorkflows.VALUE));
         invariant.accept(history, reference::set);
         assertThat(reference.get())
-                .isEqualTo(ImmutableList.of(CrossCellInconsistency.builder()
+                .containsExactly(CrossCellInconsistency.builder()
                         .putInconsistentValues(
                                 TableAndWorkloadCell.of(
                                         TABLE_NAME,
@@ -167,7 +167,7 @@ public class TransientRowsWorkflowsTest {
                                         ImmutableWorkloadCell.of(
                                                 TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 2)),
                                 Optional.empty())
-                        .build()));
+                        .build());
     }
 
     @Test

@@ -413,4 +413,9 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return getDelegate(tableRef).getAsync(tableRef, timestampByCell);
     }
+
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegates.stream().allMatch(KeyValueService::sweepsEntriesInStrictlyNonDecreasingFashion);
+    }
 }

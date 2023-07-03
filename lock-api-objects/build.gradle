@@ -16,6 +16,7 @@ dependencies {
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation project(':commons-annotations')
+    testImplementation project(path: ':lock-api')
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'

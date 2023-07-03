@@ -735,6 +735,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return Futures.immediateFuture(get(tableRef, timestampByCell));
     }
 
+    // Marking this as true as it's only used for tests, so we can better replicate Cassandra behaviour.
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return true;
+    }
+
     /**
      * This takes out a reentrant read lock. It is only exclusive specifically with
      * {@link #multiCheckAndSet(MultiCheckAndSetRequest)}.
