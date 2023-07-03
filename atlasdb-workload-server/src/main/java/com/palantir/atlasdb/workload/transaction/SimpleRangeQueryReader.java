@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.vavr.collection.Map;
@@ -50,8 +49,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
         if (allValues.size() > LARGE_HISTORY_LIMIT) {
             log.error(
                     "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
-                            + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
-                            + " efficient range query implementation.",
+                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
+                        + " efficient range query implementation.",
                     SafeArg.of("size", allValues.size()));
         }
         return allValues
