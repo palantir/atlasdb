@@ -46,9 +46,9 @@ public class LightweightOppTokenTest {
     @Test
     public void inputsAreValidBase16Strings() {
         assertThat(input).matches("^[0-9a-fA-F]*$");
-        assertThat(input.length() % 2 == 0)
+        assertThat(input.length() % 2)
                 .as("input must be even length to base16 decode")
-                .isTrue();
+                .isEqualTo(0);
         assertThat(CassandraHex.hexToBytes(input)).hasSize(input.length() / 2);
     }
 

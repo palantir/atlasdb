@@ -33,6 +33,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.impl.LockThreadInfoSnapshotManager;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -56,6 +57,8 @@ public class BlockingTimeLimitedLockServiceTest {
     private final TimeLimiter checkedThrowingLimiter = mock(TimeLimiter.class);
 
     private final CloseableLockService delegate = mock(CloseableLockService.class);
+
+    private final LockThreadInfoSnapshotManager snapshotManager = mock(LockThreadInfoSnapshotManager.class);
 
     private final BlockingTimeLimitedLockService acceptingService = createService(acceptingLimiter);
     private final BlockingTimeLimitedLockService timingOutService = createService(timingOutLimiter);
@@ -130,6 +133,6 @@ public class BlockingTimeLimitedLockServiceTest {
     }
 
     private BlockingTimeLimitedLockService createService(TimeLimiter limiter) {
-        return new BlockingTimeLimitedLockService(delegate, limiter, BLOCKING_TIME_LIMIT_MILLIS);
+        return new BlockingTimeLimitedLockService(delegate, limiter, BLOCKING_TIME_LIMIT_MILLIS, snapshotManager);
     }
 }

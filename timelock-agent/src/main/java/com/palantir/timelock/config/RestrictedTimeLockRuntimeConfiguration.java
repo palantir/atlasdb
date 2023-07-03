@@ -16,6 +16,7 @@
 
 package com.palantir.timelock.config;
 
+import com.palantir.lock.DebugThreadInfoConfiguration;
 import java.util.Optional;
 
 public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfiguration {
@@ -53,5 +54,10 @@ public class RestrictedTimeLockRuntimeConfiguration extends TimeLockRuntimeConfi
     @Override
     public Optional<TsBoundPersisterRuntimeConfiguration> timestampBoundPersistence() {
         return runtime.timestampBoundPersistence();
+    }
+
+    @Override
+    public DebugThreadInfoConfiguration threadInfoConfiguration() {
+        return runtime.threadInfoConfiguration();
     }
 }

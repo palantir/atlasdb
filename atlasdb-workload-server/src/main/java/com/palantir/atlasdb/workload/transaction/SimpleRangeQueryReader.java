@@ -50,8 +50,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
         if (allValues.size() > LARGE_HISTORY_LIMIT) {
             log.error(
                     "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
-                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
-                        + " efficient range query implementation.",
+                            + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
+                            + " efficient range query implementation.",
                     SafeArg.of("size", allValues.size()));
         }
         return allValues
@@ -67,11 +67,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
                             .contains(tableAndWorkloadCell.cell().column());
                 })
                 .filterValues(Optional::isPresent)
-                .map(entry -> ColumnValue.of(
-                        entry._1().cell().column(),
-                        entry._2()
-                                .orElseThrow(() -> new SafeRuntimeException(
-                                        "Empty values should already have been filtered out!"))))
+                .mapValues(Optional::get)
+                .map(entry -> ColumnValue.of(entry._1().cell().column(), entry._2()))
                 .sortBy(ColumnValue::column)
                 .toJavaList();
     }

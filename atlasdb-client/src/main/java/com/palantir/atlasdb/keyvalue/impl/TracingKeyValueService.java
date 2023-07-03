@@ -531,6 +531,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         });
     }
 
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegate().sweepsEntriesInStrictlyNonDecreasingFashion();
+    }
+
     @MustBeClosed
     private static CloseableTracer startLocalTrace(@CompileTimeConstant final String operation) {
         TraceStatistic original = TraceStatistics.getCurrentAndClear();
