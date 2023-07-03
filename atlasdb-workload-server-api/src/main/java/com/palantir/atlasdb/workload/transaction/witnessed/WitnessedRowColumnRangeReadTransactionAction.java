@@ -23,12 +23,15 @@ import com.palantir.logsafe.SafeArg;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedTransactionAction {
     RowColumnRangeReadTransactionAction originalQuery();
 
+    // This is a List rather than a Set or Map because the ordering in which the columns and values are returned is
+    // important (it must match the ordering specified by the contract of row column range reads).
     List<ColumnValue> columnsAndValues();
 
     @Override
@@ -39,14 +42,15 @@ public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedT
     @Value.Check
     default void check() {
         Set<Integer> knownColumns = new HashSet<>();
-        for (ColumnValue columnValue : columnsAndValues()) {
-            Preconditions.checkState(
-                    !knownColumns.contains(columnValue.column()),
-                    "Duplicate column in columnsAndValues",
-                    SafeArg.of("duplicatedColumn", columnValue.column()),
-                    SafeArg.of("columnsAndValues", columnsAndValues()));
-            knownColumns.add(columnValue.column());
-        }
+        Set<Integer> duplicateColumns = columnsAndValues().stream()
+                .map(ColumnValue::column)
+                .filter(column -> !knownColumns.add(column))
+                .collect(Collectors.toSet());
+        Preconditions.checkState(
+                duplicateColumns.isEmpty(),
+                "Duplicate columns in columnsAndValues",
+                SafeArg.of("duplicateColumns", duplicateColumns),
+                SafeArg.of("columnsAndValues", columnsAndValues()));
     }
 
     static ImmutableWitnessedRowColumnRangeReadTransactionAction.Builder builder() {
