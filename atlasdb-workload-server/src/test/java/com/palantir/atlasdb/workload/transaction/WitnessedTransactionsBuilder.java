@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction;
 
+import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
@@ -88,6 +89,17 @@ public final class WitnessedTransactionsBuilder {
         public WitnessedTransactionBuilder delete(Integer row, Integer column) {
             actions.add(WitnessedDeleteTransactionAction.of(table, ImmutableWorkloadCell.of(row, column)));
             needsCommitTimestamp = true;
+            return this;
+        }
+
+        public WitnessedTransactionBuilder rowColumnRangeRead(
+                Integer row, ColumnRangeSelection columnRangeSelection, List<ColumnValue> valuesRead) {
+            RowColumnRangeReadTransactionAction transactionAction = RowColumnRangeReadTransactionAction.builder()
+                    .table(table)
+                    .row(row)
+                    .columnRangeSelection(columnRangeSelection)
+                    .build();
+            actions.add(transactionAction.witness(valuesRead));
             return this;
         }
 
