@@ -173,22 +173,25 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                 return;
             }
             // Filtering metadata after deciding if we should even proceed might save us some computation
-            Optional<LockRequestMetadata> filteredMetadata = unfilteredMetadata
-                    .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
-                    .map(unfilteredLockMetadata -> {
-                        Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
-                                        unfilteredLockMetadata.entrySet().stream())
-                                // For an efficient encoding, we enforce that metadata is never attached to a lock
-                                // descriptor that is not contained in the original request, so this lookup is
-                                // sufficient.
-                                // It is also cheaper than calling RangeSet::contains.
-                                .filterKeys(filteredLocks::contains)
-                                .collectToMap();
-                        return LockRequestMetadata.of(filteredLockMetadata);
-                    });
-            biConsumer.accept(filteredLocks, filteredMetadata);
+            biConsumer.accept(filteredLocks, filterMetadataBasedOnFilteredLocks(filteredLocks, unfilteredMetadata));
         } finally {
             watchesLock.readLock().unlock();
         }
+    }
+
+    private static Optional<LockRequestMetadata> filterMetadataBasedOnFilteredLocks(
+            Set<LockDescriptor> filteredLocks, Optional<LockRequestMetadata> unfilteredMetadata) {
+        return unfilteredMetadata
+                .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                .map(unfilteredLockMetadata -> {
+                    Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
+                                    unfilteredLockMetadata.entrySet().stream())
+                            // For an efficient encoding, we enforce that metadata is never attached to a lock
+                            // descriptor that is not contained in the original request, so this lookup is sufficient.
+                            // It is also cheaper than calling RangeSet::contains.
+                            .filterKeys(filteredLocks::contains)
+                            .collectToMap();
+                    return LockRequestMetadata.of(filteredLockMetadata);
+                });
     }
 }
