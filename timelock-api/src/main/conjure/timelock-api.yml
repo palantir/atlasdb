@@ -93,6 +93,41 @@ types:
           inclusiveUpper: Long
       ConjureGetFreshTimestampsResponseV2:
         alias: ConjureTimestampRange
+      ConjureUnchangedChangeMetadata:
+        fields: {}
+      ConjureUpdatedChangeMetadata:
+        fields:
+          oldValue:
+            type: binary
+            safety: unsafe
+          newValue:
+            type: binary
+            safety: unsafe
+      ConjureDeletedChangeMetadata:
+        fields:
+          oldValue:
+            type: binary
+            safety: unsafe
+      ConjureCreatedChangeMetadata:
+        fields:
+          newValue:
+            type: binary
+            safety: unsafe
+      ConjureChangeMetadata:
+          union:
+            unchanged: ConjureUnchangedChangeMetadata
+            updated: ConjureUpdatedChangeMetadata
+            deleted: ConjureDeletedChangeMetadata
+            created: ConjureCreatedChangeMetadata
+      ConjureLockRequestMetadata:
+        fields:
+          indexToChangeMetadata: map<integer, ConjureChangeMetadata>
+          checksumType:
+            type: integer
+            safety: safe
+          checksumValue:
+            type: binary
+            safety: unsafe
       ConjureLockDescriptor:
         alias: binary
         safety: unsafe
