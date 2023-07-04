@@ -1,0 +1,7 @@
+type: feature
+feature:
+  description: Expose API letting clients specify how many values they expect at most
+    from a Get. This let us skip the immutable timestamp lock even in the case we've
+    done some empty reads if the client knows it's safe to do so.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6655
