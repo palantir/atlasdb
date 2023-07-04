@@ -132,6 +132,23 @@ public class CachingTransaction extends ForwardingTransaction {
     }
 
     @Override
+    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+        try {
+            return getWithLoader(tableRef, cells, (tableReference, toRead) -> {
+                        int cachedCells = cells.size() - toRead.size();
+                        int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells;
+
+                        return Futures.immediateFuture(super.getWithExpectedNumberOfCells(
+                                tableReference, toRead, numberOfCellsExpectingValuePostCache));
+                    })
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return getWithLoader(tableRef, cells, super::getAsync);
     }

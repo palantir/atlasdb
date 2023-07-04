@@ -65,6 +65,13 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
     }
 
     @Override
+    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+        checkTableName(tableRef);
+        return delegate.getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
+    }
+
+    @Override
     public BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest) {
         checkTableName(tableRef);
         return delegate().getRange(tableRef, rangeRequest);

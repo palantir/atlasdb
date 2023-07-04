@@ -328,6 +328,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
+    private static final Cell TEST_CELL_3 = Cell.create(PtBytes.toBytes("row3"), PtBytes.toBytes("column3"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
 
@@ -1635,6 +1636,62 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // Make sure that lock is still validated in the end due to the initial empty read
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(transaction::commit);
+    }
+
+    @Test
+    public void skipImmutableTLocksIfReadingEqualsExpectedNumberOfValuesEvenWhenRequestedMore() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        transaction.getWithExpectedNumberOfCells(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void performImmutableTLocksIfReadingLessThanExpectedNumberOfValues() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        transaction.getWithExpectedNumberOfCells(
+                TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, times(1)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void throwsIfReadingMoreThanExpectedNumberOfValues() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("KeyValueService returned more results than Get expected");
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
     @Test

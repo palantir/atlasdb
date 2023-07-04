@@ -176,6 +176,31 @@ public interface Transaction {
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
+     * Similar to {@link #get(TableReference, Set)}, but allows the caller to specify the number of  expected present
+     * cells. This is important to allow clients that might have schemas that guarantees only a subset of the columns
+     * are present to still benefit from being able to skip the immutable timestamp lock check on non empty
+     * reads of thoroughly swept tables.
+     *
+     * If we find values for the exact number of expected present cells, we'll skip the immutable timestamp lock check.
+     * If we find less values, we'll perform the immutable timestamp lock check.
+     * If we find more value, we'll throw an exception, as it means that either:
+     *  1 - There is a bug in the implementation of this method.
+     *  2 - The client is making an incorrect assumption about the maximum number of values that will be present and
+     *      we could have returned empty values in the past when we should have not.
+     *
+     * WARNING: This method should only be used if you REALLY know what you're doing. Otherwise you could have
+     * correctness issues by reading empty values when one is actually present if you don't use this method correctly.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @param expectedNumberOfPresentCells the number of cells that are expected to be present.
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
+    @Idempotent
+    Map<Cell, byte[]> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells);
+
+    /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
      * guaranteed that the actual implementations are in fact asynchronous.
      *

@@ -416,7 +416,12 @@ public class SnapshotTransaction extends AbstractTransaction
                         rows,
                         columnSelection,
                         cells -> AtlasFutures.getUnchecked(getInternal(
-                                "getRows", tableRef, cells, immediateKeyValueService, immediateTransactionService)),
+                                "getRows",
+                                tableRef,
+                                cells,
+                                cells.size(),
+                                immediateKeyValueService,
+                                immediateTransactionService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -905,7 +910,29 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cells,
                         uncached -> getInternal(
-                                "get", tableRef, uncached, immediateKeyValueService, immediateTransactionService));
+                                "get",
+                                tableRef,
+                                uncached,
+                                uncached.size(),
+                                immediateKeyValueService,
+                                immediateTransactionService));
+    }
+
+    @Override
+    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+        return getCache().get(tableRef, cells, uncached -> {
+            int cachedCells = cells.size() - uncached.size();
+            int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells;
+
+            return getInternal(
+                    "get",
+                    tableRef,
+                    uncached,
+                    numberOfCellsExpectingValuePostCache,
+                    immediateKeyValueService,
+                    immediateTransactionService);
+        });
     }
 
     @Override
@@ -916,13 +943,19 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cells,
                         uncached -> getInternal(
-                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
+                                "getAsync",
+                                tableRef,
+                                uncached,
+                                uncached.size(),
+                                keyValueService,
+                                defaultTransactionService)));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
+            int numberOfExpectedPresentCells,
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Timer.Context timer = getTimer(operationName).time();
@@ -943,12 +976,14 @@ public class SnapshotTransaction extends AbstractTransaction
             }
         }
 
-        // We don't need to read any cells that were written locally. Making an immutable copy because otherwise adding
-        // values to the result map would prevent us from calculating the correct size for
-        // allPossibleCellsReadAndPresent, since Sets.difference gives us a live view.
-        Set<Cell> cellsWithNoLocalWrites = ImmutableSet.copyOf(Sets.difference(cells, result.keySet()));
+        // We don't need to read any cells that were written locally.
+        int expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - result.size();
         return Futures.transform(
-                getFromKeyValueService(tableRef, cellsWithNoLocalWrites, asyncKeyValueService, asyncTransactionService),
+                getFromKeyValueService(
+                        tableRef,
+                        Sets.difference(cells, result.keySet()),
+                        asyncKeyValueService,
+                        asyncTransactionService),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -963,8 +998,17 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
+                    if (fromKeyValueService.size() > expectedNumberOfPresentCellsToFetch) {
+                        throw new SafeIllegalStateException(
+                                "KeyValueService returned more results than Get expected. This means there is a bug"
+                                        + "either in the SnapshotTransaction implementation or in how the client is "
+                                        + "using such method.",
+                                SafeArg.of("expectedNumberOfCells", expectedNumberOfPresentCellsToFetch),
+                                SafeArg.of("numberOfCellsRetrieved", fromKeyValueService.size()));
+                    }
+
                     boolean allPossibleCellsReadAndPresent =
-                            fromKeyValueService.size() == cellsWithNoLocalWrites.size();
+                            fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
                     validatePreCommitRequirementsOnReadIfNecessary(
                             tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
                     return removeEmptyColumns(result, tableRef);

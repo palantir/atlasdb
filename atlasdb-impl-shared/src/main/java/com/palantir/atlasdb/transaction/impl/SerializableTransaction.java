@@ -322,10 +322,31 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     @Idempotent
+    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+        try {
+            return getWithLoader(
+                            tableRef,
+                            cells,
+                            (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
+                                    tableReference, toRead, expectedNumberOfPresentCells)))
+                    .get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    @Override
+    @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return getWithLoader(tableRef, cells, super::getAsync);
     }
 
+    /**
+     * If we ever update getWithLoader to filter down the cells before calling the cellLoader, we'll need to update the
+     * {@link #getWithExpectedNumberOfCells(TableReference, Set, int)} implementation to take intro account the
+     * filtering and change the number of expect cells it sends to the super class.
+     */
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
             TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         return Futures.transform(
