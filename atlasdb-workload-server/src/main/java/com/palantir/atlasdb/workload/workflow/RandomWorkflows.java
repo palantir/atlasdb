@@ -93,7 +93,7 @@ public final class RandomWorkflows {
         private List<SingleCellReadTransactionAction> generateReadActions() {
             return IntStream.range(0, random.nextInt(workflowConfiguration.maxReads() + 1))
                     .boxed()
-                    .map(_index -> ImmutableSingleCellReadTransactionAction.of(
+                    .map(_index -> SingleCellReadTransactionAction.of(
                             workflowConfiguration.tableConfiguration().tableName(), randomCell()))
                     .collect(Collectors.toList());
         }
