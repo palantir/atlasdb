@@ -26,7 +26,6 @@ import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction.Builder;
-import com.palantir.atlasdb.workload.transaction.ImmutableSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;

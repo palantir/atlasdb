@@ -37,6 +37,8 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflows;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
@@ -142,6 +144,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().transientRowsConfig();
         SingleBusyCellWorkflowConfiguration singleBusyCellWorkflowConfiguration =
                 configuration.install().singleBusyCellConfig();
+        SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadNoTouchWorkflowConfiguration =
+                configuration.install().singleBusyCellReadsNoTouchConfig();
         BankBalanceWorkflowConfiguration bankBalanceConfig =
                 configuration.install().bankBalanceConfig();
         RandomWorkflowConfiguration randomWorkflowConfig =
@@ -159,6 +163,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
                         createSingleBusyCellWorkflowValidator(
                                 transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                        createSingleBusyCellReadNoTouchWorkflowValidator(
+                                transactionStoreFactory,
+                                singleBusyCellReadNoTouchWorkflowConfiguration,
+                                environment.lifecycle()),
                         createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
                         createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
 
@@ -241,6 +249,37 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         MoreExecutors.listeningDecorator(writeExecutor)),
                 new DurableWritesInvariantMetricReporter(
                         SingleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)),
+                SerializableInvariantLogReporter.INSTANCE);
+    }
+
+    private WorkflowAndInvariants<Workflow> createSingleBusyCellReadNoTouchWorkflowValidator(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            SingleBusyCellReadNoTouchWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutor = lifecycle
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-read")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        ExecutorService writeExecutor = lifecycle
+                .executorService(SingleBusyCellReadNoTouchWorkflowConfiguration.class.getSimpleName() + "-write")
+                .minThreads(workflowConfig.maxThreadCount() / 2)
+                .maxThreads(workflowConfig.maxThreadCount() / 2)
+                .build();
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.of(
+                SingleBusyCellReadNoTouchWorkflows.create(
+                        transactionStore,
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutor),
+                        MoreExecutors.listeningDecorator(writeExecutor)),
+                new DurableWritesInvariantMetricReporter(
+                        SingleBusyCellReadNoTouchWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)),
                 SerializableInvariantLogReporter.INSTANCE);
     }
 

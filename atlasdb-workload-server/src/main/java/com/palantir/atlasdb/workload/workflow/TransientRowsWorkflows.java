@@ -144,7 +144,7 @@ public final class TransientRowsWorkflows {
                 .filter(action -> action.cell().key() != SUMMARY_ROW)
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
-                        "Expected to find a read of a normal row", SafeArg.of("actions", actions)));
+                        "Expected to find a read of a corresponding normal row", SafeArg.of("actions", actions)));
         if (!summaryRowRead.value().equals(normalRowRead.value())) {
             return Stream.of(CrossCellInconsistency.builder()
                     .putInconsistentValues(

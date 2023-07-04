@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[LockV1] Pass refreshable thread info configuration'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6626

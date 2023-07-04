@@ -32,7 +32,7 @@ public interface InteractiveTransaction {
 
     void delete(String table, WorkloadCell workloadCell);
 
-    List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection);
+    List<ColumnValue> getRowColumnRange(String table, int row, ColumnRangeSelection columnRangeSelection);
 
     List<WitnessedTransactionAction> witness();
 }

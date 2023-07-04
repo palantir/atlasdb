@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: bump snappy-java to 1.1.10.1
+  links:
+  - https://github.com/palantir/atlasdb/pull/6649

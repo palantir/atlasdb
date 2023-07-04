@@ -25,7 +25,6 @@ import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -102,7 +101,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<ColumnValue> getRowColumnRange(String table, Integer row, ColumnRangeSelection columnRangeSelection) {
+    public List<ColumnValue> getRowColumnRange(String table, int row, ColumnRangeSelection columnRangeSelection) {
         return run(
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in
@@ -112,20 +111,22 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             List.of(AtlasDbUtils.toAtlasKey(row)),
                             BatchColumnRangeSelection.create(
                                     AtlasDbUtils.toAtlasColumnRangeSelection(columnRangeSelection), 100));
+                    Preconditions.checkState(
+                            iterators.size() == 1,
+                            "Expected exactly one iterator to be returned",
+                            SafeArg.of("iteratorsReturned", iterators.size()));
                     List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
                             .mapKeys(Cell::getColumnName)
                             .mapKeys(AtlasDbUtils::fromAtlasColumn)
                             .mapValues(AtlasDbUtils::fromAtlasValue)
                             .map(entry -> ColumnValue.of(entry.getKey(), entry.getValue()))
                             .collect(Collectors.toList());
-                    witnessedTransactionActions.add(WitnessedRowColumnRangeReadTransactionAction.builder()
-                            .originalQuery(RowColumnRangeReadTransactionAction.builder()
-                                    .table(table)
-                                    .row(row)
-                                    .columnRangeSelection(columnRangeSelection)
-                                    .build())
-                            .columnsAndValues(columnsAndValues)
-                            .build());
+                    witnessedTransactionActions.add(RowColumnRangeReadTransactionAction.builder()
+                            .table(table)
+                            .row(row)
+                            .columnRangeSelection(columnRangeSelection)
+                            .build()
+                            .witness(columnsAndValues));
                     return columnsAndValues;
                 },
                 table);

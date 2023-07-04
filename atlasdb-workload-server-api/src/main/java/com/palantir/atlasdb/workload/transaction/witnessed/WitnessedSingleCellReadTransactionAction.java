@@ -22,7 +22,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface WitnessedSingleCellReadTransactionAction extends WitnessedSingleCellTransactionAction {
-
     @Override
     @Value.Parameter
     String table();

@@ -24,7 +24,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
 public interface SingleCellReadTransactionAction extends SingleCellTransactionAction {
-
     default WitnessedSingleCellReadTransactionAction witness(Optional<Integer> value) {
         return ImmutableWitnessedSingleCellReadTransactionAction.of(table(), cell(), value);
     }

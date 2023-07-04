@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[LWMeta] Add LockMetadata to IdentifiedLockRequest'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6647

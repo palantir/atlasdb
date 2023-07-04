@@ -20,11 +20,13 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.workload.store.ColumnValue;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
 import org.junit.Test;
 
 public class WitnessedRowColumnRangeReadTransactionActionTest {
@@ -44,8 +46,15 @@ public class WitnessedRowColumnRangeReadTransactionActionTest {
 
     @Test
     public void cannotCreateWitnessWithDuplicateColumns() {
+        List<ColumnValue> columnsAndValues = ImmutableList.of(
+                ColumnValue.of(1, 5),
+                ColumnValue.of(5, 1),
+                ColumnValue.of(1, 3),
+                ColumnValue.of(5, 8),
+                ColumnValue.of(9, 99));
+
         assertThatLoggableExceptionThrownBy(() -> WitnessedRowColumnRangeReadTransactionAction.builder()
-                        .addColumnsAndValues(ColumnValue.of(1, 5), ColumnValue.of(5, 1), ColumnValue.of(1, 3))
+                        .addAllColumnsAndValues(columnsAndValues)
                         .originalQuery(RowColumnRangeReadTransactionAction.builder()
                                 .table("foo")
                                 .row(1)
@@ -54,11 +63,9 @@ public class WitnessedRowColumnRangeReadTransactionActionTest {
                                 .build())
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Duplicate column in columnsAndValues")
+                .hasMessageContaining("Duplicate columns in columnsAndValues")
                 .hasExactlyArgs(
-                        SafeArg.of("duplicatedColumn", 1),
-                        SafeArg.of(
-                                "columnsAndValues",
-                                ImmutableList.of(ColumnValue.of(1, 5), ColumnValue.of(5, 1), ColumnValue.of(1, 3))));
+                        SafeArg.of("duplicateColumns", ImmutableSet.of(1, 5)),
+                        SafeArg.of("columnsAndValues", columnsAndValues));
     }
 }
