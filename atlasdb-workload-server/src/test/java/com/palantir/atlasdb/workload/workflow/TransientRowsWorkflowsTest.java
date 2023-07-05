@@ -195,7 +195,7 @@ public class TransientRowsWorkflowsTest {
 
     @Test
     public void invariantThrowsOnTransactionsFailingToReadTheSummaryRow() {
-        WitnessedReadTransactionAction readWitness = WitnessedReadTransactionAction.of(
+        WitnessedSingleCellReadTransactionAction readWitness = WitnessedSingleCellReadTransactionAction.of(
                 TABLE_NAME, ImmutableWorkloadCell.of(5, TransientRowsWorkflows.COLUMN), Optional.empty());
         WorkflowHistory history = getWorkflowHistory(ImmutableList.of(readWitness));
         assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
@@ -207,9 +207,9 @@ public class TransientRowsWorkflowsTest {
     @Test
     public void invariantThrowsOnTransactionsReadingTheSummaryButFailingToReadTheCorrespondingPrimaryRow() {
         List<WitnessedTransactionAction> actions = ImmutableList.of(
-                WitnessedReadTransactionAction.of(
+                WitnessedSingleCellReadTransactionAction.of(
                         TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()),
-                WitnessedReadTransactionAction.of(
+                WitnessedSingleCellReadTransactionAction.of(
                         TABLE_NAME, ImmutableWorkloadCell.of(2, TransientRowsWorkflows.COLUMN), Optional.empty()));
         WorkflowHistory history = getWorkflowHistory(actions);
         assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
