@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -134,11 +135,7 @@ public class AsyncTimeLockServiceMetadataTest {
         ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
         assertThat(responseFuture).isDone();
-        try {
-            return responseFuture.get().getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
+        return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
