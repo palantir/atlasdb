@@ -198,7 +198,8 @@ public class TransientRowsWorkflowsTest {
         WitnessedSingleCellReadTransactionAction readWitness = WitnessedSingleCellReadTransactionAction.of(
                 TABLE_NAME, ImmutableWorkloadCell.of(5, TransientRowsWorkflows.COLUMN), Optional.empty());
         WorkflowHistory history = getWorkflowHistory(ImmutableList.of(readWitness));
-        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {
+        }))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Expected to find a read of the summary row")
                 .hasExactlyArgs(SafeArg.of("actions", ImmutableList.of(readWitness)));
@@ -208,11 +209,10 @@ public class TransientRowsWorkflowsTest {
     public void invariantThrowsOnTransactionsReadingTheSummaryButFailingToReadTheCorrespondingPrimaryRow() {
         List<WitnessedTransactionAction> actions = ImmutableList.of(
                 WitnessedSingleCellReadTransactionAction.of(
-                        TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()),
-                WitnessedSingleCellReadTransactionAction.of(
-                        TABLE_NAME, ImmutableWorkloadCell.of(2, TransientRowsWorkflows.COLUMN), Optional.empty()));
+                        TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()));
         WorkflowHistory history = getWorkflowHistory(actions);
-        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
+        assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {
+        }))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Expected to find a read of a corresponding normal row")
                 .hasExactlyArgs(SafeArg.of("actions", actions));
