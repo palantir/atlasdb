@@ -179,8 +179,9 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         }
     }
 
-    // For an efficient encoding, we enforce that metadata is never attached to a lock descriptor that is not contained
-    // in the original request, so filtering metadata based on the already filtered locks is sufficient.
+    // For an efficient encoding, we expect that metadata is never attached to a lock descriptor that is not contained
+    // in the original request, so filtering metadata based on the already filtered locks is sufficient and enforces
+    // this invariant.
     // It is also cheaper than calling RangeSet::contains.
     private static Optional<LockRequestMetadata> filterMetadataBasedOnFilteredLocks(
             Set<LockDescriptor> filteredLocks, Optional<LockRequestMetadata> unfilteredMetadata) {

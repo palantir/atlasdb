@@ -22,6 +22,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -44,12 +45,10 @@ import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timestamp.InMemoryTimestampService;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -68,7 +67,7 @@ public class AsyncTimeLockServiceMetadataTest {
             ImmutableMap.of(WATCHED_LOCK, ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new")));
     private static final String UNWATCHED_TABLE_NAME = "a-random-unwatched-table";
     private static final LockDescriptor UNWATCHED_LOCK_1 =
-            AtlasRowLockDescriptor.of(UNWATCHED_TABLE_NAME, "lock1".getBytes(StandardCharsets.UTF_8));
+            AtlasRowLockDescriptor.of(UNWATCHED_TABLE_NAME, PtBytes.toBytes("lock1"));
     private static final IdentifiedLockRequest WATCHED_LOCK_REQUEST_WITH_METADATA =
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
 
@@ -99,14 +98,14 @@ public class AsyncTimeLockServiceMetadataTest {
         IdentifiedLockRequest requestWithoutMetadata = ImmutableIdentifiedLockRequest.copyOf(
                         standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA))
                 .withMetadata(Optional.empty());
-        assertDone(timeLockService.lock(requestWithoutMetadata));
+        assertThat(timeLockService.lock(requestWithoutMetadata)).isDone();
 
         assertThat(getAllLockEventsMetadata()).containsExactly(Optional.empty());
     }
 
     @Test
     public void metadataIsPassedThroughForWatchedTable() {
-        assertDone(timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA));
+        assertThat(timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA)).isDone();
 
         assertThat(getAllLockEventsMetadata())
                 .containsExactly(Optional.of(LockRequestMetadata.of(ALL_WATCHED_LOCKS_WITH_METADATA)));
@@ -117,10 +116,8 @@ public class AsyncTimeLockServiceMetadataTest {
     @Test
     public void noLockEventIsPublishedIfNothingIsWatched() {
         IdentifiedLockRequest mixedRequest = standardRequestWithMetadata(ImmutableMap.of(
-                UNWATCHED_LOCK_1,
-                ChangeMetadata.updated(
-                        "bla".getBytes(StandardCharsets.UTF_8), "blabla".getBytes(StandardCharsets.UTF_8))));
-        assertDone(timeLockService.lock(mixedRequest));
+                UNWATCHED_LOCK_1, ChangeMetadata.updated(PtBytes.toBytes("bla"), PtBytes.toBytes("blabla"))));
+        assertThat(timeLockService.lock(mixedRequest)).isDone();
 
         assertThat(getAllLockEventsMetadata()).isEmpty();
     }
@@ -134,16 +131,11 @@ public class AsyncTimeLockServiceMetadataTest {
     }
 
     private List<LockWatchEvent> getAllLockWatchEvents() {
-        ConjureStartTransactionsResponse response =
-                assertDone(timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion));
-
-        return response.getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
-    }
-
-    private static <T> T assertDone(Future<T> future) {
-        assertThat(future).isDone();
+        ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
+                timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
+        assertThat(responseFuture).isDone();
         try {
-            return future.get();
+            return responseFuture.get().getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
