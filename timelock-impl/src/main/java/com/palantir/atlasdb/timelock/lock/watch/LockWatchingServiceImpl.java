@@ -173,24 +173,33 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                 return;
             }
             // Filtering metadata after deciding if we should even proceed might save us some computation
-            biConsumer.accept(filteredLocks, filterMetadataBasedOnFilteredLocks(filteredLocks, unfilteredMetadata));
+            biConsumer.accept(
+                    filteredLocks,
+                    filterMetadataBasedOnFilteredLocks(unfilteredLocks, filteredLocks, unfilteredMetadata));
         } finally {
             watchesLock.readLock().unlock();
         }
     }
 
     // For an efficient encoding, we expect that metadata is never attached to a lock descriptor that is not contained
-    // in the original request, so filtering metadata based on the already filtered locks is sufficient and enforces
-    // this invariant.
-    // It is also cheaper than calling RangeSet::contains.
+    // in the original request, so filtering metadata based on the already filtered locks is sufficient and even
+    // enforces this invariant. It is also cheaper than calling RangeSet::contains.
+    // We assert that the invariant holds for non-production code to catch any attempts of violating that invariant
+    // early.
+    @SuppressWarnings("BadAssert")
     private static Optional<LockRequestMetadata> filterMetadataBasedOnFilteredLocks(
-            Set<LockDescriptor> filteredLocks, Optional<LockRequestMetadata> unfilteredMetadata) {
+            Set<LockDescriptor> unfilteredLocks,
+            Set<LockDescriptor> filteredLocks,
+            Optional<LockRequestMetadata> unfilteredMetadata) {
         return unfilteredMetadata
                 .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
                 .map(unfilteredLockMetadata -> {
                     Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
                                     unfilteredLockMetadata.entrySet().stream())
-                            .filterKeys(filteredLocks::contains)
+                            .filterKeys(lockDescriptor -> {
+                                assert unfilteredLocks.contains(lockDescriptor) : "Unknown lock descriptor in metadata";
+                                return filteredLocks.contains(lockDescriptor);
+                            })
                             .collectToMap();
                     return LockRequestMetadata.of(filteredLockMetadata);
                 });

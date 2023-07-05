@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatException;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
 import com.palantir.lock.watch.ChangeMetadata;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -67,7 +70,7 @@ public class AsyncTimeLockServiceMetadataTest {
     private static final Map<LockDescriptor, ChangeMetadata> ALL_WATCHED_LOCKS_WITH_METADATA =
             ImmutableMap.of(WATCHED_LOCK, ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new")));
     private static final String UNWATCHED_TABLE_NAME = "a-random-unwatched-table";
-    private static final LockDescriptor UNWATCHED_LOCK_1 =
+    private static final LockDescriptor UNWATCHED_LOCK =
             AtlasRowLockDescriptor.of(UNWATCHED_TABLE_NAME, PtBytes.toBytes("lock1"));
     private static final IdentifiedLockRequest WATCHED_LOCK_REQUEST_WITH_METADATA =
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
@@ -99,14 +102,14 @@ public class AsyncTimeLockServiceMetadataTest {
         IdentifiedLockRequest requestWithoutMetadata = ImmutableIdentifiedLockRequest.copyOf(
                         standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA))
                 .withMetadata(Optional.empty());
-        assertThat(timeLockService.lock(requestWithoutMetadata)).isDone();
+        timeLockService.lock(requestWithoutMetadata);
 
         assertThat(getAllLockEventsMetadata()).containsExactly(Optional.empty());
     }
 
     @Test
     public void metadataIsPassedThroughForWatchedTable() {
-        assertThat(timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA)).isDone();
+        timeLockService.lock(WATCHED_LOCK_REQUEST_WITH_METADATA);
 
         assertThat(getAllLockEventsMetadata())
                 .containsExactly(Optional.of(LockRequestMetadata.of(ALL_WATCHED_LOCKS_WITH_METADATA)));
@@ -117,10 +120,29 @@ public class AsyncTimeLockServiceMetadataTest {
     @Test
     public void noLockEventIsPublishedIfNothingIsWatched() {
         IdentifiedLockRequest mixedRequest = standardRequestWithMetadata(ImmutableMap.of(
-                UNWATCHED_LOCK_1, ChangeMetadata.updated(PtBytes.toBytes("bla"), PtBytes.toBytes("blabla"))));
-        assertThat(timeLockService.lock(mixedRequest)).isDone();
+                UNWATCHED_LOCK, ChangeMetadata.updated(PtBytes.toBytes("bla"), PtBytes.toBytes("blabla"))));
+        timeLockService.lock(mixedRequest);
 
         assertThat(getAllLockEventsMetadata()).isEmpty();
+    }
+
+    // This test verifies that future developers are alerted when they break the metadata invariant by trying to pass
+    // metadata that is not attached to a lock descriptor that is part of the original request.
+    @Test
+    public void cannotPassDownMetadataForUnknownLockDescriptors() {
+        IdentifiedLockRequest goodRequest =
+                standardRequestWithMetadata(ImmutableMap.of(WATCHED_LOCK, ChangeMetadata.unchanged()));
+        IdentifiedLockRequest badRequest = ImmutableIdentifiedLockRequest.builder()
+                .from(goodRequest)
+                .metadata(LockRequestMetadata.of(
+                        ImmutableMap.of(StringLockDescriptor.of("some-random-lock"), ChangeMetadata.unchanged())))
+                .build();
+        assertThatException()
+                .isThrownBy(() -> timeLockService.lock(badRequest).get())
+                .isInstanceOf(ExecutionException.class)
+                .havingCause()
+                .isInstanceOf(AssertionError.class)
+                .withMessage("Unknown lock descriptor in metadata");
     }
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {
@@ -134,7 +156,6 @@ public class AsyncTimeLockServiceMetadataTest {
     private List<LockWatchEvent> getAllLockWatchEvents() {
         ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
-        assertThat(responseFuture).isDone();
         return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
     }
 
