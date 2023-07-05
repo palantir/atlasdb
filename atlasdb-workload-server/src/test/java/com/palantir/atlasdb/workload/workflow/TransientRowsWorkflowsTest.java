@@ -35,7 +35,7 @@ import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableFullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -110,7 +110,7 @@ public class TransientRowsWorkflowsTest {
         for (int index = 1; index < ITERATION_COUNT; index++) {
             assertThat(witnessedTransactions.get(index).actions()).hasSize(7).satisfies(actions -> {
                 assertThat(actions.subList(0, 2)).allMatch(WitnessedWriteTransactionAction.class::isInstance);
-                assertThat(actions.subList(2, 5)).allMatch(WitnessedReadTransactionAction.class::isInstance);
+                assertThat(actions.subList(2, 5)).allMatch(WitnessedSingleCellReadTransactionAction.class::isInstance);
                 assertThat(actions.subList(5, 7)).allMatch(WitnessedDeleteTransactionAction.class::isInstance);
             });
         }
@@ -195,7 +195,7 @@ public class TransientRowsWorkflowsTest {
 
     @Test
     public void invariantThrowsOnTransactionsFailingToReadTheSummaryRow() {
-        WitnessedReadTransactionAction readWitness = WitnessedReadTransactionAction.of(
+        WitnessedSingleCellReadTransactionAction readWitness = WitnessedSingleCellReadTransactionAction.of(
                 TABLE_NAME, ImmutableWorkloadCell.of(5, TransientRowsWorkflows.COLUMN), Optional.empty());
         WorkflowHistory history = getWorkflowHistory(ImmutableList.of(readWitness));
         assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
@@ -206,11 +206,8 @@ public class TransientRowsWorkflowsTest {
 
     @Test
     public void invariantThrowsOnTransactionsReadingTheSummaryButFailingToReadTheCorrespondingPrimaryRow() {
-        List<WitnessedTransactionAction> actions = ImmutableList.of(
-                WitnessedReadTransactionAction.of(
-                        TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()),
-                WitnessedReadTransactionAction.of(
-                        TABLE_NAME, ImmutableWorkloadCell.of(2, TransientRowsWorkflows.COLUMN), Optional.empty()));
+        List<WitnessedTransactionAction> actions = ImmutableList.of(WitnessedSingleCellReadTransactionAction.of(
+                TABLE_NAME, ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, 3), Optional.empty()));
         WorkflowHistory history = getWorkflowHistory(actions);
         assertThatLoggableExceptionThrownBy(() -> invariant.accept(history, inconsistencies -> {}))
                 .isInstanceOf(SafeIllegalStateException.class)
@@ -276,11 +273,11 @@ public class TransientRowsWorkflowsTest {
     private static List<WitnessedTransactionAction> getReadWitnessesForSingleTransaction(
             int columnIndex, Optional<Integer> summaryValue, Optional<Integer> primaryValue) {
         return ImmutableList.of(
-                WitnessedReadTransactionAction.of(
+                WitnessedSingleCellReadTransactionAction.of(
                         TABLE_NAME,
                         ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, columnIndex),
                         summaryValue),
-                WitnessedReadTransactionAction.of(
+                WitnessedSingleCellReadTransactionAction.of(
                         TABLE_NAME,
                         ImmutableWorkloadCell.of(columnIndex, TransientRowsWorkflows.COLUMN),
                         primaryValue));
@@ -309,12 +306,13 @@ public class TransientRowsWorkflowsTest {
 
     private static WitnessedTransactionAction rewriteReadHistoryAsAlwaysInconsistent(
             WitnessedTransactionAction action) {
-        if (action instanceof WitnessedReadTransactionAction) {
-            WitnessedReadTransactionAction readAction = (WitnessedReadTransactionAction) action;
+        if (action instanceof WitnessedSingleCellReadTransactionAction) {
+            WitnessedSingleCellReadTransactionAction readAction = (WitnessedSingleCellReadTransactionAction) action;
             if (readAction.cell().key() == TransientRowsWorkflows.SUMMARY_ROW) {
-                return WitnessedReadTransactionAction.of(readAction.table(), readAction.cell(), Optional.empty());
+                return WitnessedSingleCellReadTransactionAction.of(
+                        readAction.table(), readAction.cell(), Optional.empty());
             } else {
-                return WitnessedReadTransactionAction.of(
+                return WitnessedSingleCellReadTransactionAction.of(
                         readAction.table(), readAction.cell(), Optional.of(TransientRowsWorkflows.VALUE));
             }
         } else {

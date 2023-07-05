@@ -25,8 +25,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowCo
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.Map;
@@ -58,7 +58,8 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
+    public Optional<InvalidWitnessedTransactionAction> visit(
+            WitnessedSingleCellReadTransactionAction readTransactionAction) {
         Optional<Integer> expected = fetchValueFromView(
                         readTransactionAction.table(), readTransactionAction.cell(), readView)
                 .value();

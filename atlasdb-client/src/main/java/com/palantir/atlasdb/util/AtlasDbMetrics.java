@@ -118,7 +118,7 @@ public final class AtlasDbMetrics {
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,
                         LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
-                .build();
+                .build(); // Ok
     }
 
     private static InstrumentationFilter instrumentTimedOnly() {

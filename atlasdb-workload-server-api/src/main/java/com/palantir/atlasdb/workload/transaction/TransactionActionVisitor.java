@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction;
 
 public interface TransactionActionVisitor<T> {
-    T visit(ReadTransactionAction readTransactionAction);
+    T visit(SingleCellReadTransactionAction singleCellReadTransactionAction);
 
     T visit(WriteTransactionAction writeTransactionAction);
 

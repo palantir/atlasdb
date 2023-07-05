@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
 public interface WitnessedTransactionActionVisitor<T> {
-    T visit(WitnessedReadTransactionAction readTransactionAction);
+    T visit(WitnessedSingleCellReadTransactionAction readTransactionAction);
 
     T visit(WitnessedWriteTransactionAction writeTransactionAction);
 

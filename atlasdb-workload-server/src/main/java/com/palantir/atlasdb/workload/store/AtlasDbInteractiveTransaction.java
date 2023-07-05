@@ -25,7 +25,7 @@ import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
@@ -68,7 +68,8 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                     Map<Cell, byte[]> values = transaction.get(tableReference, Set.of(atlasCell));
                     Optional<Integer> valueRead =
                             Optional.ofNullable(values.get(atlasCell)).map(Ints::fromByteArray);
-                    witnessedTransactionActions.add(WitnessedReadTransactionAction.of(table, workloadCell, valueRead));
+                    witnessedTransactionActions.add(
+                            WitnessedSingleCellReadTransactionAction.of(table, workloadCell, valueRead));
                     return valueRead;
                 },
                 table,
