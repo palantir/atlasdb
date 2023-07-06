@@ -54,8 +54,11 @@ public final class ConjureLockRequestMetadataUtils {
                 changeMetadata -> changeMetadata.accept(toConjureVisitor),
                 DEFAULT_CHECKSUM_TYPE);
         KeyListChecksum checksum = encoded.keyListChecksum();
-        ConjureLockRequestMetadata conjureLockRequestMetadata = ConjureLockRequestMetadata.of(
-                encoded.indexToValue(), checksum.type().getId(), Bytes.from(checksum.value()));
+        ConjureLockRequestMetadata conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
+                .indexToChangeMetadata(encoded.indexToValue())
+                .checksumTypeId(checksum.type().getId())
+                .checksumValue(Bytes.from(checksum.value()))
+                .build();
         return Pair.create(encoded.keyList(), conjureLockRequestMetadata);
     }
 
@@ -66,7 +69,11 @@ public final class ConjureLockRequestMetadataUtils {
         KeyListChecksum checksum = KeyListChecksum.of(
                 checksumType, conjureMetadata.getChecksumValue().asNewByteArray());
         IndexEncodingResult<LockDescriptor, ConjureChangeMetadata> encoded =
-                IndexEncodingResult.of(keyList, conjureMetadata.getIndexToChangeMetadata(), checksum);
+                IndexEncodingResult.<LockDescriptor, ConjureChangeMetadata>builder()
+                        .keyList(keyList)
+                        .indexToValue(conjureMetadata.getIndexToChangeMetadata())
+                        .keyListChecksum(checksum)
+                        .build();
         Map<LockDescriptor, ChangeMetadata> changeMetadata = IndexEncodingUtils.decode(
                 encoded, conjureChangeMetadata -> conjureChangeMetadata.accept(fromConjureVisitor));
         // visitUnknown() will return null

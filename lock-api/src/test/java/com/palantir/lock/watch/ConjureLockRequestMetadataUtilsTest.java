@@ -78,8 +78,11 @@ public class ConjureLockRequestMetadataUtilsTest {
     public static void setup() {
         KeyListChecksum checksum =
                 IndexEncodingUtils.computeChecksum(ConjureLockRequestMetadataUtils.DEFAULT_CHECKSUM_TYPE, LOCK_LIST);
-        conjureLockRequestMetadata = ConjureLockRequestMetadata.of(
-                CONJURE_LOCKS_WITH_METADATA, checksum.type().getId(), Bytes.from(checksum.value()));
+        conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
+                .indexToChangeMetadata(CONJURE_LOCKS_WITH_METADATA)
+                .checksumTypeId(checksum.type().getId())
+                .checksumValue(Bytes.from(checksum.value()))
+                .build();
     }
 
     @Test
