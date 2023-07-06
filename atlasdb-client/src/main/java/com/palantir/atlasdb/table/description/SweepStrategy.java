@@ -62,7 +62,7 @@ public final class SweepStrategy {
                 ? mustCheckImmutableLockIfAllCellsReadAndPresent
                 : mustCheckImmutableLockIfNonExhaustiveRead;
 
-        if (!mustCheckLock && isConfiguredWithThoroughSweep()) {
+        if (log.isDebugEnabled() && !mustCheckLock && isConfiguredWithThoroughSweep()) {
             log.debug("Can skip immutable timestamp lock on thoroughly swept table due to making exhaustive read");
         }
 
