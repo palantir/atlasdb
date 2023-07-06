@@ -62,7 +62,7 @@ public final class ConjureLockRequestMetadataUtils {
     public static LockRequestMetadata fromConjureIndexEncoded(
             List<LockDescriptor> keyList, ConjureLockRequestMetadata conjureMetadata) {
         ChangeMetadataFromConjureVisitor fromConjureVisitor = new ChangeMetadataFromConjureVisitor();
-        ChecksumType checksumType = ChecksumType.valueOf(conjureMetadata.getChecksumType());
+        ChecksumType checksumType = ChecksumType.valueOf(conjureMetadata.getChecksumTypeId());
         KeyListChecksum checksum = KeyListChecksum.of(
                 checksumType, conjureMetadata.getChecksumValue().asNewByteArray());
         IndexEncodingResult<LockDescriptor, ConjureChangeMetadata> encoded =
