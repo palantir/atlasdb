@@ -76,6 +76,11 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
+    public void canLookupChecksumType() {
+        assertThat(ChecksumType.valueOf(checksumType.getId())).contains(checksumType);
+    }
+
+    @Test
     public void canEncodeSimpleData() {
         assertThat(encoded.indexToValue()).isEqualTo(INDEX_ENCODED_VALUES);
     }

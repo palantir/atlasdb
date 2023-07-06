@@ -158,17 +158,21 @@ public final class IndexEncodingUtils {
     public enum ChecksumType {
         CRC32_OF_DETERMINISTIC_HASHCODE(0);
 
-        private static final Map<Integer, ChecksumType> VALUE_TO_ENTRY =
-                Arrays.stream(ChecksumType.values()).collect(Collectors.toMap(entry -> entry.value, entry -> entry));
+        private static final Map<Integer, ChecksumType> ID_TO_ENTRY =
+                Arrays.stream(ChecksumType.values()).collect(Collectors.toMap(entry -> entry.id, entry -> entry));
 
-        private final int value;
+        private final int id;
 
-        ChecksumType(int value) {
-            this.value = value;
+        ChecksumType(int id) {
+            this.id = id;
         }
 
-        public static Optional<ChecksumType> valueOf(int value) {
-            return Optional.ofNullable(VALUE_TO_ENTRY.get(value));
+        public int getId() {
+            return id;
+        }
+
+        public static Optional<ChecksumType> valueOf(int id) {
+            return Optional.ofNullable(ID_TO_ENTRY.get(id));
         }
     }
 
