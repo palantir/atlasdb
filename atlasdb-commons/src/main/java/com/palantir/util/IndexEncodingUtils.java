@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.ByteBuffer;
@@ -28,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -156,7 +156,7 @@ public final class IndexEncodingUtils {
     }
 
     public enum ChecksumType {
-        CRC32_OF_DETERMINISTIC_HASHCODE(0);
+        CRC32_OF_DETERMINISTIC_HASHCODE(1);
 
         private static final Map<Integer, ChecksumType> ID_TO_ENTRY =
                 Arrays.stream(ChecksumType.values()).collect(Collectors.toMap(entry -> entry.id, entry -> entry));
@@ -171,8 +171,10 @@ public final class IndexEncodingUtils {
             return id;
         }
 
-        public static Optional<ChecksumType> valueOf(int id) {
-            return Optional.ofNullable(ID_TO_ENTRY.get(id));
+        public static ChecksumType valueOf(int id) {
+            Preconditions.checkArgument(
+                    ID_TO_ENTRY.containsKey(id), "Unknown checksum type ID", SafeArg.of("checksumTypeId", id));
+            return ID_TO_ENTRY.get(id);
         }
     }
 

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeExceptions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -77,7 +78,16 @@ public class IndexEncodingUtilsTest {
 
     @Test
     public void canLookupChecksumType() {
-        assertThat(ChecksumType.valueOf(checksumType.getId())).contains(checksumType);
+        assertThat(ChecksumType.valueOf(checksumType.getId())).isEqualTo(checksumType);
+    }
+
+    @Test
+    public void throwsForUnknownChecksumType() {
+        assertThatException()
+                .isThrownBy(() -> ChecksumType.valueOf(-1))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .withMessage(
+                        SafeExceptions.renderMessage("Unknown checksum type ID", SafeArg.of("checksumTypeId", -1)));
     }
 
     @Test
