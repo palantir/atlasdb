@@ -16,6 +16,7 @@
 
 package com.palantir.util;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.google.common.collect.Maps;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.zip.CRC32;
+import org.immutables.value.Value;
 
 public final class IndexEncodingUtils {
     private IndexEncodingUtils() {}
@@ -93,5 +95,27 @@ public final class IndexEncodingUtils {
             orderedKeyChecksum.update(byteMapper.apply(key));
         }
         return orderedKeyChecksum.getValue();
+    }
+
+    /**
+     * This class is merely used to wrap the output of {@link IndexEncodingUtils#encode} and should not be embedded in
+     * any other object directly or serialized as-is.
+     */
+    @Value.Immutable
+    @JsonIgnoreType
+    public interface IndexEncodingResult<K, V> {
+        @Value.Parameter
+        List<K> keyList();
+
+        @Value.Parameter
+        Map<Integer, V> indexToValue();
+
+        @Value.Parameter
+        long keyListCrc32Checksum();
+
+        static <K, V> IndexEncodingResult<K, V> of(
+                List<K> keyList, Map<Integer, V> indexToValue, long keyListCrc32Checksum) {
+            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListCrc32Checksum);
+        }
     }
 }

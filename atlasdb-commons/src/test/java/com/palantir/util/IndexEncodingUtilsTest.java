@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
