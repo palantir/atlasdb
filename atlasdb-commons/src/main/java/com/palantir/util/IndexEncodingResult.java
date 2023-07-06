@@ -16,11 +16,20 @@
 
 package com.palantir.util;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
+import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
+/**
+ * This class is merely used to wrap the output of {@link IndexEncodingUtils#encode} and should not be embedded in
+ * any other object directly or serialized as-is.
+ */
 @Value.Immutable
-public interface IndexEncodingWithChecksum<V> {
+@JsonIgnoreType
+public interface IndexEncodingResult<K, V> {
+    @Value.Parameter
+    List<K> keyList();
 
     @Value.Parameter
     Map<Integer, V> indexToValue();
@@ -28,7 +37,8 @@ public interface IndexEncodingWithChecksum<V> {
     @Value.Parameter
     long keyListCrc32Checksum();
 
-    static <V> IndexEncodingWithChecksum<V> of(Map<Integer, V> indexToValue, long keyListCrc32Checksum) {
-        return ImmutableIndexEncodingWithChecksum.of(indexToValue, keyListCrc32Checksum);
+    static <K, V> IndexEncodingResult<K, V> of(
+            List<K> keyList, Map<Integer, V> indexToValue, long keyListCrc32Checksum) {
+        return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListCrc32Checksum);
     }
 }
