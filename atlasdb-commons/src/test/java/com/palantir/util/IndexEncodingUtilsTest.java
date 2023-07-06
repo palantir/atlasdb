@@ -67,15 +67,15 @@ public class IndexEncodingUtilsTest {
     @Test
     public void canEncodeSimpleData() {
         assertThat(IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType)
-                .indexToValue())
+                        .indexToValue())
                 .isEqualTo(INDEX_ENCODED_VALUES);
     }
 
     @Test
     public void canEncodeAndDecodeSimpleData() {
         assertThat(IndexEncodingUtils.decode(
-                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType),
-                Function.identity()))
+                        IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType),
+                        Function.identity()))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
@@ -85,14 +85,14 @@ public class IndexEncodingUtilsTest {
                 .map(VALUE_MAPPER)
                 .collectToMap();
         assertThat(IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checksumType)
-                .indexToValue())
+                        .indexToValue())
                 .containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
     @Test
     public void canDecodeWithCustomValueMapper() {
         assertThat(IndexEncodingUtils.decode(
-                IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checksumType), REVERSE_MAPPER))
+                        IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checksumType), REVERSE_MAPPER))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
