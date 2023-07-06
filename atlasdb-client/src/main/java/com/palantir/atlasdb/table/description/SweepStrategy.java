@@ -20,6 +20,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
 
 /**
@@ -28,6 +30,8 @@ import java.util.Optional;
  * immutable lock after migrating to this mode.
  */
 public final class SweepStrategy {
+
+    private static final SafeLogger log = SafeLoggerFactory.get(SweepStrategy.class);
 
     public static final SweepStrategy CONSERVATIVE =
             new SweepStrategy(Optional.of(SweeperStrategy.CONSERVATIVE), false, false);
@@ -54,9 +58,19 @@ public final class SweepStrategy {
     }
 
     public boolean mustCheckImmutableLock(boolean allPossibleCellsReandAndPresent) {
-        return allPossibleCellsReandAndPresent
+        boolean mustCheckLock = allPossibleCellsReandAndPresent
                 ? mustCheckImmutableLockIfAllCellsReadAndPresent
                 : mustCheckImmutableLockIfNonExhaustiveRead;
+
+        if (!mustCheckLock && isConfiguredWithThoroughSweep()) {
+            log.debug("Can skip immutable timestamp lock on thoroughly swept table due to making exhaustive read");
+        }
+
+        return mustCheckLock;
+    }
+
+    private boolean isConfiguredWithThoroughSweep() {
+        return getSweeperStrategy().isPresent() && getSweeperStrategy().get().equals(SweeperStrategy.THOROUGH);
     }
 
     public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
