@@ -133,7 +133,7 @@ public class IndexEncodingUtilsTest {
         List<DH<String>> modifiedKeyList = new ArrayList<>(KEYS);
         Collections.swap(modifiedKeyList, 0, 1);
         IndexEncodingResult<DH<String>, Long> encodedWithModifiedKeyList =
-                IndexEncodingResult.of(modifiedKeyList, encoded.indexToValue(), encoded.keyListChecksum());
+                ImmutableIndexEncodingResult.copyOf(encoded).withKeyList(modifiedKeyList);
         KeyListChecksum actualChecksum = IndexEncodingUtils.computeChecksum(checksumType, modifiedKeyList);
         assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
@@ -148,10 +148,8 @@ public class IndexEncodingUtilsTest {
     public void integrityCheckFailsForDifferentChecksum() {
         byte[] modifiedChecksum = encoded.keyListChecksum().value();
         modifiedChecksum[0]++;
-        IndexEncodingResult<DH<String>, Long> encodedWithModifiedChecksum = IndexEncodingResult.of(
-                encoded.keyList(),
-                encoded.indexToValue(),
-                KeyListChecksum.of(encoded.keyListChecksum().type(), modifiedChecksum));
+        IndexEncodingResult<DH<String>, Long> encodedWithModifiedChecksum = ImmutableIndexEncodingResult.copyOf(encoded)
+                .withKeyListChecksum(KeyListChecksum.of(checksumType, modifiedChecksum));
         assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage(SafeExceptions.renderMessage(

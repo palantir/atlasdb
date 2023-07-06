@@ -79,7 +79,11 @@ public final class IndexEncodingUtils {
             throw new SafeIllegalArgumentException(
                     "keyToValue contains keys that are not in the key list", UnsafeArg.of("unknownKeys", unknownKeys));
         }
-        return IndexEncodingResult.of(keyList, indexToValue, computeChecksum(checksumType, keyList));
+        return IndexEncodingResult.<K, R>builder()
+                .keyList(keyList)
+                .indexToValue(indexToValue)
+                .keyListChecksum(computeChecksum(checksumType, keyList))
+                .build();
     }
 
     /**
@@ -140,19 +144,14 @@ public final class IndexEncodingUtils {
     @Value.Immutable
     @JsonIgnoreType
     public interface IndexEncodingResult<K extends DeterministicHashable, V> {
-
-        @Value.Parameter
         List<K> keyList();
 
-        @Value.Parameter
         Map<Integer, V> indexToValue();
 
-        @Value.Parameter
         KeyListChecksum keyListChecksum();
 
-        static <K extends DeterministicHashable, V> IndexEncodingResult<K, V> of(
-                List<K> keyList, Map<Integer, V> indexToValue, KeyListChecksum keyListChecksum) {
-            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListChecksum);
+        static <K extends DeterministicHashable, V> ImmutableIndexEncodingResult.Builder<K, V> builder() {
+            return ImmutableIndexEncodingResult.builder();
         }
     }
 
