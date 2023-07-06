@@ -1381,7 +1381,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             if (!autocommit) {
                 runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                runner.apply(dbTables.createWrite(tableRef, conns));
+                T unused = runner.apply(dbTables.createWrite(tableRef, conns));
             }
         }
     }
