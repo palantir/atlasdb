@@ -998,15 +998,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
-                    if (fromKeyValueService.size() > expectedNumberOfPresentCellsToFetch) {
-                        throw new SafeIllegalStateException(
-                                "KeyValueService returned more results than Get expected. This means there is a bug"
-                                        + "either in the SnapshotTransaction implementation or in how the client is "
-                                        + "using such method.",
-                                SafeArg.of("expectedNumberOfCells", expectedNumberOfPresentCellsToFetch),
-                                SafeArg.of("numberOfCellsRetrieved", fromKeyValueService.size()));
-                    }
-
+                    validateFetchedLessOrEqualToExpected(expectedNumberOfPresentCellsToFetch, fromKeyValueService);
                     boolean allPossibleCellsReadAndPresent =
                             fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
                     validatePreCommitRequirementsOnReadIfNecessary(
@@ -1014,6 +1006,19 @@ public class SnapshotTransaction extends AbstractTransaction
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private static void validateFetchedLessOrEqualToExpected(
+            int expectedNumberOfPresentCellsToFetch, Map<Cell, byte[]> fromKeyValueService) {
+        if (fromKeyValueService.size() > expectedNumberOfPresentCellsToFetch) {
+            throw new SafeIllegalStateException(
+                    "KeyValueService returned more results than Get expected. This means there is a bug"
+                            + "either in the SnapshotTransaction implementation or in how the client is "
+                            + "using such method.",
+                    SafeArg.of("expectedNumberOfCells", expectedNumberOfPresentCellsToFetch),
+                    SafeArg.of("numberOfCellsRetrieved", fromKeyValueService.size()),
+                    UnsafeArg.of("retrievedCells", fromKeyValueService));
+        }
     }
 
     @Override
