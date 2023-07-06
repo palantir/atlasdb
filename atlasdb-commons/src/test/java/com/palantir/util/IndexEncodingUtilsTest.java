@@ -23,10 +23,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.IndexEncodingUtils.CheckSumType;
 import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
-import java.nio.ByteBuffer;
+import com.palantir.util.IndexEncodingUtils.KeyListCheckSum;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,21 +42,31 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class IndexEncodingUtilsTest {
+    @Parameterized.Parameters(name = "checkSumType={0}")
+    public static Iterable<CheckSumType> data() {
+        return Arrays.asList(CheckSumType.values());
+    }
+
     private static final Map<String, Long> VALUES = ImmutableMap.of("key1", 42L, "key2", 1337L, "anotherKey", -10L);
     private static final Set<String> KEYS = ImmutableSet.of("key1", "key2", "anotherKey");
     private static final Map<Integer, Long> INDEX_ENCODED_VALUES = ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L);
     private static final Function<Long, String> VALUE_MAPPER = value -> Long.toString(value - 10);
     private static final Function<String, Long> REVERSE_MAPPER = value -> Long.parseLong(value) + 10;
-    private static final Function<UUID, byte[]> UUID_BYTE_MAPPER = value -> ByteBuffer.allocate(16)
-            .putLong(0, value.getMostSignificantBits())
-            .putLong(8, value.getLeastSignificantBits())
-            .array();
+
+    private final CheckSumType checkSumType;
+
+    public IndexEncodingUtilsTest(CheckSumType checkSumType) {
+        this.checkSumType = checkSumType;
+    }
 
     @Test
     public void canEncodeSimpleData() {
-        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), IndexEncodingUtilsTest::dummyByteMapper)
+        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checkSumType)
                         .indexToValue())
                 .isEqualTo(INDEX_ENCODED_VALUES);
     }
@@ -60,10 +74,8 @@ public class IndexEncodingUtilsTest {
     @Test
     public void canEncodeAndDecodeSimpleData() {
         assertThat(IndexEncodingUtils.decode(
-                        IndexEncodingUtils.encode(
-                                KEYS, VALUES, Function.identity(), IndexEncodingUtilsTest::dummyByteMapper),
-                        Function.identity(),
-                        IndexEncodingUtilsTest::dummyByteMapper))
+                        IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checkSumType),
+                        Function.identity()))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
@@ -72,7 +84,7 @@ public class IndexEncodingUtilsTest {
         Map<Integer, String> expectedValues = KeyedStream.ofEntries(INDEX_ENCODED_VALUES.entrySet().stream())
                 .map(VALUE_MAPPER)
                 .collectToMap();
-        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, IndexEncodingUtilsTest::dummyByteMapper)
+        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checkSumType)
                         .indexToValue())
                 .containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
@@ -80,9 +92,7 @@ public class IndexEncodingUtilsTest {
     @Test
     public void canDecodeWithCustomValueMapper() {
         assertThat(IndexEncodingUtils.decode(
-                        IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, IndexEncodingUtilsTest::dummyByteMapper),
-                        REVERSE_MAPPER,
-                        IndexEncodingUtilsTest::dummyByteMapper))
+                        IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checkSumType), REVERSE_MAPPER))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
@@ -90,32 +100,30 @@ public class IndexEncodingUtilsTest {
     public void encodeChecksForUnknownKeysInValueMap() {
         assertThatException()
                 .isThrownBy(() -> IndexEncodingUtils.encode(
-                        KEYS,
-                        ImmutableMap.of("unknown-key", 0L),
-                        Function.identity(),
-                        IndexEncodingUtilsTest::dummyByteMapper))
+                        KEYS, ImmutableMap.of("unknown-key", 0L), Function.identity(), checkSumType))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .withMessage("Value map contains keys that are not in the key list");
+                .withMessage(SafeExceptions.renderMessage(
+                        "keyToValue contains keys that are not in the key list",
+                        UnsafeArg.of("unknownKeys", ImmutableSet.of("unknown-key"))));
     }
 
     @Test
     public void integrityCheckPassesForSameKeyList() {
         IndexEncodingResult<String, Long> encoded =
-                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), String::getBytes);
-        Map<String, Long> decoded = IndexEncodingUtils.decode(encoded, Function.identity(), String::getBytes);
+                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checkSumType);
+        Map<String, Long> decoded = IndexEncodingUtils.decode(encoded, Function.identity());
         assertThat(decoded).containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
     @Test
     public void integrityCheckFailsForDifferentKeyList() {
         IndexEncodingResult<String, Long> encoded =
-                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), String::getBytes);
+                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checkSumType);
         List<String> modifiedKeyList = new ArrayList<>(KEYS);
         Collections.swap(modifiedKeyList, 0, 1);
         IndexEncodingResult<String, Long> encodedWithModifiedKeyList =
-                IndexEncodingResult.of(modifiedKeyList, encoded.indexToValue(), encoded.keyListCrc32Checksum());
-        assertThatThrownBy(() ->
-                        IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity(), String::getBytes))
+                IndexEncodingResult.of(modifiedKeyList, encoded.indexToValue(), encoded.keyListCheckSum());
+        assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Key list integrity check failed");
     }
@@ -123,11 +131,14 @@ public class IndexEncodingUtilsTest {
     @Test
     public void integrityCheckFailsForDifferentChecksum() {
         IndexEncodingResult<String, Long> encoded =
-                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), String::getBytes);
-        IndexEncodingResult<String, Long> encodedWithModifiedChecksum =
-                IndexEncodingResult.of(encoded.keyList(), encoded.indexToValue(), encoded.keyListCrc32Checksum() + 1);
-        assertThatThrownBy(() ->
-                        IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity(), String::getBytes))
+                IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checkSumType);
+        byte[] modifiedChecksum = encoded.keyListCheckSum().checksumValue();
+        modifiedChecksum[0]++;
+        IndexEncodingResult<String, Long> encodedWithModifiedChecksum = IndexEncodingResult.of(
+                encoded.keyList(),
+                encoded.indexToValue(),
+                KeyListCheckSum.of(encoded.keyListCheckSum().checksumType(), modifiedChecksum));
+        assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Key list integrity check failed");
     }
@@ -141,13 +152,7 @@ public class IndexEncodingUtilsTest {
                 .map(_unused -> rand.nextLong())
                 .collectToMap();
         Assertions.assertThat(IndexEncodingUtils.decode(
-                        IndexEncodingUtils.encode(keys, data, Function.identity(), UUID_BYTE_MAPPER),
-                        Function.identity(),
-                        UUID_BYTE_MAPPER))
+                        IndexEncodingUtils.encode(keys, data, Function.identity(), checkSumType), Function.identity()))
                 .containsExactlyInAnyOrderEntriesOf(data);
-    }
-
-    private static <K> byte[] dummyByteMapper(K key) {
-        return new byte[0];
     }
 }

@@ -18,8 +18,11 @@ package com.palantir.util;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,19 +35,21 @@ public final class IndexEncodingUtils {
     private IndexEncodingUtils() {}
 
     /**
-     * Given a set of keys and a map of keys to values, we first order the keys in some fixed manner and then compute
-     * a map that uses indices into this list of keys instead of actual keys.
-     * Values of the returned map are created using the provided mapping function.
-     * We return the list of keys, the index map, and a CRC32 checksum of the ordered keys.
+     * Compute a derived map, replacing keys with their associated index into the ordered list, to the value returned
+     * by running the valueMapper over the original value.
+     * If the original values are transmitted as associated objects for some keys and keys can be large,
+     * this encoding can be used to save significant space on the wire.
      *
-     * @param keys a collection of keys (must not be ordered)
-     * @param keyToValue a map of keys to values. Every key MUST be contained in the list of keys.
-     * @param valueMapper a mapping function to run before putting a value into the result map
-     * @param byteMapper a function that extracts bytes from a key object, which are used to compute the checksum
-     * @throws SafeIllegalArgumentException if the value map contains keys that are not in the key list
+     * @param keys a set of keys
+     * @param keyToValue a map of keys to values. Every key in this map MUST be contained in the set of keys.
+     * @param valueMapper a mapping function applied to values before placing them into the result map
+     * @param checkSumType the type of checksum algorithm to use
+     * @return the list of keys, the index map, and a compound checksum of the ordered keys.
+     * @throws SafeIllegalArgumentException if the {@code keyToValue} contains keys that are not in the provided
+     * set of keys
      */
     public static <K, V, R> IndexEncodingResult<K, R> encode(
-            Set<K> keys, Map<K, V> keyToValue, Function<V, R> valueMapper, Function<K, byte[]> byteMapper) {
+            Set<K> keys, Map<K, V> keyToValue, Function<V, R> valueMapper, CheckSumType checkSumType) {
         List<K> keyList = new ArrayList<>(keys);
         // A linked hash map will give a minor improvement when iterating during serialization
         Map<Integer, R> indexToValue = Maps.newLinkedHashMapWithExpectedSize(keyToValue.size());
@@ -56,29 +61,29 @@ public final class IndexEncodingUtils {
                 indexToValue.put(i, valueMapper.apply(value));
             }
         }
-        Preconditions.checkArgument(
-                indexToValue.size() == keyToValue.size(), "Value map contains keys that are not in the key list");
-        return IndexEncodingResult.of(keyList, indexToValue, computeCheckSum(keyList, byteMapper));
+        if (indexToValue.size() != keyToValue.size()) {
+            Set<K> unknownKeys = Sets.difference(keyToValue.keySet(), keys);
+            throw new SafeIllegalArgumentException(
+                    "keyToValue contains keys that are not in the key list", UnsafeArg.of("unknownKeys", unknownKeys));
+        }
+        return IndexEncodingResult.of(keyList, indexToValue, computeCheckSum(checkSumType, keyList));
     }
 
     /**
-     * Given an ordered list of keys and a map of indices to values, returns a map of keys to values.
-     * The values are determined by indexing into the list of keys.
-     * Values of the returned map are created using the provided mapping function.
-     * Also computes a checksum of the ordered keys using a provided function and compares it to the provided checksum.
+     * Compute a derived map, replacing indices into the ordered list with their items, to the value returned
+     * by running the valueMapper over the original value.
      *
      * @param indexEncodingResult the output of {@link IndexEncodingUtils#encode}, i.e. the ordered list of keys,
-     * a map of indices to values, and a checksum of the ordered key list used to compute it. Every index MUST be
+     * a map of indices to values, and a checksum of the ordered key list. Every index MUST be
      * a valid index into the list of keys.
-     * @param valueMapper a mapping function to run before putting a value into the result map
-     * @param byteMapper a function that extracts bytes from a key object, which are used to compute the checksum
+     * @param valueMapper a mapping function applied to values before placing them into the result map
      * @throws SafeIllegalArgumentException if the provided checksum does not match the checksum of the ordered keys
      */
     public static <K, V, R> Map<K, R> decode(
-            IndexEncodingResult<K, V> indexEncodingResult, Function<V, R> valueMapper, Function<K, byte[]> byteMapper) {
+            IndexEncodingResult<K, V> indexEncodingResult, Function<V, R> valueMapper) {
         Preconditions.checkArgument(
-                computeCheckSum(indexEncodingResult.keyList(), byteMapper)
-                        == indexEncodingResult.keyListCrc32Checksum(),
+                computeCheckSum(indexEncodingResult.keyListCheckSum().checksumType(), indexEncodingResult.keyList())
+                        .equals(indexEncodingResult.keyListCheckSum()),
                 "Key list integrity check failed");
 
         Map<Integer, V> indexToValue = indexEncodingResult.indexToValue();
@@ -89,12 +94,29 @@ public final class IndexEncodingUtils {
         return keyToValue;
     }
 
-    private static <K> long computeCheckSum(List<K> keyList, Function<K, byte[]> byteMapper) {
-        CRC32 orderedKeyChecksum = new CRC32();
-        for (K key : keyList) {
-            orderedKeyChecksum.update(byteMapper.apply(key));
+    private static <K> KeyListCheckSum computeCheckSum(CheckSumType checkSumType, List<K> keyList) {
+        byte[] checksumValue;
+        switch (checkSumType) {
+            case LIST_HASHCODE: {
+                checksumValue =
+                        ByteBuffer.allocate(4).putInt(keyList.hashCode()).array();
+                break;
+            }
+            case CRC32_OF_ITEM_HASHCODE: {
+                CRC32 orderedKeyChecksum = new CRC32();
+                for (K key : keyList) {
+                    orderedKeyChecksum.update(key.hashCode());
+                }
+                checksumValue = ByteBuffer.allocate(8)
+                        .putLong(orderedKeyChecksum.getValue())
+                        .array();
+                break;
+            }
+            default: {
+                throw new IllegalArgumentException("Unknown checksum type: " + checkSumType);
+            }
         }
-        return orderedKeyChecksum.getValue();
+        return KeyListCheckSum.of(checkSumType, checksumValue);
     }
 
     /**
@@ -111,11 +133,30 @@ public final class IndexEncodingUtils {
         Map<Integer, V> indexToValue();
 
         @Value.Parameter
-        long keyListCrc32Checksum();
+        KeyListCheckSum keyListCheckSum();
 
         static <K, V> IndexEncodingResult<K, V> of(
-                List<K> keyList, Map<Integer, V> indexToValue, long keyListCrc32Checksum) {
-            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListCrc32Checksum);
+                List<K> keyList, Map<Integer, V> indexToValue, KeyListCheckSum keyListCheckSum) {
+            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListCheckSum);
+        }
+    }
+
+    public enum CheckSumType {
+        LIST_HASHCODE,
+        CRC32_OF_ITEM_HASHCODE
+    }
+
+    @Value.Immutable
+    public interface KeyListCheckSum {
+
+        @Value.Parameter
+        CheckSumType checksumType();
+
+        @Value.Parameter
+        byte[] checksumValue();
+
+        static KeyListCheckSum of(CheckSumType checkSumType, byte[] checksumValue) {
+            return ImmutableKeyListCheckSum.of(checkSumType, checksumValue);
         }
     }
 }
