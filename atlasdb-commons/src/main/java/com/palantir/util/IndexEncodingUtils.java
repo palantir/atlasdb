@@ -126,7 +126,8 @@ public final class IndexEncodingUtils {
                 break;
             }
             default: {
-                throw new IllegalArgumentException("Unknown checksum type: " + checksumType);
+                throw new SafeIllegalArgumentException(
+                        "Unknown checksum type", UnsafeArg.of("checksumType", checksumType));
             }
         }
         return KeyListChecksum.of(checksumType, checksumValue);
