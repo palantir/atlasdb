@@ -57,7 +57,7 @@ public final class IndexEncodingUtils {
             }
         }
         Preconditions.checkArgument(
-                indexToValue.size() >= keyToValue.size(), "Value map contains keys that are not in the key list");
+                indexToValue.size() == keyToValue.size(), "Value map contains keys that are not in the key list");
         return IndexEncodingResult.of(keyList, indexToValue, computeCheckSum(keyList, byteMapper));
     }
 
