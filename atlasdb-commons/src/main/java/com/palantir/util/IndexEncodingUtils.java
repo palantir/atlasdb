@@ -24,31 +24,43 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import org.immutables.value.Value;
 
 public final class IndexEncodingUtils {
     private IndexEncodingUtils() {}
 
+    public interface DeterministicHashable {
+
+        /**
+         * A hash code implementation that is stable across different processes/JVMs and only depends on the contents
+         * of the object.
+         */
+        int getDeterministicHashCode();
+    }
+
     /**
      * Compute a derived map, replacing keys with their associated index into the ordered list, to the value returned
-     * by running the valueMapper over the original value.
+     * by running the {@code valueMapper} over the original value.
      * If the original values are transmitted as associated objects for some keys and keys can be large,
      * this encoding can be used to save significant space on the wire.
      *
-     * @param keys a set of keys
-     * @param keyToValue a map of keys to values. Every key in this map MUST be contained in the set of keys.
+     * @param keys a set of keys. Keys must have a deterministic hash function.
+     * @param keyToValue a map of keys to values. Every key in this map must be contained in the set of keys.
      * @param valueMapper a mapping function applied to values before placing them into the result map
      * @param checksumType the type of checksum algorithm to use
      * @return the list of keys, the index map, and a compound checksum of the ordered keys.
-     * @throws SafeIllegalArgumentException if the {@code keyToValue} contains keys that are not in the provided
+     * @throws SafeIllegalArgumentException if {@code keyToValue} contains keys that are not in the provided
      * set of keys
      */
-    public static <K, V, R> IndexEncodingResult<K, R> encode(
+    public static <K extends DeterministicHashable, V, R> IndexEncodingResult<K, R> encode(
             Set<K> keys, Map<K, V> keyToValue, Function<V, R> valueMapper, ChecksumType checksumType) {
         List<K> keyList = new ArrayList<>(keys);
         // A linked hash map will give a minor improvement when iterating during serialization
@@ -71,20 +83,24 @@ public final class IndexEncodingUtils {
 
     /**
      * Compute a derived map, replacing indices into the ordered list with their items, to the value returned
-     * by running the valueMapper over the original value.
+     * by running the {@code valueMapper} over the original value.
      *
      * @param indexEncodingResult the output of {@link IndexEncodingUtils#encode}, i.e. the ordered list of keys,
-     * a map of indices to values, and a checksum of the ordered key list. Every index MUST be
+     * a map of indices to values, and a checksum of the ordered key list. Every index must be
      * a valid index into the list of keys.
      * @param valueMapper a mapping function applied to values before placing them into the result map
      * @throws SafeIllegalArgumentException if the provided checksum does not match the checksum of the ordered keys
      */
-    public static <K, V, R> Map<K, R> decode(
+    public static <K extends DeterministicHashable, V, R> Map<K, R> decode(
             IndexEncodingResult<K, V> indexEncodingResult, Function<V, R> valueMapper) {
+        KeyListChecksum expectedChecksum = indexEncodingResult.keyListChecksum();
+        KeyListChecksum actualChecksum = computeChecksum(expectedChecksum.type(), indexEncodingResult.keyList());
         Preconditions.checkArgument(
-                computeChecksum(indexEncodingResult.keyListChecksum().checksumType(), indexEncodingResult.keyList())
-                        .equals(indexEncodingResult.keyListChecksum()),
-                "Key list integrity check failed");
+                actualChecksum.equals(expectedChecksum),
+                "Key list integrity check failed",
+                UnsafeArg.of("keyList", indexEncodingResult.keyList()),
+                UnsafeArg.of("actualChecksum", actualChecksum),
+                UnsafeArg.of("expectedChecksum", expectedChecksum));
 
         Map<Integer, V> indexToValue = indexEncodingResult.indexToValue();
         Map<K, R> keyToValue = Maps.newHashMapWithExpectedSize(indexToValue.size());
@@ -94,18 +110,14 @@ public final class IndexEncodingUtils {
         return keyToValue;
     }
 
-    private static <K> KeyListChecksum computeChecksum(ChecksumType checksumType, List<K> keyList) {
+    private static <K extends DeterministicHashable> KeyListChecksum computeChecksum(
+            ChecksumType checksumType, List<K> keyList) {
         byte[] checksumValue;
         switch (checksumType) {
-            case LIST_HASHCODE: {
-                checksumValue =
-                        ByteBuffer.allocate(4).putInt(keyList.hashCode()).array();
-                break;
-            }
-            case CRC32_OF_ITEM_HASHCODE: {
+            case CRC32_OF_ITEM_SAFE_HASHCODE: {
                 CRC32 orderedKeyChecksum = new CRC32();
                 for (K key : keyList) {
-                    orderedKeyChecksum.update(key.hashCode());
+                    orderedKeyChecksum.update(key.getDeterministicHashCode());
                 }
                 checksumValue = ByteBuffer.allocate(8)
                         .putLong(orderedKeyChecksum.getValue())
@@ -125,7 +137,7 @@ public final class IndexEncodingUtils {
      */
     @Value.Immutable
     @JsonIgnoreType
-    public interface IndexEncodingResult<K, V> {
+    public interface IndexEncodingResult<K extends DeterministicHashable, V> {
         @Value.Parameter
         List<K> keyList();
 
@@ -135,28 +147,38 @@ public final class IndexEncodingUtils {
         @Value.Parameter
         KeyListChecksum keyListChecksum();
 
-        static <K, V> IndexEncodingResult<K, V> of(
+        static <K extends DeterministicHashable, V> IndexEncodingResult<K, V> of(
                 List<K> keyList, Map<Integer, V> indexToValue, KeyListChecksum keyListChecksum) {
             return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListChecksum);
         }
     }
 
     public enum ChecksumType {
-        LIST_HASHCODE,
-        CRC32_OF_ITEM_HASHCODE
+        CRC32_OF_ITEM_SAFE_HASHCODE(0);
+        private static final Map<Integer, ChecksumType> VALUE_TO_ENTRY =
+                Arrays.stream(ChecksumType.values()).collect(Collectors.toMap(entry -> entry.value, entry -> entry));
+        private final int value;
+
+        ChecksumType(int value) {
+            this.value = value;
+        }
+
+        public static Optional<ChecksumType> valueOf(int value) {
+            return Optional.ofNullable(VALUE_TO_ENTRY.get(value));
+        }
     }
 
     @Value.Immutable
     public interface KeyListChecksum {
 
         @Value.Parameter
-        ChecksumType checksumType();
+        ChecksumType type();
 
         @Value.Parameter
-        byte[] checksumValue();
+        byte[] value();
 
-        static KeyListChecksum of(ChecksumType checksumType, byte[] checksumValue) {
-            return ImmutableKeyListChecksum.of(checksumType, checksumValue);
+        static KeyListChecksum of(ChecksumType type, byte[] value) {
+            return ImmutableKeyListChecksum.of(type, value);
         }
     }
 }
