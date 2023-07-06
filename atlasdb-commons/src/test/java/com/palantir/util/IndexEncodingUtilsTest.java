@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -43,12 +42,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
+import org.immutables.value.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class IndexEncodingUtilsTest {
+
     @Parameterized.Parameters(name = "checksumType={0}")
     public static Iterable<ChecksumType> data() {
         return Arrays.asList(ChecksumType.values());
@@ -62,7 +63,6 @@ public class IndexEncodingUtilsTest {
     private static final Function<String, Long> REVERSE_MAPPER = value -> Long.parseLong(value) + 10;
 
     private final ChecksumType checksumType;
-
     private final IndexEncodingResult<DH<String>, Long> encoded;
 
     public IndexEncodingUtilsTest(ChecksumType checksumType) {
@@ -105,7 +105,7 @@ public class IndexEncodingUtilsTest {
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .withMessage(SafeExceptions.renderMessage(
                         "keyToValue contains keys that are not in the key list",
-                        UnsafeArg.of("unknownKeys", ImmutableSet.of("unknown-key"))));
+                        UnsafeArg.of("unknownKeys", ImmutableSet.of(dh("unknown-key")))));
     }
 
     @Test
@@ -171,38 +171,19 @@ public class IndexEncodingUtilsTest {
     }
 
     // DH = deterministic hashable
-    private static final class DH<T> implements DeterministicHashable {
-        public final T delegate;
+    @Value.Immutable
+    abstract static class DH<T> implements DeterministicHashable {
 
-        public DH(T delegate) {
-            this.delegate = delegate;
-        }
+        @Value.Parameter
+        protected abstract T delegate();
 
         @Override
         public int getDeterministicHashCode() {
-            return delegate.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            DH<?> dh = (DH<?>) o;
-            return Objects.equals(delegate, dh.delegate);
-        }
-
-        @Override
-        public int hashCode() {
-            return delegate.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return delegate.toString();
+            return delegate().hashCode();
         }
     }
 
     private static <T> DH<T> dh(T value) {
-        return new DH<>(value);
+        return ImmutableDH.of(value);
     }
 }

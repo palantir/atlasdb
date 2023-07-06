@@ -114,7 +114,7 @@ public final class IndexEncodingUtils {
             ChecksumType checksumType, List<K> keyList) {
         byte[] checksumValue;
         switch (checksumType) {
-            case CRC32_OF_ITEM_SAFE_HASHCODE: {
+            case CRC32_OF_DETERMINISTIC_HASHCODE: {
                 CRC32 orderedKeyChecksum = new CRC32();
                 for (K key : keyList) {
                     orderedKeyChecksum.update(key.getDeterministicHashCode());
@@ -138,6 +138,7 @@ public final class IndexEncodingUtils {
     @Value.Immutable
     @JsonIgnoreType
     public interface IndexEncodingResult<K extends DeterministicHashable, V> {
+
         @Value.Parameter
         List<K> keyList();
 
@@ -154,9 +155,11 @@ public final class IndexEncodingUtils {
     }
 
     public enum ChecksumType {
-        CRC32_OF_ITEM_SAFE_HASHCODE(0);
+        CRC32_OF_DETERMINISTIC_HASHCODE(0);
+
         private static final Map<Integer, ChecksumType> VALUE_TO_ENTRY =
                 Arrays.stream(ChecksumType.values()).collect(Collectors.toMap(entry -> entry.value, entry -> entry));
+
         private final int value;
 
         ChecksumType(int value) {
