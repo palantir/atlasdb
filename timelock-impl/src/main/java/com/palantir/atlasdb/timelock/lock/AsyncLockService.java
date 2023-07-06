@@ -23,6 +23,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -117,7 +118,16 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        return heldLocks.getExistingOrAcquire(requestId, () -> acquireLocks(requestId, lockDescriptors, timeout));
+        return lock(requestId, lockDescriptors, timeout, Optional.empty());
+    }
+
+    public AsyncResult<Leased<LockToken>> lock(
+            UUID requestId,
+            Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout,
+            Optional<LockRequestMetadata> metadata) {
+        return heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireLocks(requestId, lockDescriptors, timeout, metadata));
     }
 
     public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
@@ -137,9 +147,12 @@ public class AsyncLockService implements Closeable {
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
-            UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+            UUID requestId,
+            Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout,
+            Optional<LockRequestMetadata> metadata) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout, metadata);
     }
 
     private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {

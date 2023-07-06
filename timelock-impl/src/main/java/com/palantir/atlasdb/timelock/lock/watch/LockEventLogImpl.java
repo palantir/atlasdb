@@ -22,6 +22,7 @@ import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -61,8 +62,9 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public synchronized void logLock(Set<LockDescriptor> locksTakenOut, LockToken lockToken) {
-        slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken));
+    public synchronized void logLock(
+            Set<LockDescriptor> locksTakenOut, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
+        slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
     }
 
     @Override

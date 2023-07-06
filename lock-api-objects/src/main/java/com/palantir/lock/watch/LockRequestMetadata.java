@@ -29,11 +29,11 @@ import org.immutables.value.Value;
 @Unsafe
 @Value.Immutable
 public interface LockRequestMetadata {
+
+    @Value.Parameter
     Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata();
 
     static LockRequestMetadata of(Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata) {
-        return ImmutableLockRequestMetadata.builder()
-                .lockDescriptorToChangeMetadata(lockDescriptorToChangeMetadata)
-                .build();
+        return ImmutableLockRequestMetadata.of(lockDescriptorToChangeMetadata);
     }
 }
