@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.immutables.value.Value;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -63,11 +64,15 @@ public class IndexEncodingUtilsTest {
     private static final Function<String, Long> REVERSE_MAPPER = value -> Long.parseLong(value) + 10;
 
     private final ChecksumType checksumType;
-    private final IndexEncodingResult<DH<String>, Long> encoded;
+    private IndexEncodingResult<DH<String>, Long> encoded;
 
     public IndexEncodingUtilsTest(ChecksumType checksumType) {
         this.checksumType = checksumType;
-        this.encoded = IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType);
+    }
+
+    @Before
+    public void setup() {
+        encoded = IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType);
     }
 
     @Test
@@ -109,31 +114,18 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
-    public void integrityCheckPassesForSameKeyList() {
-        Map<DH<String>, Long> decoded = IndexEncodingUtils.decode(encoded, Function.identity());
-        assertThat(decoded).containsExactlyInAnyOrderEntriesOf(VALUES);
-    }
-
-    @Test
     public void integrityCheckFailsForDifferentKeyList() {
         List<DH<String>> modifiedKeyList = new ArrayList<>(KEYS);
         Collections.swap(modifiedKeyList, 0, 1);
         IndexEncodingResult<DH<String>, Long> encodedWithModifiedKeyList =
                 IndexEncodingResult.of(modifiedKeyList, encoded.indexToValue(), encoded.keyListChecksum());
-        // a bit hacky but this is the only way to get the actual checksum value and verify that it is part of the
-        // exception message
-        byte[] actualChecksumValue = IndexEncodingUtils.encode(
-                        ImmutableSet.copyOf(modifiedKeyList), VALUES, Function.identity(), checksumType)
-                .keyListChecksum()
-                .value();
+        KeyListChecksum actualChecksum = IndexEncodingUtils.computeChecksum(checksumType, modifiedKeyList);
         assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage(SafeExceptions.renderMessage(
                         "Key list integrity check failed",
                         UnsafeArg.of("keyList", modifiedKeyList),
-                        UnsafeArg.of(
-                                "actualChecksum",
-                                KeyListChecksum.of(encoded.keyListChecksum().type(), actualChecksumValue)),
+                        UnsafeArg.of("actualChecksum", actualChecksum),
                         UnsafeArg.of("expectedChecksum", encoded.keyListChecksum())));
     }
 
