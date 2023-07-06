@@ -85,7 +85,7 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable,
     }
 
     @Override
-    public int getDeterministicHashCode() {
+    public int deterministicHashCode() {
         // for this class, hashCode() is deterministic since Arrays.hashCode(byte[]) is deterministic
         return hashCode();
     }

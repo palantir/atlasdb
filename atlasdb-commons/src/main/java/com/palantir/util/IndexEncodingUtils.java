@@ -44,7 +44,7 @@ public final class IndexEncodingUtils {
          * A hash code implementation that is stable across different processes/JVMs and only depends on the contents
          * of the object.
          */
-        int getDeterministicHashCode();
+        int deterministicHashCode();
     }
 
     /**
@@ -119,7 +119,7 @@ public final class IndexEncodingUtils {
             case CRC32_OF_DETERMINISTIC_HASHCODE: {
                 CRC32 checksum = new CRC32();
                 for (K key : keyList) {
-                    checksum.update(key.getDeterministicHashCode());
+                    checksum.update(key.deterministicHashCode());
                 }
                 checksumValue =
                         ByteBuffer.allocate(8).putLong(checksum.getValue()).array();

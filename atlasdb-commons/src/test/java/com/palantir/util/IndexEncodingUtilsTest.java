@@ -170,7 +170,7 @@ public class IndexEncodingUtilsTest {
         protected abstract T delegate();
 
         @Override
-        public int getDeterministicHashCode() {
+        public int deterministicHashCode() {
             return delegate().hashCode();
         }
     }
