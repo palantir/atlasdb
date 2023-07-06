@@ -24,10 +24,11 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,14 +38,17 @@ import org.junit.Test;
 public class IdentifiedLockRequestTest {
     private static final String BASE = "src/test/resources/identified-lock-request-wire-format/";
     private static final boolean REWRITE_JSON_BLOBS = false;
+
+    private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
+    private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("lock2");
     private static final IdentifiedLockRequest BASELINE_REQUEST = ImmutableIdentifiedLockRequest.builder()
             .requestId(new UUID(1337, 42))
-            .lockDescriptors(ImmutableSet.of(StringLockDescriptor.of("lock1"), StringLockDescriptor.of("lock2")))
+            .lockDescriptors(ImmutableSet.of(LOCK_1, LOCK_2))
             .acquireTimeoutMs(100)
             .clientDescription("client: test, thread: test")
             .build();
-    private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
-            StringLockDescriptor.of("lock1"), ChangeMetadata.created("something".getBytes(StandardCharsets.UTF_8))));
+    private static final LockRequestMetadata LOCK_REQUEST_METADATA =
+            LockRequestMetadata.of(ImmutableMap.of(LOCK_1, ChangeMetadata.created(PtBytes.toBytes("something"))));
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .registerModule(new Jdk8Module())
@@ -56,8 +60,9 @@ public class IdentifiedLockRequestTest {
         assertDeserializedEquals("baseline", BASELINE_REQUEST);
     }
 
+    // We do not want to expose metadata via Jersey, which serializes IdentifiedLockRequest as is.
     @Test
-    public void baselineRequestWithMetadataIsBackCompat() {
+    public void metadataIsNotSerialized() {
         assertSerializedEquals(
                 ImmutableIdentifiedLockRequest.copyOf(BASELINE_REQUEST).withMetadata(LOCK_REQUEST_METADATA),
                 "baseline");

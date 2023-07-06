@@ -16,30 +16,44 @@
 
 package com.palantir.lock.watch;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.util.IndexEncodingUtils;
+import com.palantir.util.IndexEncodingUtils.ChecksumType;
+import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
+import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.immutables.value.Value;
 
+// Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
+// requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the WireLockEvent
+// class. All changes regarding serialization should be properly tested.
 @Unsafe
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockEvent.class)
-@JsonDeserialize(as = ImmutableLockEvent.class)
 @JsonTypeName(LockEvent.TYPE)
 public abstract class LockEvent implements LockWatchEvent {
     static final String TYPE = "lock";
+    private static final ChecksumType DEFAULT_CHECKSUM_TYPE = ChecksumType.CRC32_OF_DETERMINISTIC_HASHCODE;
 
     public abstract Set<LockDescriptor> lockDescriptors();
 
     public abstract LockToken lockToken();
 
-    @JsonIgnore
     public abstract Optional<LockRequestMetadata> metadata();
 
     @Override
@@ -50,6 +64,99 @@ public abstract class LockEvent implements LockWatchEvent {
     @Override
     public <T> T accept(Visitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @JsonCreator
+    public static LockEvent create(
+            @JsonProperty("sequence") long sequence,
+            @JsonProperty("lockDescriptors") List<LockDescriptor> lockDescriptors,
+            @JsonProperty("lockToken") LockToken lockToken,
+            @JsonProperty("metadata") Optional<WireLockRequestMetadata> optWireMetadata) {
+        Optional<LockRequestMetadata> metadata = optWireMetadata.map(wireMetadata -> {
+            KeyListChecksum checksum = KeyListChecksum.of(
+                    ChecksumType.valueOf(wireMetadata.checksumTypeId()), wireMetadata.checksumValue());
+            IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
+                    IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
+                            .keyList(lockDescriptors)
+                            .indexToValue(wireMetadata.indexToChangeMetadata())
+                            .keyListChecksum(checksum)
+                            .build();
+            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
+                    IndexEncodingUtils.decode(indexEncodingResult, Function.identity());
+            return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
+        });
+        return ImmutableLockEvent.builder()
+                .sequence(sequence)
+                .lockDescriptors(ImmutableSet.copyOf(lockDescriptors))
+                .lockToken(lockToken)
+                .metadata(metadata)
+                .build();
+    }
+
+    @Unsafe
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableWireLockEvent.class)
+    @JsonDeserialize(as = ImmutableWireLockEvent.class)
+    @JsonTypeName(LockEvent.TYPE)
+    public interface WireLockEvent {
+        long sequence();
+
+        List<LockDescriptor> lockDescriptors();
+
+        LockToken lockToken();
+
+        // If metadata is absent, it should be completely omitted
+        @JsonInclude(Include.NON_ABSENT)
+        Optional<WireLockRequestMetadata> metadata();
+
+        static ImmutableWireLockEvent.Builder builder() {
+            return ImmutableWireLockEvent.builder();
+        }
+    }
+
+    @Unsafe
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableWireLockRequestMetadata.class)
+    @JsonDeserialize(as = ImmutableWireLockRequestMetadata.class)
+    public interface WireLockRequestMetadata {
+
+        Map<Integer, ChangeMetadata> indexToChangeMetadata();
+
+        int checksumTypeId();
+
+        byte[] checksumValue();
+
+        static ImmutableWireLockRequestMetadata.Builder builder() {
+            return ImmutableWireLockRequestMetadata.builder();
+        }
+    }
+
+    @Unsafe
+    @JsonValue
+    public WireLockEvent toWireLockEvent() {
+        Optional<IndexEncodingResult<LockDescriptor, ChangeMetadata>> optIndexEncodingResult = metadata()
+                .map(metadata -> IndexEncodingUtils.encode(
+                        lockDescriptors(),
+                        metadata.lockDescriptorToChangeMetadata(),
+                        Function.identity(),
+                        DEFAULT_CHECKSUM_TYPE));
+        // If the lock event has metadata, we need to use the key list that was used to encode the metadata.
+        // Otherwise, any ordering of the lock descriptors is fine.
+        List<LockDescriptor> orderedLocks = optIndexEncodingResult
+                .map(IndexEncodingResult::keyList)
+                .orElseGet(() -> ImmutableList.copyOf(lockDescriptors()));
+        Optional<WireLockRequestMetadata> wireMetadata =
+                optIndexEncodingResult.map(result -> WireLockRequestMetadata.builder()
+                        .indexToChangeMetadata(result.indexToValue())
+                        .checksumTypeId(result.keyListChecksum().type().getId())
+                        .checksumValue(result.keyListChecksum().value())
+                        .build());
+        return WireLockEvent.builder()
+                .sequence(sequence())
+                .lockDescriptors(orderedLocks)
+                .lockToken(lockToken())
+                .metadata(wireMetadata)
+                .build();
     }
 
     public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {

@@ -1,0 +1,25 @@
+{
+  "type" : "lock",
+  "sequence" : 10,
+  "lockDescriptors" : [ {
+    "bytes" : "dGVzdC1sb2Nr"
+  }, {
+    "bytes" : "YWJj"
+  } ],
+  "lockToken" : {
+    "requestId" : "00000000-0000-0539-0000-00000000002a"
+  },
+  "metadata" : {
+    "indexToChangeMetadata" : {
+      "0" : {
+        "type" : "created",
+        "newValue" : "bmV3"
+      },
+      "1" : {
+        "type" : "unchanged"
+      }
+    },
+    "checksumTypeId" : 1,
+    "checksumValue" : "AAAAAIOu57o="
+  }
+}
