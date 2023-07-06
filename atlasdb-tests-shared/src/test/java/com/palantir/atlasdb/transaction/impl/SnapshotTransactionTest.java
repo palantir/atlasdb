@@ -1639,7 +1639,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void skipImmutableTLocksIfReadingEqualsExpectedNumberOfValuesEvenWhenRequestedMore() {
+    public void skipImmutableTimestampLocksIfReadingEqualsExpectedNumberOfValuesEvenWhenRequestedMore() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
         TimelockService spiedTimeLockService = spy(timelockService);
@@ -1657,7 +1657,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void performImmutableTLocksIfReadingLessThanExpectedNumberOfValues() {
+    public void performImmutableTimestampLocksIfReadingLessThanExpectedNumberOfValues() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
         TimelockService spiedTimeLockService = spy(timelockService);
