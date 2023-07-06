@@ -43,13 +43,13 @@ public final class IndexEncodingUtils {
      * @param keys a set of keys
      * @param keyToValue a map of keys to values. Every key in this map MUST be contained in the set of keys.
      * @param valueMapper a mapping function applied to values before placing them into the result map
-     * @param checkSumType the type of checksum algorithm to use
+     * @param checksumType the type of checksum algorithm to use
      * @return the list of keys, the index map, and a compound checksum of the ordered keys.
      * @throws SafeIllegalArgumentException if the {@code keyToValue} contains keys that are not in the provided
      * set of keys
      */
     public static <K, V, R> IndexEncodingResult<K, R> encode(
-            Set<K> keys, Map<K, V> keyToValue, Function<V, R> valueMapper, CheckSumType checkSumType) {
+            Set<K> keys, Map<K, V> keyToValue, Function<V, R> valueMapper, ChecksumType checksumType) {
         List<K> keyList = new ArrayList<>(keys);
         // A linked hash map will give a minor improvement when iterating during serialization
         Map<Integer, R> indexToValue = Maps.newLinkedHashMapWithExpectedSize(keyToValue.size());
@@ -66,7 +66,7 @@ public final class IndexEncodingUtils {
             throw new SafeIllegalArgumentException(
                     "keyToValue contains keys that are not in the key list", UnsafeArg.of("unknownKeys", unknownKeys));
         }
-        return IndexEncodingResult.of(keyList, indexToValue, computeCheckSum(checkSumType, keyList));
+        return IndexEncodingResult.of(keyList, indexToValue, computeChecksum(checksumType, keyList));
     }
 
     /**
@@ -82,8 +82,8 @@ public final class IndexEncodingUtils {
     public static <K, V, R> Map<K, R> decode(
             IndexEncodingResult<K, V> indexEncodingResult, Function<V, R> valueMapper) {
         Preconditions.checkArgument(
-                computeCheckSum(indexEncodingResult.keyListCheckSum().checksumType(), indexEncodingResult.keyList())
-                        .equals(indexEncodingResult.keyListCheckSum()),
+                computeChecksum(indexEncodingResult.keyListChecksum().checksumType(), indexEncodingResult.keyList())
+                        .equals(indexEncodingResult.keyListChecksum()),
                 "Key list integrity check failed");
 
         Map<Integer, V> indexToValue = indexEncodingResult.indexToValue();
@@ -94,9 +94,9 @@ public final class IndexEncodingUtils {
         return keyToValue;
     }
 
-    private static <K> KeyListCheckSum computeCheckSum(CheckSumType checkSumType, List<K> keyList) {
+    private static <K> KeyListChecksum computeChecksum(ChecksumType checksumType, List<K> keyList) {
         byte[] checksumValue;
-        switch (checkSumType) {
+        switch (checksumType) {
             case LIST_HASHCODE: {
                 checksumValue =
                         ByteBuffer.allocate(4).putInt(keyList.hashCode()).array();
@@ -113,10 +113,10 @@ public final class IndexEncodingUtils {
                 break;
             }
             default: {
-                throw new IllegalArgumentException("Unknown checksum type: " + checkSumType);
+                throw new IllegalArgumentException("Unknown checksum type: " + checksumType);
             }
         }
-        return KeyListCheckSum.of(checkSumType, checksumValue);
+        return KeyListChecksum.of(checksumType, checksumValue);
     }
 
     /**
@@ -133,30 +133,30 @@ public final class IndexEncodingUtils {
         Map<Integer, V> indexToValue();
 
         @Value.Parameter
-        KeyListCheckSum keyListCheckSum();
+        KeyListChecksum keyListChecksum();
 
         static <K, V> IndexEncodingResult<K, V> of(
-                List<K> keyList, Map<Integer, V> indexToValue, KeyListCheckSum keyListCheckSum) {
-            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListCheckSum);
+                List<K> keyList, Map<Integer, V> indexToValue, KeyListChecksum keyListChecksum) {
+            return ImmutableIndexEncodingResult.of(keyList, indexToValue, keyListChecksum);
         }
     }
 
-    public enum CheckSumType {
+    public enum ChecksumType {
         LIST_HASHCODE,
         CRC32_OF_ITEM_HASHCODE
     }
 
     @Value.Immutable
-    public interface KeyListCheckSum {
+    public interface KeyListChecksum {
 
         @Value.Parameter
-        CheckSumType checksumType();
+        ChecksumType checksumType();
 
         @Value.Parameter
         byte[] checksumValue();
 
-        static KeyListCheckSum of(CheckSumType checkSumType, byte[] checksumValue) {
-            return ImmutableKeyListCheckSum.of(checkSumType, checksumValue);
+        static KeyListChecksum of(ChecksumType checksumType, byte[] checksumValue) {
+            return ImmutableKeyListChecksum.of(checksumType, checksumValue);
         }
     }
 }
