@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import java.nio.ByteBuffer;
@@ -29,6 +30,16 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 
 public class BatchSizeIncreasingIteratorTest {
+
+    @Test
+    public void handlesIntegerOverflow() {
+        assertThat(new BatchSizeIncreasingIterator<>(
+                                new TestBatchProvider(0),
+                                Integer.MAX_VALUE,
+                                ClosableIterators.emptyImmutableClosableIterator())
+                        .getMaxBatchSize())
+                .isEqualTo(AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+    }
 
     @Test
     public void getBestBatchSizeEqualToOriginalOnFirstIteration() {
@@ -82,7 +93,9 @@ public class BatchSizeIncreasingIteratorTest {
 
         @Override
         public byte[] getLastToken(List<Integer> batch) {
-            return ByteBuffer.allocate(4).putInt(batch.get(batch.size() - 1)).array();
+            return ByteBuffer.allocate(Integer.BYTES)
+                    .putInt(batch.get(batch.size() - 1))
+                    .array();
         }
     }
 }

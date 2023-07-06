@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -60,7 +61,8 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
-        this.maxBatchSize = Math.min(originalBatchSize * MAX_FACTOR, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+        this.maxBatchSize = Math.min(
+                IntMath.saturatedMultiply(originalBatchSize, MAX_FACTOR), AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
@@ -124,6 +126,11 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             lastToken = batchProvider.getLastToken(list);
         }
         return ImmutableBatchResult.of(list, isLastBatch);
+    }
+
+    @VisibleForTesting
+    int getMaxBatchSize() {
+        return maxBatchSize;
     }
 
     @Value.Immutable
