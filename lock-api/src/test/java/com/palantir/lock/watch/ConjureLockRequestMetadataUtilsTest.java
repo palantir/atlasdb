@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureCreatedChangeMetadata;
@@ -33,6 +32,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,8 +44,10 @@ public class ConjureLockRequestMetadataUtilsTest {
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("lock2");
     private static final LockDescriptor LOCK_3 = StringLockDescriptor.of("lock3");
     private static final LockDescriptor LOCK_4 = StringLockDescriptor.of("lock4");
-    private static final Set<LockDescriptor> LOCK_SET = ImmutableSet.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4);
+
     private static final List<LockDescriptor> LOCK_LIST = ImmutableList.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4);
+    // LinkedHashSet remembers insertion order, which is important for the tests below.
+    private static final Set<LockDescriptor> LOCK_SET = new LinkedHashSet<>(LOCK_LIST);
 
     // Although this is quite verbose, we explicitly want to test all possible types of change metadata and ensure
     // that we do the conversion right for each of them.
