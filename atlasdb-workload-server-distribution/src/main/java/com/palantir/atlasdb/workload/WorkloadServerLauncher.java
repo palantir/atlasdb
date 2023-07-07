@@ -126,6 +126,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     }
 
     private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
+        // This is a single threaded executor; this is intentional, so that we only run one workflow at a time.
         ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
                 .executorService(SingleRowTwoCellsWorkflows.class.getSimpleName())

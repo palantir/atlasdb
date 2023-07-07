@@ -108,19 +108,19 @@ public class WriteOnceDeleteOnceWorkflowTest {
         assertDeleteTransaction(transactions.get(3), 1);
     }
 
-    private void assertWriteTransaction(WitnessedTransaction transaction, int key) {
+    private static void assertWriteTransaction(WitnessedTransaction transaction, int key) {
         WitnessedWriteTransactionAction action =
                 getTransactionAction(transaction, WitnessedWriteTransactionAction.class);
         assertThat(action.cell().key()).isEqualTo(key);
     }
 
-    private void assertDeleteTransaction(WitnessedTransaction transaction, int key) {
+    private static void assertDeleteTransaction(WitnessedTransaction transaction, int key) {
         WitnessedDeleteTransactionAction action =
                 getTransactionAction(transaction, WitnessedDeleteTransactionAction.class);
         assertThat(action.cell().key()).isEqualTo(key);
     }
 
-    private <T> T getTransactionAction(WitnessedTransaction transaction, Class<T> clazz) {
+    private static <T> T getTransactionAction(WitnessedTransaction transaction, Class<T> clazz) {
         WitnessedTransactionAction action = Iterables.getOnlyElement(transaction.actions());
         assertThat(action).isInstanceOf(clazz);
         return (T) action;

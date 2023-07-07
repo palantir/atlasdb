@@ -32,7 +32,7 @@ public interface WriteOnceDeleteOnceWorkflowConfiguration extends WorkflowConfig
     TableConfiguration tableConfiguration();
 
     /**
-     * The maximum value for the row key.
+     * The maximum value (exclusive) for the row key.
      * This is half the iteration count, so we ideally perform two actions per cell.
      */
     @Value.Derived

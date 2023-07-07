@@ -31,9 +31,9 @@ import java.util.function.IntFunction;
 
 /**
  * The idea of this class is to catch bugs around tombstone drops, by having a
- * workflow which _mostly_ writes once then deletes once for a given cell. Probability and randomness are used to
- * enforce this behaviour, thus it's possible to have a write without a delete, or visa versa; some cells may
- * randomly be written or deleted multiple times as well.
+ * workflow which _mostly_ writes once first and then on deletes once for a given cell.
+ * Probability and randomness are used to enforce this behaviour, thus it's possible to have a write without a
+ * delete, or visa versa; some cells may randomly be written or deleted multiple times as well.
  */
 public final class WriteOnceDeleteOnceWorkflows {
 
@@ -78,7 +78,7 @@ public final class WriteOnceDeleteOnceWorkflows {
             this.configuration = configuration;
         }
 
-        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store, int taskIndex) {
+        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer taskIndex) {
             configuration.transactionRateLimiter().acquire();
             return store.readWrite(txn -> {
                 Integer rowKey = rowKeyGenerator.apply(configuration.maxKey());
@@ -94,7 +94,7 @@ public final class WriteOnceDeleteOnceWorkflows {
     }
 
     @VisibleForTesting
-    static Double calculateChanceForDelete(int taskIndex, int iterationCount) {
+    static Double calculateChanceForDelete(Integer taskIndex, Integer iterationCount) {
         // Index generation is [inclusive, exclusive], so we need to add 1 to the task index.
         return (taskIndex + 1.0) / iterationCount;
     }
