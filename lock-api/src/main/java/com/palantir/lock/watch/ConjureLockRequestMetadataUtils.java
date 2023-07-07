@@ -29,15 +29,16 @@ import com.palantir.lock.watch.ChangeMetadata.Created;
 import com.palantir.lock.watch.ChangeMetadata.Deleted;
 import com.palantir.lock.watch.ChangeMetadata.Unchanged;
 import com.palantir.lock.watch.ChangeMetadata.Updated;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.ChecksumType;
 import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
-import com.palantir.util.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.immutables.value.Value;
 
 public final class ConjureLockRequestMetadataUtils {
     private ConjureLockRequestMetadataUtils() {}
@@ -45,13 +46,15 @@ public final class ConjureLockRequestMetadataUtils {
     @VisibleForTesting
     static final ChecksumType DEFAULT_CHECKSUM_TYPE = ChecksumType.CRC32_OF_DETERMINISTIC_HASHCODE;
 
-    public static Pair<List<LockDescriptor>, ConjureLockRequestMetadata> toConjureIndexEncoded(
+    private static final ChangeMetadataToConjureVisitor TO_CONJURE_VISITOR = new ChangeMetadataToConjureVisitor();
+    private static final ChangeMetadataFromConjureVisitor FROM_CONJURE_VISITOR = new ChangeMetadataFromConjureVisitor();
+
+    public static ConjureMetadataConversionResult toConjureIndexEncoded(
             Set<LockDescriptor> lockDescriptors, LockRequestMetadata metadata) {
-        ChangeMetadataToConjureVisitor toConjureVisitor = new ChangeMetadataToConjureVisitor();
         IndexEncodingResult<LockDescriptor, ConjureChangeMetadata> encoded = IndexEncodingUtils.encode(
                 lockDescriptors,
                 metadata.lockDescriptorToChangeMetadata(),
-                changeMetadata -> changeMetadata.accept(toConjureVisitor),
+                changeMetadata -> changeMetadata.accept(TO_CONJURE_VISITOR),
                 DEFAULT_CHECKSUM_TYPE);
         KeyListChecksum checksum = encoded.keyListChecksum();
         ConjureLockRequestMetadata conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
@@ -59,12 +62,15 @@ public final class ConjureLockRequestMetadataUtils {
                 .checksumTypeId(checksum.type().getId())
                 .checksumValue(Bytes.from(checksum.value()))
                 .build();
-        return Pair.create(encoded.keyList(), conjureLockRequestMetadata);
+        return ImmutableConjureMetadataConversionResult.builder()
+                .lockList(encoded.keyList())
+                .conjureLockRequestMetadata(conjureLockRequestMetadata)
+                .build();
     }
 
-    public static LockRequestMetadata fromConjureIndexEncoded(
-            List<LockDescriptor> keyList, ConjureLockRequestMetadata conjureMetadata) {
-        ChangeMetadataFromConjureVisitor fromConjureVisitor = new ChangeMetadataFromConjureVisitor();
+    public static LockRequestMetadata fromConjureIndexEncoded(ConjureMetadataConversionResult conversionResult) {
+        List<LockDescriptor> keyList = conversionResult.lockList();
+        ConjureLockRequestMetadata conjureMetadata = conversionResult.conjureLockRequestMetadata();
         ChecksumType checksumType = ChecksumType.valueOf(conjureMetadata.getChecksumTypeId());
         KeyListChecksum checksum = KeyListChecksum.of(
                 checksumType, conjureMetadata.getChecksumValue().asNewByteArray());
@@ -75,10 +81,22 @@ public final class ConjureLockRequestMetadataUtils {
                         .keyListChecksum(checksum)
                         .build();
         Map<LockDescriptor, ChangeMetadata> changeMetadata = IndexEncodingUtils.decode(
-                encoded, conjureChangeMetadata -> conjureChangeMetadata.accept(fromConjureVisitor));
+                encoded, conjureChangeMetadata -> conjureChangeMetadata.accept(FROM_CONJURE_VISITOR));
         // visitUnknown() will return null
         changeMetadata.values().removeIf(Objects::isNull);
         return LockRequestMetadata.of(changeMetadata);
+    }
+
+    @Unsafe
+    @Value.Immutable
+    public interface ConjureMetadataConversionResult {
+        List<LockDescriptor> lockList();
+
+        ConjureLockRequestMetadata conjureLockRequestMetadata();
+
+        static ImmutableConjureMetadataConversionResult.Builder builder() {
+            return ImmutableConjureMetadataConversionResult.builder();
+        }
     }
 
     private static final class ChangeMetadataToConjureVisitor implements ChangeMetadata.Visitor<ConjureChangeMetadata> {

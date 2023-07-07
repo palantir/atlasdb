@@ -32,10 +32,10 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.watch.ConjureLockRequestMetadataUtils.ConjureMetadataConversionResult;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
-import com.palantir.util.Pair;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,28 +81,32 @@ public class ConjureLockRequestMetadataUtilsTest {
             3,
             ConjureChangeMetadata.created(ConjureCreatedChangeMetadata.of(Bytes.from(PtBytes.toBytes("created")))));
     private static final Random RAND = new Random();
-    private static ConjureLockRequestMetadata conjureLockRequestMetadata;
+    private static ConjureMetadataConversionResult conjureMetadataConversionResult;
 
     @BeforeClass
     public static void setup() {
         KeyListChecksum checksum =
                 IndexEncodingUtils.computeChecksum(ConjureLockRequestMetadataUtils.DEFAULT_CHECKSUM_TYPE, LOCK_LIST);
-        conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
+        ConjureLockRequestMetadata conjureMetadata = ConjureLockRequestMetadata.builder()
                 .indexToChangeMetadata(CONJURE_LOCKS_WITH_METADATA)
                 .checksumTypeId(checksum.type().getId())
                 .checksumValue(Bytes.from(checksum.value()))
+                .build();
+        conjureMetadataConversionResult = ConjureMetadataConversionResult.builder()
+                .lockList(LOCK_LIST)
+                .conjureLockRequestMetadata(conjureMetadata)
                 .build();
     }
 
     @Test
     public void convertsToConjureCorrectly() {
-        assertThat(ConjureLockRequestMetadataUtils.toConjureIndexEncoded(LOCK_SET, LOCK_REQUEST_METADATA).rhSide)
-                .isEqualTo(conjureLockRequestMetadata);
+        assertThat(ConjureLockRequestMetadataUtils.toConjureIndexEncoded(LOCK_SET, LOCK_REQUEST_METADATA))
+                .isEqualTo(conjureMetadataConversionResult);
     }
 
     @Test
     public void convertsFromConjureCorrectly() {
-        assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(LOCK_LIST, conjureLockRequestMetadata))
+        assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conjureMetadataConversionResult))
                 .isEqualTo(LOCK_REQUEST_METADATA);
     }
 
@@ -117,21 +121,19 @@ public class ConjureLockRequestMetadataUtilsTest {
                 .filter(lockDescriptor -> RAND.nextBoolean())
                 .map(_unused -> createRandomChangeMetadata())
                 .collectToMap();
-        LockRequestMetadata expected = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
+        LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
 
-        Pair<List<LockDescriptor>, ConjureLockRequestMetadata> lockListAndMetadata =
-                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, expected);
-        LockRequestMetadata actual = ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                lockListAndMetadata.lhSide, lockListAndMetadata.rhSide);
-
-        assertThat(actual).isEqualTo(expected);
+        assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
+                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
+                .isEqualTo(metadata);
     }
 
     @Test
     public void changedLockOrderIsDetected() {
-        assertThatThrownBy(() -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                        // Lock 1 and 2 are swapped
-                        ImmutableList.of(LOCK_2, LOCK_1, LOCK_3, LOCK_4), conjureLockRequestMetadata))
+        ConjureMetadataConversionResult conversionResult = ImmutableConjureMetadataConversionResult.copyOf(
+                        conjureMetadataConversionResult)
+                .withLockList(LOCK_2, LOCK_1, LOCK_3, LOCK_4);
+        assertThatThrownBy(() -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conversionResult))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
     }
