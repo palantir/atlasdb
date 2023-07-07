@@ -17,6 +17,7 @@
 package com.palantir.lock.watch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +32,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
 import com.palantir.util.Pair;
@@ -123,6 +125,15 @@ public class ConjureLockRequestMetadataUtilsTest {
                 lockListAndMetadata.lhSide, lockListAndMetadata.rhSide);
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void changedLockOrderIsDetected() {
+        assertThatThrownBy(() -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
+                        // Lock 1 and 2 are swapped
+                        ImmutableList.of(LOCK_2, LOCK_1, LOCK_3, LOCK_4), conjureLockRequestMetadata))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageStartingWith("Key list integrity check failed");
     }
 
     private static ChangeMetadata createRandomChangeMetadata() {
