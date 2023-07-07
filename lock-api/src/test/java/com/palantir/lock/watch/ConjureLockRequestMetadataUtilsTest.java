@@ -27,15 +27,21 @@ import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
+import com.palantir.util.Pair;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -72,6 +78,7 @@ public class ConjureLockRequestMetadataUtilsTest {
             ConjureChangeMetadata.deleted(ConjureDeletedChangeMetadata.of(Bytes.from(PtBytes.toBytes("deleted")))),
             3,
             ConjureChangeMetadata.created(ConjureCreatedChangeMetadata.of(Bytes.from(PtBytes.toBytes("created")))));
+    private static final Random RAND = new Random();
     private static ConjureLockRequestMetadata conjureLockRequestMetadata;
 
     @BeforeClass
@@ -95,5 +102,43 @@ public class ConjureLockRequestMetadataUtilsTest {
     public void convertsFromConjureCorrectly() {
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(LOCK_LIST, conjureLockRequestMetadata))
                 .isEqualTo(LOCK_REQUEST_METADATA);
+    }
+
+    @Test
+    public void convertingToAndFromConjureIsIdentity() {
+        Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
+                .map(UUID::toString)
+                .map(StringLockDescriptor::of)
+                .limit(1000)
+                .collect(Collectors.toSet());
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
+                .filter(lockDescriptor -> RAND.nextBoolean())
+                .map(_unused -> createRandomChangeMetadata())
+                .collectToMap();
+        LockRequestMetadata expected = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
+
+        Pair<List<LockDescriptor>, ConjureLockRequestMetadata> lockListAndMetadata =
+                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, expected);
+        LockRequestMetadata actual = ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
+                lockListAndMetadata.lhSide, lockListAndMetadata.rhSide);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    private static ChangeMetadata createRandomChangeMetadata() {
+        switch (RAND.nextInt(4)) {
+            case 0:
+                return ChangeMetadata.unchanged();
+            case 1:
+                return ChangeMetadata.updated(
+                        PtBytes.toBytes(UUID.randomUUID().toString()),
+                        PtBytes.toBytes(UUID.randomUUID().toString()));
+            case 2:
+                return ChangeMetadata.created(PtBytes.toBytes(UUID.randomUUID().toString()));
+            case 3:
+                return ChangeMetadata.deleted(PtBytes.toBytes(UUID.randomUUID().toString()));
+            default:
+                throw new IllegalStateException();
+        }
     }
 }
