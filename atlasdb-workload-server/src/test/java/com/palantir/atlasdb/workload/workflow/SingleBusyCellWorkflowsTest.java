@@ -28,7 +28,7 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -96,7 +96,7 @@ public class SingleBusyCellWorkflowsTest {
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        assertThat(witnessedTransactionActions).anyMatch(WitnessedReadTransactionAction.class::isInstance);
+        assertThat(witnessedTransactionActions).anyMatch(WitnessedSingleCellReadTransactionAction.class::isInstance);
         assertThat(witnessedTransactionActions).anyMatch(WitnessedWriteTransactionAction.class::isInstance);
         assertThat(witnessedTransactionActions).anyMatch(WitnessedDeleteTransactionAction.class::isInstance);
     }

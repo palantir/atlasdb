@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import java.util.Optional;
 import org.junit.Test;
@@ -34,9 +34,9 @@ public final class WitnessToActionVisitorTest {
 
     @Test
     public void convertsReadsCorrectly() {
-        WitnessedReadTransactionAction witnessedRead =
-                WitnessedReadTransactionAction.of(TABLE, WORKLOAD_CELL, Optional.of(VALUE));
-        ReadTransactionAction read = WitnessToActionVisitor.INSTANCE.visit(witnessedRead);
+        WitnessedSingleCellReadTransactionAction witnessedRead =
+                WitnessedSingleCellReadTransactionAction.of(TABLE, WORKLOAD_CELL, Optional.of(VALUE));
+        SingleCellReadTransactionAction read = WitnessToActionVisitor.INSTANCE.visit(witnessedRead);
         assertThat(read.table()).isEqualTo(witnessedRead.table());
         assertThat(read.cell()).isEqualTo(witnessedRead.cell());
     }

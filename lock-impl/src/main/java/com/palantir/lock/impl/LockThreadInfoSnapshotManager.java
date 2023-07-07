@@ -18,13 +18,17 @@ package com.palantir.lock.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.DebugThreadInfoConfiguration;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClientAndThread;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.impl.LockServiceImpl.HeldLocks;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -32,44 +36,28 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockThreadInfoSnapshotManager implements AutoCloseable {
-    private DebugThreadInfoConfiguration threadInfoConfiguration;
+    private static final SafeLogger log = SafeLoggerFactory.get(LockThreadInfoSnapshotManager.class);
+    private final Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration;
 
-    private Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
+    private final Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> tokenMapSupplier;
 
-    private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot;
+    private volatile Map<LockDescriptor, LockClientAndThread> lastKnownThreadInfoSnapshot = ImmutableMap.of();
 
-    private ScheduledExecutorService scheduledExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
+    private final AdjustableBackgroundTask backgroundTask;
 
     public LockThreadInfoSnapshotManager(
-            DebugThreadInfoConfiguration threadInfoConfiguration,
+            Refreshable<DebugThreadInfoConfiguration> threadInfoConfiguration,
             Supplier<ConcurrentMap<HeldLocksToken, HeldLocks<HeldLocksToken>>> mapSupplier) {
         this.threadInfoConfiguration = threadInfoConfiguration;
         this.tokenMapSupplier = mapSupplier;
-        this.lastKnownThreadInfoSnapshot = ImmutableMap.of();
-    }
-
-    public void start() {
-        scheduleRun();
-    }
-
-    private void run() {
-        takeSnapshot();
-
-        // schedule next snapshot so this can be enabled/disabled at runtime
-        scheduleRun();
-    }
-
-    private void scheduleRun() {
-        if (threadInfoConfiguration.recordThreadInfo()) {
-            scheduledExecutorService.schedule(
-                    this::run, threadInfoConfiguration.threadInfoSnapshotIntervalMillis(), TimeUnit.MILLISECONDS);
-        }
+        this.backgroundTask = AdjustableBackgroundTask.create(
+                threadInfoConfiguration.map(DebugThreadInfoConfiguration::recordThreadInfo),
+                threadInfoConfiguration.map(config -> Duration.ofMillis(config.threadInfoSnapshotIntervalMillis())),
+                this::takeSnapshot);
     }
 
     @VisibleForTesting
@@ -84,7 +72,9 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
     public UnsafeArg<Optional<Map<LockDescriptor, LockClientAndThread>>> getRestrictedSnapshotAsOptionalLogArg(
             Set<LockDescriptor> lockDescriptors) {
         String argName = "presumedClientThreadHoldersIfEnabled";
-        if (!threadInfoConfiguration.recordThreadInfo()) {
+        if (!threadInfoConfiguration.current().recordThreadInfo()) {
+            // Avoids keeping the value alive even though we are never returning it
+            lastKnownThreadInfoSnapshot = Map.of();
             return UnsafeArg.of(argName, Optional.empty());
         }
         Map<LockDescriptor, LockClientAndThread> latestSnapshot = lastKnownThreadInfoSnapshot;
@@ -108,10 +98,17 @@ public class LockThreadInfoSnapshotManager implements AutoCloseable {
                 })
                 // Although a lock can be held by multiple clients/threads, we only remember one to save space
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (existing, replacement) -> existing));
+
+        log.info(
+                "Took thread info snapshot of {} locks. Next snapshot due in {}ms",
+                SafeArg.of("snapshotSize", lastKnownThreadInfoSnapshot.size()),
+                SafeArg.of(
+                        "snapshotIntervalMillis",
+                        threadInfoConfiguration.current().threadInfoSnapshotIntervalMillis()));
     }
 
     @Override
     public void close() {
-        scheduledExecutorService.shutdown();
+        backgroundTask.close();
     }
 }

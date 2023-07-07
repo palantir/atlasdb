@@ -60,6 +60,10 @@ public interface ColumnRangeSelection {
                 SafeArg.of("endColumnExclusive", endColumnExclusive()));
     }
 
+    static ColumnRangeSelection all() {
+        return ImmutableColumnRangeSelection.builder().build();
+    }
+
     static ImmutableColumnRangeSelection.Builder builder() {
         return ImmutableColumnRangeSelection.builder();
     }

@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Optimize CassandraService#getAddressForHost
+  links:
+  - https://github.com/palantir/atlasdb/pull/6648

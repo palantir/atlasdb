@@ -16,12 +16,14 @@
 
 package com.palantir.lock.watch;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Unsafe;
+import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
@@ -37,6 +39,9 @@ public abstract class LockEvent implements LockWatchEvent {
 
     public abstract LockToken lockToken();
 
+    @JsonIgnore
+    public abstract Optional<LockRequestMetadata> metadata();
+
     @Override
     public int size() {
         return lockDescriptors().size();
@@ -48,8 +53,15 @@ public abstract class LockEvent implements LockWatchEvent {
     }
 
     public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
-        ImmutableLockEvent.Builder builder =
-                ImmutableLockEvent.builder().lockDescriptors(lockDescriptors).lockToken(lockToken);
+        return builder(lockDescriptors, lockToken, Optional.empty());
+    }
+
+    public static LockWatchEvent.Builder builder(
+            Set<LockDescriptor> lockDescriptors, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
+        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
+                .lockDescriptors(lockDescriptors)
+                .lockToken(lockToken)
+                .metadata(metadata);
         return seq -> builder.sequence(seq).build();
     }
 }

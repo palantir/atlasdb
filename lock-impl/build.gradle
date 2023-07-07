@@ -10,6 +10,7 @@ dependencies {
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.nylon:nylon-threads'
+  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'joda-time:joda-time'

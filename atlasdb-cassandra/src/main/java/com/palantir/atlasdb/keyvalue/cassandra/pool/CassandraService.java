@@ -148,18 +148,17 @@ public class CassandraService implements AutoCloseable {
                 hostToDatacentersThisRefresh.put(onlyHost, onlyEndpoint.getDatacenter());
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    Map<CassandraServer, String> hostToDatacentersOnThisTokenRange = KeyedStream.of(
-                                    tokenRange.getEndpoint_details())
-                            .mapKeys(EndpointDetails::getHost)
-                            .mapKeys(this::getAddressForHostThrowUnchecked)
-                            .map(EndpointDetails::getDatacenter)
-                            .collectToMap();
+                    List<EndpointDetails> endpointDetails = tokenRange.getEndpoint_details();
+                    ImmutableSet.Builder<CassandraServer> hostsBuilder =
+                            ImmutableSet.builderWithExpectedSize(endpointDetails.size());
+                    for (EndpointDetails endpoint : endpointDetails) {
+                        CassandraServer cassandraServer = getAddressForHostThrowUnchecked(endpoint.getHost());
+                        hostToDatacentersThisRefresh.put(cassandraServer, endpoint.getDatacenter());
+                        hostsBuilder.add(cassandraServer);
+                        servers.add(cassandraServer);
+                    }
 
-                    ImmutableSet<CassandraServer> hosts =
-                            ImmutableSet.copyOf(hostToDatacentersOnThisTokenRange.keySet());
-                    servers.addAll(hosts);
-                    hostToDatacentersThisRefresh.putAll(hostToDatacentersOnThisTokenRange);
-
+                    ImmutableSet<CassandraServer> hosts = hostsBuilder.build();
                     LightweightOppToken startToken = LightweightOppToken.fromHex(tokenRange.getStart_token());
                     LightweightOppToken endToken = LightweightOppToken.fromHex(tokenRange.getEnd_token());
                     if (startToken.compareTo(endToken) <= 0) {
@@ -288,17 +287,15 @@ public class CassandraService implements AutoCloseable {
     CassandraServer getAddressForHost(String inputHost) throws UnknownHostException {
         Map<String, String> hostnamesByIp = hostnameByIpSupplier.get();
         String cassandraHostName = hostnamesByIp.getOrDefault(inputHost, inputHost);
-        return CassandraServer.of(cassandraHostName, getReachableProxies(cassandraHostName));
-    }
-
-    private ImmutableSet<InetSocketAddress> getReachableProxies(String inputHost) throws UnknownHostException {
-        InetAddress[] resolvedHosts = InetAddress.getAllByName(inputHost);
+        InetAddress[] resolvedHosts = InetAddress.getAllByName(cassandraHostName);
         int knownPort = getKnownPort();
 
         // It is okay to have reachable proxies that do not have a hostname
-        return Stream.of(resolvedHosts)
-                .map(inetAddr -> new InetSocketAddress(inetAddr, knownPort))
-                .collect(ImmutableSet.toImmutableSet());
+        ImmutableSet.Builder<InetSocketAddress> proxies = ImmutableSet.builderWithExpectedSize(resolvedHosts.length);
+        for (InetAddress host : resolvedHosts) {
+            proxies.add(new InetSocketAddress(host, knownPort));
+        }
+        return CassandraServer.of(cassandraHostName, proxies.build());
     }
 
     private int getKnownPort() throws UnknownHostException {

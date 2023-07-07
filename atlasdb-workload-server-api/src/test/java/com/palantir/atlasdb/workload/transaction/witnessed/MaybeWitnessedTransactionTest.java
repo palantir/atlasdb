@@ -53,7 +53,8 @@ public class MaybeWitnessedTransactionTest {
     @Test
     public void toFullyWitnessedCopiesArgumentsCorrectly() {
         WitnessedWriteTransactionAction writeTransactionAction = mock(WitnessedWriteTransactionAction.class);
-        WitnessedReadTransactionAction readTransactionAction = mock(WitnessedReadTransactionAction.class);
+        WitnessedSingleCellReadTransactionAction readTransactionAction =
+                mock(WitnessedSingleCellReadTransactionAction.class);
         List<WitnessedSingleCellTransactionAction> actions = List.of(readTransactionAction, writeTransactionAction);
         FullyWitnessedTransaction fullyWitnessedTransaction = MaybeWitnessedTransaction.builder()
                 .startTimestamp(START_TIMESTAMP)

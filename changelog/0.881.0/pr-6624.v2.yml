@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Stopped checking immutable timestamp lock on thoroughly swept tables
+    when reading an empty value.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6624
