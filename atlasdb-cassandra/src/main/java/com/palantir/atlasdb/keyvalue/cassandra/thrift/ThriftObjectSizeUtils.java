@@ -25,6 +25,7 @@ import java.util.RandomAccess;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
@@ -286,17 +287,28 @@ public final class ThriftObjectSizeUtils {
         return byteBuffer.remaining();
     }
 
-    public static <T> long getCollectionSize(Collection<T> collection, ToLongFunction<T> sizeFunction) {
+    public static <T> long getCollectionSize(@Nullable Collection<T> collection, ToLongFunction<T> sizeFunction) {
         if (collection == null) {
             return getNullSize();
         }
 
-        long sum = 0L;
-        if (collection instanceof List && collection instanceof RandomAccess) {
-            List<T> list = (List<T>) collection;
+        // random access lists can be more efficiently accessed via List::get(int)
+        // as this avoids allocating iterator
+        if (isRandomAccessList(collection)) {
+            return getCollectionSize((List<T>) collection, sizeFunction);
+        }
+        return sumSizes(collection, sizeFunction);
+    }
 
-            // random access lists can be more efficiently accessed via List::get(int)
-            // as this avoids allocating iterator
+    private static <T> long getCollectionSize(@Nullable List<T> list, ToLongFunction<T> sizeFunction) {
+        if (list == null) {
+            return getNullSize();
+        }
+
+        // random access lists can be more efficiently accessed via List::get(int)
+        // as this avoids allocating iterator
+        if (isRandomAccessList(list)) {
+            long sum = 0L;
             //noinspection ForLoopReplaceableByForEach -- performance sensitive
             for (int i = 0; i < list.size(); i++) {
                 sum += sizeFunction.applyAsLong(list.get(i));
@@ -304,9 +316,18 @@ public final class ThriftObjectSizeUtils {
             return sum;
         }
 
+        return sumSizes(list, sizeFunction);
+    }
+
+    private static <T> long sumSizes(Collection<T> collection, ToLongFunction<T> sizeFunction) {
+        long sum = 0L;
         for (T t : collection) {
             sum += sizeFunction.applyAsLong(t);
         }
         return sum;
+    }
+
+    private static <T> boolean isRandomAccessList(Collection<T> collection) {
+        return collection instanceof RandomAccess && collection instanceof List;
     }
 }
