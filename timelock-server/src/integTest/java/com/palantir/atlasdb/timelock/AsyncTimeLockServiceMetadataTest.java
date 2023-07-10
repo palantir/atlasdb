@@ -144,7 +144,9 @@ public class AsyncTimeLockServiceMetadataTest {
     private List<LockWatchEvent> getAllLockWatchEvents() {
         ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
-        return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LockWatchStateUpdateVisitor.INSTANCE);
+        return AtlasFutures.getUnchecked(responseFuture)
+                .getLockWatchUpdate()
+                .accept(LockWatchStateUpdateVisitor.INSTANCE);
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
@@ -154,6 +156,7 @@ public class AsyncTimeLockServiceMetadataTest {
     private static final class LockWatchStateUpdateVisitor
             implements LockWatchStateUpdate.Visitor<List<LockWatchEvent>> {
         static final LockWatchStateUpdateVisitor INSTANCE = new LockWatchStateUpdateVisitor();
+
         @Override
         public List<LockWatchEvent> visit(Success success) {
             return success.events();
