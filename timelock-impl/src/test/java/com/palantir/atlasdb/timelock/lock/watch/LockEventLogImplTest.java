@@ -30,10 +30,14 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -45,6 +49,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -169,6 +174,24 @@ public class LockEventLogImplTest {
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
         assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
+    }
+
+    @Test
+    public void discardsMetadataIfTooLarge() {
+        LockRequestMetadata tooLargeMetadata =
+                LockRequestMetadata.of(KeyedStream.of(IntStream.range(0, LockEventLogImpl.MAX_METADATA_SIZE + 1)
+                                .boxed())
+                        .mapKeys(i -> StringLockDescriptor.of(Integer.toString(i)))
+                        .map(_unused -> (ChangeMetadata) ChangeMetadata.unchanged())
+                        .collectToMap());
+        log.logLock(ImmutableSet.of(), TOKEN, Optional.of(tooLargeMetadata));
+        LockWatchStateUpdate update = log.getLogDiff(NEGATIVE_VERSION_CURRENT_LOG_ID);
+        LockWatchStateUpdate.Success success = UpdateVisitors.assertSuccess(update);
+        assertThat(success.events())
+                .singleElement()
+                .isInstanceOf(LockEvent.class)
+                .extracting(event -> (LockEvent) event)
+                .satisfies(event -> assertThat(event.metadata()).isEmpty());
     }
 
     private LockWatches createWatchesFor(LockWatchReference... references) {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
@@ -28,7 +29,10 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -37,6 +41,14 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockEventLogImpl implements LockEventLog {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockEventLogImpl.class);
+
+    // Our Sliding window can hold a maximum of 1000 values. If we never store more than 1000 metadata values at a time
+    // memory usage by metadata will be bounded by 100 * 1000 * MAX_CHANGE_METADATA bytes.
+    // Assuming we are using ChangeMetadata that holds ~2KB max each, metadata cannot take up more than 200MB of memory.
+    @VisibleForTesting
+    static final int MAX_METADATA_SIZE = 100;
+
     private final UUID logId;
     private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
     private final Supplier<LockWatches> watchesSupplier;
@@ -64,6 +76,14 @@ public class LockEventLogImpl implements LockEventLog {
     @Override
     public synchronized void logLock(
             Set<LockDescriptor> locksTakenOut, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
+        // We don't want metadata to blow to consume absurd amounts of memory, but we cannot fail here as not publishing
+        // the LockEvent would mean cache corruption. Discarding the metadata is fine, but we should keep track of
+        // how often this happens.
+        int metadataSize = metadata.map(LockRequestMetadata::size).orElse(0);
+        if (metadataSize > MAX_METADATA_SIZE) {
+            log.warn("Discarding metadata because it is too large", SafeArg.of("metadataSize", metadataSize));
+            metadata = Optional.empty();
+        }
         slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
     }
 
