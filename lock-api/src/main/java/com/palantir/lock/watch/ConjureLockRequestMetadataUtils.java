@@ -64,13 +64,13 @@ public final class ConjureLockRequestMetadataUtils {
                 .build();
         return ImmutableConjureMetadataConversionResult.builder()
                 .lockList(encoded.keyList())
-                .conjureLockRequestMetadata(conjureLockRequestMetadata)
+                .conjureMetadata(conjureLockRequestMetadata)
                 .build();
     }
 
     public static LockRequestMetadata fromConjureIndexEncoded(ConjureMetadataConversionResult conversionResult) {
         List<LockDescriptor> keyList = conversionResult.lockList();
-        ConjureLockRequestMetadata conjureMetadata = conversionResult.conjureLockRequestMetadata();
+        ConjureLockRequestMetadata conjureMetadata = conversionResult.conjureMetadata();
         ChecksumType checksumType = ChecksumType.valueOf(conjureMetadata.getChecksumTypeId());
         KeyListChecksum checksum = KeyListChecksum.of(
                 checksumType, conjureMetadata.getChecksumValue().asNewByteArray());
@@ -92,7 +92,7 @@ public final class ConjureLockRequestMetadataUtils {
     public interface ConjureMetadataConversionResult {
         List<LockDescriptor> lockList();
 
-        ConjureLockRequestMetadata conjureLockRequestMetadata();
+        ConjureLockRequestMetadata conjureMetadata();
 
         static ImmutableConjureMetadataConversionResult.Builder builder() {
             return ImmutableConjureMetadataConversionResult.builder();

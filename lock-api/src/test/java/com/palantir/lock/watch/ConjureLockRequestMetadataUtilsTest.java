@@ -94,7 +94,7 @@ public class ConjureLockRequestMetadataUtilsTest {
                 .build();
         conjureMetadataConversionResult = ConjureMetadataConversionResult.builder()
                 .lockList(LOCK_LIST)
-                .conjureLockRequestMetadata(conjureMetadata)
+                .conjureMetadata(conjureMetadata)
                 .build();
     }
 
