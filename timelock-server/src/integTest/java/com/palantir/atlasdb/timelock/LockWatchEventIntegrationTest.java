@@ -45,6 +45,7 @@ import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.ImmutableLockRequest;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
@@ -262,8 +263,8 @@ public final class LockWatchEventIntegrationTest {
     public void noMetadataAttachedByDefault() {
         LockRequest requestWithoutMetadata = lockRequestOf(
                 ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW)), Optional.empty());
-        List<Optional<LockRequestMetadata>> allMetadata = runAndGetAllLockEventMetadataForNewTransaction(
-                () -> txnManager.getTimelockService().lock(requestWithoutMetadata));
+        List<Optional<LockRequestMetadata>> allMetadata =
+                lockAndGetAllLockEventMetadataForNewTransaction(requestWithoutMetadata);
         assertThat(allMetadata).containsExactly(Optional.empty());
     }
 
@@ -273,8 +274,8 @@ public final class LockWatchEventIntegrationTest {
         LockRequestMetadata metadata =
                 LockRequestMetadata.of(ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("foo"))));
         LockRequest requestWithMetadata = lockRequestOf(ImmutableSet.of(lock), Optional.of(metadata));
-        List<Optional<LockRequestMetadata>> allMetadata = runAndGetAllLockEventMetadataForNewTransaction(
-                () -> txnManager.getTimelockService().lock(requestWithMetadata));
+        List<Optional<LockRequestMetadata>> allMetadata =
+                lockAndGetAllLockEventMetadataForNewTransaction(requestWithMetadata);
         assertThat(allMetadata).containsExactly(Optional.of(metadata));
     }
 
@@ -386,10 +387,13 @@ public final class LockWatchEventIntegrationTest {
                 .collect(Collectors.toSet());
     }
 
-    private List<Optional<LockRequestMetadata>> runAndGetAllLockEventMetadataForNewTransaction(Runnable runnable) {
+    private List<Optional<LockRequestMetadata>> lockAndGetAllLockEventMetadataForNewTransaction(
+            LockRequest lockRequest) {
         txnManager.runTaskReadOnly(txn -> null);
         LockWatchVersion currentVersion = getCurrentVersion();
-        runnable.run();
+        LockResponse response = txnManager.getTimelockService().lock(lockRequest);
+        // We need to clean up the lock, otherwise it will be held forever (the TimeLock cluster is static)!
+        txnManager.getTimelockService().unlock(ImmutableSet.of(response.getToken()));
         OpenTransaction dummyTxn = startSingleTransaction();
         List<LockWatchEvent> lockWatchEvents =
                 getUpdateForTransactions(Optional.of(currentVersion), dummyTxn).events();
