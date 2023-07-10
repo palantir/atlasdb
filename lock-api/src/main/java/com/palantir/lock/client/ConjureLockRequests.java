@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
@@ -27,7 +28,10 @@ import com.palantir.lock.v2.ImmutableWaitForLocksResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.ConjureLockRequestMetadataUtils;
+import com.palantir.lock.watch.ConjureLockRequestMetadataUtils.ConjureMetadataConversionResult;
 import com.palantir.lock.watch.LockWatchVersion;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -37,11 +41,18 @@ public final class ConjureLockRequests {
     private ConjureLockRequests() {}
 
     public static ConjureLockRequest toConjure(LockRequest request) {
+        Optional<ConjureMetadataConversionResult> optConversionResult = request.getMetadata()
+                .map(metadata ->
+                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(request.getLockDescriptors(), metadata));
+        List<LockDescriptor> orderedLocks = optConversionResult
+                .map(ConjureMetadataConversionResult::lockList)
+                .orElseGet(() -> ImmutableList.copyOf(request.getLockDescriptors()));
         return ConjureLockRequest.builder()
-                .lockDescriptors(toConjure(request.getLockDescriptors()))
+                .lockDescriptors(toConjure(orderedLocks))
                 .clientDescription(request.getClientDescription())
                 .requestId(UUID.randomUUID())
                 .acquireTimeoutMs(Ints.checkedCast(request.getAcquireTimeoutMs()))
+                .metadata(optConversionResult.map(ConjureMetadataConversionResult::conjureMetadata))
                 .build();
     }
 
@@ -60,6 +71,14 @@ public final class ConjureLockRequests {
                 .map(Bytes::from)
                 .map(ConjureLockDescriptor::of)
                 .collect(Collectors.toSet());
+    }
+
+    private static List<ConjureLockDescriptor> toConjure(List<LockDescriptor> lockDescriptors) {
+        return lockDescriptors.stream()
+                .map(LockDescriptor::getBytes)
+                .map(Bytes::from)
+                .map(ConjureLockDescriptor::of)
+                .collect(Collectors.toList());
     }
 
     public static Optional<ConjureIdentifiedVersion> toConjure(Optional<LockWatchVersion> maybeVersion) {

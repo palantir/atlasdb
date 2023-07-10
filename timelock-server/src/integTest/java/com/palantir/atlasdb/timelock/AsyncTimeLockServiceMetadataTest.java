@@ -38,15 +38,12 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
 import com.palantir.lock.watch.ChangeMetadata;
-import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockRequestMetadata;
-import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
-import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.util.List;
 import java.util.Map;
@@ -54,13 +51,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
 public class AsyncTimeLockServiceMetadataTest {
-    private static final LockWatchEventVisitor LOCK_WATCH_EVENT_VISITOR = new LockWatchEventVisitor();
     private static final LockWatchStateUpdateVisitor LOCK_WATCH_STATE_UPDATE_VISITOR =
             new LockWatchStateUpdateVisitor();
 
@@ -146,11 +141,7 @@ public class AsyncTimeLockServiceMetadataTest {
     }
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {
-        return getAllLockWatchEvents().stream()
-                .map(event -> event.accept(LOCK_WATCH_EVENT_VISITOR))
-                .flatMap(Optional::stream)
-                .map(LockEvent::metadata)
-                .collect(Collectors.toList());
+        return LockWatchIntegrationTestUtilities.getAllLockEventMetadata(getAllLockWatchEvents());
     }
 
     private List<LockWatchEvent> getAllLockWatchEvents() {
@@ -161,23 +152,6 @@ public class AsyncTimeLockServiceMetadataTest {
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
         return IdentifiedLockRequest.of(metadata.keySet(), 1000, "testClient", LockRequestMetadata.of(metadata));
-    }
-
-    private static final class LockWatchEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
-        @Override
-        public Optional<LockEvent> visit(LockEvent lockEvent) {
-            return Optional.of(lockEvent);
-        }
-
-        @Override
-        public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
-            return Optional.empty();
-        }
     }
 
     private static final class LockWatchStateUpdateVisitor
