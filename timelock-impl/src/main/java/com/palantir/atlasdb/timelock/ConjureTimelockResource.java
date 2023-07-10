@@ -68,9 +68,14 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.ConjureLockRequestMetadataUtils;
+import com.palantir.lock.watch.ConjureLockRequestMetadataUtils.ConjureMetadataConversionResult;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -145,11 +150,19 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     public ListenableFuture<ConjureLockResponse> lock(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
         return handleExceptions(() -> {
+            List<LockDescriptor> lockDescriptors = fromConjureLockDescriptors(request.getLockDescriptors());
+            Optional<LockRequestMetadata> metadata = request.getMetadata()
+                    .map(conjureMetadata -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
+                            ConjureMetadataConversionResult.builder()
+                                    .conjureMetadata(conjureMetadata)
+                                    .lockList(lockDescriptors)
+                                    .build()));
             IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
-                    .lockDescriptors(fromConjureLockDescriptors(request.getLockDescriptors()))
+                    .lockDescriptors(Set.copyOf(lockDescriptors))
                     .clientDescription(request.getClientDescription())
                     .requestId(request.getRequestId())
                     .acquireTimeoutMs(request.getAcquireTimeoutMs())
+                    .metadata(metadata)
                     .build();
             ListenableFuture<LockResponseV2> tokenFuture =
                     forNamespace(namespace).lock(lockRequest);
@@ -182,8 +195,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         });
     }
 
-    private static Set<LockDescriptor> fromConjureLockDescriptors(Set<ConjureLockDescriptor> lockDescriptors) {
-        Set<LockDescriptor> descriptors = Sets.newHashSetWithExpectedSize(lockDescriptors.size());
+    private static List<LockDescriptor> fromConjureLockDescriptors(List<ConjureLockDescriptor> lockDescriptors) {
+        List<LockDescriptor> descriptors = new ArrayList<>(lockDescriptors.size());
         for (ConjureLockDescriptor descriptor : lockDescriptors) {
             descriptors.add(ByteArrayLockDescriptor.of(descriptor.get().asNewByteArray()));
         }

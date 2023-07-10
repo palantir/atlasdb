@@ -18,6 +18,7 @@ package com.palantir.lock.v2;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
@@ -39,12 +40,16 @@ public interface LockRequest {
     @Value.Parameter
     Optional<String> getClientDescription();
 
+    @Value.Parameter
+    Optional<LockRequestMetadata> getMetadata();
+
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.empty());
+        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.empty(), Optional.empty());
     }
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
-        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription));
+        return ImmutableLockRequest.of(
+                lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription), Optional.empty());
     }
 
     @Value.Check
