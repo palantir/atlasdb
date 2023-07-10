@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
@@ -190,8 +190,8 @@ public final class SnapshotInvariantTest {
                         5,
                         ColumnRangeSelection.builder().build(),
                         ImmutableList.of(
-                                ColumnValue.of(10, WorkloadTestHelpers.VALUE_ONE),
-                                ColumnValue.of(30, WorkloadTestHelpers.VALUE_ONE + WorkloadTestHelpers.VALUE_TWO)))
+                                ColumnAndValue.of(10, WorkloadTestHelpers.VALUE_ONE),
+                                ColumnAndValue.of(30, WorkloadTestHelpers.VALUE_ONE + WorkloadTestHelpers.VALUE_TWO)))
                 .endTransaction(21L)
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -215,8 +215,8 @@ public final class SnapshotInvariantTest {
                         5,
                         ColumnRangeSelection.builder().build(),
                         ImmutableList.of(
-                                ColumnValue.of(20, WorkloadTestHelpers.VALUE_TWO),
-                                ColumnValue.of(30, WorkloadTestHelpers.VALUE_ONE)))
+                                ColumnAndValue.of(20, WorkloadTestHelpers.VALUE_TWO),
+                                ColumnAndValue.of(30, WorkloadTestHelpers.VALUE_ONE)))
                 .endTransaction(21L)
                 .build();
         WorkflowHistory workflowHistory = ImmutableWorkflowHistory.builder()
@@ -242,11 +242,11 @@ public final class SnapshotInvariantTest {
                                                             .build())
                                                     .build())
                                             .columnsAndValues(ImmutableList.of(
-                                                    ColumnValue.of(20, WorkloadTestHelpers.VALUE_TWO),
-                                                    ColumnValue.of(30, WorkloadTestHelpers.VALUE_ONE)))
+                                                    ColumnAndValue.of(20, WorkloadTestHelpers.VALUE_TWO),
+                                                    ColumnAndValue.of(30, WorkloadTestHelpers.VALUE_ONE)))
                                             .build());
                             assertThat(invalidRowColumnRangeRead.expectedColumnsAndValues())
-                                    .containsExactly(ColumnValue.of(30, WorkloadTestHelpers.VALUE_ONE));
+                                    .containsExactly(ColumnAndValue.of(30, WorkloadTestHelpers.VALUE_ONE));
                         });
     }
 }

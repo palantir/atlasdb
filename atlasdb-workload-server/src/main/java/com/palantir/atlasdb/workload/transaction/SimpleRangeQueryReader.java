@@ -19,7 +19,7 @@ package com.palantir.atlasdb.workload.transaction;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
 import com.palantir.atlasdb.workload.invariant.ValueAndMaybeTimestamp;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -51,13 +51,13 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
     }
 
     @Override
-    public List<ColumnValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction) {
+    public List<ColumnAndValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction) {
         Map<TableAndWorkloadCell, Optional<Integer>> allValues = rawValueSupplier.get();
         if (allValues.size() > LARGE_HISTORY_LIMIT) {
             log.error(
                     "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
-                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
-                        + " efficient range query implementation.",
+                            + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
+                            + " efficient range query implementation.",
                     SafeArg.of("size", allValues.size()));
         }
         return allValues
@@ -74,8 +74,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
                 })
                 .filterValues(Optional::isPresent)
                 .mapValues(Optional::get)
-                .map(entry -> ColumnValue.of(entry._1().cell().column(), entry._2()))
-                .sortBy(ColumnValue::column)
+                .map(entry -> ColumnAndValue.of(entry._1().cell().column(), entry._2()))
+                .sortBy(ColumnAndValue::column)
                 .toJavaList();
     }
 }
