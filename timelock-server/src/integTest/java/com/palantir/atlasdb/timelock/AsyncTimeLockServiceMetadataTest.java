@@ -56,9 +56,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AsyncTimeLockServiceMetadataTest {
-    private static final LockWatchStateUpdateVisitor LOCK_WATCH_STATE_UPDATE_VISITOR =
-            new LockWatchStateUpdateVisitor();
-
     private static final String WATCHED_TABLE_NAME = "watched-table";
     private static final LockDescriptor WATCHED_LOCK =
             AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock1"));
@@ -147,7 +144,7 @@ public class AsyncTimeLockServiceMetadataTest {
     private List<LockWatchEvent> getAllLockWatchEvents() {
         ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
-        return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
+        return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LockWatchStateUpdateVisitor.INSTANCE);
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
@@ -156,6 +153,7 @@ public class AsyncTimeLockServiceMetadataTest {
 
     private static final class LockWatchStateUpdateVisitor
             implements LockWatchStateUpdate.Visitor<List<LockWatchEvent>> {
+        static final LockWatchStateUpdateVisitor INSTANCE = new LockWatchStateUpdateVisitor();
         @Override
         public List<LockWatchEvent> visit(Success success) {
             return success.events();
