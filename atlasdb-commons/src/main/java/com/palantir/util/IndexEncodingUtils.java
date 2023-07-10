@@ -50,14 +50,14 @@ public final class IndexEncodingUtils {
     /**
      * Compute a derived map, replacing keys with their associated index into the ordered list, to the value returned
      * by running the {@code valueMapper} over the original value.
-     * If the original values are transmitted as associated objects for some keys and keys can be large,
+     * If the {@code keys} are transmitted regardless of whether they have a value associated in {@code keyToValue},
      * this encoding can be used to save significant space on the wire.
      *
-     * @param keys a set of keys. Keys must have a deterministic hash function.
-     * @param keyToValue a map of keys to values. Every key in this map must be contained in the set of keys.
+     * @param keys a set of keys which implement {@link DeterministicHashable}
+     * @param keyToValue a map of keys to values. The key set of this map must be a subset of {@code keys}
      * @param valueMapper a mapping function applied to values before placing them into the result map
-     * @param checksumType the type of checksum algorithm to use
-     * @return the list of keys, the index map, and a compound checksum of the ordered keys.
+     * @param checksumType the type of checksum algorithm to use on the ordered list of keys
+     * @return the ordered list of keys, the index map, and a compound checksum of the ordered keys
      * @throws SafeIllegalArgumentException if {@code keyToValue} contains keys that are not in the provided
      * set of keys
      */
@@ -77,7 +77,8 @@ public final class IndexEncodingUtils {
         if (indexToValue.size() != keyToValue.size()) {
             Set<K> unknownKeys = Sets.difference(keyToValue.keySet(), keys);
             throw new SafeIllegalArgumentException(
-                    "keyToValue contains keys that are not in the key list", UnsafeArg.of("unknownKeys", unknownKeys));
+                    "Value map uses keys that are not in the provided set of keys",
+                    UnsafeArg.of("unknownKeys", unknownKeys));
         }
         return IndexEncodingResult.<K, R>builder()
                 .keyList(keyList)
@@ -87,30 +88,38 @@ public final class IndexEncodingUtils {
     }
 
     /**
-     * Compute a derived map, replacing indices into the ordered list with their items, to the value returned
+     * Compute a derived map, replacing indices into the list of keys with their item, to the value returned
      * by running the {@code valueMapper} over the original value.
      *
-     * @param indexEncodingResult the output of {@link IndexEncodingUtils#encode}, i.e. the ordered list of keys,
+     * @param indexEncoding the output of {@link IndexEncodingUtils#encode}, i.e. the ordered list of keys,
      * a map of indices to values, and a checksum of the ordered key list. Every index must be
-     * a valid index into the list of keys.
+     * a valid index into the list of keys
      * @param valueMapper a mapping function applied to values before placing them into the result map
-     * @throws SafeIllegalArgumentException if the provided checksum does not match the checksum of the ordered keys
+     * @throws SafeIllegalArgumentException if the provided checksum does not match the actual checksum of the ordered
+     * keys or if {@code indexToValue} contains indices that are not valid for the list of keys
      */
     public static <K extends DeterministicHashable, V, R> Map<K, R> decode(
-            IndexEncodingResult<K, V> indexEncodingResult, Function<V, R> valueMapper) {
-        KeyListChecksum expectedChecksum = indexEncodingResult.keyListChecksum();
-        KeyListChecksum actualChecksum = computeChecksum(expectedChecksum.type(), indexEncodingResult.keyList());
+            IndexEncodingResult<K, V> indexEncoding, Function<V, R> valueMapper) {
+        List<K> keyList = indexEncoding.keyList();
+        KeyListChecksum expectedChecksum = indexEncoding.keyListChecksum();
+        KeyListChecksum actualChecksum = computeChecksum(expectedChecksum.type(), keyList);
         Preconditions.checkArgument(
                 actualChecksum.equals(expectedChecksum),
                 "Key list integrity check failed",
-                UnsafeArg.of("keyList", indexEncodingResult.keyList()),
+                UnsafeArg.of("keyList", keyList),
                 UnsafeArg.of("actualChecksum", actualChecksum),
                 UnsafeArg.of("expectedChecksum", expectedChecksum));
 
-        Map<Integer, V> indexToValue = indexEncodingResult.indexToValue();
-        Map<K, R> keyToValue = Maps.newHashMapWithExpectedSize(indexToValue.size());
-        for (Map.Entry<Integer, V> entry : indexToValue.entrySet()) {
-            keyToValue.put(indexEncodingResult.keyList().get(entry.getKey()), valueMapper.apply(entry.getValue()));
+        Map<K, R> keyToValue =
+                Maps.newHashMapWithExpectedSize(indexEncoding.indexToValue().size());
+        for (Map.Entry<Integer, V> entry : indexEncoding.indexToValue().entrySet()) {
+            int index = entry.getKey();
+            Preconditions.checkArgument(
+                    index >= 0 && index < keyList.size(),
+                    "Index map contains invalid index",
+                    UnsafeArg.of("index", index),
+                    UnsafeArg.of("keyListSize", keyList.size()));
+            keyToValue.put(keyList.get(index), valueMapper.apply(entry.getValue()));
         }
         return keyToValue;
     }
@@ -146,9 +155,9 @@ public final class IndexEncodingUtils {
     public interface IndexEncodingResult<K extends DeterministicHashable, V> {
         List<K> keyList();
 
-        Map<Integer, V> indexToValue();
-
         KeyListChecksum keyListChecksum();
+
+        Map<Integer, V> indexToValue();
 
         static <K extends DeterministicHashable, V> ImmutableIndexEncodingResult.Builder<K, V> builder() {
             return ImmutableIndexEncodingResult.builder();

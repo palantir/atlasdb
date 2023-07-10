@@ -77,12 +77,12 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
-    public void canLookupChecksumType() {
+    public void canLookupValidChecksumType() {
         assertThat(ChecksumType.valueOf(checksumType.getId())).isEqualTo(checksumType);
     }
 
     @Test
-    public void throwsForUnknownChecksumType() {
+    public void cannotLookupUnknownChecksumType() {
         assertThatException()
                 .isThrownBy(() -> ChecksumType.valueOf(-1))
                 .isInstanceOf(SafeIllegalArgumentException.class)
@@ -96,7 +96,7 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
-    public void canEncodeAndDecodeSimpleData() {
+    public void canDecodeSimpleData() {
         assertThat(IndexEncodingUtils.decode(encoded, Function.identity())).containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
@@ -118,14 +118,27 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
-    public void encodeChecksForUnknownKeysInValueMap() {
+    public void encodeFailsForUnknownKeysInValueMap() {
         assertThatException()
                 .isThrownBy(() -> IndexEncodingUtils.encode(
                         KEYS, ImmutableMap.of(dh("unknown-key"), 0L), Function.identity(), checksumType))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .withMessage(SafeExceptions.renderMessage(
-                        "keyToValue contains keys that are not in the key list",
+                        "Value map uses keys that are not in the provided set of keys",
                         UnsafeArg.of("unknownKeys", ImmutableSet.of(dh("unknown-key")))));
+    }
+
+    @Test
+    public void decodeFailsForInvalidIndices() {
+        IndexEncodingResult<DH<String>, Long> encodedWithInvalidIndices =
+                ImmutableIndexEncodingResult.copyOf(encoded).withIndexToValue(ImmutableMap.of(KEYS.size(), 17L));
+        assertThatException()
+                .isThrownBy(() -> IndexEncodingUtils.decode(encodedWithInvalidIndices, Function.identity()))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .withMessage(SafeExceptions.renderMessage(
+                        "Index map contains invalid index",
+                        UnsafeArg.of("index", KEYS.size()),
+                        UnsafeArg.of("keyListSize", KEYS.size())));
     }
 
     @Test
@@ -160,14 +173,14 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
-    public void decodeAndEncodeAreEqualForRandomData() {
+    public void decodingEncodedDataYieldsOriginalForRandomData() {
         Random rand = new Random();
         Set<DH<UUID>> keys = Stream.generate(UUID::randomUUID)
                 .limit(1000)
                 .map(IndexEncodingUtilsTest::dh)
                 .collect(Collectors.toSet());
         Map<DH<UUID>, Long> data = KeyedStream.of(keys.stream())
-                .filter(unused -> rand.nextBoolean())
+                .filter(_unused -> rand.nextBoolean())
                 .map(_unused -> rand.nextLong())
                 .collectToMap();
         Assertions.assertThat(IndexEncodingUtils.decode(
