@@ -68,9 +68,11 @@ public class LockEventTest {
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             LOCK_1, ChangeMetadata.created(PtBytes.toBytes("new")), LOCK_2, ChangeMetadata.unchanged()));
 
-    // These are the mappers used by Conjure (minus the pretty-printing)
+    // Used by Conjure for serialization in TimeLock
     private static final ObjectMapper SERVER_MAPPER =
             ObjectMappers.newServerObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
+    // Used by Conjure for deserialization in AtlasDB
     private static final ObjectMapper CLIENT_MAPPER =
             ObjectMappers.newClientObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
