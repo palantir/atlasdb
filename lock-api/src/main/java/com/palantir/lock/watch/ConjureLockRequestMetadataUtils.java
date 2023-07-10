@@ -46,15 +46,12 @@ public final class ConjureLockRequestMetadataUtils {
     @VisibleForTesting
     static final ChecksumType DEFAULT_CHECKSUM_TYPE = ChecksumType.CRC32_OF_DETERMINISTIC_HASHCODE;
 
-    private static final ChangeMetadataToConjureVisitor TO_CONJURE_VISITOR = new ChangeMetadataToConjureVisitor();
-    private static final ChangeMetadataFromConjureVisitor FROM_CONJURE_VISITOR = new ChangeMetadataFromConjureVisitor();
-
     public static ConjureMetadataConversionResult toConjureIndexEncoded(
             Set<LockDescriptor> lockDescriptors, LockRequestMetadata metadata) {
         IndexEncodingResult<LockDescriptor, ConjureChangeMetadata> encoded = IndexEncodingUtils.encode(
                 lockDescriptors,
                 metadata.lockDescriptorToChangeMetadata(),
-                changeMetadata -> changeMetadata.accept(TO_CONJURE_VISITOR),
+                changeMetadata -> changeMetadata.accept(ChangeMetadataToConjureVisitor.INSTANCE),
                 DEFAULT_CHECKSUM_TYPE);
         KeyListChecksum checksum = encoded.keyListChecksum();
         ConjureLockRequestMetadata conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
@@ -81,7 +78,8 @@ public final class ConjureLockRequestMetadataUtils {
                         .keyListChecksum(checksum)
                         .build();
         Map<LockDescriptor, ChangeMetadata> changeMetadata = IndexEncodingUtils.decode(
-                encoded, conjureChangeMetadata -> conjureChangeMetadata.accept(FROM_CONJURE_VISITOR));
+                encoded,
+                conjureChangeMetadata -> conjureChangeMetadata.accept(ChangeMetadataFromConjureVisitor.INSTANCE));
         // visitUnknown() will return null
         changeMetadata.values().removeIf(Objects::isNull);
         return LockRequestMetadata.of(changeMetadata);
@@ -100,6 +98,7 @@ public final class ConjureLockRequestMetadataUtils {
     }
 
     private static final class ChangeMetadataToConjureVisitor implements ChangeMetadata.Visitor<ConjureChangeMetadata> {
+        static final ChangeMetadataToConjureVisitor INSTANCE = new ChangeMetadataToConjureVisitor();
 
         @Override
         public ConjureChangeMetadata visit(Unchanged unchanged) {
@@ -125,6 +124,8 @@ public final class ConjureLockRequestMetadataUtils {
 
     private static final class ChangeMetadataFromConjureVisitor
             implements ConjureChangeMetadata.Visitor<ChangeMetadata> {
+
+        static final ChangeMetadataFromConjureVisitor INSTANCE = new ChangeMetadataFromConjureVisitor();
 
         @Override
         public ChangeMetadata visitUnchanged(ConjureUnchangedChangeMetadata unchanged) {
