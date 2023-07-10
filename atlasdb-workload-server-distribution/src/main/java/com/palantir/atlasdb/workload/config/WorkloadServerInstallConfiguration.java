@@ -24,6 +24,7 @@ import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowC
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.WriteOnceDeleteOnceWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
 import org.immutables.value.Value;
@@ -47,6 +48,8 @@ public interface WorkloadServerInstallConfiguration {
     RandomWorkflowConfiguration randomConfig();
 
     SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadsNoTouchConfig();
+
+    WriteOnceDeleteOnceWorkflowConfiguration writeOnceDeleteOnceConfig();
 
     boolean exitAfterRunning();
 }

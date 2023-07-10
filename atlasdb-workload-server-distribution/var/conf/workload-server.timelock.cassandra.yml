@@ -37,7 +37,7 @@ install:
         password: cassandra
       ssl: false
       replicationFactor: 3
-      gcGraceSeconds: 300
+      gcGraceSeconds: 60
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
@@ -85,4 +85,10 @@ install:
     iterationCount: 100
     type: single-busy-cell-reads-no-touch
     maxThreadCount: 2
+  writeOnceDeleteOnceConfig:
+    tableConfiguration:
+      tableName: write_once_delete_once_test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: write-once-delete-once
   exitAfterRunning: true

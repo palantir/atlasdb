@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##
 # (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
