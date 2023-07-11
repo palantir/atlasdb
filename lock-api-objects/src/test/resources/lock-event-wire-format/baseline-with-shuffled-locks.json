@@ -19,7 +19,9 @@
         "type" : "unchanged"
       }
     },
-    "checksumTypeId" : 1,
-    "checksumValue" : "AAAAAIOu57o="
+    "lockListChecksum" : {
+      "typeId" : 1,
+      "value" : "AAAAAIOu57o="
+    }
   }
 }

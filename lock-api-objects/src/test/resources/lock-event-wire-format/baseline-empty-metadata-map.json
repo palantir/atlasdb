@@ -12,5 +12,12 @@
   } ],
   "lockToken" : {
     "requestId" : "00000000-0000-0539-0000-00000000002a"
+  },
+  "metadata" : {
+    "indexToChangeMetadata" : { },
+    "lockListChecksum" : {
+      "typeId" : 1,
+      "value" : "AAAAADUuws0="
+    }
   }
 }

@@ -41,8 +41,8 @@ import java.util.function.Function;
 import org.immutables.value.Value;
 
 // Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
-// requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the WireLockEvent
-// class. All changes regarding serialization should be properly tested.
+// requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the Wire-... classes
+// All serialization changes should be properly tested.
 @Unsafe
 @Value.Immutable
 @JsonTypeName(LockEvent.TYPE)
@@ -74,7 +74,8 @@ public abstract class LockEvent implements LockWatchEvent {
             @JsonProperty("metadata") Optional<WireLockRequestMetadata> optWireMetadata) {
         Optional<LockRequestMetadata> metadata = optWireMetadata.map(wireMetadata -> {
             KeyListChecksum checksum = KeyListChecksum.of(
-                    ChecksumType.valueOf(wireMetadata.checksumTypeId()), wireMetadata.checksumValue());
+                    ChecksumType.valueOf(wireMetadata.lockListChecksum().typeId()),
+                    wireMetadata.lockListChecksum().value());
             IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
                     IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
                             .keyList(lockDescriptors)
@@ -91,6 +92,48 @@ public abstract class LockEvent implements LockWatchEvent {
                 .lockToken(lockToken)
                 .metadata(metadata)
                 .build();
+    }
+
+    @Unsafe
+    @JsonValue
+    public WireLockEvent toWireLockEvent() {
+        Optional<IndexEncodingResult<LockDescriptor, ChangeMetadata>> optIndexEncodingResult = metadata()
+                .map(metadata -> IndexEncodingUtils.encode(
+                        lockDescriptors(),
+                        metadata.lockDescriptorToChangeMetadata(),
+                        Function.identity(),
+                        DEFAULT_CHECKSUM_TYPE));
+        // If the lock event has metadata, we need to use the key list that was used to encode the metadata.
+        // Otherwise, any ordering of the lock descriptors is fine.
+        List<LockDescriptor> orderedLocks = optIndexEncodingResult
+                .map(IndexEncodingResult::keyList)
+                .orElseGet(() -> ImmutableList.copyOf(lockDescriptors()));
+        Optional<WireLockRequestMetadata> wireMetadata =
+                optIndexEncodingResult.map(result -> WireLockRequestMetadata.builder()
+                        .indexToChangeMetadata(result.indexToValue())
+                        .lockListChecksum(LockListChecksum.of(
+                                result.keyListChecksum().type().getId(),
+                                result.keyListChecksum().value()))
+                        .build());
+        return WireLockEvent.builder()
+                .sequence(sequence())
+                .lockDescriptors(orderedLocks)
+                .lockToken(lockToken())
+                .metadata(wireMetadata)
+                .build();
+    }
+
+    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
+        return builder(lockDescriptors, lockToken, Optional.empty());
+    }
+
+    public static LockWatchEvent.Builder builder(
+            Set<LockDescriptor> lockDescriptors, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
+        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
+                .lockDescriptors(lockDescriptors)
+                .lockToken(lockToken)
+                .metadata(metadata);
+        return seq -> builder.sequence(seq).build();
     }
 
     @Unsafe
@@ -122,53 +165,26 @@ public abstract class LockEvent implements LockWatchEvent {
 
         Map<Integer, ChangeMetadata> indexToChangeMetadata();
 
-        int checksumTypeId();
-
-        byte[] checksumValue();
+        LockListChecksum lockListChecksum();
 
         static ImmutableWireLockRequestMetadata.Builder builder() {
             return ImmutableWireLockRequestMetadata.builder();
         }
     }
 
-    @Unsafe
-    @JsonValue
-    public WireLockEvent toWireLockEvent() {
-        Optional<IndexEncodingResult<LockDescriptor, ChangeMetadata>> optIndexEncodingResult = metadata()
-                .map(metadata -> IndexEncodingUtils.encode(
-                        lockDescriptors(),
-                        metadata.lockDescriptorToChangeMetadata(),
-                        Function.identity(),
-                        DEFAULT_CHECKSUM_TYPE));
-        // If the lock event has metadata, we need to use the key list that was used to encode the metadata.
-        // Otherwise, any ordering of the lock descriptors is fine.
-        List<LockDescriptor> orderedLocks = optIndexEncodingResult
-                .map(IndexEncodingResult::keyList)
-                .orElseGet(() -> ImmutableList.copyOf(lockDescriptors()));
-        Optional<WireLockRequestMetadata> wireMetadata =
-                optIndexEncodingResult.map(result -> WireLockRequestMetadata.builder()
-                        .indexToChangeMetadata(result.indexToValue())
-                        .checksumTypeId(result.keyListChecksum().type().getId())
-                        .checksumValue(result.keyListChecksum().value())
-                        .build());
-        return WireLockEvent.builder()
-                .sequence(sequence())
-                .lockDescriptors(orderedLocks)
-                .lockToken(lockToken())
-                .metadata(wireMetadata)
-                .build();
-    }
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableLockListChecksum.class)
+    @JsonDeserialize(as = ImmutableLockListChecksum.class)
+    public interface LockListChecksum {
 
-    public static LockWatchEvent.Builder builder(Set<LockDescriptor> lockDescriptors, LockToken lockToken) {
-        return builder(lockDescriptors, lockToken, Optional.empty());
-    }
+        @Value.Parameter
+        int typeId();
 
-    public static LockWatchEvent.Builder builder(
-            Set<LockDescriptor> lockDescriptors, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
-        ImmutableLockEvent.Builder builder = ImmutableLockEvent.builder()
-                .lockDescriptors(lockDescriptors)
-                .lockToken(lockToken)
-                .metadata(metadata);
-        return seq -> builder.sequence(seq).build();
+        @Value.Parameter
+        byte[] value();
+
+        static LockListChecksum of(int typeId, byte[] value) {
+            return ImmutableLockListChecksum.of(typeId, value);
+        }
     }
 }
