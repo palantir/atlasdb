@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatException;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -42,8 +42,6 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
-import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
-import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.util.List;
 import java.util.Map;
@@ -146,25 +144,26 @@ public class AsyncTimeLockServiceMetadataTest {
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
         return AtlasFutures.getUnchecked(responseFuture)
                 .getLockWatchUpdate()
-                .accept(LockWatchStateUpdateVisitor.INSTANCE);
+                .accept(AssertSuccessVisitor.INSTANCE)
+                .events();
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
         return IdentifiedLockRequest.of(metadata.keySet(), 1000, "testClient", LockRequestMetadata.of(metadata));
     }
 
-    private static final class LockWatchStateUpdateVisitor
-            implements LockWatchStateUpdate.Visitor<List<LockWatchEvent>> {
-        static final LockWatchStateUpdateVisitor INSTANCE = new LockWatchStateUpdateVisitor();
+    private static final class AssertSuccessVisitor
+            implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
+        static final AssertSuccessVisitor INSTANCE = new AssertSuccessVisitor();
 
         @Override
-        public List<LockWatchEvent> visit(Success success) {
-            return success.events();
+        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
+            return success;
         }
 
         @Override
-        public List<LockWatchEvent> visit(Snapshot snapshot) {
-            return ImmutableList.of();
+        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
+            return fail("Unexpected snapshot");
         }
     }
 }

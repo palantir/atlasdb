@@ -38,7 +38,6 @@ import java.util.UUID;
 import org.junit.Test;
 
 public class ConjureLockRequestTest {
-
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
@@ -64,14 +63,12 @@ public class ConjureLockRequestTest {
             0,
             Bytes.from(PtBytes.toBytes("test-checksum-value")));
 
-    // Used by Conjure for deserialization in TimeLock
-    private static final ObjectMapper SERVER_MAPPER =
-            ObjectMappers.newServerObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-    // Used by Conjure for serialization in AtlasDB
-    private static final ObjectMapper CLIENT_MAPPER =
+    // AtlasDB (Client) serializes and TimeLock (Server) deserializes ConjureLockRequest objects.
+    // These are the respective mappers used internally by Conjure.
+    private static final ObjectMapper SERIALIZATION_MAPPER =
             ObjectMappers.newClientObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
+    private static final ObjectMapper DESERIALIZATION_MAPPER =
+            ObjectMappers.newServerObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     // This mapper is used to ensure that two JSONs are equal excluding indentation
     private static final ObjectMapper VERIFYING_MAPPER = new ObjectMapper();
 
@@ -94,9 +91,9 @@ public class ConjureLockRequestTest {
         try {
             Path path = getJsonPath(jsonFileName);
             if (REWRITE_JSON_BLOBS) {
-                CLIENT_MAPPER.writeValue(path.toFile(), object);
+                SERIALIZATION_MAPPER.writeValue(path.toFile(), object);
             }
-            String serialized = CLIENT_MAPPER.writeValueAsString(object);
+            String serialized = SERIALIZATION_MAPPER.writeValueAsString(object);
             assertThat(VERIFYING_MAPPER.readTree(serialized))
                     .as("Serialization yields semantically identical JSON representation")
                     .isEqualTo(VERIFYING_MAPPER.readTree(Files.readString(path)));
@@ -107,7 +104,7 @@ public class ConjureLockRequestTest {
 
     private static <T> void assertDeserializedEquals(String jsonFileName, T object, Class<T> clazz) {
         try {
-            assertThat(SERVER_MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), clazz))
+            assertThat(DESERIALIZATION_MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), clazz))
                     .as("Deserialization yields identical object")
                     .isEqualTo(object);
         } catch (Throwable t) {
