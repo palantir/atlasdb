@@ -91,6 +91,15 @@ public class IndexEncodingUtilsTest {
     }
 
     @Test
+    public void canEncodeAndDecodeEmptyData() {
+        assertThat(IndexEncodingUtils.decode(
+                        IndexEncodingUtils.encode(
+                                ImmutableSet.of(), ImmutableMap.of(), Function.identity(), checksumType),
+                        Function.identity()))
+                .isEmpty();
+    }
+
+    @Test
     public void canEncodeWithCustomValueMapper() {
         Map<Integer, String> expectedValues = ImmutableMap.of(1, "1327", 2, "-20", 0, "32");
         assertThat(IndexEncodingUtils.encode(KEYS, VALUES, value -> Long.toString(value - 10), checksumType)
