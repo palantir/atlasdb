@@ -2209,7 +2209,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         getStartTimestamp(),
                         spanningWrites,
                         dominatingWrites,
-                        System.currentTimeMillis() - timeCreated);
+                        System.currentTimeMillis() - timeCreated,
+                        List.of(LoggingArgs.tableRef(tableRef)));
             }
         }
     }
@@ -2282,7 +2283,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
                 Sets.filter(dominatingWrites, conflicting),
-                System.currentTimeMillis() - timeCreated);
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(table)));
     }
 
     /**
