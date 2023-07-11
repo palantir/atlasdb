@@ -38,17 +38,8 @@ import org.immutables.value.Value;
 public final class IndexEncodingUtils {
     private IndexEncodingUtils() {}
 
-    public interface DeterministicHashable {
-
-        /**
-         * A hash code implementation that is stable across different processes/JVMs and only depends on the contents
-         * of the object.
-         */
-        int deterministicHashCode();
-    }
-
     /**
-     * Compute a derived map, replacing keys with their associated index into the ordered list, to the value returned
+     * Compute a derived map (replacing keys with their associated index into the ordered list) to the value returned
      * by running the {@code valueMapper} over the original value.
      * If the {@code keys} are transmitted regardless of whether they have a value associated in {@code keyToValue},
      * this encoding can be used to save significant space on the wire.
@@ -88,7 +79,7 @@ public final class IndexEncodingUtils {
     }
 
     /**
-     * Compute a derived map, replacing indices into the list of keys with their item, to the value returned
+     * Compute a derived map (replacing indices into the list of keys with their item) to the value returned
      * by running the {@code valueMapper} over the original value.
      *
      * @param indexEncoding the output of {@link IndexEncodingUtils#encode}, i.e. the ordered list of keys,
@@ -107,8 +98,8 @@ public final class IndexEncodingUtils {
                 actualChecksum.equals(expectedChecksum),
                 "Key list integrity check failed",
                 UnsafeArg.of("keyList", keyList),
-                UnsafeArg.of("actualChecksum", actualChecksum),
-                UnsafeArg.of("expectedChecksum", expectedChecksum));
+                SafeArg.of("actualChecksum", actualChecksum),
+                SafeArg.of("expectedChecksum", expectedChecksum));
 
         Map<K, R> keyToValue =
                 Maps.newHashMapWithExpectedSize(indexEncoding.indexToValue().size());
@@ -117,8 +108,8 @@ public final class IndexEncodingUtils {
             Preconditions.checkArgument(
                     index >= 0 && index < keyList.size(),
                     "Index map contains invalid index",
-                    UnsafeArg.of("index", index),
-                    UnsafeArg.of("keyListSize", keyList.size()));
+                    SafeArg.of("index", index),
+                    SafeArg.of("keyListSize", keyList.size()));
             keyToValue.put(keyList.get(index), valueMapper.apply(entry.getValue()));
         }
         return keyToValue;
@@ -127,23 +118,30 @@ public final class IndexEncodingUtils {
     @VisibleForTesting
     static <K extends DeterministicHashable> KeyListChecksum computeChecksum(
             ChecksumType checksumType, List<K> keyList) {
-        byte[] checksumValue;
         switch (checksumType) {
             case CRC32_OF_DETERMINISTIC_HASHCODE: {
                 CRC32 checksum = new CRC32();
                 for (K key : keyList) {
                     checksum.update(key.deterministicHashCode());
                 }
-                checksumValue =
-                        ByteBuffer.allocate(8).putLong(checksum.getValue()).array();
-                break;
+                return KeyListChecksum.of(
+                        checksumType,
+                        ByteBuffer.allocate(8).putLong(checksum.getValue()).array());
             }
             default: {
                 throw new SafeIllegalArgumentException(
-                        "Unknown checksum type", UnsafeArg.of("checksumType", checksumType));
+                        "Unknown checksum type", SafeArg.of("checksumType", checksumType));
             }
         }
-        return KeyListChecksum.of(checksumType, checksumValue);
+    }
+
+    public interface DeterministicHashable {
+
+        /**
+         * A hash code implementation that is stable across different processes/JVMs and only depends on the contents
+         * of the object.
+         */
+        int deterministicHashCode();
     }
 
     /**

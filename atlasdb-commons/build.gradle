@@ -26,6 +26,7 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'

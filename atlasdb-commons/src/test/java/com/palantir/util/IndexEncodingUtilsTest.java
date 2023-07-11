@@ -16,16 +16,14 @@
 
 package com.palantir.util;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeExceptions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.IndexEncodingUtils.ChecksumType;
 import com.palantir.util.IndexEncodingUtils.DeterministicHashable;
@@ -44,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.immutables.value.Value;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,23 +54,15 @@ public class IndexEncodingUtilsTest {
         return Arrays.asList(ChecksumType.values());
     }
 
-    private static final Map<DH<String>, Long> VALUES =
-            ImmutableMap.of(dh("key1"), 42L, dh("key2"), 1337L, dh("anotherKey"), -10L);
-    private static final Set<DH<String>> KEYS = ImmutableSet.of(dh("key1"), dh("key2"), dh("anotherKey"));
-    private static final Map<Integer, Long> INDEX_ENCODED_VALUES = ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L);
-    private static final Function<Long, String> VALUE_MAPPER = value -> Long.toString(value - 10);
-    private static final Function<String, Long> REVERSE_MAPPER = value -> Long.parseLong(value) + 10;
+    private static final Map<DeterministicHashableWrapper<String>, Long> VALUES =
+            ImmutableMap.of(wrap("key1"), 42L, wrap("key2"), 1337L, wrap("anotherKey"), -10L);
+    private static final Set<DeterministicHashableWrapper<String>> KEYS =
+            ImmutableSet.of(wrap("key1"), wrap("key2"), wrap("anotherKey"));
 
     private final ChecksumType checksumType;
-    private IndexEncodingResult<DH<String>, Long> encoded;
 
     public IndexEncodingUtilsTest(ChecksumType checksumType) {
         this.checksumType = checksumType;
-    }
-
-    @Before
-    public void setup() {
-        encoded = IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType);
     }
 
     @Test
@@ -83,29 +72,28 @@ public class IndexEncodingUtilsTest {
 
     @Test
     public void cannotLookupUnknownChecksumType() {
-        assertThatException()
-                .isThrownBy(() -> ChecksumType.valueOf(-1))
+        assertThatLoggableExceptionThrownBy(() -> ChecksumType.valueOf(-1))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .withMessage(
-                        SafeExceptions.renderMessage("Unknown checksum type ID", SafeArg.of("checksumTypeId", -1)));
+                .hasMessageStartingWith("Unknown checksum type ID")
+                .hasExactlyArgs(SafeArg.of("checksumTypeId", -1));
     }
 
     @Test
     public void canEncodeSimpleData() {
-        assertThat(encoded.indexToValue()).isEqualTo(INDEX_ENCODED_VALUES);
+        assertThat(createIndexEncodingWithIdentity().indexToValue())
+                .isEqualTo(ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L));
     }
 
     @Test
     public void canDecodeSimpleData() {
-        assertThat(IndexEncodingUtils.decode(encoded, Function.identity())).containsExactlyInAnyOrderEntriesOf(VALUES);
+        assertThat(IndexEncodingUtils.decode(createIndexEncodingWithIdentity(), Function.identity()))
+                .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
     @Test
     public void canEncodeWithCustomValueMapper() {
-        Map<Integer, String> expectedValues = KeyedStream.ofEntries(INDEX_ENCODED_VALUES.entrySet().stream())
-                .map(VALUE_MAPPER)
-                .collectToMap();
-        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checksumType)
+        Map<Integer, String> expectedValues = ImmutableMap.of(1, "1327", 2, "-20", 0, "32");
+        assertThat(IndexEncodingUtils.encode(KEYS, VALUES, value -> Long.toString(value - 10), checksumType)
                         .indexToValue())
                 .containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
@@ -113,73 +101,76 @@ public class IndexEncodingUtilsTest {
     @Test
     public void canDecodeWithCustomValueMapper() {
         assertThat(IndexEncodingUtils.decode(
-                        IndexEncodingUtils.encode(KEYS, VALUES, VALUE_MAPPER, checksumType), REVERSE_MAPPER))
+                        IndexEncodingUtils.encode(KEYS, VALUES, value -> Long.toString(value - 10), checksumType),
+                        value -> Long.parseLong(value) + 10))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
     @Test
     public void encodeFailsForUnknownKeysInValueMap() {
-        assertThatException()
-                .isThrownBy(() -> IndexEncodingUtils.encode(
-                        KEYS, ImmutableMap.of(dh("unknown-key"), 0L), Function.identity(), checksumType))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .withMessage(SafeExceptions.renderMessage(
-                        "Value map uses keys that are not in the provided set of keys",
-                        UnsafeArg.of("unknownKeys", ImmutableSet.of(dh("unknown-key")))));
+        assertThatLoggableExceptionThrownBy(() -> IndexEncodingUtils.encode(
+                        KEYS, ImmutableMap.of(wrap("unknown-key"), 0L), Function.identity(), checksumType))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageStartingWith("Value map uses keys that are not in the provided set of keys")
+                .hasExactlyArgs(UnsafeArg.of("unknownKeys", ImmutableSet.of(wrap("unknown-key"))));
     }
 
     @Test
     public void decodeFailsForInvalidIndices() {
-        IndexEncodingResult<DH<String>, Long> encodedWithInvalidIndices =
-                ImmutableIndexEncodingResult.copyOf(encoded).withIndexToValue(ImmutableMap.of(KEYS.size(), 17L));
-        assertThatException()
-                .isThrownBy(() -> IndexEncodingUtils.decode(encodedWithInvalidIndices, Function.identity()))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .withMessage(SafeExceptions.renderMessage(
-                        "Index map contains invalid index",
-                        UnsafeArg.of("index", KEYS.size()),
-                        UnsafeArg.of("keyListSize", KEYS.size())));
+        IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encodedWithInvalidIndices =
+                ImmutableIndexEncodingResult.copyOf(createIndexEncodingWithIdentity())
+                        .withIndexToValue(ImmutableMap.of(KEYS.size(), 17L));
+        assertThatLoggableExceptionThrownBy(
+                        () -> IndexEncodingUtils.decode(encodedWithInvalidIndices, Function.identity()))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageStartingWith("Index map contains invalid index")
+                .hasExactlyArgs(SafeArg.of("index", KEYS.size()), SafeArg.of("keyListSize", KEYS.size()));
     }
 
     @Test
     public void integrityCheckFailsForDifferentKeyList() {
-        List<DH<String>> modifiedKeyList = new ArrayList<>(KEYS);
+        IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encoded = createIndexEncodingWithIdentity();
+        List<DeterministicHashableWrapper<String>> modifiedKeyList = new ArrayList<>(KEYS);
         Collections.swap(modifiedKeyList, 0, 1);
-        IndexEncodingResult<DH<String>, Long> encodedWithModifiedKeyList =
+        IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encodedWithModifiedKeyList =
                 ImmutableIndexEncodingResult.copyOf(encoded).withKeyList(modifiedKeyList);
         KeyListChecksum actualChecksum = IndexEncodingUtils.computeChecksum(checksumType, modifiedKeyList);
-        assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessage(SafeExceptions.renderMessage(
-                        "Key list integrity check failed",
+        assertThatLoggableExceptionThrownBy(
+                        () -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageStartingWith("Key list integrity check failed")
+                .hasExactlyArgs(
                         UnsafeArg.of("keyList", modifiedKeyList),
-                        UnsafeArg.of("actualChecksum", actualChecksum),
-                        UnsafeArg.of("expectedChecksum", encoded.keyListChecksum())));
+                        SafeArg.of("actualChecksum", actualChecksum),
+                        SafeArg.of("expectedChecksum", encoded.keyListChecksum()));
     }
 
     @Test
     public void integrityCheckFailsForDifferentChecksum() {
+        IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encoded = createIndexEncodingWithIdentity();
         byte[] modifiedChecksum = encoded.keyListChecksum().value();
         modifiedChecksum[0]++;
-        IndexEncodingResult<DH<String>, Long> encodedWithModifiedChecksum = ImmutableIndexEncodingResult.copyOf(encoded)
-                .withKeyListChecksum(KeyListChecksum.of(checksumType, modifiedChecksum));
-        assertThatThrownBy(() -> IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity()))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessage(SafeExceptions.renderMessage(
-                        "Key list integrity check failed",
-                        UnsafeArg.of("keyList", KEYS),
-                        UnsafeArg.of("actualChecksum", encoded.keyListChecksum()),
-                        UnsafeArg.of("expectedChecksum", encodedWithModifiedChecksum.keyListChecksum())));
+        IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encodedWithModifiedChecksum =
+                ImmutableIndexEncodingResult.copyOf(encoded)
+                        .withKeyListChecksum(KeyListChecksum.of(checksumType, modifiedChecksum));
+        assertThatLoggableExceptionThrownBy(
+                        () -> IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity()))
+                .isExactlyInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessageStartingWith("Key list integrity check failed")
+                .hasExactlyArgs(
+                        UnsafeArg.of("keyList", encoded.keyList()),
+                        SafeArg.of("actualChecksum", encoded.keyListChecksum()),
+                        SafeArg.of("expectedChecksum", encodedWithModifiedChecksum.keyListChecksum()));
     }
 
     @Test
     public void decodingEncodedDataYieldsOriginalForRandomData() {
         Random rand = new Random();
-        Set<DH<UUID>> keys = Stream.generate(UUID::randomUUID)
+        Set<DeterministicHashableWrapper<UUID>> keys = Stream.generate(UUID::randomUUID)
                 .limit(1000)
-                .map(IndexEncodingUtilsTest::dh)
+                .map(IndexEncodingUtilsTest::wrap)
                 .collect(Collectors.toSet());
-        Map<DH<UUID>, Long> data = KeyedStream.of(keys.stream())
+        Map<DeterministicHashableWrapper<UUID>, Long> data = KeyedStream.of(keys.stream())
                 .filter(_unused -> rand.nextBoolean())
                 .map(_unused -> rand.nextLong())
                 .collectToMap();
@@ -188,9 +179,16 @@ public class IndexEncodingUtilsTest {
                 .containsExactlyInAnyOrderEntriesOf(data);
     }
 
-    // DH = deterministic hashable
+    private IndexEncodingResult<DeterministicHashableWrapper<String>, Long> createIndexEncodingWithIdentity() {
+        return IndexEncodingUtils.encode(KEYS, VALUES, Function.identity(), checksumType);
+    }
+
+    private static <T> DeterministicHashableWrapper<T> wrap(T value) {
+        return ImmutableDeterministicHashableWrapper.of(value);
+    }
+
     @Value.Immutable
-    abstract static class DH<T> implements DeterministicHashable {
+    abstract static class DeterministicHashableWrapper<T> implements DeterministicHashable {
 
         @Value.Parameter
         protected abstract T delegate();
@@ -199,9 +197,5 @@ public class IndexEncodingUtilsTest {
         public int deterministicHashCode() {
             return delegate().hashCode();
         }
-    }
-
-    private static <T> DH<T> dh(T value) {
-        return ImmutableDH.of(value);
     }
 }
