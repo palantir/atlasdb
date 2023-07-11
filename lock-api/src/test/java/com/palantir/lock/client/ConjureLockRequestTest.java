@@ -26,6 +26,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptorListChecksum;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
@@ -60,8 +61,7 @@ public class ConjureLockRequestTest {
                     1,
                     ConjureChangeMetadata.deleted(
                             ConjureDeletedChangeMetadata.of(Bytes.from(PtBytes.toBytes("oldValue"))))),
-            0,
-            Bytes.from(PtBytes.toBytes("test-checksum-value")));
+            ConjureLockDescriptorListChecksum.of(0, Bytes.from(PtBytes.toBytes("test-checksum-value"))));
 
     // AtlasDB (Client) serializes and TimeLock (Server) deserializes ConjureLockRequest objects.
     // These are the respective mappers used internally by Conjure.
