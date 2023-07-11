@@ -52,11 +52,9 @@ public class ConjureLockRequestMetadataUtilsTest {
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("lock2");
     private static final LockDescriptor LOCK_3 = StringLockDescriptor.of("lock3");
     private static final LockDescriptor LOCK_4 = StringLockDescriptor.of("lock4");
-
     private static final List<LockDescriptor> LOCK_LIST = ImmutableList.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4);
     // LinkedHashSet remembers insertion order, which is important for the tests below.
     private static final Set<LockDescriptor> LOCK_SET = new LinkedHashSet<>(LOCK_LIST);
-
     // Although this is quite verbose, we explicitly want to test all possible types of change metadata and ensure
     // that we do the conversion right for each of them.
     private static final Map<LockDescriptor, ChangeMetadata> LOCKS_WITH_METADATA = ImmutableMap.of(
@@ -69,7 +67,6 @@ public class ConjureLockRequestMetadataUtilsTest {
             LOCK_4,
             ChangeMetadata.created(PtBytes.toBytes("created")));
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(LOCKS_WITH_METADATA);
-
     private static final Map<Integer, ConjureChangeMetadata> CONJURE_LOCKS_WITH_METADATA = ImmutableMap.of(
             0,
             ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of()),
@@ -111,14 +108,14 @@ public class ConjureLockRequestMetadataUtilsTest {
     }
 
     @Test
-    public void convertingToAndFromConjureIsIdentity() {
+    public void convertingToAndFromConjureIsIdentityForRandomData() {
         Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
                 .map(UUID::toString)
                 .map(StringLockDescriptor::of)
                 .limit(1000)
                 .collect(Collectors.toSet());
         Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
-                .filter(lockDescriptor -> RAND.nextBoolean())
+                .filter(_unused -> RAND.nextBoolean())
                 .map(_unused -> createRandomChangeMetadata())
                 .collectToMap();
         LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
