@@ -16,7 +16,9 @@
         }
       }
     },
-    "checksumTypeId" : 0,
-    "checksumValue" : "dGVzdC1jaGVja3N1bS12YWx1ZQ=="
+    "lockListChecksum" : {
+      "typeId" : 0,
+      "value" : "dGVzdC1jaGVja3N1bS12YWx1ZQ=="
+    }
   }
 }
