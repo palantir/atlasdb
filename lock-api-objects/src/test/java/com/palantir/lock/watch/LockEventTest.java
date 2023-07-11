@@ -68,14 +68,12 @@ public class LockEventTest {
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             LOCK_1, ChangeMetadata.created(PtBytes.toBytes("new")), LOCK_2, ChangeMetadata.unchanged()));
 
-    // Used by Conjure for serialization in TimeLock
-    private static final ObjectMapper SERVER_MAPPER =
+    // TimeLock (Server) serializes and AtlasDB (Client) deserializes.
+    // These are the respective mappers used internally by Conjure.
+    private static final ObjectMapper SERIALIZATION_MAPPER =
             ObjectMappers.newServerObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
-    // Used by Conjure for deserialization in AtlasDB
-    private static final ObjectMapper CLIENT_MAPPER =
+    private static final ObjectMapper DESERIALIZATION_MAPPER =
             ObjectMappers.newClientObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
     // This mapper is used to ensure that two JSONs are equal excluding indentation
     private static final ObjectMapper VERIFYING_MAPPER = new ObjectMapper();
     private static final Random RAND = new Random();
@@ -110,12 +108,12 @@ public class LockEventTest {
     }
 
     @Test
-    public void oldClientsIgnoreMetadataIfUsingConjure() {
+    public void oldClientIgnoresMetadataIfUsingConjure() {
         assertDeserializedEquals("baseline-with-metadata", OLD_LOCK_EVENT, OldLockEvent.class);
     }
 
     @Test
-    public void canSerializeAndDeserializeLargeEventWithRandomMetadata() {
+    public void serializingAndDeserializingIsIdentityForRandomData() {
         List<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
                 .map(UUID::toString)
                 .map(StringLockDescriptor::of)
@@ -159,7 +157,7 @@ public class LockEventTest {
         try {
             Path path = getJsonPath(jsonFileName);
             if (REWRITE_JSON_BLOBS) {
-                SERVER_MAPPER.writeValue(path.toFile(), object);
+                SERIALIZATION_MAPPER.writeValue(path.toFile(), object);
             }
             String serialized = serialize(object);
             assertThat(VERIFYING_MAPPER.readTree(serialized))
@@ -182,7 +180,7 @@ public class LockEventTest {
 
     private static <T> String serialize(T object) {
         try {
-            return SERVER_MAPPER.writeValueAsString(object);
+            return SERIALIZATION_MAPPER.writeValueAsString(object);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
@@ -190,7 +188,7 @@ public class LockEventTest {
 
     private static <T> T deserialize(String json, Class<T> clazz) {
         try {
-            return CLIENT_MAPPER.readValue(json, clazz);
+            return DESERIALIZATION_MAPPER.readValue(json, clazz);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
