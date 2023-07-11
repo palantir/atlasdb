@@ -56,8 +56,8 @@ public final class SimpleRangeQueryReader implements RangeQueryReader {
         if (allValues.size() > LARGE_HISTORY_LIMIT) {
             log.error(
                     "Attempted to do range queries in a simple way, even though the history is large ({} entries)! If"
-                            + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
-                            + " efficient range query implementation.",
+                        + " you're seeing this message, consider simplifying your workflow and/or switching to a more"
+                        + " efficient range query implementation.",
                     SafeArg.of("size", allValues.size()));
         }
         return allValues
