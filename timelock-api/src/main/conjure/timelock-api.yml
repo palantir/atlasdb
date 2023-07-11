@@ -119,15 +119,18 @@ types:
             updated: ConjureUpdatedChangeMetadata
             deleted: ConjureDeletedChangeMetadata
             created: ConjureCreatedChangeMetadata
+      ConjureLockDescriptorListChecksum:
+        fields:
+          typeId:
+            type: integer
+            safety: safe
+          value:
+            type: binary
+            safety: unsafe
       ConjureLockRequestMetadata:
         fields:
           indexToChangeMetadata: map<integer, ConjureChangeMetadata>
-          checksumTypeId:
-            type: integer
-            safety: safe
-          checksumValue:
-            type: binary
-            safety: unsafe
+          lockListChecksum: ConjureLockDescriptorListChecksum
       ConjureLockDescriptor:
         alias: binary
         safety: unsafe

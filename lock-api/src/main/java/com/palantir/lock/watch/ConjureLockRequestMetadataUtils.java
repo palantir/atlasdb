@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureCreatedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptorListChecksum;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
@@ -35,10 +36,8 @@ import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.ChecksumType;
 import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
@@ -59,8 +58,7 @@ public final class ConjureLockRequestMetadataUtils {
         KeyListChecksum checksum = encoded.keyListChecksum();
         ConjureLockRequestMetadata conjureLockRequestMetadata = ConjureLockRequestMetadata.builder()
                 .indexToChangeMetadata(encoded.indexToValue())
-                .checksumTypeId(checksum.type().getId())
-                .checksumValue(Bytes.from(checksum.value()))
+                .lockListChecksum(checksumToConjure(checksum))
                 .build();
         return ImmutableConjureMetadataConversionResult.builder()
                 .lockList(encoded.keyList())
@@ -71,9 +69,8 @@ public final class ConjureLockRequestMetadataUtils {
     public static LockRequestMetadata fromConjureIndexEncoded(ConjureMetadataConversionResult conversionResult) {
         List<LockDescriptor> keyList = conversionResult.lockList();
         ConjureLockRequestMetadata conjureMetadata = conversionResult.conjureMetadata();
-        ChecksumType checksumType = ChecksumType.valueOf(conjureMetadata.getChecksumTypeId());
-        KeyListChecksum checksum = KeyListChecksum.of(
-                checksumType, conjureMetadata.getChecksumValue().asNewByteArray());
+        KeyListChecksum checksum =
+                checksumFromConjure(conversionResult.conjureMetadata().getLockListChecksum());
         IndexEncodingResult<LockDescriptor, ConjureChangeMetadata> encoded =
                 IndexEncodingResult.<LockDescriptor, ConjureChangeMetadata>builder()
                         .keyList(keyList)
@@ -84,9 +81,21 @@ public final class ConjureLockRequestMetadataUtils {
                 encoded,
                 conjureChangeMetadata -> conjureChangeMetadata.accept(ChangeMetadataFromConjureVisitor.INSTANCE));
         // visitUnknown() will return an empty optional
-        Map<LockDescriptor, ChangeMetadata> changeMetadata =
-                KeyedStream.ofEntries(optChangeMetadata.entrySet().stream()).flatMap(Optional::stream).collectToMap();
+        Map<LockDescriptor, ChangeMetadata> changeMetadata = KeyedStream.ofEntries(
+                        optChangeMetadata.entrySet().stream())
+                .flatMap(Optional::stream)
+                .collectToMap();
         return LockRequestMetadata.of(changeMetadata);
+    }
+
+    private static ConjureLockDescriptorListChecksum checksumToConjure(KeyListChecksum checksum) {
+        return ConjureLockDescriptorListChecksum.of(checksum.type().getId(), Bytes.from(checksum.value()));
+    }
+
+    private static KeyListChecksum checksumFromConjure(ConjureLockDescriptorListChecksum conjureChecksum) {
+        return KeyListChecksum.of(
+                ChecksumType.valueOf(conjureChecksum.getTypeId()),
+                conjureChecksum.getValue().asNewByteArray());
     }
 
     @Unsafe
@@ -126,8 +135,7 @@ public final class ConjureLockRequestMetadataUtils {
         }
     }
 
-    private enum ChangeMetadataFromConjureVisitor
-            implements ConjureChangeMetadata.Visitor<Optional<ChangeMetadata>> {
+    private enum ChangeMetadataFromConjureVisitor implements ConjureChangeMetadata.Visitor<Optional<ChangeMetadata>> {
         INSTANCE;
 
         @Override

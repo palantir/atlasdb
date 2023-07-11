@@ -25,6 +25,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureCreatedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptorListChecksum;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
@@ -46,7 +47,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runners.Parameterized.Parameters;
 
 public class ConjureLockRequestMetadataUtilsTest {
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
@@ -87,8 +87,8 @@ public class ConjureLockRequestMetadataUtilsTest {
                 IndexEncodingUtils.computeChecksum(ConjureLockRequestMetadataUtils.DEFAULT_CHECKSUM_TYPE, LOCK_LIST);
         ConjureLockRequestMetadata conjureMetadata = ConjureLockRequestMetadata.builder()
                 .indexToChangeMetadata(CONJURE_LOCKS_WITH_METADATA)
-                .checksumTypeId(checksum.type().getId())
-                .checksumValue(Bytes.from(checksum.value()))
+                .lockListChecksum(
+                        ConjureLockDescriptorListChecksum.of(checksum.type().getId(), Bytes.from(checksum.value())))
                 .build();
         conjureMetadataConversionResult = ConjureMetadataConversionResult.builder()
                 .lockList(LOCK_LIST)
@@ -107,7 +107,6 @@ public class ConjureLockRequestMetadataUtilsTest {
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conjureMetadataConversionResult))
                 .isEqualTo(LOCK_REQUEST_METADATA);
     }
-
 
     @Test
     public void convertingToAndFromConjureIsIdentityForRandomData() {
