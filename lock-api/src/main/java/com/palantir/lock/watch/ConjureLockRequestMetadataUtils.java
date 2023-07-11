@@ -23,6 +23,7 @@ import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.ChangeMetadata.Created;
@@ -34,9 +35,11 @@ import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.ChecksumType;
 import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
@@ -77,11 +80,12 @@ public final class ConjureLockRequestMetadataUtils {
                         .indexToValue(conjureMetadata.getIndexToChangeMetadata())
                         .keyListChecksum(checksum)
                         .build();
-        Map<LockDescriptor, ChangeMetadata> changeMetadata = IndexEncodingUtils.decode(
+        Map<LockDescriptor, Optional<ChangeMetadata>> optChangeMetadata = IndexEncodingUtils.decode(
                 encoded,
                 conjureChangeMetadata -> conjureChangeMetadata.accept(ChangeMetadataFromConjureVisitor.INSTANCE));
-        // visitUnknown() will return null
-        changeMetadata.values().removeIf(Objects::isNull);
+        // visitUnknown() will return an empty optional
+        Map<LockDescriptor, ChangeMetadata> changeMetadata =
+                KeyedStream.ofEntries(optChangeMetadata.entrySet().stream()).flatMap(Optional::stream).collectToMap();
         return LockRequestMetadata.of(changeMetadata);
     }
 
@@ -97,8 +101,8 @@ public final class ConjureLockRequestMetadataUtils {
         }
     }
 
-    private static final class ChangeMetadataToConjureVisitor implements ChangeMetadata.Visitor<ConjureChangeMetadata> {
-        static final ChangeMetadataToConjureVisitor INSTANCE = new ChangeMetadataToConjureVisitor();
+    private enum ChangeMetadataToConjureVisitor implements ChangeMetadata.Visitor<ConjureChangeMetadata> {
+        INSTANCE;
 
         @Override
         public ConjureChangeMetadata visit(Unchanged unchanged) {
@@ -122,37 +126,35 @@ public final class ConjureLockRequestMetadataUtils {
         }
     }
 
-    private static final class ChangeMetadataFromConjureVisitor
-            implements ConjureChangeMetadata.Visitor<ChangeMetadata> {
-
-        static final ChangeMetadataFromConjureVisitor INSTANCE = new ChangeMetadataFromConjureVisitor();
+    private enum ChangeMetadataFromConjureVisitor
+            implements ConjureChangeMetadata.Visitor<Optional<ChangeMetadata>> {
+        INSTANCE;
 
         @Override
-        public ChangeMetadata visitUnchanged(ConjureUnchangedChangeMetadata unchanged) {
-            return ChangeMetadata.unchanged();
+        public Optional<ChangeMetadata> visitUnchanged(ConjureUnchangedChangeMetadata unchanged) {
+            return Optional.of(ChangeMetadata.unchanged());
         }
 
         @Override
-        public ChangeMetadata visitUpdated(ConjureUpdatedChangeMetadata updated) {
-            return ChangeMetadata.updated(
+        public Optional<ChangeMetadata> visitUpdated(ConjureUpdatedChangeMetadata updated) {
+            return Optional.of(ChangeMetadata.updated(
                     updated.getOldValue().asNewByteArray(),
-                    updated.getNewValue().asNewByteArray());
+                    updated.getNewValue().asNewByteArray()));
         }
 
         @Override
-        public ChangeMetadata visitDeleted(ConjureDeletedChangeMetadata deleted) {
-            return ChangeMetadata.deleted(deleted.getOldValue().asNewByteArray());
+        public Optional<ChangeMetadata> visitDeleted(ConjureDeletedChangeMetadata deleted) {
+            return Optional.of(ChangeMetadata.deleted(deleted.getOldValue().asNewByteArray()));
         }
 
         @Override
-        public ChangeMetadata visitCreated(ConjureCreatedChangeMetadata created) {
-            return ChangeMetadata.created(created.getNewValue().asNewByteArray());
+        public Optional<ChangeMetadata> visitCreated(ConjureCreatedChangeMetadata created) {
+            return Optional.of(ChangeMetadata.created(created.getNewValue().asNewByteArray()));
         }
 
         @Override
-        public ChangeMetadata visitUnknown(String unknownType) {
-            // caller should handle this case
-            return null;
+        public Optional<ChangeMetadata> visitUnknown(String unknownType) {
+            return Optional.empty();
         }
     }
 }
