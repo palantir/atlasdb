@@ -185,7 +185,7 @@ public class LockEventTest {
     @Test
     public void shufflingLockDescriptorsOnTheWireIsDetectedByClient() {
         assertThatThrownBy(() ->
-                // The order of the lock descriptors in this JSON file is swapped
+                        // The order of the lock descriptors in this JSON file is swapped
                         deserialize(Files.readString(getJsonPath("baseline-with-shuffled-locks")), LockEvent.class))
                 .rootCause()
                 .isInstanceOf(SafeIllegalArgumentException.class)
