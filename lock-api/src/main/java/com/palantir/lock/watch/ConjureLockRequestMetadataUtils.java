@@ -31,7 +31,10 @@ import com.palantir.lock.watch.ChangeMetadata.Created;
 import com.palantir.lock.watch.ChangeMetadata.Deleted;
 import com.palantir.lock.watch.ChangeMetadata.Unchanged;
 import com.palantir.lock.watch.ChangeMetadata.Updated;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.ChecksumType;
 import com.palantir.util.IndexEncodingUtils.IndexEncodingResult;
@@ -47,6 +50,8 @@ public final class ConjureLockRequestMetadataUtils {
 
     @VisibleForTesting
     static final ChecksumType DEFAULT_CHECKSUM_TYPE = ChecksumType.CRC32_OF_DETERMINISTIC_HASHCODE;
+
+    private static final SafeLogger log = SafeLoggerFactory.get(ConjureLockRequestMetadataUtils.class);
 
     public static ConjureMetadataConversionResult toConjureIndexEncoded(
             Set<LockDescriptor> lockDescriptors, LockRequestMetadata metadata) {
@@ -161,6 +166,7 @@ public final class ConjureLockRequestMetadataUtils {
 
         @Override
         public Optional<ChangeMetadata> visitUnknown(String unknownType) {
+            log.trace("Unknown ConjureChangeMetadata type", SafeArg.of("unknownType", unknownType));
             return Optional.empty();
         }
     }
