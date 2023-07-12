@@ -50,7 +50,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
-import org.immutables.value.Value.Immutable;
 import org.junit.Test;
 
 public class LockEventTest {
@@ -102,7 +101,6 @@ public class LockEventTest {
             ObjectMappers.newClientObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     // This mapper is used to ensure that two JSONs are equal excluding indentation
     private static final ObjectMapper VERIFYING_MAPPER = new ObjectMapper();
-    private static final Random RANDOM = new Random();
 
     @Test
     public void oldLockEventIsBaseline() {
@@ -146,18 +144,28 @@ public class LockEventTest {
     }
 
     @Test
-    public void serializingAndDeserializingIsIdentityForRandomData() {
+    public void serializingAndDeserializingYieldsOriginalForRandomData() {
+        int randSeed = (int) System.currentTimeMillis();
+        Random random = new Random(randSeed);
         Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
                 .map(UUID::toString)
                 .map(StringLockDescriptor::of)
                 .limit(10000)
                 .collect(Collectors.toSet());
+        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
+        Collections.shuffle(shuffled, random);
+        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
+                .filter(_unused -> random.nextBoolean())
+                .map(_unused -> iterator.next())
+                .collectToMap();
+        LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
         LockEvent largeLockEvent = ImmutableLockEvent.builder()
                 .sequence(10L)
                 // ImmutableSet remembers insertion order
                 .lockDescriptors(lockDescriptors)
                 .lockToken(LockToken.of(new UUID(1, 2)))
-                .metadata(createRandomLockRequestMetadataFor(lockDescriptors))
+                .metadata(metadata)
                 .build();
         OldLockEvent largeLockEventWithoutMetadata = ImmutableOldLockEvent.builder()
                 .sequence(largeLockEvent.sequence())
@@ -165,8 +173,13 @@ public class LockEventTest {
                 .lockToken(largeLockEvent.lockToken())
                 .build();
 
-        assertThat(deserialize(serialize(largeLockEvent), LockEvent.class)).isEqualTo(largeLockEvent);
-        assertThat(deserialize(serialize(largeLockEvent), OldLockEvent.class)).isEqualTo(largeLockEventWithoutMetadata);
+        assertThat(deserialize(serialize(largeLockEvent), LockEvent.class))
+                .as("Serializing and deserializing yields original LockEvent. Random seed: " + randSeed)
+                .isEqualTo(largeLockEvent);
+        assertThat(deserialize(serialize(largeLockEvent), OldLockEvent.class))
+                .as("Serializing and deserializing (without metadata) yields original OldLockEvent. Random seed: "
+                        + randSeed)
+                .isEqualTo(largeLockEventWithoutMetadata);
     }
 
     @Test
@@ -236,16 +249,5 @@ public class LockEventTest {
 
     private static Path getJsonPath(String jsonFileName) {
         return Paths.get(BASE + jsonFileName + ".json");
-    }
-
-    private static LockRequestMetadata createRandomLockRequestMetadataFor(Set<LockDescriptor> lockDescriptors) {
-        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
-        Collections.shuffle(shuffled, RANDOM);
-        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
-        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
-                .filter(_unused -> RANDOM.nextBoolean())
-                .map(_unused -> iterator.next())
-                .collectToMap();
-        return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
     }
 }
