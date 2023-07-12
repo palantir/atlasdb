@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class LockEventLogImpl implements LockEventLog {
     private static final SafeLogger log = SafeLoggerFactory.get(LockEventLogImpl.class);
 
-    // Our Sliding window can hold a maximum of 1000 values. If we never store more than 1000 metadata values at a time
+    // Our Sliding window can hold a maximum of 1000 values. If we never store more than 100 metadata values at a time
     // memory usage by metadata will be bounded by 100 * 1000 * MAX_CHANGE_METADATA bytes.
     // Assuming we are using ChangeMetadata that holds ~2KB max each, metadata cannot take up more than 200MB of memory.
     @VisibleForTesting
@@ -81,7 +81,10 @@ public class LockEventLogImpl implements LockEventLog {
         // how often this happens.
         int metadataSize = metadata.map(LockRequestMetadata::size).orElse(0);
         if (metadataSize > MAX_METADATA_SIZE) {
-            log.warn("Discarding metadata because it is too large", SafeArg.of("metadataSize", metadataSize));
+            log.warn(
+                    "Discarding metadata because it is too large",
+                    SafeArg.of("metadataSize", metadataSize),
+                    SafeArg.of("maxMetadataSize", MAX_METADATA_SIZE));
             metadata = Optional.empty();
         }
         slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
