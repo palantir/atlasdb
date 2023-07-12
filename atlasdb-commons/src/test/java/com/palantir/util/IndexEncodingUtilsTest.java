@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
 import org.immutables.value.Value;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -184,7 +183,7 @@ public class IndexEncodingUtilsTest {
                 .filter(_unused -> rand.nextBoolean())
                 .map(_unused -> rand.nextLong())
                 .collectToMap();
-        Assertions.assertThat(IndexEncodingUtils.decode(
+        assertThat(IndexEncodingUtils.decode(
                         IndexEncodingUtils.encode(keys, data, Function.identity(), checksumType), Function.identity()))
                 .as("Encoding and decoding yields original data. Random seed: " + seed)
                 .containsExactlyInAnyOrderEntriesOf(data);
