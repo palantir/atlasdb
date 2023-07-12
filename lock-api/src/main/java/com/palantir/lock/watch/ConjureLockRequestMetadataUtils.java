@@ -80,7 +80,6 @@ public final class ConjureLockRequestMetadataUtils {
         Map<LockDescriptor, Optional<ChangeMetadata>> optChangeMetadata = IndexEncodingUtils.decode(
                 encoded,
                 conjureChangeMetadata -> conjureChangeMetadata.accept(ChangeMetadataFromConjureVisitor.INSTANCE));
-        // visitUnknown() will return an empty optional
         Map<LockDescriptor, ChangeMetadata> changeMetadata = KeyedStream.ofEntries(
                         optChangeMetadata.entrySet().stream())
                 .flatMap(Optional::stream)

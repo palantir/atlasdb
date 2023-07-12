@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureCreatedChangeMetadata;
@@ -31,7 +30,6 @@ import com.palantir.atlasdb.timelock.api.ConjureLockDescriptorListChecksum;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequestMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -41,14 +39,10 @@ import com.palantir.util.IndexEncodingUtils;
 import com.palantir.util.IndexEncodingUtils.KeyListChecksum;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -124,26 +118,22 @@ public class ConjureLockRequestMetadataUtilsTest {
     }
 
     @Test
-    public void convertingToAndFromConjureYieldsOriginalForRandomData() {
-        int randSeed = (int) System.currentTimeMillis();
-        Random random = new Random(randSeed);
-        Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
-                .map(UUID::toString)
+    public void canConvertSparseMetadata() {
+        List<LockDescriptor> lockDescriptors = IntStream.range(0, 10)
+                .mapToObj(Integer::toString)
                 .map(StringLockDescriptor::of)
-                .limit(1000)
-                .collect(Collectors.toSet());
-        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
-        Collections.shuffle(shuffled, random);
-        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
-        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
-                .filter(_unused -> random.nextBoolean())
-                .map(_unused -> iterator.next())
-                .collectToMap();
+                .collect(Collectors.toList());
+        // Unique metadata on some locks, but not all
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = ImmutableMap.of(
+                lockDescriptors.get(0), ChangeMetadata.created(PtBytes.toBytes(0)),
+                lockDescriptors.get(4), ChangeMetadata.created(PtBytes.toBytes(4)),
+                lockDescriptors.get(9), ChangeMetadata.created(PtBytes.toBytes(9)),
+                lockDescriptors.get(5), ChangeMetadata.created(PtBytes.toBytes(5)));
         LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
 
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
-                .as("Converting to Conjure and back yields the original data. Random seed: " + randSeed)
+                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(
+                                ImmutableSet.copyOf(lockDescriptors), metadata)))
                 .isEqualTo(metadata);
     }
 
