@@ -1,6 +1,6 @@
 {
   "requestId" : "00000000-0000-0539-0000-00000000002a",
-  "lockDescriptors" : [ "YWJj", "dGVzdC1sb2Nr" ],
+  "lockDescriptors" : [ "YWJj" ],
   "acquireTimeoutMs" : 100,
   "clientDescription" : "client: test, thread: test",
   "metadata" : {
@@ -8,12 +8,6 @@
       "0" : {
         "type" : "unchanged",
         "unchanged" : { }
-      },
-      "1" : {
-        "type" : "deleted",
-        "deleted" : {
-          "oldValue" : "b2xkVmFsdWU="
-        }
       }
     },
     "lockListChecksum" : {
