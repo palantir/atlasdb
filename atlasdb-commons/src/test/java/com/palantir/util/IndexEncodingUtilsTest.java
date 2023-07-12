@@ -74,7 +74,7 @@ public class IndexEncodingUtilsTest {
     public void cannotLookupUnknownChecksumType() {
         assertThatLoggableExceptionThrownBy(() -> ChecksumType.valueOf(-1))
                 .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Unknown checksum type ID")
+                .hasLogMessage("Unknown checksum type ID")
                 .hasExactlyArgs(SafeArg.of("checksumTypeId", -1));
     }
 
@@ -120,7 +120,7 @@ public class IndexEncodingUtilsTest {
         assertThatLoggableExceptionThrownBy(() -> IndexEncodingUtils.encode(
                         KEYS, ImmutableMap.of(wrap("unknown-key"), 0L), Function.identity(), checksumType))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Value map uses keys that are not in the provided set of keys")
+                .hasLogMessage("Value map uses keys that are not in the provided set of keys")
                 .hasExactlyArgs(UnsafeArg.of("unknownKeys", ImmutableSet.of(wrap("unknown-key"))));
     }
 
@@ -132,7 +132,7 @@ public class IndexEncodingUtilsTest {
         assertThatLoggableExceptionThrownBy(
                         () -> IndexEncodingUtils.decode(encodedWithInvalidIndices, Function.identity()))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Index map contains invalid index")
+                .hasLogMessage("Index map contains invalid index")
                 .hasExactlyArgs(SafeArg.of("index", KEYS.size()), SafeArg.of("keyListSize", KEYS.size()));
     }
 
@@ -147,7 +147,7 @@ public class IndexEncodingUtilsTest {
         assertThatLoggableExceptionThrownBy(
                         () -> IndexEncodingUtils.decode(encodedWithModifiedKeyList, Function.identity()))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Key list integrity check failed")
+                .hasLogMessage("Key list integrity check failed")
                 .hasExactlyArgs(
                         UnsafeArg.of("keyList", modifiedKeyList),
                         SafeArg.of("actualChecksum", actualChecksum),
@@ -165,7 +165,7 @@ public class IndexEncodingUtilsTest {
         assertThatLoggableExceptionThrownBy(
                         () -> IndexEncodingUtils.decode(encodedWithModifiedChecksum, Function.identity()))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageStartingWith("Key list integrity check failed")
+                .hasLogMessage("Key list integrity check failed")
                 .hasExactlyArgs(
                         UnsafeArg.of("keyList", encoded.keyList()),
                         SafeArg.of("actualChecksum", encoded.keyListChecksum()),
