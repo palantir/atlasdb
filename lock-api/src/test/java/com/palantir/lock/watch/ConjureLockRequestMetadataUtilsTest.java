@@ -89,7 +89,7 @@ public class ConjureLockRequestMetadataUtilsTest {
             ConjureChangeMetadata.deleted(ConjureDeletedChangeMetadata.of(Bytes.from(BYTES_DELETED))),
             3,
             ConjureChangeMetadata.created(ConjureCreatedChangeMetadata.of(Bytes.from(BYTES_CREATED))));
-    private static final Random RANDOM = new Random();
+
     private static ConjureMetadataConversionResult conjureMetadataConversionResult;
 
     // This is a good candidate for a static construction method, but we would rather avoid testing internals of
@@ -124,45 +124,47 @@ public class ConjureLockRequestMetadataUtilsTest {
     }
 
     @Test
-    public void convertingToAndFromConjureIsIdentityForRandomData() {
+    public void convertingToAndFromConjureYieldsOriginalForRandomData() {
+        int randSeed = (int) System.currentTimeMillis();
+        Random random = new Random(randSeed);
         Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
                 .map(UUID::toString)
                 .map(StringLockDescriptor::of)
                 .limit(1000)
                 .collect(Collectors.toSet());
-        LockRequestMetadata metadata = createRandomLockRequestMetadataFor(lockDescriptors);
+        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
+        Collections.shuffle(shuffled, random);
+        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
+                .filter(_unused -> random.nextBoolean())
+                .map(_unused -> iterator.next())
+                .collectToMap();
+        LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
+
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
+                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
+                .as("Converting to Conjure and back yields the original data. Random seed: " + randSeed)
                 .isEqualTo(metadata);
     }
 
     @Test
     public void changedLockOrderIsDetected() {
+        List<LockDescriptor> modifiedLockList = new ArrayList<>(LOCK_LIST);
+        Collections.swap(modifiedLockList, 0, 1);
         ConjureMetadataConversionResult conversionResult = ImmutableConjureMetadataConversionResult.copyOf(
                         conjureMetadataConversionResult)
-                .withLockList(LOCK_2, LOCK_1, LOCK_3, LOCK_4);
+                .withLockList(modifiedLockList);
         assertThatLoggableExceptionThrownBy(
-                        () -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conversionResult))
+                () -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conversionResult))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
     }
 
     @Test
-    public void handlesEmptyMetadata() {
+    public void handlesEmptyData() {
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(
-                                ImmutableSet.of(), LockRequestMetadata.of(ImmutableMap.of()))))
+                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(
+                        ImmutableSet.of(), LockRequestMetadata.of(ImmutableMap.of()))))
                 .isEqualTo(LockRequestMetadata.of(ImmutableMap.of()));
-    }
-
-    private static LockRequestMetadata createRandomLockRequestMetadataFor(Set<LockDescriptor> lockDescriptors) {
-        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
-        Collections.shuffle(shuffled, RANDOM);
-        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
-        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
-                .filter(_unused -> RANDOM.nextBoolean())
-                .map(_unused -> iterator.next())
-                .collectToMap();
-        return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
     }
 }
