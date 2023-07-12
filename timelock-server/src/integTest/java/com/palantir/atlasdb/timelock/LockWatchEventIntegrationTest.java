@@ -260,7 +260,7 @@ public final class LockWatchEventIntegrationTest {
     }
 
     @Test
-    public void noMetadataAttachedByDefault() {
+    public void absentMetadataIsVisibleToTransaction() {
         LockRequest requestWithoutMetadata = lockRequestOf(
                 ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW)), Optional.empty());
         List<Optional<LockRequestMetadata>> allMetadata =
@@ -269,7 +269,7 @@ public final class LockWatchEventIntegrationTest {
     }
 
     @Test
-    public void metadataSentToTimeLockIsVisibleToTransaction() {
+    public void nonEmptyMetadataIsVisibleToTransaction() {
         LockDescriptor lock = AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW);
         LockRequestMetadata metadata =
                 LockRequestMetadata.of(ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("foo"))));

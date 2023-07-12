@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -158,7 +159,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                                     .lockList(lockDescriptors)
                                     .build()));
             IdentifiedLockRequest lockRequest = ImmutableIdentifiedLockRequest.builder()
-                    .lockDescriptors(Set.copyOf(lockDescriptors))
+                    .lockDescriptors(lockDescriptors)
                     .clientDescription(request.getClientDescription())
                     .requestId(request.getRequestId())
                     .acquireTimeoutMs(request.getAcquireTimeoutMs())

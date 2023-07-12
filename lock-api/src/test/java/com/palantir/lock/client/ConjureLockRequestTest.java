@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureChangeMetadata;
-import com.palantir.atlasdb.timelock.api.ConjureDeletedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockDescriptorListChecksum;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -53,9 +52,7 @@ public class ConjureLockRequestTest {
     // The checksum on this does not have to be correct since the integrity check is performed by the server and not
     // by Conjure itself
     private static final ConjureLockRequestMetadata CONJURE_LOCK_REQUEST_METADATA = ConjureLockRequestMetadata.of(
-            ImmutableMap.of(
-                    0,
-                    ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of())),
+            ImmutableMap.of(0, ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of())),
             ConjureLockDescriptorListChecksum.of(0, Bytes.from(PtBytes.toBytes("test-checksum-value"))));
 
     // AtlasDB (Client) serializes and TimeLock (Server) deserializes ConjureLockRequest objects.
