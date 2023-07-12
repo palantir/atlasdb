@@ -42,12 +42,10 @@ public class ConjureLockRequestTest {
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
-    private static final ConjureLockDescriptor LOCK_1 = ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("abc")));
-    private static final ConjureLockDescriptor LOCK_2 =
-            ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("test-lock")));
+    private static final ConjureLockDescriptor TEST_LOCK = ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("abc")));
     private static final ConjureLockRequest BASELINE_CONJURE_LOCK_REQUEST = ConjureLockRequest.builder()
             .requestId(new UUID(1337, 42))
-            .lockDescriptors(ImmutableList.of(LOCK_1, LOCK_2))
+            .lockDescriptors(ImmutableList.of(TEST_LOCK))
             .acquireTimeoutMs(100)
             .clientDescription("client: test, thread: test")
             .build();
@@ -57,10 +55,7 @@ public class ConjureLockRequestTest {
     private static final ConjureLockRequestMetadata CONJURE_LOCK_REQUEST_METADATA = ConjureLockRequestMetadata.of(
             ImmutableMap.of(
                     0,
-                    ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of()),
-                    1,
-                    ConjureChangeMetadata.deleted(
-                            ConjureDeletedChangeMetadata.of(Bytes.from(PtBytes.toBytes("oldValue"))))),
+                    ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of())),
             ConjureLockDescriptorListChecksum.of(0, Bytes.from(PtBytes.toBytes("test-checksum-value"))));
 
     // AtlasDB (Client) serializes and TimeLock (Server) deserializes ConjureLockRequest objects.
