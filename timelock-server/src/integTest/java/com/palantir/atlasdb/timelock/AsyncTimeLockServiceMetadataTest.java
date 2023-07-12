@@ -152,9 +152,8 @@ public class AsyncTimeLockServiceMetadataTest {
         return IdentifiedLockRequest.of(metadata.keySet(), 1000, "testClient", LockRequestMetadata.of(metadata));
     }
 
-    private static final class AssertSuccessVisitor
-            implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
-        static final AssertSuccessVisitor INSTANCE = new AssertSuccessVisitor();
+    private enum AssertSuccessVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
+        INSTANCE;
 
         @Override
         public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
