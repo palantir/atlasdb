@@ -26,9 +26,9 @@ printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://$
 
 VERSION=$(./gradlew -q printVersion)
 
-docker pull palantirtechnologies/cassandra:2.2.18-1.112.0-rc8
-docker tag palantirtechnologies/cassandra:2.2.18-1.112.0-rc8 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc8
-docker push ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.112.0-rc8
+docker pull palantirtechnologies/cassandra:2.2.18-1.116.0
+docker tag palantirtechnologies/cassandra:2.2.18-1.116.0 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.116.0
+docker push ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.116.0
 
 docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
 docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
