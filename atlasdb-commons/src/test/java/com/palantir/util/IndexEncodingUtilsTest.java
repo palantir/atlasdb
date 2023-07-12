@@ -174,7 +174,8 @@ public class IndexEncodingUtilsTest {
 
     @Test
     public void decodingEncodedDataYieldsOriginalForRandomData() {
-        Random rand = new Random();
+        int seed = (int) System.currentTimeMillis();
+        Random rand = new Random(seed);
         Set<DeterministicHashableWrapper<UUID>> keys = Stream.generate(UUID::randomUUID)
                 .limit(1000)
                 .map(IndexEncodingUtilsTest::wrap)
@@ -185,6 +186,7 @@ public class IndexEncodingUtilsTest {
                 .collectToMap();
         Assertions.assertThat(IndexEncodingUtils.decode(
                         IndexEncodingUtils.encode(keys, data, Function.identity(), checksumType), Function.identity()))
+                .as("Encoding and decoding yields original data. Random seed: " + seed)
                 .containsExactlyInAnyOrderEntriesOf(data);
     }
 
