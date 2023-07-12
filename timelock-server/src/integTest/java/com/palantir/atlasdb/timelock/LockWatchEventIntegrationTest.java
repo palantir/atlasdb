@@ -398,7 +398,7 @@ public final class LockWatchEventIntegrationTest {
         List<LockWatchEvent> lockWatchEvents =
                 getUpdateForTransactions(Optional.of(currentVersion), dummyTxn).events();
         dummyTxn.abort();
-        return LockWatchIntegrationTestUtilities.getAllLockEventMetadata(lockWatchEvents);
+        return LockWatchIntegrationTestUtilities.extractMetadata(lockWatchEvents);
     }
 
     private LockRequest lockRequestOf(Set<LockDescriptor> lockDescriptors, Optional<LockRequestMetadata> metadata) {

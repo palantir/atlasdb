@@ -136,7 +136,7 @@ public class AsyncTimeLockServiceMetadataTest {
     }
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {
-        return LockWatchIntegrationTestUtilities.getAllLockEventMetadata(getAllLockWatchEvents());
+        return LockWatchIntegrationTestUtilities.extractMetadata(getAllLockWatchEvents());
     }
 
     private List<LockWatchEvent> getAllLockWatchEvents() {
