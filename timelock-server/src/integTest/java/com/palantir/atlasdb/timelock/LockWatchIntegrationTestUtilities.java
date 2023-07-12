@@ -51,7 +51,6 @@ public final class LockWatchIntegrationTestUtilities {
     private static final String TEST_PACKAGE = "package";
     static final String TABLE = "table";
     static final String TABLE_2 = "rowLevelTable";
-    static final LockEventVisitor LOCK_EVENT_VISITOR = new LockEventVisitor();
 
     private LockWatchIntegrationTestUtilities() {
         // no-op
@@ -108,9 +107,9 @@ public final class LockWatchIntegrationTestUtilities {
         return (LockWatchManagerInternal) txnManager.getLockWatchManager();
     }
 
-    public static List<Optional<LockRequestMetadata>> getAllLockEventMetadata(List<LockWatchEvent> lockWatchEvents) {
+    public static List<Optional<LockRequestMetadata>> extractMetadata(List<LockWatchEvent> lockWatchEvents) {
         return lockWatchEvents.stream()
-                .map(event -> event.accept(LOCK_EVENT_VISITOR))
+                .map(event -> event.accept(LockEventVisitor.INSTANCE))
                 .flatMap(Optional::stream)
                 .map(LockEvent::metadata)
                 .collect(Collectors.toList());
@@ -201,7 +200,9 @@ public final class LockWatchIntegrationTestUtilities {
         }
     }
 
-    private static final class LockEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
+    private enum LockEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
+        INSTANCE;
+
         @Override
         public Optional<LockEvent> visit(LockEvent lockEvent) {
             return Optional.of(lockEvent);
