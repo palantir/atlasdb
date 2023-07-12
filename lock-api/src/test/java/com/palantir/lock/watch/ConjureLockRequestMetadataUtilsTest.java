@@ -142,7 +142,7 @@ public class ConjureLockRequestMetadataUtilsTest {
         LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
 
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
+                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(lockDescriptors, metadata)))
                 .as("Converting to Conjure and back yields the original data. Random seed: " + randSeed)
                 .isEqualTo(metadata);
     }
@@ -155,7 +155,7 @@ public class ConjureLockRequestMetadataUtilsTest {
                         conjureMetadataConversionResult)
                 .withLockList(modifiedLockList);
         assertThatLoggableExceptionThrownBy(
-                () -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conversionResult))
+                        () -> ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(conversionResult))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
     }
@@ -163,8 +163,8 @@ public class ConjureLockRequestMetadataUtilsTest {
     @Test
     public void handlesEmptyData() {
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(
-                ConjureLockRequestMetadataUtils.toConjureIndexEncoded(
-                        ImmutableSet.of(), LockRequestMetadata.of(ImmutableMap.of()))))
+                        ConjureLockRequestMetadataUtils.toConjureIndexEncoded(
+                                ImmutableSet.of(), LockRequestMetadata.of(ImmutableMap.of()))))
                 .isEqualTo(LockRequestMetadata.of(ImmutableMap.of()));
     }
 }
