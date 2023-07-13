@@ -48,7 +48,7 @@ import org.junit.Test;
 
 public class LockEventTest {
     private static final String BASE = "src/test/resources/lock-event-wire-format/";
-    private static final boolean REWRITE_JSON_BLOBS = true;
+    private static final boolean REWRITE_JSON_BLOBS = false;
 
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("abc");
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("def");
