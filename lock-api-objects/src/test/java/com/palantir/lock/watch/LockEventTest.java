@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -39,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -71,20 +71,15 @@ public class LockEventTest {
     private static final byte[] BYTES_NEW = PtBytes.toBytes("new");
     private static final byte[] BYTES_DELETED = PtBytes.toBytes("deleted");
     private static final byte[] BYTES_CREATED = PtBytes.toBytes("created");
-    private static final List<ChangeMetadata> CHANGE_METADATA_LIST = ImmutableList.of(
-            ChangeMetadata.unchanged(),
-            ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
-            ChangeMetadata.deleted(BYTES_DELETED),
-            ChangeMetadata.created(BYTES_CREATED));
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             LOCK_1,
-            CHANGE_METADATA_LIST.get(0),
+            ChangeMetadata.unchanged(),
             LOCK_2,
-            CHANGE_METADATA_LIST.get(1),
+            ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
             LOCK_3,
-            CHANGE_METADATA_LIST.get(2),
+            ChangeMetadata.deleted(BYTES_DELETED),
             LOCK_4,
-            CHANGE_METADATA_LIST.get(3)));
+            ChangeMetadata.created(BYTES_CREATED)));
 
     // TimeLock (Server) serializes and AtlasDB (Client) deserializes.
     // These are the respective mappers used internally by Conjure.
@@ -131,7 +126,7 @@ public class LockEventTest {
         assertDeserializedEquals("baseline-empty-metadata-map", lockEventWithMetadata, LockEvent.class);
     }
 
-    // This property should be guaranteed by the Conjure spec
+    // This behavior should be guaranteed by the Conjure spec
     @Test
     public void oldClientIgnoresMetadata() {
         assertDeserializedEquals("baseline-with-metadata", OLD_LOCK_EVENT, OldLockEvent.class);
@@ -139,21 +134,22 @@ public class LockEventTest {
 
     @Test
     public void serializesSparseMetadata() {
-        List<LockDescriptor> tenLocks = IntStream.range(0, 10)
+        List<LockDescriptor> lockDescriptors = IntStream.range(0, 10)
                 .mapToObj(Integer::toString)
                 .map(StringLockDescriptor::of)
                 .collect(Collectors.toList());
-        // Unique metadata on less than 50% of locks
-        LockRequestMetadata sparseMetadata = LockRequestMetadata.of(ImmutableMap.of(
-                tenLocks.get(0), ChangeMetadata.created(PtBytes.toBytes(0)),
-                tenLocks.get(4), ChangeMetadata.created(PtBytes.toBytes(4)),
-                tenLocks.get(9), ChangeMetadata.created(PtBytes.toBytes(9)),
-                tenLocks.get(5), ChangeMetadata.created(PtBytes.toBytes(5))));
+        // Unique metadata on some locks, but not all
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = ImmutableMap.of(
+                lockDescriptors.get(0), ChangeMetadata.created(BYTES_CREATED),
+                lockDescriptors.get(4), ChangeMetadata.deleted(BYTES_DELETED),
+                lockDescriptors.get(9), ChangeMetadata.unchanged(),
+                lockDescriptors.get(5), ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
+                lockDescriptors.get(7), ChangeMetadata.unchanged());
         LockEvent lockEventWithSparseMetadata = ImmutableLockEvent.builder()
-                .lockDescriptors(tenLocks)
+                .lockDescriptors(lockDescriptors)
                 .sequence(SEQUENCE)
                 .lockToken(LOCK_TOKEN)
-                .metadata(sparseMetadata)
+                .metadata(LockRequestMetadata.of(lockDescriptorToChangeMetadata))
                 .build();
 
         assertSerializedEquals(lockEventWithSparseMetadata, "sparse-metadata");
