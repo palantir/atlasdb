@@ -163,9 +163,9 @@ public class LockEventTest {
     @Test
     public void shufflingLockDescriptorsOnTheWireIsDetectedByClient() {
         assertThatThrownBy(() ->
-                // The order of the lock descriptors in this JSON file is swapped
-                DESERIALIZATION_MAPPER.readValue(
-                        Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
+                        // The order of the lock descriptors in this JSON file is swapped
+                        DESERIALIZATION_MAPPER.readValue(
+                                Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
                 .rootCause()
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
@@ -174,7 +174,7 @@ public class LockEventTest {
     @Test
     public void cannotDeserializeAsWireLockEvent() {
         assertThatThrownBy(() -> DESERIALIZATION_MAPPER.readValue(
-                Files.readString(getJsonPath("baseline-with-metadata")), LockEvent.WireLockEvent.class))
+                        Files.readString(getJsonPath("baseline-with-metadata")), LockEvent.WireLockEvent.class))
                 .isInstanceOf(InvalidDefinitionException.class);
     }
 
