@@ -146,6 +146,8 @@ public abstract class LockEvent implements LockWatchEvent {
         };
     }
 
+    // This class is explicitly missing @JsonDeserialize as it should only be used for serialization.
+    // Deserialization should take place in the @JsonCreator-annotated static constructor method.
     @Unsafe
     @Value.Immutable
     @JsonSerialize(as = ImmutableWireLockEvent.class)

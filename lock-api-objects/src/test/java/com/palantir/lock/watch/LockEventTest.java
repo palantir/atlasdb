@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -162,12 +163,19 @@ public class LockEventTest {
     @Test
     public void shufflingLockDescriptorsOnTheWireIsDetectedByClient() {
         assertThatThrownBy(() ->
-                        // The order of the lock descriptors in this JSON file is swapped
-                        DESERIALIZATION_MAPPER.readValue(
-                                Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
+                // The order of the lock descriptors in this JSON file is swapped
+                DESERIALIZATION_MAPPER.readValue(
+                        Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
                 .rootCause()
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
+    }
+
+    @Test
+    public void cannotDeserializeAsWireLockEvent() {
+        assertThatThrownBy(() -> DESERIALIZATION_MAPPER.readValue(
+                Files.readString(getJsonPath("baseline-with-metadata")), LockEvent.WireLockEvent.class))
+                .isInstanceOf(InvalidDefinitionException.class);
     }
 
     private static <T> void assertSerializedEquals(T object, String jsonFileName) {
