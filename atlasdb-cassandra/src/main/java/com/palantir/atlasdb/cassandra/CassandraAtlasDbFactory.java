@@ -53,8 +53,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
-        CassandraKeyValueServiceConfigs configs =
-                CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(config, runtimeConfig);
+        CassandraKeyValueServiceConfigs configs = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                config, runtimeConfig, metricsManager);
 
         CassandraKeyValueServiceConfigs configsWithNamespace = configs.copyWithKeyspace(
                 OptionalResolver.resolve(namespace, configs.installConfig().namespace()));

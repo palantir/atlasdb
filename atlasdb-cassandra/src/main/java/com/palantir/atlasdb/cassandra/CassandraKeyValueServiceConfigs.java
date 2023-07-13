@@ -18,10 +18,12 @@ package com.palantir.atlasdb.cassandra;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.util.OptionalResolver;
+import java.util.Map;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -75,6 +77,28 @@ public interface CassandraKeyValueServiceConfigs {
                         "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
                                 + " CassandraKeyValueServiceConfig, but found a different type.",
                         SafeArg.of("configType", install.type())));
+    }
+
+    static CassandraKeyValueServiceConfigs fromKeyValueServiceConfigsOrThrow(
+            KeyValueServiceConfig install,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            MetricsManager metricsManager) {
+        CassandraKeyValueServiceConfigs configs = fromKeyValueServiceConfigs(install, runtimeConfig)
+                .orElseThrow(() -> new SafeIllegalArgumentException(
+                        "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                                + " CassandraKeyValueServiceConfig, but found a different type.",
+                        SafeArg.of("configType", install.type())));
+        metricsManager.registerOrGet(
+                CassandraKeyValueServiceConfigs.class,
+                "configDifferences",
+                () -> {
+                    CassandraReloadableKeyValueServiceRuntimeConfig cast =
+                            (CassandraReloadableKeyValueServiceRuntimeConfig)
+                                    configs.runtimeConfig().get();
+                    return cast.doDifferencesExistBetweenInstallAndRuntime() ? 1 : 0;
+                },
+                Map.of());
+        return configs;
     }
 
     default CassandraKeyValueServiceConfigs copyWithKeyspace(String recommendedKeyspace) {

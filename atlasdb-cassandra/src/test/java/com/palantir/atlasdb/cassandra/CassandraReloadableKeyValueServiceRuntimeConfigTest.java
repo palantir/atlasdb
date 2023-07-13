@@ -321,6 +321,51 @@ public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
                 .hasLogMessage("'replicationFactor' must be non-negative");
     }
 
+    @Test
+    public void differencesDeterminedForServers() {
+        CassandraKeyValueServiceConfig config =
+                configBuilderWithDefaultCredentials().servers(SERVERS_1).build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(SERVERS_2)
+                .build();
+        assertThat(CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig))
+                        .get()
+                        .doDifferencesExistBetweenInstallAndRuntime())
+                .isTrue();
+    }
+
+    @Test
+    public void differencesDeterminedForRf() {
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentials()
+                .servers(SERVERS_1)
+                .replicationFactor(2)
+                .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(SERVERS_1)
+                .replicationFactor(1)
+                .build();
+        assertThat(CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig))
+                        .get()
+                        .doDifferencesExistBetweenInstallAndRuntime())
+                .isTrue();
+    }
+
+    @Test
+    public void noDifferencesDetermined() {
+        CassandraKeyValueServiceConfig config = configBuilderWithDefaultCredentials()
+                .servers(SERVERS_1)
+                .replicationFactor(2)
+                .build();
+        CassandraKeyValueServiceRuntimeConfig runtimeConfig = runtimeConfigBuilderWithDefaultReplicationFactor()
+                .servers(SERVERS_1)
+                .replicationFactor(2)
+                .build();
+        assertThat(CassandraReloadableKeyValueServiceRuntimeConfig.fromConfigs(config, Refreshable.only(runtimeConfig))
+                        .get()
+                        .doDifferencesExistBetweenInstallAndRuntime())
+                .isFalse();
+    }
+
     private static ImmutableCassandraKeyValueServiceConfig.Builder configBuilderWithDefaultCredentials() {
         return ImmutableCassandraKeyValueServiceConfig.builder().credentials(CREDENTIALS);
     }

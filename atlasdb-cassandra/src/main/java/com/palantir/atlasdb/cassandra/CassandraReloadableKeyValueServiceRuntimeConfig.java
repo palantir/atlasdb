@@ -19,10 +19,13 @@ import static com.palantir.logsafe.Preconditions.checkArgument;
 
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 
 public final class CassandraReloadableKeyValueServiceRuntimeConfig
         extends ForwardingCassandraKeyValueServiceRuntimeConfig {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraReloadableKeyValueServiceRuntimeConfig.class);
 
     private final CassandraKeyValueServiceConfig installConfig;
     private final CassandraKeyValueServiceRuntimeConfig runtimeConfig;
@@ -41,6 +44,25 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
         return runtimeConfigRefreshable.map(runtimeConfig ->
                 validate(new CassandraReloadableKeyValueServiceRuntimeConfig(installConfig, runtimeConfig)));
+    }
+
+    public boolean doDifferencesExistBetweenInstallAndRuntime() {
+        boolean areServersSame =
+                installConfig.servers().map(runtimeConfig.servers()::equals).orElse(false);
+        boolean areReplicationFactorSame = installConfig
+                .replicationFactor()
+                .map(runtimeConfig.replicationFactor()::equals)
+                .orElse(false);
+        if (!areServersSame || !areReplicationFactorSame) {
+            log.warn(
+                    "Servers or replication factor differ",
+                    SafeArg.of("installConfigServers", installConfig.servers()),
+                    SafeArg.of("runtimeConfigServers", runtimeConfig.servers()),
+                    SafeArg.of("installConfigReplicationFactor", installConfig.replicationFactor()),
+                    SafeArg.of("runtimeConfigReplicationFactor", runtimeConfig.replicationFactor()));
+            return true;
+        }
+        return false;
     }
 
     @Override

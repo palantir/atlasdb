@@ -25,11 +25,15 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
 
@@ -65,6 +69,8 @@ public class CassandraKeyValueServiceConfigsTest {
     private static final CassandraKeyValueServiceConfigs CONFIGS_WITH_KEYSPACE =
             CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
                     CONFIG_WITH_KEYSPACE, Refreshable.only(Optional.empty()));
+
+    private final MetricsManager metricsManager = MetricsManagers.createAlwaysSafeAndFilteringForTests();
 
     @Test
     public void canDeserialize() throws IOException {
@@ -165,6 +171,35 @@ public class CassandraKeyValueServiceConfigsTest {
     }
 
     @Test
+    public void metricsHappen() {
+        SettableRefreshable<Optional<KeyValueServiceRuntimeConfig>> config =
+                Refreshable.create(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                        .replicationFactor(10)
+                        .servers(SERVERS)
+                        .build()));
+        CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
+                CONFIG_WITHOUT_KEYSPACE, config, metricsManager);
+        assertMetric(0);
+        config.update(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .replicationFactor(2)
+                .servers(SERVERS)
+                .build()));
+        assertMetric(1);
+        config.update(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .replicationFactor(10)
+                .servers(SERVERS)
+                .build()));
+        assertMetric(0);
+        config.update(Optional.of(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
+                .replicationFactor(10)
+                .servers(ImmutableDefaultConfig.builder()
+                        .addAllThriftHosts(ImmutableSet.of(InetSocketAddress.createUnresolved("foo", 43)))
+                        .build())
+                .build()));
+        assertMetric(1);
+    }
+
+    @Test
     public void emptyRuntimeConfigShouldResolveToDefaultRuntimeConfig() {
         CassandraKeyValueServiceConfigs returnedConfigs =
                 CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
@@ -224,5 +259,12 @@ public class CassandraKeyValueServiceConfigsTest {
                 new File(configUrl.getPath()), CassandraKeyValueServiceRuntimeConfig.class);
 
         assertThat(deserializedConfig).isEqualTo(expectedConfig);
+    }
+
+    private void assertMetric(int value) {
+        assertThat(metricsManager
+                        .registerOrGet(CassandraKeyValueServiceConfigs.class, "configDifferences", () -> 2, Map.of())
+                        .getValue())
+                .isEqualTo(value);
     }
 }
