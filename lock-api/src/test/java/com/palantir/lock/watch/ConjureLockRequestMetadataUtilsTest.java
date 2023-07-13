@@ -56,22 +56,17 @@ public class ConjureLockRequestMetadataUtilsTest {
     private static final byte[] BYTES_DELETED = PtBytes.toBytes("deleted");
     private static final byte[] BYTES_CREATED = PtBytes.toBytes("created");
     private static final List<LockDescriptor> LOCK_LIST = ImmutableList.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4);
-    private static final List<ChangeMetadata> CHANGE_METADATA_LIST = ImmutableList.of(
-            ChangeMetadata.unchanged(),
-            ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
-            ChangeMetadata.deleted(BYTES_DELETED),
-            ChangeMetadata.created(BYTES_CREATED));
     // Although this is quite verbose, we explicitly want to test all possible types of change metadata and ensure
     // that we do the conversion right for each of them.
     private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             LOCK_1,
-            CHANGE_METADATA_LIST.get(0),
+            ChangeMetadata.unchanged(),
             LOCK_2,
-            CHANGE_METADATA_LIST.get(1),
+            ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
             LOCK_3,
-            CHANGE_METADATA_LIST.get(2),
+            ChangeMetadata.deleted(BYTES_DELETED),
             LOCK_4,
-            CHANGE_METADATA_LIST.get(3)));
+            ChangeMetadata.created(BYTES_CREATED)));
     private static final Map<Integer, ConjureChangeMetadata> CONJURE_LOCKS_WITH_METADATA = ImmutableMap.of(
             0,
             ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of()),
@@ -124,10 +119,11 @@ public class ConjureLockRequestMetadataUtilsTest {
                 .collect(Collectors.toList());
         // Unique metadata on some locks, but not all
         Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = ImmutableMap.of(
-                lockDescriptors.get(0), ChangeMetadata.created(PtBytes.toBytes(0)),
-                lockDescriptors.get(4), ChangeMetadata.created(PtBytes.toBytes(4)),
-                lockDescriptors.get(9), ChangeMetadata.created(PtBytes.toBytes(9)),
-                lockDescriptors.get(5), ChangeMetadata.created(PtBytes.toBytes(5)));
+                lockDescriptors.get(0), ChangeMetadata.created(BYTES_CREATED),
+                lockDescriptors.get(4), ChangeMetadata.deleted(BYTES_DELETED),
+                lockDescriptors.get(9), ChangeMetadata.unchanged(),
+                lockDescriptors.get(5), ChangeMetadata.updated(BYTES_OLD, BYTES_NEW),
+                lockDescriptors.get(7), ChangeMetadata.unchanged());
         LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
 
         assertThat(ConjureLockRequestMetadataUtils.fromConjureIndexEncoded(

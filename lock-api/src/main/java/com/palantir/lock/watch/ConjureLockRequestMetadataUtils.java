@@ -166,7 +166,10 @@ public final class ConjureLockRequestMetadataUtils {
 
         @Override
         public Optional<ChangeMetadata> visitUnknown(String unknownType) {
-            log.trace("Unknown ConjureChangeMetadata type", SafeArg.of("unknownType", unknownType));
+            log.trace(
+                    "Encountered an unknown ConjureChangeMetadata type. This is likely a new type that was added in a"
+                            + " future version. This ChangeMetadata will be discarded",
+                    SafeArg.of("unknownType", unknownType));
             return Optional.empty();
         }
     }
