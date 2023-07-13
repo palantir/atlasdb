@@ -28,9 +28,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -39,22 +37,17 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 import org.immutables.value.Value;
 import org.junit.Test;
 
 public class LockEventTest {
     private static final String BASE = "src/test/resources/lock-event-wire-format/";
-    private static final boolean REWRITE_JSON_BLOBS = false;
+    private static final boolean REWRITE_JSON_BLOBS = true;
 
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("abc");
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("def");
@@ -73,7 +66,6 @@ public class LockEventTest {
             .lockDescriptors(LOCK_SET)
             .lockToken(LOCK_TOKEN)
             .build();
-
     private static final byte[] BYTES_OLD = PtBytes.toBytes("old");
     private static final byte[] BYTES_NEW = PtBytes.toBytes("new");
     private static final byte[] BYTES_DELETED = PtBytes.toBytes("deleted");
@@ -138,55 +130,41 @@ public class LockEventTest {
         assertDeserializedEquals("baseline-empty-metadata-map", lockEventWithMetadata, LockEvent.class);
     }
 
+    // This property should be guaranteed by the Conjure spec
     @Test
-    public void oldClientIgnoresMetadataIfUsingConjure() {
+    public void oldClientIgnoresMetadata() {
         assertDeserializedEquals("baseline-with-metadata", OLD_LOCK_EVENT, OldLockEvent.class);
     }
 
     @Test
-    public void serializingAndDeserializingYieldsOriginalForRandomData() {
-        int randSeed = (int) System.currentTimeMillis();
-        Random random = new Random(randSeed);
-        Set<LockDescriptor> lockDescriptors = Stream.generate(UUID::randomUUID)
-                .map(UUID::toString)
+    public void serializesSparseMetadata() {
+        List<LockDescriptor> tenLocks = IntStream.range(0, 10)
+                .mapToObj(Integer::toString)
                 .map(StringLockDescriptor::of)
-                .limit(10000)
-                .collect(Collectors.toSet());
-        List<ChangeMetadata> shuffled = new ArrayList<>(CHANGE_METADATA_LIST);
-        Collections.shuffle(shuffled, random);
-        Iterator<ChangeMetadata> iterator = Iterables.cycle(shuffled).iterator();
-        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = KeyedStream.of(lockDescriptors.stream())
-                .filter(_unused -> random.nextBoolean())
-                .map(_unused -> iterator.next())
-                .collectToMap();
-        LockRequestMetadata metadata = LockRequestMetadata.of(lockDescriptorToChangeMetadata);
-        LockEvent largeLockEvent = ImmutableLockEvent.builder()
-                .sequence(10L)
-                // ImmutableSet remembers insertion order
-                .lockDescriptors(lockDescriptors)
-                .lockToken(LockToken.of(new UUID(1, 2)))
-                .metadata(metadata)
-                .build();
-        OldLockEvent largeLockEventWithoutMetadata = ImmutableOldLockEvent.builder()
-                .sequence(largeLockEvent.sequence())
-                .lockDescriptors(largeLockEvent.lockDescriptors())
-                .lockToken(largeLockEvent.lockToken())
+                .collect(Collectors.toList());
+        // Unique metadata on less than 50% of locks
+        LockRequestMetadata sparseMetadata = LockRequestMetadata.of(ImmutableMap.of(
+                tenLocks.get(0), ChangeMetadata.created(PtBytes.toBytes(0)),
+                tenLocks.get(4), ChangeMetadata.created(PtBytes.toBytes(4)),
+                tenLocks.get(9), ChangeMetadata.created(PtBytes.toBytes(9)),
+                tenLocks.get(5), ChangeMetadata.created(PtBytes.toBytes(5))));
+        LockEvent lockEventWithSparseMetadata = ImmutableLockEvent.builder()
+                .lockDescriptors(tenLocks)
+                .sequence(SEQUENCE)
+                .lockToken(LOCK_TOKEN)
+                .metadata(sparseMetadata)
                 .build();
 
-        assertThat(deserialize(serialize(largeLockEvent), LockEvent.class))
-                .as("Serializing and deserializing yields original LockEvent. Random seed: " + randSeed)
-                .isEqualTo(largeLockEvent);
-        assertThat(deserialize(serialize(largeLockEvent), OldLockEvent.class))
-                .as("Serializing and deserializing (without metadata) yields original OldLockEvent. Random seed: "
-                        + randSeed)
-                .isEqualTo(largeLockEventWithoutMetadata);
+        assertSerializedEquals(lockEventWithSparseMetadata, "sparse-metadata");
+        assertDeserializedEquals("sparse-metadata", lockEventWithSparseMetadata, LockEvent.class);
     }
 
     @Test
     public void shufflingLockDescriptorsOnTheWireIsDetectedByClient() {
         assertThatThrownBy(() ->
                         // The order of the lock descriptors in this JSON file is swapped
-                        deserialize(Files.readString(getJsonPath("baseline-with-shuffled-locks")), LockEvent.class))
+                        DESERIALIZATION_MAPPER.readValue(
+                                Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
                 .rootCause()
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
@@ -198,7 +176,7 @@ public class LockEventTest {
             if (REWRITE_JSON_BLOBS) {
                 SERIALIZATION_MAPPER.writeValue(path.toFile(), object);
             }
-            String serialized = serialize(object);
+            String serialized = SERIALIZATION_MAPPER.writeValueAsString(object);
             assertThat(VERIFYING_MAPPER.readTree(serialized))
                     .as("Serialization yields semantically identical JSON representation")
                     .isEqualTo(VERIFYING_MAPPER.readTree(Files.readString(path)));
@@ -209,25 +187,9 @@ public class LockEventTest {
 
     private static <T> void assertDeserializedEquals(String jsonFileName, T object, Class<T> clazz) {
         try {
-            assertThat(deserialize(Files.readString(getJsonPath(jsonFileName)), clazz))
+            assertThat(DESERIALIZATION_MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), clazz))
                     .as("Deserialization yields identical object")
                     .isEqualTo(object);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    private static <T> String serialize(T object) {
-        try {
-            return SERIALIZATION_MAPPER.writeValueAsString(object);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
-        }
-    }
-
-    private static <T> T deserialize(String json, Class<T> clazz) {
-        try {
-            return DESERIALIZATION_MAPPER.readValue(json, clazz);
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }

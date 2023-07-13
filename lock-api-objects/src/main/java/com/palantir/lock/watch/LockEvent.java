@@ -71,21 +71,8 @@ public abstract class LockEvent implements LockWatchEvent {
             @JsonProperty("sequence") long sequence,
             @JsonProperty("lockDescriptors") List<LockDescriptor> lockDescriptors,
             @JsonProperty("lockToken") LockToken lockToken,
-            @JsonProperty("metadata") Optional<WireLockRequestMetadata> optWireMetadata) {
-        Optional<LockRequestMetadata> metadata = optWireMetadata.map(wireMetadata -> {
-            KeyListChecksum checksum = KeyListChecksum.of(
-                    ChecksumType.valueOf(wireMetadata.lockListChecksum().typeId()),
-                    wireMetadata.lockListChecksum().value());
-            IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
-                    IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
-                            .keyList(lockDescriptors)
-                            .indexToValue(wireMetadata.indexToChangeMetadata())
-                            .keyListChecksum(checksum)
-                            .build();
-            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
-                    IndexEncodingUtils.decode(indexEncodingResult, Function.identity());
-            return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
-        });
+            @JsonProperty("metadata") Optional<WireLockRequestMetadata> wireMetadata) {
+        Optional<LockRequestMetadata> metadata = wireMetadata.map(getMetadataConverter(lockDescriptors));
         return ImmutableLockEvent.builder()
                 .sequence(sequence)
                 .lockDescriptors(ImmutableSet.copyOf(lockDescriptors))
@@ -109,12 +96,7 @@ public abstract class LockEvent implements LockWatchEvent {
                 .map(IndexEncodingResult::keyList)
                 .orElseGet(() -> ImmutableList.copyOf(lockDescriptors()));
         Optional<WireLockRequestMetadata> wireMetadata =
-                optIndexEncodingResult.map(result -> WireLockRequestMetadata.builder()
-                        .indexToChangeMetadata(result.indexToValue())
-                        .lockListChecksum(LockListChecksum.of(
-                                result.keyListChecksum().type().getId(),
-                                result.keyListChecksum().value()))
-                        .build());
+                optIndexEncodingResult.map(LockEvent::buildWireLockRequestMetadata);
         return WireLockEvent.builder()
                 .sequence(sequence())
                 .lockDescriptors(orderedLocks)
@@ -136,10 +118,37 @@ public abstract class LockEvent implements LockWatchEvent {
         return seq -> builder.sequence(seq).build();
     }
 
+    private static WireLockRequestMetadata buildWireLockRequestMetadata(
+            IndexEncodingResult<LockDescriptor, ChangeMetadata> result) {
+        return WireLockRequestMetadata.builder()
+                .indexToChangeMetadata(result.indexToValue())
+                .lockListChecksum(LockListChecksum.of(
+                        result.keyListChecksum().type().getId(),
+                        result.keyListChecksum().value()))
+                .build();
+    }
+
+    private static Function<WireLockRequestMetadata, LockRequestMetadata> getMetadataConverter(
+            List<LockDescriptor> lockDescriptors) {
+        return wireMetadata -> {
+            KeyListChecksum checksum = KeyListChecksum.of(
+                    ChecksumType.valueOf(wireMetadata.lockListChecksum().typeId()),
+                    wireMetadata.lockListChecksum().value());
+            IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
+                    IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
+                            .keyList(lockDescriptors)
+                            .indexToValue(wireMetadata.indexToChangeMetadata())
+                            .keyListChecksum(checksum)
+                            .build();
+            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
+                    IndexEncodingUtils.decode(indexEncodingResult, Function.identity());
+            return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
+        };
+    }
+
     @Unsafe
     @Value.Immutable
     @JsonSerialize(as = ImmutableWireLockEvent.class)
-    @JsonDeserialize(as = ImmutableWireLockEvent.class)
     @JsonTypeName(LockEvent.TYPE)
     public interface WireLockEvent {
         long sequence();
