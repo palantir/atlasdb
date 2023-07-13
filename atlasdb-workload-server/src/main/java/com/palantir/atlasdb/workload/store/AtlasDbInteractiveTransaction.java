@@ -101,7 +101,7 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     }
 
     @Override
-    public List<ColumnValue> getRowColumnRange(String table, int row, ColumnRangeSelection columnRangeSelection) {
+    public List<ColumnAndValue> getRowColumnRange(String table, int row, ColumnRangeSelection columnRangeSelection) {
         return run(
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in
@@ -115,11 +115,11 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             iterators.size() == 1,
                             "Expected exactly one iterator to be returned",
                             SafeArg.of("iteratorsReturned", iterators.size()));
-                    List<ColumnValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
+                    List<ColumnAndValue> columnsAndValues = EntryStream.of(iterators.get(AtlasDbUtils.toAtlasKey(row)))
                             .mapKeys(Cell::getColumnName)
                             .mapKeys(AtlasDbUtils::fromAtlasColumn)
                             .mapValues(AtlasDbUtils::fromAtlasValue)
-                            .map(entry -> ColumnValue.of(entry.getKey(), entry.getValue()))
+                            .map(entry -> ColumnAndValue.of(entry.getKey(), entry.getValue()))
                             .collect(Collectors.toList());
                     witnessedTransactionActions.add(RowColumnRangeReadTransactionAction.builder()
                             .table(table)

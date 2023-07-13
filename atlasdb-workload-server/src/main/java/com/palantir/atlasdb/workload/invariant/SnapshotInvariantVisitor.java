@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.SimpleRangeQueryReader;
@@ -98,7 +98,7 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(
             WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-        List<ColumnValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
+        List<ColumnAndValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
                 .readRange(rowColumnRangeReadTransactionAction.originalQuery());
         if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
             return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()

@@ -97,7 +97,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                         .row(WORKLOAD_CELL_TWO.key())
                                         .columnRangeSelection(ColumnRangeSelection.all())
                                         .build())
-                                .addColumnsAndValues(ColumnValue.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
+                                .addColumnsAndValues(ColumnAndValue.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
                                 .build());
     }
 
@@ -131,7 +131,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
                                         .isEqualTo(IntStream.range(0, iterationCount)
-                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }
 
@@ -159,7 +159,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
                                         .isEqualTo(IntStream.range(startInclusive, endExclusive)
-                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }
 
