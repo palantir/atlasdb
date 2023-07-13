@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.metrics.MetadataMetrics;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.Test;
 
@@ -28,8 +29,8 @@ public class AsyncTimelockServiceImplTest {
     @Test
     public void delegatesInitializationCheck() {
         ManagedTimestampService mockMts = mock(ManagedTimestampService.class);
-        AsyncTimelockServiceImpl service =
-                new AsyncTimelockServiceImpl(mock(AsyncLockService.class), mockMts, mock(LockLog.class));
+        AsyncTimelockServiceImpl service = new AsyncTimelockServiceImpl(
+                mock(AsyncLockService.class), mockMts, mock(LockLog.class), mock(MetadataMetrics.class));
         when(mockMts.isInitialized()).thenReturn(false).thenReturn(true);
 
         assertThat(service.isInitialized()).isFalse();

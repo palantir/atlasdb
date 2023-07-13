@@ -18,9 +18,8 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatException;
-import static org.assertj.core.api.Assertions.fail;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -32,16 +31,24 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.metrics.MetadataMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.client.ImmutableIdentifiedLockRequest;
 import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockRequestMetadata;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchStateUpdate;
+import com.palantir.lock.watch.LockWatchStateUpdate.Snapshot;
+import com.palantir.lock.watch.LockWatchStateUpdate.Success;
+import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.timestamp.InMemoryTimestampService;
 import java.util.List;
 import java.util.Map;
@@ -49,11 +56,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
 public class AsyncTimeLockServiceMetadataTest {
+    private static final LockWatchEventVisitor LOCK_WATCH_EVENT_VISITOR = new LockWatchEventVisitor();
+    private static final LockWatchStateUpdateVisitor LOCK_WATCH_STATE_UPDATE_VISITOR =
+            new LockWatchStateUpdateVisitor();
+
     private static final String WATCHED_TABLE_NAME = "watched-table";
     private static final LockDescriptor WATCHED_LOCK =
             AtlasRowLockDescriptor.of(WATCHED_TABLE_NAME, PtBytes.toBytes("lock1"));
@@ -65,12 +77,14 @@ public class AsyncTimeLockServiceMetadataTest {
     private static final IdentifiedLockRequest WATCHED_LOCK_REQUEST_WITH_METADATA =
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
 
-    private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 10000L);
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final MetadataMetrics metadataMetrics = MetadataMetrics.of(metricsManager.getTaggedRegistry());
+    private final LockLog lockLog = new LockLog(metricsManager.getRegistry(), () -> 10000L);
     private final ScheduledExecutorService scheduledExecutorService = new DeterministicScheduler();
     private final AsyncLockService asyncLockService =
             AsyncLockService.createDefault(lockLog, scheduledExecutorService, scheduledExecutorService);
     private final AsyncTimelockServiceImpl timeLockService =
-            new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog);
+            new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog, metadataMetrics);
     private final ConjureStartTransactionsRequest startTransactionsRequestWithInitialVersion =
             ConjureStartTransactionsRequest.builder()
                     .requestId(UUID.randomUUID())
@@ -135,34 +149,66 @@ public class AsyncTimeLockServiceMetadataTest {
                 .withMessage("Unknown lock descriptor in metadata");
     }
 
+    @Test
+    public void updatesMetadataSizeMetricForAllMetadata() {
+        // empty metadata (but not absent)
+        timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of()));
+        timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of(
+                StringLockDescriptor.of("1"), ChangeMetadata.unchanged(),
+                StringLockDescriptor.of("2"), ChangeMetadata.unchanged(),
+                StringLockDescriptor.of("3"), ChangeMetadata.unchanged())));
+        // absent metadata
+        timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
+                .withMetadata(Optional.empty()));
+        assertThat(metadataMetrics.numChangeMetadataRequest().getSnapshot().getValues())
+                .containsOnly(0, 3, 0);
+    }
+
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {
-        return LockWatchIntegrationTestUtilities.extractMetadata(getAllLockWatchEvents());
+        return getAllLockWatchEvents().stream()
+                .map(event -> event.accept(LOCK_WATCH_EVENT_VISITOR))
+                .flatMap(Optional::stream)
+                .map(LockEvent::metadata)
+                .collect(Collectors.toList());
     }
 
     private List<LockWatchEvent> getAllLockWatchEvents() {
         ListenableFuture<ConjureStartTransactionsResponse> responseFuture =
                 timeLockService.startTransactionsWithWatches(startTransactionsRequestWithInitialVersion);
-        return AtlasFutures.getUnchecked(responseFuture)
-                .getLockWatchUpdate()
-                .accept(AssertSuccessVisitor.INSTANCE)
-                .events();
+        return AtlasFutures.getUnchecked(responseFuture).getLockWatchUpdate().accept(LOCK_WATCH_STATE_UPDATE_VISITOR);
     }
 
     private static IdentifiedLockRequest standardRequestWithMetadata(Map<LockDescriptor, ChangeMetadata> metadata) {
         return IdentifiedLockRequest.of(metadata.keySet(), 1000, "testClient", LockRequestMetadata.of(metadata));
     }
 
-    private enum AssertSuccessVisitor implements LockWatchStateUpdate.Visitor<LockWatchStateUpdate.Success> {
-        INSTANCE;
-
+    private static final class LockWatchEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Success success) {
-            return success;
+        public Optional<LockEvent> visit(LockEvent lockEvent) {
+            return Optional.of(lockEvent);
         }
 
         @Override
-        public LockWatchStateUpdate.Success visit(LockWatchStateUpdate.Snapshot snapshot) {
-            return fail("Unexpected snapshot");
+        public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
+        }
+    }
+
+    private static final class LockWatchStateUpdateVisitor
+            implements LockWatchStateUpdate.Visitor<List<LockWatchEvent>> {
+        @Override
+        public List<LockWatchEvent> visit(Success success) {
+            return success.events();
+        }
+
+        @Override
+        public List<LockWatchEvent> visit(Snapshot snapshot) {
+            return ImmutableList.of();
         }
     }
 }

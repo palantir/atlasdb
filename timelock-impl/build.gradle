@@ -1,4 +1,5 @@
 apply plugin: 'org.unbroken-dome.test-sets'
+apply plugin: 'com.palantir.metric-schema'
 
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
