@@ -63,7 +63,7 @@ public class ConjureLockRequestMetadataUtilsTest {
             ChangeMetadata.created(BYTES_CREATED));
     // Although this is quite verbose, we explicitly want to test all possible types of change metadata and ensure
     // that we do the conversion right for each of them.
-    private static final Map<LockDescriptor, ChangeMetadata> LOCKS_WITH_METADATA = ImmutableMap.of(
+    private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(ImmutableMap.of(
             LOCK_1,
             CHANGE_METADATA_LIST.get(0),
             LOCK_2,
@@ -71,8 +71,7 @@ public class ConjureLockRequestMetadataUtilsTest {
             LOCK_3,
             CHANGE_METADATA_LIST.get(2),
             LOCK_4,
-            CHANGE_METADATA_LIST.get(3));
-    private static final LockRequestMetadata LOCK_REQUEST_METADATA = LockRequestMetadata.of(LOCKS_WITH_METADATA);
+            CHANGE_METADATA_LIST.get(3)));
     private static final Map<Integer, ConjureChangeMetadata> CONJURE_LOCKS_WITH_METADATA = ImmutableMap.of(
             0,
             ConjureChangeMetadata.unchanged(ConjureUnchangedChangeMetadata.of()),
