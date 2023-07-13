@@ -261,7 +261,7 @@ public final class LockWatchEventIntegrationTest {
 
     @Test
     public void absentMetadataIsVisibleToTransaction() {
-        LockRequest requestWithoutMetadata = lockRequestOf(
+        LockRequest requestWithoutMetadata = createTestLockRequest(
                 ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW)), Optional.empty());
         List<Optional<LockRequestMetadata>> allMetadata =
                 lockAndGetAllLockEventMetadataForNewTransaction(requestWithoutMetadata);
@@ -273,7 +273,7 @@ public final class LockWatchEventIntegrationTest {
         LockDescriptor lock = AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW);
         LockRequestMetadata metadata =
                 LockRequestMetadata.of(ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("foo"))));
-        LockRequest requestWithMetadata = lockRequestOf(ImmutableSet.of(lock), Optional.of(metadata));
+        LockRequest requestWithMetadata = createTestLockRequest(ImmutableSet.of(lock), Optional.of(metadata));
         List<Optional<LockRequestMetadata>> allMetadata =
                 lockAndGetAllLockEventMetadataForNewTransaction(requestWithMetadata);
         assertThat(allMetadata).containsExactly(Optional.of(metadata));
@@ -401,7 +401,8 @@ public final class LockWatchEventIntegrationTest {
         return LockWatchIntegrationTestUtilities.extractMetadata(lockWatchEvents);
     }
 
-    private LockRequest lockRequestOf(Set<LockDescriptor> lockDescriptors, Optional<LockRequestMetadata> metadata) {
+    private LockRequest createTestLockRequest(
+            Set<LockDescriptor> lockDescriptors, Optional<LockRequestMetadata> metadata) {
         return ImmutableLockRequest.builder()
                 .lockDescriptors(lockDescriptors)
                 .clientDescription("test-client")

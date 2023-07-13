@@ -1,6 +1,6 @@
 {
   "requestId" : "00000000-0000-0539-0000-00000000002a",
-  "lockDescriptors" : [ "YWJj" ],
+  "lockDescriptors" : [ "YWJj", "ZGVm", "Z2hp", "amts" ],
   "acquireTimeoutMs" : 100,
   "clientDescription" : "client: test, thread: test",
   "metadata" : {
@@ -8,6 +8,25 @@
       "0" : {
         "type" : "unchanged",
         "unchanged" : { }
+      },
+      "1" : {
+        "type" : "updated",
+        "updated" : {
+          "oldValue" : "b2xk",
+          "newValue" : "bmV3"
+        }
+      },
+      "2" : {
+        "type" : "deleted",
+        "deleted" : {
+          "oldValue" : "ZGVsZXRlZA=="
+        }
+      },
+      "3" : {
+        "type" : "created",
+        "created" : {
+          "newValue" : "Y3JlYXRlZA=="
+        }
       }
     },
     "lockListChecksum" : {
