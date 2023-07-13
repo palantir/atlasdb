@@ -17,7 +17,6 @@
 package com.palantir.util;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreType;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.logsafe.Preconditions;
@@ -115,8 +114,7 @@ public final class IndexEncodingUtils {
         return keyToValue;
     }
 
-    @VisibleForTesting
-    static <K extends DeterministicHashable> KeyListChecksum computeChecksum(
+    public static <K extends DeterministicHashable> KeyListChecksum computeChecksum(
             ChecksumType checksumType, List<K> keyList) {
         switch (checksumType) {
             case CRC32_OF_DETERMINISTIC_HASHCODE: {
