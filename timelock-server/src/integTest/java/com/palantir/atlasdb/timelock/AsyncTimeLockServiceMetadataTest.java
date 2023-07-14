@@ -160,7 +160,7 @@ public class AsyncTimeLockServiceMetadataTest {
         // absent metadata
         timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
                 .withMetadata(Optional.empty()));
-        assertThat(metadataMetrics.numChangeMetadataRequest().getSnapshot().getValues())
+        assertThat(metadataMetrics.requestChangeMetadataSize().getSnapshot().getValues())
                 .containsOnly(0, 3, 0);
     }
 

@@ -5,7 +5,7 @@ namespaces:
   metadata:
     docs: Data collection on lock request metadata for TimeLock
     metrics:
-      numChangeMetadataRequest:
+      requestChangeMetadataSize:
         docs: Number of change metadata objects contained in lock requests
         type: histogram
 

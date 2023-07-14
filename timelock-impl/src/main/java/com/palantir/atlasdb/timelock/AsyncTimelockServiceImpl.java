@@ -113,8 +113,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 TimeLimit.of(request.getAcquireTimeoutMs()),
                 request.getMetadata());
         metadataMetrics
-                .numChangeMetadataRequest()
-                .update(request.getMetadata().map(LockRequestMetadata::size).orElse(0));
+                .requestChangeMetadataSize()
+                .update(request.getMetadata()
+                        .map(metadata ->
+                                metadata.lockDescriptorToChangeMetadata().size())
+                        .orElse(0));
         lockLog.registerRequest(request, result);
         SettableFuture<LockResponseV2> response = SettableFuture.create();
         result.onComplete(() -> {

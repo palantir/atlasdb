@@ -33,10 +33,6 @@ public interface LockRequestMetadata {
     @Value.Parameter
     Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata();
 
-    default int size() {
-        return lockDescriptorToChangeMetadata().size();
-    }
-
     static LockRequestMetadata of(Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata) {
         return ImmutableLockRequestMetadata.of(lockDescriptorToChangeMetadata);
     }
