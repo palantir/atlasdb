@@ -2402,11 +2402,10 @@ public class SnapshotTransaction extends AbstractTransaction
                             SafeArg.of("startTs", startTs),
                             SafeArg.of("commitTs", commitTs));
                 }
-            } else {
-                log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
-                return rollbackOtherTransaction(startTs, transactionService);
+                return true;
             }
-            return true;
+            log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
+            return rollbackOtherTransaction(startTs, transactionService);
         });
 
         if (allRolledBack) {
