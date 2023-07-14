@@ -2521,7 +2521,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     result.add(AtlasCellLockDescriptor.of(
                             tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
                 }
-                cellLockCount = cellsToLock.size();
+                cellLockCount += cellsToLock.size();
             }
 
             if (conflictHandler.lockRowsForConflicts()) {
