@@ -2499,7 +2499,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
+    public void setsRequestedCommitLocksCountCorrectlyForSameRow_serializableLockLevelMigration() {
         // Will request commit locks for cells and rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
 
@@ -2523,12 +2523,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void setsRequestedCommitLocksCountCorrectlyForMultipleTables_serializableCell() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
+        overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_CELL);
+
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(
+                TABLE,
+                ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(
+                TABLE2,
+                ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0 + 1);
+    }
+
+    @Test
     public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
         for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
             putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
         }
         assertThatLoggableExceptionThrownBy(
-                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageStartingWith("Unable to filter cells")
                 .hasExactlyArgs(
