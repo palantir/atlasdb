@@ -2499,7 +2499,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectlyForSameRow_serializableLockLevelMigration() {
+    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
         // Will request commit locks for cells and rows
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
 
@@ -2523,17 +2523,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void setsRequestedCommitLocksCountCorrectlyForMultipleTables_serializableCell() {
+    public void setsRequestedCellCommitLocksCountCorrectlyForMultipleTables() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
         overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_CELL);
 
         SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
-        txn.put(
-                TABLE,
-                ImmutableMap.of(TEST_CELL, TEST_VALUE));
-        txn.put(
-                TABLE2,
-                ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE2, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
         txn.commit();
 
         TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
@@ -2547,7 +2543,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
         }
         assertThatLoggableExceptionThrownBy(
-                () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageStartingWith("Unable to filter cells")
                 .hasExactlyArgs(
