@@ -24,7 +24,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.ToLongFunction;
 
@@ -64,7 +63,7 @@ public final class MeasuringUtils {
         return sizeOf(map.keys()) + ((long) map.size()) * Long.BYTES;
     }
 
-    public static long sizeOf(Entry<? extends Measurable, ? extends Measurable> entry) {
+    public static long sizeOf(Map.Entry<? extends Measurable, ? extends Measurable> entry) {
         return entry.getKey().sizeInBytes() + entry.getValue().sizeInBytes();
     }
 
@@ -86,16 +85,18 @@ public final class MeasuringUtils {
 
     private static <K, V> long sizeOfMap(
             Map<K, V> map, ToLongFunction<K> keyMeasurer, ToLongFunction<V> valueMeasurer) {
-        return map.entrySet().stream()
-                .mapToLong(
-                        entry -> keyMeasurer.applyAsLong(entry.getKey()) + valueMeasurer.applyAsLong(entry.getValue()))
-                .sum();
+        long sum = 0L;
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            sum += keyMeasurer.applyAsLong(entry.getKey()) + valueMeasurer.applyAsLong(entry.getValue());
+        }
+        return sum;
     }
 
     private static <T> long sizeOfRowResult(RowResult<T> rowResult, ToLongFunction<T> measurer) {
-        return rowResult.getRowNameSize()
-                + rowResult.getColumns().entrySet().stream()
-                        .mapToLong(entry -> entry.getKey().length + measurer.applyAsLong(entry.getValue()))
-                        .sum();
+        long sum = rowResult.getRowNameSize();
+        for (Map.Entry<byte[], T> entry : rowResult.getColumns().entrySet()) {
+            sum += entry.getKey().length + measurer.applyAsLong(entry.getValue());
+        }
+        return sum;
     }
 }

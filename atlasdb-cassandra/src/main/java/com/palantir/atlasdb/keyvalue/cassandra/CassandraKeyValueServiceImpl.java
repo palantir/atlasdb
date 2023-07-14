@@ -71,6 +71,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ColumnAndTimestamp;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.RowColumnRangeExtractor.RowColumnRangeResult;
@@ -109,7 +110,6 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.util.Pair;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -731,9 +731,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         Preconditions.checkState(!columns.isEmpty(), "Columns was empty. This is probably an AtlasDb bug");
 
         Column lastColumn = columns.get(columns.size() - 1).getColumn();
-        Pair<byte[], Long> columnNameAndTimestamp = CassandraKeyValueServices.decompose(lastColumn.name);
+        ColumnAndTimestamp columnNameAndTimestamp = CassandraKeyValueServices.decomposeColumn(lastColumn.name);
         ByteBuffer nextLexicographicColumn = CassandraKeyValueServices.makeCompositeBuffer(
-                RangeRequests.nextLexicographicName(columnNameAndTimestamp.lhSide), Long.MAX_VALUE);
+                RangeRequests.nextLexicographicName(columnNameAndTimestamp.columnName()), Long.MAX_VALUE);
 
         return SlicePredicates.create(
                 Range.of(nextLexicographicColumn, Range.UNBOUND_END),
@@ -897,8 +897,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             IdentityHashMap<byte[], byte[]> incompleteRowsToNextColumns = new IdentityHashMap<>();
             for (Map.Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
-                byte[] col =
-                        CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
+                byte[] col = CassandraKeyValueServices.decomposeColumnName(e.getValue())
+                        .columnName();
                 // If we read a version of the cell before our start timestamp, it will be the most recent version
                 // readable to us and we can continue to the next column. Otherwise we have to continue reading
                 // this column.
@@ -1048,8 +1048,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                 .getResults()
                                                 .getOrDefault(row, Collections.emptyMap());
                                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
-                                        byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn())
-                                                .getLhSide();
+                                        byte[] lastCol = CassandraKeyValueServices.decomposeColumnName(
+                                                        lastColumn.getColumn())
+                                                .columnName();
                                         // Same idea as the getRows case to handle seeing only newer entries of a column
                                         boolean completedCell = ret.get(Cell.create(row, lastCol)) != null;
                                         if (isEndOfColumnRange(
@@ -1868,7 +1869,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                 casResult.getCurrent_values().stream()
                                         .map(column -> Cell.create(
                                                 partition.getKey().toByteArray(),
-                                                CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
+                                                CassandraKeyValueServices.decomposeColumn(column.bufferForName())
+                                                        .columnName()))
                                         .collect(Collectors.toList())));
                     }
                 }
@@ -2001,7 +2003,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             if (!casResult.isSuccess()) {
                 Map<Cell, byte[]> currentValues = KeyedStream.of(casResult.getCurrent_values())
                         .mapKeys(column -> Cell.create(
-                                request.rowName(), CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
+                                request.rowName(),
+                                CassandraKeyValueServices.decomposeColumn(column.bufferForName())
+                                        .columnName()))
                         .map(Column::getValue)
                         .collectToMap();
 
