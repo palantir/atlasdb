@@ -103,3 +103,7 @@ dependencies {
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 }
+
+license {
+    exclude '**/MetadataMetrics.java'
+}
