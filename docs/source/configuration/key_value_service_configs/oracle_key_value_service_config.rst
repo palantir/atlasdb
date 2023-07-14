@@ -227,8 +227,8 @@ performing table mapping, then it is expected that this could break one of the s
 still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
 
 Although the alter action is idempotent, it is recommended to remove the configuration after it has ran. Check the logs
-for `Altering table to have overflow column to match metadata.` to determine if a table has been successfully altered,
-and there have been no exceptions.
+for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure that
+has successfully ran.
 
 
 
