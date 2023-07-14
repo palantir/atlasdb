@@ -219,7 +219,7 @@ To resolve, simply add the following configuration to your Oracle ddl configurat
                   name: <namespace>
                 tablename: <table-name>
 
-Note: Table names are case sensitive
+Note: Table names are case sensitive.
 
 Generally speaking the operation is safe to perform, although it's on the operator to determine what the side
 effects are. For example, if the issue arose as two services are configured to use this table, but only one is
