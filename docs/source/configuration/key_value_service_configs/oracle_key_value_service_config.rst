@@ -215,7 +215,9 @@ To resolve, simply add the following configuration to your Oracle ddl configurat
         ddl:
           type: oracle
           alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
-            - <table name>
+              - namespace:
+                  name: <namespace>
+                tablename: <table-name>
 
 Note: Table names are case sensitive
 
@@ -224,7 +226,7 @@ effects are. For example, if the issue arose as two services are configured to u
 performing table mapping, then it is expected that this could break one of the services. However, that condition
 still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
 
-The action that is ran is idempotent
+Although the alter action is idempotent, it is recommended to remove the configuration after it has ran.
 
 
 
