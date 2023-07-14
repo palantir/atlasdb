@@ -29,7 +29,7 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
-import com.palantir.atlasdb.timelock.metrics.MetadataMetrics;
+import com.palantir.atlasdb.timelock.metrics.RequestMetadataMetrics;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -63,13 +63,13 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
-    private final MetadataMetrics metadataMetrics;
+    private final RequestMetadataMetrics metadataMetrics;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService,
             ManagedTimestampService timestampService,
             LockLog lockLog,
-            MetadataMetrics metadataMetrics) {
+            RequestMetadataMetrics metadataMetrics) {
         this.metadataMetrics = metadataMetrics;
         this.lockService = lockService;
         this.timestampService = new LeadershipGuardedClientAwareManagedTimestampService(
@@ -113,7 +113,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 TimeLimit.of(request.getAcquireTimeoutMs()),
                 request.getMetadata());
         metadataMetrics
-                .requestChangeMetadataSize()
+                .numChangeMetadata()
                 .update(request.getMetadata()
                         .map(metadata ->
                                 metadata.lockDescriptorToChangeMetadata().size())

@@ -2,10 +2,10 @@ options:
   javaPackage: 'com.palantir.atlasdb.timelock.metrics'
 
 namespaces:
-  metadata:
-    docs: Data collection on lock request metadata for TimeLock
+  requestMetadata:
+    docs: Metrics tracking metadata presence in lock requests sent to TimeLock
     metrics:
-      requestChangeMetadataSize:
-        docs: Number of change metadata objects contained in lock requests
+      numChangeMetadata:
+        docs: Number of change metadata objects contained in a lock request
         type: histogram
 

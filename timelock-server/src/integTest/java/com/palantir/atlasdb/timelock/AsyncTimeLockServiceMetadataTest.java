@@ -31,7 +31,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.metrics.MetadataMetrics;
+import com.palantir.atlasdb.timelock.metrics.RequestMetadataMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -78,7 +78,8 @@ public class AsyncTimeLockServiceMetadataTest {
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final MetadataMetrics metadataMetrics = MetadataMetrics.of(metricsManager.getTaggedRegistry());
+    private final RequestMetadataMetrics metadataMetrics =
+            RequestMetadataMetrics.of(metricsManager.getTaggedRegistry());
     private final LockLog lockLog = new LockLog(metricsManager.getRegistry(), () -> 10000L);
     private final ScheduledExecutorService scheduledExecutorService = new DeterministicScheduler();
     private final AsyncLockService asyncLockService =
@@ -160,7 +161,7 @@ public class AsyncTimeLockServiceMetadataTest {
         // absent metadata
         timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
                 .withMetadata(Optional.empty()));
-        assertThat(metadataMetrics.requestChangeMetadataSize().getSnapshot().getValues())
+        assertThat(metadataMetrics.numChangeMetadata().getSnapshot().getValues())
                 .containsOnly(0, 3, 0);
     }
 
