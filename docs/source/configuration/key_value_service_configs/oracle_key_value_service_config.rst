@@ -229,9 +229,3 @@ still satisfies the status quo, thus it's on the configurator to determine if th
 Although the alter action is idempotent, it is recommended to remove the configuration after it has ran. Check the logs
 for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure that
 has successfully ran.
-
-
-
-
-
-
