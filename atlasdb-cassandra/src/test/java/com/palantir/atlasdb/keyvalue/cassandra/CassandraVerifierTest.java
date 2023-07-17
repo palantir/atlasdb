@@ -274,6 +274,19 @@ public class CassandraVerifierTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
+    public void keyspaceAlreadyExistsOnlyChecksForAnyAvailableNodes() throws TException {
+        CassandraVerifierConfig verifierConfig =
+                getVerifierConfigBuilderWithDefaults(defaultTopology(HOST_1)).build();
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(
+                        "A",
+                        ImmutableList.of(HOST_1),
+                        CassandraKeyValueServices.VERSION_UNREACHABLE,
+                        ImmutableList.of(HOST_1, HOST_2, HOST_3)));
+        CassandraVerifier.keyspaceAlreadyExists(client, verifierConfig);
+    }
+
     private TokenRange mockRangeWithDetails(EndpointDetails... details) {
         TokenRange mockRange = new TokenRange();
         mockRange.setEndpoint_details(Arrays.asList(details));

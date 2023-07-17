@@ -35,7 +35,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final String TABLE = "table";
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    private static final String VERSION_UNREACHABLE = CassandraKeyValueServices.VERSION_UNREACHABLE;
     private static final ImmutableList<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
     private static final ImmutableList<String> REST_OF_NODES = ImmutableList.of("4", "5");
     private static final ImmutableList<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");

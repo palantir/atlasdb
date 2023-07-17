@@ -239,10 +239,10 @@ public final class CassandraVerifier {
         }
     }
 
-    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
-    private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
+    @VisibleForTesting
+    static boolean keyspaceAlreadyExists(CassandraClient client, CassandraVerifierConfig verifierConfig)
             throws TException {
-        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
+        try {
             client.describe_keyspace(verifierConfig.keyspace());
             CassandraKeyValueServices.waitForSchemaVersions(
                     verifierConfig.schemaMutationTimeoutMillis(),
@@ -252,6 +252,14 @@ public final class CassandraVerifier {
             return true;
         } catch (NotFoundException e) {
             return false;
+        }
+    }
+
+    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
+    private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
+            throws TException {
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
+            return keyspaceAlreadyExists(client, verifierConfig);
         }
     }
 
