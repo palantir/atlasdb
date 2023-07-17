@@ -152,8 +152,6 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    public void waitForSchemaVersionsAny() {}
-
     static void runWithWaitingForSchemas(
             RunnableCheckedException<TException> task,
             CassandraKeyValueServiceConfig config,
