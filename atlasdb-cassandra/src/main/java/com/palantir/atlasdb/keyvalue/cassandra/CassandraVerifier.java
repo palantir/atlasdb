@@ -40,6 +40,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.io.AvailabilityRequirement;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashSet;
@@ -246,7 +247,8 @@ public final class CassandraVerifier {
             CassandraKeyValueServices.waitForSchemaVersions(
                     verifierConfig.schemaMutationTimeoutMillis(),
                     client,
-                    "while checking if schemas diverged on startup");
+                    "while checking if schemas diverged on startup",
+                    AvailabilityRequirement.ANY);
             return true;
         } catch (NotFoundException e) {
             return false;
