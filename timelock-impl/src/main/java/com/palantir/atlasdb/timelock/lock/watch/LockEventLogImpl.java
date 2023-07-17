@@ -16,20 +16,24 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
+import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Unsafe;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -37,15 +41,25 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockEventLogImpl implements LockEventLog {
+
+    @VisibleForTesting
+    static final int SLIDING_WINDOW_SIZE = 1000;
+
     private final UUID logId;
-    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
+    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(SLIDING_WINDOW_SIZE);
     private final Supplier<LockWatches> watchesSupplier;
     private final HeldLocksCollection heldLocksCollection;
+    private final StoredMetadataMetrics metadataMetrics;
 
-    LockEventLogImpl(UUID logId, Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocksCollection) {
+    LockEventLogImpl(
+            UUID logId,
+            Supplier<LockWatches> watchesSupplier,
+            HeldLocksCollection heldLocksCollection,
+            StoredMetadataMetrics metadataMetrics) {
         this.logId = logId;
         this.watchesSupplier = watchesSupplier;
         this.heldLocksCollection = heldLocksCollection;
+        this.metadataMetrics = metadataMetrics;
     }
 
     @Override
@@ -64,7 +78,22 @@ public class LockEventLogImpl implements LockEventLog {
     @Override
     public synchronized void logLock(
             Set<LockDescriptor> locksTakenOut, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
-        slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
+        Optional<LockWatchEvent> replacedEvent =
+                slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
+        Optional<LockRequestMetadata> replacedMetadata =
+                replacedEvent.flatMap(event -> event.accept(LockEventMetadataVisitor.INSTANCE));
+
+        int changeMetadataSizeDiff = metadata.map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                        .map(Map::size)
+                        .orElse(0)
+                - replacedMetadata
+                        .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                        .map(Map::size)
+                        .orElse(0);
+        int numPresentMetadataDiff = metadata.map(_unused -> 1).orElse(0)
+                - replacedMetadata.map(_unused -> 1).orElse(0);
+        metadataMetrics.numChangeMetadata().inc(changeMetadataSizeDiff);
+        metadataMetrics.numEventsWithMetadata().inc(numPresentMetadataDiff);
     }
 
     @Override
@@ -108,5 +137,24 @@ public class LockEventLogImpl implements LockEventLog {
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
                 .collect(Collectors.toSet());
+    }
+
+    private enum LockEventMetadataVisitor implements LockWatchEvent.Visitor<Optional<LockRequestMetadata>> {
+        INSTANCE;
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockEvent lockEvent) {
+            return lockEvent.metadata();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
+        }
     }
 }

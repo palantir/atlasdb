@@ -8,4 +8,13 @@ namespaces:
       numChangeMetadata:
         docs: Number of change metadata objects contained in a lock request
         type: histogram
+  storedMetadata:
+    docs: Metrics tracking metadata stored in LockEvents in the LockWatchEvent sliding window
+    metrics:
+      numEventsWithMetadata:
+        docs: Number of LockEvents currently stored in the sliding window that have non-absent metadata
+        type: counter
+      numChangeMetadata:
+        docs: Number of change metadata objects currently stored in the sliding window
+        type: counter
 

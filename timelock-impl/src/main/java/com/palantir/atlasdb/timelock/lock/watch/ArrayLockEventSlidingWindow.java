@@ -39,10 +39,16 @@ public class ArrayLockEventSlidingWindow {
         return nextSequence - 1;
     }
 
-    void add(LockWatchEvent.Builder eventBuilder) {
+    /**
+     * Returns the {@link LockWatchEvent} that was replaced if the buffer is already full.
+     */
+    Optional<LockWatchEvent> add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
-        buffer[LongMath.mod(nextSequence, maxSize)] = event;
+        int index = LongMath.mod(nextSequence, maxSize);
+        LockWatchEvent replacedEvent = buffer[index];
+        buffer[index] = event;
         nextSequence++;
+        return Optional.ofNullable(replacedEvent);
     }
 
     public Optional<List<LockWatchEvent>> getNextEvents(long version) {

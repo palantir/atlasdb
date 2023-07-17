@@ -22,6 +22,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -63,7 +65,10 @@ public class AsyncLockServiceEteTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
+    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
+            heldLocks,
+            clock.id(),
+            StoredMetadataMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.metrics.RequestMetadataMetrics;
+import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -95,7 +96,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 metricsManager.getRegistry(),
                 "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(maybeEnhancedLockLog, reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(
+                        maybeEnhancedLockLog,
+                        reaperExecutor,
+                        timeoutExecutor,
+                        StoredMetadataMetrics.of(metricsManager.getTaggedRegistry())),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog,
                 RequestMetadataMetrics.of(metricsManager.getTaggedRegistry()));
