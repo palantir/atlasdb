@@ -240,6 +240,7 @@ public final class CassandraVerifier {
     }
 
     @VisibleForTesting
+    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     static boolean keyspaceAlreadyExists(CassandraClient client, CassandraVerifierConfig verifierConfig)
             throws TException {
         try {
@@ -255,7 +256,6 @@ public final class CassandraVerifier {
         }
     }
 
-    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
