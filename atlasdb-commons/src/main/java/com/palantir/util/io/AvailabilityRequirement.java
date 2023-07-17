@@ -16,6 +16,9 @@
 
 package com.palantir.util.io;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+
 public enum AvailabilityRequirement {
     ANY {
         @Override
@@ -33,6 +36,16 @@ public enum AvailabilityRequirement {
     protected abstract int calculateRequired(int total);
 
     public boolean satisfies(int available, int total) {
+        Preconditions.checkArgument(
+                available >= 0 && total >= 0,
+                "Available and total must be non-negative.",
+                SafeArg.of("available", available),
+                SafeArg.of("total", total));
+        Preconditions.checkArgument(
+                available <= total,
+                "Available must be less than or equal to total.",
+                SafeArg.of("available", available),
+                SafeArg.of("total", total));
         return available >= calculateRequired(total);
     }
 }

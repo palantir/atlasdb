@@ -16,8 +16,10 @@
 
 package com.palantir.util.io;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.logsafe.SafeArg;
 import org.junit.Test;
 
 public final class AvailabilityRequirementTest {
@@ -52,5 +54,35 @@ public final class AvailabilityRequirementTest {
     @Test
     public void quorumSatisfiesWhenHasTotal() {
         assertThat(AvailabilityRequirement.QUORUM.satisfies(10, 10)).isTrue();
+    }
+
+    @Test
+    public void satisfiesThrowsWhenAvailableIsNegative() {
+        assertThatNegativeArgumentsExceptionThrowsForArguments(-1, 10);
+    }
+
+    @Test
+    public void satisfiesThrowsWhenTotalIsNegative() {
+        assertThatNegativeArgumentsExceptionThrowsForArguments(1, -10);
+    }
+
+    @Test
+    public void satisfiesThrowsWhenBothAreNegative() {
+        assertThatNegativeArgumentsExceptionThrowsForArguments(-1, -10);
+    }
+
+    @Test
+    public void satisfiesThrowsWhenAvailableIsGreaterThanTotal() {
+        assertThatLoggableExceptionThrownBy(() -> AvailabilityRequirement.ANY.satisfies(11, 10))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Available must be less than or equal to total.")
+                .hasExactlyArgs(SafeArg.of("available", 11), SafeArg.of("total", 10));
+    }
+
+    private static void assertThatNegativeArgumentsExceptionThrowsForArguments(int available, int total) {
+        assertThatLoggableExceptionThrownBy(() -> AvailabilityRequirement.ANY.satisfies(available, total))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Available and total must be non-negative.")
+                .hasExactlyArgs(SafeArg.of("available", available), SafeArg.of("total", total));
     }
 }
