@@ -36,6 +36,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import com.palantir.util.io.AvailabilityRequirement;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -66,9 +67,16 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
+    static void waitForSchemaVersions(
+            int schemaMutationTimeMillis, CassandraClient client, String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(
+                schemaMutationTimeMillis, client, unsafeSchemaChangeDescription, AvailabilityRequirement.QUORUM);
+    }
+
     /**
-     * Attempt to wait until a quorum of nodes has reached consensus on a schema version, and it is known that no
-     * other nodes currently disagree with this quorum.
+     * Attempt to wait until the specified number of nodes are available and there are no disagreements on schema
+     * version.
      * <p>
      * The goals of this method include:
      * <ol>
@@ -77,9 +85,12 @@ public final class CassandraKeyValueServices {
      *         Cassandra can more efficiently come to agreement.
      *     </li>
      *     <li>
-     *         Avoid performing schema mutations if they could potentially cause a split-brain in terms of how the
-     *         schema evolves. This is achieved by ensuring a quorum of reachable nodes agree on the version. There
-     *         is of course a check-then-act race condition, but Cassandra is able to eventually recover.
+     *         Avoid performing schema mutations if our availability requirements are not met. This is to prevent a
+     *         split-brain situation in respect to the schema. While this _should_ be a safe state to be in, there is
+     *         little-to-no risk to availability for waiting for consensus and availability. If the specified
+     *         availability requirements are not met, then it is very likely Cassandra is in an outage anyways, which
+     *         means it is ok for a service to not start up. There is of course a check-then-act race condition, but
+     *         Cassandra is able to eventually recover.
      *     </li>
      *     <li>
      *         Allowing schema mutations to take place in the presence of failures (the KVS needs to be able to
@@ -87,13 +98,17 @@ public final class CassandraKeyValueServices {
      *     </li>
      * </ol>
      *
-     * @param schemaMutationTimeMillis      time to wait for nodes' schema versions to match.
+     * @param schemaMutationTimeMillis      Time to wait for nodes' schema versions to match.
      * @param client                        Cassandra client.
-     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
+     * @param unsafeSchemaChangeDescription Description of the schema change that was performed prior to this check.
+     * @param availabilityRequirement       Number of Cassandra nodes that must be reachable for schema consensus.
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
-            int schemaMutationTimeMillis, CassandraClient client, String unsafeSchemaChangeDescription)
+            int schemaMutationTimeMillis,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription,
+            AvailabilityRequirement availabilityRequirement)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -102,7 +117,7 @@ public final class CassandraKeyValueServices {
             // This may only include some of the nodes if the coordinator hasn't shaken hands with someone; however,
             // this existed largely as a defense against performance issues with concurrent schema modifications.
             versions = client.describe_schema_versions();
-            if (majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(versions)) {
+            if (clusterSatisfiesAvailabilityRequirementAndNoDivergentSchemas(versions, availabilityRequirement)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -148,8 +163,8 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config.schemaMutationTimeoutMillis(), client, "after " + unsafeSchemaChangeDescription);
     }
 
-    private static boolean majorityOfClusterHasConsistentSchemaVersionAndNoDivergentNodes(
-            Map<String, List<String>> versions) {
+    private static boolean clusterSatisfiesAvailabilityRequirementAndNoDivergentSchemas(
+            Map<String, List<String>> versions, AvailabilityRequirement availabilityRequirement) {
         if (getDistinctReachableSchemas(versions).size() != 1) {
             return false;
         }
@@ -158,7 +173,8 @@ public final class CassandraKeyValueServices {
         int numUnreachableNodes = Optional.ofNullable(versions.get(VERSION_UNREACHABLE))
                 .map(List::size)
                 .orElse(0);
-        return totalNodes - numUnreachableNodes >= (totalNodes / 2) + 1;
+        int availableNodes = totalNodes - numUnreachableNodes;
+        return availabilityRequirement.satisfies(availableNodes, totalNodes);
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
