@@ -39,9 +39,11 @@ import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-/* Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
-requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the Wire-... classes
-All serialization changes should be properly tested. */
+/*
+ * Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
+ * requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the Wire-... classes
+ * All serialization changes should be properly tested.
+ */
 @Unsafe
 @Value.Immutable
 @JsonTypeName(LockEvent.TYPE)
