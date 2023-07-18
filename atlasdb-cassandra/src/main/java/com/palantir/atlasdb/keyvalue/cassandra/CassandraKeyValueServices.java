@@ -88,7 +88,7 @@ public final class CassandraKeyValueServices {
      *         Avoid performing schema mutations if our availability requirements are not met. This is to prevent a
      *         split-brain situation in respect to the schema. While this _should_ be a safe state to be in, there is
      *         little-to-no risk to availability for waiting for consensus and availability. If the specified
-     *         availability requirements are not met, then it is very likely Cassandra is an outage anyways, which
+     *         availability requirements are not met, then it is very likely Cassandra is in an outage anyways, which
      *         means it is ok for a service to not start up. There is of course a check-then-act race condition, but
      *         Cassandra is able to eventually recover.
      *     </li>
