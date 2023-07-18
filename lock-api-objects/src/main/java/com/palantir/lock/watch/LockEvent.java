@@ -37,12 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import org.immutables.value.Value;
 
-// Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
-// requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the Wire-... classes
-// All serialization changes should be properly tested.
+/* Warning: This class contains custom serialization logic. Changing anything about the serialized format of this class
+requires careful modification of the @JsonCreator and @JsonValue-annotated methods as well as the Wire-... classes
+All serialization changes should be properly tested. */
 @Unsafe
 @Value.Immutable
 @JsonTypeName(LockEvent.TYPE)
@@ -71,8 +70,9 @@ public abstract class LockEvent implements LockWatchEvent {
             @JsonProperty("sequence") long sequence,
             @JsonProperty("lockDescriptors") List<LockDescriptor> lockDescriptors,
             @JsonProperty("lockToken") LockToken lockToken,
-            @JsonProperty("metadata") Optional<WireLockRequestMetadata> wireMetadata) {
-        Optional<LockRequestMetadata> metadata = wireMetadata.map(getMetadataConverter(lockDescriptors));
+            @JsonProperty("metadata") Optional<WireLockRequestMetadata> optWireMetadata) {
+        Optional<LockRequestMetadata> metadata =
+                optWireMetadata.map(wireMetadata -> convertFromWireMetadata(lockDescriptors, wireMetadata));
         return ImmutableLockEvent.builder()
                 .sequence(sequence)
                 .lockDescriptors(ImmutableSet.copyOf(lockDescriptors))
@@ -86,10 +86,7 @@ public abstract class LockEvent implements LockWatchEvent {
     public WireLockEvent toWireLockEvent() {
         Optional<IndexEncodingResult<LockDescriptor, ChangeMetadata>> optIndexEncodingResult = metadata()
                 .map(metadata -> IndexEncodingUtils.encode(
-                        lockDescriptors(),
-                        metadata.lockDescriptorToChangeMetadata(),
-                        Function.identity(),
-                        DEFAULT_CHECKSUM_TYPE));
+                        lockDescriptors(), metadata.lockDescriptorToChangeMetadata(), DEFAULT_CHECKSUM_TYPE));
         // If the lock event has metadata, we need to use the key list that was used to encode the metadata.
         // Otherwise, any ordering of the lock descriptors is fine.
         List<LockDescriptor> orderedLocks = optIndexEncodingResult
@@ -128,22 +125,18 @@ public abstract class LockEvent implements LockWatchEvent {
                 .build();
     }
 
-    private static Function<WireLockRequestMetadata, LockRequestMetadata> getMetadataConverter(
-            List<LockDescriptor> lockDescriptors) {
-        return wireMetadata -> {
-            KeyListChecksum checksum = KeyListChecksum.of(
-                    ChecksumType.valueOf(wireMetadata.lockListChecksum().typeId()),
-                    wireMetadata.lockListChecksum().value());
-            IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
-                    IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
-                            .keyList(lockDescriptors)
-                            .indexToValue(wireMetadata.indexToChangeMetadata())
-                            .keyListChecksum(checksum)
-                            .build();
-            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
-                    IndexEncodingUtils.decode(indexEncodingResult, Function.identity());
-            return LockRequestMetadata.of(lockDescriptorToChangeMetadata);
-        };
+    private static LockRequestMetadata convertFromWireMetadata(
+            List<LockDescriptor> lockDescriptors, WireLockRequestMetadata wireMetadata) {
+        KeyListChecksum checksum = KeyListChecksum.of(
+                ChecksumType.valueOf(wireMetadata.lockListChecksum().typeId()),
+                wireMetadata.lockListChecksum().value());
+        IndexEncodingResult<LockDescriptor, ChangeMetadata> indexEncodingResult =
+                IndexEncodingResult.<LockDescriptor, ChangeMetadata>builder()
+                        .keyList(lockDescriptors)
+                        .indexToValue(wireMetadata.indexToChangeMetadata())
+                        .keyListChecksum(checksum)
+                        .build();
+        return LockRequestMetadata.of(IndexEncodingUtils.decode(indexEncodingResult));
     }
 
     // This class is explicitly missing @JsonDeserialize as it should only be used for serialization.

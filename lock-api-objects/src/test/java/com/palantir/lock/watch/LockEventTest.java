@@ -34,6 +34,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,6 +49,11 @@ import org.junit.Test;
 
 public class LockEventTest {
     private static final String BASE = "src/test/resources/lock-event-wire-format/";
+    private static final String OLD_LOCK_EVENT_FILE = "old";
+    private static final String WITH_METADATA_FILE = "with-metadata";
+    private static final String WITH_EMPTY_METADATA_MAP_FILE = "with-empty-metadata-map";
+    private static final String SPARSE_METADATA_FILE = "sparse-metadata";
+    private static final String SHUFFLED_LOCKS_FILE = "shuffled-locks";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("abc");
@@ -62,7 +68,7 @@ public class LockEventTest {
             .lockDescriptors(LOCK_SET)
             .lockToken(LOCK_TOKEN)
             .build();
-    private static final LockEvent BASELINE_LOCK_EVENT = ImmutableLockEvent.builder()
+    private static final LockEvent DEFAULT_LOCK_EVENT = ImmutableLockEvent.builder()
             .sequence(SEQUENCE)
             .lockDescriptors(LOCK_SET)
             .lockToken(LOCK_TOKEN)
@@ -91,49 +97,49 @@ public class LockEventTest {
     private static final ObjectMapper VERIFYING_MAPPER = new ObjectMapper();
 
     @Test
-    public void oldLockEventIsBaseline() {
-        assertSerializedEquals(OLD_LOCK_EVENT, "baseline");
-        assertDeserializedEquals("baseline", OLD_LOCK_EVENT, OldLockEvent.class);
+    public void oldLockEventSerializesDeserializes() {
+        assertSerializedEquals(OLD_LOCK_EVENT, OLD_LOCK_EVENT_FILE);
+        assertDeserializedEquals(OLD_LOCK_EVENT_FILE, OLD_LOCK_EVENT, OldLockEvent.class);
     }
 
     @Test
-    public void serializedFormatIsUnchangedForAbsentMetadata() {
-        assertSerializedEquals(BASELINE_LOCK_EVENT, "baseline");
-        assertDeserializedEquals("baseline", BASELINE_LOCK_EVENT, LockEvent.class);
+    public void absentMetadataSerializesDeserializes() {
+        assertSerializedEquals(DEFAULT_LOCK_EVENT, OLD_LOCK_EVENT_FILE);
+        assertDeserializedEquals(OLD_LOCK_EVENT_FILE, DEFAULT_LOCK_EVENT, LockEvent.class);
     }
 
     @Test
-    public void serializesMetadataIfPresent() {
+    public void presentMetadataSerializesDeserializes() {
         LockEvent lockEventWithMetadata =
-                ImmutableLockEvent.copyOf(BASELINE_LOCK_EVENT).withMetadata(LOCK_REQUEST_METADATA);
-        assertSerializedEquals(lockEventWithMetadata, "baseline-with-metadata");
-        assertDeserializedEquals("baseline-with-metadata", lockEventWithMetadata, LockEvent.class);
+                ImmutableLockEvent.copyOf(DEFAULT_LOCK_EVENT).withMetadata(LOCK_REQUEST_METADATA);
+        assertSerializedEquals(lockEventWithMetadata, WITH_METADATA_FILE);
+        assertDeserializedEquals(WITH_METADATA_FILE, lockEventWithMetadata, LockEvent.class);
     }
 
     @Test
-    public void serializesAsLockWatchEventWithMetadata() {
-        LockWatchEvent asLockWatchEvent =
-                ImmutableLockEvent.copyOf(BASELINE_LOCK_EVENT).withMetadata(LOCK_REQUEST_METADATA);
-        assertSerializedEquals(asLockWatchEvent, "baseline-with-metadata");
-        assertDeserializedEquals("baseline-with-metadata", asLockWatchEvent, LockWatchEvent.class);
+    public void serializesDeserializesAsLockWatchEventWithMetadata() {
+        LockWatchEvent lockWatchEvent =
+                ImmutableLockEvent.copyOf(DEFAULT_LOCK_EVENT).withMetadata(LOCK_REQUEST_METADATA);
+        assertSerializedEquals(lockWatchEvent, WITH_METADATA_FILE);
+        assertDeserializedEquals(WITH_METADATA_FILE, lockWatchEvent, LockWatchEvent.class);
     }
 
     @Test
-    public void serializesEmptyMetadataMap() {
+    public void emptyMetadataMapSerializesDeserializes() {
         LockEvent lockEventWithMetadata =
-                ImmutableLockEvent.copyOf(BASELINE_LOCK_EVENT).withMetadata(LockRequestMetadata.of(ImmutableMap.of()));
-        assertSerializedEquals(lockEventWithMetadata, "baseline-empty-metadata-map");
-        assertDeserializedEquals("baseline-empty-metadata-map", lockEventWithMetadata, LockEvent.class);
+                ImmutableLockEvent.copyOf(DEFAULT_LOCK_EVENT).withMetadata(LockRequestMetadata.of(ImmutableMap.of()));
+        assertSerializedEquals(lockEventWithMetadata, WITH_EMPTY_METADATA_MAP_FILE);
+        assertDeserializedEquals(WITH_EMPTY_METADATA_MAP_FILE, lockEventWithMetadata, LockEvent.class);
     }
 
     // This behavior should be guaranteed by the Conjure spec
     @Test
     public void oldClientIgnoresMetadata() {
-        assertDeserializedEquals("baseline-with-metadata", OLD_LOCK_EVENT, OldLockEvent.class);
+        assertDeserializedEquals(WITH_METADATA_FILE, OLD_LOCK_EVENT, OldLockEvent.class);
     }
 
     @Test
-    public void serializesSparseMetadata() {
+    public void sparseMetadataSerializesDeserializes() {
         List<LockDescriptor> lockDescriptors = IntStream.range(0, 10)
                 .mapToObj(Integer::toString)
                 .map(StringLockDescriptor::of)
@@ -152,8 +158,8 @@ public class LockEventTest {
                 .metadata(LockRequestMetadata.of(lockDescriptorToChangeMetadata))
                 .build();
 
-        assertSerializedEquals(lockEventWithSparseMetadata, "sparse-metadata");
-        assertDeserializedEquals("sparse-metadata", lockEventWithSparseMetadata, LockEvent.class);
+        assertSerializedEquals(lockEventWithSparseMetadata, SPARSE_METADATA_FILE);
+        assertDeserializedEquals(SPARSE_METADATA_FILE, lockEventWithSparseMetadata, LockEvent.class);
     }
 
     @Test
@@ -161,7 +167,7 @@ public class LockEventTest {
         assertThatThrownBy(() ->
                         // The order of the lock descriptors in this JSON file is swapped
                         DESERIALIZATION_MAPPER.readValue(
-                                Files.readString(getJsonPath("shuffled-locks")), LockEvent.class))
+                                Files.readString(getJsonPath(SHUFFLED_LOCKS_FILE)), LockEvent.class))
                 .rootCause()
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageStartingWith("Key list integrity check failed");
@@ -170,7 +176,7 @@ public class LockEventTest {
     @Test
     public void cannotDeserializeAsWireLockEvent() {
         assertThatThrownBy(() -> DESERIALIZATION_MAPPER.readValue(
-                        Files.readString(getJsonPath("baseline-with-metadata")), LockEvent.WireLockEvent.class))
+                        Files.readString(getJsonPath(WITH_METADATA_FILE)), LockEvent.WireLockEvent.class))
                 .isInstanceOf(InvalidDefinitionException.class);
     }
 
@@ -184,8 +190,8 @@ public class LockEventTest {
             assertThat(VERIFYING_MAPPER.readTree(serialized))
                     .as("Serialization yields semantically identical JSON representation")
                     .isEqualTo(VERIFYING_MAPPER.readTree(Files.readString(path)));
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -194,9 +200,13 @@ public class LockEventTest {
             assertThat(DESERIALIZATION_MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), clazz))
                     .as("Deserialization yields identical object")
                     .isEqualTo(object);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    private static Path getJsonPath(String jsonFileName) {
+        return Paths.get(BASE + jsonFileName + ".json");
     }
 
     // This is a copy of the LockEvent class before metadata was added
@@ -211,9 +221,5 @@ public class LockEventTest {
         Set<LockDescriptor> lockDescriptors();
 
         LockToken lockToken();
-    }
-
-    private static Path getJsonPath(String jsonFileName) {
-        return Paths.get(BASE + jsonFileName + ".json");
     }
 }
