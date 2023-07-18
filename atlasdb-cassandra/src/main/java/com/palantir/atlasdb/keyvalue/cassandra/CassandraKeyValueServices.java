@@ -98,10 +98,10 @@ public final class CassandraKeyValueServices {
      *     </li>
      * </ol>
      *
-     * @param schemaMutationTimeMillis      time to wait for nodes' schema versions to match.
+     * @param schemaMutationTimeMillis      Time to wait for nodes' schema versions to match.
      * @param client                        Cassandra client.
-     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
-     * @param availabilityRequirement Number of Cassandra nodes that must be reachable for schema consensus.
+     * @param unsafeSchemaChangeDescription Description of the schema change that was performed prior to this check.
+     * @param availabilityRequirement       Number of Cassandra nodes that must be reachable for schema consensus.
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(

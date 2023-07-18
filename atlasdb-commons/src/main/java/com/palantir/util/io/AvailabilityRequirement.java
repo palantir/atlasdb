@@ -35,7 +35,7 @@ public enum AvailabilityRequirement {
 
     protected abstract int calculateRequired(int total);
 
-    public boolean satisfies(int available, int total) {
+    public final boolean satisfies(int available, int total) {
         Preconditions.checkArgument(
                 available >= 0 && total >= 0,
                 "Available and total must be non-negative.",
