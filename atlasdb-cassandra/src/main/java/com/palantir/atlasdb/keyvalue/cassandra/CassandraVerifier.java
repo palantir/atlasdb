@@ -267,6 +267,8 @@ public final class CassandraVerifier {
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
             KsDef ksDef = createKsDefForFresh(client, verifierConfig);
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    verifierConfig.schemaMutationTimeoutMillis(), client, "before adding the initial empty keyspace");
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", verifierConfig.keyspace()));
             CassandraKeyValueServices.waitForSchemaVersions(
