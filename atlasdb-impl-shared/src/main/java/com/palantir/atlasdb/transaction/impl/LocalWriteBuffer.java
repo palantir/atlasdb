@@ -46,7 +46,7 @@ class LocalWriteBuffer {
             new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Map<Cell, ChangeMetadata>> metadataByTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Object> locksByTable = new ConcurrentHashMap<>();
-    private final AtomicLong byteCount = new AtomicLong();
+    private final AtomicLong valuesByteCount = new AtomicLong();
 
     public void putLocalWritesAndMetadata(
             TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
@@ -68,7 +68,7 @@ class LocalWriteBuffer {
                 }
                 long toAdd = val.length + Cells.getApproxSizeOfCell(cell);
                 long toSubtract = oldVal != null ? oldVal.length + Cells.getApproxSizeOfCell(cell) : 0;
-                long newByteCount = byteCount.addAndGet(toAdd - toSubtract);
+                long newByteCount = valuesByteCount.addAndGet(toAdd - toSubtract);
                 if (newByteCount >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newByteCount - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
                     log.warn(
@@ -113,14 +113,18 @@ class LocalWriteBuffer {
         return Collections.unmodifiableMap(getChangeMetadataForTableInternal(tableRef));
     }
 
+    public long getValuesByteCount() {
+        return valuesByteCount.get();
+    }
+
+    public long changeMetadataCount() {
+        return metadataByTable.values().stream().mapToLong(Map::size).sum();
+    }
+
     private Map<Cell, ChangeMetadata> getChangeMetadataForTableInternal(TableReference tableRef) {
         // No need for concurrency control on the cell level since it is only written to with a lock and
         // read during commit, which is guaranteed to be single-threaded and exclusive with writing.
         return metadataByTable.computeIfAbsent(tableRef, unused -> new HashMap<>());
-    }
-
-    public long getByteCount() {
-        return byteCount.get();
     }
 
     private Object getLockForTable(TableReference tableRef) {
