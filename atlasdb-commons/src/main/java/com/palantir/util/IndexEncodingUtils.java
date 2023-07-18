@@ -37,6 +37,11 @@ import org.immutables.value.Value;
 public final class IndexEncodingUtils {
     private IndexEncodingUtils() {}
 
+    public static <K extends DeterministicHashable, V> IndexEncodingResult<K, V> encode(
+            Set<K> keys, Map<K, V> keyToValue, ChecksumType checksumType) {
+        return encode(keys, keyToValue, Function.identity(), checksumType);
+    }
+
     /**
      * Compute a derived map (replacing keys with their associated index into the ordered list) to the value returned
      * by running the {@code valueMapper} over the original value.
@@ -75,6 +80,10 @@ public final class IndexEncodingUtils {
                 .indexToValue(indexToValue)
                 .keyListChecksum(computeChecksum(checksumType, keyList))
                 .build();
+    }
+
+    public static <K extends DeterministicHashable, V> Map<K, V> decode(IndexEncodingResult<K, V> indexEncoding) {
+        return decode(indexEncoding, Function.identity());
     }
 
     /**
