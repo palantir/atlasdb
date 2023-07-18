@@ -28,3 +28,9 @@ subprojects {
     }
     tasks.licenseMain.enabled = false
 }
+
+conjure {
+    java {
+        excludeEmptyOptionals = true
+    }
+}
