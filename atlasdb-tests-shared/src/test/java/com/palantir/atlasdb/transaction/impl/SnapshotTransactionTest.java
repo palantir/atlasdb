@@ -99,6 +99,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -2716,6 +2717,29 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         UnsafeArg.of("rowName", cell1.getRowName()),
                         UnsafeArg.of("existingMetadata", TEST_METADATA),
                         UnsafeArg.of("newMetadata", TEST_METADATA));
+    }
+
+    @Test
+    public void reportsMetadataInfoCorrectly() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
+        overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+
+        txn.putWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(
+                TABLE2,
+                ImmutableMap.of(
+                        TEST_CELL,
+                        ChangeMetadataAnnotatedValue.of(PtBytes.toBytes("bar"), ChangeMetadata.unchanged()),
+                        TEST_CELL_2,
+                        ChangeMetadataAnnotatedValue.of(PtBytes.toBytes("foo"), ChangeMetadata.unchanged())));
+        txn.commit();
+
+        TransactionMetadataInfo metadataInfo = txn.getMetadataInfo();
+        assertThat(metadataInfo.changeMetadataStored()).isEqualTo(3);
+        assertThat(metadataInfo.cellChangeMetadataSent()).isEqualTo(2);
+        assertThat(metadataInfo.rowChangeMetadataSent()).isEqualTo(3);
     }
 
     private void verifyPrefetchValidations(

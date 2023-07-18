@@ -98,8 +98,12 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
@@ -281,6 +285,8 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
+    private volatile long cellChangeMetadataSent = 0L;
+    private volatile long rowChangeMetadataSent = 0L;
 
     protected volatile boolean hasReads;
 
@@ -2569,26 +2575,34 @@ public class SnapshotTransaction extends AbstractTransaction
         Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = new HashMap<>();
         long cellLockCount = 0L;
         long rowLockCount = 0L;
+        long cellMetadataCount = 0L;
+        long rowMetadataCount = 0L;
         for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
 
             int previousLockCount = lockDescriptors.size();
+            int previousMetadataCount = lockDescriptorToChangeMetadata.size();
             if (conflictHandler.lockCellsForConflicts()) {
                 collectCellLocks(lockDescriptors, lockDescriptorToChangeMetadata, tableRef);
             }
             cellLockCount += lockDescriptors.size() - previousLockCount;
+            cellMetadataCount += lockDescriptorToChangeMetadata.size() - previousMetadataCount;
 
             previousLockCount = lockDescriptors.size();
+            previousMetadataCount = lockDescriptorToChangeMetadata.size();
             if (conflictHandler.lockRowsForConflicts()) {
                 collectRowLocks(lockDescriptors, lockDescriptorToChangeMetadata, tableRef);
             }
             rowLockCount += lockDescriptors.size() - previousLockCount;
+            rowMetadataCount += lockDescriptorToChangeMetadata.size() - previousMetadataCount;
         }
         lockDescriptors.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         cellCommitLocksRequested = cellLockCount;
         rowCommitLocksRequested = rowLockCount + 1;
+        cellChangeMetadataSent = cellMetadataCount;
+        rowChangeMetadataSent = rowMetadataCount;
         return LocksAndMetadata.of(
                 lockDescriptors,
                 // For now, lock request metadata only consists of change metadata. If it is absent, we can save
@@ -2784,6 +2798,16 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
+    public TransactionMetadataInfo getMetadataInfo() {
+        return ImmutableTransactionMetadataInfo.builder()
+                .changeMetadataStored(metadataByTable.entrySet().stream()
+                        .reduce(0, (sum, entry) -> sum + entry.getValue().size(), Integer::sum))
+                .cellChangeMetadataSent(cellChangeMetadataSent)
+                .rowChangeMetadataSent(rowChangeMetadataSent)
+                .build();
+    }
+
+    @Override
     public void reportExpectationsCollectedData() {
         if (isStillRunning()) {
             log.error(
@@ -2792,25 +2816,34 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        reportExpectationsCollectedData(
-                getAgeMillis(), getReadInfo(), getCommitLockInfo(), expectationsDataCollectionMetrics);
+        ExpectationsData expectationsData = ImmutableExpectationsData.builder()
+                .ageMillis(getAgeMillis())
+                .readInfo(getReadInfo())
+                .commitLockInfo(getCommitLockInfo())
+                .metadataInfo(getMetadataInfo())
+                .build();
+        reportExpectationsCollectedData(expectationsData, expectationsDataCollectionMetrics);
     }
 
     @VisibleForTesting
-    static void reportExpectationsCollectedData(
-            long ageMillis,
-            TransactionReadInfo readInfo,
-            TransactionCommitLockInfo commitLockInfo,
-            ExpectationsMetrics metrics) {
-        metrics.ageMillis().update(ageMillis);
-        metrics.bytesRead().update(readInfo.bytesRead());
-        metrics.kvsReads().update(readInfo.kvsCalls());
+    static void reportExpectationsCollectedData(ExpectationsData expectationsData, ExpectationsMetrics metrics) {
+        metrics.ageMillis().update(expectationsData.ageMillis());
+        metrics.bytesRead().update(expectationsData.readInfo().bytesRead());
+        metrics.kvsReads().update(expectationsData.readInfo().kvsCalls());
 
-        readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
-                .update(kvsCallReadInfo.bytesRead()));
+        expectationsData
+                .readInfo()
+                .maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo ->
+                        metrics.mostKvsBytesReadInSingleCall().update(kvsCallReadInfo.bytesRead()));
 
-        metrics.cellCommitLocksRequested().update(commitLockInfo.cellCommitLocksRequested());
-        metrics.rowCommitLocksRequested().update(commitLockInfo.rowCommitLocksRequested());
+        metrics.cellCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
+        metrics.rowCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
+        metrics.changeMetadataStored().update(expectationsData.metadataInfo().changeMetadataStored());
+        metrics.cellChangeMetadataSent().update(expectationsData.metadataInfo().cellChangeMetadataSent());
+        metrics.rowChangeMetadataSent().update(expectationsData.metadataInfo().rowChangeMetadataSent());
     }
 
     private long getStartTimestamp() {
