@@ -206,7 +206,7 @@ public class LockEventTest {
     }
 
     private static Path getJsonPath(String jsonFileName) {
-        return Paths.get(BASE + jsonFileName + ".json");
+        return Paths.get(BASE, jsonFileName + ".json");
     }
 
     // This is a copy of the LockEvent class before metadata was added
