@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -99,7 +100,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        Set<ConjureLockDescriptor> lockDescriptors = Set.copyOf(request.getLockDescriptors());
+        Set<ConjureLockDescriptor> lockDescriptors = ImmutableSet.copyOf(request.getLockDescriptors());
         request.getClientDescription()
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
                 .ifPresent(startTimestamp ->
@@ -112,7 +113,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     @Override
     public ConjureWaitForLocksResponse waitForLocks(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
-        Set<ConjureLockDescriptor> lockDescriptors = Set.copyOf(request.getLockDescriptors());
+        Set<ConjureLockDescriptor> lockDescriptors = ImmutableSet.copyOf(request.getLockDescriptors());
         request.getClientDescription()
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
                 .ifPresent(startTimestamp ->
