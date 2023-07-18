@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.api.ConjureUnchangedChangeMetadata;
 import com.palantir.atlasdb.timelock.api.ConjureUpdatedChangeMetadata;
 import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.conjure.java.serialization.ObjectMappers;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,6 +43,8 @@ import org.junit.Test;
 
 public class ConjureLockRequestTest {
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";
+    private static final String OLD_CONJURE_LOCK_REQUEST_FILE = "old";
+    private static final String WITH_METADATA_FILE = "with-metadata";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
     private static final ConjureLockDescriptor LOCK_1 = ConjureLockDescriptor.of(Bytes.from(PtBytes.toBytes("abc")));
@@ -66,7 +69,7 @@ public class ConjureLockRequestTest {
                     3,
                     ConjureChangeMetadata.created(ConjureCreatedChangeMetadata.of(Bytes.from(BYTES_CREATED)))),
             ConjureLockDescriptorListChecksum.of(0, Bytes.from(PtBytes.toBytes("test-checksum-value"))));
-    private static final ConjureLockRequest BASELINE_CONJURE_LOCK_REQUEST = ConjureLockRequest.builder()
+    private static final ConjureLockRequest CONJURE_LOCK_REQUEST = ConjureLockRequest.builder()
             .requestId(new UUID(1337, 42))
             .lockDescriptors(ImmutableList.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4))
             .acquireTimeoutMs(100)
@@ -84,17 +87,17 @@ public class ConjureLockRequestTest {
 
     @Test
     public void newServerCanHandleMissingMetadata() {
-        assertDeserializedEquals("baseline", BASELINE_CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
+        assertDeserializedEquals(OLD_CONJURE_LOCK_REQUEST_FILE, CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
     }
 
     @Test
-    public void serializesMetadataIfPresent() {
+    public void presentMetadataSerializesDeserializes() {
         ConjureLockRequest requestWithMetadata = ConjureLockRequest.builder()
-                .from(BASELINE_CONJURE_LOCK_REQUEST)
+                .from(CONJURE_LOCK_REQUEST)
                 .metadata(CONJURE_LOCK_REQUEST_METADATA)
                 .build();
-        assertSerializedEquals(requestWithMetadata, "baseline-with-metadata");
-        assertDeserializedEquals("baseline-with-metadata", requestWithMetadata, ConjureLockRequest.class);
+        assertSerializedEquals(requestWithMetadata, WITH_METADATA_FILE);
+        assertDeserializedEquals(WITH_METADATA_FILE, requestWithMetadata, ConjureLockRequest.class);
     }
 
     private static <T> void assertSerializedEquals(T object, String jsonFileName) {
@@ -107,8 +110,8 @@ public class ConjureLockRequestTest {
             assertThat(VERIFYING_MAPPER.readTree(serialized))
                     .as("Serialization yields semantically identical JSON representation")
                     .isEqualTo(VERIFYING_MAPPER.readTree(Files.readString(path)));
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -117,8 +120,8 @@ public class ConjureLockRequestTest {
             assertThat(DESERIALIZATION_MAPPER.readValue(Files.readString(getJsonPath(jsonFileName)), clazz))
                     .as("Deserialization yields identical object")
                     .isEqualTo(object);
-        } catch (Throwable t) {
-            throw new RuntimeException(t);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
