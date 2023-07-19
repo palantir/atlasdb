@@ -391,6 +391,28 @@ public final class LockWatchEventIntegrationTest {
                         );
     }
 
+    @Test
+    public void commitUpdateContainsAggregatedMetadata() {
+        CommitUpdateExtractingCondition condition = new CommitUpdateExtractingCondition();
+
+        txnManager.runTaskWithConditionThrowOnConflict(condition, (outerTxn, _unused1) -> {
+            condition.initialiseWithStartTimestamp(outerTxn.getTimestamp());
+            outerTxn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
+            performWriteMetadataTransactionLockingAndUnlockingCells(
+                    TABLE_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, CREATE_CHANGE_METADATA)));
+            performWriteMetadataTransactionLockingAndUnlockingCells(
+                    TABLE_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_3, DELETE_CHANGE_METADATA)));
+            return null;
+        });
+
+        CommitUpdate commitUpdate = condition.getCommitStageResult();
+
+        assertThat(extractAggregatedMetadataFromUpdate(commitUpdate))
+                .containsExactly(Map.entry(
+                        getDescriptor(TABLE_REF, CELL_2),
+                        ImmutableList.of(CREATE_CHANGE_METADATA, DELETE_CHANGE_METADATA)));
+    }
+
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
         CountDownLatch endOfTest = new CountDownLatch(1);
         CountDownLatch inCommitBlock = new CountDownLatch(1);
@@ -555,6 +577,10 @@ public final class LockWatchEventIntegrationTest {
         }));
     }
 
+    private Map<LockDescriptor, List<ChangeMetadata>> extractAggregatedMetadataFromUpdate(CommitUpdate commitUpdate) {
+        return commitUpdate.accept(CommitUpdateMetadataVisitor.INSTANCE);
+    }
+
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
         static final LockEventVisitor INSTANCE = new LockEventVisitor();
 
@@ -620,6 +646,27 @@ public final class LockWatchEventIntegrationTest {
                         LockWatchIntegrationTestUtilities.extractInternalLockWatchManager(txnManager);
                 return lockWatchManager.getCache().getEventCache().getCommitUpdate(startTs);
             });
+        }
+    }
+
+    private enum CommitUpdateMetadataVisitor
+            implements CommitUpdate.Visitor<Map<LockDescriptor, List<ChangeMetadata>>> {
+        INSTANCE;
+
+        @Override
+        public Map<LockDescriptor, List<ChangeMetadata>> invalidateAll() {
+            throw new SafeIllegalStateException("Should not be visiting invalidateAll update");
+        }
+
+        @Override
+        public Map<LockDescriptor, List<ChangeMetadata>> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            throw new SafeIllegalStateException("Should not be visiting invalidateSome update without metadata");
+        }
+
+        @Override
+        public Map<LockDescriptor, List<ChangeMetadata>> invalidateSome(
+                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata) {
+            return aggregatedMetadata;
         }
     }
 }

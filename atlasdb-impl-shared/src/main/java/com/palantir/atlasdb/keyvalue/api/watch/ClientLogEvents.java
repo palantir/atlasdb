@@ -16,13 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.ImmutableTransactionsLockWatchUpdate;
 import com.palantir.lock.watch.LockEvent;
@@ -34,9 +38,12 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
 /**
@@ -94,10 +101,53 @@ interface ClientLogEvents {
         verifyReturnedEventsEnclosesTransactionVersions(startVersion.version() + 1, endVersion.version());
 
         LockEventVisitor eventVisitor = new LockEventVisitor(commitInfo.map(CommitInfo::commitLockToken));
-        Set<LockDescriptor> locksTakenOut = events().events().stream()
+
+        Set<LockDescriptor> locksFromLockWatchCreatedEvents = events().events().stream()
+                .flatMap(event -> event.accept(LockWatchCreatedEventVisitor.INSTANCE).stream())
+                .collect(Collectors.toUnmodifiableSet());
+        List<LockEvent> lockEvents = events().events().stream()
                 .flatMap(event -> event.accept(eventVisitor).stream())
-                .collect(ImmutableSet.toImmutableSet());
-        return CommitUpdate.invalidateSome(locksTakenOut);
+                .collect(Collectors.toUnmodifiableList());
+        Set<LockDescriptor> locksFromLockEvents = lockEvents.stream()
+                .map(LockEvent::lockDescriptors)
+                .flatMap(Set::stream)
+                .collect(Collectors.toUnmodifiableSet());
+
+        /*
+         * Metadata aggregation semantics for a lock descriptor L:
+         * - If L appears in a LockWatchCreatedEvent, L will be excluded from the aggregation result.
+         * - Otherwise, if there is a lock event that contains L, but L does not have metadata associated in this lock
+         *   event, L is also excluded from the aggregation result.
+         * - Otherwise, the metadata objects associated with L are listed in the order of the lock events they appear
+         *   in.
+         */
+        Map<LockDescriptor, ImmutableList.Builder<ChangeMetadata>> locksWithAggregatedMetadataBuilder = KeyedStream.of(
+                        Sets.difference(locksFromLockEvents, locksFromLockWatchCreatedEvents).stream())
+                .map(_unused -> new ImmutableList.Builder<ChangeMetadata>())
+                .collectToMap();
+        for (LockEvent lockEvent : lockEvents) {
+            for (LockDescriptor lock : lockEvent.lockDescriptors()) {
+                if (!locksWithAggregatedMetadataBuilder.containsKey(lock)) {
+                    continue;
+                }
+                Optional<ChangeMetadata> changeMetadata = lockEvent
+                        .metadata()
+                        .map(metadata ->
+                                metadata.lockDescriptorToChangeMetadata().get(lock));
+                if (lockEvent.metadata().isEmpty() || changeMetadata.isEmpty()) {
+                    locksWithAggregatedMetadataBuilder.remove(lock);
+                } else {
+                    locksWithAggregatedMetadataBuilder.get(lock).add(changeMetadata.get());
+                }
+            }
+        }
+
+        Set<LockDescriptor> locksTakenOut = Sets.union(locksFromLockEvents, locksFromLockWatchCreatedEvents);
+        Map<LockDescriptor, List<ChangeMetadata>> locksWithAggregatedMetadata = KeyedStream.ofEntries(
+                        locksWithAggregatedMetadataBuilder.entrySet().stream())
+                .<List<ChangeMetadata>>map(ImmutableList.Builder::build)
+                .collectToMap();
+        return CommitUpdate.invalidateSome(locksTakenOut, locksWithAggregatedMetadata);
     }
 
     default void verifyReturnedEventsEnclosesTransactionVersions(long lowerBound, long upperBound) {
@@ -121,25 +171,12 @@ interface ClientLogEvents {
         return ImmutableClientLogEvents.builder();
     }
 
-    final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
-        private final Optional<UUID> commitRequestId;
-
-        private LockEventVisitor(Optional<LockToken> commitLocksToken) {
-            commitRequestId = commitLocksToken
-                    .filter(lockToken -> lockToken instanceof LeasedLockToken)
-                    .map(lockToken ->
-                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
-        }
+    enum LockWatchCreatedEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
+        INSTANCE;
 
         @Override
         public Set<LockDescriptor> visit(LockEvent lockEvent) {
-            if (commitRequestId
-                    .filter(requestId -> requestId.equals(lockEvent.lockToken().getRequestId()))
-                    .isPresent()) {
-                return ImmutableSet.of();
-            } else {
-                return lockEvent.lockDescriptors();
-            }
+            return ImmutableSet.of();
         }
 
         @Override
@@ -150,6 +187,38 @@ interface ClientLogEvents {
         @Override
         public Set<LockDescriptor> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             return lockWatchCreatedEvent.lockDescriptors();
+        }
+    }
+
+    final class LockEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
+        private final Optional<UUID> commitRequestId;
+
+        private LockEventVisitor(Optional<LockToken> commitLocksToken) {
+            commitRequestId = commitLocksToken
+                    .filter(lockToken -> lockToken instanceof LeasedLockToken)
+                    .map(lockToken ->
+                            ((LeasedLockToken) lockToken).serverToken().getRequestId());
+        }
+
+        @Override
+        public Optional<LockEvent> visit(LockEvent lockEvent) {
+            if (commitRequestId
+                    .filter(requestId -> requestId.equals(lockEvent.lockToken().getRequestId()))
+                    .isPresent()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(lockEvent);
+            }
+        }
+
+        @Override
+        public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
         }
     }
 }
