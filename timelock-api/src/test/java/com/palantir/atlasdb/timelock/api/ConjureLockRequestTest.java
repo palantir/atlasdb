@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class ConjureLockRequestTest {
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";
-    private static final String OLD_CONJURE_LOCK_REQUEST_FILE = "old";
+    private static final String LEGACY_CONJURE_LOCK_REQUEST_FILE = "old";
     private static final String WITH_METADATA_FILE = "with-metadata";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
@@ -46,7 +46,7 @@ public class ConjureLockRequestTest {
     private static final UUID REQUEST_ID = new UUID(1337, 42);
     private static final int ACQUIRE_TIMEOUT_MS = 100;
     private static final String CLIENT_DESCRIPTION = "client: test, thread: test";
-    private static final OldConjureLockRequest OLD_CONJURE_LOCK_REQUEST = OldConjureLockRequest.builder()
+    private static final LegacyConjureLockRequest LEGACY_CONJURE_LOCK_REQUEST = LegacyConjureLockRequest.builder()
             .requestId(REQUEST_ID)
             .lockDescriptors(ImmutableSet.of(LOCK_1, LOCK_2, LOCK_3, LOCK_4))
             .acquireTimeoutMs(ACQUIRE_TIMEOUT_MS)
@@ -89,15 +89,18 @@ public class ConjureLockRequestTest {
 
     @Test
     public void oldConjureLockRequestSerializesDeserializes() {
-        assertSerializedEquals(OLD_CONJURE_LOCK_REQUEST, OLD_CONJURE_LOCK_REQUEST_FILE);
-        assertDeserializedEquals(OLD_CONJURE_LOCK_REQUEST_FILE, OLD_CONJURE_LOCK_REQUEST, OldConjureLockRequest.class);
+        assertSerializedEquals(LEGACY_CONJURE_LOCK_REQUEST, LEGACY_CONJURE_LOCK_REQUEST_FILE);
+        assertDeserializedEquals(
+                LEGACY_CONJURE_LOCK_REQUEST_FILE, LEGACY_CONJURE_LOCK_REQUEST, LegacyConjureLockRequest.class);
     }
 
-    // Requires excludeEmptyOptionals = true
     @Test
     public void absentMetadataSerializesDeserializes() {
-        assertSerializedEquals(DEFAULT_CONJURE_LOCK_REQUEST, OLD_CONJURE_LOCK_REQUEST_FILE);
-        assertDeserializedEquals(OLD_CONJURE_LOCK_REQUEST_FILE, DEFAULT_CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
+        // Because we use the Conjure configuration "excludeEmptyOptionals = true", we omit fields with empty optionals
+        // during serialization instead of setting them to null.
+        assertSerializedEquals(DEFAULT_CONJURE_LOCK_REQUEST, LEGACY_CONJURE_LOCK_REQUEST_FILE);
+        assertDeserializedEquals(
+                LEGACY_CONJURE_LOCK_REQUEST_FILE, DEFAULT_CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
     }
 
     @Test
@@ -112,13 +115,15 @@ public class ConjureLockRequestTest {
 
     @Test
     public void newServerCanHandleMissingMetadata() {
-        assertDeserializedEquals(OLD_CONJURE_LOCK_REQUEST_FILE, DEFAULT_CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
+        assertDeserializedEquals(
+                LEGACY_CONJURE_LOCK_REQUEST_FILE, DEFAULT_CONJURE_LOCK_REQUEST, ConjureLockRequest.class);
     }
 
-    // Possible because we do not use strict objects
     @Test
     public void oldServerCanHandlePresentMetadata() {
-        assertDeserializedEquals(WITH_METADATA_FILE, OLD_CONJURE_LOCK_REQUEST, OldConjureLockRequest.class);
+        // Because we use the Conjure configuration "strictObjects = false", our Conjure objects actually ignore
+        // unknown properties, even on the server side.
+        assertDeserializedEquals(WITH_METADATA_FILE, LEGACY_CONJURE_LOCK_REQUEST, LegacyConjureLockRequest.class);
     }
 
     private static <T> void assertSerializedEquals(T object, String jsonFileName) {

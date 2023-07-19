@@ -196,7 +196,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private static List<LockDescriptor> fromConjureLockDescriptors(List<ConjureLockDescriptor> lockDescriptors) {
-        ImmutableList.Builder<LockDescriptor> descriptors = ImmutableList.builder();
+        ImmutableList.Builder<LockDescriptor> descriptors =
+                ImmutableList.builderWithExpectedSize(lockDescriptors.size());
         for (ConjureLockDescriptor descriptor : lockDescriptors) {
             descriptors.add(ByteArrayLockDescriptor.of(descriptor.get().asNewByteArray()));
         }

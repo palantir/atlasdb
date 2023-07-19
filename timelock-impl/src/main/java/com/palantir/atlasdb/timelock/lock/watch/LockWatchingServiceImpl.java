@@ -201,9 +201,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                                 return filteredLocks.contains(lockDescriptor);
                             })
                             .collectToMap();
-                    return filteredLockMetadata.isEmpty()
-                            ? Optional.empty()
-                            : Optional.of(LockRequestMetadata.of(filteredLockMetadata));
+                    if (filteredLocks.isEmpty()) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(LockRequestMetadata.of(filteredLockMetadata));
                 });
     }
 }

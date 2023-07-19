@@ -38,11 +38,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.processing.Generated;
 
-// Copy of Conjure-generated file and prefixed with "Old" to avoid conflicts
+// Copy of Conjure-generated file and prefixed with "Legcacy" to avoid conflicts
 @Unsafe
-@JsonDeserialize(builder = OldConjureLockRequest.Builder.class)
+@JsonDeserialize(builder = LegacyConjureLockRequest.Builder.class)
 @Generated("com.palantir.conjure.java.types.BeanGenerator")
-public final class OldConjureLockRequest {
+public final class LegacyConjureLockRequest {
     private final UUID requestId;
 
     private final Set<ConjureLockDescriptor> lockDescriptors;
@@ -53,7 +53,7 @@ public final class OldConjureLockRequest {
 
     private int memoizedHashCode;
 
-    private OldConjureLockRequest(
+    private LegacyConjureLockRequest(
             UUID requestId,
             Set<ConjureLockDescriptor> lockDescriptors,
             int acquireTimeoutMs,
@@ -90,10 +90,11 @@ public final class OldConjureLockRequest {
 
     @Override
     public boolean equals(@Nullable Object other) {
-        return this == other || (other instanceof OldConjureLockRequest && equalTo((OldConjureLockRequest) other));
+        return this == other
+                || (other instanceof LegacyConjureLockRequest && equalTo((LegacyConjureLockRequest) other));
     }
 
-    private boolean equalTo(OldConjureLockRequest other) {
+    private boolean equalTo(LegacyConjureLockRequest other) {
         if (this.memoizedHashCode != 0
                 && other.memoizedHashCode != 0
                 && this.memoizedHashCode != other.memoizedHashCode) {
@@ -171,7 +172,7 @@ public final class OldConjureLockRequest {
 
         private Builder() {}
 
-        public Builder from(OldConjureLockRequest other) {
+        public Builder from(LegacyConjureLockRequest other) {
             checkNotBuilt();
             requestId(other.getRequestId());
             lockDescriptors(other.getLockDescriptors());
@@ -251,11 +252,11 @@ public final class OldConjureLockRequest {
             return missingFields;
         }
 
-        public OldConjureLockRequest build() {
+        public LegacyConjureLockRequest build() {
             checkNotBuilt();
             this._buildInvoked = true;
             validatePrimitiveFieldsHaveBeenInitialized();
-            return new OldConjureLockRequest(requestId, lockDescriptors, acquireTimeoutMs, clientDescription);
+            return new LegacyConjureLockRequest(requestId, lockDescriptors, acquireTimeoutMs, clientDescription);
         }
 
         private void checkNotBuilt() {
