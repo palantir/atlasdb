@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -263,20 +262,28 @@ public final class LockWatchEventIntegrationTest {
     public void absentMetadataIsVisibleToTransaction() {
         LockRequest requestWithoutMetadata = createTestLockRequest(
                 ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW)), Optional.empty());
-        List<Optional<LockRequestMetadata>> allMetadata =
-                lockAndGetAllLockEventMetadataForNewTransaction(requestWithoutMetadata);
-        assertThat(allMetadata).containsExactly(Optional.empty());
+        assertThat(lockAndGetEventMetadataFromLockWatchLog(requestWithoutMetadata))
+                .isEmpty();
     }
 
     @Test
-    public void nonEmptyMetadataIsVisibleToTransaction() {
-        LockDescriptor lock = AtlasRowLockDescriptor.of(TABLE_REF.getQualifiedName(), ROW);
-        LockRequestMetadata metadata =
-                LockRequestMetadata.of(ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("foo"))));
-        LockRequest requestWithMetadata = createTestLockRequest(ImmutableSet.of(lock), Optional.of(metadata));
-        List<Optional<LockRequestMetadata>> allMetadata =
-                lockAndGetAllLockEventMetadataForNewTransaction(requestWithMetadata);
-        assertThat(allMetadata).containsExactly(Optional.of(metadata));
+    public void nonEmptyMetadataIsVisibleToTransactionForWatchedTable() {
+        LockDescriptor lock1 =
+                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName());
+        LockDescriptor lock2 =
+                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_2.getRowName(), CELL_2.getColumnName());
+        LockDescriptor lock3 =
+                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_3.getRowName(), CELL_3.getColumnName());
+        LockDescriptor lock4 =
+                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_4.getRowName(), CELL_4.getColumnName());
+        LockRequestMetadata metadata = LockRequestMetadata.of(ImmutableMap.of(
+                lock1, ChangeMetadata.created(DATA_1),
+                lock2, ChangeMetadata.deleted(DATA_2),
+                lock3, ChangeMetadata.unchanged(),
+                lock4, ChangeMetadata.updated(DATA_3, DATA_4)));
+        LockRequest requestWithMetadata =
+                createTestLockRequest(ImmutableSet.of(lock1, lock2, lock3, lock4), Optional.of(metadata));
+        assertThat(lockAndGetEventMetadataFromLockWatchLog(requestWithMetadata)).contains(metadata);
     }
 
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
@@ -387,18 +394,19 @@ public final class LockWatchEventIntegrationTest {
                 .collect(Collectors.toSet());
     }
 
-    private List<Optional<LockRequestMetadata>> lockAndGetAllLockEventMetadataForNewTransaction(
-            LockRequest lockRequest) {
-        txnManager.runTaskReadOnly(txn -> null);
+    private Optional<LockRequestMetadata> lockAndGetEventMetadataFromLockWatchLog(LockRequest lockRequest) {
         LockWatchVersion currentVersion = getCurrentVersion();
         LockResponse response = txnManager.getTimelockService().lock(lockRequest);
         // We need to clean up the lock, otherwise it will be held forever (the TimeLock cluster is static)!
         txnManager.getTimelockService().unlock(ImmutableSet.of(response.getToken()));
-        OpenTransaction dummyTxn = startSingleTransaction();
+        OpenTransaction newTxn = startSingleTransaction();
         List<LockWatchEvent> lockWatchEvents =
-                getUpdateForTransactions(Optional.of(currentVersion), dummyTxn).events();
-        dummyTxn.abort();
-        return LockWatchIntegrationTestUtilities.extractMetadata(lockWatchEvents);
+                getUpdateForTransactions(Optional.of(currentVersion), newTxn).events();
+        newTxn.abort();
+        List<Optional<LockRequestMetadata>> metadataList =
+                LockWatchIntegrationTestUtilities.extractMetadata(lockWatchEvents);
+        assertThat(metadataList).hasSize(1);
+        return metadataList.get(0);
     }
 
     private LockRequest createTestLockRequest(

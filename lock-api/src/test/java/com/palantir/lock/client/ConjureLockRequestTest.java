@@ -307,8 +307,7 @@ public class ConjureLockRequestTest {
 
             private boolean _acquireTimeoutMsInitialized = false;
 
-            private Builder() {
-            }
+            private Builder() {}
 
             public Builder from(OldConjureLockRequest other) {
                 checkNotBuilt();

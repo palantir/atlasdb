@@ -75,7 +75,6 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
