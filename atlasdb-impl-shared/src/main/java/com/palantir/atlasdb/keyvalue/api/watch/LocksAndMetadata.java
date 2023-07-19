@@ -21,14 +21,17 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 import java.util.Set;
+import org.immutables.value.Value;
 
 @Unsafe
-@org.immutables.value.Value.Immutable
+@Value.Immutable
 public interface LocksAndMetadata {
-    @org.immutables.value.Value.Parameter
+    LocksAndMetadata EMPTY = LocksAndMetadata.of(Set.of(), Optional.empty());
+
+    @Value.Parameter
     Set<LockDescriptor> lockDescriptors();
 
-    @org.immutables.value.Value.Parameter
+    @Value.Parameter
     Optional<LockRequestMetadata> metadata();
 
     static LocksAndMetadata of(Set<LockDescriptor> lockDescriptors, Optional<LockRequestMetadata> metadata) {
