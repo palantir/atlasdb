@@ -72,6 +72,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -136,7 +137,6 @@ import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -2953,19 +2953,5 @@ public class SnapshotTransaction extends AbstractTransaction
                     return txnTaskResult;
                 },
                 MoreExecutors.directExecutor());
-    }
-
-    @Unsafe
-    @org.immutables.value.Value.Immutable
-    public interface LocksAndMetadata {
-        @org.immutables.value.Value.Parameter
-        Set<LockDescriptor> lockDescriptors();
-
-        @org.immutables.value.Value.Parameter
-        Optional<LockRequestMetadata> metadata();
-
-        static LocksAndMetadata of(Set<LockDescriptor> lockDescriptors, Optional<LockRequestMetadata> metadata) {
-            return ImmutableLocksAndMetadata.of(lockDescriptors, metadata);
-        }
     }
 }
