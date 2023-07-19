@@ -342,6 +342,45 @@ public class LockWatchingServiceImplTest {
         assertLoggedEvents(expectedEvents);
     }
 
+    @Test
+    public void sparseMetadataIsFiltered() {
+        LockDescriptor cellOutOfRange = AtlasCellLockDescriptor.of(TABLE_2.getQualifiedName(), ROW, ROW);
+        LockDescriptor rowInRange = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW);
+        LockDescriptor rowOutOfRange = AtlasRowLockDescriptor.of(TABLE_2.getQualifiedName(), ROW);
+
+        LockWatchRequest tableRequest = tableRequest();
+        lockWatcher.startWatching(tableRequest);
+
+        ImmutableSet<LockDescriptor> locks =
+                ImmutableSet.of(CELL_DESCRIPTOR, cellOutOfRange, rowInRange, rowOutOfRange);
+        lockWatcher.registerLock(
+                locks, TOKEN, createMetadataForLocks(ImmutableSet.of(CELL_DESCRIPTOR, cellOutOfRange)));
+
+        ImmutableSet<LockDescriptor> expectedFilteredLocks =
+                ImmutableSet.of(ROW_DESCRIPTOR, CELL_DESCRIPTOR, rowInRange);
+        List<LockWatchEvent> expectedEvents = ImmutableList.of(
+                createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                lockEvent(expectedFilteredLocks, createMetadataForLocks(ImmutableSet.of(CELL_DESCRIPTOR))));
+        assertLoggedEvents(expectedEvents);
+    }
+
+    @Test
+    public void metadataIsRemovedIfMapEmptyAfterFiltering() {
+        LockDescriptor rowOutOfRange = AtlasRowLockDescriptor.of(TABLE_2.getQualifiedName(), ROW);
+
+        LockWatchRequest tableRequest = tableRequest();
+        lockWatcher.startWatching(tableRequest);
+
+        ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowOutOfRange);
+        lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(ImmutableSet.of(rowOutOfRange)));
+
+        ImmutableSet<LockDescriptor> expectedFilteredLocks = ImmutableSet.of(CELL_DESCRIPTOR);
+        List<LockWatchEvent> expectedEvents = ImmutableList.of(
+                createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
+                lockEvent(expectedFilteredLocks, Optional.empty()));
+        assertLoggedEvents(expectedEvents);
+    }
+
     private LockWatchEvent createdEvent(Set<LockWatchReference> references, Set<LockDescriptor> descriptors) {
         return LockWatchCreatedEvent.builder(references, descriptors).build(sequenceCounter++);
     }

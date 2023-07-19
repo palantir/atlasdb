@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: '[LWMeta] Add metadata to ConjureLockRequest'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6660

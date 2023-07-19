@@ -193,7 +193,7 @@ public class LockWatchingServiceImpl implements LockWatchingService {
             Optional<LockRequestMetadata> unfilteredMetadata) {
         return unfilteredMetadata
                 .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
-                .map(unfilteredLockMetadata -> {
+                .flatMap(unfilteredLockMetadata -> {
                     Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
                                     unfilteredLockMetadata.entrySet().stream())
                             .filterKeys(lockDescriptor -> {
@@ -201,7 +201,10 @@ public class LockWatchingServiceImpl implements LockWatchingService {
                                 return filteredLocks.contains(lockDescriptor);
                             })
                             .collectToMap();
-                    return LockRequestMetadata.of(filteredLockMetadata);
+                    if (filteredLockMetadata.isEmpty()) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(LockRequestMetadata.of(filteredLockMetadata));
                 });
     }
 }
