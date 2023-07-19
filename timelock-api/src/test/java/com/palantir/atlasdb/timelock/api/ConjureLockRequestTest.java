@@ -35,7 +35,7 @@ import org.junit.Test;
 
 public class ConjureLockRequestTest {
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";
-    private static final String LEGACY_CONJURE_LOCK_REQUEST_FILE = "old";
+    private static final String LEGACY_CONJURE_LOCK_REQUEST_FILE = "legacy";
     private static final String WITH_METADATA_FILE = "with-metadata";
     private static final boolean REWRITE_JSON_BLOBS = false;
 
