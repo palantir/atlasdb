@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: '[LWMeta] TimeLock API changes'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6660
