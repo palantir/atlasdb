@@ -61,6 +61,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -69,6 +70,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheEntry;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -125,6 +133,8 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import io.vavr.collection.HashMap;
+import io.vavr.collection.HashSet;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -329,6 +339,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
     private static final Cell TEST_CELL_3 = Cell.create(PtBytes.toBytes("row3"), PtBytes.toBytes("column3"));
+    private static final Cell TEST_CELL_4 = Cell.create(PtBytes.toBytes("row4"), PtBytes.toBytes("column4"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
 
@@ -1695,6 +1706,55 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void reduceCachedCellsFromNumberOfExpectedCells() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache = createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present.
+        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
+                .doesNotThrowAnyException();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+
+        // Since one cell is cached, should only expect 1 to be present on internal call
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL_2)),
+                        eq(1),
+                        any(),
+                        any());
+    }
+
+    private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell) {
+        CacheMetrics metrics = mock(CacheMetrics.class);
+        return TransactionScopedCacheImpl.create(
+                ValueCacheSnapshotImpl.of(
+                        HashMap.of(
+                                CellReference.of(table, cell),
+                                CacheEntry.unlocked(CacheValue.of("value".getBytes(StandardCharsets.UTF_8)))),
+                        HashSet.of(table),
+                        ImmutableSet.of(table)),
+                metrics);
+    }
+
+    @Test
     public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithValidationOnReads() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
@@ -2717,6 +2777,41 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             PreCommitCondition preCommitCondition) {
         return getSnapshotTransactionWith(
                 timelockService, startTs, lockImmutableTimestampResponse, preCommitCondition, true);
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            long transactionTs,
+            LockImmutableTimestampResponse res,
+            LockWatchManagerInternal mockLockWatchManager,
+            PathTypeTracker pathTypeTracker) {
+        return new SnapshotTransaction(
+                metricsManager,
+                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                timelockService,
+                mockLockWatchManager,
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                () -> transactionTs,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
+                SweepStrategyManagers.createDefault(keyValueService),
+                res.getImmutableTimestamp(),
+                Optional.of(res.getLock()),
+                PreCommitConditions.NO_OP,
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService(),
+                true,
+                () -> transactionConfig,
+                ConflictTracer.NO_OP,
+                tableLevelMetricsController,
+                knowledge);
     }
 
     private Transaction getSnapshotTransactionWith(

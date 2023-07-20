@@ -46,7 +46,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
 @ThreadSafe
-final class TransactionScopedCacheImpl implements TransactionScopedCache {
+public final class TransactionScopedCacheImpl implements TransactionScopedCache {
     private final TransactionCacheValueStore valueStore;
     private final CacheMetrics metrics;
     private volatile boolean finalised = false;
@@ -56,7 +56,7 @@ final class TransactionScopedCacheImpl implements TransactionScopedCache {
         this.metrics = metrics;
     }
 
-    static TransactionScopedCache create(ValueCacheSnapshot snapshot, CacheMetrics metrics) {
+    public static TransactionScopedCache create(ValueCacheSnapshot snapshot, CacheMetrics metrics) {
         return new TransactionScopedCacheImpl(new TransactionCacheValueStoreImpl(snapshot), metrics);
     }
 
