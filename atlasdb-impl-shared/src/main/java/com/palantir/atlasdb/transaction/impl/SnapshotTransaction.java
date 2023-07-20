@@ -1783,40 +1783,38 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
-        deleteInternal(tableRef, cells, ImmutableMap.of());
+        deleteWithMetadataInternal(tableRef, cells, ImmutableMap.of());
     }
 
     @Override
     public void deleteWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadata> cellsWithMetadata) {
-        deleteInternal(tableRef, cellsWithMetadata.keySet(), cellsWithMetadata);
+        deleteWithMetadataInternal(tableRef, cellsWithMetadata.keySet(), cellsWithMetadata);
     }
 
-    private void deleteInternal(TableReference tableRef, Set<Cell> cells, Map<Cell, ChangeMetadata> metadata) {
+    private void deleteWithMetadataInternal(
+            TableReference tableRef, Set<Cell> cells, Map<Cell, ChangeMetadata> metadata) {
         getCache().delete(tableRef, cells);
-        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
+        putWithMetadataInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
+        ensureNoEmptyValues(values);
+        getCache().write(tableRef, values);
         putWithMetadataInternal(tableRef, values, ImmutableMap.of());
     }
 
     @Override
     public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
         Map<Cell, byte[]> valuesOnly = Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value);
-        Map<Cell, ChangeMetadata> metadataOnly =
-                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata);
-        putWithMetadataInternal(tableRef, valuesOnly, metadataOnly);
+        ensureNoEmptyValues(valuesOnly);
+        getCache().write(tableRef, valuesOnly);
+        putWithMetadataInternal(
+                tableRef, valuesOnly, Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
     }
 
     private void putWithMetadataInternal(
             TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
-        ensureNoEmptyValues(values);
-        getCache().write(tableRef, values);
-        putInternal(tableRef, values, metadata);
-    }
-
-    private void putInternal(TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 

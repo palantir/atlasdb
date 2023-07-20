@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.atlasdb.transaction.impl.TransactionTestUtils.unwrapSnapshotTransaction;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -2601,47 +2602,55 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(internalMetadata).isEmpty();
     }
 
-    // We can save ourselves a separate concurrency test for deleteWithMetadata() since it just calls putInternal()
-    // with the empty byte array value.
     @Test
-    public void storingMetadataIsAtomicWithLocalWrite() throws InterruptedException {
-        int numThreads = 20;
-        int numCells = 50;
-        long randomSeed = System.currentTimeMillis();
+    public void metadataStoredForPutWithMetadataAfterRegularDelete() {
+        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
+            txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
+            txn.putWithMetadata(
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+        });
+        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
+    }
 
-        Random random = new Random(randomSeed);
-        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
-        Set<Cell> cells = IntStream.range(0, numCells)
-                .mapToObj(cellIndex -> Cell.create(PtBytes.toBytes(cellIndex), PtBytes.toBytes(cellIndex)))
-                .collect(Collectors.toSet());
+    @Test
+    public void canOverwriteMetadata() {
+        ChangeMetadata otherMetadata = ChangeMetadata.updated(PtBytes.toBytes("so"), PtBytes.toBytes("meta"));
+        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+            txn.deleteWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, TEST_METADATA));
+            txn.putWithMetadata(
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, otherMetadata)));
+            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+        });
+        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, otherMetadata));
+    }
 
-        List<Map<Cell, ChangeMetadata>> metadataWrittenByThread =
-                concurrentlyWriteMetadataToCells(random, txn, cells, numThreads);
-
-        Map<Cell, ChangeMetadata> internalMetadata = txn.getChangeMetadataForWrites(TABLE);
-        for (Cell cell : cells) {
-            byte[] currInternalValue = txn.get(TABLE, ImmutableSet.of(cell)).get(cell);
-            // Every thread writes their thread ID to the cell, so the value is always 4 bytes.
-            // The winning thread is the last one to write, as indicated by the current value
-            int winningThreadIndex = ByteBuffer.wrap(currInternalValue).getInt();
-
-            ChangeMetadata expectedMetadata =
-                    metadataWrittenByThread.get(winningThreadIndex).get(cell);
-            ChangeMetadata actualMetadata = internalMetadata.get(cell);
-
-            assertThat(actualMetadata)
-                    .as(
-                            "Writing a value to the local buffer should be atomic with writing its metadata. If a"
-                                + " value was written without metadata, the metadata should be cleared. Random seed:"
-                                + " %d",
-                            randomSeed)
-                    .isEqualTo(expectedMetadata);
-        }
+    @Test
+    public void canStoreMetadataForMultipleTables() {
+        Map<TableReference, Map<Cell, ChangeMetadata>> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
+            txn.putWithMetadata(
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+            txn.putWithMetadata(
+                    TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+            SnapshotTransaction unwrappedTxn = unwrapSnapshotTransaction(txn);
+            return ImmutableMap.of(
+                    TABLE,
+                    unwrappedTxn.getChangeMetadataForWrites(TABLE),
+                    TABLE2,
+                    unwrappedTxn.getChangeMetadataForWrites(TABLE2));
+        });
+        assertThat(internalMetadata)
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        TABLE,
+                        ImmutableMap.of(TEST_CELL, TEST_METADATA),
+                        TABLE2,
+                        ImmutableMap.of(TEST_CELL_2, TEST_METADATA)));
     }
 
     @Test
     public void metadataIsSentToTimeLock() {
-        TimelockService timelockService = mock(TimelockService.class);
+        TimelockService timelockService = spy(txManager.getTimelockService());
         // Only locks cells
         Transaction txn = getSnapshotTransactionWith(
                 timelockService, ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
@@ -2659,7 +2668,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void noMetadataResultsInEmptyOptional() {
-        TimelockService timelockService = mock(TimelockService.class);
+        TimelockService timelockService = spy(txManager.getTimelockService());
         Transaction txn = getSnapshotTransactionWith(timelockService, ImmutableMap.of());
         txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
         verifyLockWasCalledWithMetadataWhenCommitting(txn, timelockService, Optional.empty());
@@ -2667,7 +2676,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void metadataIsTransferredToRowLocks() {
-        TimelockService timelockService = mock(TimelockService.class);
+        TimelockService timelockService = spy(txManager.getTimelockService());
         // Only locks rows
         Transaction txn = getSnapshotTransactionWith(
                 timelockService,
@@ -2966,17 +2975,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
     }
 
-    /**
-     * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
-     * {@link AtlasDbTestCase#setUp()}.
-     */
-    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction transaction) {
-        if (transaction instanceof ForwardingTransaction) {
-            return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
-        }
-        return (SnapshotTransaction) transaction;
-    }
-
     private static PreCommitCondition preCommitConditionFactory(
             Consumer<Long> throwIfConditionInvalid, Runnable cleanup) {
         return new PreCommitCondition() {
@@ -2992,58 +2990,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         };
     }
 
-    /**
-     * Returns the metadata actually written by the different threads (0..numThreads-1).
-     */
-    private static List<Map<Cell, ChangeMetadata>> concurrentlyWriteMetadataToCells(
-            Random random, Transaction txn, Set<Cell> cells, int numThreads) throws InterruptedException {
-        List<Callable<Void>> tasks = new ArrayList<>();
-        List<Map<Cell, ChangeMetadata>> metadataWrittenByThread = IntStream.range(0, numThreads)
-                .<Map<Cell, ChangeMetadata>>mapToObj(threadIndex -> {
-                    Map<Cell, ValueAndChangeMetadata> valuesToPut =
-                            generatevaluesAndMetadataForThread(random, cells, threadIndex);
-                    // Not writing metadata is equivalent to removing metadata for the affected cells
-                    if (random.nextBoolean()) {
-                        tasks.add(() -> {
-                            txn.putWithMetadata(TABLE, valuesToPut);
-                            return null;
-                        });
-                        return Maps.transformValues(valuesToPut, ValueAndChangeMetadata::metadata);
-                    } else {
-                        Map<Cell, byte[]> valuesOnly = Maps.transformValues(valuesToPut, ValueAndChangeMetadata::value);
-                        tasks.add(() -> {
-                            txn.put(TABLE, valuesOnly);
-                            return null;
-                        });
-                        return ImmutableMap.of();
-                    }
-                })
-                .collect(Collectors.toUnmodifiableList());
-        ExecutorService executorService = PTExecutors.newFixedThreadPool(numThreads);
-        List<Future<Void>> futures = executorService.invokeAll(tasks);
-        Awaitility.await().atMost(Duration.ofMillis(200)).until(() -> futures.stream()
-                .allMatch(Future::isDone));
-        return metadataWrittenByThread;
-    }
-
-    private static Map<Cell, ValueAndChangeMetadata> generatevaluesAndMetadataForThread(
-            Random random, Set<Cell> cells, int threadId) {
-        byte[] valueToPut = ByteBuffer.allocate(4).putInt(threadId).array();
-        ChangeMetadata metadataToPut = ChangeMetadata.created(valueToPut);
-        return KeyedStream.of(cells.stream())
-                .filter(_unused -> random.nextBoolean())
-                .map(_unused -> ValueAndChangeMetadata.of(valueToPut, metadataToPut))
-                .collectToMap();
-    }
-
     private static void verifyLockWasCalledWithMetadataWhenCommitting(
-            Transaction txn, TimelockService mockTimelockService, Optional<LockRequestMetadata> lockRequestMetadata) {
+            Transaction txn, TimelockService spiedTimelockService, Optional<LockRequestMetadata> lockRequestMetadata) {
         // Commit will likely fail since we are using a mock timelock service
-        try {
-            txn.commit();
-        } catch (Throwable ignored) {
-        }
-        verify(mockTimelockService)
+        txn.commit();
+        verify(spiedTimelockService)
                 .lock(
                         argThat(lockRequest -> {
                             assertThat(lockRequest.getMetadata()).isEqualTo(lockRequestMetadata);
