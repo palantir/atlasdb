@@ -2535,8 +2535,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // TODO(fdesouza): Revert this once PDS-95791 is resolved.
         long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
-        Optional<LockRequestMetadata> metadata = locksAndMetadata.metadata();
-        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMillis, metadata);
+        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMillis, locksAndMetadata.metadata());
 
         RuntimeException stackTraceSnapshot = new SafeRuntimeException("I exist to show you the stack trace");
         LockResponse lockResponse = timelockService.lock(
@@ -2648,9 +2647,8 @@ public class SnapshotTransaction extends AbstractTransaction
                             UnsafeArg.of("rowName", cell.getRowName()),
                             UnsafeArg.of("existingMetadata", lockDescriptorToChangeMetadata.get(rowLockDescriptor)),
                             UnsafeArg.of("newMetadata", changeMetadataForWrites.get(cell)));
-                } else {
-                    lockDescriptorToChangeMetadata.put(rowLockDescriptor, changeMetadataForWrites.get(cell));
                 }
+                lockDescriptorToChangeMetadata.put(rowLockDescriptor, changeMetadataForWrites.get(cell));
             }
             if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
                 lockDescriptors.add(rowLockDescriptor);

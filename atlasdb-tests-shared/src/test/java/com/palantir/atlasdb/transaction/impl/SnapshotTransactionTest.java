@@ -47,7 +47,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
-import com.google.common.primitives.Longs;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -2612,23 +2611,23 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         Random random = new Random(randomSeed);
         SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
-
         Set<Cell> cells = IntStream.range(0, numCells)
                 .mapToObj(cellIndex -> Cell.create(PtBytes.toBytes(cellIndex), PtBytes.toBytes(cellIndex)))
                 .collect(Collectors.toSet());
 
-        Map<Long, Map<Cell, ChangeMetadata>> metadataWrittenByThread =
+        List<Map<Cell, ChangeMetadata>> metadataWrittenByThread =
                 concurrentlyWriteMetadataToCells(random, txn, cells, numThreads);
 
-        Map<Cell, ChangeMetadata> metadata = txn.getChangeMetadataForWrites(TABLE);
+        Map<Cell, ChangeMetadata> internalMetadata = txn.getChangeMetadataForWrites(TABLE);
         for (Cell cell : cells) {
             byte[] currInternalValue = txn.get(TABLE, ImmutableSet.of(cell)).get(cell);
-            // The thread ID of the thread that won the race, i.e. the thread who was the last to write
-            long winnerThread = Longs.fromByteArray(currInternalValue);
+            // Every thread writes their thread ID to the cell, so the value is always 4 bytes.
+            // The winning thread is the last one to write, as indicated by the current value
+            int winningThreadIndex = ByteBuffer.wrap(currInternalValue).getInt();
 
             ChangeMetadata expectedMetadata =
-                    metadataWrittenByThread.get(winnerThread).get(cell);
-            ChangeMetadata actualMetadata = metadata.get(cell);
+                    metadataWrittenByThread.get(winningThreadIndex).get(cell);
+            ChangeMetadata actualMetadata = internalMetadata.get(cell);
 
             assertThat(actualMetadata)
                     .as(
@@ -2643,14 +2642,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void metadataIsSentToTimeLock() {
         TimelockService timelockService = mock(TimelockService.class);
+        // Only locks cells
         Transaction txn = getSnapshotTransactionWith(
                 timelockService, ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
 
         txn.putWithMetadata(
                 TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
-        maybeCommit(txn);
 
-        verifyLockWasCalledWithMetadata(
+        verifyLockWasCalledWithMetadataWhenCommitting(
+                txn,
                 timelockService,
                 Optional.of(LockRequestMetadata.of(ImmutableMap.of(
                         AtlasCellLockDescriptor.of(
@@ -2663,14 +2663,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = mock(TimelockService.class);
         Transaction txn = getSnapshotTransactionWith(timelockService, ImmutableMap.of());
         txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-        maybeCommit(txn);
-        verifyLockWasCalledWithMetadata(timelockService, Optional.empty());
+        verifyLockWasCalledWithMetadataWhenCommitting(txn, timelockService, Optional.empty());
     }
 
     @Test
     public void metadataIsTransferredToRowLocks() {
         TimelockService timelockService = mock(TimelockService.class);
-        // Conflict handler that locks rows AND cells
+        // Only locks rows
         Transaction txn = getSnapshotTransactionWith(
                 timelockService,
                 ImmutableMap.of(
@@ -2683,11 +2682,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
         txn.putWithMetadata(
                 TABLE2, ImmutableMap.of(TEST_CELL_2, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
-        maybeCommit(txn);
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
         LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL_2.getRowName());
-        verifyLockWasCalledWithMetadata(
+        verifyLockWasCalledWithMetadataWhenCommitting(
+                txn,
                 timelockService,
                 Optional.of(LockRequestMetadata.of(ImmutableMap.of(rowLock, TEST_METADATA, rowLock2, TEST_METADATA))));
     }
@@ -2970,13 +2969,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
     }
 
-    private void maybeCommit(Transaction txn) {
-        try {
-            txn.commit();
-        } catch (Throwable ignored) {
-        }
-    }
-
     /**
      * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
      * {@link AtlasDbTestCase#setUp()}.
@@ -3003,14 +2995,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         };
     }
 
-    private static Map<Long, Map<Cell, ChangeMetadata>> concurrentlyWriteMetadataToCells(
+    /**
+     * Returns the metadata actually written by the different threads (0..numThreads-1).
+     */
+    private static List<Map<Cell, ChangeMetadata>> concurrentlyWriteMetadataToCells(
             Random random, Transaction txn, Set<Cell> cells, int numThreads) throws InterruptedException {
         List<Callable<Void>> tasks = new ArrayList<>();
-        Map<Long, Map<Cell, ChangeMetadata>> metadataWrittenByThread = KeyedStream.of(
-                        LongStream.range(0, numThreads).boxed())
-                .<Map<Cell, ChangeMetadata>>map(threadIndex -> {
+        List<Map<Cell, ChangeMetadata>> metadataWrittenByThread = IntStream.range(0, numThreads)
+                .<Map<Cell, ChangeMetadata>>mapToObj(threadIndex -> {
                     Map<Cell, ChangeMetadataAnnotatedValue> valuesToPut =
                             generateMetadataAnnotatedValuesForThread(random, cells, threadIndex);
+                    // Not writing metadata is equivalent to removing metadata for the affected cells
                     if (random.nextBoolean()) {
                         tasks.add(() -> {
                             txn.putWithMetadata(TABLE, valuesToPut);
@@ -3027,17 +3022,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         return ImmutableMap.of();
                     }
                 })
-                .collectToMap();
-        ScheduledExecutorService scheduledExecutorService = PTExecutors.newScheduledThreadPool(numThreads);
-        List<Future<Void>> futures = scheduledExecutorService.invokeAll(tasks);
+                .collect(Collectors.toUnmodifiableList());
+        ExecutorService executorService = PTExecutors.newFixedThreadPool(numThreads);
+        List<Future<Void>> futures = executorService.invokeAll(tasks);
         Awaitility.await().atMost(Duration.ofMillis(200)).until(() -> futures.stream()
                 .allMatch(Future::isDone));
         return metadataWrittenByThread;
     }
 
     private static Map<Cell, ChangeMetadataAnnotatedValue> generateMetadataAnnotatedValuesForThread(
-            Random random, Set<Cell> cells, long threadId) {
-        byte[] valueToPut = PtBytes.toBytes(threadId);
+            Random random, Set<Cell> cells, int threadId) {
+        byte[] valueToPut = ByteBuffer.allocate(4).putInt(threadId).array();
         ChangeMetadata metadataToPut = ChangeMetadata.created(valueToPut);
         return KeyedStream.of(cells.stream())
                 .filter(_unused -> random.nextBoolean())
@@ -3045,8 +3040,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collectToMap();
     }
 
-    private static void verifyLockWasCalledWithMetadata(
-            TimelockService mockTimelockService, Optional<LockRequestMetadata> lockRequestMetadata) {
+    private static void verifyLockWasCalledWithMetadataWhenCommitting(
+            Transaction txn, TimelockService mockTimelockService, Optional<LockRequestMetadata> lockRequestMetadata) {
+        // Commit will likely fail since we are using a mock timelock service
+        try {
+            txn.commit();
+        } catch (Throwable ignored) {
+        }
         verify(mockTimelockService)
                 .lock(
                         argThat(lockRequest -> {
