@@ -32,7 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
-import com.palantir.atlasdb.transaction.api.ChangeMetadataAnnotatedValue;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -236,7 +236,7 @@ public final class LockWatchEventIntegrationTest {
 
         Cell cell = Cell.create(ROW, "down".getBytes(StandardCharsets.UTF_8));
         performWriteMetadataTransactionLockingAndUnlockingCells(
-                TABLE_2_REF, ImmutableMap.of(cell, ChangeMetadataAnnotatedValue.of(DATA_1, CHANGE_METADATA_1)));
+                TABLE_2_REF, ImmutableMap.of(cell, ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1)));
 
         OpenTransaction thirdTxn = startSingleTransaction();
 
@@ -304,13 +304,13 @@ public final class LockWatchEventIntegrationTest {
                 TABLE_REF,
                 ImmutableMap.of(
                         CELL_1,
-                        ChangeMetadataAnnotatedValue.of(DATA_1, CHANGE_METADATA_1),
+                        ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1),
                         CELL_2,
-                        ChangeMetadataAnnotatedValue.of(DATA_2, CHANGE_METADATA_2),
+                        ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2),
                         CELL_3,
-                        ChangeMetadataAnnotatedValue.of(DATA_3, CHANGE_METADATA_3),
+                        ValueAndChangeMetadata.of(DATA_3, CHANGE_METADATA_3),
                         CELL_4,
-                        ChangeMetadataAnnotatedValue.of(DATA_4, CHANGE_METADATA_4)));
+                        ValueAndChangeMetadata.of(DATA_4, CHANGE_METADATA_4)));
         performWriteTransactionLockingAndUnlockingCells(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
 
         OpenTransaction thirdTxn = startSingleTransaction();
@@ -363,19 +363,19 @@ public final class LockWatchEventIntegrationTest {
 
         performTransactionTaskLockingAndUnlockingCells(txn -> {
             txn.putWithMetadata(
-                    TABLE_REF, ImmutableMap.of(CELL_1, ChangeMetadataAnnotatedValue.of(DATA_1, CHANGE_METADATA_1)));
+                    TABLE_REF, ImmutableMap.of(CELL_1, ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1)));
             txn.putWithMetadata(
-                    TABLE_2_REF, ImmutableMap.of(CELL_2, ChangeMetadataAnnotatedValue.of(DATA_2, CHANGE_METADATA_2)));
+                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2)));
             return null;
         });
         performTransactionTaskLockingAndUnlockingCells(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
             txn.putWithMetadata(
-                    TABLE_2_REF, ImmutableMap.of(CELL_2, ChangeMetadataAnnotatedValue.of(DATA_2, CHANGE_METADATA_2)));
+                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2)));
             return null;
         });
         performWriteMetadataTransactionLockingAndUnlockingCells(
-                TABLE_2_REF, ImmutableMap.of(CELL_3, ChangeMetadataAnnotatedValue.of(DATA_3, CHANGE_METADATA_3)));
+                TABLE_2_REF, ImmutableMap.of(CELL_3, ValueAndChangeMetadata.of(DATA_3, CHANGE_METADATA_3)));
 
         OpenTransaction fourthTxn = startSingleTransaction();
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), fourthTxn);
@@ -451,7 +451,7 @@ public final class LockWatchEventIntegrationTest {
     }
 
     private void performWriteMetadataTransactionLockingAndUnlockingCells(
-            TableReference tableRef, Map<Cell, ChangeMetadataAnnotatedValue> valuesWithMetadata) {
+            TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesWithMetadata) {
         performTransactionTaskLockingAndUnlockingCells(txn -> {
             txn.putWithMetadata(tableRef, valuesWithMetadata);
             return null;

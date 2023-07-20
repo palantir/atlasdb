@@ -20,14 +20,14 @@ import com.palantir.lock.watch.ChangeMetadata;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ChangeMetadataAnnotatedValue {
+public interface ValueAndChangeMetadata {
     @Value.Parameter
     byte[] value();
 
     @Value.Parameter
     ChangeMetadata metadata();
 
-    static ChangeMetadataAnnotatedValue of(byte[] value, ChangeMetadata metadata) {
-        return ImmutableChangeMetadataAnnotatedValue.of(value, metadata);
+    static ValueAndChangeMetadata of(byte[] value, ChangeMetadata metadata) {
+        return ImmutableValueAndChangeMetadata.of(value, metadata);
     }
 }

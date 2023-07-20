@@ -81,7 +81,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.ChangeMetadataAnnotatedValue;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -2564,7 +2564,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void metadataStoredForPutWithMetadata() {
         Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
             txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
             return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
         });
         assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
@@ -2574,7 +2574,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void metadataRemovedForRegularPutAfterPutWithMetadata() {
         Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
             txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("feeling lucky")));
             return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
         });
@@ -2594,7 +2594,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void metadataRemovedForRegularDeleteAfterPutWithMetadata() {
         Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
             txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
             txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
             return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
         });
@@ -2647,7 +2647,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService, ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
 
         txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         verifyLockWasCalledWithMetadataWhenCommitting(
                 txn,
@@ -2679,9 +2679,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
         txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
         txn.putWithMetadata(
-                TABLE2, ImmutableMap.of(TEST_CELL_2, ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
         LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL_2.getRowName());
@@ -2703,9 +2703,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TABLE,
                 ImmutableMap.of(
                         cell1,
-                        ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA),
+                        ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA),
                         cell2,
-                        ChangeMetadataAnnotatedValue.of(TEST_VALUE, TEST_METADATA)));
+                        ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         assertThatLoggableExceptionThrownBy(txn::commit)
                 .isInstanceOf(SafeIllegalStateException.class)
@@ -3003,18 +3003,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         List<Callable<Void>> tasks = new ArrayList<>();
         List<Map<Cell, ChangeMetadata>> metadataWrittenByThread = IntStream.range(0, numThreads)
                 .<Map<Cell, ChangeMetadata>>mapToObj(threadIndex -> {
-                    Map<Cell, ChangeMetadataAnnotatedValue> valuesToPut =
-                            generateMetadataAnnotatedValuesForThread(random, cells, threadIndex);
+                    Map<Cell, ValueAndChangeMetadata> valuesToPut =
+                            generatevaluesAndMetadataForThread(random, cells, threadIndex);
                     // Not writing metadata is equivalent to removing metadata for the affected cells
                     if (random.nextBoolean()) {
                         tasks.add(() -> {
                             txn.putWithMetadata(TABLE, valuesToPut);
                             return null;
                         });
-                        return Maps.transformValues(valuesToPut, ChangeMetadataAnnotatedValue::metadata);
+                        return Maps.transformValues(valuesToPut, ValueAndChangeMetadata::metadata);
                     } else {
                         Map<Cell, byte[]> valuesOnly =
-                                Maps.transformValues(valuesToPut, ChangeMetadataAnnotatedValue::value);
+                                Maps.transformValues(valuesToPut, ValueAndChangeMetadata::value);
                         tasks.add(() -> {
                             txn.put(TABLE, valuesOnly);
                             return null;
@@ -3030,13 +3030,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return metadataWrittenByThread;
     }
 
-    private static Map<Cell, ChangeMetadataAnnotatedValue> generateMetadataAnnotatedValuesForThread(
+    private static Map<Cell, ValueAndChangeMetadata> generatevaluesAndMetadataForThread(
             Random random, Set<Cell> cells, int threadId) {
         byte[] valueToPut = ByteBuffer.allocate(4).putInt(threadId).array();
         ChangeMetadata metadataToPut = ChangeMetadata.created(valueToPut);
         return KeyedStream.of(cells.stream())
                 .filter(_unused -> random.nextBoolean())
-                .map(_unused -> ChangeMetadataAnnotatedValue.of(valueToPut, metadataToPut))
+                .map(_unused -> ValueAndChangeMetadata.of(valueToPut, metadataToPut))
                 .collectToMap();
     }
 

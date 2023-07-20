@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.ChangeMetadataAnnotatedValue;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -131,8 +131,8 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @Override
     public void putWithMetadata(
-            TableReference tableRef, Map<Cell, ChangeMetadataAnnotatedValue> metadataAnnotatedValues) {
-        delegate().putWithMetadata(tableRef, metadataAnnotatedValues);
+            TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
+        delegate().putWithMetadata(tableRef, valuesAndMetadata);
     }
 
     @Override

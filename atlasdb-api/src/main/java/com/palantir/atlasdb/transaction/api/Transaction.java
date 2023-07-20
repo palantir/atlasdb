@@ -279,10 +279,10 @@ public interface Transaction {
      * {@link Transaction#commit} will fail.
      *
      * @param tableRef the table into which to put the values and metadata
-     * @param metadataAnnotatedValues the metadata-enriched values to append to the table
+     * @param valuesAndMetadata the metadata-enriched values to append to the table
      */
     @Idempotent
-    void putWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadataAnnotatedValue> metadataAnnotatedValues);
+    void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata);
 
     /**
      * Deletes values from the key-value store.
