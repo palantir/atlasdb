@@ -1707,7 +1707,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void reduceCachedCellsFromNumberOfExpectedCells() {
-        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
 
         TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
@@ -1736,7 +1736,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .getInternal(
                         eq("getWithExpectedNumberOfCells"),
                         eq(TABLE_SWEPT_THOROUGH),
-                        eq(Set.of(TEST_CELL_2)),
+                        eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
                         eq(1),
                         any(),
                         any());
