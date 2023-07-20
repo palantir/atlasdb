@@ -135,3 +135,22 @@ acceptedBreaks:
       new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]> com.palantir.atlasdb.transaction.api.Transaction::getWithExpectedNumberOfCells(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, int)"
       justification: "Just introducing new Get API"
+  "0.885.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>> com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache::getAsyncWithCachedRef(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, java.util.function.Function<com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.CacheLookupResult,\
+        \ com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>>>)"
+      justification: "just adding a new get method"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]> com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache::getWithCachedRef(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, java.util.function.Function<com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.CacheLookupResult,\
+        \ com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>>>)"
+      justification: "just adding a new get method"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]> com.palantir.atlasdb.transaction.api.Transaction::getWithExpectedNumberOfCells(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, long)"
+      justification: "just adding a new get method"
