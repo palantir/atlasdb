@@ -31,8 +31,8 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.metrics.RequestMetadataMetrics;
-import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -79,15 +79,14 @@ public class AsyncTimeLockServiceMetadataTest {
             standardRequestWithMetadata(ALL_WATCHED_LOCKS_WITH_METADATA);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final RequestMetadataMetrics metadataMetrics =
-            RequestMetadataMetrics.of(metricsManager.getTaggedRegistry());
+    private final RequestMetrics metadataMetrics = RequestMetrics.of(metricsManager.getTaggedRegistry());
     private final LockLog lockLog = new LockLog(metricsManager.getRegistry(), () -> 10000L);
     private final ScheduledExecutorService scheduledExecutorService = new DeterministicScheduler();
     private final AsyncLockService asyncLockService = AsyncLockService.createDefault(
             lockLog,
             scheduledExecutorService,
             scheduledExecutorService,
-            StoredMetadataMetrics.of(metricsManager.getTaggedRegistry()));
+            CurrentMetrics.of(metricsManager.getTaggedRegistry()));
     private final AsyncTimelockServiceImpl timeLockService =
             new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog, metadataMetrics);
     private final ConjureStartTransactionsRequest startTransactionsRequestWithInitialVersion =
@@ -155,7 +154,7 @@ public class AsyncTimeLockServiceMetadataTest {
     }
 
     @Test
-    public void updatesMetadataSizeMetricForAllMetadata() {
+    public void updatesRequestMetricsCorrectly() {
         timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of()));
         timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of(
                 StringLockDescriptor.of("1"), ChangeMetadata.unchanged(),
@@ -164,8 +163,7 @@ public class AsyncTimeLockServiceMetadataTest {
         timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
                 .withMetadata(Optional.empty()));
 
-        assertThat(metadataMetrics.changeMetadataReceived().getSnapshot().getValues())
-                .containsOnly(0, 3, 0);
+        assertThat(metadataMetrics.changeMetadata().getSnapshot().getValues()).containsOnly(0, 3, 0);
     }
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {

@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
-import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -62,7 +62,7 @@ public class AsyncLockService implements Closeable {
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor,
-            StoredMetadataMetrics metadataMetrics) {
+            CurrentMetrics metadataMetrics) {
 
         LeaderClock clock = LeaderClock.create();
 

@@ -1,20 +1,20 @@
 options:
-  javaPackage: 'com.palantir.atlasdb.timelock.metrics'
+  javaPackage: 'com.palantir.atlasdb.timelock.lockwatches'
 
 namespaces:
-  requestMetadata:
-    docs: Metrics tracking metadata presence in lock requests sent to TimeLock
+  request:
+    docs: Metrics tracking metadata presence in lock requests received by TimeLock
     metrics:
-      changeMetadataReceived:
+      changeMetadata:
         docs: Number of change metadata objects contained in a lock request
         type: histogram
-  storedMetadata:
-    docs: Metrics tracking metadata stored in LockEvents in the LockWatchEvent sliding window
+  current:
+    docs: Metrics tracking metadata currently stored in LockEvents in the LockWatchEvent sliding window
     metrics:
-      eventsWithMetadataStored:
+      eventsWithMetadata:
         docs: Number of LockEvents currently stored in the sliding window that have non-absent metadata
         type: counter
-      changeMetadataStored:
+      changeMetadata:
         docs: Number of change metadata objects currently stored in the sliding window
         type: counter
 

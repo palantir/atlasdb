@@ -22,7 +22,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
-import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
@@ -68,7 +68,7 @@ public class AsyncLockServiceEteTest {
     private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
             heldLocks,
             clock.id(),
-            StoredMetadataMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
+            CurrentMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),

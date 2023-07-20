@@ -16,11 +16,18 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.codahale.metrics.Counter;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.UnlockEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -29,26 +36,45 @@ public class ArrayLockEventSlidingWindow {
     private final LockWatchEvent[] buffer;
     private final int maxSize;
     private long nextSequence = 0;
+    private final Counter changeMetadataCounter;
+    private final Counter eventsWithMetadataCounter;
 
-    ArrayLockEventSlidingWindow(int maxSize) {
+    ArrayLockEventSlidingWindow(int maxSize, CurrentMetrics metadataMetrics) {
         this.buffer = new LockWatchEvent[maxSize];
         this.maxSize = maxSize;
+        this.changeMetadataCounter = metadataMetrics.changeMetadata();
+        this.eventsWithMetadataCounter = metadataMetrics.eventsWithMetadata();
     }
 
     long lastVersion() {
         return nextSequence - 1;
     }
 
-    /**
-     * Returns the {@link LockWatchEvent} that was replaced if the buffer is already full.
-     */
-    Optional<LockWatchEvent> add(LockWatchEvent.Builder eventBuilder) {
+    void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         int index = LongMath.mod(nextSequence, maxSize);
-        LockWatchEvent replacedEvent = buffer[index];
+        updateCurrentMetadataMetrics(
+                event.accept(LockWatchEventMetadataVisitor.INSTANCE),
+                Optional.ofNullable(buffer[index])
+                        .flatMap(replacedEvent -> replacedEvent.accept(LockWatchEventMetadataVisitor.INSTANCE)));
         buffer[index] = event;
         nextSequence++;
-        return Optional.ofNullable(replacedEvent);
+    }
+
+    private void updateCurrentMetadataMetrics(
+            Optional<LockRequestMetadata> newMetadata, Optional<LockRequestMetadata> replacedMetadata) {
+        int changeMetadataSizeDiff = newMetadata
+                        .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                        .map(Map::size)
+                        .orElse(0)
+                - replacedMetadata
+                        .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                        .map(Map::size)
+                        .orElse(0);
+        int numPresentMetadataDiff = newMetadata.map(_unused -> 1).orElse(0)
+                - replacedMetadata.map(_unused -> 1).orElse(0);
+        changeMetadataCounter.inc(changeMetadataSizeDiff);
+        eventsWithMetadataCounter.inc(numPresentMetadataDiff);
     }
 
     public Optional<List<LockWatchEvent>> getNextEvents(long version) {
@@ -77,5 +103,24 @@ public class ArrayLockEventSlidingWindow {
 
     private boolean versionTooOld(long version) {
         return lastVersion() - version > maxSize;
+    }
+
+    private enum LockWatchEventMetadataVisitor implements LockWatchEvent.Visitor<Optional<LockRequestMetadata>> {
+        INSTANCE;
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockEvent lockEvent) {
+            return lockEvent.metadata();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
+        }
     }
 }

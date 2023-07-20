@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -31,15 +30,12 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.atlasdb.timelock.metrics.StoredMetadataMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockEvent;
-import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
@@ -51,7 +47,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,10 +69,11 @@ public class LockEventLogImplTest {
     private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());
     private final HeldLocksCollection heldLocksCollection = mock(HeldLocksCollection.class);
     private final HeldLocks heldLocks = mock(HeldLocks.class);
-    private final StoredMetadataMetrics metadataMetrics =
-            StoredMetadataMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
-    private final LockEventLog log =
-            new LockEventLogImpl(LOG_ID, lockWatches::get, heldLocksCollection, metadataMetrics);
+    private final LockEventLog log = new LockEventLogImpl(
+            LOG_ID,
+            lockWatches::get,
+            heldLocksCollection,
+            CurrentMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
 
     @Before
     public void setupMocks() {
@@ -179,71 +175,6 @@ public class LockEventLogImplTest {
         assertThat(snapshot.lastKnownVersion()).isEqualTo(-1L);
         assertThat(snapshot.locked()).containsExactlyInAnyOrder(DESCRIPTOR_2, DESCRIPTOR_3);
         assertThat(snapshot.lockWatches()).containsExactly(entireTable);
-    }
-
-    @Test
-    public void countsMetadataCorrectlyStartingFromEmptyBuffer() {
-        LockRequestMetadata metadata = LockRequestMetadata.of(ImmutableMap.of(
-                DESCRIPTOR, ChangeMetadata.unchanged(), DESCRIPTOR_2, ChangeMetadata.created(PtBytes.toBytes("foo"))));
-        LockRequestMetadata metadata2 =
-                LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_3, ChangeMetadata.deleted(PtBytes.toBytes("bar"))));
-        log.logLock(ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2), TOKEN, Optional.of(metadata));
-        log.logLock(ImmutableSet.of(DESCRIPTOR_3), TOKEN, Optional.of(metadata2));
-
-        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(3);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount()).isEqualTo(2);
-
-        log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN, Optional.empty());
-        log.logLock(ImmutableSet.of(), TOKEN, Optional.of(LockRequestMetadata.of(ImmutableMap.of())));
-
-        assertThat(metadataMetrics.changeMetadataStored().getCount())
-                .as("Absent metadata should count for nothing")
-                .isEqualTo(3);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
-                .as("Empty metadata map should count for present metadata")
-                .isEqualTo(3);
-    }
-
-    @Test
-    public void maintainsCorrectMetadataCountWhenOverwritingBuffer() {
-        IntStream.range(0, LockEventLogImpl.SLIDING_WINDOW_SIZE).forEach(i -> {
-            LockDescriptor lock = StringLockDescriptor.of("lock" + i);
-            LockRequestMetadata metadata = LockRequestMetadata.of(
-                    ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("created" + i))));
-            log.logLock(ImmutableSet.of(lock), TOKEN, Optional.of(metadata));
-        });
-        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-
-        // Counts are maintained if we replace an event with metadata of same size
-        log.logLock(
-                ImmutableSet.of(DESCRIPTOR),
-                TOKEN,
-                Optional.of(LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR, ChangeMetadata.unchanged()))));
-        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-
-        // Both counts can decrease
-        log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN, Optional.empty());
-        assertThat(metadataMetrics.changeMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
-
-        // ChangeMetadata count can increase
-        log.logLock(
-                ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2, DESCRIPTOR_3),
-                TOKEN,
-                Optional.of(LockRequestMetadata.of(ImmutableMap.of(
-                        DESCRIPTOR, ChangeMetadata.created(PtBytes.toBytes("created")),
-                        DESCRIPTOR_2, ChangeMetadata.unchanged(),
-                        DESCRIPTOR_3, ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new"))))));
-        assertThat(metadataMetrics.changeMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE + 1);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
-                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
     }
 
     private LockWatches createWatchesFor(LockWatchReference... references) {

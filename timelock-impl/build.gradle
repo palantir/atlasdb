@@ -105,6 +105,6 @@ dependencies {
 }
 
 license {
-    exclude '**/RequestMetadataMetrics.java'
-    exclude '**/StoredMetadataMetrics.java'
+    exclude '**/RequestMetrics.java'
+    exclude '**/CurrentMetrics.java'
 }
