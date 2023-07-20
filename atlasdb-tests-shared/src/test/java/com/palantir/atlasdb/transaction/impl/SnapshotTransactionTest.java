@@ -1726,7 +1726,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
-        // Fetching 3 cells, but expect only 2 to be present.
+        // Fetching 3 cells, but expect only 2 to be present, for example
         assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
                 .doesNotThrowAnyException();
@@ -1763,7 +1763,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
-        // Fetching 3 cells, but expect only 2 to be present.
+        // Fetching 3 cells, but expect only 2 to be present, for example
         assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
                 .doesNotThrowAnyException();
