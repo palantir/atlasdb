@@ -920,10 +920,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
-            int numberOfCellsExpectingValuePostCache =
-                    expectedNumberOfPresentCells - cacheLookupResult.cacheHits().size();
+            long cachedCellsWithNonEmptyValue = cacheLookupResult.cacheHits().values().stream()
+                    .filter(value -> value.value().isPresent() && value.value().get() != PtBytes.EMPTY_BYTE_ARRAY)
+                    .count();
+            long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
 
             return getInternal(
                     "getWithExpectedNumberOfCells",
@@ -956,7 +958,7 @@ public class SnapshotTransaction extends AbstractTransaction
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
-            int numberOfExpectedPresentCells,
+            long numberOfExpectedPresentCells,
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Timer.Context timer = getTimer(operationName).time();
@@ -978,7 +980,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         // We don't need to read any cells that were written locally.
-        int expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - result.size();
+        long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - result.size();
         return Futures.transform(
                 getFromKeyValueService(
                         tableRef,
@@ -1010,7 +1012,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private static void validateFetchedLessOrEqualToExpected(
-            int expectedNumberOfPresentCellsToFetch, Map<Cell, byte[]> fromKeyValueService) {
+            long expectedNumberOfPresentCellsToFetch, Map<Cell, byte[]> fromKeyValueService) {
         if (fromKeyValueService.size() > expectedNumberOfPresentCellsToFetch) {
             throw new SafeIllegalStateException(
                     "KeyValueService returned more results than Get expected. This means there is a bug"

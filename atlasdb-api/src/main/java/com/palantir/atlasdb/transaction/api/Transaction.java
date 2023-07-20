@@ -198,7 +198,7 @@ public interface Transaction {
      */
     @Idempotent
     Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells);
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells);
 
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not

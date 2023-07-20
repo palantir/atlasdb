@@ -1754,7 +1754,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
 
-        TransactionScopedCache txnCache = createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        TransactionScopedCache txnCache =
+                createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL, "value".getBytes(StandardCharsets.UTF_8));
         LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
         when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
 
@@ -1783,13 +1784,49 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         any());
     }
 
-    private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell) {
+    @Test
+    public void keepNumberOfExpectedCellsIfCachedWithEmptyValue() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache =
+                createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY);
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present, for example
+        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
+                .doesNotThrowAnyException();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+
+        // Even though Cell One is cached, it has empty value, so we still expect 2 values to be present
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
+                        eq(2),
+                        any(),
+                        any());
+    }
+
+    private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
         CacheMetrics metrics = mock(CacheMetrics.class);
         return TransactionScopedCacheImpl.create(
                 ValueCacheSnapshotImpl.of(
-                        HashMap.of(
-                                CellReference.of(table, cell),
-                                CacheEntry.unlocked(CacheValue.of("value".getBytes(StandardCharsets.UTF_8)))),
+                        HashMap.of(CellReference.of(table, cell), CacheEntry.unlocked(CacheValue.of(value))),
                         HashSet.of(table),
                         ImmutableSet.of(table)),
                 metrics);

@@ -323,7 +323,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     @Override
     @Idempotent
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
             return getWithLoader(
                             tableRef,
@@ -344,7 +344,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     /**
      * If we ever update getWithLoader to filter down the cells before calling the cellLoader, we'll need to update the
-     * {@link #getWithExpectedNumberOfCells(TableReference, Set, int)} implementation to take intro account the
+     * {@link Transaction#getWithExpectedNumberOfCells(TableReference, Set, long)} implementation to take intro account the
      * filtering and change the number of expect cells it sends to the super class.
      */
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(

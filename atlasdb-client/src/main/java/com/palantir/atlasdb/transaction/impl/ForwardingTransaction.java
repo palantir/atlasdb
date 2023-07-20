@@ -85,7 +85,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return delegate().getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
     }
 

@@ -66,7 +66,7 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
 
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         checkTableName(tableRef);
         return delegate.getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
     }

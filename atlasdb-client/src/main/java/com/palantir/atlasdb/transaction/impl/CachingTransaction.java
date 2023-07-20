@@ -134,10 +134,14 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
-            TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
             return getWithLoader(tableRef, cells, (tableReference, cachedCells, toRead) -> {
-                        int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells.size();
+                        long nonEmptyValuesInCache = cachedCells.values().stream()
+                                .filter(value -> value != PtBytes.EMPTY_BYTE_ARRAY)
+                                .count();
+                        long numberOfCellsExpectingValuePostCache =
+                                expectedNumberOfPresentCells - nonEmptyValuesInCache;
 
                         return Futures.immediateFuture(super.getWithExpectedNumberOfCells(
                                 tableReference, toRead, numberOfCellsExpectingValuePostCache));
