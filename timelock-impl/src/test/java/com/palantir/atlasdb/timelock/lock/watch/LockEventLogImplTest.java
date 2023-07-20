@@ -190,16 +190,16 @@ public class LockEventLogImplTest {
         log.logLock(ImmutableSet.of(DESCRIPTOR, DESCRIPTOR_2), TOKEN, Optional.of(metadata));
         log.logLock(ImmutableSet.of(DESCRIPTOR_3), TOKEN, Optional.of(metadata2));
 
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(3);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount()).isEqualTo(2);
+        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(3);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount()).isEqualTo(2);
 
         // Absent metadata should count for nothing
         log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN, Optional.empty());
         // Empty metadata map should count for present metadata
         log.logLock(ImmutableSet.of(), TOKEN, Optional.of(LockRequestMetadata.of(ImmutableMap.of())));
 
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(3);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount()).isEqualTo(3);
+        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(3);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount()).isEqualTo(3);
     }
 
     @Test
@@ -210,21 +210,24 @@ public class LockEventLogImplTest {
                     ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("created" + i))));
             log.logLock(ImmutableSet.of(lock), TOKEN, Optional.of(metadata));
         });
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
+        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
+                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
 
         // Counts are maintained if we replace an event with metadata of same size
         log.logLock(
                 ImmutableSet.of(DESCRIPTOR),
                 TOKEN,
                 Optional.of(LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR, ChangeMetadata.unchanged()))));
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
+        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
+                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE);
 
         // Both counts can decrease
         log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN, Optional.empty());
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount())
+        assertThat(metadataMetrics.changeMetadataStored().getCount())
+                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
                 .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
 
         // ChangeMetadata count can increase
@@ -235,8 +238,9 @@ public class LockEventLogImplTest {
                         DESCRIPTOR, ChangeMetadata.created(PtBytes.toBytes("created")),
                         DESCRIPTOR_2, ChangeMetadata.unchanged(),
                         DESCRIPTOR_3, ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new"))))));
-        assertThat(metadataMetrics.numChangeMetadata().getCount()).isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE + 1);
-        assertThat(metadataMetrics.numEventsWithMetadata().getCount())
+        assertThat(metadataMetrics.changeMetadataStored().getCount())
+                .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE + 1);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
                 .isEqualTo(LockEventLogImpl.SLIDING_WINDOW_SIZE - 1);
     }
 

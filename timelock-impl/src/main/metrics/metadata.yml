@@ -5,16 +5,16 @@ namespaces:
   requestMetadata:
     docs: Metrics tracking metadata presence in lock requests sent to TimeLock
     metrics:
-      numChangeMetadata:
+      changeMetadataReceived:
         docs: Number of change metadata objects contained in a lock request
         type: histogram
   storedMetadata:
     docs: Metrics tracking metadata stored in LockEvents in the LockWatchEvent sliding window
     metrics:
-      numEventsWithMetadata:
+      eventsWithMetadataStored:
         docs: Number of LockEvents currently stored in the sliding window that have non-absent metadata
         type: counter
-      numChangeMetadata:
+      changeMetadataStored:
         docs: Number of change metadata objects currently stored in the sliding window
         type: counter
 

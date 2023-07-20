@@ -80,20 +80,24 @@ public class LockEventLogImpl implements LockEventLog {
             Set<LockDescriptor> locksTakenOut, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
         Optional<LockWatchEvent> replacedEvent =
                 slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
-        Optional<LockRequestMetadata> replacedMetadata =
-                replacedEvent.flatMap(event -> event.accept(LockEventMetadataVisitor.INSTANCE));
+        updateMetadataMetrics(
+                metadata, replacedEvent.flatMap(event -> event.accept(LockEventMetadataVisitor.INSTANCE)));
+    }
 
-        int changeMetadataSizeDiff = metadata.map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+    private void updateMetadataMetrics(
+            Optional<LockRequestMetadata> newMetadata, Optional<LockRequestMetadata> replacedMetadata) {
+        int changeMetadataSizeDiff = newMetadata
+                        .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
                         .map(Map::size)
                         .orElse(0)
                 - replacedMetadata
                         .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
                         .map(Map::size)
                         .orElse(0);
-        int numPresentMetadataDiff = metadata.map(_unused -> 1).orElse(0)
+        int numPresentMetadataDiff = newMetadata.map(_unused -> 1).orElse(0)
                 - replacedMetadata.map(_unused -> 1).orElse(0);
-        metadataMetrics.numChangeMetadata().inc(changeMetadataSizeDiff);
-        metadataMetrics.numEventsWithMetadata().inc(numPresentMetadataDiff);
+        metadataMetrics.changeMetadataStored().inc(changeMetadataSizeDiff);
+        metadataMetrics.eventsWithMetadataStored().inc(numPresentMetadataDiff);
     }
 
     @Override

@@ -113,7 +113,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 TimeLimit.of(request.getAcquireTimeoutMs()),
                 request.getMetadata());
         metadataMetrics
-                .numChangeMetadata()
+                .changeMetadataReceived()
                 .update(request.getMetadata()
                         .map(metadata ->
                                 metadata.lockDescriptorToChangeMetadata().size())

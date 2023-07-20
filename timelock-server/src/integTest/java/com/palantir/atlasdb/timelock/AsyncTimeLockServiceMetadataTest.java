@@ -156,16 +156,15 @@ public class AsyncTimeLockServiceMetadataTest {
 
     @Test
     public void updatesMetadataSizeMetricForAllMetadata() {
-        // empty metadata (but not absent)
         timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of()));
         timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of(
                 StringLockDescriptor.of("1"), ChangeMetadata.unchanged(),
                 StringLockDescriptor.of("2"), ChangeMetadata.unchanged(),
                 StringLockDescriptor.of("3"), ChangeMetadata.unchanged())));
-        // absent metadata
         timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
                 .withMetadata(Optional.empty()));
-        assertThat(metadataMetrics.numChangeMetadata().getSnapshot().getValues())
+
+        assertThat(metadataMetrics.changeMetadataReceived().getSnapshot().getValues())
                 .containsOnly(0, 3, 0);
     }
 
