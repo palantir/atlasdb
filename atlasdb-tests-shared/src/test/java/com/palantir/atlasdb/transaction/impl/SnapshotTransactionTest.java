@@ -1706,6 +1706,47 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void keepNumberOfExpectedCellsTheSameIfNoneCached() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        CacheMetrics metrics = mock(CacheMetrics.class);
+        TransactionScopedCache emptyCache = TransactionScopedCacheImpl.create(
+                ValueCacheSnapshotImpl.of(
+                        HashMap.empty(), HashSet.of(TABLE_SWEPT_THOROUGH), ImmutableSet.of(TABLE_SWEPT_THOROUGH)),
+                metrics);
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(emptyCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present.
+        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
+                .doesNotThrowAnyException();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+
+        // Since one cell is cached, should only expect 1 to be present on internal call
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3)),
+                        eq(2),
+                        any(),
+                        any());
+    }
+
+    @Test
     public void reduceCachedCellsFromNumberOfExpectedCells() {
         putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
 
