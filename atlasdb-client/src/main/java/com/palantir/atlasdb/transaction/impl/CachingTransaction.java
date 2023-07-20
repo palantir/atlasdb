@@ -124,7 +124,8 @@ public class CachingTransaction extends ForwardingTransaction {
             return getWithLoader(
                             tableRef,
                             cells,
-                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableReference, toRead)))
+                            (tableReference, _cachedCells, toRead) ->
+                                    Futures.immediateFuture(super.get(tableReference, toRead)))
                     .get();
         } catch (InterruptedException | ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
@@ -135,9 +136,8 @@ public class CachingTransaction extends ForwardingTransaction {
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
         try {
-            return getWithLoader(tableRef, cells, (tableReference, toRead) -> {
-                        int cachedCells = cells.size() - toRead.size();
-                        int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells;
+            return getWithLoader(tableRef, cells, (tableReference, cachedCells, toRead) -> {
+                        int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells.size();
 
                         return Futures.immediateFuture(super.getWithExpectedNumberOfCells(
                                 tableReference, toRead, numberOfCellsExpectingValuePostCache));
@@ -150,7 +150,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
-        return getWithLoader(tableRef, cells, super::getAsync);
+        return getWithLoader(tableRef, cells, (table, _cacheCells, cellsToLoad) -> super.getAsync(table, cellsToLoad));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
@@ -173,7 +173,7 @@ public class CachingTransaction extends ForwardingTransaction {
         }
 
         return Futures.transform(
-                cellLoader.load(tableRef, toLoad),
+                cellLoader.load(tableRef, cacheHit, toLoad),
                 loadedCells -> {
                     cacheLoadedCells(tableRef, toLoad, loadedCells);
                     cacheHit.putAll(loadedCells);
@@ -288,6 +288,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @FunctionalInterface
     private interface CellLoader {
-        ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
+        ListenableFuture<Map<Cell, byte[]>> load(
+                TableReference tableReference, Map<Cell, byte[]> cachedCells, Set<Cell> toRead);
     }
 }

@@ -921,14 +921,14 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, int expectedNumberOfPresentCells) {
-        return getCache().get(tableRef, cells, uncached -> {
-            int cachedCells = cells.size() - uncached.size();
-            int numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCells;
+        return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
+            int numberOfCellsExpectingValuePostCache =
+                    expectedNumberOfPresentCells - cacheLookupResult.cacheHits().size();
 
             return getInternal(
-                    "get",
+                    "getWithExpectedNumberOfCells",
                     tableRef,
-                    uncached,
+                    cacheLookupResult.missedCells(),
                     numberOfCellsExpectingValuePostCache,
                     immediateKeyValueService,
                     immediateTransactionService);
@@ -951,7 +951,8 @@ public class SnapshotTransaction extends AbstractTransaction
                                 defaultTransactionService)));
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> getInternal(
+    @VisibleForTesting
+    ListenableFuture<Map<Cell, byte[]>> getInternal(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,

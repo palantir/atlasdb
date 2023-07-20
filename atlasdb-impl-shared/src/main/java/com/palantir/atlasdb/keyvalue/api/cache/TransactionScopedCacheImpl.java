@@ -43,7 +43,6 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
-import org.immutables.value.Value;
 
 @ThreadSafe
 public final class TransactionScopedCacheImpl implements TransactionScopedCache {
@@ -82,14 +81,33 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
     }
 
     @Override
+    public Map<Cell, byte[]> getWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        ensureNotFinalised();
+        return AtlasFutures.getUnchecked(getAsyncWithCachedRef(tableReference, cells, valueLoader));
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         ensureNotFinalised();
+        return getAsyncWithCachedRef(
+                tableReference, cells, cacheLookupResult -> valueLoader.apply(cacheLookupResult.missedCells()));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsyncWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        ensureNotFinalised();
         // Short-cut all the logic below if the table is not watched.
         if (!valueStore.isWatched(tableReference)) {
-            return valueLoader.apply(cells);
+            return valueLoader.apply(CacheLookupResult.of(Map.of(), cells));
         }
 
         CacheLookupResult cacheLookup = cacheLookup(tableReference, cells);
@@ -98,7 +116,7 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
             return Futures.immediateFuture(filterEmptyValues(cacheLookup.cacheHits()));
         } else {
             return Futures.transform(
-                    valueLoader.apply(cacheLookup.missedCells()),
+                    valueLoader.apply(cacheLookup),
                     uncachedValues -> processUncachedCells(
                             tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), uncachedValues),
                     MoreExecutors.directExecutor());
@@ -245,19 +263,5 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
                 .filter(value -> value.value().isPresent())
                 .map(value -> value.value().get())
                 .collectToMap();
-    }
-
-    @Value.Immutable
-    interface CacheLookupResult {
-        Map<Cell, CacheValue> cacheHits();
-
-        Set<Cell> missedCells();
-
-        static CacheLookupResult of(Map<Cell, CacheValue> cachedValues, Set<Cell> missedCells) {
-            return ImmutableCacheLookupResult.builder()
-                    .cacheHits(cachedValues)
-                    .missedCells(missedCells)
-                    .build();
-        }
     }
 }
