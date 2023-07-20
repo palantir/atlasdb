@@ -193,13 +193,15 @@ public class LockEventLogImplTest {
         assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(3);
         assertThat(metadataMetrics.eventsWithMetadataStored().getCount()).isEqualTo(2);
 
-        // Absent metadata should count for nothing
         log.logLock(ImmutableSet.of(DESCRIPTOR), TOKEN, Optional.empty());
-        // Empty metadata map should count for present metadata
         log.logLock(ImmutableSet.of(), TOKEN, Optional.of(LockRequestMetadata.of(ImmutableMap.of())));
 
-        assertThat(metadataMetrics.changeMetadataStored().getCount()).isEqualTo(3);
-        assertThat(metadataMetrics.eventsWithMetadataStored().getCount()).isEqualTo(3);
+        assertThat(metadataMetrics.changeMetadataStored().getCount())
+                .as("Absent metadata should count for nothing")
+                .isEqualTo(3);
+        assertThat(metadataMetrics.eventsWithMetadataStored().getCount())
+                .as("Empty metadata map should count for present metadata")
+                .isEqualTo(3);
     }
 
     @Test
