@@ -33,7 +33,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -78,7 +78,7 @@ public class LockWatchingServiceImplTest {
 
     private final HeldLocksCollection locks = mock(HeldLocksCollection.class);
     private final LockWatchingService lockWatcher = new LockWatchingServiceImpl(
-            LOG_ID, locks, CurrentMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
+            LOG_ID, locks, BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
 
     private final HeldLocks heldLocks = mock(HeldLocks.class);
 

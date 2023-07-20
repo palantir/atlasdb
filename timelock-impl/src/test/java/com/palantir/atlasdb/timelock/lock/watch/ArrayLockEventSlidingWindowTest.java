@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -47,10 +47,10 @@ public class ArrayLockEventSlidingWindowTest {
     private static final LockDescriptor LOCK_3 = StringLockDescriptor.of("ghi");
     private static final LockToken TOKEN = LockToken.of(UUID.randomUUID());
 
-    private final CurrentMetrics metadataMetrics =
-            CurrentMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
+    private final BufferMetrics bufferMetrics =
+            BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
     private final ArrayLockEventSlidingWindow slidingWindow =
-            new ArrayLockEventSlidingWindow(WINDOW_SIZE, metadataMetrics);
+            new ArrayLockEventSlidingWindow(WINDOW_SIZE, bufferMetrics);
 
     @Test
     public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
@@ -103,16 +103,16 @@ public class ArrayLockEventSlidingWindowTest {
         addLockEventWithMetadata(ImmutableSet.of(LOCK_1, LOCK_2), Optional.of(metadata));
         addLockEventWithMetadata(ImmutableSet.of(LOCK_3), Optional.of(metadata2));
 
-        assertThat(metadataMetrics.changeMetadata().getCount()).isEqualTo(3);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount()).isEqualTo(2);
+        assertThat(bufferMetrics.changeMetadata().getCount()).isEqualTo(3);
+        assertThat(bufferMetrics.eventsWithMetadata().getCount()).isEqualTo(2);
 
         addLockEventWithMetadata(ImmutableSet.of(LOCK_1), Optional.empty());
         addLockEventWithMetadata(ImmutableSet.of(), Optional.of(LockRequestMetadata.of(ImmutableMap.of())));
 
-        assertThat(metadataMetrics.changeMetadata().getCount())
+        assertThat(bufferMetrics.changeMetadata().getCount())
                 .as("Absent metadata should count for nothing")
                 .isEqualTo(3);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount())
+        assertThat(bufferMetrics.eventsWithMetadata().getCount())
                 .as("Empty metadata map should count for present metadata")
                 .isEqualTo(3);
     }
@@ -127,20 +127,20 @@ public class ArrayLockEventSlidingWindowTest {
                     ImmutableMap.of(lock, ChangeMetadata.created(PtBytes.toBytes("created" + i))));
             addLockEventWithMetadata(ImmutableSet.of(lock), Optional.of(metadata));
         });
-        assertThat(metadataMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE);
+        assertThat(bufferMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE);
+        assertThat(bufferMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE);
 
         // Counts are maintained if we replace an event with metadata of same size
         addLockEventWithMetadata(
                 ImmutableSet.of(LOCK_1),
                 Optional.of(LockRequestMetadata.of(ImmutableMap.of(LOCK_1, ChangeMetadata.unchanged()))));
-        assertThat(metadataMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE);
+        assertThat(bufferMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE);
+        assertThat(bufferMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE);
 
         // Both counts can decrease
         addLockEventWithMetadata(ImmutableSet.of(LOCK_1), Optional.empty());
-        assertThat(metadataMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
+        assertThat(bufferMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
+        assertThat(bufferMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
 
         // ChangeMetadata count can increase
         addLockEventWithMetadata(
@@ -149,8 +149,8 @@ public class ArrayLockEventSlidingWindowTest {
                         LOCK_1, ChangeMetadata.created(PtBytes.toBytes("created")),
                         LOCK_2, ChangeMetadata.unchanged(),
                         LOCK_3, ChangeMetadata.updated(PtBytes.toBytes("old"), PtBytes.toBytes("new"))))));
-        assertThat(metadataMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE + 1);
-        assertThat(metadataMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
+        assertThat(bufferMetrics.changeMetadata().getCount()).isEqualTo(WINDOW_SIZE + 1);
+        assertThat(bufferMetrics.eventsWithMetadata().getCount()).isEqualTo(WINDOW_SIZE - 1);
     }
 
     private void whenLogContainsEvents0To4() {

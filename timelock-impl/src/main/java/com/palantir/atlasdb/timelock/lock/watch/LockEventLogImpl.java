@@ -19,7 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -47,9 +47,9 @@ public class LockEventLogImpl implements LockEventLog {
             UUID logId,
             Supplier<LockWatches> watchesSupplier,
             HeldLocksCollection heldLocksCollection,
-            CurrentMetrics metadataMetrics) {
+            BufferMetrics bufferMetrics) {
         this.logId = logId;
-        this.slidingWindow = new ArrayLockEventSlidingWindow(1000, metadataMetrics);
+        this.slidingWindow = new ArrayLockEventSlidingWindow(1000, bufferMetrics);
         this.watchesSupplier = watchesSupplier;
         this.heldLocksCollection = heldLocksCollection;
     }

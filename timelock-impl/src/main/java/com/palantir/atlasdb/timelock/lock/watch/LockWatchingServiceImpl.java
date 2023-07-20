@@ -22,7 +22,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
-import com.palantir.atlasdb.timelock.lockwatches.CurrentMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
@@ -74,13 +74,13 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     private final ReadWriteLock watchesLock = new ReentrantReadWriteLock(true);
 
     public LockWatchingServiceImpl(
-            HeldLocksCollection heldLocksCollection, LeadershipId leadershipId, CurrentMetrics metadataMetrics) {
-        this(leadershipId.id(), heldLocksCollection, metadataMetrics);
+            HeldLocksCollection heldLocksCollection, LeadershipId leadershipId, BufferMetrics lockWatchMetrics) {
+        this(leadershipId.id(), heldLocksCollection, lockWatchMetrics);
     }
 
     @VisibleForTesting
-    LockWatchingServiceImpl(UUID logId, HeldLocksCollection heldLocksCollection, CurrentMetrics metadataMetrics) {
-        this.lockEventLog = new LockEventLogImpl(logId, watches::get, heldLocksCollection, metadataMetrics);
+    LockWatchingServiceImpl(UUID logId, HeldLocksCollection heldLocksCollection, BufferMetrics lockWatchMetrics) {
+        this.lockEventLog = new LockEventLogImpl(logId, watches::get, heldLocksCollection, lockWatchMetrics);
     }
 
     @Override

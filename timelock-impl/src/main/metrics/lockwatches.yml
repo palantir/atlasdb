@@ -1,0 +1,20 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.timelock.lockwatches'
+
+namespaces:
+  request:
+    docs: Metrics tracking LockWatch-related things in requests received by TimeLock
+    metrics:
+      changeMetadata:
+        docs: Number of change metadata objects contained in a lock request
+        type: histogram
+  buffer:
+    docs: Metrics tracking things currently stored in the LockWatchEvent buffer (sliding window)
+    metrics:
+      eventsWithMetadata:
+        docs: Number of events currently stored in the buffer that have non-absent metadata
+        type: counter
+      changeMetadata:
+        docs: Total number of change metadata objects currently stored in the buffer across all events
+        type: counter
+

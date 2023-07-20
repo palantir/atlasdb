@@ -106,5 +106,5 @@ dependencies {
 
 license {
     exclude '**/RequestMetrics.java'
-    exclude '**/CurrentMetrics.java'
+    exclude '**/BufferMetrics.java'
 }
