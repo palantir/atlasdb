@@ -1664,7 +1664,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
@@ -1702,7 +1702,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("KeyValueService returned more results than Get expected");
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
@@ -1733,7 +1733,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
 
         // Since one cell is cached, should only expect 1 to be present on internal call
         verify(spiedSnapshotTransaction)
@@ -1741,7 +1741,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq("getWithExpectedNumberOfCells"),
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3)),
-                        eq(2),
+                        eq(2L),
                         any(),
                         any());
     }
@@ -1771,7 +1771,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
 
         // Since one cell is cached, should only expect 1 to be present on internal call
         verify(spiedSnapshotTransaction)
@@ -1779,7 +1779,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq("getWithExpectedNumberOfCells"),
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
-                        eq(1),
+                        eq(1L),
                         any(),
                         any());
     }
@@ -1809,7 +1809,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
 
         // Even though Cell One is cached, it has empty value, so we still expect 2 values to be present
         verify(spiedSnapshotTransaction)
@@ -1817,7 +1817,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq("getWithExpectedNumberOfCells"),
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
-                        eq(2),
+                        eq(2L),
                         any(),
                         any());
     }
@@ -1847,7 +1847,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
@@ -1881,7 +1881,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
