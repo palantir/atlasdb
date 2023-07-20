@@ -22,6 +22,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.util.IndexEncodingUtils.DeterministicHashable;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -35,7 +36,7 @@ import javax.annotation.concurrent.Immutable;
  */
 @Unsafe
 @Immutable
-public class LockDescriptor implements Comparable<LockDescriptor>, Serializable {
+public class LockDescriptor implements Comparable<LockDescriptor>, Serializable, DeterministicHashable {
 
     private static final long serialVersionUID = 1L;
     private static final CharMatcher BASIC_PRINTABLE_ASCII = CharMatcher.inRange(' ', '~');
@@ -81,6 +82,12 @@ public class LockDescriptor implements Comparable<LockDescriptor>, Serializable 
             hashCode = 31 + Arrays.hashCode(bytes);
         }
         return hashCode;
+    }
+
+    @Override
+    public int deterministicHashCode() {
+        // for this class, hashCode() is deterministic since Arrays.hashCode(byte[]) is deterministic
+        return hashCode();
     }
 
     @Override

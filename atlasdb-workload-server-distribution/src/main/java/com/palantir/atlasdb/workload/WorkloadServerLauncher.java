@@ -48,6 +48,8 @@ import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.WriteOnceDeleteOnceWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.WriteOnceDeleteOnceWorkflows;
 import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflows;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
@@ -119,7 +121,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         AntithesisCassandraSidecarResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
                 0,
-                10,
+                2,
                 TimeUnit.SECONDS);
     }
 
@@ -150,6 +152,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().bankBalanceConfig();
         RandomWorkflowConfiguration randomWorkflowConfig =
                 configuration.install().randomConfig();
+        WriteOnceDeleteOnceWorkflowConfiguration writeOnceDeleteOnceConfig =
+                configuration.install().writeOnceDeleteOnceConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
@@ -168,7 +172,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 singleBusyCellReadNoTouchWorkflowConfiguration,
                                 environment.lifecycle()),
                         createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
-                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()));
+                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
+                        createWriteOnceDeleteOnceWorkflow(
+                                transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle()));
 
         log.info("antithesis: terminate");
 
@@ -351,6 +357,27 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         RandomWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .build();
+    }
+
+    private WorkflowAndInvariants<Workflow> createWriteOnceDeleteOnceWorkflow(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            WriteOnceDeleteOnceWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService executorService =
+                createExecutorService(workflowConfig, lifecycle, WriteOnceDeleteOnceWorkflows.class);
+        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
+                Map.of(
+                        workflowConfig.tableConfiguration().tableName(),
+                        workflowConfig.tableConfiguration().isolationLevel()),
+                Set.of());
+        return WorkflowAndInvariants.builder()
+                .workflow(WriteOnceDeleteOnceWorkflows.create(
+                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        WriteOnceDeleteOnceWorkflows.class.getSimpleName(),
+                        DurableWritesMetrics.of(taggedMetricRegistry)))
                 .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .build();
     }

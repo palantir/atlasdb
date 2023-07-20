@@ -23,8 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import java.net.InetSocketAddress;
+import com.palantir.util.io.AvailabilityRequirement;
 import org.apache.thrift.TException;
 import org.junit.Test;
 
@@ -33,17 +32,10 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final int WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS = 10000;
 
     private static CassandraClient client = mock(CassandraClient.class);
-
-    private static final ImmutableSet<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
-            InetSocketAddress.createUnresolved("1", 1),
-            InetSocketAddress.createUnresolved("2", 1),
-            InetSocketAddress.createUnresolved("3", 1),
-            InetSocketAddress.createUnresolved("4", 1),
-            InetSocketAddress.createUnresolved("5", 1));
     private static final String TABLE = "table";
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    private static final String VERSION_UNREACHABLE = CassandraKeyValueServices.VERSION_UNREACHABLE;
     private static final ImmutableList<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
     private static final ImmutableList<String> REST_OF_NODES = ImmutableList.of("4", "5");
     private static final ImmutableList<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
@@ -51,59 +43,80 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitSucceedsForSameSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.QUORUM);
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.ANY);
     }
 
     @Test
     public void waitThrowsForAllUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.QUORUM);
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.ANY);
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitSucceedsWithClusterHavingDownsizedAtRuntime() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
-    public void waitFailsOnMinorityOnSameVersionAndRestUnreachable() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.QUORUM);
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.ANY);
     }
 
     @Test
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.QUORUM);
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.ANY);
+    }
+
+    @Test
+    public void waitSucceedsWithClusterHavingDownsizedAtRuntime() throws TException {
+        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.QUORUM);
+    }
+
+    @Test
+    public void waitFailsForQuorumOnMinorityOnSameVersionAndRestUnreachable() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsThrows(AvailabilityRequirement.QUORUM);
+    }
+
+    @Test
+    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
+        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.QUORUM);
+    }
+
+    @Test
+    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.QUORUM);
     }
 
     @Test
     public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.QUORUM);
+    }
+
+    @Test
+    public void waitChecksForQuorumByDefault() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(
+                        NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, client, TABLE))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
+    }
+
+    @Test
+    public void waitSucceedsForAnyWithOnlyOneReachableHost() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_1, ImmutableList.of("5"), VERSION_UNREACHABLE, QUORUM_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement.ANY);
     }
 
     @Test
@@ -117,18 +130,21 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
                         ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                         ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, waitingClient, TABLE);
+        CassandraKeyValueServices.waitForSchemaVersions(
+                WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, waitingClient, TABLE, AvailabilityRequirement.QUORUM);
         verify(waitingClient, times(4)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrows() {
+    private void assertWaitForSchemaVersionsThrows(AvailabilityRequirement availabilityRequirement) {
         assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(
-                        NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, client, TABLE))
+                        NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, client, TABLE, availabilityRequirement))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cassandra cluster cannot come to agreement on schema versions");
     }
 
-    private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
-        CassandraKeyValueServices.waitForSchemaVersions(NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, client, TABLE);
+    private void assertWaitForSchemaVersionsDoesNotThrow(AvailabilityRequirement availabilityRequirement)
+            throws TException {
+        CassandraKeyValueServices.waitForSchemaVersions(
+                NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS, client, TABLE, availabilityRequirement);
     }
 }

@@ -121,6 +121,14 @@ acceptedBreaks:
       old: "method java.util.concurrent.ExecutorService com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService::createThreadPoolWihtoutSpans(java.lang.String,\
         \ int, int) @ com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl"
       justification: "Protected method"
+  "0.881.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter <T> long com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils::getCollectionSize(java.util.Collection<T>,\
+        \ ===java.util.function.Function<T, java.lang.Long>===)"
+      new: "parameter <T> long com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils::getCollectionSize(java.util.Collection<T>,\
+        \ ===java.util.function.ToLongFunction<T>===)"
+      justification: "Avoid autoboxing long to Long"
   "0.884.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.addedToInterface"

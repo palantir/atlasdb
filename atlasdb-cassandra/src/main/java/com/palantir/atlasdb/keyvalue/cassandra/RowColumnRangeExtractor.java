@@ -21,9 +21,9 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ColumnAndTimestamp;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.util.Pair;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
@@ -110,15 +110,15 @@ final class RowColumnRangeExtractor {
             }
             rowsToRawColumnCount.put(row, columns.size());
             for (ColumnOrSuperColumn c : columns) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                ColumnAndTimestamp columnAndTimestamp = CassandraKeyValueServices.decomposeColumnName(c.getColumn());
                 // Column name
-                TraceStatistics.incBytesRead(pair.lhSide);
+                TraceStatistics.incBytesRead(columnAndTimestamp.columnName());
                 // Column value
                 TraceStatistics.incBytesRead(c.getColumn().getValue().length);
 
-                long ts = pair.rhSide;
+                long ts = columnAndTimestamp.timestamp();
                 if (ts < startTs) {
-                    Cell cell = Cell.create(row, pair.lhSide);
+                    Cell cell = Cell.create(row, columnAndTimestamp.columnName());
                     LinkedHashMap<Cell, Value> cellToValue =
                             collector.computeIfAbsent(row, _b -> new LinkedHashMap<>(1));
                     if (cellToValue.containsKey(cell)) {

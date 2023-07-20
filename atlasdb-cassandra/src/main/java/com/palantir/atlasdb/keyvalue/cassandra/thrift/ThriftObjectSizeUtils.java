@@ -21,8 +21,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.RandomAccess;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CounterColumn;
@@ -52,7 +55,7 @@ public final class ThriftObjectSizeUtils {
                 currentMap -> getCollectionSize(currentMap.keySet(), ThriftObjectSizeUtils::getStringSize)
                         + getCollectionSize(
                                 currentMap.values(),
-                                mutations -> getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
+                                mutations -> getListSize(mutations, ThriftObjectSizeUtils::getMutationSize)));
         return approxBytesForKeys + approxBytesForValues;
     }
 
@@ -64,9 +67,9 @@ public final class ThriftObjectSizeUtils {
             long keySize = ThriftObjectSizeUtils.getByteBufferSize(key);
 
             tableToMutations.forEach((table, mutations) -> {
-                Long size = tableToSize.getOrDefault(table, 0L);
+                long size = tableToSize.getOrDefault(table, 0L);
                 size += keySize;
-                size += getCollectionSize(mutations, ThriftObjectSizeUtils::getMutationSize);
+                size += getListSize(mutations, ThriftObjectSizeUtils::getMutationSize);
 
                 tableToSize.put(table, size);
             });
@@ -79,7 +82,7 @@ public final class ThriftObjectSizeUtils {
         return getCollectionSize(
                 result.entrySet(),
                 rowResult -> ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
-                        + getCollectionSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
+                        + getListSize(rowResult.getValue(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
     }
 
     public static long getApproximateSizeOfColListsByKey(Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result) {
@@ -89,13 +92,13 @@ public final class ThriftObjectSizeUtils {
     }
 
     public static long getApproximateSizeOfKeySlices(List<KeySlice> slices) {
-        return getCollectionSize(slices, ThriftObjectSizeUtils::getKeySliceSize);
+        return getListSize(slices, ThriftObjectSizeUtils::getKeySliceSize);
     }
 
     public static long getCasByteCount(List<Column> updates) {
-        // TODO(nziebart): CAS actually writes more bytes than this, because the associated Paxos negotations must
+        // TODO(nziebart): CAS actually writes more bytes than this, because the associated Paxos negotiations must
         // be persisted
-        return getCollectionSize(updates, ThriftObjectSizeUtils::getColumnSize);
+        return getListSize(updates, ThriftObjectSizeUtils::getColumnSize);
     }
 
     public static long getColumnOrSuperColumnSize(ColumnOrSuperColumn columnOrSuperColumn) {
@@ -128,7 +131,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
         return getThriftEnumSize()
-                + getCollectionSize(cqlResult.getRows(), ThriftObjectSizeUtils::getCqlRowSize)
+                + getListSize(cqlResult.getRows(), ThriftObjectSizeUtils::getCqlRowSize)
                 + Integer.BYTES
                 + getCqlMetadataSize(cqlResult.getSchema());
     }
@@ -138,7 +141,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
         return getBytesSize(keySlice, KeySlice::bufferForKey, KeySlice::getKey)
-                + getCollectionSize(keySlice.getColumns(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize);
+                + getListSize(keySlice.getColumns(), ThriftObjectSizeUtils::getColumnOrSuperColumnSize);
     }
 
     public static long getStringSize(String string) {
@@ -163,7 +166,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
         return getBytesSize(counterSuperColumn, CounterSuperColumn::bufferForName, CounterSuperColumn::getName)
-                + getCollectionSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
+                + getListSize(counterSuperColumn.getColumns(), ThriftObjectSizeUtils::getCounterColumnSize);
     }
 
     private static long getCounterColumnSize(CounterColumn counterColumn) {
@@ -179,7 +182,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
         return getBytesSize(superColumn, SuperColumn::bufferForName, SuperColumn::getName)
-                + getCollectionSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
+                + getListSize(superColumn.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
     private static long getDeletionSize(Deletion deletion) {
@@ -196,7 +199,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
 
-        return getCollectionSize(predicate.getColumn_names(), ThriftObjectSizeUtils::getByteBufferSize)
+        return getListSize(predicate.getColumn_names(), ThriftObjectSizeUtils::getByteBufferSize)
                 + getSliceRangeSize(predicate.getSlice_range());
     }
 
@@ -233,7 +236,7 @@ public final class ThriftObjectSizeUtils {
             return getNullSize();
         }
         return getBytesSize(cqlRow, CqlRow::bufferForKey, CqlRow::getKey)
-                + getCollectionSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
+                + getListSize(cqlRow.getColumns(), ThriftObjectSizeUtils::getColumnSize);
     }
 
     private static long getThriftEnumSize() {
@@ -284,14 +287,40 @@ public final class ThriftObjectSizeUtils {
         return byteBuffer.remaining();
     }
 
-    public static <T> long getCollectionSize(Collection<T> collection, Function<T, Long> sizeFunction) {
+    public static <T> long getCollectionSize(@Nullable Collection<T> collection, ToLongFunction<T> sizeFunction) {
         if (collection == null) {
             return getNullSize();
         }
+        if (collection instanceof List) {
+            return getListSize((List<T>) collection, sizeFunction);
+        }
+        return sumSizes(collection, sizeFunction);
+    }
 
-        long sum = 0;
-        for (T item : collection) {
-            sum += sizeFunction.apply(item);
+    private static <T> long getListSize(@Nullable List<T> list, ToLongFunction<T> sizeFunction) {
+        if (list == null) {
+            return getNullSize();
+        }
+
+        // random access lists can be more efficiently accessed via List::get(int)
+        // as this avoids allocating iterator
+        if (list instanceof RandomAccess) {
+            long sum = 0L;
+            //noinspection ForLoopReplaceableByForEach -- performance sensitive
+            for (int i = 0; i < list.size(); i++) {
+                sum += sizeFunction.applyAsLong(list.get(i));
+            }
+            return sum;
+        }
+
+        return sumSizes(list, sizeFunction);
+    }
+
+    private static <T> long sumSizes(Collection<T> collection, ToLongFunction<T> sizeFunction) {
+        long sum = 0L;
+        //noinspection ForLoopReplaceableByStream -- performance sensitive, avoiding stream allocations
+        for (T t : collection) {
+            sum += sizeFunction.applyAsLong(t);
         }
         return sum;
     }

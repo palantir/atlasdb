@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.LockWatchStarter;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import java.util.Optional;
@@ -30,7 +31,11 @@ public interface LockWatchingService extends LockWatchStarter {
 
     <T> ValueAndLockWatchStateUpdate<T> runTask(Optional<LockWatchVersion> lastKnownVersion, Supplier<T> task);
 
-    void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token);
+    default void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
+        registerLock(locksTakenOut, token, Optional.empty());
+    }
+
+    void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token, Optional<LockRequestMetadata> metadata);
 
     void registerUnlock(Set<LockDescriptor> locksUnlocked);
 }

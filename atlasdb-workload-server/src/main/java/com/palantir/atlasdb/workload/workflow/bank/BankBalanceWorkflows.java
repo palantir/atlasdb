@@ -18,7 +18,7 @@ package com.palantir.atlasdb.workload.workflow.bank;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
@@ -132,7 +132,7 @@ public final class BankBalanceWorkflows {
                                     .endColumnExclusive(workflowConfiguration.numberOfAccounts())
                                     .build())
                     .stream()
-                    .collect(Collectors.toMap(ColumnValue::column, ColumnValue::value));
+                    .collect(Collectors.toMap(ColumnAndValue::column, ColumnAndValue::value));
             return IntStream.range(0, workflowConfiguration.numberOfAccounts())
                     .boxed()
                     .collect(Collectors.toMap(

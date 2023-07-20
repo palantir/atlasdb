@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.keyvalue.api.cache.StructureHolder;
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
 import com.palantir.atlasdb.workload.transaction.SimpleRangeQueryReader;
@@ -25,8 +25,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedRowCo
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.collection.Map;
@@ -58,7 +58,8 @@ final class SnapshotInvariantVisitor
     }
 
     @Override
-    public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
+    public Optional<InvalidWitnessedTransactionAction> visit(
+            WitnessedSingleCellReadTransactionAction readTransactionAction) {
         Optional<Integer> expected = fetchValueFromView(
                         readTransactionAction.table(), readTransactionAction.cell(), readView)
                 .value();
@@ -97,7 +98,7 @@ final class SnapshotInvariantVisitor
     @Override
     public Optional<InvalidWitnessedTransactionAction> visit(
             WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-        List<ColumnValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
+        List<ColumnAndValue> expectedReads = SimpleRangeQueryReader.createForSnapshot(readView)
                 .readRange(rowColumnRangeReadTransactionAction.originalQuery());
         if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
             return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()

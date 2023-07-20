@@ -22,9 +22,12 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -34,12 +37,14 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -104,8 +109,12 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        runIfDescriptorsMatchLockWatches(locksTakenOut, filteredLocks -> lockEventLog.logLock(filteredLocks, token));
+    public void registerLock(
+            Set<LockDescriptor> locksTakenOut, LockToken token, Optional<LockRequestMetadata> metadata) {
+        runIfDescriptorsMatchLockWatchesWithMetadata(
+                locksTakenOut,
+                metadata,
+                (filteredLocks, filteredMetadata) -> lockEventLog.logLock(filteredLocks, token, filteredMetadata));
     }
 
     @Override
@@ -147,16 +156,55 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     private void runIfDescriptorsMatchLockWatches(
             Set<LockDescriptor> unfiltered, Consumer<Set<LockDescriptor>> consumer) {
+        runIfDescriptorsMatchLockWatchesWithMetadata(
+                unfiltered, Optional.empty(), (lockDescriptors, unused) -> consumer.accept(lockDescriptors));
+    }
+
+    private void runIfDescriptorsMatchLockWatchesWithMetadata(
+            Set<LockDescriptor> unfilteredLocks,
+            Optional<LockRequestMetadata> unfilteredMetadata,
+            BiConsumer<Set<LockDescriptor>, Optional<LockRequestMetadata>> biConsumer) {
         watchesLock.readLock().lock();
         try {
             RangeSet<LockDescriptor> ranges = watches.get().ranges();
-            Set<LockDescriptor> filtered =
-                    unfiltered.stream().filter(ranges::contains).collect(Collectors.toSet());
-            if (!filtered.isEmpty()) {
-                consumer.accept(filtered);
+            Set<LockDescriptor> filteredLocks =
+                    unfilteredLocks.stream().filter(ranges::contains).collect(Collectors.toSet());
+            if (filteredLocks.isEmpty()) {
+                return;
             }
+            // Filtering metadata after deciding if we should even proceed might save us some computation
+            biConsumer.accept(
+                    filteredLocks,
+                    filterMetadataBasedOnFilteredLocks(unfilteredLocks, filteredLocks, unfilteredMetadata));
         } finally {
             watchesLock.readLock().unlock();
         }
+    }
+
+    // For an efficient encoding, we expect that metadata is never attached to a lock descriptor that is not contained
+    // in the original request, so filtering metadata based on the already filtered locks is sufficient and even
+    // enforces this invariant. It is also cheaper than calling RangeSet::contains.
+    // We assert that the invariant holds for non-production code to catch any attempts of violating that invariant
+    // early.
+    @SuppressWarnings("BadAssert")
+    private static Optional<LockRequestMetadata> filterMetadataBasedOnFilteredLocks(
+            Set<LockDescriptor> unfilteredLocks,
+            Set<LockDescriptor> filteredLocks,
+            Optional<LockRequestMetadata> unfilteredMetadata) {
+        return unfilteredMetadata
+                .map(LockRequestMetadata::lockDescriptorToChangeMetadata)
+                .flatMap(unfilteredLockMetadata -> {
+                    Map<LockDescriptor, ChangeMetadata> filteredLockMetadata = KeyedStream.ofEntries(
+                                    unfilteredLockMetadata.entrySet().stream())
+                            .filterKeys(lockDescriptor -> {
+                                assert unfilteredLocks.contains(lockDescriptor) : "Unknown lock descriptor in metadata";
+                                return filteredLocks.contains(lockDescriptor);
+                            })
+                            .collectToMap();
+                    if (filteredLockMetadata.isEmpty()) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(LockRequestMetadata.of(filteredLockMetadata));
+                });
     }
 }

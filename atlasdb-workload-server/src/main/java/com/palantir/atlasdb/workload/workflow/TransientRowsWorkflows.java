@@ -28,7 +28,7 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.ReadableTransactionStore;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.logsafe.SafeArg;
@@ -38,7 +38,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -129,22 +128,20 @@ public final class TransientRowsWorkflows {
 
     private static Stream<CrossCellInconsistency> findInconsistencyInTransactionActions(
             List<WitnessedTransactionAction> actions) {
-        Set<WitnessedReadTransactionAction> readTransactionActions = actions.stream()
-                .filter(WitnessedReadTransactionAction.class::isInstance)
-                .map(action -> (WitnessedReadTransactionAction) action)
+        Set<WitnessedSingleCellReadTransactionAction> readTransactionActions = actions.stream()
+                .filter(WitnessedSingleCellReadTransactionAction.class::isInstance)
+                .map(action -> (WitnessedSingleCellReadTransactionAction) action)
                 .collect(Collectors.toSet());
         if (readTransactionActions.size() == 0) {
             return Stream.empty();
         }
-        WitnessedReadTransactionAction summaryRowRead = readTransactionActions.stream()
+        WitnessedSingleCellReadTransactionAction summaryRowRead = readTransactionActions.stream()
                 .filter(action -> action.cell().key() == SUMMARY_ROW)
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of the summary row", SafeArg.of("actions", actions)));
-        WitnessedReadTransactionAction normalRowRead = readTransactionActions.stream()
-                .filter(action -> Objects.equals(
-                                action.cell().key(), summaryRowRead.cell().column())
-                        && action.cell().column() == COLUMN)
+        WitnessedSingleCellReadTransactionAction normalRowRead = readTransactionActions.stream()
+                .filter(action -> action.cell().key() != SUMMARY_ROW)
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of a corresponding normal row", SafeArg.of("actions", actions)));

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.transaction.witnessed;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -32,7 +32,7 @@ public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedT
 
     // This is a List rather than a Set or Map because the ordering in which the columns and values are returned is
     // important (it must match the ordering specified by the contract of row column range reads).
-    List<ColumnValue> columnsAndValues();
+    List<ColumnAndValue> columnsAndValues();
 
     @Override
     default <T> T accept(WitnessedTransactionActionVisitor<T> visitor) {
@@ -43,7 +43,7 @@ public interface WitnessedRowColumnRangeReadTransactionAction extends WitnessedT
     default void check() {
         Set<Integer> knownColumns = new HashSet<>();
         Set<Integer> duplicateColumns = columnsAndValues().stream()
-                .map(ColumnValue::column)
+                .map(ColumnAndValue::column)
                 .filter(column -> !knownColumns.add(column))
                 .collect(Collectors.toSet());
         Preconditions.checkState(

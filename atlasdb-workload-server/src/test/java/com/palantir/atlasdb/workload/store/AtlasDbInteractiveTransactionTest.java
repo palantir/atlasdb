@@ -30,8 +30,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -65,7 +65,7 @@ public final class AtlasDbInteractiveTransactionTest {
                 }))
                 .containsExactly(
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE),
-                        WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
+                        WitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
                         WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE));
     }
 
@@ -77,9 +77,10 @@ public final class AtlasDbInteractiveTransactionTest {
                     transaction.read(TABLE_1, WORKLOAD_CELL_ONE);
                 }))
                 .containsExactly(
-                        WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
+                        WitnessedSingleCellReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.empty()),
                         WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE),
-                        WitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
+                        WitnessedSingleCellReadTransactionAction.of(
+                                TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
     }
 
     @Test
@@ -96,7 +97,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                         .row(WORKLOAD_CELL_TWO.key())
                                         .columnRangeSelection(ColumnRangeSelection.all())
                                         .build())
-                                .addColumnsAndValues(ColumnValue.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
+                                .addColumnsAndValues(ColumnAndValue.of(WORKLOAD_CELL_TWO.column(), VALUE_ONE))
                                 .build());
     }
 
@@ -130,7 +131,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
                                         .isEqualTo(IntStream.range(0, iterationCount)
-                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }
 
@@ -158,7 +159,7 @@ public final class AtlasDbInteractiveTransactionTest {
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
                                         .isEqualTo(IntStream.range(startInclusive, endExclusive)
-                                                .mapToObj(column -> ColumnValue.of(column, VALUE_ONE))
+                                                .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }
 

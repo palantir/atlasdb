@@ -7,6 +7,11 @@ dependencies {
     compileOnly 'com.fasterxml.jackson.core:jackson-databind'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
+
+    testImplementation project(':atlasdb-api')
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    testImplementation 'junit:junit'
+    testImplementation 'org.assertj:assertj-core'
 }
 
 subprojects {
@@ -27,4 +32,10 @@ subprojects {
         implementation 'io.undertow:undertow-core'
     }
     tasks.licenseMain.enabled = false
+}
+
+conjure {
+    java {
+        excludeEmptyOptionals = true
+    }
 }

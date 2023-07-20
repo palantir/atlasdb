@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.math.IntMath;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -32,8 +34,16 @@ import org.immutables.value.Value;
 public class BatchSizeIncreasingIterator<T> implements Closeable {
     private static final SafeLogger log = SafeLoggerFactory.get(BatchSizeIncreasingIterator.class);
 
+    @VisibleForTesting
+    static final Integer MAX_FACTOR = 8;
+
+    @VisibleForTesting
+    static final Integer INCREASE_FACTOR = 4;
+
     private final int originalBatchSize;
     private final BatchProvider<T> batchProvider;
+
+    private final int maxBatchSize;
 
     private ClosableIterator<T> currentResults;
     private byte[] lastToken;
@@ -51,6 +61,8 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
         if (currentResults != null) {
             this.lastBatchSize = originalBatchSize;
         }
+        this.maxBatchSize = Math.min(
+                IntMath.saturatedMultiply(originalBatchSize, MAX_FACTOR), AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
@@ -64,7 +76,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             return originalBatchSize;
         }
         final long batchSize;
-        long maxNewBatchSize = numReturned * 4;
+        long maxNewBatchSize = numReturned * INCREASE_FACTOR;
         if (numNotDeleted == 0) {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
             batchSize = maxNewBatchSize;
@@ -72,7 +84,7 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             batchSize = Math.min(
                     (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
         }
-        return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
+        return (int) Math.min(batchSize, maxBatchSize);
     }
 
     private void updateResultsIfNeeded() {
@@ -114,6 +126,11 @@ public class BatchSizeIncreasingIterator<T> implements Closeable {
             lastToken = batchProvider.getLastToken(list);
         }
         return ImmutableBatchResult.of(list, isLastBatch);
+    }
+
+    @VisibleForTesting
+    int getMaxBatchSize() {
+        return maxBatchSize;
     }
 
     @Value.Immutable

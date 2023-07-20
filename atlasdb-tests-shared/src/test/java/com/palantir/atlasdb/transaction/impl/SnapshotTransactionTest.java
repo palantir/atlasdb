@@ -2718,6 +2718,21 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void setsRequestedCellCommitLocksCountCorrectlyForMultipleTables() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
+        overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_CELL);
+
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE2, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0 + 1);
+    }
+
+    @Test
     public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
         for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
             putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);

@@ -29,7 +29,7 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.store.ReadOnlyTransactionStore;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionAction;
@@ -98,7 +98,7 @@ public class SingleBusyCellReadNoTouchWorkflowsTest {
                 .map(WitnessedTransaction::actions)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        assertThat(witnessedTransactionActions).anyMatch(WitnessedReadTransactionAction.class::isInstance);
+        assertThat(witnessedTransactionActions).anyMatch(WitnessedSingleCellReadTransactionAction.class::isInstance);
         assertThat(witnessedTransactionActions).anyMatch(WitnessedWriteTransactionAction.class::isInstance);
         assertThat(witnessedTransactionActions).anyMatch(WitnessedDeleteTransactionAction.class::isInstance);
     }
@@ -108,7 +108,8 @@ public class SingleBusyCellReadNoTouchWorkflowsTest {
         WorkflowHistory workflowHistory = workflow.run();
 
         Set<WitnessedTransaction> witnessedTransactionsWithReads = workflowHistory.history().stream()
-                .filter(txn -> txn.actions().stream().anyMatch(WitnessedReadTransactionAction.class::isInstance))
+                .filter(txn ->
+                        txn.actions().stream().anyMatch(WitnessedSingleCellReadTransactionAction.class::isInstance))
                 .collect(Collectors.toSet());
 
         Set<WitnessedTransaction> witnessedTransactionsWithWritesOrDeletes = workflowHistory.history().stream()

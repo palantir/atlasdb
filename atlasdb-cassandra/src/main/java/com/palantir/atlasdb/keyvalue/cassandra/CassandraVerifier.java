@@ -40,6 +40,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.io.AvailabilityRequirement;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashSet;
@@ -238,18 +239,27 @@ public final class CassandraVerifier {
         }
     }
 
+    @VisibleForTesting
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
-    private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
+    static boolean keyspaceAlreadyExists(CassandraClient client, CassandraVerifierConfig verifierConfig)
             throws TException {
-        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
+        try {
             client.describe_keyspace(verifierConfig.keyspace());
             CassandraKeyValueServices.waitForSchemaVersions(
                     verifierConfig.schemaMutationTimeoutMillis(),
                     client,
-                    "while checking if schemas diverged on startup");
+                    "while checking if schemas diverged on startup",
+                    AvailabilityRequirement.ANY);
             return true;
         } catch (NotFoundException e) {
             return false;
+        }
+    }
+
+    private static boolean keyspaceAlreadyExists(CassandraServer host, CassandraVerifierConfig verifierConfig)
+            throws TException {
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
+            return keyspaceAlreadyExists(client, verifierConfig);
         }
     }
 
@@ -257,6 +267,8 @@ public final class CassandraVerifier {
             throws TException {
         try (CassandraClient client = CassandraClientFactory.getClientInternal(host, verifierConfig.clientConfig())) {
             KsDef ksDef = createKsDefForFresh(client, verifierConfig);
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    verifierConfig.schemaMutationTimeoutMillis(), client, "before adding the initial empty keyspace");
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", verifierConfig.keyspace()));
             CassandraKeyValueServices.waitForSchemaVersions(

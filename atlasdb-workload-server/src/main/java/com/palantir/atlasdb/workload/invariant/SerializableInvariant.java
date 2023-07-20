@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import com.palantir.atlasdb.workload.store.ColumnValue;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.atlasdb.workload.transaction.InMemoryTransactionReplayer;
 import com.palantir.atlasdb.workload.transaction.RangeQueryReader;
@@ -26,8 +26,8 @@ import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedSingl
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRangeReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionActionVisitor;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
@@ -67,7 +67,8 @@ public enum SerializableInvariant implements TransactionInvariant {
         private final RangeQueryReader rangeQueryReader = SimpleRangeQueryReader.create(inMemoryTransactionReplayer);
 
         @Override
-        public Optional<InvalidWitnessedTransactionAction> visit(WitnessedReadTransactionAction readTransactionAction) {
+        public Optional<InvalidWitnessedTransactionAction> visit(
+                WitnessedSingleCellReadTransactionAction readTransactionAction) {
             Optional<Integer> expectedValue = inMemoryTransactionReplayer
                     .getValues()
                     .get(TableAndWorkloadCell.of(readTransactionAction.table(), readTransactionAction.cell()))
@@ -99,7 +100,7 @@ public enum SerializableInvariant implements TransactionInvariant {
         @Override
         public Optional<InvalidWitnessedTransactionAction> visit(
                 WitnessedRowColumnRangeReadTransactionAction rowColumnRangeReadTransactionAction) {
-            List<ColumnValue> expectedReads =
+            List<ColumnAndValue> expectedReads =
                     rangeQueryReader.readRange(rowColumnRangeReadTransactionAction.originalQuery());
             if (!expectedReads.equals(rowColumnRangeReadTransactionAction.columnsAndValues())) {
                 return Optional.of(InvalidWitnessedRowColumnRangeReadTransactionAction.builder()

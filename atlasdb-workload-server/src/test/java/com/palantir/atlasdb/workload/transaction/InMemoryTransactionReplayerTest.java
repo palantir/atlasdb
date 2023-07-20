@@ -25,7 +25,7 @@ import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORK
 import static com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers.WORKLOAD_CELL_TWO;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedSingleCellReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
@@ -43,8 +43,8 @@ public final class InMemoryTransactionReplayerTest {
     @Test
     public void readActionsAreIgnored() {
         InMemoryTransactionReplayer inMemoryTransactionReplayer = new InMemoryTransactionReplayer();
-        inMemoryTransactionReplayer.visit(
-                ImmutableWitnessedReadTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
+        inMemoryTransactionReplayer.visit(ImmutableWitnessedSingleCellReadTransactionAction.of(
+                TABLE_1, WORKLOAD_CELL_ONE, Optional.of(VALUE_ONE)));
         assertThat(inMemoryTransactionReplayer.getValues()).isEmpty();
     }
 
