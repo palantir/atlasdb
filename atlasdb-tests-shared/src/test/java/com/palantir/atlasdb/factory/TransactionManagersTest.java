@@ -17,7 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -26,10 +25,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -76,8 +72,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.dialogue.clients.DialogueClients;
-import com.palantir.leader.PingableLeader;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.AutoDelegate_LockService;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -89,7 +83,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
@@ -109,7 +102,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -165,7 +157,6 @@ public class TransactionManagersTest {
     private AtlasDbConfig config;
     private AtlasDbRuntimeConfig mockAtlasDbRuntimeConfig;
 
-    private Consumer<Object> registrar;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
@@ -208,8 +199,6 @@ public class TransactionManagersTest {
         when(mockAtlasDbRuntimeConfig.timelockRuntime()).thenReturn(Optional.empty());
         when(mockAtlasDbRuntimeConfig.remotingClient()).thenReturn(RemotingClientConfigs.DEFAULT);
 
-        registrar = mock(Consumer.class);
-
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
@@ -236,7 +225,6 @@ public class TransactionManagersTest {
                         .userAgent(USER_AGENT)
                         .globalMetricsRegistry(new MetricRegistry())
                         .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                        .registrar(registrar)
                         .runtimeConfig(Refreshable.only(Optional.empty()))
                         .runtimeConfigSupplier(Optional::empty)
                         .build())
@@ -276,29 +264,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void remoteCallsElidedIfTalkingToLocalServer() throws IOException {
-        setUpForLocalServices();
-        setUpLeaderBlockInConfig();
-
-        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
-        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
-
-        lockAndTimestamp.timelock().getFreshTimestamp();
-        lockAndTimestamp.lock().currentTimeMillis();
-
-        availableServer.verify(
-                0,
-                postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                        .withHeader(USER_AGENT_HEADER, equalTo(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(
-                0,
-                postRequestedFor(urlMatching(LOCK_PATH))
-                        .withHeader(USER_AGENT_HEADER, equalTo(EXPECTED_USER_AGENT_STRING)));
-    }
-
-    @Test
     public void tryUnlockIsAsync() throws IOException {
-        setUpForLocalServices();
         setUpLeaderBlockInConfig();
 
         ThreadLocal<Boolean> inRequest = ThreadLocal.withInitial(() -> false);
@@ -351,7 +317,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build()
                 .serializable();
 
@@ -412,7 +377,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build()
                 .serializable();
         manager.registerClosingCallback(callback);
@@ -432,7 +396,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build()
                 .serializable();
         assertThat(metrics.getNames().stream().anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)))
@@ -453,7 +416,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .serviceIdentifierOverride("overriden")
                 .build();
 
@@ -473,7 +435,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build();
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
     }
@@ -493,7 +454,6 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build();
 
         assertThat(transactionManagers.serviceName()).isEqualTo("namespace");
@@ -510,40 +470,9 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(metrics)
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .build();
 
         assertThat(transactionManagers.serviceName()).isEqualTo("UNKNOWN");
-    }
-
-    @Test
-    public void interruptingLocalLeaderElectionTerminates() throws IOException {
-        Leaders.LocalPaxosServices localPaxosServices = Leaders.createAndRegisterLocalServices(
-                metricsManager,
-                registrar,
-                ImmutableLeaderConfig.builder()
-                        .localServer("https://example")
-                        .quorumSize(1)
-                        .addLeaders("https://example")
-                        .acceptorLogDir(temporaryFolder.newFolder())
-                        .learnerLogDir(temporaryFolder.newFolder())
-                        .build(),
-                USER_AGENT);
-        LockService lockService = LockServiceImpl.create();
-        LockService leadershipLock = AwaitingLeadershipProxy.newProxyInstance(
-                LockService.class, () -> lockService, localPaxosServices.leadershipCoordinator());
-        LockService localOrRemoteLock = LocalOrRemoteProxy.newProxyInstance(
-                LockService.class, leadershipLock, null, CompletableFuture.completedFuture(true));
-        try {
-            Thread.currentThread().interrupt();
-            assertThatCode(localOrRemoteLock::currentTimeMillis)
-                    .as("proxy correctly handles interrupts")
-                    .isInstanceOf(SafeIllegalStateException.class);
-            assertThat(Thread.currentThread().isInterrupted()).isTrue();
-        } finally {
-            // clear the interrupt flag to avoid affecting future tests
-            Thread.interrupted();
-        }
     }
 
     @Test
@@ -593,14 +522,12 @@ public class TransactionManagersTest {
                 .userAgent(USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .lockImmutableTsOnReadOnlyTransactions(option)
                 .build();
     }
 
     @Test
     public void metricsAreNotDirectlyReportedFromLocalService() throws IOException {
-        setUpForLocalServices();
         setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreNotRecorded(
@@ -699,7 +626,6 @@ public class TransactionManagersTest {
                 .userAgent(UserAgent.of(UserAgent.Agent.of("test", "0.0.0")))
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(registrar)
                 .addSchemas(GenericTestSchema.getSchema())
                 .runtimeConfigSupplier(() -> Optional.of(atlasDbRuntimeConfig))
                 .build()
@@ -753,20 +679,6 @@ public class TransactionManagersTest {
                 .isEqualTo(1L);
     }
 
-    private void setUpForLocalServices() throws IOException {
-        doAnswer(invocation -> {
-                    // Configure our server to reply with the same server ID as the registered PingableLeader.
-                    PingableLeader localPingableLeader = invocation.getArgument(0);
-                    availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
-                            .withStatus(200)
-                            .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes(StandardCharsets.UTF_8))));
-                    return null;
-                })
-                .when(registrar)
-                .accept(isA(PingableLeader.class));
-        setUpLeaderBlockInConfig();
-    }
-
     private void setUpForRemoteServices() throws IOException {
         availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
         setUpLeaderBlockInConfig();
@@ -807,7 +719,6 @@ public class TransactionManagersTest {
                         metricsManager,
                         config,
                         Refreshable.only(mockAtlasDbRuntimeConfig),
-                        registrar,
                         LockServiceImpl::create,
                         () -> ts,
                         invalidator,

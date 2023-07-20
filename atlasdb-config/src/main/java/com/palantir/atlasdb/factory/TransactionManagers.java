@@ -170,11 +170,6 @@ public abstract class TransactionManagers {
     abstract Set<Schema> schemas();
 
     @Value.Default
-    Consumer<Object> registrar() {
-        return resource -> {};
-    }
-
-    @Value.Default
     LockServerOptions lockServerOptions() {
         return LockServerConfigs.DEFAULT;
     }
@@ -381,7 +376,6 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config(),
                         runtime,
-                        registrar(),
                         () -> LockServiceImpl.create(lockServerOptions()),
                         atlasFactory::getManagedTimestampService,
                         atlasFactory.getTimestampStoreInvalidator(),
@@ -929,7 +923,6 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config,
                         runtimeConfigSupplier,
-                        registrar,
                         lock,
                         time,
                         invalidator,
