@@ -84,7 +84,6 @@ import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintExcept
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -99,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
@@ -1802,10 +1802,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public void putWithMetadata(
-            TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
-        Map<Cell, byte[]> valuesOnly =
-                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value);
+    public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
+        Map<Cell, byte[]> valuesOnly = Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value);
         Map<Cell, ChangeMetadata> metadataOnly =
                 Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata);
         putWithMetadataInternal(tableRef, valuesOnly, metadataOnly);
@@ -2582,28 +2580,32 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     protected LocksAndMetadata getLocksAndMetadataForWrites() {
-        ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder = ImmutableSet.builder();
-        ImmutableMap.Builder<LockDescriptor, ChangeMetadata>
-                lockDescriptorToChangeMetadataBuilder = ImmutableMap.builder();
+        Set<LockDescriptor> lockDescriptors = new HashSet<>();
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = new HashMap<>();
         long cellLockCount = 0L;
         long rowLockCount = 0L;
         for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
+
+            int previousLockCount = lockDescriptors.size();
             if (conflictHandler.lockCellsForConflicts()) {
-                cellLockCount += collectCellLocks(lockDescriptorBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                collectCellLocks(lockDescriptors, lockDescriptorToChangeMetadata, tableRef);
             }
+            cellLockCount += lockDescriptors.size() - previousLockCount;
+
+            previousLockCount = lockDescriptors.size();
             if (conflictHandler.lockRowsForConflicts()) {
-                rowLockCount += collectRowLocks(lockDescriptorBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                collectRowLocks(lockDescriptors, lockDescriptorToChangeMetadata, tableRef);
             }
+            rowLockCount += lockDescriptors.size() - previousLockCount;
         }
-        lockDescriptorBuilder.add(AtlasRowLockDescriptor.of(
+        lockDescriptors.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         cellCommitLocksRequested = cellLockCount;
         rowCommitLocksRequested = rowLockCount + 1;
-        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata = lockDescriptorToChangeMetadataBuilder.build();
         return LocksAndMetadata.of(
-                lockDescriptorBuilder.build(),
+                lockDescriptors,
                 // For now, lock request metadata only consists of change metadata. If it is absent, we can save
                 // computation by not doing an index encoding
                 lockDescriptorToChangeMetadata.isEmpty()
@@ -2611,32 +2613,24 @@ public class SnapshotTransaction extends AbstractTransaction
                         : Optional.of(LockRequestMetadata.of(lockDescriptorToChangeMetadata)));
     }
 
-    /**
-     * Returns the number of lock descriptors that were added
-     */
-    private Long collectCellLocks(
-            ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder,
-            ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
+    private void collectCellLocks(
+            Set<LockDescriptor> lockDescriptors,
+            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata,
             TableReference tableRef) {
-        long locksAdded = 0;
         Map<Cell, ChangeMetadata> changeMetadataForWrites = getChangeMetadataForWrites(tableRef);
         for (Cell cell : getLocalWrites(tableRef).keySet()) {
             LockDescriptor lockDescriptor =
                     AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
-            lockDescriptorBuilder.add(lockDescriptor);
-            locksAdded++;
+            lockDescriptors.add(lockDescriptor);
             if (changeMetadataForWrites.containsKey(cell)) {
-                lockDescriptorToChangeMetadataBuilder.put(lockDescriptor, changeMetadataForWrites.get(cell));
+                lockDescriptorToChangeMetadata.put(lockDescriptor, changeMetadataForWrites.get(cell));
             }
         }
     }
 
-    /**
-     * Returns the number of lock descriptors that were added
-     */
-    private Long collectRowLocks(
-            ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder,
-            ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
+    private void collectRowLocks(
+            Set<LockDescriptor> lockDescriptors,
+            Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata,
             TableReference tableRef) {
         Map<Cell, ChangeMetadata> changeMetadataForWrites = getChangeMetadataForWrites(tableRef);
         Cell lastCell = null;

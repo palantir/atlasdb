@@ -81,7 +81,6 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -97,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -2646,8 +2646,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction txn = getSnapshotTransactionWith(
                 timelockService, ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
 
-        txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         verifyLockWasCalledWithMetadataWhenCommitting(
                 txn,
@@ -2678,10 +2677,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         TABLE2,
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
-        txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-        txn.putWithMetadata(
-                TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
         LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL_2.getRowName());
@@ -3013,8 +3010,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         });
                         return Maps.transformValues(valuesToPut, ValueAndChangeMetadata::metadata);
                     } else {
-                        Map<Cell, byte[]> valuesOnly =
-                                Maps.transformValues(valuesToPut, ValueAndChangeMetadata::value);
+                        Map<Cell, byte[]> valuesOnly = Maps.transformValues(valuesToPut, ValueAndChangeMetadata::value);
                         tasks.add(() -> {
                             txn.put(TABLE, valuesOnly);
                             return null;
