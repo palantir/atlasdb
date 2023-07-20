@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.containers;
 
 import com.datastax.driver.core.Cluster;
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
@@ -24,8 +23,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
@@ -37,7 +34,6 @@ import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -48,13 +44,6 @@ public class CassandraContainer extends Container {
     static final String PASSWORD = "cassandra";
     private static final String CONTAINER_NAME = "cassandra";
     private static final String THROWAWAY_CONTAINER_NAME = "cassandra2";
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
-            .quorumSize(1)
-            .localServer("localhost")
-            .leaders(ImmutableSet.of("localhost"))
-            .build());
 
     private final CassandraKeyValueServiceConfig config;
     private final String dockerComposeFile;

@@ -80,7 +80,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
                 new InMemoryAsyncAtlasDbConfig(eventuallySucceed),
                 Refreshable.only(Optional.empty()),
                 Optional.empty(),
-                Optional.empty(),
                 null,
                 initializeAsync);
     }

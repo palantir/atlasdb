@@ -15,13 +15,12 @@
  */
 package com.palantir.timelock.paxos;
 
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.function.Supplier;
 
 public interface TimestampCreator extends AutoCloseable {
-    Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig);
+    Supplier<ManagedTimestampService> createTimestampService(Client client);
 
     @Override
     void close();

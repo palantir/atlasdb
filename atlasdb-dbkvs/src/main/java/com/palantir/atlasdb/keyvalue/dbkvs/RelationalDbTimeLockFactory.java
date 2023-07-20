@@ -19,7 +19,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
@@ -54,13 +53,11 @@ public class RelationalDbTimeLockFactory implements DbTimeLockFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig,
             boolean initializeAsync) {
         return delegate.createRawKeyValueService(
                 metricsManager,
                 config,
                 runtimeConfig,
-                Optional.of(leaderConfig),
                 Optional.empty(), // This refers to an AtlasDB namespace - we use the config to talk to the db
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE, // This is how we give out timestamps!
                 initializeAsync);
