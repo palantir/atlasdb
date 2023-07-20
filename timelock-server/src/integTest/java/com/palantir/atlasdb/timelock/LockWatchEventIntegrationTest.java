@@ -458,7 +458,7 @@ public final class LockWatchEventIntegrationTest {
         });
     }
 
-    private <T, E extends Exception> void performTransactionTaskLockingAndUnlockingCells(TransactionTask<T, E> task) {
+    private <T> void performTransactionTaskLockingAndUnlockingCells(TransactionTask<T, ?> task) {
         try {
             txnManager.runTaskThrowOnConflict(task);
         } catch (Exception e) {
