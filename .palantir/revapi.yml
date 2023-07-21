@@ -173,3 +173,13 @@ acceptedBreaks:
         \ boolean)"
       justification: "all usage or implementations of the two broken methods are entirely\
         \ at compile time of the consumer or within this repo itself"
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.cassandra.CassandraAtlasDbFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ java.util.Optional<com.palantir.atlasdb.config.LeaderConfig>, java.util.Optional<java.lang.String>,\
+        \ java.util.function.LongSupplier, boolean)"
+      new: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.cassandra.CassandraAtlasDbFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ java.util.Optional<java.lang.String>, java.util.function.LongSupplier, boolean)"
+      justification: "will only be a compile break at worst for users and consumers"
