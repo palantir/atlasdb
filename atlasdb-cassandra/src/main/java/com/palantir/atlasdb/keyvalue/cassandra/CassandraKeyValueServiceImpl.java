@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.codahale.metrics.Counter;
 import com.datastax.driver.core.exceptions.DriverInternalError;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
@@ -39,6 +40,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.protobuf.ByteString;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -130,6 +132,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -245,6 +248,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraVerifierConfig verifierConfig;
+    private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
 
     public static CassandraKeyValueService createForTesting(
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
@@ -412,6 +416,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
+        Counter notLatestVisibleValueCellFilterCounter = // register counter once and reuse
+                metricsManager.registerOrGetCounter(ValueExtractor.class, CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
+        Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory = cellValueMap ->
+                new ValueExtractor(metricsManager, cellValueMap, notLatestVisibleValueCellFilterCounter);
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 metricsManager,
@@ -419,7 +427,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 asyncKeyValueService,
                 runtimeConfig,
                 clientPool,
-                mutationTimestampProvider);
+                mutationTimestampProvider,
+                extractorFactory);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -431,7 +440,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             AsyncKeyValueService asyncKeyValueService,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
-            CassandraMutationTimestampProvider mutationTimestampProvider) {
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory) {
         super(createBlockingThreadpool(config, runtimeConfig.get().servers(), metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
@@ -444,7 +454,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfig);
-        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistencyProvider);
+        this.rangeLoader = new RangeLoader(clientPool, queryRunner, readConsistencyProvider, extractorFactory);
         this.cellValuePutter = new CellValuePutter(
                 runtimeConfig,
                 clientPool,
@@ -459,6 +469,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 new CassandraTableDropper(config, clientPool, tableMetadata, cassandraTableTruncator);
         this.runtimeConfig = runtimeConfig;
         this.verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
+        this.extractorFactory = extractorFactory;
     }
 
     private static ExecutorService createBlockingThreadpool(
@@ -674,7 +685,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     .collect(Collectors.toList());
         }
 
-        ValueExtractor extractor = new ValueExtractor(metricsManager, Maps.newHashMapWithExpectedSize(result.size()));
+        ResultsExtractor<Value> extractor = extractorFactory.apply(Maps.newHashMapWithExpectedSize(result.size()));
         extractor.extractResults(Multimaps.asMap(result), startTs, ColumnSelection.all());
         return extractor.asMap();
     }
@@ -760,7 +771,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
         }
 
-        StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, startTs);
+        StartTsResultsCollector collector = new StartTsResultsCollector(startTs, extractorFactory);
         cellLoader.loadWithTs(
                 "getRows",
                 tableRef,
@@ -804,7 +815,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     Multimaps.invertFrom(Multimaps.forMap(timestampByCell), HashMultimap.create());
             ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
             for (long ts : cellsByTs.keySet()) {
-                StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, ts);
+                StartTsResultsCollector collector = new StartTsResultsCollector(ts, extractorFactory);
                 cellLoader.loadWithTs(
                         "get",
                         tableRef,
@@ -823,7 +834,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private Map<Cell, Value> get(
             String kvsMethodName, TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
-        StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
+        StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive, extractorFactory);
         cellLoader.loadWithTs(
                 kvsMethodName,
                 tableRef,

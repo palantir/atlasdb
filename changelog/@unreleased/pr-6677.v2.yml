@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: "Reuse notLatestVisibleValueCellFilterCounter \n\nAvoid expensive metric
+    name computation for each value extraction by\nregistering the notLatestVisibleValueCellFilterCounter
+    once and reusing\nit throughout the lifetime.\n\nNote that this includes several
+    internal API changes; however, these\nshould not be an issue for any known AtlasDB
+    consumers.\n\nCellLoader.loadWithTs minimizes unobserved tracing overhead"
+  links:
+  - https://github.com/palantir/atlasdb/pull/6677

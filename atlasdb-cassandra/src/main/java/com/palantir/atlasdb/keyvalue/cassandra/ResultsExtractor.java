@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.codahale.metrics.Counter;
-import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -109,10 +107,4 @@ public abstract class ResultsExtractor<T> {
             long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts);
 
     public abstract Map<Cell, T> asMap();
-
-    protected Counter getNotLatestVisibleValueCellFilterCounter(Class<?> clazz) {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetCounter(
-                clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
-    }
 }
