@@ -192,7 +192,6 @@ import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
-import org.eclipse.collections.api.set.primitive.MutableLongSet;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -2567,11 +2566,7 @@ public class SnapshotTransaction extends AbstractTransaction
     ///////////////////////////////////////////////////////////////////////////
 
     private LongSet getStartTimestampsForValues(Iterable<Value> values) {
-        MutableLongSet results = LongSets.mutable.empty();
-        for (Value v : values) {
-            results.add(v.getTimestamp());
-        }
-        return results.toImmutable();
+        return LongSets.immutable.withAll(Streams.stream(values).mapToLong(Value::getTimestamp));
     }
 
     private LongLongMap getCommitTimestampsSync(
