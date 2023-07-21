@@ -17,6 +17,14 @@ dependencies {
     implementation 'com.google.guava:guava'
     implementation project(':commons-annotations')
 
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+    testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    testImplementation 'com.palantir.common:streams'
+    testImplementation project(':atlasdb-api')
+    testAnnotationProcessor 'org.immutables:value'
+    testCompileOnly 'org.immutables:value::annotations'
+
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor project(":atlasdb-processors")

@@ -1,0 +1,16 @@
+{
+  "type" : "lock",
+  "sequence" : 10,
+  "lockDescriptors" : [ {
+    "bytes" : "YWJj"
+  }, {
+    "bytes" : "ZGVm"
+  }, {
+    "bytes" : "Z2hp"
+  }, {
+    "bytes" : "amts"
+  } ],
+  "lockToken" : {
+    "requestId" : "00000000-0000-0539-0000-00000000002a"
+  }
+}

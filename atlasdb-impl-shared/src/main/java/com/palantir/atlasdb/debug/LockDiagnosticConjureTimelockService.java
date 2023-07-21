@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.debug;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
+import com.palantir.atlasdb.timelock.api.ConjureLockDescriptor;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureLockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequest;
@@ -42,6 +44,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -97,24 +100,26 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
 
     @Override
     public ConjureLockResponse lock(AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        Set<ConjureLockDescriptor> lockDescriptors = ImmutableSet.copyOf(request.getLockDescriptors());
         request.getClientDescription()
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
-                .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
-                        startTimestamp, request.getRequestId(), request.getLockDescriptors()));
+                .ifPresent(startTimestamp ->
+                        lockDiagnosticCollector.collect(startTimestamp, request.getRequestId(), lockDescriptors));
         ConjureLockResponse response = conjureDelegate.lock(authHeader, namespace, request);
-        localLockTracker.logLockResponse(request.getLockDescriptors(), response);
+        localLockTracker.logLockResponse(lockDescriptors, response);
         return response;
     }
 
     @Override
     public ConjureWaitForLocksResponse waitForLocks(
             AuthHeader authHeader, String namespace, ConjureLockRequest request) {
+        Set<ConjureLockDescriptor> lockDescriptors = ImmutableSet.copyOf(request.getLockDescriptors());
         request.getClientDescription()
                 .flatMap(LockDiagnosticConjureTimelockService::tryParseStartTimestamp)
-                .ifPresent(startTimestamp -> lockDiagnosticCollector.collect(
-                        startTimestamp, request.getRequestId(), request.getLockDescriptors()));
+                .ifPresent(startTimestamp ->
+                        lockDiagnosticCollector.collect(startTimestamp, request.getRequestId(), lockDescriptors));
         ConjureWaitForLocksResponse response = conjureDelegate.waitForLocks(authHeader, namespace, request);
-        localLockTracker.logWaitForLocksResponse(request.getLockDescriptors(), response);
+        localLockTracker.logWaitForLocksResponse(lockDescriptors, response);
         return response;
     }
 

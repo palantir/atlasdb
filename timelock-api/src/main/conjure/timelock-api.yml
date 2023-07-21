@@ -139,13 +139,14 @@ types:
           requestId:
             type: uuid
             safety: safe
-          lockDescriptors: set<ConjureLockDescriptor>
+          lockDescriptors: list<ConjureLockDescriptor>
           acquireTimeoutMs:
             type: integer
             safety: safe
           clientDescription:
             type: optional<string>
             safety: unsafe
+          metadata: optional<ConjureLockRequestMetadata>
       ConjureLockToken:
         fields:
           requestId:

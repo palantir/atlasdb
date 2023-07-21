@@ -43,10 +43,12 @@ class ValueExtractor extends ResultsExtractor<Value> {
             long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts) {
         if (ts < startTs && selection.contains(col)) {
             Cell cell = Cell.create(row, col);
-            Value value = collector.computeIfAbsent(cell, _cell -> Value.create(val, ts));
-            if (value.getTimestamp() != ts) {
+            // explicitly not using `collector.computeIfAbsent` to avoid `LambdaForm.linkToTargetMethod` allocation
+            if (collector.containsKey(cell)) {
                 TraceStatistics.incSkippedValues(1L);
                 notLatestVisibleValueCellFilterCounter.inc();
+            } else {
+                collector.put(cell, Value.create(val, ts));
             }
         } else {
             TraceStatistics.incSkippedValues(1L);
