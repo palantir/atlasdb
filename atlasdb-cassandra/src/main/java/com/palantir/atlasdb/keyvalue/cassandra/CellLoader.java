@@ -33,6 +33,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
+import com.palantir.tracing.Tracer;
 import java.nio.ByteBuffer;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -95,9 +96,10 @@ final class CellLoader {
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
         Map<CassandraServer, List<Cell>> hostsAndCells;
-        try (CloseableTracer tracer = CloseableTracer.startSpan(
-                "loadWithTs.partitionByHost",
-                ImmutableMap.of(
+
+        ImmutableMap<String, String> traceContext = Tracer.hasUnobservableTrace()
+                ? ImmutableMap.of()
+                : ImmutableMap.of(
                         "cells",
                         String.valueOf(cells.size()),
                         "tableRef",
@@ -105,7 +107,8 @@ final class CellLoader {
                         "timestampClause",
                         loadAllTs ? "for all timestamps " : "",
                         "startTs",
-                        String.valueOf(startTs)))) {
+                        String.valueOf(startTs));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("loadWithTs.partitionByHost", traceContext)) {
             hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells, Cell::getRowName);
         }
         int totalPartitions = hostsAndCells.keySet().size();
