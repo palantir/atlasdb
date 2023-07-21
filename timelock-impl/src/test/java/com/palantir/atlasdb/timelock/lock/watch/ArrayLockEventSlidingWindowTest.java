@@ -119,7 +119,10 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Test
     public void maintainsCorrectMetadataCountWhenOverwritingBuffer() {
-        assertThat(WINDOW_SIZE).as("This test does not work with small windows").isGreaterThanOrEqualTo(5);
+        assertThat(WINDOW_SIZE)
+                .as("This test does not work with small windows since we are going to replace multiple events once"
+                        + " our buffer is full. With small windows, we might overwrite the wrong events.")
+                .isGreaterThanOrEqualTo(5);
 
         IntStream.range(0, WINDOW_SIZE).forEach(i -> {
             LockDescriptor lock = StringLockDescriptor.of("lock" + i);
