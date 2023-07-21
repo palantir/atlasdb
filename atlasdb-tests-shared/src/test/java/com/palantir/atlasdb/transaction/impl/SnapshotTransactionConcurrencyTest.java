@@ -26,7 +26,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -49,11 +52,40 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.Before;
 import org.junit.Test;
 
 public class SnapshotTransactionConcurrencyTest extends AtlasDbTestCase {
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table");
     private static final ExecutorService EXECUTOR = PTExecutors.newCachedThreadPool();
+
+    private final TimestampCache timestampCache = new DefaultTimestampCache(
+            metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    @Override
+    protected TestTransactionManager constructTestTransactionManager() {
+        return new TestTransactionManagerImpl(
+                metricsManager,
+                keyValueService,
+                inMemoryTimeLockRule.get(),
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                timestampCache,
+                sweepQueue,
+                deleteExecutor,
+                WrapperWithTracker.TRANSACTION_NO_OP,
+                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
+                knowledge);
+    }
 
     // We can save ourselves a separate concurrency test for deleteWithMetadata() since it just calls putInternal()
     // with the empty byte array value.
@@ -72,7 +104,7 @@ public class SnapshotTransactionConcurrencyTest extends AtlasDbTestCase {
 
         List<Map<Cell, ChangeMetadata>> metadataWrittenByThread =
                 concurrentlyWriteMetadataToCells(random, txn, cells, numThreads).get(200, TimeUnit.MILLISECONDS);
-        Map<Cell, ChangeMetadata> internalMetadata = txn.getChangeMetadataForWrites(TABLE);
+        Map<Cell, ChangeMetadata> internalMetadata = txn.getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         for (Cell cell : cells) {
             byte[] currInternalValue = txn.get(TABLE, ImmutableSet.of(cell)).get(cell);
             // Every thread writes their thread ID to the cell, so the value is always 4 bytes.

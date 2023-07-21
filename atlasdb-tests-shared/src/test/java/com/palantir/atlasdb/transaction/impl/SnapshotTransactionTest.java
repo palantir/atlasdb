@@ -2566,7 +2566,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
             txn.putWithMetadata(
                     TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
     }
@@ -2577,7 +2577,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             txn.putWithMetadata(
                     TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("feeling lucky")));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).isEmpty();
     }
@@ -2586,7 +2586,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void metadataStoredForDeleteWithMetadata() {
         Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
             txn.deleteWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, TEST_METADATA));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
     }
@@ -2597,7 +2597,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             txn.putWithMetadata(
                     TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
             txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).isEmpty();
     }
@@ -2608,7 +2608,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
             txn.putWithMetadata(
                     TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
     }
@@ -2621,7 +2621,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             txn.deleteWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, TEST_METADATA));
             txn.putWithMetadata(
                     TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, otherMetadata)));
-            return unwrapSnapshotTransaction(txn).getChangeMetadataForWrites(TABLE);
+            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
         });
         assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, otherMetadata));
     }
@@ -2636,9 +2636,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             SnapshotTransaction unwrappedTxn = unwrapSnapshotTransaction(txn);
             return ImmutableMap.of(
                     TABLE,
-                    unwrappedTxn.getChangeMetadataForWrites(TABLE),
+                    unwrappedTxn.getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE),
                     TABLE2,
-                    unwrappedTxn.getChangeMetadataForWrites(TABLE2));
+                    unwrappedTxn.getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE2));
         });
         assertThat(internalMetadata)
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
@@ -2687,14 +2687,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
         txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
-        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL_2.getRowName());
+        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL_2.getRowName());
+        LockDescriptor rowLock3 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
         verifyLockWasCalledWithMetadataWhenCommitting(
                 txn,
                 timelockService,
-                Optional.of(LockRequestMetadata.of(ImmutableMap.of(rowLock, TEST_METADATA, rowLock2, TEST_METADATA))));
+                Optional.of(LockRequestMetadata.of(
+                        ImmutableMap.of(rowLock, TEST_METADATA, rowLock2, TEST_METADATA, rowLock3, TEST_METADATA))));
     }
 
     @Test
@@ -2719,7 +2722,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .hasExactlyArgs(
                         UnsafeArg.of("tableRef", TABLE),
                         UnsafeArg.of("rowName", cell1.getRowName()),
-                        UnsafeArg.of("existingMetadata", TEST_METADATA),
                         UnsafeArg.of("newMetadata", TEST_METADATA));
     }
 
