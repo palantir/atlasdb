@@ -30,6 +30,8 @@ import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.ExclusiveLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocks;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -67,7 +69,11 @@ public class LockEventLogImplTest {
     private final AtomicReference<LockWatches> lockWatches = new AtomicReference<>(LockWatches.create());
     private final HeldLocksCollection heldLocksCollection = mock(HeldLocksCollection.class);
     private final HeldLocks heldLocks = mock(HeldLocks.class);
-    private final LockEventLog log = new LockEventLogImpl(LOG_ID, lockWatches::get, heldLocksCollection);
+    private final LockEventLog log = new LockEventLogImpl(
+            LOG_ID,
+            lockWatches::get,
+            heldLocksCollection,
+            BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
 
     @Before
     public void setupMocks() {

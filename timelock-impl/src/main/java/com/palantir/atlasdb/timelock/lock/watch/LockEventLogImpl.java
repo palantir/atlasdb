@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock.watch;
 import com.google.common.collect.RangeSet;
 import com.palantir.atlasdb.timelock.lock.AsyncLock;
 import com.palantir.atlasdb.timelock.lock.HeldLocksCollection;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -38,12 +39,17 @@ import java.util.stream.Collectors;
 
 public class LockEventLogImpl implements LockEventLog {
     private final UUID logId;
-    private final ArrayLockEventSlidingWindow slidingWindow = new ArrayLockEventSlidingWindow(1000);
+    private final ArrayLockEventSlidingWindow slidingWindow;
     private final Supplier<LockWatches> watchesSupplier;
     private final HeldLocksCollection heldLocksCollection;
 
-    LockEventLogImpl(UUID logId, Supplier<LockWatches> watchesSupplier, HeldLocksCollection heldLocksCollection) {
+    LockEventLogImpl(
+            UUID logId,
+            Supplier<LockWatches> watchesSupplier,
+            HeldLocksCollection heldLocksCollection,
+            BufferMetrics bufferMetrics) {
         this.logId = logId;
+        this.slidingWindow = new ArrayLockEventSlidingWindow(1000, bufferMetrics);
         this.watchesSupplier = watchesSupplier;
         this.heldLocksCollection = heldLocksCollection;
     }
@@ -64,6 +70,7 @@ public class LockEventLogImpl implements LockEventLog {
     @Override
     public synchronized void logLock(
             Set<LockDescriptor> locksTakenOut, LockToken lockToken, Optional<LockRequestMetadata> metadata) {
+
         slidingWindow.add(LockEvent.builder(locksTakenOut, lockToken, metadata));
     }
 
