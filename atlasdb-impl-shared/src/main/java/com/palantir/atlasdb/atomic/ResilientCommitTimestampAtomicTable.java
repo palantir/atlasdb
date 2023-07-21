@@ -22,6 +22,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -33,7 +34,6 @@ import com.palantir.atlasdb.transaction.encoding.TwoPhaseEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionStatusUtils;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.logsafe.Preconditions;
@@ -52,6 +52,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
+import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
+import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {
@@ -141,16 +143,16 @@ public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, Tr
 
     @Override
     public void updateMultiple(Map<Long, TransactionStatus> keyValues) throws KeyAlreadyExistsException {
-        Map<Cell, Long> cellToStartTs = keyValues.keySet().stream()
-                .collect(Collectors.toMap(encodingStrategy::encodeStartTimestampAsCell, x -> x));
-        Map<Cell, byte[]> stagingValues = KeyedStream.stream(cellToStartTs)
-                .map(startTs -> encodingStrategy.encodeCommitStatusAsValue(
-                        startTs, AtomicValue.staging(keyValues.get(startTs))))
-                .collectToMap();
+        MutableObjectLongMap<Cell> cellToStartTs = ObjectLongMaps.mutable.withInitialCapacity(keyValues.size());
+        keyValues.keySet().forEach(ts -> cellToStartTs.put(encodingStrategy.encodeStartTimestampAsCell(ts), ts));
+
+        Map<Cell, byte[]> stagingValues = Maps.newHashMapWithExpectedSize(cellToStartTs.size());
+        cellToStartTs.forEachKeyValue((cell, startTs) -> stagingValues.put(
+                cell,
+                encodingStrategy.encodeCommitStatusAsValue(startTs, AtomicValue.staging(keyValues.get(startTs)))));
+
         store.batchAtomicUpdate(stagingValues);
-        store.put(KeyedStream.stream(stagingValues)
-                .map(encodingStrategy::transformStagingToCommitted)
-                .collectToMap());
+        store.put(Maps.transformValues(stagingValues, encodingStrategy::transformStagingToCommitted));
     }
 
     @Override
