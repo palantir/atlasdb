@@ -28,9 +28,12 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -54,39 +57,59 @@ public class WriteInfoPartitioner {
      * writes according to shard and strategy.
      */
     public Map<PartitionInfo, List<WriteInfo>> filterAndPartition(List<WriteInfo> writes) {
-        return writes.stream().collect(Collectors.groupingBy(WriteInfo::timestamp)).values().stream()
-                .map(this::filterAndPartitionForSingleTimestamp)
-                .map(Map::entrySet)
-                .flatMap(Set::stream)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (writes.isEmpty()) {
+            return Map.of();
+        }
+
+        Collection<List<WriteInfo>> partitionedWrites = writes.stream()
+                .collect(Collectors.groupingBy(WriteInfo::timestamp))
+                .values();
+
+        Map<PartitionInfo, List<WriteInfo>> writesPartitionedByTimestamp = new HashMap<>();
+        for (List<WriteInfo> writeInfos : partitionedWrites) {
+            filterAndPartitionForSingleTimestamp(writeInfos)
+                    .forEach((partition, writeInfo) -> writesPartitionedByTimestamp
+                            .computeIfAbsent(partition, _k -> new ArrayList<>())
+                            .addAll(writeInfo));
+        }
+        return writesPartitionedByTimestamp;
     }
 
     private Map<PartitionInfo, List<WriteInfo>> filterAndPartitionForSingleTimestamp(List<WriteInfo> writes) {
-        if (writes.stream().allMatch(writeInfo -> getStrategy(writeInfo) == SweeperStrategy.NON_SWEEPABLE)) {
-            long startTs = writes.stream().findFirst().get().timestamp();
+        if (writes.isEmpty()) {
+            return Map.of();
+        }
+
+        int shards = numShards.get();
+
+        // Note that we do a single pass over writes to determine their sweep strategy, and only add sweepable write to
+        // sweepablePartitionedWrites map, so when it is empty we consider all writes for that timestamp non-sweepable.
+        Map<PartitionInfo, List<WriteInfo>> sweepablePartitionedWrites = new HashMap<>();
+        for (WriteInfo writeInfo : writes) {
+            SweeperStrategy strategy = getStrategy(writeInfo);
+            if (strategy != SweeperStrategy.NON_SWEEPABLE) {
+                PartitionInfo partition = PartitionInfo.of(writeInfo.toShard(shards), strategy, writeInfo.timestamp());
+                sweepablePartitionedWrites
+                        .computeIfAbsent(partition, _k -> new ArrayList<>())
+                        .add(writeInfo);
+            }
+        }
+
+        if (sweepablePartitionedWrites.isEmpty()) {
+            // All writes for this partition are non-sweepable
+            long startTs = writes.stream().findFirst().orElseThrow().timestamp();
             return SweepQueueUtils.partitioningForNonSweepable(startTs);
         }
-        return partitionWritesByShardStrategyTimestamp(writes);
-    }
-
-    private Map<PartitionInfo, List<WriteInfo>> partitionWritesByShardStrategyTimestamp(List<WriteInfo> writes) {
-        int shards = numShards.get();
-        return writes.stream()
-                .filter(writeInfo -> getStrategy(writeInfo) != SweeperStrategy.NON_SWEEPABLE)
-                .collect(Collectors.groupingBy(write -> getPartitionInfo(write, shards), Collectors.toList()));
-    }
-
-    private PartitionInfo getPartitionInfo(WriteInfo write, int shards) {
-        return PartitionInfo.of(write.toShard(shards), getStrategy(write), write.timestamp());
+        return sweepablePartitionedWrites;
     }
 
     @VisibleForTesting
     SweeperStrategy getStrategy(WriteInfo writeInfo) {
-        return writeInfo
-                .writeRef()
-                .map(WriteReference::tableRef)
-                .map(this::getStrategyForTable)
-                .orElse(SweeperStrategy.NON_SWEEPABLE);
+        Optional<WriteReference> writeReference = writeInfo.writeRef();
+        if (writeReference.isPresent()) {
+            return getStrategyForTable(writeReference.get().tableRef());
+        }
+        return SweeperStrategy.NON_SWEEPABLE;
     }
 
     SweeperStrategy getStrategyForTable(TableReference tableRef) {
