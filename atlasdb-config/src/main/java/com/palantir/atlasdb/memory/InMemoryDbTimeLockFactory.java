@@ -18,7 +18,6 @@ package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
@@ -49,7 +48,6 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
             MetricsManager metricManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig,
             boolean _initializeAsync) {
         return new InMemoryKeyValueService(true);
     }

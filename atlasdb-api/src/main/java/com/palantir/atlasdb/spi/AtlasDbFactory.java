@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.spi;
 
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -44,7 +43,6 @@ public interface AtlasDbFactory {
      *
      * @param config Configuration file.
      * @param runtimeConfig Runtime configuration file.
-     * @param leaderConfig If the implementation supports it, the optional leader configuration.
      * @param namespace If the implementation supports it, this is the namespace to use when the namespace in config is
      * absent. If both are present, they must match.
      * @param freshTimestampSource If present, a source of fresh timestamps, which may be relevant for some KVS
@@ -57,7 +55,6 @@ public interface AtlasDbFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync);

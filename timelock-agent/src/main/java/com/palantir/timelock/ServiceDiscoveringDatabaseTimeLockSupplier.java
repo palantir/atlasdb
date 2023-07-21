@@ -19,7 +19,6 @@ package com.palantir.timelock;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -49,11 +48,10 @@ public class ServiceDiscoveringDatabaseTimeLockSupplier implements AutoCloseable
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            LeaderConfig leaderConfig,
             boolean initializeAsync) {
         DbTimeLockFactory dbTimeLockFactory = AtlasDbServiceDiscovery.createDbTimeLockFactoryOfCorrectType(config);
-        keyValueService = Suppliers.memoize(() -> dbTimeLockFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, leaderConfig, initializeAsync));
+        keyValueService = Suppliers.memoize(() ->
+                dbTimeLockFactory.createRawKeyValueService(metricsManager, config, runtimeConfig, initializeAsync));
         timestampServiceFactory = creationSetting -> dbTimeLockFactory.createManagedTimestampService(
                 keyValueService.get(), creationSetting, initializeAsync);
         timestampSeriesProvider = tableRef ->

@@ -59,12 +59,6 @@ public class InMemoryAtlasDbFactoryTest {
 
     private KeyValueService createRawKeyValueService(boolean initializeAsync) {
         return factory.createRawKeyValueService(
-                null,
-                null,
-                Refreshable.only(Optional.empty()),
-                Optional.empty(),
-                Optional.empty(),
-                null,
-                initializeAsync);
+                null, null, Refreshable.only(Optional.empty()), Optional.empty(), null, initializeAsync);
     }
 }
