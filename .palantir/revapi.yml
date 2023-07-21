@@ -152,3 +152,24 @@ acceptedBreaks:
     - code: "java.method.removed"
       old: "method com.codahale.metrics.Counter com.palantir.atlasdb.keyvalue.cassandra.ResultsExtractor<T>::getNotLatestVisibleValueCellFilterCounter(java.lang.Class<?>)"
       justification: "Reuse notLatestVisibleValueCellFilterCounter"
+  "0.900.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.spi.AtlasDbFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ java.util.Optional<com.palantir.atlasdb.config.LeaderConfig>, java.util.Optional<java.lang.String>,\
+        \ java.util.function.LongSupplier, boolean)"
+      new: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.spi.AtlasDbFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ java.util.Optional<java.lang.String>, java.util.function.LongSupplier, boolean)"
+      justification: "all usage or implementations of the two broken methods are entirely\
+        \ at compile time of the consumer or within this repo itself"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.timestamp.DbTimeLockFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ com.palantir.atlasdb.config.LeaderConfig, boolean)"
+      new: "method com.palantir.atlasdb.keyvalue.api.KeyValueService com.palantir.atlasdb.timestamp.DbTimeLockFactory::createRawKeyValueService(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
+        \ boolean)"
+      justification: "all usage or implementations of the two broken methods are entirely\
+        \ at compile time of the consumer or within this repo itself"
