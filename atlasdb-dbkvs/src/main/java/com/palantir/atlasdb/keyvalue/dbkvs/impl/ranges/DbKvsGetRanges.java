@@ -77,7 +77,7 @@ public class DbKvsGetRanges {
     private final DbKvs kvs;
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
-    private PrefixedTableNames prefixedTableNames;
+    private final PrefixedTableNames prefixedTableNames;
 
     public DbKvsGetRanges(
             DbKvs kvs,
@@ -226,11 +226,13 @@ public class DbKvsGetRanges {
             NavigableMap<byte[], NavigableMap<byte[], Value>> cellsForBatch = Maps.filterKeys(
                     request.isReverse() ? cellsByRow.descendingMap() : cellsByRow, Predicates.in(rowNames));
 
-            validateRowNames(
-                    cellsForBatch.keySet(),
-                    request.getStartInclusive(),
-                    request.getEndExclusive(),
-                    request.isReverse());
+            if (AssertUtils.isAssertEnabled()) {
+                validateRowNames(
+                        cellsForBatch.keySet(),
+                        request.getStartInclusive(),
+                        request.getEndExclusive(),
+                        request.isReverse());
+            }
 
             IterableView<RowResult<Value>> rows = RowResults.viewOfMap(cellsForBatch);
             if (!request.getColumnNames().isEmpty()) {
@@ -258,29 +260,31 @@ public class DbKvsGetRanges {
     }
 
     private void validateRowNames(Iterable<byte[]> rows, byte[] startInclusive, byte[] endExclusive, boolean reverse) {
-        for (byte[] row : rows) {
-            if (reverse) {
-                AssertUtils.assertAndLog(
-                        log,
-                        startInclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0,
-                        "row was out of range");
-                AssertUtils.assertAndLog(
-                        log,
-                        endExclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0,
-                        "row was out of range");
-            } else {
-                AssertUtils.assertAndLog(
-                        log,
-                        startInclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0,
-                        "row was out of range");
-                AssertUtils.assertAndLog(
-                        log,
-                        endExclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0,
-                        "row was out of range");
+        if (AssertUtils.isAssertEnabled()) {
+            for (byte[] row : rows) {
+                if (reverse) {
+                    AssertUtils.assertAndLog(
+                            log,
+                            startInclusive.length == 0
+                                    || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0,
+                            "row was out of range");
+                    AssertUtils.assertAndLog(
+                            log,
+                            endExclusive.length == 0
+                                    || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0,
+                            "row was out of range");
+                } else {
+                    AssertUtils.assertAndLog(
+                            log,
+                            startInclusive.length == 0
+                                    || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0,
+                            "row was out of range");
+                    AssertUtils.assertAndLog(
+                            log,
+                            endExclusive.length == 0
+                                    || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0,
+                            "row was out of range");
+                }
             }
         }
     }
