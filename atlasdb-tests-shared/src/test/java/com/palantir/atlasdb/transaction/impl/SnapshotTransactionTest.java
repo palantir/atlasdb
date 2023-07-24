@@ -1822,11 +1822,52 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         any());
     }
 
+    @Test
+    public void dontFetchCellsIfAllCached() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache = createCacheWithEntries(
+                TABLE_SWEPT_THOROUGH,
+                Map.of(
+                        TEST_CELL,
+                        "someValue".getBytes(StandardCharsets.UTF_8),
+                        TEST_CELL_2,
+                        "someOtherValue".getBytes(StandardCharsets.UTF_8)));
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 2))
+                .doesNotThrowAnyException();
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        verify(spiedSnapshotTransaction, never())
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any(), any());
+    }
+
     private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
+        return createCacheWithEntries(table, ImmutableMap.of(cell, value));
+    }
+
+    private TransactionScopedCache createCacheWithEntries(TableReference table, Map<Cell, byte[]> values) {
         CacheMetrics metrics = mock(CacheMetrics.class);
         return TransactionScopedCacheImpl.create(
                 ValueCacheSnapshotImpl.of(
-                        HashMap.of(CellReference.of(table, cell), CacheEntry.unlocked(CacheValue.of(value))),
+                        HashMap.ofAll(EntryStream.of(values)
+                                .mapKeys(cell -> CellReference.of(table, cell))
+                                .mapValues(value -> CacheEntry.unlocked(CacheValue.of(value)))
+                                .toMap()),
                         HashSet.of(table),
                         ImmutableSet.of(table)),
                 metrics);
