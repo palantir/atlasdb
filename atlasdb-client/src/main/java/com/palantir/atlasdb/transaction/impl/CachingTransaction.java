@@ -39,6 +39,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -140,7 +141,7 @@ public class CachingTransaction extends ForwardingTransaction {
         try {
             return getWithLoader(tableRef, cells, (tableReference, cachedCells, toRead) -> {
                         long nonEmptyValuesInCache = cachedCells.values().stream()
-                                .filter(value -> value != PtBytes.EMPTY_BYTE_ARRAY)
+                                .filter(value -> !Arrays.equals(value, PtBytes.EMPTY_BYTE_ARRAY))
                                 .count();
                         long numberOfCellsExpectingValuePostCache =
                                 expectedNumberOfPresentCells - nonEmptyValuesInCache;

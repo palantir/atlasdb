@@ -923,7 +923,8 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
             long cachedCellsWithNonEmptyValue = cacheLookupResult.cacheHits().values().stream()
-                    .filter(value -> value.value().isPresent() && value.value().get() != PtBytes.EMPTY_BYTE_ARRAY)
+                    .filter(value -> value.value().isPresent()
+                            && !Arrays.equals(value.value().get(), PtBytes.EMPTY_BYTE_ARRAY))
                     .count();
             long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
 
