@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.ete.suites;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
 import com.palantir.atlasdb.ete.TimestampManagementEteTest;
