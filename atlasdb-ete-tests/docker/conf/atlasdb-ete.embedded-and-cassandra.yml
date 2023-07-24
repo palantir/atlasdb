@@ -26,17 +26,3 @@ atlasdb:
     autoRefreshNodes: false
 
   namespace: atlasete
-
-  leader:
-    quorumSize: 2
-    learnerLogDir: var/data/paxosLog/learner1
-    acceptorLogDir: var/data/paxosLog/acceptor1
-    localServer: http://${ME}:3828
-    leaders:
-      - http://ete1:3828
-      - http://ete2:3828
-      - http://ete3:3828
-    sslConfiguration:
-      keyStorePath: "var/security/keyStore.jks"
-      keyStorePassword: "keystore"
-      trustStorePath: "var/security/trustStore.jks"
