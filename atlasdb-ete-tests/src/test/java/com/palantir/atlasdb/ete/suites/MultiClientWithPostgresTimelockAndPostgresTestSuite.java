@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
@@ -27,12 +28,15 @@ import org.junit.runners.Suite;
     TodoEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+    LockWithTimelockEteTest.class
 })
-public class DbKvsTestSuite extends EteSetup {
-    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+public class MultiClientWithPostgresTimelockAndPostgres extends EteSetup {
+    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP =
-            EteSetup.setupComposition(DbKvsTestSuite.class, "docker-compose.dbkvs.yml", CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
+            MultiClientWithPostgresTimelockAndPostgres.class,
+            "docker-compose.timelock.database.bound.postgres.yml",
+            CLIENTS,
+            ImmutableMap.of());
 }

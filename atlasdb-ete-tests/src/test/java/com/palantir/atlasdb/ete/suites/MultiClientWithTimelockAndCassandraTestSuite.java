@@ -31,12 +31,12 @@ import org.junit.runners.Suite;
     //    MultipleSchemaVersionsCoordinationEteTest.class,
     //    LockWithTimelockEteTest.class
 })
-public class CassandraTimeLockTestSuite extends EteSetup {
+public class MultiClientWithTimelockAndCassandra extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
-            CassandraTimeLockTestSuite.class,
+            MultiClientWithTimelockAndCassandra.class,
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,
             CassandraEnvironment.get());
