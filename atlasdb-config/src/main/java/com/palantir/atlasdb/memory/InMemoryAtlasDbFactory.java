@@ -17,7 +17,6 @@ package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -57,7 +56,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      *
      * @param config Configuration file.
      * @param runtimeConfig unused.
-     * @param leaderConfig unused.
      * @param unused unused.
      * @param unusedLongSupplier unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
@@ -68,7 +66,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {

@@ -22,8 +22,10 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ShardAndStrategy {
+    @Value.Parameter
     public abstract int shard();
 
+    @Value.Parameter
     public abstract SweeperStrategy strategy();
 
     public String toText() {
@@ -51,18 +53,15 @@ public abstract class ShardAndStrategy {
     }
 
     public static ShardAndStrategy of(int shard, SweeperStrategy sweepStrategy) {
-        return ImmutableShardAndStrategy.builder()
-                .shard(shard)
-                .strategy(sweepStrategy)
-                .build();
+        return ImmutableShardAndStrategy.of(shard, sweepStrategy);
     }
 
     public static ShardAndStrategy conservative(int shard) {
-        return ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE);
+        return ImmutableShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE);
     }
 
     public static ShardAndStrategy thorough(int shard) {
-        return ShardAndStrategy.of(shard, SweeperStrategy.THOROUGH);
+        return ImmutableShardAndStrategy.of(shard, SweeperStrategy.THOROUGH);
     }
 
     public static ShardAndStrategy nonSweepable() {

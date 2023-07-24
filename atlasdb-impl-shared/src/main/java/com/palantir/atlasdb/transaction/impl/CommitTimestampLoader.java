@@ -43,14 +43,21 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
+import org.eclipse.collections.api.set.ImmutableSet;
+import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
+import org.eclipse.collections.impl.factory.primitive.LongSets;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
 public final class CommitTimestampLoader {
     private static final SafeLogger log = SafeLoggerFactory.get(CommitTimestampLoader.class);
@@ -90,26 +97,25 @@ public final class CommitTimestampLoader {
      * Returns a map from start timestamp to commit timestamp. If a start timestamp wasn't committed, then it will be
      * missing from the map. This method will block until the transactions for these start timestamps are complete.
      */
-    ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+    ListenableFuture<LongLongMap> getCommitTimestamps(
             @Nullable TableReference tableRef,
-            Iterable<Long> startTimestamps,
+            LongIterable startTimestamps,
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
-        if (Iterables.isEmpty(startTimestamps)) {
-            return Futures.immediateFuture(ImmutableMap.of());
+        if (startTimestamps.isEmpty()) {
+            return Futures.immediateFuture(LongLongMaps.immutable.of());
         }
 
-        Set<Long> pendingGets = new HashSet<>();
-        Map<Long, Long> result = new HashMap<>();
-
-        for (Long startTs : startTimestamps) {
+        MutableLongSet pendingGets = LongSets.mutable.of();
+        MutableLongLongMap result = new LongLongHashMap();
+        startTimestamps.each(startTs -> {
             Long commitTs = timestampCache.getCommitTimestampIfPresent(startTs);
             if (commitTs == null) {
                 pendingGets.add(startTs);
             } else {
                 result.put(startTs, commitTs);
             }
-        }
+        });
 
         if (pendingGets.isEmpty()) {
             return Futures.immediateFuture(result);
@@ -123,7 +129,7 @@ public final class CommitTimestampLoader {
         return Futures.transform(
                 loadCommitTimestamps(asyncTransactionService, pendingGets),
                 rawResults -> {
-                    Map<Long, Long> loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
+                    LongLongMap loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
                     result.putAll(loadedCommitTs);
                     return result;
                 },
@@ -131,8 +137,8 @@ public final class CommitTimestampLoader {
     }
 
     // We do not cache unknown transactions as they are already being cached at a lower level.
-    private Map<Long, Long> cacheKnownLoadedValuesAndValidate(Map<Long, TransactionStatus> rawResults) {
-        Map<Long, Long> results = new HashMap<>();
+    private LongLongMap cacheKnownLoadedValuesAndValidate(Map<Long, TransactionStatus> rawResults) {
+        MutableLongLongMap results = LongLongMaps.mutable.empty();
         boolean shouldValidate = false;
 
         // The method is written this way to avoid multiple scans on the result set as it is on a hot path.
@@ -158,30 +164,27 @@ public final class CommitTimestampLoader {
             throwIfTransactionsTableSweptBeyondReadOnlyTxn();
         }
 
-        return results;
+        return results.asUnmodifiable();
     }
 
     /**
      * We will block here until the passed transactions have released their lock. This means that the committing
      * transaction is either complete or it has failed, and we are allowed to roll it back.
      */
-    private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-        Set<LockDescriptor> lockDescriptors = new HashSet<>();
-        for (long start : startTimestamps) {
-            if (start < immutableTimestamp) {
-                // We don't need to block in this case because this transaction is already complete
-                continue;
-            }
-            lockDescriptors.add(AtlasRowLockDescriptor.of(
-                    TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                    TransactionConstants.getValueForTimestamp(start)));
-        }
+    private void waitForCommitToComplete(LongIterable startTimestamps) {
+        ImmutableSet<LockDescriptor> lockDescriptors = startTimestamps
+                // We only need to block and wait for transactions on or after immutable timestamp
+                .select(start -> start >= immutableTimestamp)
+                .collect(start -> AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(start)))
+                .toImmutableSet();
 
         if (lockDescriptors.isEmpty()) {
             return;
         }
 
-        waitFor(lockDescriptors);
+        waitFor(lockDescriptors.castToSet());
     }
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
@@ -202,7 +205,7 @@ public final class CommitTimestampLoader {
         }
     }
 
-    private void waitForCommitterToComplete(@Nullable TableReference tableRef, Iterable<Long> startTimestamps) {
+    private void waitForCommitterToComplete(@Nullable TableReference tableRef, LongIterable startTimestamps) {
         Timer.Context timer = getTimer("waitForCommitTsMillis").time();
         waitForCommitToComplete(startTimestamps);
         long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
@@ -222,16 +225,16 @@ public final class CommitTimestampLoader {
     }
 
     private static ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(
-            AsyncTransactionService asyncTransactionService, Set<Long> startTimestamps) {
+            AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
-            Long singleTs = Iterables.getOnlyElement(startTimestamps);
+            long singleTs = startTimestamps.longIterator().next();
             return Futures.transform(
                     asyncTransactionService.getAsyncV2(singleTs),
                     commitState -> ImmutableMap.of(singleTs, commitState),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsyncV2(startTimestamps);
+            return asyncTransactionService.getAsyncV2(startTimestamps.collect(Long::valueOf));
         }
     }
 

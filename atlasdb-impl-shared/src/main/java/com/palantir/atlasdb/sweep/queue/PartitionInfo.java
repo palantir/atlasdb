@@ -20,14 +20,13 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface PartitionInfo {
+    @Value.Parameter
     ShardAndStrategy shardAndStrategy();
 
+    @Value.Parameter
     long timestamp();
 
     static PartitionInfo of(int shard, SweeperStrategy strategy, long timestamp) {
-        return ImmutablePartitionInfo.builder()
-                .shardAndStrategy(ShardAndStrategy.of(shard, strategy))
-                .timestamp(timestamp)
-                .build();
+        return ImmutablePartitionInfo.of(ShardAndStrategy.of(shard, strategy), timestamp);
     }
 }

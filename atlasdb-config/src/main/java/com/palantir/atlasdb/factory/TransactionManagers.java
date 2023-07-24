@@ -366,7 +366,6 @@ public abstract class TransactionManagers {
                 metricsManager,
                 installConfig,
                 runtime.map(AtlasDbRuntimeConfig::keyValueService),
-                config().leader(),
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
