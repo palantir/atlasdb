@@ -101,11 +101,6 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
-task longTest(type: Test) {
-    dependsOn prepareForEteTests
-    include '**/MultiCassandraTestSuite.class'
-}
-
 task timeLockTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     include '**/*TimeLock*.class'
@@ -117,27 +112,38 @@ task timeLockMigrationTest(type: Test) {
     include '**/*TimeLockMigration*.class'
 }
 
-task dbkvsTest(type: Test) {
+// test suites with their own test tasks
+// not sure why some have it and others do not
+
+task singleClientWithEmbeddedAndThreeNodeCassandraTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/DbKvsTestSuite.class'
+    include '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
 }
 
-task oracleTest(type: Test) {
+task singleClientWithEmbeddedAndPostgresTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/OracleDbKvsEteTestSuite.class'
+    include '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
+}
+
+task singleClientWithEmbeddedAndOracleTest(type: Test) {
+    dependsOn prepareForEteTests
+    include '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
 }
 
 test {
-    dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
-    exclude '**/MultiCassandraTestSuite.class'
+    // this list explicitly doesn't include the timelockMigration or singleClientWithEmbeddedAndOracleTest tasks
+    // not sure why that is
+    dependsOn prepareForEteTests, timeLockTest, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
+    // 1-off ETE tests
     exclude '**/*TimeLock*.class'
-    // Technically covered by previous line, but explicitly avoiding in case of refactor
-    exclude '**/*TimeLockMigration*.class'
-
+    exclude '**/*TimeLockMigration*.class' // Technically covered by previous line, but explicitly avoiding in case of refactor
     exclude '**/*EteTest.class'
-    exclude '**/DbKvsTestSuite.class'
-    exclude '**/OracleDbKvsEteTestSuite.class'
+
+    // test suites with their own test tasks
+    exclude '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
+    exclude '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
+    exclude '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
 }
 
 distribution {
