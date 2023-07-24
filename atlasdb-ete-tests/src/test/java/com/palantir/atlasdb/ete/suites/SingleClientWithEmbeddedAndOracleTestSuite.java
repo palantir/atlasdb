@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.ete;
+package com.palantir.atlasdb.ete.suites;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.ete.EteSetup;
+import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
+import com.palantir.atlasdb.ete.TimestampManagementEteTest;
+import com.palantir.atlasdb.ete.TodoEteTest;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 import java.time.Duration;
 import org.junit.ClassRule;
@@ -32,12 +36,10 @@ import org.junit.runners.Suite;
     LockWithoutTimelockEteTest.class
 })
 public class SingleClientWithEmbeddedAndOracleTestSuite extends EteSetup {
-    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
-
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             SingleClientWithEmbeddedAndOracleTestSuite.class,
-            "docker-compose.oracle.yml",
-            CLIENTS,
+            "docker-compose.single-client-with-embedded-and-oracle.yml",
+            TestSuites.SINGLE_CLIENT,
             Duration.ofMinutes(10));
 }
