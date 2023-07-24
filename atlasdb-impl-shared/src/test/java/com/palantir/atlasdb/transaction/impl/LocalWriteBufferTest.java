@@ -19,19 +19,33 @@ package com.palantir.atlasdb.transaction.impl;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class LocalWriteBufferTest {
@@ -44,6 +58,8 @@ public class LocalWriteBufferTest {
     private static final ChangeMetadata METADATA_1 = ChangeMetadata.deleted(PtBytes.toBytes(1L));
     private static final ChangeMetadata METADATA_2 = ChangeMetadata.created(PtBytes.toBytes(2L));
 
+    private static final ExecutorService DIRECT_EXECUTOR = MoreExecutors.newDirectExecutorService();
+
     private final LocalWriteBuffer buffer = new LocalWriteBuffer();
 
     @Test
@@ -52,7 +68,7 @@ public class LocalWriteBufferTest {
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE)).isEmpty();
+        assertThat(buffer.getChangeMetadataForTable(TABLE)).isEmpty();
     }
 
     @Test
@@ -61,7 +77,7 @@ public class LocalWriteBufferTest {
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+        assertThat(buffer.getChangeMetadataForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1));
     }
 
@@ -72,7 +88,7 @@ public class LocalWriteBufferTest {
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+        assertThat(buffer.getChangeMetadataForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1));
     }
 
@@ -83,7 +99,7 @@ public class LocalWriteBufferTest {
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_2));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+        assertThat(buffer.getChangeMetadataForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_2));
     }
 
@@ -94,7 +110,7 @@ public class LocalWriteBufferTest {
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_2));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE)).isEmpty();
+        assertThat(buffer.getChangeMetadataForTable(TABLE)).isEmpty();
     }
 
     @Test
@@ -108,9 +124,9 @@ public class LocalWriteBufferTest {
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
         assertThat(buffer.getLocalWritesForTable(TABLE2))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+        assertThat(buffer.getChangeMetadataForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
-        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE2))
+        assertThat(buffer.getChangeMetadataForTable(TABLE2))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
     }
 
@@ -159,46 +175,43 @@ public class LocalWriteBufferTest {
      * At the end of this sequence, C has value B and metadata Y, which violates the atomicity guarantee.
      */
     @Test
-    public void writingValueAndMetadataIsAtomicWhenOverwritingWithSameValue() throws InterruptedException {
+    public void writingValueAndMetadataIsAtomicWhenOverwritingWithSameValue()
+            throws InterruptedException, ExecutionException, TimeoutException {
         int numIterations = 1000;
         long randomSeed = System.currentTimeMillis();
         Random random = new Random(randomSeed);
 
         for (int i = 0; i < numIterations; i++) {
             buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
-            Thread writeWithoutMetadata = new Thread(() -> {
-                // Sleep is needed to trigger the AAB problem reliably (if it can happen)
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+
+            CountDownLatch latch = new CountDownLatch(2);
+            Callable<Void> task1 = () -> {
+                latch.countDown();
                 buffer.putLocalWritesAndMetadata(
                         TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
-            });
-            Thread writeWithMetadata = new Thread(() -> {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                return null;
+            };
+            Callable<Void> task2 = () -> {
+                latch.countDown();
                 buffer.putLocalWritesAndMetadata(
                         TABLE, ImmutableMap.of(CELL_1, VALUE_2), ImmutableMap.of(CELL_1, METADATA_2));
-            });
+                return null;
+            };
 
-            if (random.nextBoolean()) {
-                writeWithMetadata.start();
-                writeWithoutMetadata.start();
-            } else {
-                writeWithoutMetadata.start();
-                writeWithMetadata.start();
-            }
-            writeWithMetadata.join();
-            writeWithoutMetadata.join();
+            ListeningExecutorService concurrentExecutor =
+                    MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(2));
+
+            List<ListenableFuture<Void>> futures = (random.nextBoolean()
+                            ? ImmutableList.of(task1, task2)
+                            : ImmutableList.of(task2, task1))
+                    .stream().map(concurrentExecutor::submit).collect(Collectors.toUnmodifiableList());
+            Futures.whenAllSucceed(futures)
+                    .call(() -> null, MoreExecutors.directExecutor())
+                    .get(20, TimeUnit.SECONDS);
 
             byte[] currentValue = buffer.getLocalWritesForTable(TABLE).get(CELL_1);
             ChangeMetadata currentMetadata =
-                    buffer.getChangeMetadataForWritesToTable(TABLE).get(CELL_1);
+                    buffer.getChangeMetadataForTable(TABLE).get(CELL_1);
             assertThat((Arrays.equals(currentValue, VALUE_1) && currentMetadata.equals(METADATA_1))
                             || (Arrays.equals(currentValue, VALUE_2) && currentMetadata.equals(METADATA_2)))
                     .as("Atomicity guarantee violated on iteration %d with seed %d", i, randomSeed)

@@ -437,7 +437,7 @@ public class SnapshotTransaction extends AbstractTransaction
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
-        NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(tableRef);
+        NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
@@ -939,7 +939,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
 
         Map<Cell, byte[]> result = new HashMap<>();
-        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(tableRef);
+        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 byte[] value = writes.get(cell);
@@ -1983,14 +1983,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void checkConstraints() {
-        if (localWriteBuffer.isEmpty()) {
+        if (localWriteBuffer.getLocalWrites().isEmpty()) {
             // avoid work in cases where constraints do not apply (e.g. read only transactions)
             return;
         }
 
         List<String> violations = new ArrayList<>();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
-            Map<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(entry.getKey());
+            Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(entry.getKey());
             if (writes != null && !writes.isEmpty()) {
                 List<String> failures = entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
                 if (!failures.isEmpty()) {
@@ -2135,7 +2135,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean hasWrites() {
-        return !localWriteBuffer.isEmpty()
+        return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
                         .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
@@ -2565,8 +2565,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
-        Map<Cell, ChangeMetadata> changeMetadataForWrites =
-                localWriteBuffer.getChangeMetadataForWritesToTable(tableRef);
+        Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
         for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
             LockDescriptor lockDescriptor =
                     AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
@@ -2587,8 +2586,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
-        Map<Cell, ChangeMetadata> changeMetadataForWrites =
-                localWriteBuffer.getChangeMetadataForWritesToTable(tableRef);
+        Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
         byte[] lastRow = null;
         byte[] lastRowWithMetadata = null;
         LockDescriptor currentRowDescriptor = null;

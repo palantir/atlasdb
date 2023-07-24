@@ -575,16 +575,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 // We want to filter out all our reads to just the set that matches our column selection.
                 originalReads = Maps.filterKeys(originalReads, input -> columns.contains(input.getColumnName()));
 
-                if (localWriteBuffer.getLocalWritesForTable(table) != null) {
+                if (localWriteBuffer.getLocalWrites().get(table) != null) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     originalReads = Maps.filterKeys(
                             originalReads,
-                            Predicates.not(Predicates.in(localWriteBuffer
-                                    .getLocalWritesForTable(table)
-                                    .keySet())));
+                            Predicates.not(Predicates.in(
+                                    localWriteBuffer.getLocalWrites().get(table).keySet())));
                 }
 
                 if (currentRow == null && originalReads.isEmpty()) {
@@ -596,16 +595,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
-                if (localWriteBuffer.getLocalWritesForTable(table) != null) {
+                if (localWriteBuffer.getLocalWrites().get(table) != null) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     currentCells = Maps.filterKeys(
                             currentCells,
-                            Predicates.not(Predicates.in(localWriteBuffer
-                                    .getLocalWritesForTable(table)
-                                    .keySet())));
+                            Predicates.not(Predicates.in(
+                                    localWriteBuffer.getLocalWrites().get(table).keySet())));
                 }
                 if (!ByteArrayUtilities.areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
@@ -623,13 +621,15 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
-                Iterable<Cell> batchWithoutWrites = localWriteBuffer.getLocalWritesForTable(table) != null
-                        ? Iterables.filter(
-                                batch,
-                                Predicates.not(Predicates.in(localWriteBuffer
-                                        .getLocalWritesForTable(table)
-                                        .keySet())))
-                        : batch;
+                Iterable<Cell> batchWithoutWrites =
+                        localWriteBuffer.getLocalWrites().get(table) != null
+                                ? Iterables.filter(
+                                        batch,
+                                        Predicates.not(Predicates.in(localWriteBuffer
+                                                .getLocalWrites()
+                                                .get(table)
+                                                .keySet())))
+                                : batch;
                 ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
                 Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
@@ -659,7 +659,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                             .build();
                 }
 
-                ConcurrentNavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(table);
+                ConcurrentNavigableMap<Cell, byte[]> writes =
+                        localWriteBuffer.getLocalWrites().get(table);
                 BatchingVisitableView<RowResult<byte[]>> bv =
                         BatchingVisitableView.of(readOnlyTransaction.getRange(table, range));
                 NavigableMap<Cell, ByteBuffer> readsInRange =
@@ -687,7 +688,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             Cell endCell = Cells.createSmallestCellForRow(RangeRequests.nextLexicographicName(row));
             reads = reads.headMap(endCell, false);
         }
-        ConcurrentNavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(table);
+        ConcurrentNavigableMap<Cell, byte[]> writes =
+                localWriteBuffer.getLocalWrites().get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
@@ -812,7 +814,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Map.Entry<Cell, byte[]>> cells, TableReference table) {
-        return filterWritesFromCells(cells, localWriteBuffer.getLocalWritesForTable(table));
+        return filterWritesFromCells(cells, localWriteBuffer.getLocalWrites().get(table));
     }
 
     private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
@@ -845,7 +847,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (range.getEndExclusive().length != 0) {
             reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
         }
-        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(table);
+        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
