@@ -127,7 +127,9 @@ public class CachingTransaction extends ForwardingTransaction {
                             (tableReference, _cachedCells, toRead) ->
                                     Futures.immediateFuture(super.get(tableReference, toRead)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
