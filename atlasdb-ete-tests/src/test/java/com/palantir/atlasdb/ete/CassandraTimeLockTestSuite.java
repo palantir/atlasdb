@@ -23,13 +23,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({TodoEteTest.class
-    //    TargetedSweepEteTest.class,
-    //    CassandraTimestampsEteTest.class,
-    //    TimestampManagementEteTest.class,
-    //    CoordinationEteTest.class,
-    //    MultipleSchemaVersionsCoordinationEteTest.class,
-    //    LockWithTimelockEteTest.class
+@Suite.SuiteClasses({TodoEteTest.class,
+        TargetedSweepEteTest.class,
+        CassandraTimestampsEteTest.class,
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
+        MultipleSchemaVersionsCoordinationEteTest.class,
+        LockWithTimelockEteTest.class
 })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
