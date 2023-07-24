@@ -28,6 +28,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,15 +42,14 @@ public class LocalWriteBuffer {
 
     private final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             new ConcurrentHashMap<>();
-    private final ConcurrentMap<TableReference, ConcurrentMap<Cell, ChangeMetadata>> metadataByTable =
-            new ConcurrentHashMap<>();
+    private final ConcurrentMap<TableReference, Map<Cell, ChangeMetadata>> metadataByTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Object> locksByTable = new ConcurrentHashMap<>();
     private final AtomicLong byteCount = new AtomicLong();
 
     public void putLocalWritesAndMetadata(
             TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         ConcurrentMap<Cell, byte[]> writes = getLocalWritesForTable(tableRef);
-        ConcurrentMap<Cell, ChangeMetadata> metadataForWrites = getChangeMetadataForWritesToTable(tableRef);
+        Map<Cell, ChangeMetadata> metadataForWrites = getChangeMetadataForWritesToTable(tableRef);
         int numMetadataWritten = 0;
         synchronized (getLockForTable(tableRef)) {
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
@@ -98,8 +98,10 @@ public class LocalWriteBuffer {
         return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
     }
 
-    public ConcurrentMap<Cell, ChangeMetadata> getChangeMetadataForWritesToTable(TableReference tableRef) {
-        return metadataByTable.computeIfAbsent(tableRef, unused -> new ConcurrentHashMap<>());
+    // No need for concurrency control on the cell level since it is only written to with a lock and
+    // read during commit, which is guaranteed to be single-threaded and exclusive with writing.
+    public Map<Cell, ChangeMetadata> getChangeMetadataForWritesToTable(TableReference tableRef) {
+        return metadataByTable.computeIfAbsent(tableRef, unused -> new HashMap<>());
     }
 
     public boolean isEmpty() {

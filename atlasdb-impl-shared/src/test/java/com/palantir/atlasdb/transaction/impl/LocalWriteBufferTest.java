@@ -36,7 +36,9 @@ import org.junit.Test;
 
 public class LocalWriteBufferTest {
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table");
+    private static final TableReference TABLE2 = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table2");
     private static final Cell CELL_1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
+    private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("col2"));
     private static final byte[] VALUE_1 = PtBytes.toBytes(1L);
     private static final byte[] VALUE_2 = PtBytes.toBytes(2L);
     private static final ChangeMetadata METADATA_1 = ChangeMetadata.deleted(PtBytes.toBytes(1L));
@@ -64,6 +66,55 @@ public class LocalWriteBufferTest {
     }
 
     @Test
+    public void canPutMetadataForSubsetOfWrites() {
+        buffer.putLocalWritesAndMetadata(
+                TABLE, ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2), ImmutableMap.of(CELL_1, METADATA_1));
+
+        assertThat(buffer.getLocalWritesForTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
+        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1));
+    }
+
+    @Test
+    public void canOverwriteValueAndMetadata() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_2), ImmutableMap.of(CELL_1, METADATA_2));
+
+        assertThat(buffer.getLocalWritesForTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_2));
+        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_2));
+    }
+
+    @Test
+    public void writingWithoutMetadataRemovesMetadata() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_2), ImmutableMap.of());
+
+        assertThat(buffer.getLocalWritesForTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_2));
+        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE)).isEmpty();
+    }
+
+    @Test
+    public void canStoreValuesAndMetadataForMultipleCellsAndTables() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
+        buffer.putLocalWritesAndMetadata(TABLE2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+        buffer.putLocalWritesAndMetadata(TABLE2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
+
+        assertThat(buffer.getLocalWritesForTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
+        assertThat(buffer.getLocalWritesForTable(TABLE2))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
+        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
+        assertThat(buffer.getChangeMetadataForWritesToTable(TABLE2))
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
+    }
+
+    @Test
     public void cannotPutMetadataWithoutAssociatedWrite() {
         assertThatLoggableExceptionThrownBy(() ->
                         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(), ImmutableMap.of(CELL_1, METADATA_1)))
@@ -80,7 +131,6 @@ public class LocalWriteBufferTest {
      *
      * <pre> {@code
      *  writes.compute(cell, (k, oldVal) -> {
-     *                 previousValue.set(oldVal);
      *                 if (hasMetadata) {
      *                     metadataForWrites.put(cell, metadata.get(cell));
      *                 } else {
@@ -91,10 +141,10 @@ public class LocalWriteBufferTest {
      * }</pre>
      * <p>
      * {@link ConcurrentSkipListMap#compute} uses {@link AtomicReference#compareAndSet} to test whether another thread
-     * has set the value in the meantime. If the comparison against the value read before calling
-     * {@link ConcurrentSkipListMap#compute} fails, we retry.
+     * has set the value in the meantime. It uses the old value for the key read before calling
+     * {@link ConcurrentSkipListMap#compute} to decide whether it should retry, including re-computation of the value.
      * <p>
-     * Now, imagine Cell C holds value A and no metadata and the following sequence involving two threads occurs:
+     * Let Cell C hold value A and no metadata and the following sequence involving two threads occurs:
      * <pre> {@code
      * |                   T1                   |                    T2                   |
      * |:--------------------------------------:|:---------------------------------------:|
@@ -105,7 +155,8 @@ public class LocalWriteBufferTest {
      * |                                        | compareAndSet(expected: A, newValue: A) |
      * | compareAndSet(expected:A, newValue: B) |                                         |
      * }</pre>
-     * At the end, C has value B and metadata Y, which violates the atomicity guarantee.
+     * Because T2 did not modify the value of C, the {@link AtomicReference#compareAndSet} in T1 succeeds.
+     * At the end of this sequence, C has value B and metadata Y, which violates the atomicity guarantee.
      */
     @Test
     public void writingValueAndMetadataIsAtomicWhenOverwritingWithSameValue() throws InterruptedException {

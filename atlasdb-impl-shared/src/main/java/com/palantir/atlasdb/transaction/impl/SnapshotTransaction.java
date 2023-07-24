@@ -2917,9 +2917,4 @@ public class SnapshotTransaction extends AbstractTransaction
                 },
                 MoreExecutors.directExecutor());
     }
-
-    @VisibleForTesting
-    LocalWriteBuffer getLocalWriteBuffer() {
-        return localWriteBuffer;
-    }
 }

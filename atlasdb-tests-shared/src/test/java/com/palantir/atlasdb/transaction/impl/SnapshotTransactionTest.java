@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static com.palantir.atlasdb.transaction.impl.TransactionTestUtils.unwrapSnapshotTransaction;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -2562,93 +2561,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void metadataStoredForPutWithMetadata() {
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
-    }
-
-    @Test
-    public void metadataRemovedForRegularPutAfterPutWithMetadata() {
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("feeling lucky")));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).isEmpty();
-    }
-
-    @Test
-    public void metadataStoredForDeleteWithMetadata() {
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.deleteWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, TEST_METADATA));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
-    }
-
-    @Test
-    public void metadataRemovedForRegularDeleteAfterPutWithMetadata() {
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).isEmpty();
-    }
-
-    @Test
-    public void metadataStoredForPutWithMetadataAfterRegularDelete() {
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.delete(TABLE, ImmutableSet.of(TEST_CELL));
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, TEST_METADATA));
-    }
-
-    @Test
-    public void canOverwriteMetadata() {
-        ChangeMetadata otherMetadata = ChangeMetadata.updated(PtBytes.toBytes("so"), PtBytes.toBytes("meta"));
-        Map<Cell, ChangeMetadata> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-            txn.deleteWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, TEST_METADATA));
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, otherMetadata)));
-            return unwrapSnapshotTransaction(txn).getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE);
-        });
-        assertThat(internalMetadata).containsExactlyEntriesOf(ImmutableMap.of(TEST_CELL, otherMetadata));
-    }
-
-    @Test
-    public void canStoreMetadataForMultipleTables() {
-        Map<TableReference, Map<Cell, ChangeMetadata>> internalMetadata = txManager.runTaskThrowOnConflict(txn -> {
-            txn.putWithMetadata(
-                    TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            txn.putWithMetadata(
-                    TABLE2, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-            SnapshotTransaction unwrappedTxn = unwrapSnapshotTransaction(txn);
-            return ImmutableMap.of(
-                    TABLE,
-                    unwrappedTxn.getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE),
-                    TABLE2,
-                    unwrappedTxn.getLocalWriteBuffer().getChangeMetadataForWritesToTable(TABLE2));
-        });
-        assertThat(internalMetadata)
-                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
-                        TABLE,
-                        ImmutableMap.of(TEST_CELL, TEST_METADATA),
-                        TABLE2,
-                        ImmutableMap.of(TEST_CELL_2, TEST_METADATA)));
-    }
-
-    @Test
     public void metadataIsSentToTimeLock() {
         TimelockService timelockService = spy(txManager.getTimelockService());
         // Only locks cells
@@ -2977,6 +2889,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 t1.get(TABLE, ImmutableSet.of(cell)).values().iterator().next());
     }
 
+    /**
+     * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
+     * {@link AtlasDbTestCase#setUp()}.
+     */
+    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction transaction) {
+        if (transaction instanceof ForwardingTransaction) {
+            return unwrapSnapshotTransaction(((ForwardingTransaction) transaction).delegate());
+        }
+        return (SnapshotTransaction) transaction;
+    }
+
     private static PreCommitCondition preCommitConditionFactory(
             Consumer<Long> throwIfConditionInvalid, Runnable cleanup) {
         return new PreCommitCondition() {
@@ -2994,7 +2917,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static void verifyLockWasCalledWithMetadataWhenCommitting(
             Transaction txn, TimelockService spiedTimelockService, Optional<LockRequestMetadata> lockRequestMetadata) {
-        // Commit will likely fail since we are using a mock timelock service
         txn.commit();
         verify(spiedTimelockService)
                 .lock(
