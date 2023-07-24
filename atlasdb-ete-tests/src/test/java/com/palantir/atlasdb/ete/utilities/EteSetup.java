@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete;
+package com.palantir.atlasdb.ete.utilities;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbEteServer;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -38,12 +37,10 @@ import com.palantir.docker.proxy.DockerProxyRule;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
@@ -65,48 +62,48 @@ public abstract class EteSetup {
     private static List<String> availableClients;
     private static Duration waitDuration;
 
-    public static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2));
+    public static RuleChain setupComposition(Class<?> eteClass, String composeFile, Clients clients) {
+        return setupComposition(eteClass, composeFile, clients, Duration.ofMinutes(2));
     }
 
     public static RuleChain setupComposition(
-            Class<?> eteClass, String composeFile, List<String> availableClientNames, Duration waitTime) {
-        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
+            Class<?> eteClass, String composeFile, Clients clients, Duration waitTime) {
+        return setupComposition(eteClass, composeFile, clients, waitTime, ImmutableMap.of());
     }
 
     public static RuleChain setupComposition(
-            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.ofMinutes(2), environment);
+            Class<?> eteClass, String composeFile, Clients clients, Map<String, String> environment) {
+        return setupComposition(eteClass, composeFile, clients, Duration.ofMinutes(2), environment);
     }
 
     public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
-            List<String> availableClientNames,
+            Clients clients,
             Duration waitTime,
             Map<String, String> environment) {
         waitDuration = waitTime;
-        return setup(eteClass, composeFile, availableClientNames, environment);
+        return setup(eteClass, composeFile, clients, environment);
     }
 
     public static RuleChain setupCompositionWithTimelock(
-            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
+            Class<?> eteClass, String composeFile, Clients clients, Map<String, String> environment) {
         waitDuration = Duration.ofMinutes(2);
-        return setup(eteClass, composeFile, availableClientNames, environment, true);
+        return setup(eteClass, composeFile, clients, environment, true);
     }
 
     public static RuleChain setup(
-            Class<?> eteClass, String composeFile, List<String> availableClientNames, Map<String, String> environment) {
-        return setup(eteClass, composeFile, availableClientNames, environment, false);
+            Class<?> eteClass, String composeFile, Clients clients, Map<String, String> environment) {
+        return setup(eteClass, composeFile, clients, environment, false);
     }
 
     public static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
-            List<String> availableClientNames,
+            Clients clients,
             Map<String, String> environment,
             boolean usingTimelock) {
-        availableClients = ImmutableList.copyOf(availableClientNames);
+        availableClients = clients.getClients();
 
         DockerMachine machine =
                 DockerMachine.localMachine().withEnvironment(environment).build();
@@ -145,10 +142,6 @@ public abstract class EteSetup {
         return createClientWithExtendedTimeout(clazz, Iterables.getFirst(availableClients, null), SERVER_PORT);
     }
 
-    static <T> T createClientToAllNodes(Class<T> clazz) {
-        return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
-    }
-
     public static Container getContainer(String containerName) {
         return docker.containers().container(containerName);
     }
@@ -156,7 +149,7 @@ public abstract class EteSetup {
     private static ExternalResource waitForServersToBeReady() {
         return new ExternalResource() {
             @Override
-            protected void before() throws Throwable {
+            protected void before() {
                 Awaitility.await()
                         .ignoreExceptions()
                         .atMost(waitDuration)
@@ -176,21 +169,6 @@ public abstract class EteSetup {
         };
     }
 
-    private static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames, short port) {
-        Collection<String> uris = nodeNames.stream()
-                .map(nodeName -> String.format("http://%s:%s", nodeName, port))
-                .collect(Collectors.toList());
-
-        return AtlasDbHttpClients.createProxyWithFailover(
-                MetricsManagers.createForTests(),
-                ImmutableServerListConfig.builder()
-                        .addAllServers(uris)
-                        .sslConfiguration(SSL_CONFIGURATION)
-                        .build(),
-                clazz,
-                TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING);
-    }
-
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
@@ -201,5 +179,20 @@ public abstract class EteSetup {
         String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(
                 Optional.of(TRUST_CONTEXT), uri, clazz, TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_EXTENDED_TIMEOUT);
+    }
+
+    public enum Clients {
+        SINGLE(ImmutableList.of("ete1")),
+        MULTI(ImmutableList.of("ete1", "ete2"));
+
+        private final ImmutableList<String> clients;
+
+        Clients(ImmutableList<String> clients) {
+            this.clients = clients;
+        }
+
+        List<String> getClients() {
+            return clients;
+        }
     }
 }

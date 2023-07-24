@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete;
+package com.palantir.atlasdb.ete.standalone;
 
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.ete.DockerClientOrchestrationRule.DockerClientConfiguration;
+import com.palantir.atlasdb.ete.Gradle;
+import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationRule;
+import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationRule.DockerClientConfiguration;
+import com.palantir.atlasdb.ete.utilities.ImmutableDockerClientConfiguration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;

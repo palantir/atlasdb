@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.atlasdb.ete.TodoEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
+import com.palantir.atlasdb.ete.utilities.EteSetup;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -38,6 +37,6 @@ public class MultiClientWithTimelockAndCassandraTestSuite extends EteSetup {
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
             MultiClientWithTimelockAndCassandraTestSuite.class,
             "docker-compose.multi-client-with-timelock-and-cassandra.yml",
-            TestSuites.MULTI_CLIENT,
+            Clients.MULTI,
             CassandraEnvironment.get());
 }

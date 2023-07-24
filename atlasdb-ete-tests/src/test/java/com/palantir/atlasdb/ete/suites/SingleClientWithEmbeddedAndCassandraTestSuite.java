@@ -15,17 +15,12 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
-import com.palantir.atlasdb.ete.MultiCassandraDoubleNodeDownEteTest;
-import com.palantir.atlasdb.ete.MultiCassandraSingleNodeDownEteTest;
-import com.palantir.atlasdb.ete.ServiceExposureEteTest;
-import com.palantir.atlasdb.ete.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.TodoEteTest;
-import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
-import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.MultipleSchemaVersionsCoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
+import com.palantir.atlasdb.ete.utilities.EteSetup;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -34,19 +29,15 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     TodoEteTest.class,
-    ServiceExposureEteTest.class,
-    MultiCassandraSingleNodeDownEteTest.class,
-    MultiCassandraDoubleNodeDownEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    MultipleSchemaVersionsCoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+    MultipleSchemaVersionsCoordinationEteTest.class
 })
 public class SingleClientWithEmbeddedAndCassandraTestSuite extends EteSetup {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             SingleClientWithEmbeddedAndCassandraTestSuite.class,
             "docker-compose.single-client-with-embedded-and-cassandra.yml",
-            TestSuites.SINGLE_CLIENT,
+            Clients.SINGLE,
             CassandraEnvironment.get());
 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.ete.coordination;
+package com.palantir.atlasdb.ete.suiteclasses;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
-import com.palantir.atlasdb.ete.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteSetup;
 import org.junit.Test;
 
 public class MultipleSchemaVersionsCoordinationEteTest {

@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
-import com.palantir.atlasdb.ete.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.TodoEteTest;
-import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.LockWithoutTimelockEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
+import com.palantir.atlasdb.ete.utilities.EteSetup;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -38,5 +37,5 @@ public class SingleClientWithEmbeddedAndPostgresTestSuite extends EteSetup {
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             SingleClientWithEmbeddedAndPostgresTestSuite.class,
             "docker-compose.single-client-with-embedded-and-postgres.yml",
-            TestSuites.SINGLE_CLIENT);
+            Clients.SINGLE);
 }
