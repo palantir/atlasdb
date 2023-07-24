@@ -1779,26 +1779,30 @@ public class SnapshotTransaction extends AbstractTransaction
     private void deleteWithMetadataInternal(
             TableReference tableRef, Set<Cell> cells, Map<Cell, ChangeMetadata> metadata) {
         getCache().delete(tableRef, cells);
-        putWithMetadataInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
+        writeToLocalBuffer(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        ensureNoEmptyValues(values);
-        getCache().write(tableRef, values);
         putWithMetadataInternal(tableRef, values, ImmutableMap.of());
     }
 
     @Override
     public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
-        Map<Cell, byte[]> valuesOnly = Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value);
-        ensureNoEmptyValues(valuesOnly);
-        getCache().write(tableRef, valuesOnly);
-        putWithMetadataInternal(
-                tableRef, valuesOnly, Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
+        writeToLocalBuffer(
+                tableRef,
+                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value),
+                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
     }
 
     private void putWithMetadataInternal(
+            TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
+        ensureNoEmptyValues(values);
+        getCache().write(tableRef, values);
+        writeToLocalBuffer(tableRef, values, metadata);
+    }
+
+    private void writeToLocalBuffer(
             TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
