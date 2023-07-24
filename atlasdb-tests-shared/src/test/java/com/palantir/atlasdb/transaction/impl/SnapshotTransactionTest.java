@@ -1735,7 +1735,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         // that as the expected value
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
 
-        // Since one cell is cached, should only expect 1 to be present on internal call
+        // Since no cells were cached, we continue to expect 2 from the underlying kvs.
         verify(spiedSnapshotTransaction)
                 .getInternal(
                         eq("getWithExpectedNumberOfCells"),
