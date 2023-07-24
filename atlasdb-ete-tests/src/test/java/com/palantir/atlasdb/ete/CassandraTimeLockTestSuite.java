@@ -17,6 +17,8 @@ package com.palantir.atlasdb.ete;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
