@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.palantir.atlasdb.ete;
+package com.palantir.atlasdb.ete.suites;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.EteSetup;
+import com.palantir.atlasdb.ete.ServiceExposureEteTest;
+import com.palantir.atlasdb.ete.TimestampManagementEteTest;
+import com.palantir.atlasdb.ete.TodoEteTest;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
-import java.time.Duration;
+import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -27,14 +31,16 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     TodoEteTest.class,
+    ServiceExposureEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+    MultipleSchemaVersionsCoordinationEteTest.class
 })
-public class OracleDbKvsEteTestSuite extends EteSetup {
-    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
-
+public class SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite extends EteSetup {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            OracleDbKvsEteTestSuite.class, "docker-compose.oracle.yml", CLIENTS, Duration.ofMinutes(10));
+            SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class,
+            "docker-compose.single-client-with-embedded-and-three-node-cassandra.yml",
+            TestSuites.SINGLE_CLIENT,
+            CassandraEnvironment.get());
 }

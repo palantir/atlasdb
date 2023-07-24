@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.ete;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import java.time.Duration;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -28,15 +29,15 @@ import org.junit.runners.Suite;
     TodoEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    LockWithTimelockEteTest.class
+    LockWithoutTimelockEteTest.class
 })
-public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
+public class SingleClientWithEmbeddedAndOracleTestSuite extends EteSetup {
     private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
-            PostgresDbPersistenceTimeLockTestSuite.class,
-            "docker-compose.timelock.database.bound.postgres.yml",
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+            SingleClientWithEmbeddedAndOracleTestSuite.class,
+            "docker-compose.oracle.yml",
             CLIENTS,
-            ImmutableMap.of());
+            Duration.ofMinutes(10));
 }
