@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete;
+package com.palantir.atlasdb.ete.suites;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.EteSetup;
+import com.palantir.atlasdb.ete.TodoEteTest;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -31,13 +33,11 @@ import org.junit.runners.Suite;
     //    MultipleSchemaVersionsCoordinationEteTest.class,
     //    LockWithTimelockEteTest.class
 })
-public class MultiClientWithTimelockAndCassandra extends EteSetup {
-    private static final ImmutableList<String> CLIENTS = ImmutableList.of("ete1");
-
+public class MultiClientWithTimelockAndCassandraTestSuite extends EteSetup {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
-            MultiClientWithTimelockAndCassandra.class,
-            "docker-compose.timelock.cassandra.yml",
-            CLIENTS,
+            MultiClientWithTimelockAndCassandraTestSuite.class,
+            "docker-compose.multi-client-with-timelock-and-cassandra.yml",
+            TestSuites.MULTI_CLIENT,
             CassandraEnvironment.get());
 }
