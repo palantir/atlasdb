@@ -262,7 +262,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                     timelockRequestBatcherProviders,
                     knownSchemas);
         } else {
-            return createRawEmbeddedServices(metricsManager, registrar, lock, time);
+            return createRawEmbeddedServices(metricsManager, lock, time);
         }
     }
 
@@ -621,7 +621,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
 
     private static LockAndTimestampServices createRawEmbeddedServices(
             MetricsManager metricsManager,
-            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> managedTimestampServiceSupplier) {
         LockService lockService =
@@ -633,10 +632,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 metricsManager.getRegistry(), managedTimestampService, TimestampService.class);
         TimestampManagementService timestampManagementService = ServiceCreator.instrumentService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampManagementService.class);
-
-        registrar.accept(lockService);
-        registrar.accept(timeService);
-        registrar.accept(timestampManagementService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
