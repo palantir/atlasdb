@@ -17,9 +17,6 @@ package com.palantir.atlasdb.ete.suites;
 
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
-import com.palantir.atlasdb.ete.MultiCassandraDoubleNodeDownEteTest;
-import com.palantir.atlasdb.ete.MultiCassandraSingleNodeDownEteTest;
 import com.palantir.atlasdb.ete.TimestampManagementEteTest;
 import com.palantir.atlasdb.ete.TodoEteTest;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
