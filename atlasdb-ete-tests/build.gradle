@@ -105,9 +105,12 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
 // is very expensive and so separate task is used to control when/where it is executed
 task timeLockMigrationTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+    include '**/*TimeLockMigration*.class'
+    /*
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.TimeLockMigrationEteTest'
     }
+    */
 }
 
 // test suites with their own test tasks
@@ -115,23 +118,32 @@ task timeLockMigrationTest(type: Test) {
 
 task singleClientWithEmbeddedAndThreeNodeCassandraTest(type: Test) {
     dependsOn prepareForEteTests
+    include '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
+    /*
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
     }
+    */
 }
 
 task singleClientWithEmbeddedAndPostgresTest(type: Test) {
     dependsOn prepareForEteTests
+    include '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
+    /*
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
     }
+    */
 }
 
 task singleClientWithEmbeddedAndOracleTest(type: Test) {
     dependsOn prepareForEteTests
+    include '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
+    /*
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
     }
+    */
 }
 
 test {
