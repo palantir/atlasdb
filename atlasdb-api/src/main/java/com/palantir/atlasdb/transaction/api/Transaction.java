@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -24,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
@@ -196,6 +198,16 @@ public interface Transaction {
      * @param expectedNumberOfPresentCells the maximum number of cells that are expected to be present.
      * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
      */
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make usage of the "
+                    + "performance improvement of skipping the immutable timestamp lock check on non-empty reads of "
+                    + "thoroughly swept tables, but their schema won't allow them to have non empty reads due to "
+                    + "columns being mutually exclusive, for example. So this API gives them a good way to specifying "
+                    + "the max number of values they'd ever expect in a get, which when met would allow them to skip "
+                    + "the lock check. Wrong usage of this API can cause correctness issues, so it's restricted.",
+            link = "https://github.com/palantir/atlasdb/pull/6655",
+            allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
     @Idempotent
     Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells);

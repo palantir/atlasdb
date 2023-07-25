@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import java.util.Iterator;
@@ -83,6 +84,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
         return delegate().get(tableRef, cells);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {

@@ -63,6 +63,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -320,6 +321,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     @Idempotent
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(

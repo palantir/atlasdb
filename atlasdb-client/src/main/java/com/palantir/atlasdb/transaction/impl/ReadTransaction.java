@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -64,6 +65,7 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
         return delegate().get(tableRef, cells);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
