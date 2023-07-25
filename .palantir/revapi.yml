@@ -154,3 +154,11 @@ acceptedBreaks:
       new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]> com.palantir.atlasdb.transaction.api.Transaction::getWithExpectedNumberOfCells(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, long)"
       justification: "just adding a new get method"
+  "0.899.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.palantir.util.result.Result<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>, com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException>\
+        \ com.palantir.atlasdb.transaction.api.Transaction::getWithExpectedNumberOfCells(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, long)"
+      justification: "just adding a new get method"
