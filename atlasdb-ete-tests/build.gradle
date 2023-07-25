@@ -101,6 +101,12 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
+task timeLockTest(type: Test) {
+    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+    include '**/*TimeLock*.class'
+    exclude '**/*TimeLockMigration*.class'
+}
+
 // standalone test with its own task
 // is very expensive and so separate task is used to control when/where it is executed
 task timeLockMigrationTest(type: Test) {
@@ -149,7 +155,7 @@ task singleClientWithEmbeddedAndOracleTest(type: Test) {
 test {
     // this list explicitly doesn't include the timelockMigration or singleClientWithEmbeddedAndOracleTest tasks
     // not sure why that is
-    dependsOn prepareForEteTests, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
+    dependsOn prepareForEteTests, timeLockTest, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
     // 1-off ETE tests
     exclude '**/*TimeLock*.class'
