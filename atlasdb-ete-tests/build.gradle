@@ -139,6 +139,17 @@ test {
     // not sure why that is
     dependsOn prepareForEteTests, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
+    // 1-off ETE tests
+    exclude '**/*TimeLock*.class'
+    exclude '**/*TimeLockMigration*.class' // Technically covered by previous line, but explicitly avoiding in case of refactor
+    exclude '**/*EteTest.class'
+
+    // test suites with their own test tasks
+    exclude '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
+    exclude '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
+    exclude '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
+
+    /*
     filter {
         // include standalone and suite tests
         // includeTestsMatching 'com.palantir.atlasdb.ete.standalone.*'
@@ -154,6 +165,7 @@ test {
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithPostgresTimelockAndPostgresTestSuite'
         // excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithTimelockAndCassandraTestSuite'
     }
+    */
 }
 
 distribution {
