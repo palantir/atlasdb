@@ -19,16 +19,14 @@ package com.palantir.atlasdb.transaction.impl.expectations;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import java.util.Arrays;
 import java.util.Map;
 import one.util.streamex.EntryStream;
 
-public final class ExpectedCellsContainingValueValidator {
+public final class CellCountValidator {
 
-    private ExpectedCellsContainingValueValidator() {}
+    private CellCountValidator() {}
 
     public static long validateCacheAndGetNonEmptyValuesCount(
             long expectedNumberOfPresentCellsToFetch, Map<Cell, CacheValue> cachedLookup) {
@@ -47,25 +45,6 @@ public final class ExpectedCellsContainingValueValidator {
             long expectedNumberOfPresentCellsToFetch, Map<Cell, byte[]> fetchedCells) {
         if (fetchedCells.size() > expectedNumberOfPresentCellsToFetch) {
             throw new MoreCellsPresentThanExpectedException(fetchedCells, expectedNumberOfPresentCellsToFetch);
-        }
-    }
-
-    public static class MoreCellsPresentThanExpectedException extends IllegalStateException {
-        private final Map<Cell, byte[]> fetchedCells;
-
-        public MoreCellsPresentThanExpectedException(Map<Cell, byte[]> fetchedCells, long expectedNumberOfCells) {
-            super(new SafeIllegalStateException(
-                    "KeyValueService returned more results than Get expected. This means there is a bug"
-                            + "either in the SnapshotTransaction implementation or in how the client is "
-                            + "using such method.",
-                    SafeArg.of("expectedNumberOfCells", expectedNumberOfCells),
-                    SafeArg.of("numberOfCellsRetrieved", fetchedCells.size()),
-                    UnsafeArg.of("retrievedCells", fetchedCells)));
-            this.fetchedCells = fetchedCells;
-        }
-
-        public Map<Cell, byte[]> getFetchedCells() {
-            return fetchedCells;
         }
     }
 }
