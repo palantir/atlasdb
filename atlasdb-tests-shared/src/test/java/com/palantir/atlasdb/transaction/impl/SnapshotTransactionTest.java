@@ -104,6 +104,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.impl.expectations.ExpectedCellsContainingValueValidator.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -1699,7 +1700,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
-                .isInstanceOf(SafeIllegalStateException.class)
+                .isInstanceOf(MoreCellsPresentThanExpectedException.class)
                 .hasMessageContaining("KeyValueService returned more results than Get expected");
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
