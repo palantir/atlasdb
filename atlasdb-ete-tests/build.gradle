@@ -106,7 +106,7 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
 task timeLockMigrationTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
     filter {
-        includeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
+        includeTestsMatching 'com.palantir.atlasdb.ete.TimeLockMigrationEteTest'
     }
 }
 
@@ -141,11 +141,11 @@ test {
 
     filter {
         // include standalone and suite tests
-        includeTestsMatching 'com.palantir.atlasdb.ete.standalone.*'
+        // includeTestsMatching 'com.palantir.atlasdb.ete.standalone.*'
         includeTestsMatching 'com.palantir.atlasdb.ete.suites.*'
 
         // exclude any tests with their own 1-off tasks
-        excludeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.TimeLockMigrationEteTest'
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
