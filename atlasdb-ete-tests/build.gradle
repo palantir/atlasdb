@@ -101,15 +101,13 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
-task timeLockTest(type: Test) {
-    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
-    include '**/*TimeLock*.class'
-    exclude '**/*TimeLockMigration*.class'
-}
-
+// standalone test with its own task
+// is very expensive and so separate task is used to control when/where it is executed
 task timeLockMigrationTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
-    include '**/*TimeLockMigration*.class'
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
+    }
 }
 
 // test suites with their own test tasks
@@ -117,33 +115,45 @@ task timeLockMigrationTest(type: Test) {
 
 task singleClientWithEmbeddedAndThreeNodeCassandraTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
+    }
 }
 
 task singleClientWithEmbeddedAndPostgresTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+    }
 }
 
 task singleClientWithEmbeddedAndOracleTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
+    }
 }
 
 test {
     // this list explicitly doesn't include the timelockMigration or singleClientWithEmbeddedAndOracleTest tasks
     // not sure why that is
-    dependsOn prepareForEteTests, timeLockTest, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
+    dependsOn prepareForEteTests, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
-    // 1-off ETE tests
-    exclude '**/*TimeLock*.class'
-    exclude '**/*TimeLockMigration*.class' // Technically covered by previous line, but explicitly avoiding in case of refactor
-    exclude '**/*EteTest.class'
+    filter {
+        // include standalone and suite tests
+        includeTestsMatching 'com.palantir.atlasdb.ete.standalone.*'
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.*'
 
-    // test suites with their own test tasks
-    exclude '**/SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class'
-    exclude '**/SingleClientWithEmbeddedAndPostgresTestSuite.class'
-    exclude '**/SingleClientWithEmbeddedAndOracleTestSuite.class'
+        // exclude any tests with their own 1-off tasks
+        excludeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
+        // testing stuff
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndCassandraTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithPostgresTimelockAndPostgresTestSuite'
+        // excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithTimelockAndCassandraTestSuite'
+    }
 }
 
 distribution {
