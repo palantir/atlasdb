@@ -135,8 +135,9 @@ task singleClientWithEmbeddedAndOracleTest(type: Test) {
 }
 
 test {
-    // this list explicitly doesn't include the timelockMigration or singleClientWithEmbeddedAndOracleTest tasks
-    // not sure why that is
+    // this list explicitly doesn't include timelockMigration because it's too expensive to run on every PR
+    // this list explicitly doesn't include singleClientWithEmbeddedAndOracleTest; not sure why
+    // :timelock-server-distribution:dockerTag needed by any ETE test that spins up a timelock-server
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag', singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
     filter {
