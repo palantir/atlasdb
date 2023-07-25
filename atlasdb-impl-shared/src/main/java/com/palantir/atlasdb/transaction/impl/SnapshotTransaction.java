@@ -97,6 +97,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
@@ -145,6 +146,7 @@ import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -920,21 +922,25 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
-        return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
-            long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
-                    expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
-            long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
+        try {
+            return new Result.Ok<>(getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
+                long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
+                        expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
+                long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
 
-            return getInternal(
-                    "getWithExpectedNumberOfCells",
-                    tableRef,
-                    cacheLookupResult.missedCells(),
-                    numberOfCellsExpectingValuePostCache,
-                    immediateKeyValueService,
-                    immediateTransactionService);
-        });
+                return getInternal(
+                        "getWithExpectedNumberOfCells",
+                        tableRef,
+                        cacheLookupResult.missedCells(),
+                        numberOfCellsExpectingValuePostCache,
+                        immediateKeyValueService,
+                        immediateTransactionService);
+            }));
+        } catch (MoreCellsPresentThanExpectedException e) {
+            return new Result.Err<>(e);
+        }
     }
 
     @Override

@@ -34,12 +34,15 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import com.palantir.util.result.Result;
+import com.palantir.util.result.Result.Ok;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -138,10 +141,10 @@ public class CachingTransaction extends ForwardingTransaction {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
-            return getWithLoader(tableRef, cells, (tableReference, cachedCells, toRead) -> {
+            return getWithResultLoader(tableRef, cells, (tableReference, cachedCells, toRead) -> {
                         long nonEmptyValuesInCache = cachedCells.values().stream()
                                 .filter(value -> !Arrays.equals(value, PtBytes.EMPTY_BYTE_ARRAY))
                                 .count();
@@ -162,10 +165,10 @@ public class CachingTransaction extends ForwardingTransaction {
         return getWithLoader(tableRef, cells, (table, _cacheCells, cellsToLoad) -> super.getAsync(table, cellsToLoad));
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
-            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+    private ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> getWithResultLoader(
+            TableReference tableRef, Set<Cell> cells, CellResultLoader cellLoader) {
         if (cells.isEmpty()) {
-            return Futures.immediateFuture(ImmutableMap.of());
+            return Futures.immediateFuture(new Result.Ok<>(ImmutableMap.of()));
         }
 
         Set<Cell> toLoad = new HashSet<>();
@@ -184,11 +187,26 @@ public class CachingTransaction extends ForwardingTransaction {
         return Futures.transform(
                 cellLoader.load(tableRef, cacheHit, toLoad),
                 loadedCells -> {
-                    cacheLoadedCells(tableRef, toLoad, loadedCells);
-                    cacheHit.putAll(loadedCells);
-                    return cacheHit;
+                    if (loadedCells.isErr()) {
+                        return loadedCells;
+                    }
+
+                    cacheLoadedCells(tableRef, toLoad, loadedCells.unwrap());
+                    cacheHit.putAll(loadedCells.unwrap());
+                    return new Ok<>(cacheHit);
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
+            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+        CellResultLoader resultLoader = (table, cacheCells, cellsToLoad) -> {
+            ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, cacheCells, cellsToLoad);
+            return Futures.transform(future, response -> new Result.Ok<>(response), MoreExecutors.directExecutor());
+        };
+
+        return Futures.transform(
+                getWithResultLoader(tableRef, cells, resultLoader), Result::unwrap, MoreExecutors.directExecutor());
     }
 
     @Override
@@ -298,6 +316,12 @@ public class CachingTransaction extends ForwardingTransaction {
     @FunctionalInterface
     private interface CellLoader {
         ListenableFuture<Map<Cell, byte[]>> load(
+                TableReference tableReference, Map<Cell, byte[]> cachedCells, Set<Cell> toRead);
+    }
+
+    @FunctionalInterface
+    private interface CellResultLoader {
+        ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> load(
                 TableReference tableReference, Map<Cell, byte[]> cachedCells, Set<Cell> toRead);
     }
 }

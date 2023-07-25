@@ -26,9 +26,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -209,7 +211,7 @@ public interface Transaction {
             allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
             allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
     @Idempotent
-    Map<Cell, byte[]> getWithExpectedNumberOfCells(
+    Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells);
 
     /**

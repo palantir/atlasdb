@@ -103,8 +103,8 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.impl.expectations.ExpectedCellsContainingValueValidator.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -134,6 +134,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.util.result.Result;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.math.BigInteger;
@@ -1661,7 +1662,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = getSnapshotTransactionWith(
                 spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        transaction.getWithExpectedNumberOfCells(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isOk()).isTrue();
+
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
@@ -1679,8 +1684,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = getSnapshotTransactionWith(
                 spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        transaction.getWithExpectedNumberOfCells(
-                TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
@@ -1698,10 +1705,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = getSnapshotTransactionWith(
                 spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
 
-        assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
-                .isInstanceOf(MoreCellsPresentThanExpectedException.class)
-                .hasMessageContaining("KeyValueService returned more results than Get expected");
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isErr()).isTrue();
+        assertThat(result.unwrapErr().getFetchedCells()).containsKeys(TEST_CELL, TEST_CELL_2);
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
@@ -1728,9 +1736,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
-        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
-                .doesNotThrowAnyException();
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
@@ -1766,9 +1775,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
-        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
-                .doesNotThrowAnyException();
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
@@ -1804,9 +1814,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
-        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2))
-                .doesNotThrowAnyException();
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
 
         // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
         // that as the expected value
@@ -1847,9 +1858,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
-        assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 2))
-                .doesNotThrowAnyException();
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 2);
+        assertThat(result.isOk()).isTrue();
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction)
@@ -1870,13 +1882,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
 
-        TransactionScopedCache txnCache = createCacheWithEntries(
-                TABLE_SWEPT_THOROUGH,
-                Map.of(
-                        TEST_CELL,
-                        "someValue".getBytes(StandardCharsets.UTF_8),
-                        TEST_CELL_2,
-                        "someOtherValue".getBytes(StandardCharsets.UTF_8)));
+        Map<Cell, byte[]> cacheContent = Map.of(
+                TEST_CELL,
+                "someValue".getBytes(StandardCharsets.UTF_8),
+                TEST_CELL_2,
+                "someOtherValue".getBytes(StandardCharsets.UTF_8));
+        TransactionScopedCache txnCache = createCacheWithEntries(TABLE_SWEPT_THOROUGH, cacheContent);
 
         LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
         when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
@@ -1886,9 +1897,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
-        assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
-                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
-                .isInstanceOf(MoreCellsPresentThanExpectedException.class);
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isErr()).isTrue();
+        assertThat(result.unwrapErr().getFetchedCells()).isEqualTo(cacheContent);
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())
