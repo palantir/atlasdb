@@ -1824,7 +1824,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void dontFetchCellsIfAllCached() {
+    public void dontFetchCellsIfAllCachedButPropagateWithEmptyRequest() {
         putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
 
         TimelockService spiedTimeLockService = spy(timelockService);
@@ -1850,6 +1850,45 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatCode(() -> transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 2))
                 .doesNotThrowAnyException();
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(ImmutableSet.of()),
+                        anyLong(),
+                        any(),
+                        any());
+    }
+
+    @Test
+    public void throwsIfAllValuesCachedButMoreThanExpectedPresent() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache = createCacheWithEntries(
+                TABLE_SWEPT_THOROUGH,
+                Map.of(
+                        TEST_CELL,
+                        "someValue".getBytes(StandardCharsets.UTF_8),
+                        TEST_CELL_2,
+                        "someOtherValue".getBytes(StandardCharsets.UTF_8)));
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
+                .isInstanceOf(MoreCellsPresentThanExpectedException.class);
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())

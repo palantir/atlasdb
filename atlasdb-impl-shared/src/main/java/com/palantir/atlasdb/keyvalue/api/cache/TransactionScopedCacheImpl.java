@@ -112,15 +112,11 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
 
         CacheLookupResult cacheLookup = cacheLookup(tableReference, cells);
 
-        if (cacheLookup.missedCells().isEmpty()) {
-            return Futures.immediateFuture(filterEmptyValues(cacheLookup.cacheHits()));
-        } else {
-            return Futures.transform(
-                    valueLoader.apply(cacheLookup),
-                    uncachedValues -> processUncachedCells(
-                            tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), uncachedValues),
-                    MoreExecutors.directExecutor());
-        }
+        return Futures.transform(
+                valueLoader.apply(cacheLookup),
+                uncachedValues -> processUncachedCells(
+                        tableReference, cacheLookup.cacheHits(), cacheLookup.missedCells(), uncachedValues),
+                MoreExecutors.directExecutor());
     }
 
     @Override

@@ -19,12 +19,14 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
@@ -147,14 +149,18 @@ public final class TransactionScopedCacheImplTest {
     }
 
     @Test
-    public void allValuesReadFromCachePreventsReadToDb() {
+    public void allValuesReadFromCachePreventsReadToDbByPropagatingEmptySetToValueLoader() {
         TransactionScopedCache cache = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
 
+        // mocking because you can't spy a lambda
         Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader = mock(Function.class);
+        when(valueLoader.apply(any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
+
         assertThat(cache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader))
                 .containsExactlyInAnyOrderEntriesOf(
                         ImmutableMap.of(CELL_1, VALUE_1.value().get()));
-        verifyNoInteractions(valueLoader);
+
+        verify(valueLoader, times(1)).apply(eq(ImmutableSet.of()));
     }
 
     @Test
