@@ -137,7 +137,7 @@ task singleClientWithEmbeddedAndOracleTest(type: Test) {
 test {
     // this list explicitly doesn't include the timelockMigration or singleClientWithEmbeddedAndOracleTest tasks
     // not sure why that is
-    dependsOn prepareForEteTests, singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
+    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag', singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
 
     filter {
         // include standalone and suite tests
