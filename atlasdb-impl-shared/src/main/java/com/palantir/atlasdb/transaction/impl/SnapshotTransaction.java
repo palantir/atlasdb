@@ -101,6 +101,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCom
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.ExpectedCellsContainingValueValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -922,10 +923,9 @@ public class SnapshotTransaction extends AbstractTransaction
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
-            long cachedCellsWithNonEmptyValue = cacheLookupResult.cacheHits().values().stream()
-                    .filter(value -> value.value().isPresent()
-                            && !Arrays.equals(value.value().get(), PtBytes.EMPTY_BYTE_ARRAY))
-                    .count();
+            long cachedCellsWithNonEmptyValue =
+                    ExpectedCellsContainingValueValidator.validateCacheAndGetNonEmptyValuesCount(
+                            expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
             long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
 
             return getInternal(
@@ -1002,7 +1002,8 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
-                    validateFetchedLessOrEqualToExpected(expectedNumberOfPresentCellsToFetch, fromKeyValueService);
+                    ExpectedCellsContainingValueValidator.validateFetchedLessOrEqualToExpected(
+                            expectedNumberOfPresentCellsToFetch, fromKeyValueService);
                     boolean allPossibleCellsReadAndPresent =
                             fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
                     validatePreCommitRequirementsOnReadIfNecessary(
@@ -1010,19 +1011,6 @@ public class SnapshotTransaction extends AbstractTransaction
                     return removeEmptyColumns(result, tableRef);
                 },
                 MoreExecutors.directExecutor());
-    }
-
-    private static void validateFetchedLessOrEqualToExpected(
-            long expectedNumberOfPresentCellsToFetch, Map<Cell, byte[]> fromKeyValueService) {
-        if (fromKeyValueService.size() > expectedNumberOfPresentCellsToFetch) {
-            throw new SafeIllegalStateException(
-                    "KeyValueService returned more results than Get expected. This means there is a bug"
-                            + "either in the SnapshotTransaction implementation or in how the client is "
-                            + "using such method.",
-                    SafeArg.of("expectedNumberOfCells", expectedNumberOfPresentCellsToFetch),
-                    SafeArg.of("numberOfCellsRetrieved", fromKeyValueService.size()),
-                    UnsafeArg.of("retrievedCells", fromKeyValueService));
-        }
     }
 
     @Override
