@@ -101,7 +101,7 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCom
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
-import com.palantir.atlasdb.transaction.impl.expectations.ExpectedCellsContainingValueValidator;
+import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -923,9 +923,8 @@ public class SnapshotTransaction extends AbstractTransaction
     public Map<Cell, byte[]> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
-            long cachedCellsWithNonEmptyValue =
-                    ExpectedCellsContainingValueValidator.validateCacheAndGetNonEmptyValuesCount(
-                            expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
+            long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
+                    expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
             long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
 
             return getInternal(
@@ -1002,7 +1001,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
-                    ExpectedCellsContainingValueValidator.validateFetchedLessOrEqualToExpected(
+                    CellCountValidator.validateFetchedLessOrEqualToExpected(
                             expectedNumberOfPresentCellsToFetch, fromKeyValueService);
                     boolean allPossibleCellsReadAndPresent =
                             fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
