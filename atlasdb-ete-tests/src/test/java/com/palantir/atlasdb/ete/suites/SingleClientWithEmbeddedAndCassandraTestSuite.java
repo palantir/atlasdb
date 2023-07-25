@@ -32,12 +32,9 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     TodoEteTest.class,
-    MultiCassandraSingleNodeDownEteTest.class,
-    MultiCassandraDoubleNodeDownEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    MultipleSchemaVersionsCoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+    MultipleSchemaVersionsCoordinationEteTest.class
 })
 public class SingleClientWithEmbeddedAndCassandraTestSuite extends EteSetup {
     @ClassRule

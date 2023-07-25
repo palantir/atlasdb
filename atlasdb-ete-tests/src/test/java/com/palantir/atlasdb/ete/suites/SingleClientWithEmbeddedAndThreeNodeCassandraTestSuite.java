@@ -17,6 +17,9 @@ package com.palantir.atlasdb.ete.suites;
 
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.EteSetup;
+import com.palantir.atlasdb.ete.LockWithoutTimelockEteTest;
+import com.palantir.atlasdb.ete.MultiCassandraDoubleNodeDownEteTest;
+import com.palantir.atlasdb.ete.MultiCassandraSingleNodeDownEteTest;
 import com.palantir.atlasdb.ete.TimestampManagementEteTest;
 import com.palantir.atlasdb.ete.TodoEteTest;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
@@ -29,9 +32,12 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     TodoEteTest.class,
+    MultiCassandraSingleNodeDownEteTest.class,
+    MultiCassandraDoubleNodeDownEteTest.class,
     TimestampManagementEteTest.class,
     CoordinationEteTest.class,
-    MultipleSchemaVersionsCoordinationEteTest.class
+    MultipleSchemaVersionsCoordinationEteTest.class,
+    LockWithoutTimelockEteTest.class
 })
 public class SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite extends EteSetup {
     @ClassRule
