@@ -339,6 +339,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static final ChangeMetadata TEST_METADATA =
             ChangeMetadata.updated(PtBytes.toBytes("abc"), PtBytes.toBytes("def"));
+    private static final ChangeMetadata TEST_METADATA_2 = ChangeMetadata.deleted(PtBytes.toBytes("old"));
+    private static final ChangeMetadata TEST_METADATA_3 = ChangeMetadata.unchanged();
 
     @Override
     @Before
@@ -2561,29 +2563,33 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void metadataIsSentToTimeLock() {
+    public void metadataIsTransferredToCellLocks() {
         TimelockService timelockService = spy(txManager.getTimelockService());
         // Only locks cells
         Transaction txn = getSnapshotTransactionWith(
-                timelockService, ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
+                timelockService,
+                ImmutableMap.of(
+                        TABLE,
+                        Optional.of(ConflictHandler.SERIALIZABLE_CELL),
+                        TABLE2,
+                        Optional.of(ConflictHandler.SERIALIZABLE_CELL)));
 
         txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA_2)));
+        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA_3)));
 
+        LockDescriptor cellLock =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        LockDescriptor cellLock2 = AtlasCellLockDescriptor.of(
+                TABLE.getQualifiedName(), TEST_CELL_2.getRowName(), TEST_CELL_2.getColumnName());
+        LockDescriptor cellLock3 = AtlasCellLockDescriptor.of(
+                TABLE2.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
         verifyLockWasCalledWithMetadataWhenCommitting(
                 txn,
                 timelockService,
                 Optional.of(LockRequestMetadata.of(ImmutableMap.of(
-                        AtlasCellLockDescriptor.of(
-                                TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName()),
-                        TEST_METADATA))));
-    }
-
-    @Test
-    public void noMetadataResultsInEmptyOptional() {
-        TimelockService timelockService = spy(txManager.getTimelockService());
-        Transaction txn = getSnapshotTransactionWith(timelockService, ImmutableMap.of());
-        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
-        verifyLockWasCalledWithMetadataWhenCommitting(txn, timelockService, Optional.empty());
+                        cellLock, TEST_METADATA, cellLock2, TEST_METADATA_2, cellLock3, TEST_METADATA_3))));
     }
 
     @Test
@@ -2599,8 +2605,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
         txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-        txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
-        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+        txn.putWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA_2)));
+        txn.putWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA_3)));
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
         LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL_2.getRowName());
@@ -2608,8 +2615,35 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         verifyLockWasCalledWithMetadataWhenCommitting(
                 txn,
                 timelockService,
-                Optional.of(LockRequestMetadata.of(
-                        ImmutableMap.of(rowLock, TEST_METADATA, rowLock2, TEST_METADATA, rowLock3, TEST_METADATA))));
+                Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                        rowLock, TEST_METADATA, rowLock2, TEST_METADATA_2, rowLock3, TEST_METADATA_3))));
+    }
+
+    @Test
+    public void metadataCanBeTransferredToCellAndRowLocksSimultaneously() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        // locks both rows and cells
+        Transaction txn = getSnapshotTransactionWith(
+                timelockService,
+                ImmutableMap.of(TABLE, Optional.of(ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION)));
+
+        txn.putWithMetadata(TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, TEST_METADATA)));
+
+        LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
+        LockDescriptor cellLock =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        verifyLockWasCalledWithMetadataWhenCommitting(
+                txn,
+                timelockService,
+                Optional.of(LockRequestMetadata.of(ImmutableMap.of(rowLock, TEST_METADATA, cellLock, TEST_METADATA))));
+    }
+
+    @Test
+    public void noMetadataResultsInEmptyOptional() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        Transaction txn = getSnapshotTransactionWith(timelockService, ImmutableMap.of());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        verifyLockWasCalledWithMetadataWhenCommitting(txn, timelockService, Optional.empty());
     }
 
     @Test

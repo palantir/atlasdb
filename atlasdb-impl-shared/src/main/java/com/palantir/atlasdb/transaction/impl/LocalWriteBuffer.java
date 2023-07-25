@@ -112,9 +112,9 @@ class LocalWriteBuffer {
         return Collections.unmodifiableMap(getChangeMetadataForTableInternal(tableRef));
     }
 
-    // No need for concurrency control on the cell level since it is only written to with a lock and
-    // read during commit, which is guaranteed to be single-threaded and exclusive with writing.
     private Map<Cell, ChangeMetadata> getChangeMetadataForTableInternal(TableReference tableRef) {
+        // No need for concurrency control on the cell level since it is only written to with a lock and
+        // read during commit, which is guaranteed to be single-threaded and exclusive with writing.
         return metadataByTable.computeIfAbsent(tableRef, unused -> new HashMap<>());
     }
 

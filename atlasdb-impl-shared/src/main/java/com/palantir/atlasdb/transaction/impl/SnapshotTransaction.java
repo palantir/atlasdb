@@ -2591,28 +2591,30 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef) {
         long lockCount = 0;
         Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
-        byte[] lastRow = null;
-        byte[] lastRowWithMetadata = null;
-        LockDescriptor currentRowDescriptor = null;
+        Optional<byte[]> lastRow = Optional.empty();
+        Optional<byte[]> lastRowWithMetadata = Optional.empty();
+        Optional<LockDescriptor> currentRowDescriptor = Optional.empty();
         for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
-            if (!isSameRow(lastRow, cell.getRowName())) {
+            if (lastRow.isEmpty() || !isSameRow(lastRow.get(), cell.getRowName())) {
                 // We are looking at the first cell of a new row
-                currentRowDescriptor = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
-                lockDescriptorBuilder.add(currentRowDescriptor);
-                lastRow = cell.getRowName();
+                LockDescriptor rowLock = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
+                lockDescriptorBuilder.add(rowLock);
+                currentRowDescriptor = Optional.of(rowLock);
+                lastRow = Optional.of(cell.getRowName());
                 lockCount++;
             }
             if (changeMetadataForWrites.containsKey(cell)) {
-                if (isSameRow(lastRowWithMetadata, cell.getRowName())) {
+                if (lastRowWithMetadata.isPresent() && isSameRow(lastRowWithMetadata.get(), cell.getRowName())) {
                     throw new SafeIllegalStateException(
                             "Two different cells in the same row have metadata and we create locks on row level.",
                             UnsafeArg.of("tableRef", tableRef),
                             UnsafeArg.of("rowName", cell.getRowName()),
                             UnsafeArg.of("newMetadata", changeMetadataForWrites.get(cell)));
                 }
-                // At this point, currentRowDescriptor will always point to the row of the current cell
-                lockDescriptorToChangeMetadataBuilder.put(currentRowDescriptor, changeMetadataForWrites.get(cell));
-                lastRowWithMetadata = cell.getRowName();
+                // At this point, currentRowDescriptor will always contain the row of the current cell
+                lockDescriptorToChangeMetadataBuilder.put(
+                        currentRowDescriptor.orElseThrow(), changeMetadataForWrites.get(cell));
+                lastRowWithMetadata = Optional.of(cell.getRowName());
             }
         }
         return lockCount;
