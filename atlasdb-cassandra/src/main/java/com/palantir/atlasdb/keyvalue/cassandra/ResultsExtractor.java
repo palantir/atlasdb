@@ -15,18 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.codahale.metrics.Counter;
-import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ColumnAndTimestamp;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.nio.ByteBuffer;
@@ -55,14 +53,20 @@ public abstract class ResultsExtractor<T> {
             maxRow = updatedMaxRow(maxRow, row);
 
             for (ColumnOrSuperColumn c : colEntry.getValue()) {
-                Pair<byte[], Long> pair = CassandraKeyValueServices.decomposeName(c.getColumn());
+                ColumnAndTimestamp columnAndTimestamp = CassandraKeyValueServices.decomposeColumnName(c.getColumn());
                 byte[] value = c.getColumn().getValue();
 
                 // Read the value & the column name size; we're not currently trying to model all the overheads
-                TraceStatistics.incBytesRead(pair.lhSide);
+                TraceStatistics.incBytesRead(columnAndTimestamp.columnName());
                 TraceStatistics.incBytesRead(value);
 
-                internalExtractResult(startTs, selection, row, pair.lhSide, value, pair.rhSide);
+                internalExtractResult(
+                        startTs,
+                        selection,
+                        row,
+                        columnAndTimestamp.columnName(),
+                        value,
+                        columnAndTimestamp.timestamp());
             }
         }
         return maxRow;
@@ -103,10 +107,4 @@ public abstract class ResultsExtractor<T> {
             long startTs, ColumnSelection selection, byte[] row, byte[] col, byte[] val, long ts);
 
     public abstract Map<Cell, T> asMap();
-
-    protected Counter getNotLatestVisibleValueCellFilterCounter(Class<?> clazz) {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetCounter(
-                clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
-    }
 }

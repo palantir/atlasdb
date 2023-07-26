@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -26,31 +27,33 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.cassandra.thrift.SlicePredicate;
 
 public class RangeLoader {
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
-    private final MetricsManager metricsManager;
     private final ReadConsistencyProvider readConsistencyProvider;
+    private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
 
     public RangeLoader(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
-            MetricsManager metricsManager,
-            ReadConsistencyProvider readConsistencyProvider) {
+            ReadConsistencyProvider readConsistencyProvider,
+            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
-        this.metricsManager = metricsManager;
         this.readConsistencyProvider = readConsistencyProvider;
+        this.extractorFactory = extractorFactory;
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, ts, () -> ValueExtractor.create(metricsManager));
+        return getRangeWithPageCreator(tableRef, rangeRequest, ts, () -> extractorFactory.apply(new HashMap<>()));
     }
 
     private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(

@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
@@ -43,6 +44,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 
 public final class LockWatchIntegrationTestUtilities {
@@ -103,6 +105,14 @@ public final class LockWatchIntegrationTestUtilities {
      */
     public static LockWatchManagerInternal extractInternalLockWatchManager(TransactionManager txnManager) {
         return (LockWatchManagerInternal) txnManager.getLockWatchManager();
+    }
+
+    public static List<Optional<LockRequestMetadata>> extractMetadata(List<LockWatchEvent> lockWatchEvents) {
+        return lockWatchEvents.stream()
+                .map(event -> event.accept(LockEventVisitor.INSTANCE))
+                .flatMap(Optional::stream)
+                .map(LockEvent::metadata)
+                .collect(Collectors.toList());
     }
 
     public static TransactionManager createTransactionManager(
@@ -187,6 +197,25 @@ public final class LockWatchIntegrationTestUtilities {
         @Override
         public Boolean visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             return predicate.test(lockWatchCreatedEvent);
+        }
+    }
+
+    private enum LockEventVisitor implements LockWatchEvent.Visitor<Optional<LockEvent>> {
+        INSTANCE;
+
+        @Override
+        public Optional<LockEvent> visit(LockEvent lockEvent) {
+            return Optional.of(lockEvent);
+        }
+
+        @Override
+        public Optional<LockEvent> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockEvent> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
         }
     }
 

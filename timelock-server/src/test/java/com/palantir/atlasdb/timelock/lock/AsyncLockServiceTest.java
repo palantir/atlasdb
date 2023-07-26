@@ -73,6 +73,7 @@ public class AsyncLockServiceTest {
     @Before
     public void before() {
         when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
+        when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.waitForLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
@@ -87,7 +88,7 @@ public class AsyncLockServiceTest {
 
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer).acquireLocks(REQUEST_ID, expected, DEADLINE);
+        verify(acquirer).acquireLocks(REQUEST_ID, expected, DEADLINE, Optional.empty());
     }
 
     @Test
@@ -107,7 +108,7 @@ public class AsyncLockServiceTest {
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
-        verify(acquirer, times(1)).acquireLocks(any(), any(), any());
+        verify(acquirer, times(1)).acquireLocks(any(), any(), any(), any());
         verifyNoMoreInteractions(acquirer);
     }
 
@@ -155,7 +156,7 @@ public class AsyncLockServiceTest {
     public void propagatesTimeoutExceptionIfRequestTimesOut() {
         AsyncResult<HeldLocks> timedOutResult = new AsyncResult<>();
         timedOutResult.timeout();
-        when(acquirer.acquireLocks(any(), any(), any())).thenReturn(timedOutResult);
+        when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(timedOutResult);
 
         AsyncResult<?> result = lockService.lock(REQUEST_ID, descriptors(LOCK_A), DEADLINE);
 

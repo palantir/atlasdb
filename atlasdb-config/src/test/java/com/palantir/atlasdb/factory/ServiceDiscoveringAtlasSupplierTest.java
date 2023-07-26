@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.mockito.Mockito.mock;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
@@ -36,7 +35,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
     private final KeyValueServiceConfigHelper invalidKvsConfig = () -> "should not be found kvs";
     private final AtlasDbFactory delegate = new AutoServiceAnnotatedAtlasDbFactory();
-    private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
     private final MetricsManager metrics = MetricsManagers.createForTests();
 
     @Test
@@ -49,7 +47,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
                         metrics,
                         kvsConfig,
                         Refreshable.only(Optional.empty()),
-                        leaderConfig,
                         Optional.empty(),
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE,
                         AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC));
@@ -94,7 +91,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 metrics,
                 providedKvsConfig,
                 Refreshable.only(Optional.empty()),
-                leaderConfig,
                 Optional.empty(),
                 Optional.empty(),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,

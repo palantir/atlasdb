@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
@@ -53,7 +52,6 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
      *
      * @param config Configuration file.
      * @param runtimeConfig unused.
-     * @param leaderConfig unused.
      * @param namespace unused.
      * @param unusedLongSupplier unused.
      * @param initializeAsync initialize asynchronously
@@ -64,7 +62,6 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier unusedLongSupplier,
             boolean initializeAsync) {

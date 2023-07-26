@@ -223,7 +223,7 @@ public abstract class TransactionManagers {
      * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
      * returns at which point it will become initialized. If asynchronous initialization is disabled, the callback will
      * be run just before the TM is returned.
-     *
+     * <p>
      * Note that if the callback blocks forever, the TransactionManager will never become initialized, and calling its
      * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws,
      * the TransactionManager will not become initialized and it will be closed.
@@ -366,7 +366,6 @@ public abstract class TransactionManagers {
                 metricsManager,
                 installConfig,
                 runtime.map(AtlasDbRuntimeConfig::keyValueService),
-                config().leader(),
                 config().namespace(),
                 Optional.empty(),
                 config().initializeAsync(),
@@ -402,10 +401,10 @@ public abstract class TransactionManagers {
 
         KeyValueService keyValueService = initializeCloseable(
                 () -> {
-                    KeyValueService kvs = atlasFactory.getKeyValueService();
-                    kvs = ProfilingKeyValueService.create(kvs);
+                    KeyValueService kvs = atlasFactory.getKeyValueService(); // CassandraKeyValueServiceImpl
+                    kvs = ProfilingKeyValueService.create(kvs); // Profiling, we think ok
                     kvs = new SafeTableClearerKeyValueService(
-                            lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
+                            lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs); // Autodelegate, ok
 
                     // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want
                     // to
@@ -420,13 +419,13 @@ public abstract class TransactionManagers {
                                 () -> true);
                     }
 
-                    kvs = TracingKeyValueService.create(kvs);
+                    kvs = TracingKeyValueService.create(kvs); // ok
                     kvs = AtlasDbMetrics.instrumentTimed(
                             metricsManager.getRegistry(),
                             KeyValueService.class,
                             kvs,
-                            MetricRegistry.name(KeyValueService.class));
-                    return ValidatingQueryRewritingKeyValueService.create(kvs);
+                            MetricRegistry.name(KeyValueService.class)); // ok?
+                    return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
 
@@ -543,7 +542,6 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config(),
                         runtime,
-                        registrar(),
                         keyValueService,
                         transactionService,
                         follower,
@@ -670,10 +668,10 @@ public abstract class TransactionManagers {
     /**
      * If we decide to move a service to use thorough sweep; we need to make sure that background sweep won't cause any
      * trouble by deleting large number of empty values at once - causing Cassandra OOMs.
-     *
+     * <p>
      * lockImmutableTsOnReadOnlyTransaction flag is used to decide on disabling background sweep, as this flag is used
      * as an intermediate step for migrating to thorough sweep.
-     *
+     * <p>
      * Separately, users may disable the background sweep process entirely in config, which we respect.
      */
     private boolean runBackgroundSweepProcess() {
@@ -818,7 +816,6 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Consumer<Object> registrar,
             KeyValueService kvs,
             TransactionService transactionService,
             CleanupFollower follower,

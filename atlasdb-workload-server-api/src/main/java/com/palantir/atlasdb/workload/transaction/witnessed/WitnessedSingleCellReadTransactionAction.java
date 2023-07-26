@@ -21,8 +21,7 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface WitnessedReadTransactionAction extends WitnessedSingleCellTransactionAction {
-
+public interface WitnessedSingleCellReadTransactionAction extends WitnessedSingleCellTransactionAction {
     @Override
     @Value.Parameter
     String table();
@@ -40,7 +39,7 @@ public interface WitnessedReadTransactionAction extends WitnessedSingleCellTrans
         return visitor.visit(this);
     }
 
-    static WitnessedReadTransactionAction of(String table, WorkloadCell cell, Optional<Integer> value) {
-        return ImmutableWitnessedReadTransactionAction.of(table, cell, value);
+    static WitnessedSingleCellReadTransactionAction of(String table, WorkloadCell cell, Optional<Integer> value) {
+        return ImmutableWitnessedSingleCellReadTransactionAction.of(table, cell, value);
     }
 }

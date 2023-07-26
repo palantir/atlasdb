@@ -55,6 +55,10 @@ public abstract class SweepQueueTable {
     }
 
     private void enqueueFiltered(Map<PartitionInfo, List<WriteInfo>> partitionedWrites) {
+        if (partitionedWrites.isEmpty()) {
+            return;
+        }
+
         Map<Cell, byte[]> referencesToDedicatedCells = new HashMap<>();
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
 

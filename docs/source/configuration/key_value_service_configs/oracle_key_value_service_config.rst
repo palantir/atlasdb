@@ -197,3 +197,35 @@ migration as `serviceNameConfiguration.namespaceOverride`.
 
 This migration can be reversed trivially (just by changing the config to reference the now-correct `sid`) if you are
 using embedded timestamp and lock services.
+
+Altering Table To Match Metadata
+--------------------------------
+
+On rare occasions, the metadata in Oracle can mismatch the expected metadata by the service. This can happen as a result
+of a rare race condition on table creation, where one service expects the table to have an overflow column, while
+the other does not.
+
+To resolve, simply add the following configuration to your Oracle ddl configuration.
+
+.. code-block:: yaml
+
+    atlasdb:
+      keyValueService:
+        type: relational
+        ddl:
+          type: oracle
+          alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
+              - namespace:
+                  name: <namespace>
+                tablename: <table-name>
+
+Note: Table names are case sensitive.
+
+Generally speaking the operation is safe to perform, although it's on the operator to determine what the side
+effects are. For example, if the issue arose as two services are configured to use this table, but only one is
+performing table mapping, then it is expected that this could break one of the services. However, that condition
+still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
+
+Although the alter action is idempotent, it is recommended to remove the configuration after it has ran. Check the logs
+for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure that
+has successfully ran.

@@ -1,0 +1,55 @@
+{
+  "type" : "lock",
+  "sequence" : 10,
+  "lockDescriptors" : [ {
+    "bytes" : "MA=="
+  }, {
+    "bytes" : "MQ=="
+  }, {
+    "bytes" : "Mg=="
+  }, {
+    "bytes" : "Mw=="
+  }, {
+    "bytes" : "NA=="
+  }, {
+    "bytes" : "NQ=="
+  }, {
+    "bytes" : "Ng=="
+  }, {
+    "bytes" : "Nw=="
+  }, {
+    "bytes" : "OA=="
+  }, {
+    "bytes" : "OQ=="
+  } ],
+  "lockToken" : {
+    "requestId" : "00000000-0000-0539-0000-00000000002a"
+  },
+  "metadata" : {
+    "indexToChangeMetadata" : {
+      "0" : {
+        "type" : "created",
+        "newValue" : "Y3JlYXRlZA=="
+      },
+      "4" : {
+        "type" : "deleted",
+        "oldValue" : "ZGVsZXRlZA=="
+      },
+      "5" : {
+        "type" : "updated",
+        "oldValue" : "b2xk",
+        "newValue" : "bmV3"
+      },
+      "7" : {
+        "type" : "unchanged"
+      },
+      "9" : {
+        "type" : "unchanged"
+      }
+    },
+    "lockListChecksum" : {
+      "typeId" : 1,
+      "value" : "AAAAALDKyYU="
+    }
+  }
+}

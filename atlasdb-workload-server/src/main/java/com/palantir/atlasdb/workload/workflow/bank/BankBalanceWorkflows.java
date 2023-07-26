@@ -18,9 +18,11 @@ package com.palantir.atlasdb.workload.workflow.bank;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.WorkloadCell;
+import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
@@ -45,7 +47,8 @@ public final class BankBalanceWorkflows {
     private static final SafeLogger log = SafeLoggerFactory.get(BankBalanceWorkflows.class);
     private static final SecureRandom RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
-    private static final Integer COLUMN = 0;
+    @VisibleForTesting
+    static final Integer ROW = 42;
 
     private BankBalanceWorkflows() {
         // utility
@@ -121,16 +124,23 @@ public final class BankBalanceWorkflows {
         }
 
         private Map<Integer, Optional<Integer>> getAccountBalances(InteractiveTransaction transaction) {
+            Map<Integer, Integer> balancesInDatabase = transaction
+                    .getRowColumnRange(
+                            workflowConfiguration.tableConfiguration().tableName(),
+                            ROW,
+                            ColumnRangeSelection.builder()
+                                    .endColumnExclusive(workflowConfiguration.numberOfAccounts())
+                                    .build())
+                    .stream()
+                    .collect(Collectors.toMap(ColumnAndValue::column, ColumnAndValue::value));
             return IntStream.range(0, workflowConfiguration.numberOfAccounts())
                     .boxed()
                     .collect(Collectors.toMap(
-                            Function.identity(),
-                            index -> transaction.read(
-                                    workflowConfiguration.tableConfiguration().tableName(), getCellForAccount(index))));
+                            Function.identity(), index -> Optional.ofNullable(balancesInDatabase.get(index))));
         }
     }
 
     public static WorkloadCell getCellForAccount(int accountIndex) {
-        return ImmutableWorkloadCell.of(accountIndex, COLUMN);
+        return ImmutableWorkloadCell.of(ROW, accountIndex);
     }
 }

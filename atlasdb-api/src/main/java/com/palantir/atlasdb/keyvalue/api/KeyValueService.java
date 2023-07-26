@@ -711,4 +711,11 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     default boolean isValid() {
         return true;
     }
+
+    @DoDelegate
+    default boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        // This is in general True, but we're setting to false to start rollout only for C* of stopping to check for
+        // immutable timestamp lock on non empty reads on thoroughly swept tables.
+        return false;
+    }
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.codahale.metrics.Histogram;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
+import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -48,6 +50,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -61,9 +64,14 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
+    private final Histogram changeMetadataHistogram;
 
     public AsyncTimelockServiceImpl(
-            AsyncLockService lockService, ManagedTimestampService timestampService, LockLog lockLog) {
+            AsyncLockService lockService,
+            ManagedTimestampService timestampService,
+            LockLog lockLog,
+            RequestMetrics metadataMetrics) {
+        this.changeMetadataHistogram = metadataMetrics.changeMetadata();
         this.lockService = lockService;
         this.timestampService = new LeadershipGuardedClientAwareManagedTimestampService(
                 DelegatingClientAwareManagedTimestampService.createDefault(timestampService));
@@ -101,7 +109,13 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<LockResponseV2> lock(IdentifiedLockRequest request) {
         AsyncResult<Leased<LockToken>> result = lockService.lock(
-                request.getRequestId(), request.getLockDescriptors(), TimeLimit.of(request.getAcquireTimeoutMs()));
+                request.getRequestId(),
+                request.getLockDescriptors(),
+                TimeLimit.of(request.getAcquireTimeoutMs()),
+                request.getMetadata());
+        changeMetadataHistogram.update(request.getMetadata()
+                .map(metadata -> metadata.lockDescriptorToChangeMetadata().size())
+                .orElse(0));
         lockLog.registerRequest(request, result);
         SettableFuture<LockResponseV2> response = SettableFuture.create();
         result.onComplete(() -> {
@@ -274,8 +288,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token) {
-        lockService.getLockWatchingService().registerLock(locksTakenOut, token);
+    public void registerLock(
+            Set<LockDescriptor> locksTakenOut, LockToken token, Optional<LockRequestMetadata> metadata) {
+        lockService.getLockWatchingService().registerLock(locksTakenOut, token, metadata);
     }
 
     @Override

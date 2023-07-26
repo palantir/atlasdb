@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -40,9 +39,10 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import org.eclipse.collections.api.factory.primitive.LongLists;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.junit.Test;
 
 public class CommitTimestampLoaderTest {
@@ -96,7 +96,7 @@ public class CommitTimestampLoaderTest {
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(() -> commitTimestampLoader
-                        .getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs), false, transactionService)
+                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
                         .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
                 .withMessageContaining("Sweep has swept some entries with a commit TS after us");
@@ -182,10 +182,10 @@ public class CommitTimestampLoaderTest {
 
     private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
-        Map<Long, Long> loadedCommitTs = commitTimestampLoader
-                .getCommitTimestamps(TABLE_REF, ImmutableList.of(startTs), false, transactionService)
+        LongLongMap loadedCommitTs = commitTimestampLoader
+                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
                 .get();
-        assertThat(loadedCommitTs).hasSize(1);
+        assertThat(loadedCommitTs.size()).isEqualTo(1);
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
     }
 

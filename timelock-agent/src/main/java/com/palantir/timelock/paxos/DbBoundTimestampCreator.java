@@ -18,7 +18,6 @@ package com.palantir.timelock.paxos;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.ServiceDiscoveringDatabaseTimeLockSupplier;
@@ -35,7 +34,7 @@ public final class DbBoundTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig leaderConfig) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client) {
         return () -> serviceDiscoveringDatabaseTimeLockSupplier.getManagedTimestampService(
                 getTimestampCreationParameters(client));
     }

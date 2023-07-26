@@ -21,7 +21,9 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.LockRequestMetadata;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -60,18 +62,28 @@ public class HeldLocks {
             UUID requestId,
             LeaderClock leaderClock,
             LockWatchingService lockWatchingService) {
+        return create(lockLog, acquiredLocks, requestId, leaderClock, lockWatchingService, Optional.empty());
+    }
+
+    public static HeldLocks create(
+            LockLog lockLog,
+            Collection<AsyncLock> acquiredLocks,
+            UUID requestId,
+            LeaderClock leaderClock,
+            LockWatchingService lockWatchingService,
+            Optional<LockRequestMetadata> metadata) {
         HeldLocks locks = new HeldLocks(
                 lockLog,
                 acquiredLocks,
                 requestId,
                 new LeaseExpirationTimer(() -> leaderClock.time().currentTime()),
                 lockWatchingService);
-        locks.registerLock();
+        locks.registerLock(metadata);
         return locks;
     }
 
-    private void registerLock() {
-        lockWatchingService.registerLock(descriptors.get(), token);
+    private void registerLock(Optional<LockRequestMetadata> metadata) {
+        lockWatchingService.registerLock(descriptors.get(), token, metadata);
     }
 
     /**

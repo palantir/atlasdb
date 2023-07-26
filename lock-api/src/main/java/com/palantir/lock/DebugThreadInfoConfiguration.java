@@ -16,18 +16,25 @@
 
 package com.palantir.lock;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
+@JsonDeserialize(as = ImmutableDebugThreadInfoConfiguration.class)
+@JsonSerialize(as = ImmutableDebugThreadInfoConfiguration.class)
 @Value.Immutable
 public interface DebugThreadInfoConfiguration {
 
+    @JsonProperty("record-thread-info")
     @Value.Default
     default boolean recordThreadInfo() {
         return false;
     }
 
+    @JsonProperty("thread-info-snapshot-interval-millis")
     @Value.Default
     default long threadInfoSnapshotIntervalMillis() {
-        return 5000L;
+        return 300000L;
     }
 }

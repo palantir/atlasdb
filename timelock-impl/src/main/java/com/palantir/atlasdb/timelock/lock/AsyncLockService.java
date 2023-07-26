@@ -19,10 +19,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -57,12 +59,15 @@ public class AsyncLockService implements Closeable {
      * @return an asynchronous lock service
      */
     public static AsyncLockService createDefault(
-            LockLog lockLog, ScheduledExecutorService reaperExecutor, ScheduledExecutorService timeoutExecutor) {
+            LockLog lockLog,
+            ScheduledExecutorService reaperExecutor,
+            ScheduledExecutorService timeoutExecutor,
+            BufferMetrics bufferMetrics) {
 
         LeaderClock clock = LeaderClock.create();
 
         HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id());
+        LockWatchingService lockWatchingService = new LockWatchingServiceImpl(heldLocks, clock.id(), bufferMetrics);
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
@@ -117,7 +122,16 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        return heldLocks.getExistingOrAcquire(requestId, () -> acquireLocks(requestId, lockDescriptors, timeout));
+        return lock(requestId, lockDescriptors, timeout, Optional.empty());
+    }
+
+    public AsyncResult<Leased<LockToken>> lock(
+            UUID requestId,
+            Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout,
+            Optional<LockRequestMetadata> metadata) {
+        return heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireLocks(requestId, lockDescriptors, timeout, metadata));
     }
 
     public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
@@ -137,9 +151,12 @@ public class AsyncLockService implements Closeable {
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
-            UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+            UUID requestId,
+            Set<LockDescriptor> lockDescriptors,
+            TimeLimit timeout,
+            Optional<LockRequestMetadata> metadata) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
-        return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout);
+        return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout, metadata);
     }
 
     private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {

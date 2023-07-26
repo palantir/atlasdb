@@ -554,4 +554,9 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
     }
+
+    @Override
+    public boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
+        return delegate.sweepsEntriesInStrictlyNonDecreasingFashion();
+    }
 }

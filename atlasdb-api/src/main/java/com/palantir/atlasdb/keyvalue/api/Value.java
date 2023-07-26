@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.util.Measurable;
 import com.palantir.logsafe.Preconditions;
@@ -38,7 +37,7 @@ public final class Value implements Serializable, Measurable {
 
     @JsonCreator
     public static Value create(@JsonProperty("contents") byte[] contents, @JsonProperty("timestamp") long timestamp) {
-        return new Value(MoreObjects.firstNonNull(contents, PtBytes.EMPTY_BYTE_ARRAY), timestamp);
+        return new Value(Objects.requireNonNullElse(contents, PtBytes.EMPTY_BYTE_ARRAY), timestamp);
     }
 
     public static Value createWithCopyOfData(byte[] contents, long timestamp) {

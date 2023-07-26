@@ -19,13 +19,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import static com.palantir.atlasdb.spi.AtlasDbFactory.NO_OP_FAST_FORWARD_TIMESTAMP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.InvalidationRunner;
@@ -49,7 +47,6 @@ import org.junit.Test;
 
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();
-    private final Optional<LeaderConfig> leaderConfig = Optional.of(mock(LeaderConfig.class));
 
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
@@ -124,7 +121,6 @@ public class DbTimestampStoreInvalidatorCreationTest {
                 metrics,
                 providedKvsConfig,
                 Refreshable.only(Optional.empty()),
-                leaderConfig,
                 Optional.empty(),
                 tableReference,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,

@@ -17,9 +17,11 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -46,9 +48,14 @@ public class LockAcquirer implements AutoCloseable {
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
+        return acquireLocks(requestId, locks, timeout, Optional.empty());
+    }
+
+    public AsyncResult<HeldLocks> acquireLocks(
+            UUID requestId, OrderedLocks locks, TimeLimit timeout, Optional<LockRequestMetadata> metadata) {
         return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId))
                 .execute()
-                .map(ignored -> HeldLocks.create(lockLog, locks.get(), requestId, leaderClock, lockWatcher));
+                .map(ignored -> HeldLocks.create(lockLog, locks.get(), requestId, leaderClock, lockWatcher, metadata));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {

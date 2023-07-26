@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.LongStream;
+import org.eclipse.collections.api.map.primitive.ImmutableLongLongMap;
 import org.immutables.value.Value;
 
 /**
@@ -105,6 +106,6 @@ public interface ClientLockDiagnosticCollector extends ConflictTracer {
         Map<Cell, Long> latestTimestamps();
 
         @Value.Parameter
-        Map<Long, Long> commitTimestamps();
+        ImmutableLongLongMap commitTimestamps();
     }
 }

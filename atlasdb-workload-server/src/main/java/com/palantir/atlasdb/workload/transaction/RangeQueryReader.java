@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.store;
+package com.palantir.atlasdb.workload.transaction;
 
-import org.immutables.value.Value;
+import com.palantir.atlasdb.workload.store.ColumnAndValue;
+import java.util.List;
 
-@Value.Immutable
-public interface ColumnValue {
-    @Value.Parameter
-    int column();
-
-    @Value.Parameter
-    int value();
-
-    static ColumnValue of(int column, int value) {
-        return ImmutableColumnValue.of(column, value);
-    }
+public interface RangeQueryReader {
+    List<ColumnAndValue> readRange(RowColumnRangeReadTransactionAction readTransactionAction);
 }

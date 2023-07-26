@@ -17,16 +17,15 @@
 package com.palantir.atlasdb.workload.transaction;
 
 import com.palantir.atlasdb.workload.store.WorkloadCell;
-import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.ImmutableWitnessedSingleCellReadTransactionAction;
+import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellReadTransactionAction;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable(builder = false)
-public interface ReadTransactionAction extends SingleCellTransactionAction {
-
-    default WitnessedReadTransactionAction witness(Optional<Integer> value) {
-        return ImmutableWitnessedReadTransactionAction.of(table(), cell(), value);
+public interface SingleCellReadTransactionAction extends SingleCellTransactionAction {
+    default WitnessedSingleCellReadTransactionAction witness(Optional<Integer> value) {
+        return ImmutableWitnessedSingleCellReadTransactionAction.of(table(), cell(), value);
     }
 
     @Override
@@ -34,7 +33,7 @@ public interface ReadTransactionAction extends SingleCellTransactionAction {
         return visitor.visit(this);
     }
 
-    static ReadTransactionAction of(String table, WorkloadCell workloadCell) {
-        return ImmutableReadTransactionAction.of(table, workloadCell);
+    static SingleCellReadTransactionAction of(String table, WorkloadCell workloadCell) {
+        return ImmutableSingleCellReadTransactionAction.of(table, workloadCell);
     }
 }

@@ -105,6 +105,7 @@ public class WriteInfoPartitionerTest {
         }
         verify(mockKvs, times(1)).getMetadataForTable(NOTHING);
         verify(mockKvs, times(1)).getMetadataForTable(CONSERVATIVE);
+        verify(mockKvs, times(2)).sweepsEntriesInStrictlyNonDecreasingFashion();
         verifyNoMoreInteractions(mockKvs);
     }
 

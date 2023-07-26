@@ -15,19 +15,13 @@
  */
 package com.palantir.timelock.paxos;
 
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH;
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -93,7 +87,6 @@ import com.palantir.timelock.store.SqliteBlobStore;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.zaxxer.hikari.HikariDataSource;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -287,7 +280,6 @@ public class TimeLockAgent {
                 metricsManager,
                 timestampBoundPersistence.keyValueServiceConfig(),
                 runtime.map(TimeLockAgent::getKeyValueServiceRuntimeConfig),
-                createLeaderConfig(),
                 timestampBoundPersistence.initializeAsync());
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
@@ -570,32 +562,12 @@ public class TimeLockAgent {
      * @return Invalidating timestamp and lock services
      */
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
-        LeaderConfig leaderConfig = createLeaderConfig();
-
         Client typedClient = Client.of(client);
 
         Supplier<ManagedTimestampService> rawTimestampServiceSupplier =
-                timestampStorage.timestampCreator().createTimestampService(typedClient, leaderConfig);
+                timestampStorage.timestampCreator().createTimestampService(typedClient);
         Supplier<LockService> rawLockServiceSupplier = lockCreator::createThreadPoolingLockService;
         return timelockCreator.createTimeLockServices(typedClient, rawTimestampServiceSupplier, rawLockServiceSupplier);
-    }
-
-    private LeaderConfig createLeaderConfig() {
-        List<String> uris = cluster.clusterMembers();
-        Path leaderPaxosDataDirectory = install.paxos().dataDirectory().toPath().resolve(LEADER_PAXOS_NAMESPACE);
-
-        return ImmutableLeaderConfig.builder()
-                .addLeaders(uris.toArray(new String[0]))
-                .localServer(cluster.localServer())
-                .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(cluster))
-                .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
-                .learnerLogDir(leaderPaxosDataDirectory
-                        .resolve(LEARNER_SUBDIRECTORY_PATH)
-                        .toFile())
-                .acceptorLogDir(leaderPaxosDataDirectory
-                        .resolve(ACCEPTOR_SUBDIRECTORY_PATH)
-                        .toFile())
-                .build();
     }
 
     public HealthStatusReport timeLockAdjudicationFeedback() {

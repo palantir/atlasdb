@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
+import java.util.Arrays;
 import org.junit.Test;
 
 public class LockDescriptorTest {
@@ -65,6 +66,24 @@ public class LockDescriptorTest {
     @Test
     public void testNullEncodedStringDescriptor() {
         assertThatThrownBy(() -> testEncodedLockDescriptors(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    // If this test fails, the implementation of Arrays.hashCode(byte[]), LockDescriptor::hashCode, or
+    // LockDescriptor::deterministicHashCode has changed.
+    // Either way, we should revisit LockDescriptor::deterministicHashCode and ensure that it is still deterministic
+    // and there are no compatibility issues in mixed-version deployments.
+    @Test
+    public void hashCodeIsDeterministic() {
+        // 40 random bytes
+        byte[] bytes = new byte[] {
+            59, -6, -24, 61, -48, -126, -4, 81, -9, -38, -107, 93, 101, -95, 78, -60, -105, 23, 72, 96, -5, 74, -121,
+            59, 40, -87, 1, -6, 43, -20, -70, 101, 63, 108, -51, 117, 113, 116, -87, -73
+        };
+        int expectedByteArrayHashCode = 2030170880;
+        assertThat(Arrays.hashCode(bytes)).isEqualTo(expectedByteArrayHashCode);
+        LockDescriptor lockDescriptor = new LockDescriptor(bytes);
+        assertThat(lockDescriptor.hashCode()).isEqualTo(expectedByteArrayHashCode + 31);
+        assertThat(lockDescriptor.deterministicHashCode()).isEqualTo(expectedByteArrayHashCode + 31);
     }
 
     private void testAsciiLockDescriptors(String lockId) {

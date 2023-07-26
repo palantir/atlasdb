@@ -1369,6 +1369,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         }
     }
 
+    @SuppressWarnings("CheckReturnValue")
     private <T> void runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
         try (ConnectionSupplier conns = new ConnectionSupplier(connections)) {
             SqlConnection conn = conns.get();
@@ -1381,6 +1382,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             if (!autocommit) {
                 runWriteFreshConnection(conns, tableRef, runner);
             } else {
+                // The return value can be ignored because the operation does a non-conditional write.
                 runner.apply(dbTables.createWrite(tableRef, conns));
             }
         }

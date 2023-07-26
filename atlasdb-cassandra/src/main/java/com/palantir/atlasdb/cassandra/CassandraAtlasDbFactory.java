@@ -17,7 +17,6 @@ package com.palantir.atlasdb.cassandra;
 
 import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
@@ -48,7 +47,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {

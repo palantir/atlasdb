@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -94,6 +95,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -121,6 +123,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -316,6 +319,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     static final TableReference TABLE_SWEPT_THOROUGH_MIGRATION =
             TableReference.createFromFullyQualifiedName("default.table5");
 
+    static final TableReference TABLE_NO_SWEEP = TableReference.createFromFullyQualifiedName("default.table6");
+
     private static final byte[] ROW_FOO = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] ROW_BAR = "bar".getBytes(StandardCharsets.UTF_8);
     private static final byte[] COL_A = "a".getBytes(StandardCharsets.UTF_8);
@@ -346,6 +351,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 TABLE_SWEPT_THOROUGH_MIGRATION,
                 getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH_MIGRATION)
                         .persistToBytes());
+        keyValueService.createTable(
+                TABLE_NO_SWEEP,
+                getTableMetadataForSweepStrategy(SweepStrategy.NOTHING).persistToBytes());
     }
 
     @Override
@@ -360,7 +368,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 transactionWrapper,
                 keyValueServiceWrapper,
                 knowledge);
@@ -1552,7 +1560,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void validateLocksOnReadsIfThoroughlySwept() {
+    public void doNotValidateLocksOnNonEmptyReadsIfThoroughlySwept() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        assertThatCode(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateLocksOnEmptyReadsIfThoroughlySwept() {
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
         Transaction transaction =
@@ -1562,6 +1585,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class)
                 .isThrownBy(() -> transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
+    }
+
+    @Test
+    public void doNotValidateLocksOnCommitIfValidationFlagIsFalseAndOnlyReadNonEmptyValuesOnThoroughlySweptTable() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        assertThatCode(transaction::commit).doesNotThrowAnyException();
     }
 
     @Test
@@ -1579,7 +1618,45 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
+    public void validateLocksOnCommitIfEmptyReadsFollowedByNonEmptyReadsIfValidationFlagIsFalse() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        // First reading empty value
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL_2));
+        // Then reading non-empty value.
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        // Make sure that lock is still validated in the end due to the initial empty read
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(transaction::commit);
+    }
+
+    @Test
+    public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithValidationOnReads() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfEmptyReadOnThoroughlySwept_WithValidationOnReads() {
         TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
@@ -1595,7 +1672,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
+    public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithoutValidationOnReads() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, false);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfEmptyReadOnThoroughlySwept_WithoutValidationOnReads() {
         TimelockService spiedTimeLockService = spy(timelockService);
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
@@ -2369,6 +2464,91 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq(writes),
                         any(ConstraintCheckingTransaction.class),
                         eq(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS));
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializableCell() {
+        // Will request commit locks for cells, but not rows
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
+
+        // We can only get the commit info from a snapshot transaction
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        // For write transactions, we always lock an additional row in the transaction table
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0 + 1);
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializable() {
+        // Will request commit locks for rows, but not cells
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
+
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(0);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(2 + 1);
+    }
+
+    @Test
+    public void setsRequestedCommitLocksCountCorrectly_serializableLockLevelMigration_sameRow() {
+        // Will request commit locks for cells and rows
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
+
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(
+                TABLE,
+                ImmutableMap.of(Cell.create(PtBytes.toBytes("same_row"), PtBytes.toBytes("column1")), TEST_VALUE));
+        txn.put(
+                TABLE,
+                ImmutableMap.of(
+                        Cell.create(
+                                PtBytes.toBytes("same_row"),
+                                // Writing to the same row, but different column/cell
+                                PtBytes.toBytes("column2")),
+                        TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(1 + 1);
+    }
+
+    @Test
+    public void setsRequestedCellCommitLocksCountCorrectlyForMultipleTables() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE_CELL);
+        overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_CELL);
+
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        txn.put(TABLE2, ImmutableMap.of(TEST_CELL_2, TEST_VALUE));
+        txn.commit();
+
+        TransactionCommitLockInfo commitLockInfo = txn.getCommitLockInfo();
+        assertThat(commitLockInfo.cellCommitLocksRequested()).isEqualTo(2);
+        assertThat(commitLockInfo.rowCommitLocksRequested()).isEqualTo(0 + 1);
+    }
+
+    @Test
+    public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
+        for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
+            putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
+        }
+        assertThatLoggableExceptionThrownBy(
+                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageStartingWith("Unable to filter cells")
+                .hasExactlyArgs(
+                        SafeArg.of("table", TABLE_NO_SWEEP),
+                        SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
     private void verifyPrefetchValidations(
