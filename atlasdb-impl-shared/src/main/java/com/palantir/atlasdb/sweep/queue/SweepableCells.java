@@ -52,6 +52,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +62,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
+import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 
 public class SweepableCells extends SweepQueueTable {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepableCells.class);
@@ -208,7 +212,7 @@ public class SweepableCells extends SweepQueueTable {
             writeBatch.merge(getWrites(row, col, entry.getValue()));
         }
         // there may be entries remaining with the same start timestamp as the last processed one. If that is the case
-        // we want to include these ones as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
+        // we want to include these as well. This is OK since there are at most MAX_CELLS_GENERIC - 1 of them.
         while (resultIterator.hasNext()) {
             Map.Entry<Cell, Value> entry = resultIterator.peek();
             SweepableCellsTable.SweepableCellsColumn col = computeColumn(entry);
@@ -227,10 +231,9 @@ public class SweepableCells extends SweepQueueTable {
         private final Multimap<Long, WriteInfo> writesByStartTs = HashMultimap.create();
         private final List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
 
-        WriteBatch merge(WriteBatch other) {
+        void merge(WriteBatch other) {
             writesByStartTs.putAll(other.writesByStartTs);
             dedicatedRows.addAll(other.dedicatedRows);
-            return this;
         }
 
         static WriteBatch single(WriteInfo writeInfo) {
@@ -264,7 +267,7 @@ public class SweepableCells extends SweepQueueTable {
             Multimap<Long, WriteInfo> writesByStartTs) {
         Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(writesByStartTs.keySet());
         Map<TableReference, Multimap<Cell, Long>> cellsToDelete = new HashMap<>();
-        List<Long> committedTimestamps = new ArrayList<>();
+        MutableLongSet committedTimestamps = LongSets.mutable.empty();
         long lastSweptTs = minTsExclusive;
         long lastSeenCommitTs = 0L;
         boolean processedAll = true;
@@ -277,11 +280,12 @@ public class SweepableCells extends SweepQueueTable {
             if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
                 lastSweptTs = startTs;
                 abortedTimestamps.add(startTs);
-                writesByStartTs.get(startTs).stream()
-                        .filter(info -> info.writeRef().isPresent())
-                        .forEach(write -> cellsToDelete
-                                .computeIfAbsent(write.writeRef().get().tableRef(), ignore -> HashMultimap.create())
-                                .put(write.writeRef().get().cell(), write.timestamp()));
+                writesByStartTs.get(startTs).forEach(write -> {
+                    Optional<WriteReference> writeReference = write.writeRef();
+                    writeReference.ifPresent(reference -> cellsToDelete
+                            .computeIfAbsent(reference.tableRef(), _ignore -> HashMultimap.create())
+                            .put(reference.cell(), write.timestamp()));
+                });
             } else if (commitTs < sweepTs) {
                 lastSweptTs = startTs;
                 committedTimestamps.add(startTs);
@@ -318,8 +322,7 @@ public class SweepableCells extends SweepQueueTable {
         });
 
         return ImmutableTimestampsToSweep.builder()
-                .timestampsDescending(
-                        ImmutableSortedSet.copyOf(committedTimestamps).descendingSet())
+                .timestampsDescending(sortDescending(committedTimestamps))
                 .abortedTimestamps(abortedTimestamps)
                 .maxSwept(lastSweptTs)
                 .lastSeenCommitTs(lastSeenCommitTs)
@@ -327,15 +330,18 @@ public class SweepableCells extends SweepQueueTable {
                 .build();
     }
 
+    private static ImmutableSortedSet<Long> sortDescending(LongSet committedTimestamps) {
+        ImmutableSortedSet.Builder<Long> timestampsDescending =
+                ImmutableSortedSet.<Long>orderedBy(Comparator.reverseOrder());
+        committedTimestamps.forEach(timestampsDescending::add);
+        return timestampsDescending.build();
+    }
+
     private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, SortedSet<Long> startTs) {
-        Map<CellReference, WriteInfo> writesToSweepFor = new HashMap<>();
-        startTs.stream()
-                .map(writesByStartTs::get)
-                .flatMap(Collection::stream)
-                .filter(write -> write.writeRef().isPresent())
-                .forEach(write ->
-                        writesToSweepFor.putIfAbsent(write.writeRef().get().cellReference(), write));
-        return writesToSweepFor.values();
+        Map<CellReference, WriteInfo> writesToSweep = new HashMap<>();
+        startTs.stream().map(writesByStartTs::get).flatMap(Collection::stream).forEach(write -> write.writeRef()
+                .ifPresent(reference -> writesToSweep.putIfAbsent(reference.cellReference(), write)));
+        return writesToSweep.values();
     }
 
     private long getLastSweptTs(

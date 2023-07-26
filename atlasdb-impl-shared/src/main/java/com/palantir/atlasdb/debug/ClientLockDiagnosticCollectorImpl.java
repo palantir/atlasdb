@@ -29,6 +29,7 @@ import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.LongStream;
 import javax.annotation.Nullable;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -63,8 +64,9 @@ public class ClientLockDiagnosticCollectorImpl implements ClientLockDiagnosticCo
             long startTimestamp,
             Map<Cell, Long> keysToLoad,
             Map<Cell, Long> latestTimestamps,
-            Map<Long, Long> commitTimestamps) {
-        ConflictTrace conflictTrace = ImmutableConflictTrace.of(keysToLoad, latestTimestamps, commitTimestamps);
+            LongLongMap commitTimestamps) {
+        ConflictTrace conflictTrace =
+                ImmutableConflictTrace.of(keysToLoad, latestTimestamps, commitTimestamps.toImmutable());
         cache.asMap().compute(startTimestamp, mutateDigest(digest -> digest.withNewConflictDigest(conflictTrace)));
     }
 

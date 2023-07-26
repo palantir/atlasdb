@@ -15,7 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.timelock.paxos.NetworkClientFactories;
 import com.palantir.paxos.Client;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -29,7 +28,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
     }
 
     @Override
-    public Supplier<ManagedTimestampService> createTimestampService(Client client, LeaderConfig unused) {
+    public Supplier<ManagedTimestampService> createTimestampService(Client client) {
         return () -> timestampServiceFactory.create(client);
     }
 

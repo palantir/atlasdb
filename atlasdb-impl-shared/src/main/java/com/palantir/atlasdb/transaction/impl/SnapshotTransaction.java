@@ -186,6 +186,12 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.factory.primitive.LongLists;
+import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
+import org.eclipse.collections.api.set.primitive.LongSet;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -1646,7 +1652,7 @@ public class SnapshotTransaction extends AbstractTransaction
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
-        Set<Long> valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
+        LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
@@ -1668,7 +1674,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Function<Value, T> transformer,
             AsyncKeyValueService asyncKeyValueService,
             Set<Cell> orphanedSentinels,
-            Map<Long, Long> commitTimestamps) {
+            LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -1699,8 +1705,9 @@ public class SnapshotTransaction extends AbstractTransaction
                         throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
                 }
             } else {
-                Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
-                if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+                long theirCommitTimestamp =
+                        commitTimestamps.getIfAbsent(value.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
+                if (theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
                     keysToReload.put(key, value.getTimestamp());
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
@@ -2327,33 +2334,37 @@ public class SnapshotTransaction extends AbstractTransaction
             @Output Set<CellConflict> spanningWrites,
             @Output Set<CellConflict> dominatingWrites,
             TransactionService transactionService) {
+        long startTs = getStartTimestamp();
         Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
-        Map<Long, Long> commitTimestamps = getCommitTimestampsSync(tableRef, rawResults.values(), false);
+        LongLongMap commitTimestamps =
+                getCommitTimestampsSync(tableRef, LongLists.immutable.ofAll(rawResults.values()), false);
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-        conflictTracer.collect(getStartTimestamp(), keysToLoad, rawResults, commitTimestamps);
+        conflictTracer.collect(startTs, keysToLoad, rawResults, commitTimestamps);
 
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
 
         for (Map.Entry<Cell, Long> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             long theirStartTimestamp = e.getValue();
-            AssertUtils.assertAndLog(
-                    log, theirStartTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
+            if (theirStartTimestamp == startTs) {
+                AssertUtils.assertAndLog(log, false, "Timestamp reuse is bad:" + startTs);
+            }
 
-            Long theirCommitTimestamp = commitTimestamps.get(theirStartTimestamp);
-            if (theirCommitTimestamp == null || theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+            long theirCommitTimestamp =
+                    commitTimestamps.getIfAbsent(theirStartTimestamp, TransactionConstants.FAILED_COMMIT_TS);
+            if (theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
                 // The value has no commit timestamp or was explicitly rolled back.
                 // This means the value is garbage from a transaction which didn't commit.
                 keysToDelete.put(key, theirStartTimestamp);
                 continue;
+            } else if (theirCommitTimestamp == startTs) {
+                AssertUtils.assertAndLog(log, false, "Timestamp reuse is bad:" + startTs);
             }
 
-            AssertUtils.assertAndLog(
-                    log, theirCommitTimestamp != getStartTimestamp(), "Timestamp reuse is bad:" + getStartTimestamp());
-            if (theirStartTimestamp > getStartTimestamp()) {
+            if (theirStartTimestamp > startTs) {
                 dominatingWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
-            } else if (theirCommitTimestamp > getStartTimestamp()) {
+            } else if (theirCommitTimestamp > startTs) {
                 spanningWrites.add(Cells.createConflict(key, theirStartTimestamp, theirCommitTimestamp));
             }
         }
@@ -2378,30 +2389,37 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean rollbackFailedTransactions(
             TableReference tableRef,
             Map<Cell, Long> keysToDelete,
-            Map<Long, Long> commitTimestamps,
+            LongLongMap commitTimestamps,
             TransactionService transactionService) {
-        for (long startTs : new HashSet<>(keysToDelete.values())) {
-            if (commitTimestamps.get(startTs) == null) {
-                log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
-                if (!rollbackOtherTransaction(startTs, transactionService)) {
-                    return false;
+        ImmutableLongSet timestamps = LongSets.immutable.ofAll(keysToDelete.values());
+        boolean allRolledBack = timestamps.allSatisfy(startTs -> {
+            if (commitTimestamps.containsKey(startTs)) {
+                long commitTs = commitTimestamps.get(startTs);
+                if (commitTs != TransactionConstants.FAILED_COMMIT_TS) {
+                    throw new SafeIllegalArgumentException(
+                            "Cannot rollback already committed transaction",
+                            SafeArg.of("startTs", startTs),
+                            SafeArg.of("commitTs", commitTs));
                 }
-            } else {
-                Preconditions.checkArgument(commitTimestamps.get(startTs) == TransactionConstants.FAILED_COMMIT_TS);
+                return true;
+            }
+            log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
+            return rollbackOtherTransaction(startTs, transactionService);
+        });
+
+        if (allRolledBack) {
+            try {
+                runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
+            } catch (RejectedExecutionException rejected) {
+                deleteExecutorRateLimitedLogger.log(logger -> logger.info(
+                        "Could not delete keys {} for table {}, because the delete executor's queue was full."
+                                + " Sweep should eventually clean these values.",
+                        SafeArg.of("numKeysToDelete", keysToDelete.size()),
+                        LoggingArgs.tableRef(tableRef),
+                        rejected));
             }
         }
-
-        try {
-            runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
-        } catch (RejectedExecutionException rejected) {
-            deleteExecutorRateLimitedLogger.log(logger -> logger.info(
-                    "Could not delete keys {} for table {}, because the delete executor's queue was full."
-                            + " Sweep should eventually clean these values.",
-                    SafeArg.of("numKeysToDelete", keysToDelete.size()),
-                    LoggingArgs.tableRef(tableRef),
-                    rejected));
-        }
-        return true;
+        return allRolledBack;
     }
 
     private static void deleteCells(
@@ -2487,9 +2505,9 @@ public class SnapshotTransaction extends AbstractTransaction
         return lockResponse.getToken();
     }
 
-    protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+    protected ListenableFuture<LongLongMap> getCommitTimestamps(
             TableReference tableRef,
-            Iterable<Long> startTimestamps,
+            LongIterable startTimestamps,
             boolean shouldWaitForCommitterToComplete,
             AsyncTransactionService asyncTransactionService) {
         return commitTimestampLoader.getCommitTimestamps(
@@ -2547,16 +2565,12 @@ public class SnapshotTransaction extends AbstractTransaction
     /// Commit timestamp management
     ///////////////////////////////////////////////////////////////////////////
 
-    private Set<Long> getStartTimestampsForValues(Iterable<Value> values) {
-        Set<Long> results = new HashSet<>();
-        for (Value v : values) {
-            results.add(v.getTimestamp());
-        }
-        return results;
+    private LongSet getStartTimestampsForValues(Iterable<Value> values) {
+        return LongSets.immutable.withAll(Streams.stream(values).mapToLong(Value::getTimestamp));
     }
 
-    private Map<Long, Long> getCommitTimestampsSync(
-            @Nullable TableReference tableRef, Iterable<Long> startTimestamps, boolean waitForCommitterToComplete) {
+    private LongLongMap getCommitTimestampsSync(
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
         return AtlasFutures.getUnchecked(getCommitTimestamps(
                 tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
     }
@@ -2625,11 +2639,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean wasCommitSuccessful(long commitTs) {
-        Map<Long, Long> commitTimestamps =
-                getCommitTimestampsSync(null, Collections.singleton(getStartTimestamp()), false);
-        long storedCommit = commitTimestamps.get(getStartTimestamp());
+        long startTs = getStartTimestamp();
+        LongLongMap commitTimestamps = getCommitTimestampsSync(null, LongSets.immutable.of(startTs), false);
+        long storedCommit = commitTimestamps.get(startTs);
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
-            Validate.isTrue(false, "Commit value is wrong. startTs %s  commitTs: %s", getStartTimestamp(), commitTs);
+            throw new SafeIllegalArgumentException(
+                    "Commit value is wrong.",
+                    SafeArg.of("startTimestamp", startTs),
+                    SafeArg.of("commitTimestamp", commitTs));
         }
         return storedCommit == commitTs;
     }

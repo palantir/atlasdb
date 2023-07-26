@@ -46,7 +46,6 @@ public abstract class ServicesConfig {
                 metrics,
                 atlasDbConfig().keyValueService(),
                 Refreshable.only(atlasDbRuntimeConfig().keyValueService()),
-                atlasDbConfig().leader(),
                 atlasDbConfig().namespace(),
                 Optional.empty(),
                 atlasDbConfig().initializeAsync(),

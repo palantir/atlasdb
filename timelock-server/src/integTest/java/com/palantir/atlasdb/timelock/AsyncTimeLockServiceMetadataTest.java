@@ -32,6 +32,10 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -67,10 +71,16 @@ public class AsyncTimeLockServiceMetadataTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 10000L);
     private final ScheduledExecutorService scheduledExecutorService = new DeterministicScheduler();
-    private final AsyncLockService asyncLockService =
-            AsyncLockService.createDefault(lockLog, scheduledExecutorService, scheduledExecutorService);
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final RequestMetrics requestMetrics = RequestMetrics.of(metricsManager.getTaggedRegistry());
+    private final AsyncLockService asyncLockService = AsyncLockService.createDefault(
+            lockLog,
+            scheduledExecutorService,
+            scheduledExecutorService,
+            BufferMetrics.of(metricsManager.getTaggedRegistry()));
     private final AsyncTimelockServiceImpl timeLockService =
-            new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog);
+            new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog, requestMetrics);
     private final ConjureStartTransactionsRequest startTransactionsRequestWithInitialVersion =
             ConjureStartTransactionsRequest.builder()
                     .requestId(UUID.randomUUID())
@@ -133,6 +143,19 @@ public class AsyncTimeLockServiceMetadataTest {
                 .havingCause()
                 .isInstanceOf(AssertionError.class)
                 .withMessage("Unknown lock descriptor in metadata");
+    }
+
+    @Test
+    public void updatesRequestMetricsCorrectly() {
+        timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of()));
+        timeLockService.lock(standardRequestWithMetadata(ImmutableMap.of(
+                StringLockDescriptor.of("1"), ChangeMetadata.unchanged(),
+                StringLockDescriptor.of("2"), ChangeMetadata.unchanged(),
+                StringLockDescriptor.of("3"), ChangeMetadata.unchanged())));
+        timeLockService.lock(ImmutableIdentifiedLockRequest.copyOf(WATCHED_LOCK_REQUEST_WITH_METADATA)
+                .withMetadata(Optional.empty()));
+
+        assertThat(requestMetrics.changeMetadata().getSnapshot().getValues()).containsOnly(0, 3, 0);
     }
 
     private List<Optional<LockRequestMetadata>> getAllLockEventsMetadata() {

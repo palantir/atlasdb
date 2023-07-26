@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
@@ -49,6 +48,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -408,11 +408,11 @@ public final class CassandraKeyValueServices {
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
         private final Map<Cell, Value> collectedResults = new ConcurrentHashMap<>();
-        private final ValueExtractor extractor;
+        private final ResultsExtractor<Value> extractor;
         private final long startTs;
 
-        StartTsResultsCollector(MetricsManager metricsManager, long startTs) {
-            this.extractor = new ValueExtractor(metricsManager, collectedResults);
+        StartTsResultsCollector(long startTs, Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory) {
+            this.extractor = extractorFactory.apply(collectedResults);
             this.startTs = startTs;
         }
 

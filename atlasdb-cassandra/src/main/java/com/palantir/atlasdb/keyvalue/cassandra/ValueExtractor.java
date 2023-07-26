@@ -21,21 +21,17 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.util.MetricsManager;
-import java.util.HashMap;
 import java.util.Map;
 
 class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
-    private final Counter notLatestVisibleValueCellFilterCounter =
-            getNotLatestVisibleValueCellFilterCounter(ValueExtractor.class);
+    private final Counter notLatestVisibleValueCellFilterCounter;
 
-    ValueExtractor(MetricsManager metricsManager, Map<Cell, Value> collector) {
+    ValueExtractor(
+            MetricsManager metricsManager, Map<Cell, Value> collector, Counter notLatestVisibleValueCellFilterCounter) {
         super(metricsManager);
         this.collector = collector;
-    }
-
-    static ValueExtractor create(MetricsManager metricsManager) {
-        return new ValueExtractor(metricsManager, new HashMap<>());
+        this.notLatestVisibleValueCellFilterCounter = notLatestVisibleValueCellFilterCounter;
     }
 
     @Override

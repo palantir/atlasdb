@@ -17,7 +17,6 @@ package com.palantir.atlasdb.factory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -52,7 +51,6 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private static String timestampServiceCreationInfo = null;
 
-    private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
@@ -63,18 +61,16 @@ public class ServiceDiscoveringAtlasSupplier {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> tableReferenceOverride,
             boolean initializeAsync,
             boolean collectThreadDumpOnInit,
             LongSupplier timestampSupplier) {
-        this.leaderConfig = leaderConfig;
         this.collectThreadDumps = collectThreadDumpOnInit;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, leaderConfig, namespace, timestampSupplier, initializeAsync));
+                metricsManager, config, runtimeConfig, namespace, timestampSupplier, initializeAsync));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
@@ -154,23 +150,11 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     private void reportMultipleTimestampFetch(String path) {
-        if (!leaderConfig.isPresent()) {
-            log.warn(
-                    "[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader"
-                        + " config. This means that you may soon encounter the MultipleRunningTimestampServices error."
-                        + " Thread dumps from both fetches of the timestamp service have been outputted to {}. If you"
-                        + " encounter a MultipleRunningTimestampServices error, please send this file to support.",
-                    UnsafeArg.of("path", path));
-        } else {
-            log.warn(
-                    "[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
-                            + "you are running in an HA configuration and have just had a leadership election. "
-                            + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
-                            + "timestamp service, in case this second service was created in error. "
-                            + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
-                            + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
-                            + "support.",
-                    UnsafeArg.of("path", path));
-        }
+        log.warn(
+                "[timestamp-service-creation] Timestamp service fetched for a second time. This means that you may"
+                    + " soon encounter the MultipleRunningTimestampServices error. Thread dumps from both fetches of"
+                    + " the timestamp service have been outputted to {}. If you encounter a"
+                    + " MultipleRunningTimestampServices error, please send this file to support.",
+                UnsafeArg.of("path", path));
     }
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.codahale.metrics.Histogram;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
+import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
 import com.palantir.lock.LockDescriptor;
@@ -62,9 +64,14 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     private final AsyncLockService lockService;
     private final LeadershipGuardedClientAwareManagedTimestampService timestampService;
     private final LockLog lockLog;
+    private final Histogram changeMetadataHistogram;
 
     public AsyncTimelockServiceImpl(
-            AsyncLockService lockService, ManagedTimestampService timestampService, LockLog lockLog) {
+            AsyncLockService lockService,
+            ManagedTimestampService timestampService,
+            LockLog lockLog,
+            RequestMetrics metadataMetrics) {
+        this.changeMetadataHistogram = metadataMetrics.changeMetadata();
         this.lockService = lockService;
         this.timestampService = new LeadershipGuardedClientAwareManagedTimestampService(
                 DelegatingClientAwareManagedTimestampService.createDefault(timestampService));
@@ -106,6 +113,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 request.getLockDescriptors(),
                 TimeLimit.of(request.getAcquireTimeoutMs()),
                 request.getMetadata());
+        changeMetadataHistogram.update(request.getMetadata()
+                .map(metadata -> metadata.lockDescriptorToChangeMetadata().size())
+                .orElse(0));
         lockLog.registerRequest(request, result);
         SettableFuture<LockResponseV2> response = SettableFuture.create();
         result.onComplete(() -> {
