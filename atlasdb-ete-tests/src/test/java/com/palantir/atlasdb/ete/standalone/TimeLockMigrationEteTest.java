@@ -69,7 +69,7 @@ public class TimeLockMigrationEteTest {
                         .build();
                 TEST_CONTEXT = ImmutableTimeLockMigrationTestContext.builder()
                         .eteConfigWithEmbedded(embeddedConfig)
-                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.timelock.cassandra.yml"))
+                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.timelock-and-cassandra.yml"))
                         .dockerClientConfiguration(dockerClientConfiguration)
                         .build();
                 break;
@@ -82,7 +82,7 @@ public class TimeLockMigrationEteTest {
                         .build();
                 TEST_CONTEXT = ImmutableTimeLockMigrationTestContext.builder()
                         .eteConfigWithEmbedded(embeddedConfig)
-                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.timelock.dbkvs.yml"))
+                        .eteConfigWithTimeLock(new File("docker/conf/atlasdb-ete.postgres-timelock-and-postgres.yml"))
                         .dockerClientConfiguration(dockerClientConfiguration)
                         .build();
                 break;
