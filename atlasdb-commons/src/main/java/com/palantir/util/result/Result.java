@@ -46,11 +46,11 @@ public abstract class Result<T, E> {
         }
     }
 
-    public boolean isOk() {
+    public final boolean isOk() {
         return this instanceof Ok;
     }
 
-    public boolean isErr() {
+    public final boolean isErr() {
         return this instanceof Err;
     }
 
