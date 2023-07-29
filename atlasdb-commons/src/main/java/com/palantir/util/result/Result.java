@@ -55,7 +55,7 @@ public abstract class Result<T, E> {
     }
 
     public T unwrap() {
-        if (this instanceof Ok) {
+        if (isOk()) {
             return ((Ok<T, E>) this).getValue();
         } else {
             throw new SafeRuntimeException("Called unwrap() on an Err value");
@@ -63,7 +63,7 @@ public abstract class Result<T, E> {
     }
 
     public E unwrapErr() {
-        if (this instanceof Err) {
+        if (isErr()) {
             return ((Err<T, E>) this).getError();
         } else {
             throw new SafeRuntimeException("Called unwrapErr() on an Ok value");
