@@ -1870,13 +1870,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         long transactionTs = spiedTimeLockService.getFreshTimestamp();
         LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
 
-        TransactionScopedCache txnCache = createCacheWithEntries(
-                TABLE_SWEPT_THOROUGH,
-                Map.of(
-                        TEST_CELL,
-                        "someValue".getBytes(StandardCharsets.UTF_8),
-                        TEST_CELL_2,
-                        "someOtherValue".getBytes(StandardCharsets.UTF_8)));
+        Map<Cell, byte[]> cachedValues = Map.of(
+                TEST_CELL,
+                "someValue".getBytes(StandardCharsets.UTF_8),
+                TEST_CELL_2,
+                "someOtherValue".getBytes(StandardCharsets.UTF_8));
+        TransactionScopedCache txnCache = createCacheWithEntries(TABLE_SWEPT_THOROUGH, cachedValues);
 
         LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
         when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
@@ -1886,9 +1885,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
-        assertThatThrownBy(() -> transaction.getWithExpectedNumberOfCells(
+        assertThatLoggableExceptionThrownBy(() -> transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1))
-                .isInstanceOf(MoreCellsPresentThanExpectedException.class);
+                .isInstanceOf(MoreCellsPresentThanExpectedException.class)
+                .hasExactlyArgs(
+                        SafeArg.of("expectedNumberOfCells", 1L),
+                        SafeArg.of("numberOfCellsRetrieved", 2),
+                        UnsafeArg.of("retrievedCells", cachedValues));
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())
