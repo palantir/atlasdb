@@ -316,7 +316,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                             cells,
                             (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
@@ -333,7 +335,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                             (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
                                     tableReference, toRead, expectedNumberOfPresentCells)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
