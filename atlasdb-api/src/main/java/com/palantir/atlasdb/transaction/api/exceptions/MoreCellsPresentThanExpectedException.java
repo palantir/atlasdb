@@ -57,7 +57,8 @@ public final class MoreCellsPresentThanExpectedException extends IllegalStateExc
         return arguments;
     }
 
-    @Unsafe private static List<Arg<?>> argsFrom(Map<Cell, byte[]> retrievedCells, long expectedNumberOfCells) {
+    @Unsafe
+    private static List<Arg<?>> argsFrom(Map<Cell, byte[]> retrievedCells, long expectedNumberOfCells) {
         return List.of(
                 SafeArg.of("expectedNumberOfCells", expectedNumberOfCells),
                 SafeArg.of("numberOfCellsRetrieved", retrievedCells.size()),
