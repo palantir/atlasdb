@@ -357,8 +357,7 @@ public class SerializableTransaction extends SnapshotTransaction {
      * filtering and change the number of expect cells it sends to the super class.
      */
     @VisibleForTesting
-    ListenableFuture<Map<Cell, byte[]>> getWithLoader(
-            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+    ListenableFuture<Map<Cell, byte[]>> getWithLoader(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         CellResultLoader resultLoader = (table, toRead) -> {
             ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, toRead);
             return Futures.transform(future, response -> new Result.Ok<>(response), MoreExecutors.directExecutor());
