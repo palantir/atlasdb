@@ -42,7 +42,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import com.palantir.util.result.Result;
-import com.palantir.util.result.Result.Ok;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -170,7 +169,7 @@ public class CachingTransaction extends ForwardingTransaction {
     private ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> getWithResultLoader(
             TableReference tableRef, Set<Cell> cells, CellResultLoader cellLoader) {
         if (cells.isEmpty()) {
-            return Futures.immediateFuture(new Result.Ok<>(ImmutableMap.of()));
+            return Futures.immediateFuture(Result.ok(ImmutableMap.of()));
         }
 
         Set<Cell> toLoad = new HashSet<>();
@@ -195,7 +194,7 @@ public class CachingTransaction extends ForwardingTransaction {
 
                     cacheLoadedCells(tableRef, toLoad, loadedCells.unwrap());
                     cacheHit.putAll(loadedCells.unwrap());
-                    return new Ok<>(cacheHit);
+                    return Result.ok(cacheHit);
                 },
                 MoreExecutors.directExecutor());
     }
@@ -204,7 +203,7 @@ public class CachingTransaction extends ForwardingTransaction {
             TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         CellResultLoader resultLoader = (table, cacheCells, cellsToLoad) -> {
             ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, cacheCells, cellsToLoad);
-            return Futures.transform(future, response -> new Result.Ok<>(response), MoreExecutors.directExecutor());
+            return Futures.transform(future, response -> Result.ok(response), MoreExecutors.directExecutor());
         };
 
         return Futures.transform(
