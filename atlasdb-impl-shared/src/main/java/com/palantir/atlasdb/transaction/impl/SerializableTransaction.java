@@ -113,6 +113,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.VisibleForTesting;
 
 /**
  * This class will track all reads to verify that there are no read-write conflicts at commit time.
@@ -318,7 +319,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                             cells,
                             (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
@@ -335,7 +338,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                             (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
                                     tableReference, toRead, expectedNumberOfPresentCells)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
@@ -351,7 +356,8 @@ public class SerializableTransaction extends SnapshotTransaction {
      * {@link Transaction#getWithExpectedNumberOfCells(TableReference, Set, long)} implementation to take intro account the
      * filtering and change the number of expect cells it sends to the super class.
      */
-    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
+    @VisibleForTesting
+    ListenableFuture<Map<Cell, byte[]>> getWithLoader(
             TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         CellResultLoader resultLoader = (table, toRead) -> {
             ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, toRead);
@@ -377,8 +383,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                 MoreExecutors.directExecutor());
     }
 
+    @VisibleForTesting
     @FunctionalInterface
-    private interface CellLoader {
+    interface CellLoader {
         ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
     }
 

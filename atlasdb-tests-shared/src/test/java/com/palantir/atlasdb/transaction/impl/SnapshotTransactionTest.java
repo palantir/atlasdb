@@ -133,6 +133,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.result.Result;
 import io.vavr.collection.HashMap;
@@ -1902,6 +1903,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
         assertThat(result.isErr()).isTrue();
         assertThat(result.unwrapErr().getFetchedCells()).isEqualTo(cacheContent);
+        assertThat(result.unwrapErr().getArgs())
+                .containsExactlyInAnyOrder(
+                        SafeArg.of("expectedNumberOfCells", 1L),
+                        SafeArg.of("numberOfCellsRetrieved", 2),
+                        UnsafeArg.of("retrievedCells", cacheContent));
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())
