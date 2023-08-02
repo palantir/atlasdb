@@ -20,17 +20,29 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import one.util.streamex.EntryStream;
 import org.junit.Test;
 
 public class CellCountValidatorTest {
+    private static final Map<Cell, byte[]> TWO_PRESENT_ENTRIES_MAP = Map.of(
+            Cell.create(PtBytes.toBytes("foo"), PtBytes.toBytes("someColumn")),
+            PtBytes.toBytes("bar"),
+            Cell.create(PtBytes.toBytes("baz"), PtBytes.toBytes("someColumn")),
+            PtBytes.toBytes("qux"));
+    private static final Map<Cell, CacheValue> TWO_PRESENT_ONE_EMPTY_ENTRY_MAP = Map.of(
+            Cell.create(PtBytes.toBytes("foo"), PtBytes.toBytes("someColumn")),
+            CacheValue.of(PtBytes.toBytes("bar")),
+            Cell.create(PtBytes.toBytes("foo2"), PtBytes.toBytes("someColumn")),
+            CacheValue.of(PtBytes.toBytes("bar2")),
+            Cell.create(PtBytes.toBytes("baz"), PtBytes.toBytes("someColumn")),
+            CacheValue.empty());
 
     @Test
     public void testDontThrowIfFetchedLessCellsThanExpected() {
@@ -58,76 +70,60 @@ public class CellCountValidatorTest {
 
     @Test
     public void testThrowsIfFetchedMoreCellsThanExpected() {
-        Map<Cell, byte[]> presentValues = cellMapOf("foo", "bar", "baz", "qux");
         assertThatLoggableExceptionThrownBy(
-                        () -> CellCountValidator.validateFetchedLessOrEqualToExpected(1, presentValues))
+                        () -> CellCountValidator.validateFetchedLessOrEqualToExpected(1, TWO_PRESENT_ENTRIES_MAP))
                 .isInstanceOf(MoreCellsPresentThanExpectedException.class)
                 .hasExactlyArgs(
                         SafeArg.of("expectedNumberOfCells", 1L),
                         SafeArg.of("numberOfCellsRetrieved", 2),
-                        UnsafeArg.of("retrievedCells", presentValues));
+                        UnsafeArg.of("retrievedCells", TWO_PRESENT_ENTRIES_MAP));
 
-        Map<Cell, CacheValue> cachedValues = toCached(presentValues);
+        Map<Cell, CacheValue> cachedValues = toCached(TWO_PRESENT_ENTRIES_MAP);
         assertThatLoggableExceptionThrownBy(
                         () -> CellCountValidator.validateCacheAndGetNonEmptyValuesCount(1, cachedValues))
                 .isInstanceOf(MoreCellsPresentThanExpectedException.class)
                 .hasExactlyArgs(
                         SafeArg.of("expectedNumberOfCells", 1L),
                         SafeArg.of("numberOfCellsRetrieved", 2),
-                        UnsafeArg.of("retrievedCells", presentValues));
+                        UnsafeArg.of("retrievedCells", TWO_PRESENT_ENTRIES_MAP));
     }
 
     @Test
     public void testThrowsIfExpectingNegativeValue() {
-        Map<Cell, byte[]> presentValues = cellMapOf("foo", "bar", "baz", "qux");
         assertThatLoggableExceptionThrownBy(
-                        () -> CellCountValidator.validateFetchedLessOrEqualToExpected(-1, presentValues))
+                        () -> CellCountValidator.validateFetchedLessOrEqualToExpected(-1, TWO_PRESENT_ENTRIES_MAP))
                 .isInstanceOf(MoreCellsPresentThanExpectedException.class)
                 .hasExactlyArgs(
                         SafeArg.of("expectedNumberOfCells", -1L),
                         SafeArg.of("numberOfCellsRetrieved", 2),
-                        UnsafeArg.of("retrievedCells", presentValues));
+                        UnsafeArg.of("retrievedCells", TWO_PRESENT_ENTRIES_MAP));
 
-        Map<Cell, CacheValue> cachedValues = toCached(presentValues);
+        Map<Cell, CacheValue> cachedValues = toCached(TWO_PRESENT_ENTRIES_MAP);
         assertThatLoggableExceptionThrownBy(
                         () -> CellCountValidator.validateCacheAndGetNonEmptyValuesCount(-1, cachedValues))
                 .isInstanceOf(MoreCellsPresentThanExpectedException.class)
                 .hasExactlyArgs(
                         SafeArg.of("expectedNumberOfCells", -1L),
                         SafeArg.of("numberOfCellsRetrieved", 2),
-                        UnsafeArg.of("retrievedCells", presentValues));
+                        UnsafeArg.of("retrievedCells", TWO_PRESENT_ENTRIES_MAP));
     }
 
     @Test
     public void testEmptyCacheValuesDoesNotCountAgainstPresentCells() {
-        Map<Cell, CacheValue> cachedValues = Map.of(
-                Cell.create("foo".getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                CacheValue.of("bar".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("baz".getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                CacheValue.empty());
-
-        assertThatCode(() -> CellCountValidator.validateCacheAndGetNonEmptyValuesCount(1, cachedValues))
+        assertThatCode(() ->
+                        CellCountValidator.validateCacheAndGetNonEmptyValuesCount(2, TWO_PRESENT_ONE_EMPTY_ENTRY_MAP))
                 .doesNotThrowAnyException();
     }
 
     @Test
     public void testReturnsValueOfNonEmptyEntriesInCacheAfterValidation() {
-        Map<Cell, CacheValue> cachedValues = Map.of(
-                Cell.create("foo".getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                CacheValue.of("bar".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("foo2".getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                CacheValue.of("bar2".getBytes(StandardCharsets.UTF_8)),
-                Cell.create("baz".getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                CacheValue.empty());
-
-        assertThat(CellCountValidator.validateCacheAndGetNonEmptyValuesCount(2, cachedValues))
+        assertThat(CellCountValidator.validateCacheAndGetNonEmptyValuesCount(2, TWO_PRESENT_ONE_EMPTY_ENTRY_MAP))
                 .isEqualTo(2L);
     }
 
     @Test
     public void testThrowsIfMorePresentCachedCellsThanExpected() {
-        Map<Cell, byte[]> rawValues = cellMapOf("foo", "bar", "baz", "qux");
-        Map<Cell, CacheValue> cachedValues = toCached(rawValues);
+        Map<Cell, CacheValue> cachedValues = toCached(TWO_PRESENT_ENTRIES_MAP);
 
         assertThatLoggableExceptionThrownBy(
                         () -> CellCountValidator.validateCacheAndGetNonEmptyValuesCount(1, cachedValues))
@@ -135,28 +131,18 @@ public class CellCountValidatorTest {
                 .hasExactlyArgs(
                         SafeArg.of("expectedNumberOfCells", 1L),
                         SafeArg.of("numberOfCellsRetrieved", 2),
-                        UnsafeArg.of("retrievedCells", rawValues));
+                        UnsafeArg.of("retrievedCells", TWO_PRESENT_ENTRIES_MAP));
     }
 
-    private Map<Cell, byte[]> cellMapOf(String key, String value, String key2, String value2) {
-        return Map.of(
-                Cell.create(key.getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                value.getBytes(StandardCharsets.UTF_8),
-                Cell.create(key2.getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                value2.getBytes(StandardCharsets.UTF_8));
+    private static Map<Cell, byte[]> cellMapOf(String key, String value) {
+        return Map.of(Cell.create(PtBytes.toBytes(key), PtBytes.toBytes("someColumn")), PtBytes.toBytes(value));
     }
 
-    private Map<Cell, byte[]> cellMapOf(String key, String value) {
-        return Map.of(
-                Cell.create(key.getBytes(StandardCharsets.UTF_8), "someColumn".getBytes(StandardCharsets.UTF_8)),
-                value.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private Map<Cell, CacheValue> cacheCellMapOf(String key, String value) {
+    private static Map<Cell, CacheValue> cacheCellMapOf(String key, String value) {
         return EntryStream.of(cellMapOf(key, value)).mapValues(CacheValue::of).toMap();
     }
 
-    private Map<Cell, CacheValue> toCached(Map<Cell, byte[]> presentValues) {
+    private static Map<Cell, CacheValue> toCached(Map<Cell, byte[]> presentValues) {
         return EntryStream.of(presentValues).mapValues(CacheValue::of).toMap();
     }
 }
